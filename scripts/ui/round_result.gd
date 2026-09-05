@@ -89,7 +89,7 @@ func _reveal_stars(sequence: int, stars: int) -> void:
 			.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 		tween.tween_property(star, "scale", Vector2.ONE, 0.1)
 		# "Pat" sesi — stream M6'da gelecek, pitch her yıldızda biraz yükseliyor.
-		AudioManager.play_sfx(null, 1.0 + 0.12 * float(i))
+		AudioManager.play_sfx(&"star_pat", 1.0 + 0.12 * float(i))
 
 
 # --- Sandıklar ---
@@ -144,7 +144,7 @@ func _reveal_chests(sequence: int) -> void:
 		tween.tween_property(card, "modulate:a", 1.0, 0.18)
 		tween.tween_property(card, "scale", Vector2.ONE, 0.25) \
 			.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
-		AudioManager.play_sfx(null, 0.9)
+		AudioManager.play_sfx(&"chest_open", 0.9)
 		_refresh_dough()
 
 

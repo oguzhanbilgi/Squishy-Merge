@@ -12,6 +12,12 @@ const WALL_THICKNESS: float = 20.0
 const OVERFLOW_GRACE: float = 1.5
 const DROP_COOLDOWN: float = 0.4
 
+## Combo: bu süre içinde art arda gelen merge'ler zincir sayılır
+## (GAME_DESIGN.md §6). Zincir 2'ye ulaşınca combo sesi ve "xN" yazısı.
+const COMBO_WINDOW: float = 1.2
+## Taşma tehlikesindeyken gerilim sesinin tekrar aralığı.
+const DANGER_TICK_INTERVAL: float = 0.5
+
 ## Duvar/taban da sekmeli olmalı, yoksa yalnızca dumpling-dumpling
 ## çarpışmaları zıpluyor ve kap ölü hissettiriyor.
 const WALL_BOUNCE: float = 0.13
@@ -33,6 +39,9 @@ var _next_tier: int = 1
 var _drop_cooldown: float = 0.0
 var _overflow_elapsed: float = 0.0
 var _time_left: float = 0.0
+var _combo_count: int = 0
+var _combo_timer: float = 0.0
+var _danger_tick: float = 0.0
 var _reached_target_tier: bool = false
 var _is_finished: bool = false
 
@@ -46,6 +55,7 @@ var _is_finished: bool = false
 @onready var _objective_label: Label = $HUD/ObjectiveLabel
 @onready var _time_label: Label = $HUD/TimeLabel
 @onready var _status_label: Label = $HUD/StatusLabel
+@onready var _combo_label: Label = $HUD/ComboLabel
 
 
 ## add_child'dan ÖNCE çağrılmalı — geometri _ready'de bundan kuruluyor.
@@ -73,6 +83,7 @@ func _ready() -> void:
 	_on_score_changed(GameState.score)
 	_objective_label.text = "%s — %s" % [level.display_name(), level.objective_text()]
 	_status_label.text = ""
+	_combo_label.text = ""
 	_refresh_time_label()
 
 
@@ -228,8 +239,9 @@ func _resolve_merge(a: Dumpling, b: Dumpling, point: Vector2) -> void:
 
 	GameState.add_score(TierConfig.merge_score(new_tier))
 	GameState.register_merge(new_tier, point)
-	# Ses dosyaları M6'da gelecek; pitch escalation mantığı şimdiden yerinde.
-	AudioManager.play_sfx(null, TierConfig.merge_pitch(new_tier))
+	# Tek sample, tier başına artan pitch (GAME_DESIGN.md §6).
+	AudioManager.play_sfx(&"merge", TierConfig.merge_pitch(new_tier))
+	_register_combo()
 
 	if celebratory:
 		_flash_status("%s!" % TierConfig.tier_name(new_tier))
@@ -237,6 +249,30 @@ func _resolve_merge(a: Dumpling, b: Dumpling, point: Vector2) -> void:
 	if not level.is_endless and new_tier >= level.target_tier:
 		_reached_target_tier = true
 	_check_objective()
+
+
+## Art arda gelen merge'leri zincirler. Tek merge combo sayılmaz.
+func _register_combo() -> void:
+	_combo_count += 1
+	_combo_timer = COMBO_WINDOW
+	if _combo_count < 2:
+		return
+	AudioManager.play_sfx(&"combo", 1.0 + 0.06 * float(mini(_combo_count, 8)))
+	_combo_label.text = "x%d" % _combo_count
+	# Zincir uzadıkça yazı büyüsün (GAME_DESIGN.md §6).
+	var peak: float = minf(1.3 + 0.12 * float(_combo_count), 2.2)
+	var tween := create_tween()
+	tween.tween_property(_combo_label, "scale", Vector2(peak, peak), 0.1).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	tween.tween_property(_combo_label, "scale", Vector2.ONE, 0.15)
+
+
+func _tick_combo(delta: float) -> void:
+	if _combo_timer <= 0.0:
+		return
+	_combo_timer -= delta
+	if _combo_timer <= 0.0:
+		_combo_count = 0
+		_combo_label.text = ""
 
 
 func _spawn_pop(at: Vector2, pop_color: Color, radius: float, celebratory: bool) -> void:
@@ -273,6 +309,8 @@ func _physics_process(delta: float) -> void:
 		if _drop_cooldown == 0.0:
 			_refresh_preview()
 
+	_tick_combo(delta)
+
 	if _is_finished:
 		return
 
@@ -292,10 +330,16 @@ func _physics_process(delta: float) -> void:
 
 	if overflowing:
 		_overflow_elapsed += delta
+		# Gerilim sesi (GAME_DESIGN.md §6): tehlike sürdükçe tekrar eder.
+		_danger_tick -= delta
+		if _danger_tick <= 0.0:
+			AudioManager.play_sfx(&"danger", 1.0)
+			_danger_tick = DANGER_TICK_INTERVAL
 		if _overflow_elapsed >= OVERFLOW_GRACE:
 			_finish(false)
 	else:
 		_overflow_elapsed = 0.0
+		_danger_tick = 0.0
 
 
 func _finish(won: bool) -> void:
@@ -303,7 +347,9 @@ func _finish(won: bool) -> void:
 		return
 	_is_finished = true
 	_preview.visible = false
+	_combo_label.text = ""
 	_status_label.text = "Hedef tamam!" if won else "Bitti"
+	AudioManager.play_sfx(&"level_win" if won else &"level_lose")
 	round_finished.emit(won)
 
 

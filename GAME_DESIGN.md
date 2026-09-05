@@ -153,6 +153,14 @@ döngüsünün yaşadığı yer.
   açılınca kısa bir "unlock" animasyonu
 
 ## 6. Ses tasarımı
+
+> **Ses dosyaları (M6):** Kenney.nl CC0 placeholder — owner kendi asset'leriyle
+> değiştirecek. **Dosya isimleri sabit tutulmalı** ki değişim kod dokunmadan
+> olsun; `assets/audio/` altındaki dosyanın üzerine aynı isimle yazmak yeterli.
+> Eşleşme tablosu ve kaynaklar: `assets/audio/CREDITS.md`.
+> Bus yapısı: Master → SFX / Music (`default_bus_layout.tres`).
+> Tier başına pitch escalation tek sample üzerinden yapılıyor, ayrı dosya yok.
+
 - Her tier'ın merge sesi bir öncekinden hafifçe yüksek pitch'te (escalation)
 - Combo yapılırsa (kısa süre içinde art arda merge) ekstra "combo" sesi +
   ekranda büyüyen "xN" yazısı
