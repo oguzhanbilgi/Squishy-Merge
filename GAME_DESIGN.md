@@ -106,6 +106,11 @@ döngüsünün yaşadığı yer.
 >
 > Sonsuz modda yıldız yok; sadece skor ve kişisel rekor.
 >
+> **L10 istisnası:** bitirme koşulu (tier 8 + skor ≥5000) zaten p85 eşiğinin
+> (4990) üstünde olduğu için L10'u tamamlamak her zaman 3★ verir. Bu kasıtlı —
+> L10 oyunun finali, bitirmek başlı başına üst düzey başarı sayılıyor. Formüle
+> istisna eklenmedi.
+>
 > Eşikler `TierConfig.SCORE_P50` / `SCORE_P85` dizilerinde sabit duruyor —
 > percentile kapalı formülle çıkmadığı için koddan hesaplanamıyor. **Merge puan
 > tablosu değişirse script tekrar çalıştırılıp bu diziler güncellenmeli.**
@@ -139,6 +144,7 @@ döngüsünün yaşadığı yer.
 
 ### 5.4 Günlük döngü
 - Günlük giriş ödülü (küçük, sabit) + ardışık gün sayacı (streak)
+- Ödül miktarı: **15 Hamur** — §5.2'deki oranlarla aynı gerekçeyle GEÇİCİ
 - Seri kırılırsa sayaç sıfırlanır — bu v1.1 reklam/monetizasyon kapısını
   açar ama v1'de sadece görüntülenir, işlevsel bir ödeme yok
 

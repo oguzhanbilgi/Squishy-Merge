@@ -136,3 +136,19 @@ func record_stars(level_number: int, stars: int) -> void:
 	all_stars[str(level_number)] = stars
 	data["level_stars"] = all_stars
 	save_game()
+
+
+# --- Günlük giriş (M5) ---
+
+func daily_streak() -> int:
+	return int(data.get("daily_streak", 0))
+
+
+func last_login_date() -> String:
+	return String(data.get("last_login_date", ""))
+
+
+func record_daily_login(date: String, streak: int) -> void:
+	data["last_login_date"] = date
+	data["daily_streak"] = streak
+	save_game()

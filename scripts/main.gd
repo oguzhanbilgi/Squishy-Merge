@@ -7,6 +7,7 @@ const LEVEL_SELECT_SCENE: PackedScene = preload("res://scenes/ui/level_select.ts
 const GAME_BOARD_SCENE: PackedScene = preload("res://scenes/game/game_board.tscn")
 const ROUND_RESULT_SCENE: PackedScene = preload("res://scenes/ui/round_result.tscn")
 const COLLECTION_SCENE: PackedScene = preload("res://scenes/ui/collection_album.tscn")
+const DAILY_POPUP_SCENE: PackedScene = preload("res://scenes/ui/daily_reward_popup.tscn")
 
 ## Round bitip sonuç ekranı açılmadan önceki kısa nefes payı — son merge'in
 ## efekti ekranda kalsın diye.
@@ -16,6 +17,7 @@ var _select: CanvasLayer
 var _board: Node2D
 var _result: CanvasLayer
 var _album: CanvasLayer
+var _daily: CanvasLayer
 var _current_level: LevelData
 
 
@@ -34,6 +36,23 @@ func _ready() -> void:
 	_album.closed.connect(_on_album_closed)
 	add_child(_album)
 	_album.visible = false
+
+	_daily = DAILY_POPUP_SCENE.instantiate()
+	_daily.closed.connect(_on_daily_closed)
+	add_child(_daily)
+
+	_check_daily_reward()
+
+
+## Günlük giriş ödülü (GAME_DESIGN.md §5.4). Günde bir kez, açılışta.
+func _check_daily_reward() -> void:
+	var result: Dictionary = DailyReward.claim_if_new_day()
+	if result["claimed"]:
+		_daily.show_reward(result)
+
+
+func _on_daily_closed() -> void:
+	_select.refresh()
 
 
 func _start_level(level: LevelData) -> void:

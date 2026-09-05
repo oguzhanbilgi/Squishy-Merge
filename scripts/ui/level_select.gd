@@ -40,9 +40,10 @@ func refresh() -> void:
 	var endless_unlocked: bool = SaveManager.is_endless_unlocked(_levels.size())
 	_endless_button.disabled = not endless_unlocked
 	_endless_button.text = "Sonsuz Mod" if endless_unlocked else "Sonsuz Mod (Level %d'i bitir)" % _levels.size()
-	_record_label.text = "Sonsuz mod rekoru: %d   ·   Hamur: %d   ·   Koleksiyon: %d/%d" % [
+	_record_label.text = "Sonsuz mod rekoru: %d   ·   Hamur: %d   ·   Koleksiyon: %d/%d\nGünlük seri: %d gün" % [
 		SaveManager.endless_high_score(), SaveManager.dough(),
-		SaveManager.owned_skins().size(), SkinLibrary.total_count()]
+		SaveManager.owned_skins().size(), SkinLibrary.total_count(),
+		SaveManager.daily_streak()]
 
 
 func _on_level_pressed(level: LevelData) -> void:
