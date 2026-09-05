@@ -167,6 +167,9 @@ döngüsünün yaşadığı yer.
 - Danger state (taşmaya yakın): kap kenarında kırmızı titreşen highlight +
   gerilim hissi veren düşük bir drone/tık sesi
 
+> **Arka plan müziği v1 non-goal** — bilinçli olarak eklenmedi, tekrar
+> sorulmasına gerek yok. (Music bus'ı yapıda duruyor ama boş.)
+
 ## 7. UI / HUD
 Referans: owner'ın ürettiği moodboard görseli (skor, para, "next" önizleme,
 taşma çizgisi, kap, alt sırada mevcut/gelecek dumpling sırası). Görsel stil
