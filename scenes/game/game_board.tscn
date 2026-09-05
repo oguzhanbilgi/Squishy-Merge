@@ -1,0 +1,42 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/game/game_board.gd" id="1_board"]
+[ext_resource type="Script" path="res://scripts/game/dumpling_visual.gd" id="2_visual"]
+
+[node name="GameBoard" type="Node2D"]
+script = ExtResource("1_board")
+
+[node name="Walls" type="StaticBody2D" parent="."]
+
+[node name="DumplingLayer" type="Node2D" parent="."]
+
+[node name="OverflowArea" type="Area2D" parent="."]
+monitoring = true
+
+[node name="OverflowShape" type="CollisionShape2D" parent="OverflowArea"]
+
+[node name="Preview" type="Node2D" parent="."]
+script = ExtResource("2_visual")
+
+[node name="HUD" type="CanvasLayer" parent="."]
+
+[node name="ScoreLabel" type="Label" parent="HUD"]
+offset_left = 24.0
+offset_top = 24.0
+offset_right = 400.0
+offset_bottom = 60.0
+text = "Skor: 0"
+
+[node name="NextLabel" type="Label" parent="HUD"]
+offset_left = 24.0
+offset_top = 66.0
+offset_right = 500.0
+offset_bottom = 102.0
+text = "Sıradaki: -"
+
+[node name="StatusLabel" type="Label" parent="HUD"]
+anchor_right = 1.0
+offset_top = 640.0
+offset_bottom = 700.0
+horizontal_alignment = 1
+text = ""

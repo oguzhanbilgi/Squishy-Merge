@@ -1,7 +1,9 @@
 extends Node2D
-## Uygulamanın giriş noktası. M0 iskeletinde sadece ortamın ayakta olduğunu
-## gösterir; oyun sahnesi M1'de buraya bağlanacak.
+## Uygulamanın giriş noktası. M1'de doğrudan oyun tahtasını yükler;
+## menü/level akışı M2'de buraya bağlanacak.
+
+const GAME_BOARD_SCENE: PackedScene = preload("res://scenes/game/game_board.tscn")
 
 
 func _ready() -> void:
-	print("Squishy Merge — iskelet ayakta. Godot %s" % Engine.get_version_info().string)
+	add_child(GAME_BOARD_SCENE.instantiate())

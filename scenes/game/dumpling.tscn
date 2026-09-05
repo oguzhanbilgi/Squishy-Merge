@@ -1,0 +1,15 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/game/dumpling.gd" id="1_dumpling"]
+[ext_resource type="Script" path="res://scripts/game/dumpling_visual.gd" id="2_visual"]
+
+[node name="Dumpling" type="RigidBody2D"]
+contact_monitor = true
+max_contacts_reported = 8
+continuous_cd = 1
+script = ExtResource("1_dumpling")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+
+[node name="Visual" type="Node2D" parent="."]
+script = ExtResource("2_visual")
