@@ -47,3 +47,14 @@ static func merge_pitch(tier: int) -> float:
 
 static func random_drop_tier() -> int:
 	return randi_range(1, DROP_POOL_MAX_TIER)
+
+
+## Bir tier'a ulaşmak için kazanılabilecek DETERMİNİSTİK MİNİMUM skor.
+## En büyük drop'la (tier 3) en az sayıda merge yapıldığında oluşan toplam:
+## daha küçük tier'lardan başlamak daha çok merge, dolayısıyla daha çok puan
+## demek. Yıldız eşikleri bunun katları (GAME_DESIGN.md §5.1).
+static func min_score_for_tier(tier: int) -> int:
+	var total: int = 0
+	for t in range(DROP_POOL_MAX_TIER + 1, tier + 1):
+		total += merge_score(t) * (1 << (tier - t))
+	return total

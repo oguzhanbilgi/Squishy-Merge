@@ -84,6 +84,21 @@ döngüsünün yaşadığı yer.
 ## 5. Ödül / bağımlılık sistemi
 
 ### 5.1 Level sonu akışı
+
+> **Yıldız kriteri (M3'te tanımlandı):** Her level'ın hedef tier'ına ulaşmanın
+> bir *deterministik minimum skoru* var — en büyük drop'la (tier 3) en az
+> sayıda merge yapıldığında kazanılan puan. Daha küçük parçalarla başlamak
+> daha çok merge, dolayısıyla daha çok puan demek; bu yüzden o değer bir taban.
+>
+> - **1★** — level hedefini tamamla (mevcut kazanma koşulu)
+> - **2★** — kazan VE skor ≥ minimumun **1.15** katı
+> - **3★** — kazan VE skor ≥ minimumun **1.35** katı
+>
+> Sonsuz modda yıldız yok; sadece skor ve kişisel rekor.
+>
+> Eşikler koddan hesaplanıyor (`TierConfig.min_score_for_tier`), sabit
+> yazılmıyor — puan tablosu değişirse eşikler kendiliğinden kayar.
+
 1. Hedefe ulaşıldı/ulaşılamadı ekranı
 2. 1-3 yıldız, TEK TEK gecikmeli reveal (her biri ~400ms arayla, "pat" sesiyle)
 3. Sandık açılış animasyonu (aşağıya bakın)
