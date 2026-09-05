@@ -35,6 +35,11 @@ uydurulmaz.
 | 7 | Jumbo Dumpling | |
 | 8 | Dumpling Kralı | Özel efekt tetikler |
 
+> **Not (M1):** Merge puan tablosu — tier 2'ye birleşince 20, sonra sırasıyla
+> 30/40/50/60/70/80/100 — **GEÇİCİ**. M2'de kap boyutu düzeltildikten sonra
+> gerçek oynanışa bakılarak kilitlenecek. Level 10'un "skor ≥ 5000" hedefi
+> bu tabloya bağlı.
+
 Sadece tier 1-3 arası rastgele düşer (drop pool). Bu, Suika-tarzı oyunların
 standart zorluk dengelemesi — üst tier'lar sadece merge ile elde edilir.
 

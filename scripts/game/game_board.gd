@@ -12,12 +12,16 @@ const WALL_THICKNESS: float = 20.0
 const OVERFLOW_GRACE: float = 1.5
 const DROP_COOLDOWN: float = 0.4
 
-## Kabın iç genişliği. M2'de level verisinden gelecek; şimdilik sabit.
+## Kap geometrisi. M2'de level verisinden gelecek; şimdilik sabit.
+## Oynanabilir yükseklik (taban - taşma çizgisi) = 400 px: ~11-12 adet tier 5
+## istiflenince çizgiye ulaşılıyor (M1'de ölçüldü).
+## Kap çizginin 420 px üstüne kadar uzuyor: hem ekranı dolduruyor hem de
+## 1.5 sn'lik grace süresinde yığının çizgiyi aşması görünür oluyor.
 @export var container_width: float = 600.0
-@export var container_top_y: float = 240.0
+@export var container_top_y: float = 360.0
 @export var floor_y: float = 1180.0
-@export var overflow_line_y: float = 300.0
-@export var drop_line_y: float = 170.0
+@export var overflow_line_y: float = 780.0
+@export var drop_line_y: float = 270.0
 
 var _aim_x: float = 360.0
 var _pending_tier: int = 1

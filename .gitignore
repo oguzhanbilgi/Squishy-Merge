@@ -15,6 +15,10 @@ data_*/
 *.jks
 keystore.properties
 
+# Owner'ın projeler arası kişisel çalışma profili — repo public olacağı için
+# takip edilmiyor (owner kararı)
+OWNER_WORKING_PROFILE.md
+
 # OS
 .DS_Store
 Thumbs.db
