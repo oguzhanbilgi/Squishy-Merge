@@ -1,0 +1,46 @@
+extends CanvasLayer
+## Level seçim ekranı. Kilitli level'lar devre dışı görünür.
+## GAME_DESIGN.md §5.5'teki yol/düğüm görselleştirmesi ve unlock animasyonu
+## henüz yok — bu ekran şimdilik işlevsel, görsel hâli owner asset'leriyle gelecek.
+
+signal level_chosen(level: LevelData)
+
+var _levels: Array[LevelData] = []
+
+@onready var _grid: GridContainer = $Margin/VBox/Grid
+@onready var _endless_button: Button = $Margin/VBox/Endless
+@onready var _record_label: Label = $Margin/VBox/Record
+
+
+func _ready() -> void:
+	_levels = LevelLibrary.load_levels()
+	_endless_button.pressed.connect(_on_endless_pressed)
+	refresh()
+
+
+func refresh() -> void:
+	for child in _grid.get_children():
+		child.queue_free()
+
+	for level in _levels:
+		var button := Button.new()
+		button.text = str(level.level_number)
+		button.custom_minimum_size = Vector2(96.0, 96.0)
+		button.disabled = not SaveManager.is_level_unlocked(level.level_number)
+		button.pressed.connect(_on_level_pressed.bind(level))
+		_grid.add_child(button)
+
+	var endless_unlocked: bool = SaveManager.is_endless_unlocked(_levels.size())
+	_endless_button.disabled = not endless_unlocked
+	_endless_button.text = "Sonsuz Mod" if endless_unlocked else "Sonsuz Mod (Level %d'i bitir)" % _levels.size()
+	_record_label.text = "Sonsuz mod rekoru: %d" % SaveManager.endless_high_score()
+
+
+func _on_level_pressed(level: LevelData) -> void:
+	level_chosen.emit(level)
+
+
+func _on_endless_pressed() -> void:
+	var endless := LevelLibrary.load_endless()
+	if endless != null:
+		level_chosen.emit(endless)

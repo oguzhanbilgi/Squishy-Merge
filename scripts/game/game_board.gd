@@ -1,8 +1,8 @@
 extends Node2D
-## Oyun tahtası: kap, drop kontrolü, merge çözümü ve taşma (fail) kontrolü.
-## GAME_DESIGN.md §1-2. Level/süre/hedef mantığı M2'de eklenecek.
+## Oyun tahtası: kap, drop kontrolü, merge çözümü, hedef/süre takibi ve
+## taşma (fail) kontrolü. Geometri ve hedefler LevelData'dan gelir.
 
-signal game_over
+signal round_finished(won: bool)
 
 const DUMPLING_SCENE: PackedScene = preload("res://scenes/game/dumpling.tscn")
 const POP_EFFECT_SCENE: PackedScene = preload("res://scenes/game/pop_effect.tscn")
@@ -11,28 +11,30 @@ const WALL_THICKNESS: float = 20.0
 ## Taşma çizgisine bu süre boyunca temas edilirse round biter (GAME_DESIGN.md §1).
 const OVERFLOW_GRACE: float = 1.5
 const DROP_COOLDOWN: float = 0.4
+
 ## Duvar/taban da sekmeli olmalı, yoksa yalnızca dumpling-dumpling
 ## çarpışmaları zıpluyor ve kap ölü hissettiriyor.
 const WALL_BOUNCE: float = 0.13
 const WALL_FRICTION: float = 0.5
 
-## Kap geometrisi. M2'de level verisinden gelecek; şimdilik sabit.
-## Oynanabilir yükseklik (taban - taşma çizgisi) = 400 px: ~11-12 adet tier 5
-## istiflenince çizgiye ulaşılıyor (M1'de ölçüldü).
-## Kap çizginin 420 px üstüne kadar uzuyor: hem ekranı dolduruyor hem de
-## 1.5 sn'lik grace süresinde yığının çizgiyi aşması görünür oluyor.
-@export var container_width: float = 600.0
-@export var container_top_y: float = 360.0
-@export var floor_y: float = 1180.0
-@export var overflow_line_y: float = 780.0
-@export var drop_line_y: float = 270.0
+## Kabın tabanı — tüm level'larda sabit, ekranın altına yakın.
+const FLOOR_Y: float = 1180.0
+## Taşma çizgisinin üstünde kalan görünür duvar payı. M1'de belirlendi: hem
+## ekranı dolduruyor hem de grace süresinde yığının çizgiyi aşması görünüyor.
+const RIM_ABOVE_LINE: float = 420.0
+## Drop çizgisi kabın ağzının bu kadar üstünde.
+const DROP_LINE_ABOVE_RIM: float = 90.0
+
+var level: LevelData
 
 var _aim_x: float = 360.0
 var _pending_tier: int = 1
 var _next_tier: int = 1
 var _drop_cooldown: float = 0.0
 var _overflow_elapsed: float = 0.0
-var _is_game_over: bool = false
+var _time_left: float = 0.0
+var _reached_target_tier: bool = false
+var _is_finished: bool = false
 
 @onready var _walls: StaticBody2D = $Walls
 @onready var _dumpling_layer: Node2D = $DumplingLayer
@@ -41,13 +43,26 @@ var _is_game_over: bool = false
 @onready var _preview: Node2D = $Preview
 @onready var _score_label: Label = $HUD/ScoreLabel
 @onready var _next_label: Label = $HUD/NextLabel
+@onready var _objective_label: Label = $HUD/ObjectiveLabel
+@onready var _time_label: Label = $HUD/TimeLabel
 @onready var _status_label: Label = $HUD/StatusLabel
 
 
+## add_child'dan ÖNCE çağrılmalı — geometri _ready'de bundan kuruluyor.
+func setup(level_data: LevelData) -> void:
+	level = level_data
+
+
 func _ready() -> void:
+	if level == null:
+		push_error("GameBoard level'sız başlatıldı.")
+		return
+
 	GameState.reset_run()
+	GameState.current_level = level.level_number
 	GameState.score_changed.connect(_on_score_changed)
 
+	_time_left = level.time_limit
 	_build_walls()
 	_setup_overflow_area()
 
@@ -56,22 +71,38 @@ func _ready() -> void:
 	_next_tier = TierConfig.random_drop_tier()
 	_refresh_preview()
 	_on_score_changed(GameState.score)
+	_objective_label.text = "%s — %s" % [level.display_name(), level.objective_text()]
 	_status_label.text = ""
+	_refresh_time_label()
 
 
-func _left_x() -> float:
-	return _center_x() - container_width * 0.5
-
-
-func _right_x() -> float:
-	return _center_x() + container_width * 0.5
-
+# --- Geometri ---
 
 func _center_x() -> float:
 	return get_viewport_rect().size.x * 0.5
 
 
-## Kap duvarları koddan kuruluyor — M2'de level başına genişlik değişebilsin diye.
+func _left_x() -> float:
+	return _center_x() - level.container_width * 0.5
+
+
+func _right_x() -> float:
+	return _center_x() + level.container_width * 0.5
+
+
+func overflow_line_y() -> float:
+	return FLOOR_Y - level.playable_height
+
+
+func container_top_y() -> float:
+	return overflow_line_y() - RIM_ABOVE_LINE
+
+
+func drop_line_y() -> float:
+	return container_top_y() - DROP_LINE_ABOVE_RIM
+
+
+## Kap duvarları koddan kuruluyor — level başına genişlik değişebilsin diye.
 func _build_walls() -> void:
 	for child in _walls.get_children():
 		child.queue_free()
@@ -81,13 +112,14 @@ func _build_walls() -> void:
 	wall_material.bounce = WALL_BOUNCE
 	_walls.physics_material_override = wall_material
 
-	var height: float = floor_y - container_top_y
-	_add_wall(Vector2(_left_x() - WALL_THICKNESS * 0.5, container_top_y + height * 0.5),
+	var top: float = container_top_y()
+	var height: float = FLOOR_Y - top
+	_add_wall(Vector2(_left_x() - WALL_THICKNESS * 0.5, top + height * 0.5),
 		Vector2(WALL_THICKNESS, height))
-	_add_wall(Vector2(_right_x() + WALL_THICKNESS * 0.5, container_top_y + height * 0.5),
+	_add_wall(Vector2(_right_x() + WALL_THICKNESS * 0.5, top + height * 0.5),
 		Vector2(WALL_THICKNESS, height))
-	_add_wall(Vector2(_center_x(), floor_y + WALL_THICKNESS * 0.5),
-		Vector2(container_width + WALL_THICKNESS * 2.0, WALL_THICKNESS))
+	_add_wall(Vector2(_center_x(), FLOOR_Y + WALL_THICKNESS * 0.5),
+		Vector2(level.container_width + WALL_THICKNESS * 2.0, WALL_THICKNESS))
 	queue_redraw()
 
 
@@ -102,28 +134,29 @@ func _add_wall(at: Vector2, size: Vector2) -> void:
 
 func _setup_overflow_area() -> void:
 	var shape := RectangleShape2D.new()
-	shape.size = Vector2(container_width, 8.0)
+	shape.size = Vector2(level.container_width, 8.0)
 	_overflow_shape.shape = shape
-	_overflow_shape.position = Vector2(_center_x(), overflow_line_y)
+	_overflow_shape.position = Vector2(_center_x(), overflow_line_y())
 
 
 func _draw() -> void:
+	if level == null:
+		return
 	var wall_color := Color("6b5a52")
-	var height: float = floor_y - container_top_y
-	draw_rect(Rect2(_left_x() - WALL_THICKNESS, container_top_y, WALL_THICKNESS, height), wall_color)
-	draw_rect(Rect2(_right_x(), container_top_y, WALL_THICKNESS, height), wall_color)
-	draw_rect(Rect2(_left_x() - WALL_THICKNESS, floor_y,
-		container_width + WALL_THICKNESS * 2.0, WALL_THICKNESS), wall_color)
-
-	# Taşma çizgisi
-	draw_dashed_line(Vector2(_left_x(), overflow_line_y), Vector2(_right_x(), overflow_line_y),
-		Color(1.0, 0.35, 0.35, 0.55), 2.0, 12.0)
+	var top: float = container_top_y()
+	var height: float = FLOOR_Y - top
+	draw_rect(Rect2(_left_x() - WALL_THICKNESS, top, WALL_THICKNESS, height), wall_color)
+	draw_rect(Rect2(_right_x(), top, WALL_THICKNESS, height), wall_color)
+	draw_rect(Rect2(_left_x() - WALL_THICKNESS, FLOOR_Y,
+		level.container_width + WALL_THICKNESS * 2.0, WALL_THICKNESS), wall_color)
+	draw_dashed_line(Vector2(_left_x(), overflow_line_y()),
+		Vector2(_right_x(), overflow_line_y()), Color(1.0, 0.35, 0.35, 0.55), 2.0, 12.0)
 
 
 # --- Girdi: parmağı sürükle, bırakınca düşür (GAME_DESIGN.md §1) ---
 
 func _unhandled_input(event: InputEvent) -> void:
-	if _is_game_over:
+	if _is_finished:
 		return
 
 	var drag := event as InputEventScreenDrag
@@ -147,7 +180,7 @@ func _set_aim(x: float) -> void:
 
 
 func _refresh_preview() -> void:
-	_preview.position = Vector2(_aim_x, drop_line_y)
+	_preview.position = Vector2(_aim_x, drop_line_y())
 	_preview.setup(TierConfig.radius(_pending_tier), TierConfig.color(_pending_tier))
 	_preview.modulate.a = 1.0 if _drop_cooldown <= 0.0 else 0.4
 	_next_label.text = "Sıradaki: %s" % TierConfig.tier_name(_next_tier)
@@ -156,7 +189,7 @@ func _refresh_preview() -> void:
 func _drop() -> void:
 	if _drop_cooldown > 0.0:
 		return
-	_spawn_dumpling(_pending_tier, Vector2(_aim_x, drop_line_y))
+	_spawn_dumpling(_pending_tier, Vector2(_aim_x, drop_line_y()))
 	_pending_tier = _next_tier
 	_next_tier = TierConfig.random_drop_tier()
 	_drop_cooldown = DROP_COOLDOWN
@@ -175,7 +208,7 @@ func _spawn_dumpling(tier: int, at: Vector2) -> Dumpling:
 # --- Merge ---
 
 func _on_merge_requested(a: Dumpling, b: Dumpling, point: Vector2) -> void:
-	# Fizik callback'i içindeyiz; node ekleme/silme bir sonraki kareye ertelenmeli.
+	# Fizik callback'i icindeyiz; node ekleme/silme bir sonraki kareye ertelenmeli.
 	_resolve_merge.call_deferred(a, b, point)
 
 
@@ -199,10 +232,11 @@ func _resolve_merge(a: Dumpling, b: Dumpling, point: Vector2) -> void:
 	AudioManager.play_sfx(null, TierConfig.merge_pitch(new_tier))
 
 	if celebratory:
-		_status_label.text = "%s!" % TierConfig.tier_name(new_tier)
-		await get_tree().create_timer(2.0).timeout
-		if not _is_game_over:
-			_status_label.text = ""
+		_flash_status("%s!" % TierConfig.tier_name(new_tier))
+
+	if not level.is_endless and new_tier >= level.target_tier:
+		_reached_target_tier = true
+	_check_objective()
 
 
 func _spawn_pop(at: Vector2, pop_color: Color, radius: float, celebratory: bool) -> void:
@@ -212,7 +246,26 @@ func _spawn_pop(at: Vector2, pop_color: Color, radius: float, celebratory: bool)
 	effect.burst(pop_color, radius, celebratory)
 
 
-# --- Taşma kontrolü ---
+func _flash_status(text: String) -> void:
+	_status_label.text = text
+	await get_tree().create_timer(2.0).timeout
+	if not _is_finished and _status_label.text == text:
+		_status_label.text = ""
+
+
+# --- Hedef, süre, taşma ---
+
+## Hedef tier'a ulaşmak yetmez; level 10'da ayrıca skor hedefi var, o yüzden
+## her merge'den sonra iki koşul birlikte kontrol ediliyor.
+func _check_objective() -> void:
+	if _is_finished or level.is_endless:
+		return
+	if not _reached_target_tier:
+		return
+	if level.has_score_target() and GameState.score < level.target_score:
+		return
+	_finish(true)
+
 
 func _physics_process(delta: float) -> void:
 	if _drop_cooldown > 0.0:
@@ -220,8 +273,15 @@ func _physics_process(delta: float) -> void:
 		if _drop_cooldown == 0.0:
 			_refresh_preview()
 
-	if _is_game_over:
+	if _is_finished:
 		return
+
+	if level.has_time_limit():
+		_time_left = maxf(0.0, _time_left - delta)
+		_refresh_time_label()
+		if _time_left == 0.0:
+			_finish(false)
+			return
 
 	var overflowing: bool = false
 	for body in _overflow_area.get_overlapping_bodies():
@@ -233,16 +293,25 @@ func _physics_process(delta: float) -> void:
 	if overflowing:
 		_overflow_elapsed += delta
 		if _overflow_elapsed >= OVERFLOW_GRACE:
-			_end_round()
+			_finish(false)
 	else:
 		_overflow_elapsed = 0.0
 
 
-func _end_round() -> void:
-	_is_game_over = true
+func _finish(won: bool) -> void:
+	if _is_finished:
+		return
+	_is_finished = true
 	_preview.visible = false
-	_status_label.text = "Taştı! Skor: %d" % GameState.score
-	game_over.emit()
+	_status_label.text = "Hedef tamam!" if won else "Bitti"
+	round_finished.emit(won)
+
+
+func _refresh_time_label() -> void:
+	if not level.has_time_limit():
+		_time_label.text = ""
+		return
+	_time_label.text = "Süre: %d" % ceili(_time_left)
 
 
 func _on_score_changed(new_score: int) -> void:

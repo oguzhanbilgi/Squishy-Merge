@@ -40,10 +40,13 @@ uydurulmaz.
 | 7 | Jumbo Dumpling | |
 | 8 | Dumpling Kralı | Özel efekt tetikler |
 
-> **Not (M1):** Merge puan tablosu — tier 2'ye birleşince 20, sonra sırasıyla
-> 30/40/50/60/70/80/100 — **GEÇİCİ**. M2'de kap boyutu düzeltildikten sonra
-> gerçek oynanışa bakılarak kilitlenecek. Level 10'un "skor ≥ 5000" hedefi
-> bu tabloya bağlı.
+> **Merge puan tablosu (M2'de KİLİTLENDİ):** bir tier'a birleşildiğinde
+> kazanılan puan — tier 2: 50, 3: 70, 4: 90, 5: 110, 6: 130, 7: 150, 8: 200.
+> M2 balans pasında modellendi: tier 8'e ulaşan oyuncunun skoru medyan ~4740
+> (p5 4360 / p95 5150), yani level 10'un "skor ≥ 5000" hedefine 2-3 merge
+> kalıyor — hedef anlamlı kalıyor ama ikinci bir yığın kurmayı gerektirmiyor.
+> Önceki tablo (30/40/50/60/70/80/100) tier 8'de sadece ~2630 veriyordu ve
+> level 10'u pratikte imkânsız kılıyordu.
 
 Sadece tier 1-3 arası rastgele düşer (drop pool). Bu, Suika-tarzı oyunların
 standart zorluk dengelemesi — üst tier'lar sadece merge ile elde edilir.
@@ -65,6 +68,12 @@ standart zorluk dengelemesi — üst tier'lar sadece merge ile elde edilir.
 
 Level datası bir Godot Resource (`.tres`) olarak tanımlanır — kod değişmeden
 yeni level eklenebilmeli (data-driven, owner'ın istediği gibi).
+
+> **Kap genişliği px karşılıkları (M2'de ölçümle belirlendi):**
+> Geniş 600 · Orta-geniş 540 · Orta 480 · Dar 420 · En dar 370.
+> Oynanabilir yükseklik (taban–taşma çizgisi) tüm level'larda 400 px
+> (M1'de ölçülerek kilitlendi); GAME_DESIGN yüksekliği level başına
+> değiştirmiyor. En dar kap tier 8'in 264 px çapına 106 px pay bırakıyor.
 
 ## 4. Sonsuz mod
 

@@ -1,0 +1,41 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/ui/level_select.gd" id="1_select"]
+
+[node name="LevelSelect" type="CanvasLayer"]
+layer = 5
+script = ExtResource("1_select")
+
+[node name="Background" type="ColorRect" parent="."]
+anchor_right = 1.0
+anchor_bottom = 1.0
+color = Color(0.16, 0.15, 0.18, 1)
+
+[node name="Margin" type="MarginContainer" parent="."]
+anchor_right = 1.0
+anchor_bottom = 1.0
+theme_override_constants/margin_left = 40
+theme_override_constants/margin_top = 60
+theme_override_constants/margin_right = 40
+theme_override_constants/margin_bottom = 60
+
+[node name="VBox" type="VBoxContainer" parent="Margin"]
+alignment = 1
+theme_override_constants/separation = 28
+
+[node name="Title" type="Label" parent="Margin/VBox"]
+text = "Squishy Merge"
+horizontal_alignment = 1
+
+[node name="Grid" type="GridContainer" parent="Margin/VBox"]
+columns = 5
+theme_override_constants/h_separation = 16
+theme_override_constants/v_separation = 16
+
+[node name="Endless" type="Button" parent="Margin/VBox"]
+custom_minimum_size = Vector2(0, 72)
+text = "Sonsuz Mod"
+
+[node name="Record" type="Label" parent="Margin/VBox"]
+horizontal_alignment = 1
+text = "Sonsuz mod rekoru: 0"

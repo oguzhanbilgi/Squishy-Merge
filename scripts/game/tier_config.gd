@@ -9,14 +9,14 @@ const MAX_TIER: int = 8
 const DROP_POOL_MAX_TIER: int = 3
 
 const TIERS: Array[Dictionary] = [
-	{"name": "Mini Dumpling",   "radius": 22.0,  "color": Color("ffd9a0"), "score": 20},
-	{"name": "Küçük Dumpling",  "radius": 30.0,  "color": Color("ffb3ba"), "score": 30},
-	{"name": "Dumpling",        "radius": 40.0,  "color": Color("baffc9"), "score": 40},
-	{"name": "Şişkin Dumpling", "radius": 52.0,  "color": Color("bae1ff"), "score": 50},
-	{"name": "Büyük Dumpling",  "radius": 66.0,  "color": Color("e3baff"), "score": 60},
-	{"name": "Dev Dumpling",    "radius": 84.0,  "color": Color("fff5ba"), "score": 70},
-	{"name": "Jumbo Dumpling",  "radius": 106.0, "color": Color("ffab76"), "score": 80},
-	{"name": "Dumpling Kralı",  "radius": 132.0, "color": Color("ff6b8a"), "score": 100},
+	{"name": "Mini Dumpling",   "radius": 22.0,  "color": Color("ffd9a0"), "score": 0},
+	{"name": "Küçük Dumpling",  "radius": 30.0,  "color": Color("ffb3ba"), "score": 50},
+	{"name": "Dumpling",        "radius": 40.0,  "color": Color("baffc9"), "score": 70},
+	{"name": "Şişkin Dumpling", "radius": 52.0,  "color": Color("bae1ff"), "score": 90},
+	{"name": "Büyük Dumpling",  "radius": 66.0,  "color": Color("e3baff"), "score": 110},
+	{"name": "Dev Dumpling",    "radius": 84.0,  "color": Color("fff5ba"), "score": 130},
+	{"name": "Jumbo Dumpling",  "radius": 106.0, "color": Color("ffab76"), "score": 150},
+	{"name": "Dumpling Kralı",  "radius": 132.0, "color": Color("ff6b8a"), "score": 200},
 ]
 
 
@@ -28,7 +28,10 @@ static func color(tier: int) -> Color:
 	return TIERS[tier - 1]["color"]
 
 
-## Bu tier'a birleşildiğinde kazanılan puan.
+## Bu tier'a birleşildiğinde kazanılan puan. Tier 1'inki hiç kullanılmaz
+## (tier 1'e birleşilmez), o yüzden 0.
+## M2'de KİLİTLENDİ: bu tabloyla tier 8'e ulaşan oyuncunun skoru medyan
+## ~4740 oluyor, level 10'un 5000 hedefine 2-3 merge kalıyor.
 static func merge_score(tier: int) -> int:
 	return TIERS[tier - 1]["score"]
 

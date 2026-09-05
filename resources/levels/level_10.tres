@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="LevelData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/game/level_data.gd" id="1_level"]
+
+[resource]
+script = ExtResource("1_level")
+level_number = 10
+target_tier = 8
+target_score = 5000
+container_width = 370.0
+playable_height = 400.0
+time_limit = 90.0
+is_endless = false

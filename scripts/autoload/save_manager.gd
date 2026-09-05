@@ -45,3 +45,38 @@ func save_game() -> void:
 		return
 	file.store_string(JSON.stringify(data, "\t"))
 	file.close()
+
+
+# --- İlerleme (M2) ---
+
+func highest_level_unlocked() -> int:
+	return int(data.get("highest_level_unlocked", 1))
+
+
+func is_level_unlocked(level_number: int) -> bool:
+	return level_number <= highest_level_unlocked()
+
+
+## Level tamamlandığında bir sonrakini açar. Geriye gitmez.
+func complete_level(level_number: int) -> void:
+	if level_number + 1 > highest_level_unlocked():
+		data["highest_level_unlocked"] = level_number + 1
+		save_game()
+
+
+## Sonsuz mod level 10 bitince açılır (GAME_DESIGN.md §4).
+func is_endless_unlocked(total_levels: int) -> bool:
+	return highest_level_unlocked() > total_levels
+
+
+func endless_high_score() -> int:
+	return int(data.get("endless_high_score", 0))
+
+
+## Yeni rekor kırıldıysa true döner.
+func record_endless_score(score: int) -> bool:
+	if score <= endless_high_score():
+		return false
+	data["endless_high_score"] = score
+	save_game()
+	return true
