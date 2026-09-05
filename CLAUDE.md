@@ -52,7 +52,7 @@ Aşağıdakileri kontrol et ve sonucu owner'a raporla, eksik olan varsa kurulum
 adımlarını öner (kurma, sadece raporla — owner onaylamadan sistem geneli
 kurulum yapma):
 ```
-godot --version          # 4.7.x bekleniyor
+godot --version          # 4.6.3-stable bekleniyor
 echo %ANDROID_HOME%      # veya $ANDROID_HOME (platforma göre)
 java -version            # Android export için JDK gerekli
 ```

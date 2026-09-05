@@ -1,14 +1,14 @@
 # Squishy Merge
 
 Fizik tabanlı (Suika Game tarzı) squishy dumpling birleştirme mobil oyunu.
-Godot 4.7 / GDScript. Android hedefli.
+Godot 4.6.3-stable / GDScript. Android hedefli.
 
 ## Durum
 Aktif geliştirme — bkz. `PROJECT_CONTEXT.md` (güncel durum) ve
 `GAME_DESIGN.md` (oyun tasarımı spec'i).
 
 ## Geliştirme ortamı
-- Godot 4.7.2 (stable)
+- Godot 4.6.3-stable
 - Android SDK + JDK (export için)
 
 ## Proje dosyaları

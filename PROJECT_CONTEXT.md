@@ -40,7 +40,7 @@ verisiyle alınacak — şimdi tahmin/vaat yok.
   sağlayacak; Claude Code placeholder geometrik şekillerle çalışır)
 
 ## Stack
-- Godot 4.7.2 (stable), GDScript
+- Godot 4.6.3 (stable), GDScript
 - Android export → Google Play (Play App Signing, AAB format)
 - Yerel repo: C:\dev\squishy-merge
 - GitHub: https://github.com/oguzhanbilgi/Squishy-Merge (şu an boş)
