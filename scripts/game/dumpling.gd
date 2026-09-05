@@ -2,8 +2,10 @@ class_name Dumpling
 extends RigidBody2D
 ## Tek bir dumpling parçası. Aynı tier'daki iki dumpling çarpışınca
 ## merge_requested yayınlanır; birleştirmeyi GameBoard yürütür.
-## Her çarpmada hıza orantılı hafif bir squash-stretch oynar — "yapışma"
-## hissini kıran asıl şey bu (merge anındaki squash tek başına yetmiyor).
+## Her çarpmada hıza orantılı bir squash-stretch oynar — "yapışma" hissini
+## kıran asıl şey bu (merge anındaki squash tek başına yetmiyor).
+## Squash cisim türüne bakmaz: duvar, taban ve diğer dumpling'ler aynı
+## mantıktan geçer.
 
 signal merge_requested(a: Dumpling, b: Dumpling, point: Vector2)
 
@@ -12,8 +14,8 @@ signal merge_requested(a: Dumpling, b: Dumpling, point: Vector2)
 const IMPACT_SPEED_MIN: float = 60.0
 ## Bu hızda squash genliği tavana vurur.
 const IMPACT_SPEED_MAX: float = 900.0
-const IMPACT_SQUASH_MIN: float = 0.05
-const IMPACT_SQUASH_MAX: float = 0.2
+const IMPACT_SQUASH_MIN: float = 0.08
+const IMPACT_SQUASH_MAX: float = 0.25
 const IMPACT_SQUASH_DURATION: float = 0.12
 ## Aynı parça bu süre içinde ikinci kez squash tetikleyemez.
 const IMPACT_DEBOUNCE: float = 0.13
@@ -45,8 +47,11 @@ func _ready() -> void:
 
 	var material := PhysicsMaterial.new()
 	material.friction = 0.55
-	# "Dead stop" yerine hafif bir yerleşme kıpırtısı — kauçuk top değil.
-	material.bounce = 0.12
+	# Owner kararı: parçalar top gibi hafifçe seksin (birbirine ve duvara).
+	# Duvarda da aynı değer var; Godot ikisini birleştirdiği için efektif
+	# sekme ~0.24 oluyor. Ölçüm: 0.13 -> ~47 px sekme, yığın ~2.8 sn'de
+	# duruluyor. 0.18+ denendi, yığın 6 sn oynamaya devam ediyor.
+	material.bounce = 0.13
 	physics_material_override = material
 
 	# Düşük damping: yüksek değer "yüzüyor" hissi veriyor.

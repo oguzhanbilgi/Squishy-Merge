@@ -11,6 +11,10 @@ const WALL_THICKNESS: float = 20.0
 ## Taşma çizgisine bu süre boyunca temas edilirse round biter (GAME_DESIGN.md §1).
 const OVERFLOW_GRACE: float = 1.5
 const DROP_COOLDOWN: float = 0.4
+## Duvar/taban da sekmeli olmalı, yoksa yalnızca dumpling-dumpling
+## çarpışmaları zıpluyor ve kap ölü hissettiriyor.
+const WALL_BOUNCE: float = 0.13
+const WALL_FRICTION: float = 0.5
 
 ## Kap geometrisi. M2'de level verisinden gelecek; şimdilik sabit.
 ## Oynanabilir yükseklik (taban - taşma çizgisi) = 400 px: ~11-12 adet tier 5
@@ -71,6 +75,11 @@ func _center_x() -> float:
 func _build_walls() -> void:
 	for child in _walls.get_children():
 		child.queue_free()
+
+	var wall_material := PhysicsMaterial.new()
+	wall_material.friction = WALL_FRICTION
+	wall_material.bounce = WALL_BOUNCE
+	_walls.physics_material_override = wall_material
 
 	var height: float = floor_y - container_top_y
 	_add_wall(Vector2(_left_x() - WALL_THICKNESS * 0.5, container_top_y + height * 0.5),
