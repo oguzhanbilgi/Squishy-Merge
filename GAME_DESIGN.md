@@ -85,19 +85,30 @@ döngüsünün yaşadığı yer.
 
 ### 5.1 Level sonu akışı
 
-> **Yıldız kriteri (M3'te tanımlandı):** Her level'ın hedef tier'ına ulaşmanın
-> bir *deterministik minimum skoru* var — en büyük drop'la (tier 3) en az
-> sayıda merge yapıldığında kazanılan puan. Daha küçük parçalarla başlamak
-> daha çok merge, dolayısıyla daha çok puan demek; bu yüzden o değer bir taban.
+> **Yıldız kriteri (M3'te tanımlandı):** Eşikler, o level'ın hedef tier'ına
+> *ulaşan* oyuncuların o andaki skor dağılımından okunuyor. Dağılım Monte Carlo
+> simülasyonuyla üretiliyor (`tools/star_thresholds.py`, 40.000 örnek): her drop
+> tier 1-3'ten uniform gelir, aynı tier'dan iki parça olunca birleşir. Bir
+> tier'a ulaşmak için gereken merge sayıları oyuncu becerisinden bağımsız
+> olduğu için bu dağılım doğru; beceri sadece hayatta kalıp kalmadığını belirler.
 >
 > - **1★** — level hedefini tamamla (mevcut kazanma koşulu)
-> - **2★** — kazan VE skor ≥ minimumun **1.15** katı
-> - **3★** — kazan VE skor ≥ minimumun **1.35** katı
+> - **2★** — kazan VE skor ≥ dağılımın **medyanı (p50)**
+> - **3★** — kazan VE skor ≥ dağılımın **p85**'i
+>
+> | hedef tier | 2★ (p50) | 3★ (p85) |
+> |---|---|---|
+> | 4 | 160 | 210 |
+> | 5 | 430 | 530 |
+> | 6 | 1040 | 1190 |
+> | 7 | 2260 | 2430 |
+> | 8 | 4730 | 4990 |
 >
 > Sonsuz modda yıldız yok; sadece skor ve kişisel rekor.
 >
-> Eşikler koddan hesaplanıyor (`TierConfig.min_score_for_tier`), sabit
-> yazılmıyor — puan tablosu değişirse eşikler kendiliğinden kayar.
+> Eşikler `TierConfig.SCORE_P50` / `SCORE_P85` dizilerinde sabit duruyor —
+> percentile kapalı formülle çıkmadığı için koddan hesaplanamıyor. **Merge puan
+> tablosu değişirse script tekrar çalıştırılıp bu diziler güncellenmeli.**
 
 1. Hedefe ulaşıldı/ulaşılamadı ekranı
 2. 1-3 yıldız, TEK TEK gecikmeli reveal (her biri ~400ms arayla, "pat" sesiyle)
@@ -115,11 +126,15 @@ döngüsünün yaşadığı yer.
   - Legendary: %3
 - Sandık içeriği: kozmetik dumpling skin'i VEYA "Hamur" (soft currency).
   Duplicate skin çıkarsa otomatik Hamur'a çevrilir (dedupe).
+- Duplicate→Hamur oranları (10/25/60/150) ve teselli ödülü (5 Hamur)
+  **GEÇİCİ** — v1.1 shop ekonomisi tasarlanınca gerçek değerlere göre
+  revize edilecek.
 - Hamur v1'de harcanacak bir yer YOK (shop v1.1'de) — şimdilik sadece
   toplanan/gösterilen bir sayaç. Bunu şimdiden fazla şişirmiyoruz.
 
 ### 5.3 Koleksiyon albümü
-- Basit bir grid ekranı: kaç skin'den kaçı açıldı (örn "6/20")
+- Basit bir grid ekranı: kaç skin'den kaçı açıldı. Toplam skin sayısı:
+  **20 (kilitlendi)**
 - Açılmamış skin'ler silüet olarak görünür
 
 ### 5.4 Günlük döngü

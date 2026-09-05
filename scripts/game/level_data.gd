@@ -27,18 +27,16 @@ extends Resource
 @export var is_endless: bool = false
 
 
-## Yıldız eşikleri: hedef tier'ın deterministik minimum skorunun katları
-## (GAME_DESIGN.md §5.1). Skor tablosu değişirse eşikler kendiliğinden kayar.
-const STAR_2_MULTIPLIER: float = 1.15
-const STAR_3_MULTIPLIER: float = 1.35
+## Yıldız eşikleri: hedef tier'a ulaşan oyuncuların skor dağılımından
+## (GAME_DESIGN.md §5.1) — 2★ medyan (p50), 3★ p85.
 
 
 func star_2_threshold() -> int:
-	return roundi(TierConfig.min_score_for_tier(target_tier) * STAR_2_MULTIPLIER)
+	return TierConfig.score_p50(target_tier)
 
 
 func star_3_threshold() -> int:
-	return roundi(TierConfig.min_score_for_tier(target_tier) * STAR_3_MULTIPLIER)
+	return TierConfig.score_p85(target_tier)
 
 
 ## Sonsuz modda yıldız yok — sadece skor ve rekor.

@@ -49,12 +49,20 @@ static func random_drop_tier() -> int:
 	return randi_range(1, DROP_POOL_MAX_TIER)
 
 
-## Bir tier'a ulaşmak için kazanılabilecek DETERMİNİSTİK MİNİMUM skor.
-## En büyük drop'la (tier 3) en az sayıda merge yapıldığında oluşan toplam:
-## daha küçük tier'lardan başlamak daha çok merge, dolayısıyla daha çok puan
-## demek. Yıldız eşikleri bunun katları (GAME_DESIGN.md §5.1).
-static func min_score_for_tier(tier: int) -> int:
-	var total: int = 0
-	for t in range(DROP_POOL_MAX_TIER + 1, tier + 1):
-		total += merge_score(t) * (1 << (tier - t))
-	return total
+## Yıldız eşikleri (GAME_DESIGN.md §5.1). Bir tier'a ULAŞAN oyuncuların o
+## andaki skor dağılımının p50 ve p85'i; tools/star_thresholds.py ile Monte
+## Carlo simülasyonundan (40.000 örnek) üretildi. Index = tier.
+##
+## DİKKAT: merge puan tablosu değişirse bu diziler ESKİR — script'i tekrar
+## çalıştırıp buraya yazmak gerekir. (Eskiden koddan hesaplanıyordu; percentile
+## eşikleri kapalı formülle çıkmadığı için artık sabit.)
+const SCORE_P50: Array[int] = [0, 0, 0, 0, 160, 430, 1040, 2260, 4730]
+const SCORE_P85: Array[int] = [0, 0, 0, 0, 210, 530, 1190, 2430, 4990]
+
+
+static func score_p50(tier: int) -> int:
+	return SCORE_P50[tier]
+
+
+static func score_p85(tier: int) -> int:
+	return SCORE_P85[tier]
