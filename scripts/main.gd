@@ -6,6 +6,7 @@ extends Node2D
 const LEVEL_SELECT_SCENE: PackedScene = preload("res://scenes/ui/level_select.tscn")
 const GAME_BOARD_SCENE: PackedScene = preload("res://scenes/game/game_board.tscn")
 const ROUND_RESULT_SCENE: PackedScene = preload("res://scenes/ui/round_result.tscn")
+const COLLECTION_SCENE: PackedScene = preload("res://scenes/ui/collection_album.tscn")
 
 ## Round bitip sonuç ekranı açılmadan önceki kısa nefes payı — son merge'in
 ## efekti ekranda kalsın diye.
@@ -14,6 +15,7 @@ const RESULT_DELAY: float = 0.8
 var _select: CanvasLayer
 var _board: Node2D
 var _result: CanvasLayer
+var _album: CanvasLayer
 var _current_level: LevelData
 
 
@@ -25,7 +27,13 @@ func _ready() -> void:
 
 	_select = LEVEL_SELECT_SCENE.instantiate()
 	_select.level_chosen.connect(_start_level)
+	_select.collection_pressed.connect(_on_collection_pressed)
 	add_child(_select)
+
+	_album = COLLECTION_SCENE.instantiate()
+	_album.closed.connect(_on_album_closed)
+	add_child(_album)
+	_album.visible = false
 
 
 func _start_level(level: LevelData) -> void:
@@ -79,6 +87,18 @@ func _collect_rewards(won: bool, merges: int) -> Array[ChestReward]:
 		rewards.append(ChestSystem.consolation())
 
 	return rewards
+
+
+func _on_collection_pressed() -> void:
+	_select.visible = false
+	_album.refresh()
+	_album.visible = true
+
+
+func _on_album_closed() -> void:
+	_album.visible = false
+	_select.refresh()
+	_select.visible = true
 
 
 func _on_retry_pressed() -> void:
