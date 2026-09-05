@@ -22,6 +22,11 @@ uydurulmaz.
 - Tier 8 (en üst) oluşunca özel bir efekt (konfeti + büyük ses) tetiklenir
   ama oyun devam eder (o dumpling normal bir parça gibi kalır).
 
+> **Netleştirme (owner, M1):** Tier 8 oluşunca round otomatik bitmez, ama
+> board'un taşmaya yaklaşması kasıtlı bir gerilim anıdır — bu, önlenmeye
+> çalışılmayacak bir "çelişki" değil, tasarımın parçası. Tek şart:
+> kesin/otomatik game-over olmamalı.
+
 ## 2. Tier listesi (8 tier)
 
 | # | İsim (placeholder) | Not |
