@@ -9,8 +9,10 @@ signal exit_pressed
 
 const STAR_REVEAL_DELAY: float = 0.4
 const CHEST_REVEAL_DELAY: float = 0.5
-const STAR_FILLED: String = "★"
-const STAR_EMPTY: String = "☆"
+const STAR_FILLED_TEXTURE: Texture2D = preload("res://assets/visual/ui/ui_star_filled.png")
+const STAR_EMPTY_TEXTURE: Texture2D = preload("res://assets/visual/ui/ui_star_empty.png")
+## Kaynak sprite 64x60; kutu bu oranda tutuluyor ki yıldız ezilmesin.
+const STAR_SIZE: Vector2 = Vector2(64.0, 60.0)
 
 var _sequence_id: int = 0
 
@@ -68,13 +70,15 @@ func _build_stars(level: LevelData, stars: int) -> void:
 	if level.is_endless:
 		return
 	for i in 3:
-		var star := Label.new()
-		star.text = STAR_FILLED if i < stars else STAR_EMPTY
-		star.add_theme_font_size_override("font_size", 48)
-		star.modulate = Color(1.0, 0.82, 0.3) if i < stars else Color(1, 1, 1, 0.25)
+		var star := TextureRect.new()
+		star.texture = STAR_FILLED_TEXTURE if i < stars else STAR_EMPTY_TEXTURE
+		star.custom_minimum_size = STAR_SIZE
+		star.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		# Dolu yıldız zaten sarı (Yellow paketi), tint gerekmiyor; boş olan soluk.
+		star.modulate = Color(1, 1, 1, 1) if i < stars else Color(1, 1, 1, 0.35)
 		# Kazanılan yıldızlar gizli başlar, tek tek açılır.
 		star.scale = Vector2.ZERO if i < stars else Vector2.ONE
-		star.pivot_offset = Vector2(24.0, 32.0)
+		star.pivot_offset = STAR_SIZE * 0.5
 		_stars.add_child(star)
 
 
@@ -83,7 +87,7 @@ func _reveal_stars(sequence: int, stars: int) -> void:
 		await get_tree().create_timer(STAR_REVEAL_DELAY).timeout
 		if sequence != _sequence_id or i >= _stars.get_child_count():
 			return
-		var star: Label = _stars.get_child(i)
+		var star: TextureRect = _stars.get_child(i)
 		var tween := create_tween()
 		tween.tween_property(star, "scale", Vector2(1.25, 1.25), 0.12) \
 			.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)

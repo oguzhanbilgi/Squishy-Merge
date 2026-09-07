@@ -19,6 +19,10 @@ keystore.properties
 # takip edilmiyor (owner kararı)
 OWNER_WORKING_PROFILE.md
 
+# Kenney CC0 gorsel kaynak paketleri — indirilen zip'ler ve acilmis hali.
+# Kullanilan dosyalar zaten assets/visual/ altinda.
+_visual_source/
+
 # Kenney CC0 ses kaynak paketleri — owner jingle secmek icin lokalde
 # tutuyor, kullanilan dosyalar zaten assets/audio/ altinda
 _audio_source/

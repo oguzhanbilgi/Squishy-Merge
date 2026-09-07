@@ -8,7 +8,7 @@ Aktif geliştirme — bkz. `PROJECT_CONTEXT.md` (güncel durum) ve
 `GAME_DESIGN.md` (oyun tasarımı spec'i).
 
 ## Geliştirme ortamı
-- Godot 4.6.3-stable
+- Godot 4.6.3-stable — **projeyi başka bir Godot sürümüyle açma**, `project.godot`'u sessizce 4.7'ye çevirir (ayrıntı: `CLAUDE.md`)
 - Android SDK + JDK (export için)
 
 ## Proje dosyaları

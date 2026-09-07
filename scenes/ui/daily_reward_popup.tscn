@@ -1,12 +1,14 @@
-[gd_scene load_steps=2 format=3]
+[gd_scene load_steps=3 format=3]
 
 [ext_resource type="Script" path="res://scripts/ui/daily_reward_popup.gd" id="1_daily"]
+[ext_resource type="Theme" path="res://assets/visual/ui_theme.tres" id="2_theme"]
 
 [node name="DailyRewardPopup" type="CanvasLayer"]
 layer = 12
 script = ExtResource("1_daily")
 
 [node name="Center" type="Control" parent="."]
+theme = ExtResource("2_theme")
 anchor_right = 1.0
 anchor_bottom = 1.0
 

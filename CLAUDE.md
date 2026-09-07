@@ -8,6 +8,20 @@ Bu dosyayı her oturumun başında oku. Ardından şu sırayla oku:
 Bu üç dosya çakışırsa: owner'ın en son açık talimatı > PROJECT_CONTEXT.md >
 GAME_DESIGN.md > OWNER_WORKING_PROFILE.md sırası geçerlidir.
 
+## UYARI: Godot sürümü — projeyi hangi binary ile açacaksın
+
+Bu projeyi **SADECE**
+`C:\Users\ledaj\AppData\Local\Godot463\Godot_v4.6.3-stable_win64.exe`
+(iş bilgisayarı) veya eşdeğer bir **4.6.3** kopyasıyla (ev bilgisayarı) aç.
+
+Başka bir Godot kurulumuyla açmak `project.godot`'u **sessizce 4.7'ye çevirir**
+(`config/features` yeniden yazılır) ve o sürümün export template'leri 4.6.3 ile
+uyumsuz olduğu için Android export'u bozar. Bu iki makinede de birer kez oldu.
+
+Belirti: `git diff project.godot` içinde
+`config/features=PackedStringArray("4.7", ...)`. Çözüm:
+`git checkout -- project.godot` ve doğru binary ile tekrar aç.
+
 ## Çalışma disiplini (OWNER_WORKING_PROFILE'dan bu projeye özel çıkarımlar)
 
 - Dar kapsam. GAME_DESIGN.md'de olmayan bir özelliği ekleme; eklemek
