@@ -42,7 +42,8 @@ verisiyle alınacak — şimdi tahmin/vaat yok.
 ## Stack
 - Godot 4.6.3 (stable), GDScript
 - Android export → Google Play (Play App Signing, AAB format)
-- Yerel repo: C:\dev\squishy-merge
+- Yerel repo: makineye göre değişir (ev: C:\dev\squishy-merge, iş:
+  D:\dev\squishy-merge) — sabit yol varsayma.
 - GitHub: https://github.com/oguzhanbilgi/Squishy-Merge (şu an boş)
 
 ## Canonical repo state
