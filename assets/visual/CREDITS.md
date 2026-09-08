@@ -117,6 +117,7 @@ yolunu değiştirmek yeterli. Yıldızlar hâlâ Kenney; bu turda değiştirilme
 | `fx/fx_dot.png` | Particle Pack — `PNG (Transparent)/circle_01.png` (512→128) | Merge patlaması + arka plan bokeh'i |
 | `fx/fx_sparkle.png` | Particle Pack — `PNG (Transparent)/star_04.png` (512→128) | Tier 5+ merge parıltısı, sandık parçacıkları |
 | `fx/fx_burst.png` | Particle Pack — `PNG (Transparent)/star_08.png` (512→256) | Sandık açılışı ışık patlaması |
+| `fx/fx_ring.png` | Particle Pack — `PNG (Transparent)/circle_05.png` (512→128) | Sandık ödülünde rarity çerçevesi |
 | `fx/dumpling_gloss.png` | **kodda çizildi** (Kenney değil) | Dumpling'in sol-üst parlama overlay'i |
 
 Kaynaklar 512×512 geliyor; ekranda hiçbiri o boyutta görünmediği için
@@ -136,6 +137,27 @@ döndürülür: gövde serbest dönerken ışık kaynağı sabit kalmalı, yoksa
 highlight parçayla birlikte dönüp "ışık" okunmasını kaybediyor.
 Çizim sırası gövde → parlama → yüz; parlama yüzün üstünde olsaydı ifadeyi
 yıkardı.
+
+### Sandık ödül görseli (rarity katmanları)
+
+Ödül kartındaki düz renkli kare, ödül anını sönük bırakıyordu. Yerine
+rarity'e göre açılan katmanlı bir görsel geldi (`round_result.gd`,
+`RARITY_FX` tablosu):
+
+| rarity | parıltı | çerçeve | ışın | parçacık | nabız |
+|---|---|---|---|---|---|
+| Common | çok soluk | soluk | — | — | — |
+| Rare | orta | belirgin | — | 7 | hafif |
+| Epic | güçlü | güçlü | soluk, dönen | 13 | orta |
+| Legendary | en güçlü | tam | belirgin, hızlı dönen | 20 | belirgin |
+
+Açılış patlaması (`_burst_at`) da aynı ölçekte: Common küçük ve soluk,
+Legendary büyük ve parlak. Teselli ödülü rarity'sine bakılmaksızın her zaman
+en sönük katmanı kullanır — kaybedilen round'un tesellisi legendary gibi
+parlamamalı.
+
+Dönen/nabız atan tween'ler `bind_node` ile kendi düğümlerine bağlı: kart
+silinince tween de ölüyor, ekran görünmezken boşuna çalışmıyor.
 
 ## Değiştirirken
 Dosya **isimlerini koru**. Kod bu isimlere `dumpling_visual.gd` sabitleri ve

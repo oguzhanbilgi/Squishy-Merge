@@ -17,6 +17,8 @@ const RESIZES: Array[Dictionary] = [
 	{"src": "circle_01.png", "out": "fx_dot.png",     "size": 128},
 	{"src": "star_04.png",   "out": "fx_sparkle.png", "size": 128},
 	{"src": "star_08.png",   "out": "fx_burst.png",   "size": 256},
+	# Yumusak halka — sandik odulunde rarity cercevesi olarak kullaniliyor.
+	{"src": "circle_05.png", "out": "fx_ring.png",    "size": 128},
 ]
 
 ## Parlama overlay'i govde texture'uyla ayni olcude uretiliyor ki

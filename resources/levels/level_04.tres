@@ -5,7 +5,7 @@
 [resource]
 script = ExtResource("1_level")
 level_number = 4
-target_tier = 5
+target_tier = 6
 target_score = 0
 container_width = 540.0
 playable_height = 400.0

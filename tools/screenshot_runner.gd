@@ -169,27 +169,30 @@ func _shot_chest() -> void:
 	var level: LevelData = load("res://resources/levels/level_03.tres")
 	result.show_result(level, true, 640, 3, _fake_rewards(), false)
 
-	# Yıldız reveal'i 3 x 0.4 sn, ardından ilk sandık 0.5 sn sonra açılıyor.
-	# 1.85 sn = patlamanın ~0.15 sn içi, en parlak an.
-	await get_tree().create_timer(1.85).timeout
+	# Yıldız reveal'i 3 x 0.4 sn = 1.2 sn, ardından sandıklar 0.5 sn arayla
+	# (1.7 / 2.2 / 2.7 / 3.2). 3.35 sn = dördü de açılmış, sonuncusunun
+	# patlaması hâlâ havada.
+	await get_tree().create_timer(3.35).timeout
 	await _capture("03_chest.png")
 	result.queue_free()
 	await get_tree().process_frame
 
 
-## Gerçek kura yerine sabit ödüller — ekran görüntüsü tekrarlanabilir olsun
-## ve legendary'nin parlak hâli garanti görünsün.
+## Gerçek kura yerine sabit ödüller: ekran görüntüsü tekrarlanabilir olsun ve
+## dört rarity'nin görsel farkı tek karede görünsün (M8 ödül reveal pası).
 func _fake_rewards() -> Array[ChestReward]:
-	var legendary := ChestReward.new()
-	legendary.rarity = SkinData.Rarity.LEGENDARY
-	legendary.skin = SkinLibrary.by_rarity(SkinData.Rarity.LEGENDARY)[0]
-
-	var dough := ChestReward.new()
-	dough.rarity = SkinData.Rarity.RARE
-	dough.is_duplicate = true
-	dough.dough = 25
-
-	var rewards: Array[ChestReward] = [legendary, dough]
+	var rewards: Array[ChestReward] = []
+	for rarity in [SkinData.Rarity.COMMON, SkinData.Rarity.RARE,
+			SkinData.Rarity.EPIC, SkinData.Rarity.LEGENDARY]:
+		var reward := ChestReward.new()
+		reward.rarity = rarity
+		var candidates: Array[SkinData] = SkinLibrary.by_rarity(rarity)
+		if candidates.is_empty():
+			reward.is_duplicate = true
+			reward.dough = 25
+		else:
+			reward.skin = candidates[0]
+		rewards.append(reward)
 	return rewards
 
 

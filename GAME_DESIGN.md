@@ -77,11 +77,11 @@ standart zorluk dengelemesi — üst tier'lar sadece merge ile elde edilir.
 | 1 | Tier 4'e ulaş | Geniş |
 | 2 | Tier 4'e ulaş | Geniş |
 | 3 | Tier 5'e ulaş | Geniş |
-| 4 | Tier 5'e ulaş | Orta-geniş |
+| 4 | Tier 6'ya ulaş | Orta-geniş |
 | 5 | Tier 6'ya ulaş | Orta |
-| 6 | Tier 6'ya ulaş | Orta |
+| 6 | Tier 7'ye ulaş | Orta |
 | 7 | Tier 7'ye ulaş | Dar |
-| 8 | Tier 7'ye ulaş | Dar |
+| 8 | Tier 7 + skor ≥ 6750 | Dar |
 | 9 | Tier 8'e ulaş | Dar |
 | 10 | Tier 8 + skor ≥ 5000 | En dar |
 
@@ -90,7 +90,30 @@ standart zorluk dengelemesi — üst tier'lar sadece merge ile elde edilir.
 > "rahatlatıcı/ASMR" pozisyonuyla çelişiyordu — kasıtlı olarak kaldırıldı,
 > tekrar sorulmasına gerek yok. Süre göstergesi de HUD'dan çıkarıldı.
 >
-> Ölçüm notu: limitler zaten pratikte bağlayıcı değildi. Kaldırmadan önce/sonra
+> **Zorluk ayarı (M8):** L4 tier 5→6, L6 tier 6→7, L8'e L10 desenindeki gibi
+> skor eşiği (6750) eklendi. Headless bot ölçümleri:
+>
+> | level | kap | hedef | kazanma |
+> |---|---|---|---|
+> | 4 | 540 | tier 6 | %97 (n=30) |
+> | 5 | 480 | tier 6 | %100 (n=30) |
+> | 6 | 480 | tier 7 | %100 (n=30) |
+> | 7 | 420 | tier 7 | %97 (n=30) |
+> | 8 | 420 | tier 7 + 6750 skor | **%70 (n=60)** |
+> | 9 | 420 | tier 8 | %43 (n=30) |
+> | 10 | 370 | tier 8 + 5000 skor | %43 (n=30) |
+>
+> **Ölçümün söylediği:** hedef tier'ı artırmak L4/L6'da neredeyse hiçbir şey
+> değiştirmedi (%100 → %97/%100). Süre baskısı olmayan geniş kapta bot hedef
+> tier 5 de olsa 7 de olsa kazanıyor — zorluğu belirleyen şey **kap genişliği**
+> ve **skor eşiği**, hedef tier değil. L8'deki sıçrama (%97 → %70) bunu
+> doğruluyor: tek etkili kaldıraç skor eşiği oldu.
+>
+> L4-L7'yi gerçekten zorlaştırmak istenirse kap genişliklerini daraltmak
+> gerekir; bu §3'teki genişlik etiketlerini değiştirmek demek, owner kararı
+> olmadan yapılmadı.
+>
+> Ölçüm notu: süre limitleri zaten pratikte bağlayıcı değildi. Kaldırmadan önce/sonra
 > headless bot sonuçları L9'da %50→%43, L10'da %40→%43 (fark gürültü içinde) —
 > koşular saat dolmadan çok önce taşmayla bitiyordu. Yani bu değişiklik
 > zorluğu değil, oyunun HİSSİNİ değiştiriyor.
@@ -137,10 +160,20 @@ döngüsünün yaşadığı yer.
 >
 > Sonsuz modda yıldız yok; sadece skor ve kişisel rekor.
 >
-> **L10 istisnası:** bitirme koşulu (tier 8 + skor ≥5000) zaten p85 eşiğinin
-> (4990) üstünde olduğu için L10'u tamamlamak her zaman 3★ verir. Bu kasıtlı —
-> L10 oyunun finali, bitirmek başlı başına üst düzey başarı sayılıyor. Formüle
-> istisna eklenmedi.
+> **Skor hedefli level'larda istisna (L8 ve L10):** bu iki level'ın bitirme
+> koşulu ayrıca bir skor eşiği içeriyor ve ikisinde de bu eşik, hedef tier'ın
+> p85 yıldız eşiğinin çok üstünde kalıyor:
+>
+> | level | bitirme koşulu | 3★ eşiği (p85) | sonuç |
+> |---|---|---|---|
+> | 8 | tier 7 + skor ≥ 6750 | 2430 | tamamlamak her zaman 3★ |
+> | 10 | tier 8 + skor ≥ 5000 | 4990 | tamamlamak her zaman 3★ |
+>
+> Bu kasıtlı ve **formüle istisna eklenmedi.** İkisi de skor biriktirmeyi
+> gerektiren level'lar; bitirmek başlı başına üst düzey başarı sayılıyor.
+> Yıldız sistemi asıl ayırt edici işini diğer sekiz level'da yapıyor.
+> (M8 notu: L8'e skor eşiği eklenirken bu çakışma tekrar ölçüldü, formülü
+> zorlamak yerine istisna kapsamı genişletildi.)
 >
 > Eşikler `TierConfig.SCORE_P50` / `SCORE_P85` dizilerinde sabit duruyor —
 > percentile kapalı formülle çıkmadığı için koddan hesaplanamıyor. **Merge puan
