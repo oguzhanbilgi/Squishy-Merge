@@ -7,6 +7,7 @@ serbesttir, atıf zorunlu değildir.
 Kaynak paketler:
 - Shape Characters — https://kenney.nl/assets/shape-characters
 - UI Pack — https://kenney.nl/assets/ui-pack
+- Particle Pack — https://kenney.nl/assets/particle-pack
 
 Kaynak zip'ler `_visual_source/` altında duruyor (gitignore'lu).
 
@@ -56,6 +57,33 @@ Yıldızlar `round_result.gd` içinde `TextureRect` olarak kuruluyor; eskiden
 `★`/`☆` metin karakteriydi. Dolu yıldız zaten sarı olduğu için tint
 uygulanmıyor, boş olan sadece soluklaştırılıyor. Tek tek açılan reveal
 animasyonu (`_reveal_stars`) değişmedi — hâlâ `scale` tween'i.
+
+## Efektler (fx/) — M8 juice pası
+
+| dosya | kaynak | kullanım |
+|---|---|---|
+| `fx/fx_dot.png` | Particle Pack — `PNG (Transparent)/circle_01.png` (512→128) | Merge patlaması + arka plan bokeh'i |
+| `fx/fx_sparkle.png` | Particle Pack — `PNG (Transparent)/star_04.png` (512→128) | Tier 5+ merge parıltısı, sandık parçacıkları |
+| `fx/fx_burst.png` | Particle Pack — `PNG (Transparent)/star_08.png` (512→256) | Sandık açılışı ışık patlaması |
+| `fx/dumpling_gloss.png` | **kodda çizildi** (Kenney değil) | Dumpling'in sol-üst parlama overlay'i |
+
+Kaynaklar 512×512 geliyor; ekranda hiçbiri o boyutta görünmediği için
+küçültülüyorlar (hem APK boyutu hem overdraw). Dönüşüm tekrarlanabilir:
+
+```
+godot --headless --path . --script res://tools/make_fx_sprites.gd
+```
+
+`dumpling_gloss.png` pakette yok — gövde eğrisine oturan bir highlight
+bulunmadığı için parametrik olarak çiziliyor (elips merkezi, yarıçapları,
+eğim ve gövde kenarına maskeleme `tools/make_fx_sprites.gd` içinde sabitler).
+Owner kendi gövde sprite'ını koyarsa highlight oradan yeniden ayarlanabilir.
+
+Parlama **tint'lenmez** (beyaz, `GLOSS_ALPHA` = 0.45) ve yüz gibi ters
+döndürülür: gövde serbest dönerken ışık kaynağı sabit kalmalı, yoksa
+highlight parçayla birlikte dönüp "ışık" okunmasını kaybediyor.
+Çizim sırası gövde → parlama → yüz; parlama yüzün üstünde olsaydı ifadeyi
+yıkardı.
 
 ## Değiştirirken
 Dosya **isimlerini koru**. Kod bu isimlere `dumpling_visual.gd` sabitleri ve

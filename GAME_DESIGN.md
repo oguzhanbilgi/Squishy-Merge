@@ -29,16 +29,35 @@ uydurulmaz.
 
 ## 2. Tier listesi (8 tier)
 
-| # | İsim (placeholder) | Not |
-|---|---|---|
-| 1 | Mini Dumpling | En küçük, en sık düşen |
-| 2 | Küçük Dumpling | |
-| 3 | Dumpling | |
-| 4 | Şişkin Dumpling | |
-| 5 | Büyük Dumpling | |
-| 6 | Dev Dumpling | |
-| 7 | Jumbo Dumpling | |
-| 8 | Dumpling Kralı | Özel efekt tetikler |
+| # | İsim (placeholder) | Yarıçap (px) | Çap (px) | Not |
+|---|---|---|---|---|
+| 1 | Mini Dumpling | 22 | 44 | En küçük, en sık düşen |
+| 2 | Küçük Dumpling | 27 | 54 |  |
+| 3 | Dumpling | 34 | 68 |  |
+| 4 | Şişkin Dumpling | 42 | 84 |  |
+| 5 | Büyük Dumpling | 52 | 104 |  |
+| 6 | Dev Dumpling | 65 | 130 |  |
+| 7 | Jumbo Dumpling | 81 | 162 |  |
+| 8 | Dumpling Kralı | 100 | 200 | Özel efekt tetikler |
+
+> **Yarıçaplar M8'de ölçümle YENİDEN BELİRLENDİ.** Önceki merdiven
+> (22/30/40/52/66/84/106/132) level 9-10'u fiilen kazanılamaz kılıyordu:
+> owner elle doğruladı, ardından headless bot en dar kapta (370×400 px)
+> 20 koşuda tier 8'e **bir kez bile** ulaşamadı.
+>
+> Kök sebep kap genişliği değil, üst tier'ların kaba göre büyüklüğüydü.
+> Yalnızca tier 7-8'i küçültmek yetmedi (0/20 → en iyi 2/20): tepe doluluk
+> tier 5-6 artıklarından da besleniyor, o yüzden merdivenin tamamı yeniden
+> ölçeklendi. Tier 1 (22 px) korundu, büyüme oranı 1.26'dan **1.241**'e
+> düştü — oran her adımda sabit olduğu için boyut farkı hâlâ net okunuyor.
+>
+> Doğrulama (`tools/bot_runner.gd`, n=40, gerçek fizik): aynı bot L10'u
+> **16/40 (%40)**, L9'u **15/30 (%50)** kazanıyor. Ölçüm yöntemi M1/M2'deki ile aynı:
+> `tools/tier_geometry.py` alan modeliyle adayları daraltıyor, headless bot
+> gerçek fizikle karar veriyor.
+>
+> **Merge puan tablosuna DOKUNULMADI** — skor modeli geometriden bağımsız,
+> dolayısıyla §5.1'deki yıldız eşikleri de geçerliliğini koruyor.
 
 > **Merge puan tablosu (M2'de KİLİTLENDİ):** bir tier'a birleşildiğinde
 > kazanılan puan — tier 2: 50, 3: 70, 4: 90, 5: 110, 6: 130, 7: 150, 8: 200.
@@ -73,7 +92,9 @@ yeni level eklenebilmeli (data-driven, owner'ın istediği gibi).
 > Geniş 600 · Orta-geniş 540 · Orta 480 · Dar 420 · En dar 370.
 > Oynanabilir yükseklik (taban–taşma çizgisi) tüm level'larda 400 px
 > (M1'de ölçülerek kilitlendi); GAME_DESIGN yüksekliği level başına
-> değiştirmiyor. En dar kap tier 8'in 264 px çapına 106 px pay bırakıyor.
+> değiştirmiyor. En dar kap (370 px) tier 8'in 200 px çapına 170 px,
+> iki tier-7'nin yan yana 324 px'ine 46 px pay bırakıyor — M8'den önce
+> bu paylar sırasıyla 106 px ve **-54 px** (yani sığmıyordu) idi.
 
 ## 4. Sonsuz mod
 

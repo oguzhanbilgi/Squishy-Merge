@@ -6,6 +6,7 @@ signal round_finished(won: bool)
 
 const DUMPLING_SCENE: PackedScene = preload("res://scenes/game/dumpling.tscn")
 const POP_EFFECT_SCENE: PackedScene = preload("res://scenes/game/pop_effect.tscn")
+const BOKEH_TEXTURE: Texture2D = preload("res://assets/visual/fx/fx_dot.png")
 
 const WALL_THICKNESS: float = 20.0
 ## Taşma çizgisine bu süre boyunca temas edilirse round biter (GAME_DESIGN.md §1).
@@ -17,6 +18,13 @@ const DROP_COOLDOWN: float = 0.4
 const COMBO_WINDOW: float = 1.2
 ## Taşma tehlikesindeyken gerilim sesinin tekrar aralığı.
 const DANGER_TICK_INTERVAL: float = 0.5
+
+## Ekran sarsıntısı (M8 juice): merge'in tier'ına göre ölçekleniyor.
+## Küçük merge'de neredeyse hissedilmiyor, tier 8'de belirgin.
+const SHAKE_MIN: float = 1.5
+const SHAKE_MAX: float = 16.0
+## Sarsıntı saniyede bu oranda sönümleniyor (yüksek = daha kısa/keskin).
+const SHAKE_DECAY: float = 9.0
 
 ## Duvar/taban da sekmeli olmalı, yoksa yalnızca dumpling-dumpling
 ## çarpışmaları zıpluyor ve kap ölü hissettiriyor.
@@ -44,6 +52,15 @@ var _combo_timer: float = 0.0
 var _danger_tick: float = 0.0
 var _reached_target_tier: bool = false
 var _is_finished: bool = false
+var _shake_strength: float = 0.0
+## Danger highlight'ının nabzı (GAME_DESIGN.md §6) — 0..1 arası salınır.
+var _danger_pulse: float = 0.0
+## Skor pop'u için: değişimin miktarını göstermek gerekiyor, sadece yeni
+## toplamı değil.
+var _prev_score: int = 0
+## Skor pop'unun sahnede tanımlı yuvası — animasyon her seferinde buradan
+## başlar. Skor metninden türetilmiyor çünkü metnin genişliği değişiyor.
+var _score_pop_home: Vector2 = Vector2.ZERO
 
 @onready var _walls: StaticBody2D = $Walls
 @onready var _dumpling_layer: Node2D = $DumplingLayer
@@ -56,6 +73,9 @@ var _is_finished: bool = false
 @onready var _time_label: Label = $HUD/TimeLabel
 @onready var _status_label: Label = $HUD/StatusLabel
 @onready var _combo_label: Label = $HUD/ComboLabel
+@onready var _score_pop: Label = $HUD/ScorePop
+@onready var _camera: Camera2D = $Camera2D
+@onready var _bokeh: CPUParticles2D = $Bokeh
 
 
 ## add_child'dan ÖNCE çağrılmalı — geometri _ready'de bundan kuruluyor.
@@ -73,6 +93,10 @@ func _ready() -> void:
 	GameState.score_changed.connect(_on_score_changed)
 
 	_time_left = level.time_limit
+	# Sarsıntı kamerayı kaydırarak yapılıyor; gövdeleri/duvarları oynatmak
+	# fizikle çakışırdı. Kamera varsayılan görüntünün tam merkezine oturuyor.
+	_camera.position = get_viewport_rect().size * 0.5
+	_setup_bokeh()
 	_build_walls()
 	_setup_overflow_area()
 
@@ -84,6 +108,11 @@ func _ready() -> void:
 	_objective_label.text = "%s — %s" % [level.display_name(), level.objective_text()]
 	_status_label.text = ""
 	_combo_label.text = ""
+	_score_pop.text = ""
+	_score_pop.modulate.a = 0.0
+	_score_pop_home = _score_pop.position
+	_prev_score = GameState.score
+	_score_label.pivot_offset = Vector2(0.0, _score_label.size.y * 0.5)
 	_refresh_time_label()
 
 
@@ -162,6 +191,26 @@ func _draw() -> void:
 		level.container_width + WALL_THICKNESS * 2.0, WALL_THICKNESS), wall_color)
 	draw_dashed_line(Vector2(_left_x(), overflow_line_y()),
 		Vector2(_right_x(), overflow_line_y()), Color(1.0, 0.35, 0.35, 0.55), 2.0, 12.0)
+	_draw_danger()
+
+
+## Taşma tehlikesindeyken kap kenarında kırmızı titreşen highlight
+## (GAME_DESIGN.md §6). Sesi zaten M6'da eklenmişti, görseli M8'e kalmıştı.
+func _draw_danger() -> void:
+	if _danger_pulse <= 0.0:
+		return
+	var alpha: float = 0.25 + 0.45 * _danger_pulse
+	var glow := Color(1.0, 0.25, 0.3, alpha)
+	var top: float = container_top_y()
+	var height: float = FLOOR_Y - top
+	# Duvarların kendisi kırmızıya boyanıyor + çizginin altına bir bant.
+	draw_rect(Rect2(_left_x() - WALL_THICKNESS, top, WALL_THICKNESS, height), glow)
+	draw_rect(Rect2(_right_x(), top, WALL_THICKNESS, height), glow)
+	var band: float = 70.0
+	draw_rect(Rect2(_left_x(), overflow_line_y(), level.container_width, band),
+		Color(1.0, 0.25, 0.3, alpha * 0.22))
+	draw_line(Vector2(_left_x(), overflow_line_y()),
+		Vector2(_right_x(), overflow_line_y()), Color(1.0, 0.3, 0.35, alpha), 4.0)
 
 
 # --- Girdi: parmağı sürükle, bırakınca düşür (GAME_DESIGN.md §1) ---
@@ -235,7 +284,8 @@ func _resolve_merge(a: Dumpling, b: Dumpling, point: Vector2) -> void:
 	merged.play_squash()
 
 	var celebratory: bool = new_tier == TierConfig.MAX_TIER
-	_spawn_pop(point, TierConfig.color(new_tier), TierConfig.radius(new_tier), celebratory)
+	_spawn_pop(point, TierConfig.color(new_tier), TierConfig.radius(new_tier), new_tier)
+	_add_shake(new_tier)
 
 	GameState.add_score(TierConfig.merge_score(new_tier))
 	GameState.register_merge(new_tier, point)
@@ -275,11 +325,47 @@ func _tick_combo(delta: float) -> void:
 		_combo_label.text = ""
 
 
-func _spawn_pop(at: Vector2, pop_color: Color, radius: float, celebratory: bool) -> void:
-	var effect: CPUParticles2D = POP_EFFECT_SCENE.instantiate()
+func _spawn_pop(at: Vector2, pop_color: Color, radius: float, tier: int) -> void:
+	var effect: Node2D = POP_EFFECT_SCENE.instantiate()
 	effect.position = at
 	add_child(effect)
-	effect.burst(pop_color, radius, celebratory)
+	effect.burst(pop_color, radius, tier)
+
+
+## Ekran sarsıntısı, merge'in tier'ına göre. Kamera offset'i kullanılıyor:
+## gövdeleri veya tahtayı oynatmak fizik çözümüne karışırdı.
+func _add_shake(tier: int) -> void:
+	var t: float = clampf(float(tier - 2) / float(TierConfig.MAX_TIER - 2), 0.0, 1.0)
+	# Kuvvetli sarsıntı zayıfını ezmesin: üst üste binerse büyük olan kalır.
+	_shake_strength = maxf(_shake_strength, lerpf(SHAKE_MIN, SHAKE_MAX, t * t))
+
+
+## Arka planda yavaş süzülen düşük opaklıklı parıltı noktaları — referans
+## moodboard'daki bokeh hissinin ucuz versiyonu (GAME_DESIGN.md §7).
+## z_index negatif: kabın ve parçaların ARKASINDA kalmalı.
+func _setup_bokeh() -> void:
+	var view: Vector2 = get_viewport_rect().size
+	_bokeh.texture = BOKEH_TEXTURE
+	_bokeh.z_index = -10
+	_bokeh.position = view * 0.5
+	_bokeh.emission_shape = CPUParticles2D.EMISSION_SHAPE_RECTANGLE
+	# Yükseklik payı: parçacıklar ekranın altından girip üstünden çıksın.
+	_bokeh.emission_rect_extents = Vector2(view.x * 0.5, view.y * 0.6)
+	_bokeh.amount = 26
+	_bokeh.lifetime = 9.0
+	_bokeh.explosiveness = 0.0
+	# preprocess: sahne açılır açılmaz ekran zaten dolu olsun, bokeh'in
+	# birikmesini beklemeyelim.
+	_bokeh.preprocess = 9.0
+	_bokeh.direction = Vector2.UP
+	_bokeh.spread = 25.0
+	_bokeh.gravity = Vector2.ZERO
+	_bokeh.initial_velocity_min = 8.0
+	_bokeh.initial_velocity_max = 26.0
+	_bokeh.scale_amount_min = 0.15
+	_bokeh.scale_amount_max = 0.55
+	_bokeh.color = Color(1.0, 0.95, 0.85, 0.13)
+	_bokeh.emitting = true
 
 
 func _flash_status(text: String) -> void:
@@ -301,6 +387,24 @@ func _check_objective() -> void:
 	if level.has_score_target() and GameState.score < level.target_score:
 		return
 	_finish(true)
+
+
+## Sarsıntı ve danger nabzı görsel; fizik adımına değil kareye bağlılar.
+func _process(delta: float) -> void:
+	if _shake_strength > 0.0:
+		_shake_strength = maxf(0.0, _shake_strength - SHAKE_DECAY * delta)
+		_camera.offset = Vector2(
+			randf_range(-_shake_strength, _shake_strength),
+			randf_range(-_shake_strength, _shake_strength))
+		if _shake_strength == 0.0:
+			_camera.offset = Vector2.ZERO
+
+	if _overflow_elapsed > 0.0 and not _is_finished:
+		_danger_pulse = 0.5 + 0.5 * sin(Time.get_ticks_msec() * 0.012)
+		queue_redraw()
+	elif _danger_pulse != 0.0:
+		_danger_pulse = 0.0
+		queue_redraw()
 
 
 func _physics_process(delta: float) -> void:
@@ -360,5 +464,29 @@ func _refresh_time_label() -> void:
 	_time_label.text = "Süre: %d" % ceili(_time_left)
 
 
+## Skor sadece değişmesin, kazanılan miktar "+N" olarak yukarı doğru büyüyüp
+## sönerek pop etsin (GAME_DESIGN.md §6'daki combo "xN" deseninin aynısı).
 func _on_score_changed(new_score: int) -> void:
 	_score_label.text = "Skor: %d" % new_score
+	var delta: int = new_score - _prev_score
+	_prev_score = new_score
+	if delta <= 0:
+		return
+
+	_score_pop.text = "+%d" % delta
+	_score_pop.pivot_offset = _score_pop.size * 0.5
+	_score_pop.position = _score_pop_home
+	_score_pop.modulate.a = 1.0
+	_score_pop.scale = Vector2(0.6, 0.6)
+	var tween := create_tween()
+	tween.set_parallel(true)
+	tween.tween_property(_score_pop, "scale", Vector2(1.25, 1.25), 0.14).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	tween.tween_property(_score_pop, "position",
+		_score_pop_home - Vector2(0.0, 34.0), 0.55).set_ease(Tween.EASE_OUT)
+	tween.tween_property(_score_pop, "modulate:a", 0.0, 0.55).set_delay(0.15)
+
+	# Skorun kendisi de hafifçe zıplasın — sayının değiştiği fark edilsin.
+	var bump := create_tween()
+	bump.tween_property(_score_label, "scale", Vector2(1.12, 1.12), 0.09).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	bump.tween_property(_score_label, "scale", Vector2.ONE, 0.12)
+

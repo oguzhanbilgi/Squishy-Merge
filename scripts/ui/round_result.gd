@@ -11,6 +11,10 @@ const STAR_REVEAL_DELAY: float = 0.4
 const CHEST_REVEAL_DELAY: float = 0.5
 const STAR_FILLED_TEXTURE: Texture2D = preload("res://assets/visual/ui/ui_star_filled.png")
 const STAR_EMPTY_TEXTURE: Texture2D = preload("res://assets/visual/ui/ui_star_empty.png")
+## Sandık açılışı efektleri (GAME_DESIGN.md §5.1 "kapak, ışık, parçacık").
+## M3'te placeholder'la anlamlı olmayacağı için ertelenmişti.
+const BURST_TEXTURE: Texture2D = preload("res://assets/visual/fx/fx_burst.png")
+const SPARKLE_TEXTURE: Texture2D = preload("res://assets/visual/fx/fx_sparkle.png")
 ## Kaynak sprite 64x60; kutu bu oranda tutuluyor ki yıldız ezilmesin.
 const STAR_SIZE: Vector2 = Vector2(64.0, 60.0)
 
@@ -23,6 +27,7 @@ var _sequence_id: int = 0
 @onready var _dough: Label = $Center/Panel/VBox/Dough
 @onready var _retry: Button = $Center/Panel/VBox/Buttons/Retry
 @onready var _exit: Button = $Center/Panel/VBox/Buttons/Exit
+@onready var _fx: Control = $FxLayer
 
 
 func _ready() -> void:
@@ -57,7 +62,7 @@ func show_result(level: LevelData, won: bool, score: int, stars: int,
 	visible = true
 
 	await _reveal_stars(sequence, stars)
-	await _reveal_chests(sequence)
+	await _reveal_chests(sequence, rewards)
 
 
 # --- Yıldızlar ---
@@ -135,10 +140,51 @@ func _make_chest_card(reward: ChestReward) -> Control:
 	return card
 
 
-func _reveal_chests(sequence: int) -> void:
+## Sandık açılışı: rarity renginde bir ışık patlaması + parıltı parçacıkları.
+func _burst_at(center: Vector2, tint: Color) -> void:
+	var flash := TextureRect.new()
+	flash.texture = BURST_TEXTURE
+	flash.custom_minimum_size = Vector2(256, 256)
+	flash.size = Vector2(256, 256)
+	flash.pivot_offset = flash.size * 0.5
+	flash.position = center - flash.size * 0.5
+	flash.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	flash.modulate = Color(tint.r, tint.g, tint.b, 0.95)
+	flash.scale = Vector2(0.25, 0.25)
+	_fx.add_child(flash)
+
+	var tween := create_tween()
+	tween.set_parallel(true)
+	tween.tween_property(flash, "scale", Vector2(1.5, 1.5), 0.45).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+	tween.tween_property(flash, "rotation", 0.6, 0.45)
+	tween.tween_property(flash, "modulate:a", 0.0, 0.45).set_delay(0.08)
+	tween.chain().tween_callback(flash.queue_free)
+
+	var sparks := CPUParticles2D.new()
+	sparks.texture = SPARKLE_TEXTURE
+	sparks.position = center
+	sparks.emitting = false
+	sparks.one_shot = true
+	sparks.explosiveness = 1.0
+	sparks.lifetime = 0.7
+	sparks.amount = 20
+	sparks.direction = Vector2.UP
+	sparks.spread = 180.0
+	sparks.gravity = Vector2(0.0, 420.0)
+	sparks.initial_velocity_min = 120.0
+	sparks.initial_velocity_max = 340.0
+	sparks.scale_amount_min = 0.12
+	sparks.scale_amount_max = 0.34
+	sparks.color = tint.lerp(Color.WHITE, 0.5)
+	_fx.add_child(sparks)
+	sparks.emitting = true
+	get_tree().create_timer(sparks.lifetime + 0.3).timeout.connect(sparks.queue_free)
+
+
+func _reveal_chests(sequence: int, rewards: Array[ChestReward]) -> void:
 	for i in _chests.get_child_count():
 		await get_tree().create_timer(CHEST_REVEAL_DELAY).timeout
-		if sequence != _sequence_id or i >= _chests.get_child_count():
+		if sequence != _sequence_id or i >= _chests.get_child_count() or i >= rewards.size():
 			return
 		var card: Control = _chests.get_child(i)
 		card.pivot_offset = card.size * 0.5
@@ -148,6 +194,9 @@ func _reveal_chests(sequence: int) -> void:
 		tween.tween_property(card, "modulate:a", 1.0, 0.18)
 		tween.tween_property(card, "scale", Vector2.ONE, 0.25) \
 			.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+		# Işık patlaması sandığın rarity renginde — legendary belirgin şekilde
+		# daha parlak bir an olsun.
+		_burst_at(card.global_position + card.size * 0.5, rewards[i].color())
 		AudioManager.play_sfx(&"chest_open", 0.9)
 		_refresh_dough()
 

@@ -61,3 +61,8 @@ text = "Tekrar dene"
 [node name="Exit" type="Button" parent="Center/Panel/VBox/Buttons"]
 custom_minimum_size = Vector2(180, 72)
 text = "Level listesi"
+
+[node name="FxLayer" type="Control" parent="."]
+mouse_filter = 2
+anchor_right = 1.0
+anchor_bottom = 1.0

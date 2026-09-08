@@ -1,7 +1,12 @@
 class_name TierConfig
 extends RefCounted
-## 8 tier'ın veri tablosu (GAME_DESIGN.md §2). Renk/yarıçap değerleri
-## PLACEHOLDER — final asset'ler M7'de owner tarafından verilecek.
+## 8 tier'ın veri tablosu (GAME_DESIGN.md §2).
+##
+## RENKLER placeholder — owner kendi paletiyle değiştirecek.
+## YARIÇAPLAR placeholder DEĞİL: M8'de ölçümle kilitlendi. Sabit 1.241 büyüme
+## oranıyla türetildiler; eski merdiven (22/30/40/52/66/84/106/132) level 9-10'u
+## kazanılamaz kılıyordu (headless bot L10'da 0/20). Değiştirmeden önce
+## tools/bot_runner.gd ile tekrar ölçün.
 
 const MAX_TIER: int = 8
 
@@ -10,13 +15,13 @@ const DROP_POOL_MAX_TIER: int = 3
 
 const TIERS: Array[Dictionary] = [
 	{"name": "Mini Dumpling",   "radius": 22.0,  "color": Color("ffd9a0"), "score": 0},
-	{"name": "Küçük Dumpling",  "radius": 30.0,  "color": Color("ffb3ba"), "score": 50},
-	{"name": "Dumpling",        "radius": 40.0,  "color": Color("baffc9"), "score": 70},
-	{"name": "Şişkin Dumpling", "radius": 52.0,  "color": Color("bae1ff"), "score": 90},
-	{"name": "Büyük Dumpling",  "radius": 66.0,  "color": Color("e3baff"), "score": 110},
-	{"name": "Dev Dumpling",    "radius": 84.0,  "color": Color("fff5ba"), "score": 130},
-	{"name": "Jumbo Dumpling",  "radius": 106.0, "color": Color("ffab76"), "score": 150},
-	{"name": "Dumpling Kralı",  "radius": 132.0, "color": Color("ff6b8a"), "score": 200},
+	{"name": "Küçük Dumpling",  "radius": 27.0,  "color": Color("ffb3ba"), "score": 50},
+	{"name": "Dumpling",        "radius": 34.0,  "color": Color("baffc9"), "score": 70},
+	{"name": "Şişkin Dumpling", "radius": 42.0,  "color": Color("bae1ff"), "score": 90},
+	{"name": "Büyük Dumpling",  "radius": 52.0,  "color": Color("e3baff"), "score": 110},
+	{"name": "Dev Dumpling",    "radius": 65.0,  "color": Color("fff5ba"), "score": 130},
+	{"name": "Jumbo Dumpling",  "radius": 81.0, "color": Color("ffab76"), "score": 150},
+	{"name": "Dumpling Kralı",  "radius": 100.0, "color": Color("ff6b8a"), "score": 200},
 ]
 
 

@@ -6,6 +6,11 @@
 [node name="GameBoard" type="Node2D"]
 script = ExtResource("1_board")
 
+[node name="Camera2D" type="Camera2D" parent="."]
+
+[node name="Bokeh" type="CPUParticles2D" parent="."]
+emitting = false
+
 [node name="Walls" type="StaticBody2D" parent="."]
 
 [node name="DumplingLayer" type="Node2D" parent="."]
@@ -61,6 +66,17 @@ offset_bottom = 600.0
 pivot_offset = Vector2(80, 30)
 theme_override_font_sizes/font_size = 40
 horizontal_alignment = 1
+text = ""
+
+[node name="ScorePop" type="Label" parent="HUD"]
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -220.0
+offset_top = 70.0
+offset_right = -24.0
+offset_bottom = 114.0
+theme_override_font_sizes/font_size = 32
+horizontal_alignment = 2
 text = ""
 
 [node name="StatusLabel" type="Label" parent="HUD"]
