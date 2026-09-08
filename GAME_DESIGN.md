@@ -153,9 +153,43 @@ yeni level eklenebilmeli (data-driven, owner'ın istediği gibi).
 
 ## 4. Sonsuz mod
 
-Level 10 tamamlanınca açılır. Sabit geniş kap, hamle/süre limiti yok. Sadece
-skor ve kişisel rekor (local save, bulut yok). Bu, asıl "bir tane daha"
-döngüsünün yaşadığı yer.
+Level 10 tamamlanınca açılır. Hamle/süre limiti yok. Sadece skor ve kişisel
+rekor (local save, bulut yok). Bu, asıl "bir tane daha" döngüsünün yaşadığı
+yer.
+
+> **Kap genişliği 720 px — §3'teki level genişliklerinden BAĞIMSIZ (M8).**
+> Eskiden 600 idi, yani §3'ün "Geniş" etiketiyle aynı değer. Artık ayrı bir
+> değer: level genişlikleri değişirse bu değişmez, bu değişirse onlar
+> değişmez. `resources/levels/endless.tres` içinde duruyor.
+>
+> Neden: annihilation tek başına tipik oturumu uzatmıyordu (bkz. aşağıdaki
+> annihilation notu). Kap genişliği medyanı gerçekten hareket ettiren
+> kaldıraç çıktı. Ölçüm (annihilation açık, n=20 her genişlik için):
+>
+> | kap | süre medyan | süre p90 | merge medyan | medyana etki |
+> |---|---|---|---|---|
+> | 600 (eski) | 72 sn | 109 sn | 153 | — |
+> | 680 | 79 sn | 124 sn | 168 | +%10 |
+> | **720 (yeni)** | **91 sn** | **123 sn** | **199** | **+%27** |
+> | 780 | 91 sn | 134 sn | 192 | +%26 |
+> | 800 | 91 sn | 140 sn | 194 | +%27 |
+>
+> **Etki 720'de doyuyor** — 780 ve 800 medyana hiçbir şey eklemiyor, sadece
+> üst dilimi uzatıyorlar. O yüzden daha genişi anlamsız.
+>
+> **Görsel bedeli:** viewport 720 px geniş ve duvarlar kabın DIŞINA
+> çiziliyor, dolayısıyla 720'lik kapta yan duvarlar ekran dışında kalıyor —
+> sonsuz modda oyun alanı ekranı kenardan kenara dolduruyor. Taban ve taşma
+> çizgisi görünür durumda; danger state'in kırmızı duvarları görünmüyor ama
+> çizgi ile çizginin altındaki kırmızı bant görünüyor, yani tehlike hâlâ
+> okunuyor. Level modunda duvarlar aynen duruyor.
+>
+> Duvarların görünmesi şartsa uygulanabilir üst sınır **680** (duvarlar tam
+> ekran kenarına oturur) ama kazancın yalnızca üçte birini verir. Hem 720
+> hem görünür duvar istenirse sonsuz modda kamerayı ~%5 uzaklaştırmak
+> gerekir; bu dokunmatik nişan alma koordinatlarının da dönüştürülmesini
+> gerektirir ve bot girdi yolunu hiç kullanmadığı için doğrulanamaz —
+> bilerek yapılmadı.
 
 > **Tier 8 annihilation — YALNIZCA sonsuz modda (owner kararı, M8).**
 > Sonsuz modda iki tier 8 çarpışınca **ikisi de yok olur**: büyük bir
