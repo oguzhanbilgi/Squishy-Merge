@@ -17,7 +17,11 @@ const SPARKLE_MIN_TIER: int = 5
 
 
 ## `tier` yeni olusan dumpling'in tier'i (2..8).
-func burst(burst_color: Color, burst_radius: float, tier: int) -> void:
+## `annihilation` = sonsuz moddaki tier 8 yok olusu (GAME_DESIGN.md §4);
+## normal tier 8 merge'inden belirgin daha buyuk ve parlak olmali, cunku
+## ekranda iki parca birden kayboluyor.
+func burst(burst_color: Color, burst_radius: float, tier: int,
+		annihilation: bool = false) -> void:
 	var celebratory: bool = tier >= TierConfig.MAX_TIER
 	# 0 (tier 2) -> 1 (tier 8): tum olcekleme bu tek orandan turuyor.
 	var t: float = clampf(float(tier - 2) / float(TierConfig.MAX_TIER - 2), 0.0, 1.0)
@@ -28,6 +32,8 @@ func burst(burst_color: Color, burst_radius: float, tier: int) -> void:
 	_dots.explosiveness = 1.0
 	_dots.lifetime = lerpf(0.35, 0.75, t)
 	_dots.amount = int(lerpf(10.0, 40.0, t)) * (2 if celebratory else 1)
+	if annihilation:
+		_dots.amount = int(float(_dots.amount) * 2.2)
 	_dots.direction = Vector2.UP
 	_dots.spread = 180.0
 	_dots.gravity = Vector2(0.0, 900.0)
@@ -41,15 +47,22 @@ func burst(burst_color: Color, burst_radius: float, tier: int) -> void:
 	_dots.scale_amount_min = burst_radius * 0.0015
 	_dots.scale_amount_max = burst_radius * lerpf(0.0028, 0.004, t)
 	_dots.color = burst_color
+	if annihilation:
+		_dots.lifetime *= 1.35
+		_dots.initial_velocity_min *= 1.5
+		_dots.initial_velocity_max *= 1.5
+		_dots.scale_amount_max *= 1.4
+		# Beyaza kaydır: yok olus ani "patlama" gibi okunmali, dolgu gibi degil.
+		_dots.color = burst_color.lerp(Color.WHITE, 0.35)
 	_dots.emitting = true
 
-	if tier >= SPARKLE_MIN_TIER:
+	if tier >= SPARKLE_MIN_TIER or annihilation:
 		_sparkles.texture = SPARKLE_TEXTURE
 		_sparkles.emitting = false
 		_sparkles.one_shot = true
 		_sparkles.explosiveness = 1.0
 		_sparkles.lifetime = lerpf(0.5, 0.9, t)
-		_sparkles.amount = int(lerpf(5.0, 18.0, t))
+		_sparkles.amount = int(lerpf(5.0, 18.0, t)) * (3 if annihilation else 1)
 		_sparkles.direction = Vector2.UP
 		_sparkles.spread = 180.0
 		_sparkles.gravity = Vector2(0.0, 260.0)

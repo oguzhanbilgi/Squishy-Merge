@@ -21,6 +21,10 @@ const IMPACT_SQUASH_DURATION: float = 0.12
 const IMPACT_DEBOUNCE: float = 0.13
 
 var tier: int = 1
+## Sonsuz modda iki tier 8 birbirini yok eder (GAME_DESIGN.md §4). Level
+## modunda tier 8 hiçbir şeyle birleşmez, normal bir parça gibi kalır —
+## §1'deki karar. Bayrağı GameBoard spawn sırasında set ediyor.
+var annihilates_at_max: bool = false
 ## Merge kuyruğa alındıysa true — aynı kare içinde ikinci kez birleşmeyi önler.
 var is_merging: bool = false
 ## İlk çarpışmasını yaşadı mı? Taşma kontrolü sadece yerleşmiş parçaları sayar,
@@ -84,7 +88,7 @@ func _on_body_entered(body: Node) -> void:
 	has_landed = true
 	_try_impact_squash()
 
-	if is_merging or tier >= TierConfig.MAX_TIER:
+	if is_merging or (tier >= TierConfig.MAX_TIER and not annihilates_at_max):
 		return
 	var other := body as Dumpling
 	if other == null or other.is_merging or other.tier != tier:

@@ -67,8 +67,30 @@ uydurulmaz.
 > Önceki tablo (30/40/50/60/70/80/100) tier 8'de sadece ~2630 veriyordu ve
 > level 10'u pratikte imkânsız kılıyordu.
 
-Sadece tier 1-3 arası rastgele düşer (drop pool). Bu, Suika-tarzı oyunların
-standart zorluk dengelemesi — üst tier'lar sadece merge ile elde edilir.
+Sadece tier 1-3 arası düşer (drop pool). Bu, Suika-tarzı oyunların standart
+zorluk dengelemesi — üst tier'lar sadece merge ile elde edilir.
+
+> **Çekim bağımsız rastgele DEĞİL — torba (bag randomizer), M8'de değişti.**
+> Owner L9/L10'u bitirdi ama "adil hissetmedi" dedi. Kök sebep: her drop
+> bağımsız uniform çekiliyordu, bu da oyuncunun elinden bağımsız şanssız
+> seriler üretiyordu.
+>
+> Ölçüm (80 drop'luk bir round, 200.000 deneme) — en uzun aynı-tier serisi:
+>
+> | model | medyan | p95 | max | 5+ seri içeren round |
+> |---|---|---|---|---|
+> | bağımsız uniform (eski) | 4 | 7 | 16 | **%48** |
+> | torba, tier başına 3 kopya (yeni) | 3 | 4 | 6 | %4.3 |
+>
+> Kompozisyon adaleti de düzeliyor: 80 drop'ta bir tier'i görme sayısı
+> bağımsızda p5-p95 aralığı 20-34 iken torbada 26-27 (ideal 26.7).
+>
+> Torba 9 parçadan (tier 1/2/3'ten üçer kopya) oluşur, karılır, sırayla
+> çekilir, boşalınca yeniden doldurulur. Torba başına 2 kopya 5+ serileri
+> tamamen siler ama "iki tane gördüm, üçüncüsü gelmez" diye tahmin
+> edilebilir hale gelir; 3 kopya adaletin neredeyse tamamını verirken
+> çeşitliliği korur. Uygulama: `scripts/game/drop_bag.gd`, torba round
+> başına sıfırlanır.
 
 ## 3. Level tablosu (v1 — 10 level)
 
@@ -134,6 +156,45 @@ yeni level eklenebilmeli (data-driven, owner'ın istediği gibi).
 Level 10 tamamlanınca açılır. Sabit geniş kap, hamle/süre limiti yok. Sadece
 skor ve kişisel rekor (local save, bulut yok). Bu, asıl "bir tane daha"
 döngüsünün yaşadığı yer.
+
+> **Tier 8 annihilation — YALNIZCA sonsuz modda (owner kararı, M8).**
+> Sonsuz modda iki tier 8 çarpışınca **ikisi de yok olur**: büyük bir
+> parçacık patlaması, güçlü ekran sarsıntısı, **+600 puan** bonus ve combo
+> sayacına normal bir merge gibi katkı.
+>
+> Neden gerekli: tier 8'ler birikip yer açmıyordu, oturum erken bitiyordu.
+> Neden 600: oyundaki en büyük tek seferlik ödül tier 8 oluşması (200) idi;
+> annihilation bunun 3 katı olarak açık ara en büyük ödül oluyor ama tipik
+> bir oturumun toplam skoru (~13.000) içinde baskın hale gelmiyor.
+>
+> **Level modunda BU KURAL YOK.** §1'deki "tier 8 oluşunca round otomatik
+> bitmez, parça normal bir parça gibi kalır" kararı level'larda aynen
+> geçerli; orada tier 8'ler birikmeye devam eder ve taşma riskinin parçası
+> olur. Kod tarafında ayrım `LevelData.is_endless` üzerinden yapılıyor
+> (`Dumpling.annihilates_at_max`). Doğrudan test edildi: aynı anda iki tier 8
+> bırakıldığında sonsuz modda ikisi de yok oluyor (+600), level 10'da ikisi
+> de tahtada kalıyor (+0).
+>
+> **Ölçüm — beklenen etkiyi TAM vermiyor** (headless bot, sonsuz mod, n=24
+> her koşul için):
+>
+> | | kapalı | açık |
+> |---|---|---|
+> | süre medyan | 68 sn | 65 sn |
+> | süre ortalama | 71 sn | 70 sn |
+> | süre **p90** | 87 sn | **119 sn** |
+> | en uzun oturum | 89 sn | 129 sn |
+> | merge p90 | 194 | 265 |
+> | skor p90 | 16.760 | 23.540 |
+>
+> Yani annihilation **tipik oturumu uzatmıyor**, üst dilimi belirgin biçimde
+> uzatıyor. Sebep: kural ancak aynı anda İKİ tier 8 varken tetikleniyor, bu
+> da zaten uzun süren oturumlarda oluyor. Kısa oturumlar tier 8'e hiç
+> ulaşmadan bittiği için etkilenmiyor.
+>
+> Medyan oturumu da uzatmak istenirse kaldıraç bu kural değil; sonsuz modun
+> kap genişliği (şu an 600) veya tek bir tier 8'i bir süre sonra eritmek gibi
+> ayrı bir mekanik gerekir. Owner kararı, yapılmadı.
 
 ## 5. Ödül / bağımlılık sistemi
 

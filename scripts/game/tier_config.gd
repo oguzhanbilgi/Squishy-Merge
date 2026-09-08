@@ -12,7 +12,16 @@ extends RefCounted
 ##
 const MAX_TIER: int = 8
 
-## Drop pool: sadece tier 1-3 rastgele düşer (GAME_DESIGN.md §2).
+## Sonsuz modda iki tier 8 çarpışınca ikisi de yok olur ve bu bonus eklenir
+## (GAME_DESIGN.md §4). LEVEL modunda böyle bir kural YOK.
+##
+## Neden 600: oyundaki en büyük tek seferlik ödül tier 8 oluşmasıydı (200);
+## bunun 3 katı olarak açık ara en büyük ödül oluyor ama tipik bir sonsuz mod
+## oturumunun toplam skoru (~13.000) içinde baskın hale gelmiyor.
+const ANNIHILATION_BONUS: int = 600
+
+## Drop pool: sadece tier 1-3 düşer (GAME_DESIGN.md §2). Çekim bağımsız
+## rastgele DEĞİL, karılmış torbadan yapılıyor — bkz. scripts/game/drop_bag.gd.
 const DROP_POOL_MAX_TIER: int = 3
 
 const TIERS: Array[Dictionary] = [
@@ -50,10 +59,6 @@ static func tier_name(tier: int) -> String:
 ## Merge sesinin pitch'i her tier'da biraz daha yüksek (GAME_DESIGN.md §6).
 static func merge_pitch(tier: int) -> float:
 	return 0.85 + 0.09 * float(tier - 1)
-
-
-static func random_drop_tier() -> int:
-	return randi_range(1, DROP_POOL_MAX_TIER)
 
 
 ## Yıldız eşikleri (GAME_DESIGN.md §5.1). Bir tier'a ULAŞAN oyuncuların o

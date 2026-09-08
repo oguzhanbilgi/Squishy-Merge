@@ -24,7 +24,7 @@ const SPEEDUP: int = 8
 
 ## Bir kosu icin oyun-ici ust sinir (guvenlik freni), saniye. Sonsuz modun
 ## ve suresiz level'larin bir yerde bitmesi icin.
-const MAX_ROUND_SECONDS: float = 150.0
+const MAX_ROUND_SECONDS: float = 300.0
 
 var _level: LevelData
 var _trials: int = 20

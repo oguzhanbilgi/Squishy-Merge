@@ -7,6 +7,7 @@ signal round_finished(won: bool)
 const DUMPLING_SCENE: PackedScene = preload("res://scenes/game/dumpling.tscn")
 const POP_EFFECT_SCENE: PackedScene = preload("res://scenes/game/pop_effect.tscn")
 const BOKEH_TEXTURE: Texture2D = preload("res://assets/visual/fx/fx_dot.png")
+const DROP_BAG := preload("res://scripts/game/drop_bag.gd")
 
 const WALL_THICKNESS: float = 20.0
 ## Taşma çizgisine bu süre boyunca temas edilirse round biter (GAME_DESIGN.md §1).
@@ -60,6 +61,9 @@ var _prev_score: int = 0
 ## Skor pop'unun sahnede tanımlı yuvası — animasyon her seferinde buradan
 ## başlar. Skor metninden türetilmiyor çünkü metnin genişliği değişiyor.
 var _score_pop_home: Vector2 = Vector2.ZERO
+## Drop sırası: bağımsız rastgele değil, karılmış torbadan (bkz. drop_bag.gd).
+## Round başına yeni torba — önceki round'un kalanı sızmasın.
+var _drop_bag: RefCounted = DROP_BAG.new()
 
 @onready var _walls: StaticBody2D = $Walls
 @onready var _dumpling_layer: Node2D = $DumplingLayer
@@ -98,8 +102,8 @@ func _ready() -> void:
 	_setup_overflow_area()
 
 	_aim_x = _center_x()
-	_pending_tier = TierConfig.random_drop_tier()
-	_next_tier = TierConfig.random_drop_tier()
+	_pending_tier = _drop_bag.next_tier()
+	_next_tier = _drop_bag.next_tier()
 	_refresh_preview()
 	_on_score_changed(GameState.score)
 	_objective_label.text = "%s — %s" % [level.display_name(), level.objective_text()]
@@ -247,7 +251,7 @@ func _drop() -> void:
 		return
 	_spawn_dumpling(_pending_tier, Vector2(_aim_x, drop_line_y()))
 	_pending_tier = _next_tier
-	_next_tier = TierConfig.random_drop_tier()
+	_next_tier = _drop_bag.next_tier()
 	_drop_cooldown = DROP_COOLDOWN
 	_set_aim(_aim_x)
 
@@ -255,6 +259,8 @@ func _drop() -> void:
 func _spawn_dumpling(tier: int, at: Vector2) -> Dumpling:
 	var dumpling: Dumpling = DUMPLING_SCENE.instantiate()
 	dumpling.setup(tier)
+	# Tier 8 annihilation yalnızca sonsuz modda (GAME_DESIGN.md §4).
+	dumpling.annihilates_at_max = level.is_endless
 	dumpling.position = at
 	dumpling.merge_requested.connect(_on_merge_requested)
 	_dumpling_layer.add_child(dumpling)
@@ -270,6 +276,10 @@ func _on_merge_requested(a: Dumpling, b: Dumpling, point: Vector2) -> void:
 
 func _resolve_merge(a: Dumpling, b: Dumpling, point: Vector2) -> void:
 	if not is_instance_valid(a) or not is_instance_valid(b):
+		return
+
+	if a.tier >= TierConfig.MAX_TIER:
+		_resolve_annihilation(a, b, point)
 		return
 
 	var new_tier: int = a.tier + 1
@@ -297,6 +307,31 @@ func _resolve_merge(a: Dumpling, b: Dumpling, point: Vector2) -> void:
 	_check_objective()
 
 
+## Sonsuz mod: iki tier 8 çarpışınca ikisi de yok olur (GAME_DESIGN.md §4).
+## Level modunda bu yola hiç girilmez — Dumpling.annihilates_at_max false
+## olduğu için tier 8'ler merge_requested yaymaz.
+##
+## Amaç yer açmak: tier 8'ler birikince kap tıkanıyor ve oturum erken
+## bitiyordu. Normal merge'den ayrılan yanları: yeni parça DOĞMAZ, patlama
+## belirgin daha büyük, sarsıntı daha güçlü, puan tek seferlik bonus.
+func _resolve_annihilation(a: Dumpling, b: Dumpling, point: Vector2) -> void:
+	a.queue_free()
+	b.queue_free()
+
+	var tier: int = TierConfig.MAX_TIER
+	_spawn_pop(point, TierConfig.color(tier), TierConfig.radius(tier), tier, true)
+	# Tier 8 merge'inin sarsıntısının üstüne çıkıyor (SHAKE_MAX zaten tavan).
+	_shake_strength = maxf(_shake_strength, SHAKE_MAX * 1.6)
+
+	GameState.add_score(TierConfig.ANNIHILATION_BONUS)
+	# Sandık ilerlemesi açısından normal bir merge sayılıyor.
+	GameState.register_merge(tier, point)
+	# Merge sesinin en pesi — ağırlık hissi için.
+	AudioManager.play_sfx(&"merge", 0.7)
+	_register_combo()
+	_flash_status("%s x2  +%d!" % [TierConfig.tier_name(tier), TierConfig.ANNIHILATION_BONUS])
+
+
 ## Art arda gelen merge'leri zincirler. Tek merge combo sayılmaz.
 func _register_combo() -> void:
 	_combo_count += 1
@@ -321,11 +356,12 @@ func _tick_combo(delta: float) -> void:
 		_combo_label.text = ""
 
 
-func _spawn_pop(at: Vector2, pop_color: Color, radius: float, tier: int) -> void:
+func _spawn_pop(at: Vector2, pop_color: Color, radius: float, tier: int,
+		annihilation: bool = false) -> void:
 	var effect: Node2D = POP_EFFECT_SCENE.instantiate()
 	effect.position = at
 	add_child(effect)
-	effect.burst(pop_color, radius, tier)
+	effect.burst(pop_color, radius, tier, annihilation)
 
 
 ## Ekran sarsıntısı, merge'in tier'ına göre. Kamera offset'i kullanılıyor:
