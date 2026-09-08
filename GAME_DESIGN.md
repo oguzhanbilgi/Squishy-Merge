@@ -191,6 +191,11 @@ döngüsünün yaşadığı yer.
 > **Arka plan müziği v1 non-goal** — bilinçli olarak eklenmedi, tekrar
 > sorulmasına gerek yok. (Music bus'ı yapıda duruyor ama boş.)
 
+> **Not:** combo şu an sadece görsel/işitsel, skora dahil değil. İleride
+> combo'ya gerçek bir skor çarpanı eklenirse, `star_thresholds.py`'nin
+> "beceriden bağımsız merge sayısı" varsayımı geçersiz kalır — yıldız
+> eşikleri o noktada bot ölçümünden yeniden üretilmeli.
+
 ## 7. UI / HUD
 Referans: owner'ın ürettiği moodboard görseli (skor, para, "next" önizleme,
 taşma çizgisi, kap, alt sırada mevcut/gelecek dumpling sırası). Görsel stil
