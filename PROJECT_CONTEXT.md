@@ -71,5 +71,15 @@ milestone tablosu).
   bekliyor (owner tarafından paralel başlatılmalı — bu repo işiyle ilgisiz)
 - Android SDK / JDK / Godot export template kurulum durumu doğrulanmadı
 
+## M9 için hatırlatmalar
+- **`tools/` klasörü export preset'inde filtrelenmeli.** Buradaki script'ler
+  (bot_runner, bot_brain, screenshot_runner, make_fx_sprites, tier_geometry,
+  star_thresholds, make_placeholder_sprites + .tscn'leri) yalnızca geliştirme
+  araçları; oyun çalışırken hiçbiri kullanılmıyor. Filtre yoksa APK/AAB'ye
+  gereksiz yere dahil oluyorlar. Export preset'inde
+  `exclude_filter` alanına `tools/*` eklenmesi yeterli.
+  (M8'de fark edildi, uygulanmadı — export preset'i M9'da oluşturulacak ve
+  `export_presets.cfg` zaten gitignore'lu.)
+
 ## Next action
 Milestone 0'ı başlat: ortam doğrulama + proje iskeleti.
