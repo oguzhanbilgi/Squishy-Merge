@@ -1,0 +1,94 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/ui/shop_screen.gd" id="1_shop"]
+[ext_resource type="Theme" path="res://assets/visual/ui_theme.tres" id="2_theme"]
+
+[node name="ShopScreen" type="CanvasLayer"]
+layer = 5
+script = ExtResource("1_shop")
+
+[node name="Background" type="ColorRect" parent="."]
+anchor_right = 1.0
+anchor_bottom = 1.0
+color = Color(0.16, 0.15, 0.18, 1)
+
+[node name="Margin" type="MarginContainer" parent="."]
+theme = ExtResource("2_theme")
+anchor_right = 1.0
+anchor_bottom = 1.0
+theme_override_constants/margin_left = 28
+theme_override_constants/margin_top = 48
+theme_override_constants/margin_right = 28
+theme_override_constants/margin_bottom = 120
+
+[node name="VBox" type="VBoxContainer" parent="Margin"]
+theme_override_constants/separation = 14
+
+[node name="Title" type="Label" parent="Margin/VBox"]
+horizontal_alignment = 1
+theme_override_font_sizes/font_size = 34
+text = "Mağaza"
+
+[node name="Dough" type="Label" parent="Margin/VBox"]
+horizontal_alignment = 1
+text = "Hamur: 0"
+
+[node name="Scroll" type="ScrollContainer" parent="Margin/VBox"]
+size_flags_vertical = 3
+
+[node name="List" type="VBoxContainer" parent="Margin/VBox/Scroll"]
+size_flags_horizontal = 3
+theme_override_constants/separation = 10
+
+[node name="Toast" type="Label" parent="."]
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -260.0
+offset_top = -190.0
+offset_right = 260.0
+offset_bottom = -140.0
+theme_override_font_sizes/font_size = 26
+horizontal_alignment = 1
+text = ""
+
+[node name="Confirm" type="Control" parent="."]
+anchor_right = 1.0
+anchor_bottom = 1.0
+
+[node name="Dim" type="ColorRect" parent="Confirm"]
+anchor_right = 1.0
+anchor_bottom = 1.0
+color = Color(0, 0, 0, 0.65)
+
+[node name="Panel" type="PanelContainer" parent="Confirm"]
+theme = ExtResource("2_theme")
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -280.0
+offset_top = -190.0
+offset_right = 280.0
+offset_bottom = 190.0
+
+[node name="VBox" type="VBoxContainer" parent="Confirm/Panel"]
+alignment = 1
+theme_override_constants/separation = 24
+
+[node name="Text" type="Label" parent="Confirm/Panel/VBox"]
+horizontal_alignment = 1
+text = "-"
+
+[node name="Buttons" type="HBoxContainer" parent="Confirm/Panel/VBox"]
+alignment = 1
+theme_override_constants/separation = 18
+
+[node name="Yes" type="Button" parent="Confirm/Panel/VBox/Buttons"]
+custom_minimum_size = Vector2(170, 76)
+text = "Satın al"
+
+[node name="No" type="Button" parent="Confirm/Panel/VBox/Buttons"]
+custom_minimum_size = Vector2(170, 76)
+text = "Vazgeç"

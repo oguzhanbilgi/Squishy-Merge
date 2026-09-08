@@ -1,23 +1,21 @@
 extends CanvasLayer
-## Level seçim ekranı. Kilitli level'lar devre dışı görünür.
+## Harita sekmesi: level seçim ekranı. Kilitli level'lar devre dışı görünür.
+## Koleksiyon butonu M8'de alt sekme çubuğuna taşındı.
 ## GAME_DESIGN.md §5.5'teki yol/düğüm görselleştirmesi ve unlock animasyonu
 ## henüz yok — bu ekran şimdilik işlevsel, görsel hâli owner asset'leriyle gelecek.
 
 signal level_chosen(level: LevelData)
-signal collection_pressed
 
 var _levels: Array[LevelData] = []
 
 @onready var _grid: GridContainer = $Margin/VBox/Grid
 @onready var _endless_button: Button = $Margin/VBox/Endless
-@onready var _collection_button: Button = $Margin/VBox/Collection
 @onready var _record_label: Label = $Margin/VBox/Record
 
 
 func _ready() -> void:
 	_levels = LevelLibrary.load_levels()
 	_endless_button.pressed.connect(_on_endless_pressed)
-	_collection_button.pressed.connect(func() -> void: collection_pressed.emit())
 	refresh()
 
 

@@ -94,6 +94,16 @@ func add_dough(amount: int) -> void:
 	save_game()
 
 
+## Hamur harcar. Yetmiyorsa hiçbir şey yapmaz ve false döner — çağıran
+## tarafın ayrıca kontrol etmesine gerek kalmasın diye burada da bakılıyor.
+func spend_dough(amount: int) -> bool:
+	if amount <= 0 or dough() < amount:
+		return false
+	data["dough"] = dough() - amount
+	save_game()
+	return true
+
+
 func owned_skins() -> Array:
 	return data.get("unlocked_skins", [])
 

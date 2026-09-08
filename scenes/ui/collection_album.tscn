@@ -4,7 +4,7 @@
 [ext_resource type="Theme" path="res://assets/visual/ui_theme.tres" id="2_theme"]
 
 [node name="CollectionAlbum" type="CanvasLayer"]
-layer = 6
+layer = 5
 script = ExtResource("1_album")
 
 [node name="Background" type="ColorRect" parent="."]
@@ -19,7 +19,7 @@ anchor_bottom = 1.0
 theme_override_constants/margin_left = 32
 theme_override_constants/margin_top = 48
 theme_override_constants/margin_right = 32
-theme_override_constants/margin_bottom = 48
+theme_override_constants/margin_bottom = 130
 
 [node name="VBox" type="VBoxContainer" parent="Margin"]
 theme_override_constants/separation = 20
@@ -41,6 +41,3 @@ columns = 4
 theme_override_constants/h_separation = 12
 theme_override_constants/v_separation = 16
 
-[node name="Back" type="Button" parent="Margin/VBox"]
-custom_minimum_size = Vector2(0, 72)
-text = "Geri"

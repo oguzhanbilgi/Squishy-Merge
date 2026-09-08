@@ -19,7 +19,7 @@ anchor_bottom = 1.0
 theme_override_constants/margin_left = 40
 theme_override_constants/margin_top = 60
 theme_override_constants/margin_right = 40
-theme_override_constants/margin_bottom = 60
+theme_override_constants/margin_bottom = 130
 
 [node name="VBox" type="VBoxContainer" parent="Margin"]
 alignment = 1
@@ -37,10 +37,6 @@ theme_override_constants/v_separation = 16
 [node name="Endless" type="Button" parent="Margin/VBox"]
 custom_minimum_size = Vector2(0, 72)
 text = "Sonsuz Mod"
-
-[node name="Collection" type="Button" parent="Margin/VBox"]
-custom_minimum_size = Vector2(0, 64)
-text = "Koleksiyon"
 
 [node name="Record" type="Label" parent="Margin/VBox"]
 horizontal_alignment = 1

@@ -19,9 +19,12 @@ net, kısa level ilerlemesi ile bu boşluğu hedefliyor.
 ## Business model
 - v1: reklamsız, IAP yok. Amaç: organik/ASO testi, gerçek retention verisi
   toplamak.
+- v1'de **oyun içi mağaza VAR** (M8): Hamur ile kozmetik skin satın alınıyor.
+  Gerçek para geçmiyor — bu bir soft-currency sink'i, IAP değil.
+  Bkz. GAME_DESIGN §5.6.
 - v1.1+ (şimdi YAPILMIYOR): ödüllü reklam (ekstra sandık için), muhtemel
-  kozmetik IAP (skin paketleri). Gerçek kullanıcı verisi olmadan bu katmana
-  zaman harcamıyoruz.
+  kozmetik IAP (skin paketleri — gerçek parayla). Gerçek kullanıcı verisi
+  olmadan bu katmana zaman harcamıyoruz.
 
 ## Success metric
 v1 için "başarı" = Play Console'da (kapalı test track'inde) canlı, crash'siz,

@@ -1,9 +1,7 @@
 extends CanvasLayer
-## Koleksiyon albümü (GAME_DESIGN.md §5.3): grid, kaç skin'den kaçı açıldı,
+## Koleksiyon sekmesi (GAME_DESIGN.md §5.3): grid, kaç skin'den kaçı açıldı,
 ## açılmamışlar silüet. Skin listesi SkinLibrary'den geliyor — yeni .tres
 ## eklemek yeterli, bu ekran kod değişmeden büyür.
-
-signal closed
 
 const COLUMNS: int = 4
 const CARD_SIZE: Vector2 = Vector2(140.0, 150.0)
@@ -12,12 +10,10 @@ const LOCKED_COLOR: Color = Color(0.28, 0.28, 0.32)
 
 @onready var _grid: GridContainer = $Margin/VBox/Scroll/Grid
 @onready var _progress: Label = $Margin/VBox/Progress
-@onready var _back: Button = $Margin/VBox/Back
 
 
 func _ready() -> void:
 	_grid.columns = COLUMNS
-	_back.pressed.connect(func() -> void: closed.emit())
 	refresh()
 
 

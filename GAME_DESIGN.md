@@ -296,11 +296,10 @@ yer.
   - Legendary: %3
 - Sandık içeriği: kozmetik dumpling skin'i VEYA "Hamur" (soft currency).
   Duplicate skin çıkarsa otomatik Hamur'a çevrilir (dedupe).
-- Duplicate→Hamur oranları (10/25/60/150) ve teselli ödülü (5 Hamur)
-  **GEÇİCİ** — v1.1 shop ekonomisi tasarlanınca gerçek değerlere göre
-  revize edilecek.
-- Hamur v1'de harcanacak bir yer YOK (shop v1.1'de) — şimdilik sadece
-  toplanan/gösterilen bir sayaç. Bunu şimdiden fazla şişirmiyoruz.
+- Duplicate→Hamur oranları: 10/25/60/150 (rarity'e göre), teselli ödülü
+  5 Hamur.
+- **Hamur artık harcanabilir: §5.6'daki mağaza v1 kapsamında.** (M8'de
+  değişti; eski "v1'de harcanacak yer yok, shop v1.1'de" kararı geçersiz.)
 
 ### 5.3 Koleksiyon albümü
 - Basit bir grid ekranı: kaç skin'den kaçı açıldı. Toplam skin sayısı:
@@ -316,6 +315,42 @@ yer.
 ### 5.5 Level haritası
 - Level'lar bir yol üzerinde sıralı düğümler; kilitli level bulanık/gri,
   açılınca kısa bir "unlock" animasyonu
+- **Görsel yol haritası henüz YOK** — "Harita" sekmesi şimdilik mevcut
+  grid'i gösteriyor, ayrı bir art entegrasyon turunda gelecek.
+
+### 5.6 Mağaza (M8'de eklendi)
+
+Sahip olunmayan skin'ler Hamur ile satın alınır. **Gerçek para / IAP YOK** —
+PROJECT_CONTEXT'teki non-goal aynen geçerli, tek para birimi oyun içi Hamur.
+
+Fiyatlar (`scripts/game/shop.gd` → `PRICES`, tune edilebilir tek yer):
+
+| rarity | fiyat | adet | toplam |
+|---|---|---|---|
+| Common | 50 | 8 | 400 |
+| Rare | 150 | 6 | 900 |
+| Epic | 400 | 4 | 1600 |
+| Legendary | 900 | 2 | 1800 |
+| | | **20** | **4700 Hamur** |
+
+Ekran: rarity'e göre gruplanmış liste; sahip olunanlar "✓ Sahipsin" ile
+işaretli ve soluk (listeden çıkarılmıyor — koleksiyonun ne kadarının
+tamamlandığı görünsün). Hamur yetmiyorsa "Satın Al" pasif. Satın alma
+onay diyaloğundan geçiyor.
+
+> **DENGE UYARISI (M8, ölçüldü — `tools/shop_economy.py`):** mevcut sandık
+> kuralıyla **mağaza hiçbir şey satmıyor.** Sandık, o rarity'de açılmamış bir
+> skin varsa HER ZAMAN skin veriyor; koleksiyon mağaza devreye girmeden
+> doluyor:
+>
+> | oyuncu | koleksiyon 20/20 | 30. günde satın alınan | 30. günde artan Hamur |
+> |---|---|---|---|
+> | kasual (3 round/gün) | 10. gün | **0** | 4.580 |
+> | orta (5 round/gün) | 6. gün | **0** | 8.455 |
+> | yoğun (10 round/gün) | 3. gün | **0** | 18.080 |
+>
+> Sorun fiyatlarda değil, sandık→skin kuralında. Çözüm owner onayına sunuldu;
+> bu turda **hiçbir gelir kaynağı veya fiyat değiştirilmedi.**
 
 ## 6. Ses tasarımı
 
@@ -341,6 +376,18 @@ yer.
 > eşikleri o noktada bot ölçümünden yeniden üretilmeli.
 
 ## 7. UI / HUD
+
+> **Navigasyon: alt sekme çubuğu (M8).** Ana Sayfa / Harita / Koleksiyon /
+> Mağaza. Oyun sırasında ve round sonucu ekranında gizleniyor.
+> - **Ana Sayfa**: minimal — hoşgeldin, günlük seri, Hamur/koleksiyon
+>   sayacı, "Oyna" butonu (haritaya götürür).
+> - **Harita**: mevcut level seçim grid'i (§5.5'teki görsel yol haritası
+>   henüz yok).
+> - **Koleksiyon**: §5.3'teki albüm. Eski "Geri" butonu kaldırıldı.
+> - **Mağaza**: §5.6.
+>
+> Koleksiyon'a eskiden level seçim ekranındaki bir butondan giriliyordu;
+> o buton sekme çubuğuna taşındı.
 Referans: owner'ın ürettiği moodboard görseli (skor, para, "next" önizleme,
 taşma çizgisi, kap, alt sırada mevcut/gelecek dumpling sırası). Görsel stil
 owner'ın kendi asset'leriyle uygulanacak; Claude Code için önemli olan
