@@ -6,6 +6,11 @@ extends RefCounted
 ## doygunlaştırıldılar: hue'lar korunup saturation +0.22 puan artırıldı
 ## ("kraft kağıdı pastel" değil "kawaii/candy" hedefi). Value zaten
 ## hepsinde 1.0'daydı, artırılacak yer yoktu.
+##
+## Tier 1 istisnası: +0.22 ile #ffc368 oluyordu ama 44 px çapta gövde
+## sprite'ının koyu kenar gradyanı baskın çıkıp "çamurlu" okunuyordu.
+## Doygunluğu 0.59'dan 0.46'ya çekildi (#ffd08a) — M7 orijinalinden (0.37)
+## hâlâ belirgin şekilde daha canlı.
 ## YARIÇAPLAR placeholder DEĞİL: M8'de ölçümle kilitlendi. Sabit 1.241 büyüme
 ## oranıyla türetildiler; eski merdiven (22/30/40/52/66/84/106/132) level 9-10'u
 ## kazanılamaz kılıyordu (headless bot L10'da 0/20). Değiştirmeden önce
@@ -17,7 +22,7 @@ const MAX_TIER: int = 8
 const DROP_POOL_MAX_TIER: int = 3
 
 const TIERS: Array[Dictionary] = [
-	{"name": "Mini Dumpling",   "radius": 22.0,  "color": Color("ffc368"), "score": 0},
+	{"name": "Mini Dumpling",   "radius": 22.0,  "color": Color("ffd08a"), "score": 0},
 	{"name": "Küçük Dumpling",  "radius": 27.0,  "color": Color("ff7b87"), "score": 50},
 	{"name": "Dumpling",        "radius": 34.0,  "color": Color("82ff9d"), "score": 70},
 	{"name": "Şişkin Dumpling", "radius": 42.0,  "color": Color("82c9ff"), "score": 90},

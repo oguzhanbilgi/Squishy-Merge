@@ -109,9 +109,9 @@ standart zorluk dengelemesi — üst tier'lar sadece merge ile elde edilir.
 > ve **skor eşiği**, hedef tier değil. L8'deki sıçrama (%97 → %70) bunu
 > doğruluyor: tek etkili kaldıraç skor eşiği oldu.
 >
-> L4-L7'yi gerçekten zorlaştırmak istenirse kap genişliklerini daraltmak
-> gerekir; bu §3'teki genişlik etiketlerini değiştirmek demek, owner kararı
-> olmadan yapılmadı.
+> **L1-L7 zorluk kaldıracı olarak kap genişliği kullanılmadı — bilinçli,
+> giriş/ısınma level'ları.** (owner kararı, M8: kolay kalmaları rahatlatıcı
+> konseptle tutarlı; asıl zorluk L8-L10'da.)
 >
 > Ölçüm notu: süre limitleri zaten pratikte bağlayıcı değildi. Kaldırmadan önce/sonra
 > headless bot sonuçları L9'da %50→%43, L10'da %40→%43 (fark gürültü içinde) —
