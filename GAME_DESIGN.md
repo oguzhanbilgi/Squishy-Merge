@@ -72,18 +72,28 @@ standart zorluk dengelemesi — üst tier'lar sadece merge ile elde edilir.
 
 ## 3. Level tablosu (v1 — 10 level)
 
-| Level | Hedef | Kap genişliği | Hamle/süre limiti |
-|---|---|---|---|
-| 1 | Tier 4'e ulaş | Geniş | Yok (tutorial) |
-| 2 | Tier 4'e ulaş | Geniş | Yok |
-| 3 | Tier 5'e ulaş | Geniş | Yok |
-| 4 | Tier 5'e ulaş | Orta-geniş | Süre: 90 sn |
-| 5 | Tier 6'ya ulaş | Orta | Süre: 90 sn |
-| 6 | Tier 6'ya ulaş | Orta | Süre: 75 sn |
-| 7 | Tier 7'ye ulaş | Dar | Süre: 75 sn |
-| 8 | Tier 7'ye ulaş | Dar | Süre: 60 sn |
-| 9 | Tier 8'e ulaş | Dar | Süre: 60 sn |
-| 10 | Tier 8 + skor ≥ 5000 | En dar | Süre: 90 sn |
+| Level | Hedef | Kap genişliği |
+|---|---|---|
+| 1 | Tier 4'e ulaş | Geniş |
+| 2 | Tier 4'e ulaş | Geniş |
+| 3 | Tier 5'e ulaş | Geniş |
+| 4 | Tier 5'e ulaş | Orta-geniş |
+| 5 | Tier 6'ya ulaş | Orta |
+| 6 | Tier 6'ya ulaş | Orta |
+| 7 | Tier 7'ye ulaş | Dar |
+| 8 | Tier 7'ye ulaş | Dar |
+| 9 | Tier 8'e ulaş | Dar |
+| 10 | Tier 8 + skor ≥ 5000 | En dar |
+
+> **Süre baskısı YOK (owner kararı, M8).** Hiçbir level'da süre veya hamle
+> limiti yok; tek başarısızlık koşulu taşma. Süre limiti konseptin
+> "rahatlatıcı/ASMR" pozisyonuyla çelişiyordu — kasıtlı olarak kaldırıldı,
+> tekrar sorulmasına gerek yok. Süre göstergesi de HUD'dan çıkarıldı.
+>
+> Ölçüm notu: limitler zaten pratikte bağlayıcı değildi. Kaldırmadan önce/sonra
+> headless bot sonuçları L9'da %50→%43, L10'da %40→%43 (fark gürültü içinde) —
+> koşular saat dolmadan çok önce taşmayla bitiyordu. Yani bu değişiklik
+> zorluğu değil, oyunun HİSSİNİ değiştiriyor.
 
 Level datası bir Godot Resource (`.tres`) olarak tanımlanır — kod değişmeden
 yeni level eklenebilmeli (data-driven, owner'ın istediği gibi).

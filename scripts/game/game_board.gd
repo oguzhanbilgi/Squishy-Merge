@@ -46,7 +46,6 @@ var _pending_tier: int = 1
 var _next_tier: int = 1
 var _drop_cooldown: float = 0.0
 var _overflow_elapsed: float = 0.0
-var _time_left: float = 0.0
 var _combo_count: int = 0
 var _combo_timer: float = 0.0
 var _danger_tick: float = 0.0
@@ -70,7 +69,6 @@ var _score_pop_home: Vector2 = Vector2.ZERO
 @onready var _score_label: Label = $HUD/ScoreLabel
 @onready var _next_label: Label = $HUD/NextLabel
 @onready var _objective_label: Label = $HUD/ObjectiveLabel
-@onready var _time_label: Label = $HUD/TimeLabel
 @onready var _status_label: Label = $HUD/StatusLabel
 @onready var _combo_label: Label = $HUD/ComboLabel
 @onready var _score_pop: Label = $HUD/ScorePop
@@ -92,7 +90,6 @@ func _ready() -> void:
 	GameState.current_level = level.level_number
 	GameState.score_changed.connect(_on_score_changed)
 
-	_time_left = level.time_limit
 	# Sarsıntı kamerayı kaydırarak yapılıyor; gövdeleri/duvarları oynatmak
 	# fizikle çakışırdı. Kamera varsayılan görüntünün tam merkezine oturuyor.
 	_camera.position = get_viewport_rect().size * 0.5
@@ -113,7 +110,6 @@ func _ready() -> void:
 	_score_pop_home = _score_pop.position
 	_prev_score = GameState.score
 	_score_label.pivot_offset = Vector2(0.0, _score_label.size.y * 0.5)
-	_refresh_time_label()
 
 
 # --- Geometri ---
@@ -418,13 +414,6 @@ func _physics_process(delta: float) -> void:
 	if _is_finished:
 		return
 
-	if level.has_time_limit():
-		_time_left = maxf(0.0, _time_left - delta)
-		_refresh_time_label()
-		if _time_left == 0.0:
-			_finish(false)
-			return
-
 	var overflowing: bool = false
 	for body in _overflow_area.get_overlapping_bodies():
 		var dumpling := body as Dumpling
@@ -455,13 +444,6 @@ func _finish(won: bool) -> void:
 	_status_label.text = "Hedef tamam!" if won else "Bitti"
 	AudioManager.play_sfx(&"level_win" if won else &"level_lose")
 	round_finished.emit(won)
-
-
-func _refresh_time_label() -> void:
-	if not level.has_time_limit():
-		_time_label.text = ""
-		return
-	_time_label.text = "Süre: %d" % ceili(_time_left)
 
 
 ## Skor sadece değişmesin, kazanılan miktar "+N" olarak yukarı doğru büyüyüp

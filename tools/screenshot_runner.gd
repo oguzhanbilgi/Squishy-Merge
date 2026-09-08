@@ -10,6 +10,7 @@ extends Node
 
 const GAME_BOARD_SCENE: PackedScene = preload("res://scenes/game/game_board.tscn")
 const ROUND_RESULT_SCENE: PackedScene = preload("res://scenes/ui/round_result.tscn")
+const LEVEL_SELECT_SCENE: PackedScene = preload("res://scenes/ui/level_select.tscn")
 const BOT_BRAIN = preload("res://tools/bot_brain.gd")
 
 ## Proje viewport'u 720x1280; ekrana sigmasi icin ayni oranda kucultuluyor.
@@ -44,6 +45,7 @@ func _ready() -> void:
 	await _shot_merge()
 	await _shot_danger()
 	await _shot_chest()
+	await _shot_level_select()
 	print("bitti -> ", _out_dir)
 	get_tree().quit()
 
@@ -189,3 +191,16 @@ func _fake_rewards() -> Array[ChestReward]:
 
 	var rewards: Array[ChestReward] = [legendary, dough]
 	return rewards
+
+
+# --- 4) Level seçim: UI temasının buton durumları (açık / kilitli) ---
+
+func _shot_level_select() -> void:
+	var select: CanvasLayer = LEVEL_SELECT_SCENE.instantiate()
+	add_child(select)
+	# İki kare: biri düğümlerin kurulması, biri temanın oturması için.
+	await get_tree().process_frame
+	await get_tree().process_frame
+	await _capture("04_level_select.png")
+	select.queue_free()
+	await get_tree().process_frame

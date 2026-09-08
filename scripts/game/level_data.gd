@@ -20,10 +20,7 @@ extends Resource
 ## Taban ile taşma çizgisi arası (px). M1'de ölçülerek 400'de kilitlendi.
 @export var playable_height: float = 400.0
 
-## Saniye. 0 = süre limiti yok.
-@export var time_limit: float = 0.0
-
-## Sonsuz mod: hedef ve süre yok, sadece skor ve kişisel rekor.
+## Sonsuz mod: hedef yok, sadece skor ve kişisel rekor.
 @export var is_endless: bool = false
 
 
@@ -48,10 +45,6 @@ func stars_earned(won: bool, score: int) -> int:
 	if score >= star_2_threshold():
 		return 2
 	return 1
-
-
-func has_time_limit() -> bool:
-	return time_limit > 0.0
 
 
 func has_score_target() -> bool:

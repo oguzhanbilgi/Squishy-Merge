@@ -113,6 +113,9 @@ func _build_chests(rewards: Array[ChestReward]) -> void:
 ## Placeholder sandık kartı: rarity renginde bir kutu + iki satır yazı.
 func _make_chest_card(reward: ChestReward) -> Control:
 	var card := PanelContainer.new()
+	# Diyalog paneli (başlık çubuklu, kalın üst payı olan) liste öğesi olarak
+	# yanlış duruyor; kart kendi sade stilini kullanıyor.
+	card.theme_type_variation = &"CardPanel"
 	card.modulate = Color(1, 1, 1, 0)
 	card.custom_minimum_size = Vector2(0, 72)
 

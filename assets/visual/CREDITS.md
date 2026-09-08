@@ -6,8 +6,14 @@ serbesttir, atıf zorunlu değildir.
 
 Kaynak paketler:
 - Shape Characters — https://kenney.nl/assets/shape-characters
-- UI Pack — https://kenney.nl/assets/ui-pack
+- UI Pack — https://kenney.nl/assets/ui-pack (artık sadece yıldızlar)
 - Particle Pack — https://kenney.nl/assets/particle-pack
+
+Kenney dışı kaynak:
+- **Wenrexa — "Assets FREE: UI Casual Game Interface"** (CC0)
+  https://wenrexa.itch.io/uimobile-free · `WenrexaUIMobileN4_OnlyPng.zip`
+  (226 PNG). Lisans pakete dosya olarak eklenmemiş; CC0 bilgisi itch.io
+  ürün sayfasındaki "Asset license" alanından geliyor.
 
 Kaynak zip'ler `_visual_source/` altında duruyor (gitignore'lu).
 
@@ -37,26 +43,72 @@ godot --headless --path . --script res://tools/make_placeholder_sprites.gd
 Yüz tint'lenmez (koyu lacivert sabit), bu yüzden olduğu gibi kopyalandı.
 v1 için tek yüz ifadesi kullanılıyor — 8 ayrı ifade bilinçli olarak yok.
 
-## UI
+## UI — Wenrexa paketi (M8'de değiştirildi)
 
 | dosya | kaynak | kullanım |
 |---|---|---|
-| `ui/ui_button_normal.png` | UI Pack — `PNG/Blue/Default/button_rectangle_depth_gloss.png` | Buton: normal (+ hover/focus, modulate ile açılmış) |
-| `ui/ui_button_pressed.png` | UI Pack — `PNG/Blue/Default/button_rectangle_gloss.png` | Buton: basılı (derinlik bandı yok → içeri basılmış okunuyor) |
-| `ui/ui_button_disabled.png` | UI Pack — `PNG/Grey/Default/button_rectangle_depth_gloss.png` | Buton: kilitli level / kapalı sonsuz mod |
-| `ui/ui_panel.png` | UI Pack — `PNG/Grey/Default/button_square_depth_flat.png` | Panel / PanelContainer (pakette ayrı panel sprite'ı yok) |
-| `ui/ui_star_filled.png` | UI Pack — `PNG/Yellow/Default/star.png` | Round sonucu: kazanılan yıldız |
-| `ui/ui_star_empty.png` | UI Pack — `PNG/Grey/Default/star_outline.png` | Round sonucu: kazanılmayan yıldız (soluk) |
+| `ui/wenrexa_button.png` | Wenrexa — `PNG/Button11.png` (kırpıldı 308×87 → 286×66) | Buton: normal/hover/pressed/disabled |
+| `ui/wenrexa_panel.png` | Wenrexa — `PNG/Msg17.png` (kırpıldı 500×389 → 490×379) | Diyalog paneli (koyu gövde + camgöbeği başlık çubuğu) |
+| `ui/ui_star_filled.png` | Kenney UI Pack — `PNG/Yellow/Default/star.png` | Round sonucu: kazanılan yıldız |
+| `ui/ui_star_empty.png` | Kenney UI Pack — `PNG/Grey/Default/star_outline.png` | Round sonucu: kazanılmayan yıldız (soluk) |
 
-Bunlar `assets/visual/ui_theme.tres` içinde `StyleBoxTexture` olarak 9-patch
-kuruluyor. Tema dört ekrana bağlı: level seçim, round sonucu, koleksiyon
-albümü, günlük ödül popup'ı. Kodda üretilen butonlar/panel'ler de temayı
-ebeveynden miras aldığı için ayrıca elden geçirilmedi.
+**Neden kırpıldı:** kaynak PNG'lerde görünür grafiğin etrafında geniş şeffaf
+dolgu var (Button11'de buton 87 px'lik tuvalde sadece y=18..70 arasında).
+9-patch payları bu dolguyu da esnetir, butonun görünür yüksekliği Control
+dikdörtgeninden küçük kalırdı. Dönüşüm tekrarlanabilir:
 
-Yıldızlar `round_result.gd` içinde `TextureRect` olarak kuruluyor; eskiden
-`★`/`☆` metin karakteriydi. Dolu yıldız zaten sarı olduğu için tint
-uygulanmıyor, boş olan sadece soluklaştırılıyor. Tek tek açılan reveal
-animasyonu (`_reveal_stars`) değişmedi — hâlâ `scale` tween'i.
+```
+godot --headless --path . --script res://tools/make_ui_sprites.gd
+```
+
+### Renk seçimi gerekçesi
+
+Pakette beş renk var: kırmızı `#d26667`, turuncu `#d39b59`, yeşil `#6dbe5b`,
+mor `#967ee0`, camgöbeği `#58c4dd`. **Camgöbeği seçildi:**
+
+1. Beşinin en açığı (luminans ~175; diğerleri 125-166), yani dumpling
+   paletinin pastel registerine en yakın olan.
+2. Hue'su (~192°) tier paletinde yalnızca `bae1ff` (tier 4) ile komşu —
+   diğer renkler tier'ların yoğun olduğu sıcak bölgeye (24-52°) veya
+   pembe/kırmızı kümesine (349-356°) düşüyordu. UI chrome'unun bir parçayla
+   aynı tonda olma ihtimali böylece en düşük.
+3. 8 tier'ın 5'i sıcak; serin UI + sıcak parçalar doğal figür/zemin ayrımı
+   veriyor, parçalar odakta kalıyor.
+
+**Bu paket koyu bir temadır** — Msg panelleri koyu gövdeli (#31-#5f aralığı),
+butonlar doygun aksan. Oyunun arka planı zaten koyu gri olduğu için eski açık
+Kenney panelinden daha uyumlu; panel üstündeki beyaz etiketler de artık
+yüksek kontrastta.
+
+### Durumlar
+
+Pakette butonun ayrı basılı/kilitli varyantı yok, hepsi aynı "kabarık" tasarım.
+Durumlar `ui_theme.tres` içinde tek texture üzerinden türetiliyor:
+
+| durum | yöntem |
+|---|---|
+| normal | düz texture |
+| hover | `modulate_color` 1.14 (açılır) |
+| pressed | `modulate_color` 0.78-0.85 + content margin aşağı kaydırılır (içeri basılmış okunur) |
+| disabled | `modulate_color` gri/soluk |
+| focus | ayrı `StyleBoxFlat`: şeffaf zemin + açık camgöbeği çerçeve (normalin ÜSTÜNE çizilir) |
+
+Buton yazısı koyu lacivert (`#17333f` civarı) — açık camgöbeği zeminde
+beyazdan çok daha okunur.
+
+### CardPanel varyantı
+
+Diyalog paneli başlık çubuklu ve 88 px üst content payına sahip; sandık ödül
+kartı gibi liste öğelerinde bu yanlış duruyordu. Tema `CardPanel` type
+variation'ı tanımlıyor (sade koyu `StyleBoxFlat`), `round_result.gd` kartı
+buna bağlıyor.
+
+### Eski Kenney UI dosyaları
+
+`ui/ui_button_normal.png`, `ui_button_pressed.png`, `ui_button_disabled.png`,
+`ui/ui_panel.png` **silinmedi** — artık hiçbir yerden referans verilmiyorlar
+ama owner geri dönmek isterse `ui_theme.tres` içindeki iki `ext_resource`
+yolunu değiştirmek yeterli. Yıldızlar hâlâ Kenney; bu turda değiştirilmedi.
 
 ## Efektler (fx/) — M8 juice pası
 
@@ -96,4 +148,6 @@ gelecek). Renkli bir gövde koyarsan `dumpling_visual.gd` içindeki
 
 9-patch kenar payları texture boyutuna bağlı — buton/panel sprite'ının
 ölçüsünü değiştirirsen `ui_theme.tres` içindeki `texture_margin_*`
-değerlerini de güncelle.
+değerlerini de güncelle. Panelin `texture_margin_top` (76) ve
+`content_margin_top` (88) değerleri başlık çubuğunun yüksekliğine göre
+ölçülmüştür; başlıksız bir panel koyarsan ikisini de küçültmelisin.

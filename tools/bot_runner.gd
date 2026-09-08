@@ -62,9 +62,9 @@ func _ready() -> void:
 		objective = "tier %d" % _level.target_tier
 		if _level.has_score_target():
 			objective += " + %d skor" % _level.target_score
-	print("kap: %d x %d px | hedef: %s | sure: %d sn" % [
-		int(_level.container_width), int(_level.playable_height),
-		objective, int(_level.time_limit)])
+	# Sure limiti M8'de kaldirildi (GAME_DESIGN §3): tek fail state tasma.
+	print("kap: %d x %d px | hedef: %s" % [
+		int(_level.container_width), int(_level.playable_height), objective])
 	print("yaricaplar: %s" % _radii_text())
 	_start_trial()
 

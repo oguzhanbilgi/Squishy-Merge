@@ -9,5 +9,4 @@ target_tier = 4
 target_score = 0
 container_width = 600.0
 playable_height = 400.0
-time_limit = 0.0
 is_endless = false
