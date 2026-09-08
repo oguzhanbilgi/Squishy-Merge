@@ -33,7 +33,8 @@ Kaynak zip'ler `_visual_source/` altında duruyor (gitignore'lu).
 
 Bu sekiz karakter **owner tarafından ChatGPT ile üretildi** (M8). Kaynak
 dosyalar `_visual_source/chatgpt_characters/` altında duruyor (gitignore'lu);
-repoda yalnızca küçültülmüş çıktılar var.
+repoda yalnızca küçültülmüş çıktılar var. Aynı şey sandık görselleri için de
+geçerli (`_visual_source/chatgpt_ui/`, aşağıya bakın).
 
 Kaynaklar 1254×1254 ve dosya başına ~900 KB geliyordu (toplam ~7 MB).
 Ekranda en büyük tier bile 200 px olduğu için içerik sınırlarına kırpılıp
@@ -73,16 +74,53 @@ boşluk). Hem `make_character_sprites.gd` hem `dumpling_visual.gd` aynı
 formülü kullanıyor. Tam doğru çözüm collider'ı elips/kapsül yapmak olurdu
 ama bu M8'deki tüm denge ölçümlerini geçersiz kılardı.
 
-### Dönüş: sprite'ın tamamı ters döndürülüyor
+### Sandık görselleri — owner asset'leri
+
+| dosya | kaynak | boyut |
+|---|---|---|
+| `ui/chest_closed.png` | `chest_closed.png` (1004×986) | 258×254 |
+| `ui/chest_open.png` | `chest_open.png` (1065×1014) | 262×250 |
+
+Bambu buharda pişirici (dim sum steamer) temalı, owner'ın ChatGPT ile
+ürettiği iki görsel. Kaynaklar ~1.4 MB'lık 1240 px dosyalardı; karakterlerle
+aynı araçla kırpılıp küçültüldüler:
+
+```
+godot --headless --path . --script res://tools/make_owner_sprites.gd
+```
+
+**Reveal akışı** (`scripts/ui/reward_gem.gd`): kart belirdiğinde KAPALI
+sandık görünür → `CHEST_OPEN_DELAY` (0.35 sn) sonra kapak "sıçrayarak"
+açılır (0.88 → texture değişimi → 1.18 → 1.0 scale pop) → rarity katmanları
+(parıltı/çerçeve/ışın/parçacık) sandığın üstünde ve çevresinde açılır.
+
+M3'te bu sadece "kart belirir"di. M8'de rarity katmanları eklendi ama
+efektler düz renkli bir kutunun üstünde oynuyordu; artık gerçek sandığın
+üstünde oynuyorlar. **Rarity kademesi (RARITY_FX tablosu) değişmedi** —
+yalnızca hangi görselin üstüne bindiği değişti.
+
+`chest_open.png`'in kendi içinde de altın bir parıltı ve yıldızlar çizili.
+Bu, rarity katmanlarıyla çakışmıyor (onlar rarity renginde ve sandığın
+dışında halka/ışın olarak duruyor) ama Common ile Legendary arasındaki fark
+eskisinden daha az belirgin: sandık görseli her rarity'de aynı. Ayırt
+ediciliği artırmak istenirse sandığa hafif bir rarity tint'i eklenebilir —
+owner kararı, şimdilik yapılmadı.
+
+### Dönüş: sprite kısmen serbest
 
 Gövde fizikte serbest dönmeye devam ediyor (M1 kilitli kararı) ama yüz
-sprite'ın içinde gömülü olduğu için, gövdeyle dönerse karakter baş aşağı
-kalıyor. Eskiden yalnızca ayrı yüz katmanı ters döndürülüyordu; artık ters
-dönüş **sprite'ın tamamına** uygulanıyor (`dumpling_visual.gd::_process`).
+sprite'ın içinde gömülü olduğu için, gövdeyle tam dönerse karakter baş aşağı
+kalıyor.
 
-Yan etki: parçalar artık görsel olarak yuvarlanmıyor, hep dik duruyorlar.
-Fizik davranışı değişmedi. İstenirse ters dönüş kısmen uygulanıp (örn.
-±20° serbest bırakılarak) biraz canlılık geri kazanılabilir.
+Önce tam ters dönüş denendi (sprite dimdik): yüz okunuyordu ama yığın
+robotik ve cansız görünüyordu. Şimdiki hâl: sprite gövdeyi **±20°'ye kadar
+takip ediyor**, sonra sabitleniyor. Küçük eğilmeler görünüyor, baş aşağı
+dönüş görünmüyor.
+
+Geçiş `lerp_angle` ile yumuşatılıyor: gövde 180°'yi geçerken hedef açı
++20°'den −20°'ye atlıyor, doğrudan atansa görünür bir sıçrama olurdu.
+Sabitler `dumpling_visual.gd` içinde (`MAX_TILT`, `TILT_SPEED`).
+Fizik davranışı hiç değişmedi.
 
 **Kenar kontrolü (M8):** ChatGPT çıktılarında sık görülen beyaz kenar
 halosu (fringing) arandı, **bulunmadı**. Sekiz dosyada da yarı saydam kenar

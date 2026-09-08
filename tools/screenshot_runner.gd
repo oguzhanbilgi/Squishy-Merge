@@ -11,16 +11,6 @@ extends Node
 const GAME_BOARD_SCENE: PackedScene = preload("res://scenes/game/game_board.tscn")
 const ROUND_RESULT_SCENE: PackedScene = preload("res://scenes/ui/round_result.tscn")
 const LEVEL_SELECT_SCENE: PackedScene = preload("res://scenes/ui/level_select.tscn")
-const DUMPLING_VISUAL := preload("res://scripts/game/dumpling_visual.gd")
-
-## Tier 1 paletinin evrimi — küçük parçanın gerçek boyutta nasıl okunduğunu
-## karşılaştırmak için. Renkler bilerek sabit: bu çekim tier_config.gd'nin
-## o anki değerinden bağımsız olarak üçünü yan yana göstermeli.
-const PALETTE_VARIANTS: Array[Dictionary] = [
-	{"label": "M7 pastel      #ffd9a0", "color": Color("ffd9a0")},
-	{"label": "M8 candy       #ffc368", "color": Color("ffc368")},
-	{"label": "M8 tier1 açık  #ffd08a", "color": Color("ffd08a")},
-]
 const BOT_BRAIN = preload("res://tools/bot_brain.gd")
 
 ## Proje viewport'u 720x1280; ekrana sigmasi icin ayni oranda kucultuluyor.
@@ -56,7 +46,6 @@ func _ready() -> void:
 	await _shot_danger()
 	await _shot_chest()
 	await _shot_level_select()
-	await _shot_palette()
 	print("bitti -> ", _out_dir)
 	get_tree().quit()
 
@@ -180,10 +169,14 @@ func _shot_chest() -> void:
 	var level: LevelData = load("res://resources/levels/level_03.tres")
 	result.show_result(level, true, 640, 3, _fake_rewards(), false)
 
-	# Yıldız reveal'i 3 x 0.4 sn = 1.2 sn, ardından sandıklar 0.5 sn arayla
-	# (1.7 / 2.2 / 2.7 / 3.2). 3.35 sn = dördü de açılmış, sonuncusunun
-	# patlaması hâlâ havada.
-	await get_tree().create_timer(3.35).timeout
+	# Yıldız reveal'i 3 x 0.4 sn = 1.2 sn. Sonra her sandık için 0.5 sn
+	# bekleme + kart belirme, ardından 0.35 sn sonra açılış: kart n
+	# 1.7 + n*1.2 sn'de beliriyor, 0.35 sn sonra açılıyor.
+	# 1.95 sn = ilk sandık belirdi ama daha AÇILMADI (kapalı hâli).
+	await get_tree().create_timer(1.95).timeout
+	await _capture("06_chest_closed.png")
+	# 5.80 sn = dördü de açıldı, sonuncusunun patlaması hâlâ havada.
+	await get_tree().create_timer(5.80 - 1.95).timeout
 	await _capture("03_chest.png")
 	result.queue_free()
 	await get_tree().process_frame
@@ -218,43 +211,3 @@ func _shot_level_select() -> void:
 	await _capture("04_level_select.png")
 	select.queue_free()
 	await get_tree().process_frame
-
-
-# --- 5) Tier 1 palet karşılaştırması (gerçek boyut + 2.5x büyütme) ---
-
-func _shot_palette() -> void:
-	var root := Node2D.new()
-	add_child(root)
-
-	var title := Label.new()
-	title.text = "Tier 1 (yarıçap 22 px) — sol: gerçek boyut, sağ: 2.5x"
-	title.position = Vector2(40, 120)
-	root.add_child(title)
-
-	for i in PALETTE_VARIANTS.size():
-		var variant: Dictionary = PALETTE_VARIANTS[i]
-		var y: float = 260.0 + float(i) * 220.0
-
-		var label := Label.new()
-		label.text = variant["label"]
-		label.position = Vector2(40, y - 90)
-		root.add_child(label)
-
-		_add_swatch(root, Vector2(150, y), 22.0, variant["color"])
-		_add_swatch(root, Vector2(420, y), 55.0, variant["color"])
-
-	await get_tree().process_frame
-	await get_tree().process_frame
-	await _capture("05_tier1_palet.png")
-	root.queue_free()
-	await get_tree().process_frame
-
-
-## Gerçek dumpling görselini kullanır (gövde + parlama + yüz) — düz bir daire
-## çizmek yanıltıcı olurdu, sorun zaten gövde sprite'ının gradyanından çıkıyor.
-func _add_swatch(root: Node2D, at: Vector2, radius: float, color: Color) -> void:
-	var visual := Node2D.new()
-	visual.set_script(DUMPLING_VISUAL)
-	visual.position = at
-	root.add_child(visual)
-	visual.setup(radius, color)

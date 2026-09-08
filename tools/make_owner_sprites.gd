@@ -1,5 +1,6 @@
 extends SceneTree
-## Owner'in ChatGPT ile urettigi 8 tier karakterini oyuna hazirlar.
+## Owner'in ChatGPT ile urettigi sprite'lari oyuna hazirlar (8 tier karakteri
+## + sandik gorselleri).
 ## Tek seferlik/tekrar calistirilabilir arac — oyun calisirken kullanilmaz.
 ##
 ## Yaptiklari:
@@ -18,6 +19,15 @@ extends SceneTree
 
 const SRC := "res://_visual_source/chatgpt_characters/"
 const OUT := "res://assets/visual/"
+
+## Sandik gorselleri: karakterlerden farkli klasor ve sabit hedef boyut
+## (tier yariçapina bagli degiller, odul kartinda tek boyutta gosteriliyorlar).
+const UI_SRC := "res://_visual_source/chatgpt_ui/"
+const UI_OUT := "res://assets/visual/ui/"
+const UI_ITEMS: Array[Dictionary] = [
+	{"src": "chest_closed.png", "out": "chest_closed.png", "size": 256},
+	{"src": "chest_open.png",   "out": "chest_open.png",   "size": 256},
+]
 
 const FILES: Array[String] = ["tier1_mini.png", "tier2_kucuk.png", "tier3_dumpling.png",
 	"tier4_siskin.png", "tier5_buyuk.png", "tier6_dev.png", "tier7_jumbo.png", "tier8_kral.png"]
@@ -41,6 +51,8 @@ func _initialize() -> void:
 			ok = false
 			continue
 		palette.append(result["hex"])
+	for item in UI_ITEMS:
+		ok = _process_ui(item) and ok
 	print("")
 	print("TierConfig icin baskin renkler: ", " ".join(palette))
 	print("SONUC: ", "OK" if ok else "HATA")
@@ -86,6 +98,34 @@ func _process_one(tier: int, file_name: String) -> Dictionary:
 		out_name, file_name, region.size.x, region.size.y, out_w, out_h,
 		dominant.to_html(false)])
 	return {"hex": dominant.to_html(false)}
+
+
+## Sandik gorselleri: kirp + sabit hedefe kucult. Karakterlerdeki gibi
+## yariçapa bagli bir olcek yok, odul kartinda tek boyutta duruyorlar.
+func _process_ui(item: Dictionary) -> bool:
+	var img := Image.load_from_file(ProjectSettings.globalize_path(UI_SRC + item["src"]))
+	if img == null:
+		printerr("Kaynak okunamadi: ", item["src"])
+		return false
+	img.convert(Image.FORMAT_RGBA8)
+	var region := _content_bounds(img)
+	if region.size.x <= 0:
+		printerr("Tamamen seffaf: ", item["src"])
+		return false
+	var cropped := img.get_region(region)
+	var target: int = item["size"]
+	var mean: float = sqrt(float(region.size.x) * float(region.size.y))
+	var factor: float = float(target) / mean
+	var out_w: int = maxi(1, int(round(float(region.size.x) * factor)))
+	var out_h: int = maxi(1, int(round(float(region.size.y) * factor)))
+	cropped.resize(out_w, out_h, Image.INTERPOLATE_LANCZOS)
+	var dst := ProjectSettings.globalize_path(UI_OUT + item["out"])
+	if cropped.save_png(dst) != OK:
+		printerr("Yazilamadi: ", dst)
+		return false
+	print("%-20s <- %-20s %dx%d -> %dx%d" % [
+		item["out"], item["src"], region.size.x, region.size.y, out_w, out_h])
+	return true
 
 
 func _content_bounds(img: Image) -> Rect2i:

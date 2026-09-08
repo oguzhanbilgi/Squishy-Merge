@@ -54,20 +54,33 @@ func setup(tier: int) -> void:
 
 
 ## Gövde serbest dönüyor (M1 kilitli karar) ama yüz bu sprite'ların İÇİNDE
-## gömülü — gövdeyle birlikte dönerse karakter baş aşağı kalıyor ve okunmuyor.
-## Eski kurulumda yalnızca ayrı yüz katmanı ters döndürülüyordu; artık ayrı
-## katman olmadığı için ters dönüş sprite'ın TAMAMINA uygulanıyor.
+## gömülü — gövdeyle birlikte tam dönerse karakter baş aşağı kalıyor.
 ##
-## Sonuç: parçalar fizikte dönmeye devam ediyor (yuvarlanıp boşluklara
-## oturuyorlar) ama görsel olarak hep dik duruyorlar.
+## Tam ters dönüş (rotation = -parent.rotation) denendi: yüz okunuyordu ama
+## parçalar robotik biçimde dimdik duruyordu, yığın cansızlaşıyordu. Onun
+## yerine sprite gövdeyi ±MAX_TILT'e kadar TAKİP EDİYOR, sonra sabitleniyor:
+## küçük eğilmeler görünüyor, baş aşağı dönüş görünmüyor.
 ##
+## lerp_angle ile yumuşatılıyor çünkü gövde 180°'yi geçerken hedef açı
+## +MAX'tan -MAX'a atlıyor; doğrudan atansa görünür bir sıçrama olurdu.
+const MAX_TILT: float = deg_to_rad(20.0)
+## Hedefe yaklaşma hızı (1/sn). Yüksek = daha çevik, düşük = daha tembel.
+const TILT_SPEED: float = 12.0
+
+## Sprite'ın DÜNYA açısı (ebeveynin değil). Yumuşatma bunun üzerinden gidiyor.
+var _tilt: float = 0.0
+
+
 ## Ölçek burada değiştirilmiyor — squash-stretch tween'i self.scale'i
 ## animasyonluyor ve ondan etkilenmemesi gerekiyor.
-func _process(_delta: float) -> void:
+func _process(delta: float) -> void:
 	var parent := get_parent() as Node2D
 	if parent == null:
 		return
-	rotation = -parent.global_rotation
+	var body_rotation: float = wrapf(parent.global_rotation, -PI, PI)
+	var target: float = clampf(body_rotation, -MAX_TILT, MAX_TILT)
+	_tilt = lerp_angle(_tilt, target, 1.0 - exp(-delta * TILT_SPEED))
+	rotation = _tilt - parent.global_rotation
 
 
 ## Squash-stretch. Merge'de tam genlik (GAME_DESIGN.md §1: 1.0 -> 1.2/0.8 -> 1.0,
