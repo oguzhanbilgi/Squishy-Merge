@@ -1,11 +1,12 @@
-# assets/visual — placeholder görseller
+# assets/visual — görsel asset'ler
 
-Bu klasördeki tüm `.png` dosyaları **Kenney.nl** paketlerinden alınmış
-**CC0 (Creative Commons Zero)** placeholder görsellerdir. Ticari kullanımda
-serbesttir, atıf zorunlu değildir.
+**Dumpling karakterleri owner'ın kendi asset'leri** (aşağıya bakın).
+Kalan dosyalar (UI, efekt parçacıkları, yıldızlar) **CC0** kaynaklardan
+gelen placeholder'lardır; ticari kullanımda serbest, atıf zorunlu değil.
 
 Kaynak paketler:
 - Shape Characters — https://kenney.nl/assets/shape-characters
+  (**artık kullanılmıyor** — M8'de owner'ın karakterleriyle değiştirildi)
 - UI Pack — https://kenney.nl/assets/ui-pack (artık sadece yıldızlar)
 - Particle Pack — https://kenney.nl/assets/particle-pack
 
@@ -17,31 +18,77 @@ Kenney dışı kaynak:
 
 Kaynak zip'ler `_visual_source/` altında duruyor (gitignore'lu).
 
-## Dumpling (8 tier)
+## Dumpling (8 tier) — owner asset'leri
 
-| dosya | kaynak | kullanım |
+| dosya | kaynak | ekran boyutu |
 |---|---|---|
-| `dumpling_body.png` | Shape Characters — `PNG/Double/yellow_body_circle.png` (nötr griye çevrildi) | 8 tier'ın ortak gövdesi |
-| `dumpling_face.png` | Shape Characters — `PNG/Double/face_l.png` (olduğu gibi) | 8 tier'ın ortak yüzü |
+| `dumpling_tier1.png` | `tier1_mini.png` | 143×115 |
+| `dumpling_tier2.png` | `tier2_kucuk.png` | 145×113 |
+| `dumpling_tier3.png` | `tier3_dumpling.png` | 268×245 |
+| `dumpling_tier4.png` | `tier4_siskin.png` | 287×229 |
+| `dumpling_tier5.png` | `tier5_buyuk.png` | 291×225 |
+| `dumpling_tier6.png` | `tier6_dev.png` | 572×459 |
+| `dumpling_tier7.png` | `tier7_jumbo.png` | 575×456 |
+| `dumpling_tier8.png` | `tier8_kral.png` | 532×492 |
 
-**Tier'a göre renk texture'da değil, kodda.** Gövde nötr gri; renk
-`TierConfig.TIERS[...].color` paletinden `modulate` ile geliyor
-(`scripts/game/dumpling_visual.gd`). Yani 8 ayrı gövde dosyası yok, tek dosya
-8 kez farklı tint'le çiziliyor — palet değişince görsel de değişir, dosya
-değiştirmek gerekmez.
+Bu sekiz karakter **owner tarafından ChatGPT ile üretildi** (M8). Kaynak
+dosyalar `_visual_source/chatgpt_characters/` altında duruyor (gitignore'lu);
+repoda yalnızca küçültülmüş çıktılar var.
 
-`dumpling_body.png` neden dönüştürüldü: Kenney gövdeleri sabit renkli
-(mavi/sarı/pembe...). Renkli bir gövdeyi tint'lemek paleti kirletirdi. Gövde
-luminansa çevrilip baskın dolgu tonu beyaza normalize edildi; parlaklık/gölge
-gradyanı korundu. Dönüşüm `tools/make_placeholder_sprites.gd` ile
-tekrarlanabilir:
+Kaynaklar 1254×1254 ve dosya başına ~900 KB geliyordu (toplam ~7 MB).
+Ekranda en büyük tier bile 200 px olduğu için içerik sınırlarına kırpılıp
+küçültülüyorlar (toplam ~1.1 MB). Dönüşüm tekrarlanabilir:
 
 ```
-godot --headless --path . --script res://tools/make_placeholder_sprites.gd
+godot --headless --path . --script res://tools/make_character_sprites.gd
 ```
 
-Yüz tint'lenmez (koyu lacivert sabit), bu yüzden olduğu gibi kopyalandı.
-v1 için tek yüz ifadesi kullanılıyor — 8 ayrı ifade bilinçli olarak yok.
+### Önemli farklar (eski Kenney kurulumuna göre)
+
+**Tint YOK.** Sprite'lar kendi renkleriyle geliyor; `modulate` uygulanmıyor.
+Eski kurulum nötr gri tek bir gövdeyi `TierConfig` paletiyle tint'liyordu.
+
+**Ayrı yüz katmanı YOK.** Yüz sprite'ın içine gömülü. `dumpling_face.png`
+artık hiçbir yerden referans verilmiyor.
+
+**Parlama overlay'i YOK.** Sprite'ların kendi spekuler parlamaları var;
+`fx/dumpling_gloss.png` üstlerine uygulanırsa çift parlama olurdu. Dosya
+duruyor ama kullanılmıyor.
+
+**`TierConfig.TIERS[...].color` artık gövde rengi değil** — yalnızca merge
+parçacıklarının ve efektlerin rengi. Değerler sprite'lardan örneklendi
+(araç baskın tonu raporluyor). Örneklenmeseydi mavi tier 8'in üstünde
+kırmızı parçacık patlardı.
+
+### Ölçek: sprite'lar dairesel değil
+
+Karakterlerin en/boy oranı ~1.08-1.29 (geniş ve basık), fizik gövdesi ise
+`CircleShape2D`. Ölçek, **görselin geometrik ortalamasını çapa eşitliyor**:
+
+- yalnızca genişliğe göre ölçeklense parçalar dikey boşlukla dururdu
+- yalnızca yüksekliğe göre ölçeklense yatayda taşıp üst üste binerdi
+
+Geometrik ortalama ikisinin hatasını bölüyor (~%12 yatay taşma, ~%11 dikey
+boşluk). Hem `make_character_sprites.gd` hem `dumpling_visual.gd` aynı
+formülü kullanıyor. Tam doğru çözüm collider'ı elips/kapsül yapmak olurdu
+ama bu M8'deki tüm denge ölçümlerini geçersiz kılardı.
+
+### Dönüş: sprite'ın tamamı ters döndürülüyor
+
+Gövde fizikte serbest dönmeye devam ediyor (M1 kilitli kararı) ama yüz
+sprite'ın içinde gömülü olduğu için, gövdeyle dönerse karakter baş aşağı
+kalıyor. Eskiden yalnızca ayrı yüz katmanı ters döndürülüyordu; artık ters
+dönüş **sprite'ın tamamına** uygulanıyor (`dumpling_visual.gd::_process`).
+
+Yan etki: parçalar artık görsel olarak yuvarlanmıyor, hep dik duruyorlar.
+Fizik davranışı değişmedi. İstenirse ters dönüş kısmen uygulanıp (örn.
+±20° serbest bırakılarak) biraz canlılık geri kazanılabilir.
+
+**Kenar kontrolü (M8):** ChatGPT çıktılarında sık görülen beyaz kenar
+halosu (fringing) arandı, **bulunmadı**. Sekiz dosyada da yarı saydam kenar
+bandının luminansı gövde ortalamasından 0.05-0.11 *daha düşük* — bu saydam
+zemine karşı normal alfa yumuşatmasının imzası; halo olsaydı fark pozitif
+çıkardı.
 
 ## UI — Wenrexa paketi (M8'de değiştirildi)
 
@@ -164,9 +211,16 @@ Dosya **isimlerini koru**. Kod bu isimlere `dumpling_visual.gd` sabitleri ve
 `ui_theme.tres` üzerinden bağlı; aynı isimle üzerine yazarsan kodda hiçbir
 değişiklik gerekmez.
 
-Kendi gövde sprite'ını koyarken: gövde **nötr gri** olmalı (tint palet'ten
-gelecek). Renkli bir gövde koyarsan `dumpling_visual.gd` içindeki
-`_body.modulate` satırını kaldırman gerekir.
+Karakter sprite'larını değiştirirken: tint uygulanmıyor, yani sprite kendi
+son rengiyle gelmeli. Yeni sprite'ları `_visual_source/chatgpt_characters/`
+altına aynı isimlerle koyup `make_character_sprites.gd`'yi çalıştırmak
+yeterli — kırpma, küçültme ve baskın renk raporu otomatik. Rapor edilen
+renkleri `tier_config.gd`'deki `color` alanlarına yazmayı unutma (parçacık
+renkleri oradan geliyor).
+
+En/boy oranı çok farklı bir sprite koyarsan (örn. kare veya dikey) yukarıdaki
+geometrik ortalama uzlaşması bozulur; o durumda `dumpling_visual.gd::setup`
+içindeki ölçek formülüne bakman gerekir.
 
 9-patch kenar payları texture boyutuna bağlı — buton/panel sprite'ının
 ölçüsünü değiştirirsen `ui_theme.tres` içindeki `texture_margin_*`

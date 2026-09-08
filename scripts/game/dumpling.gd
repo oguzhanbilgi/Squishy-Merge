@@ -65,7 +65,7 @@ func _ready() -> void:
 	# Yarıçapla orantılı kütle — büyük tier'lar ağır hissetsin.
 	mass = TierConfig.radius(tier) * 0.05
 
-	_visual.setup(TierConfig.radius(tier), TierConfig.color(tier))
+	_visual.setup(tier)
 	body_entered.connect(_on_body_entered)
 
 

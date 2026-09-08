@@ -237,7 +237,7 @@ func _set_aim(x: float) -> void:
 
 func _refresh_preview() -> void:
 	_preview.position = Vector2(_aim_x, drop_line_y())
-	_preview.setup(TierConfig.radius(_pending_tier), TierConfig.color(_pending_tier))
+	_preview.setup(_pending_tier)
 	_preview.modulate.a = 1.0 if _drop_cooldown <= 0.0 else 0.4
 	_next_label.text = "Sıradaki: %s" % TierConfig.tier_name(_next_tier)
 

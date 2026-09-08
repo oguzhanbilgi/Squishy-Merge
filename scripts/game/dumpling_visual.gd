@@ -1,88 +1,73 @@
 extends Node2D
-## Dumpling görseli: nötr gri gövde sprite'ı + tier rengiyle tint, üstüne
-## tint'lenmeyen bir yüz. Sprite'lar Kenney "Shape Characters" (CC0)
-## PLACEHOLDER — owner kendi asset'iyle aynı dosya adlarını koruyarak
-## değiştirecek (bkz. assets/visual/CREDITS.md).
+## Dumpling görseli: tier başına tek bir karakter sprite'ı.
+##
+## M8'de owner'ın kendi asset'lerine geçildi (ChatGPT ile üretilmiş 8 karakter,
+## bkz. assets/visual/CREDITS.md). Önceki Kenney "Shape Characters" kurulumu
+## nötr gri bir gövdeyi tier rengiyle tint'liyor, üstüne ayrı bir yüz sprite'ı
+## koyuyordu. Yeni sprite'lar kendi rengiyle ve gövdeye gömülü yüzüyle geliyor:
+##  - tint (modulate) UYGULANMIYOR
+##  - ayrı yüz katmanı YOK
+##  - parlama overlay'i YOK (sprite'ların kendi spekuler parlamaları var)
 
-## Gövde nötr gri; renk TierConfig paletinden modulate ile geliyor, burada
-## yeni renk tanımlanmıyor.
-const BODY_TEXTURE: Texture2D = preload("res://assets/visual/dumpling_body.png")
-const FACE_TEXTURE: Texture2D = preload("res://assets/visual/dumpling_face.png")
-## Parlama overlay'i (M8): sol-üstte yarı saydam beyaz highlight. Tint
-## uygulanmaz — ışık yansıması tier renginden bağımsız. Gövdeyle aynı
-## ölçüde üretiliyor (tools/make_fx_sprites.gd), o yüzden aynı ölçek geçerli.
-const GLOSS_TEXTURE: Texture2D = preload("res://assets/visual/fx/dumpling_gloss.png")
-## Highlight'ın gücü. 1.0 plastik/ıslak görünüyor, 0.45 "cilalı" sınırında.
-const GLOSS_ALPHA: float = 0.45
-
-## Gövde texture'u 160x160, yani yarıçapı 80 px. Ölçek bundan çıkıyor.
-const BODY_TEXTURE_RADIUS: float = 80.0
-## Yüz genişliği / gövde çapı. Kenney'nin kendi örnek oranı.
-const FACE_WIDTH_RATIO: float = 0.66
-## Yüz merkezi gövde merkezinin bu kadar üstünde (yarıçap katı).
-const FACE_OFFSET_RATIO: float = -0.16
+## Tier -> sprite. Sıra TierConfig.TIERS ile aynı.
+const TEXTURES: Array[Texture2D] = [
+	preload("res://assets/visual/dumpling_tier1.png"),
+	preload("res://assets/visual/dumpling_tier2.png"),
+	preload("res://assets/visual/dumpling_tier3.png"),
+	preload("res://assets/visual/dumpling_tier4.png"),
+	preload("res://assets/visual/dumpling_tier5.png"),
+	preload("res://assets/visual/dumpling_tier6.png"),
+	preload("res://assets/visual/dumpling_tier7.png"),
+	preload("res://assets/visual/dumpling_tier8.png"),
+]
 
 var radius: float = 20.0
-var fill_color: Color = Color.WHITE
 
 var _tween: Tween
-var _body: Sprite2D
-var _gloss: Sprite2D
-var _face: Sprite2D
-## Yüzün gövde merkezine göre konumu — her karede dönüş geri alınarak
-## uygulanıyor, yoksa yüz gövdeyle birlikte merkezin etrafında dönerdi.
-var _face_offset: Vector2 = Vector2.ZERO
+var _sprite: Sprite2D
 
 
 func _ready() -> void:
-	_ensure_sprites()
+	_ensure_sprite()
 
 
-## setup() _ready'den önce de çağrılabildiği için sprite'lar tembel kuruluyor.
-func _ensure_sprites() -> void:
-	if _body != null:
+## setup() _ready'den önce de çağrılabildiği için sprite tembel kuruluyor.
+func _ensure_sprite() -> void:
+	if _sprite != null:
 		return
-	_body = Sprite2D.new()
-	_body.texture = BODY_TEXTURE
-	add_child(_body)
-	_gloss = Sprite2D.new()
-	_gloss.texture = GLOSS_TEXTURE
-	_gloss.modulate = Color(1.0, 1.0, 1.0, GLOSS_ALPHA)
-	add_child(_gloss)
-	_face = Sprite2D.new()
-	_face.texture = FACE_TEXTURE
-	add_child(_face)
+	_sprite = Sprite2D.new()
+	add_child(_sprite)
 
 
-func setup(new_radius: float, new_color: Color) -> void:
-	radius = new_radius
-	fill_color = new_color
-	_ensure_sprites()
-	_body.scale = Vector2.ONE * (radius / BODY_TEXTURE_RADIUS)
-	_body.modulate = fill_color
-	_gloss.scale = _body.scale
-	var face_width: float = radius * 2.0 * FACE_WIDTH_RATIO
-	_face.scale = Vector2.ONE * (face_width / float(FACE_TEXTURE.get_width()))
-	_face_offset = Vector2(0.0, radius * FACE_OFFSET_RATIO)
-	_face.position = _face_offset
+func setup(tier: int) -> void:
+	radius = TierConfig.radius(tier)
+	_ensure_sprite()
+	var texture: Texture2D = TEXTURES[tier - 1]
+	_sprite.texture = texture
+	# Sprite'lar dairesel DEĞİL (en/boy ~1.25), collider ise CircleShape2D.
+	# Ölçek, görselin geometrik ortalamasını çapa eşitliyor: sadece genişliğe
+	# göre ölçeklesek parçalar dikey boşlukla dururdu, sadece yüksekliğe göre
+	# ölçeklesek yatayda taşıp üst üste binerdi. Bu ikisinin hatasını böler.
+	# (tools/make_character_sprites.gd aynı formülü kullanarak küçültüyor.)
+	var mean: float = sqrt(float(texture.get_width()) * float(texture.get_height()))
+	_sprite.scale = Vector2.ONE * (radius * 2.0 / mean)
 
 
-## Gövde serbest dönüyor (M1 kilitli karar) ama yüz her zaman yukarı bakmalı;
-## yan yatmış yüz büyük tier'larda karalama gibi okunuyordu.
+## Gövde serbest dönüyor (M1 kilitli karar) ama yüz bu sprite'ların İÇİNDE
+## gömülü — gövdeyle birlikte dönerse karakter baş aşağı kalıyor ve okunmuyor.
+## Eski kurulumda yalnızca ayrı yüz katmanı ters döndürülüyordu; artık ayrı
+## katman olmadığı için ters dönüş sprite'ın TAMAMINA uygulanıyor.
 ##
-## `top_level = true` yerine yüz normal çocuk olarak bırakıldı: top_level olsaydı
-## ebeveynin ölçeğini de miras almazdı ve squash-stretch sırasında yüz gövdeyle
-## birlikte ezilmez, üstünde sabit dururdu. Bunun yerine hem dönüş hem de konum
-## offset'i ters çevriliyor — sonuç aynı (yüz dik), squash bağlantısı korunuyor.
+## Sonuç: parçalar fizikte dönmeye devam ediyor (yuvarlanıp boşluklara
+## oturuyorlar) ama görsel olarak hep dik duruyorlar.
+##
+## Ölçek burada değiştirilmiyor — squash-stretch tween'i self.scale'i
+## animasyonluyor ve ondan etkilenmemesi gerekiyor.
 func _process(_delta: float) -> void:
-	if _face == null or _gloss == null:
+	var parent := get_parent() as Node2D
+	if parent == null:
 		return
-	var body_rotation: float = global_rotation
-	_face.rotation = -body_rotation
-	_face.position = _face_offset.rotated(-body_rotation)
-	# Işık kaynağı sabit: gövde dönerken highlight ekranda sol-üstte kalmalı.
-	# Merkezde durduğu için konum düzeltmesi gerekmiyor, sadece dönüş.
-	_gloss.rotation = -body_rotation
+	rotation = -parent.global_rotation
 
 
 ## Squash-stretch. Merge'de tam genlik (GAME_DESIGN.md §1: 1.0 -> 1.2/0.8 -> 1.0,
