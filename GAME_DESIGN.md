@@ -184,12 +184,18 @@ yer.
 > çizgi ile çizginin altındaki kırmızı bant görünüyor, yani tehlike hâlâ
 > okunuyor. Level modunda duvarlar aynen duruyor.
 >
-> Duvarların görünmesi şartsa uygulanabilir üst sınır **680** (duvarlar tam
-> ekran kenarına oturur) ama kazancın yalnızca üçte birini verir. Hem 720
-> hem görünür duvar istenirse sonsuz modda kamerayı ~%5 uzaklaştırmak
-> gerekir; bu dokunmatik nişan alma koordinatlarının da dönüştürülmesini
-> gerektirir ve bot girdi yolunu hiç kullanmadığı için doğrulanamaz —
-> bilerek yapılmadı.
+> **KARAR (owner, M8): duvarların görünmemesi KABUL EDİLDİ, kozmetik bir
+> durum sayılıyor.** Sonsuz mod bilerek kenardan kenara dolu bir oyun alanı;
+> tekrar sorulmasına gerek yok.
+>
+> Değerlendirilip ELENEN iki alternatif:
+> - **680'e düşmek** (duvarlar tam ekran kenarına oturur): kazancın yalnızca
+>   üçte birini veriyor, asıl hedef olan medyan uzamasını sağlamıyor.
+> - **Sonsuz modda kamerayı ~%5 uzaklaştırmak** (hem 720 hem görünür duvar):
+>   dokunmatik nişan alma koordinatlarının da dönüştürülmesini gerektiriyor.
+>   Headless bot girdi yolunu hiç kullanmıyor (doğrudan `_set_aim` çağırıyor),
+>   dolayısıyla eklenecek nişan düzeltmesi otomatik doğrulanamıyordu.
+>   Risk/getiri dengesi olumsuz bulundu.
 
 > **Tier 8 annihilation — YALNIZCA sonsuz modda (owner kararı, M8).**
 > Sonsuz modda iki tier 8 çarpışınca **ikisi de yok olur**: büyük bir
