@@ -19,12 +19,22 @@ keystore.properties
 # takip edilmiyor (owner kararı)
 OWNER_WORKING_PROFILE.md
 
-# Kenney CC0 gorsel kaynak paketleri — indirilen zip'ler ve acilmis hali.
-# Kullanilan dosyalar zaten assets/visual/ altinda.
-_visual_source/
+# _visual_source/ ARTIK TAKIP EDILIYOR (owner karari).
+# Icinde owner'in ChatGPT ile urettigi orijinal gorseller var ve bunlarin
+# baska hicbir yerde yedegi yok — repoya girmeleri fiilen bir yedek olusturuyor.
+# Kenney/Wenrexa paketleri yeniden indirilebilir ama ayni klasorde duruyorlar.
+#
+# Tek istisna: Godot'un urettigi .import dosyalari. Bu klasordeki gorseller
+# oyunda KULLANILMIYOR, sadece kaynak olarak duruyorlar; .import'lari yeniden
+# uretilebilir birer yapi artigi (1969 dosya, 7.7 MB) ve her reimport'ta
+# degisiyorlar. assets/ altindaki .import'lar bunun tersine takip ediliyor:
+# onlar oyunun derlenmesi icin gerekli.
+_visual_source/**/*.import
 
 # Kenney CC0 ses kaynak paketleri — owner jingle secmek icin lokalde
-# tutuyor, kullanilan dosyalar zaten assets/audio/ altinda
+# tutuyor, kullanilan dosyalar zaten assets/audio/ altinda.
+# Gorsel kaynaklarin aksine bu takip EDILMIYOR: Kenney'den yeniden
+# indirilebilir, owner'in kendi uretimi degil.
 _audio_source/
 
 # OS
