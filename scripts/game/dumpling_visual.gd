@@ -124,6 +124,50 @@ func _process(delta: float) -> void:
 	rotation = _tilt - parent.global_rotation
 
 
+# --- Güç hedefleme vurgusu (M8.5-03) ---
+#
+# Geçerli hedefler nabız atarak beliriyor; geçersizler HİÇ dokunulmadan
+# kalıyor (highlight yok = hedeflenemez, ayrıca bir "geçersiz" işareti yok).
+
+## Vurgu nabzının genliği ve hızı.
+const TARGET_PULSE: float = 0.18
+const TARGET_PULSE_SPEED: float = 6.0
+
+var _targetable: bool = false
+var _target_tween: Tween
+
+
+func set_targetable(targetable: bool) -> void:
+	if _targetable == targetable:
+		return
+	_targetable = targetable
+	if _target_tween != null and _target_tween.is_valid():
+		_target_tween.kill()
+	if _sprite == null:
+		return
+	if not targetable:
+		_sprite.modulate = Color.WHITE
+		return
+	# Beyaza doğru nabız: sprite'ların kendi renkleri korunuyor, üstlerine
+	# yalnızca parlaklık biniyor.
+	var bright := Color(1.0 + TARGET_PULSE, 1.0 + TARGET_PULSE, 1.0 + TARGET_PULSE)
+	_target_tween = create_tween().set_loops().bind_node(_sprite)
+	_target_tween.tween_property(_sprite, "modulate", bright,
+		1.0 / TARGET_PULSE_SPEED).set_trans(Tween.TRANS_SINE)
+	_target_tween.tween_property(_sprite, "modulate", Color.WHITE,
+		1.0 / TARGET_PULSE_SPEED).set_trans(Tween.TRANS_SINE)
+
+
+## Bomba kilitlenmesi: tek seferlik keskin bir büyüme.
+func play_lock_on() -> void:
+	set_targetable(false)
+	if _sprite == null:
+		return
+	var tween := create_tween().bind_node(_sprite)
+	tween.tween_property(_sprite, "modulate", Color(1.6, 1.3, 1.3), 0.08)
+	tween.tween_property(_sprite, "modulate", Color.WHITE, 0.12)
+
+
 ## Squash-stretch. Merge'de tam genlik (GAME_DESIGN.md §1: 1.0 -> 1.2/0.8 -> 1.0,
 ## ~150 ms); çarpmada aynı tween'in hıza orantılı hafif versiyonu.
 func play_squash(amount: float = 0.2, duration: float = 0.15) -> void:

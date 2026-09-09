@@ -27,6 +27,25 @@ const DANGER_TICK_INTERVAL: float = 0.5
 const DANGER_STRIPE_ALPHA_IDLE: float = 0.55
 const DANGER_STRIPE_ALPHA_MAX: float = 1.0
 
+## --- Güçler (GAME_DESIGN.md §10) ---
+##
+## Sarsıntı impulse'u. Değerler gerçek Godot koşularıyla kalibre edildi
+## (bkz. tools/_shake_probe): kütleyle ÇARPILIYOR, yoksa tier 1 fırlarken
+## tier 8 kıpırdamıyordu. Yatay bileşen baskın; yukarı bileşen bilerek küçük
+## çünkü yukarı savurmak haksız taşma üretiyor.
+const SHAKE_IMPULSE_X: float = 230.0
+const SHAKE_IMPULSE_UP_MIN: float = 40.0
+const SHAKE_IMPULSE_UP_MAX: float = 150.0
+## Sarsıntıdan sonra taşma sayacının dondurulduğu süre. Bitince normal 1.5 sn
+## kuralı aynen geri döner. Stack ETMEZ: yeni sarsıntı pencereyi uzatmaz,
+## baştan aynı süreye kurar.
+const SHAKE_OVERFLOW_GRACE: float = 1.2
+## Temizleyicinin parçaları teker teker patlatma aralığı — tek karede 20
+## queue_free() sert görünüyor, ama efekt de uzamamalı.
+const CLEAR_STAGGER: float = 0.045
+## Bombanın hedefe uçma süresi.
+const BOMB_TRAVEL: float = 0.28
+
 ## Sürükle-bırak ipucunun gösterildiği level. Yalnızca ilk level'da, ilk
 ## bırakışa kadar. Bkz. _setup_tutorial().
 const TUTORIAL_LEVEL: int = 1
@@ -72,6 +91,12 @@ var _danger_pulse: float = 0.0
 ## İpucu bir kez kapandıktan sonra tekrar açılmasın (fade tween'i sırasında
 ## ikinci bir bırakış gelirse iki tween çakışırdı).
 var _tutorial_dismissed: bool = false
+## Sarsıntı sonrası taşma koruması kalan süre (sn). >0 iken taşma birikmiyor.
+var _shake_protection: float = 0.0
+## Sarsıntının rastgeleliği; testlerde sabitlenebilsin diye ayrı bir üreteç.
+var _shake_rng := RandomNumberGenerator.new()
+## Güç seçimi/hedefleme durum makinesi (scripts/game/power_up_controller.gd).
+var _powerups: PowerUpController
 ## Skor pop'u için: değişimin miktarını göstermek gerekiyor, sadece yeni
 ## toplamı değil.
 var _prev_score: int = 0
@@ -95,6 +120,7 @@ var _drop_bag: RefCounted = DROP_BAG.new()
 @onready var _score_pop: Label = $HUD/ScorePop
 @onready var _tutorial: VBoxContainer = $HUD/Tutorial
 @onready var _combo_badge: TextureRect = $HUD/ComboLabel/Badge
+@onready var _power_bar: Control = $HUD/PowerBar
 @onready var _camera: Camera2D = $Camera2D
 @onready var _bokeh: CPUParticles2D = $Bokeh
 
@@ -144,6 +170,7 @@ func _ready() -> void:
 	_prev_score = GameState.score
 	_score_label.pivot_offset = Vector2(0.0, _score_label.size.y * 0.5)
 	_setup_tutorial()
+	_setup_powerups()
 
 
 ## Sürükle-bırak ipucu: yalnızca level 1'de, ilk bırakışa kadar
@@ -296,9 +323,16 @@ func _draw_danger() -> void:
 
 
 # --- Girdi: parmağı sürükle, bırakınca düşür (GAME_DESIGN.md §1) ---
+#
+# Bir güç silahlıyken normal drop AKIŞI TAMAMEN DEVRE DIŞI: dokunuş hedef
+# seçimi olarak yorumlanıyor, boşluğa dokunmak iptal ediyor.
 
 func _unhandled_input(event: InputEvent) -> void:
 	if _is_finished:
+		return
+
+	if _powerups.is_armed():
+		_handle_targeting_input(event)
 		return
 
 	var drag := event as InputEventScreenDrag
@@ -313,6 +347,256 @@ func _unhandled_input(event: InputEvent) -> void:
 		_set_aim(touch.position.x)
 	else:
 		_drop()
+
+
+## Hedefleme modundaki dokunuş: geçerli bir dumpling'e denk gelirse güç
+## uygulanır, gelmezse iptal edilir. İkisi de stok açısından güvenli —
+## iptal hiçbir şey tüketmez.
+func _handle_targeting_input(event: InputEvent) -> void:
+	var touch := event as InputEventScreenTouch
+	if touch == null or not touch.pressed:
+		return
+	var target: Dumpling = _dumpling_at(touch.position)
+	if target == null:
+		_powerups.cancel()
+		return
+	_use_targeted_power(target)
+
+
+## Ekran noktasının altındaki dumpling. Yarıçap testi kullanılıyor: fizik
+## sorgusu yerine basit mesafe, çünkü parçalar daire ve sayıları az.
+## En ÜSTTEKİ (sona eklenen) parça önce kontrol ediliyor.
+func _dumpling_at(screen_point: Vector2) -> Dumpling:
+	var children: Array = _dumpling_layer.get_children()
+	for i in range(children.size() - 1, -1, -1):
+		var dumpling := children[i] as Dumpling
+		if dumpling == null or not is_instance_valid(dumpling):
+			continue
+		if screen_point.distance_to(dumpling.global_position) <= TierConfig.radius(dumpling.tier):
+			return dumpling
+	return null
+
+
+# --- Güçler (GAME_DESIGN.md §10) ---
+
+func _setup_powerups() -> void:
+	_powerups = PowerUpController.new()
+	_powerups.name = "PowerUps"
+	add_child(_powerups)
+	_powerups.armed_changed.connect(_on_power_armed_changed)
+	_powerups.stock_changed.connect(_refresh_power_bar)
+	# Stok 0 iken basılınca yayılıyor. İLERİDE rewarded ad / Hamur / Power
+	# Pack akışı buraya bağlanacak; şu an yalnızca kaydediliyor.
+	_powerups.refill_requested.connect(_on_power_refill_requested)
+	_power_bar.power_pressed.connect(_on_power_pressed)
+	_shake_rng.randomize()
+	_refresh_power_bar()
+
+
+func _refresh_power_bar() -> void:
+	_power_bar.refresh()
+
+
+func _on_power_armed_changed(type: int) -> void:
+	_power_bar.set_armed(type)
+	if type == PowerUpController.ARMED_NONE:
+		_clear_target_highlights()
+	else:
+		_highlight_valid_targets()
+	# Silahlıyken önizleme gizleniyor: drop yapılamıyor, sahte umut vermesin.
+	_preview.visible = not _powerups.is_armed()
+
+
+## Güç butonu. Hedefli güçler hedefleme moduna girer; anında çalışanlar
+## burada yürütülür. HİÇBİRİ butona basıldığı için stok tüketmez.
+func _on_power_pressed(type_index: int) -> void:
+	if _is_finished:
+		return
+	var type: PowerUp.Type = type_index as PowerUp.Type
+	if PowerUp.is_targeted(type):
+		_powerups.request(type)
+		return
+	# Anında çalışan güçler (Sarsıntı / Temizleyici).
+	#
+	# request() bunlar için hedefleme AÇMAZ ve HER ZAMAN false döner — işi
+	# yalnızca (a) stok yoksa refill sinyalini yaymak, (b) açık bir
+	# hedeflemeyi temizlemek (iki güç aynı anda aktif olamaz). Dönüşü her
+	# zaman false olduğu için karar aslında stoğa bakıyor: stok varsa
+	# devam, yoksa çık.
+	if not _powerups.request(type) and not SaveManager.has_powerup(type):
+		return
+	match type:
+		PowerUp.Type.SHAKE:
+			_use_shake()
+		PowerUp.Type.CLEAR_SMALL:
+			_use_clear_small()
+
+
+func _on_power_refill_requested(type_index: int) -> void:
+	var type: PowerUp.Type = type_index as PowerUp.Type
+	# Monetization kancası — bu turda hiçbir şey vermiyoruz (GAME_DESIGN §10).
+	_flash_status("%s bitti" % PowerUp.display_name(type))
+
+
+# --- Hedef vurgusu ---
+
+func _highlight_valid_targets() -> void:
+	for node in _dumpling_layer.get_children():
+		var dumpling := node as Dumpling
+		if dumpling == null:
+			continue
+		dumpling.set_targetable(_powerups.is_valid_target(dumpling))
+
+
+func _clear_target_highlights() -> void:
+	for node in _dumpling_layer.get_children():
+		var dumpling := node as Dumpling
+		if dumpling != null and is_instance_valid(dumpling):
+			dumpling.set_targetable(false)
+
+
+# --- Bomba ve Büyütücü ---
+
+func _use_targeted_power(target: Dumpling) -> void:
+	if not _powerups.is_valid_target(target):
+		# Geçersiz hedef: stok DEĞİŞMEZ, hedefleme açık kalır.
+		return
+	var type: PowerUp.Type = _powerups.armed_type() as PowerUp.Type
+	# Silahı hemen indir: aynı karede gelen ikinci dokunuş bu yola giremesin.
+	_powerups.cancel()
+	if not _powerups.consume(type):
+		return
+	match type:
+		PowerUp.Type.BOMB:
+			_run_bomb(target)
+		PowerUp.Type.UPGRADE:
+			_run_upgrade(target)
+
+
+## Bomba: kilitlenme → hedefe uçan mermi → patlama → parça kaldırılır.
+## Patlama KOMŞULARI ETKİLEMEZ, tek hedefliktir.
+## ⚠️ Bomba görseli placeholder (fx_dot yeniden kullanılıyor), final art yok.
+func _run_bomb(target: Dumpling) -> void:
+	var destination: Vector2 = target.global_position
+	target.play_lock_on()
+
+	var shell := Sprite2D.new()
+	shell.texture = BOKEH_TEXTURE
+	shell.modulate = Color(0.15, 0.12, 0.18)
+	shell.scale = Vector2.ONE * 0.35
+	shell.position = Vector2(destination.x, container_top_y() - 60.0)
+	add_child(shell)
+
+	var tween := create_tween()
+	tween.tween_property(shell, "position", destination, BOMB_TRAVEL) \
+		.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+	tween.tween_callback(func() -> void:
+		shell.queue_free()
+		_detonate_bomb(target, destination))
+
+
+func _detonate_bomb(target: Dumpling, at: Vector2) -> void:
+	var tier: int = target.tier if is_instance_valid(target) else 1
+	if is_instance_valid(target):
+		target.queue_free()
+	# Skor ve merge sayacı DEĞİŞMEZ (GAME_DESIGN.md §10).
+	_spawn_pop(at, TierConfig.color(tier), TierConfig.radius(tier), maxi(tier, 2))
+	_add_shake(tier)
+	AudioManager.play_sfx(&"merge", 0.75)
+
+
+## Büyütücü: parçayı mutate etmek yerine kaldırıp bir üst tier'ı aynı yerde
+## doğuruyor. Neden: tier hem collider yarıçapına hem kütleye hem görsele
+## bağlı; yerinde `tier += 1` bunları tutarsız bırakırdı.
+##
+## Momentum korunuyor ki parça havada donmasın. Skor/merge sayacı ARTMAZ ama
+## level hedefi yeni tier'ı görür.
+func _run_upgrade(target: Dumpling) -> void:
+	var new_tier: int = target.tier + 1
+	var at: Vector2 = target.global_position
+	var velocity: Vector2 = target.linear_velocity
+	target.queue_free()
+
+	var upgraded := _spawn_dumpling(new_tier, at)
+	upgraded.linear_velocity = velocity
+	upgraded.play_squash()
+
+	_spawn_pop(at, TierConfig.color(new_tier), TierConfig.radius(new_tier), new_tier)
+	_add_shake(new_tier)
+	AudioManager.play_sfx(&"merge", TierConfig.merge_pitch(new_tier))
+
+	# Tier 8'in normal kutlaması güçle elde edilse de çalışır.
+	if new_tier == TierConfig.MAX_TIER:
+		_flash_status("%s!" % TierConfig.tier_name(new_tier))
+
+	# Hedef takibi: "Tier X'e ulaş" güçle de karşılanabilir.
+	if not level.is_endless and new_tier >= level.target_tier:
+		_reached_target_tier = true
+	_check_objective()
+
+
+# --- Sarsıntı ---
+
+## Kaba DOKUNMAZ: duvarlar yeniden kurulmuyor, hiçbir şey teleport edilmiyor.
+## Yalnızca canlı gövdelere impulse uygulanıyor; parçalar birbirine yaklaşınca
+## merge NORMAL çarpışma yolundan oluyor (burada eşleştirme kodu YOK).
+func _use_shake() -> void:
+	var bodies: Array[Dumpling] = PowerUpController.shakeable(_dumpling_layer.get_children())
+	if bodies.is_empty():
+		# Board boşken sarsıntının etkisi olmaz — stok harcanmasın.
+		_flash_status("Sarsılacak parça yok")
+		return
+	if not _powerups.consume(PowerUp.Type.SHAKE):
+		return
+
+	for dumpling in bodies:
+		var sideways: float = _shake_rng.randf_range(-1.0, 1.0)
+		var lift: float = _shake_rng.randf_range(SHAKE_IMPULSE_UP_MIN, SHAKE_IMPULSE_UP_MAX)
+		# Kütleyle çarpım: her tier benzer hız değişimi alsın.
+		dumpling.apply_central_impulse(
+			Vector2(sideways * SHAKE_IMPULSE_X, -lift) * dumpling.mass)
+
+	# Taşma koruması: sarsıntı oyuncunun kendi hatası olmayan bir taşma
+	# yaratmasın. Sayaç sıfırlanıyor ve kısa süre dondurulup normale dönüyor.
+	_overflow_elapsed = 0.0
+	_shake_protection = SHAKE_OVERFLOW_GRACE
+	_shake_strength = maxf(_shake_strength, SHAKE_MAX * 0.8)
+	AudioManager.play_sfx(&"danger", 0.8)
+	_flash_status("Sarsıntı!")
+
+
+# --- Temizleyici ---
+
+## Tüm canlı tier 1-2 parçaları kaldırır. Merge işlemindekilere DOKUNMUYOR
+## (PowerUpController.clearable onları eliyor) — yarıştaki bir merge'in
+## ortasına girip yarım durum bırakmasın.
+func _use_clear_small() -> void:
+	var targets: Array[Dumpling] = PowerUpController.clearable(_dumpling_layer.get_children())
+	if targets.is_empty():
+		# Küçük parça yoksa güç TÜKETİLMEZ (GAME_DESIGN.md §10).
+		_flash_status("Küçük parça yok")
+		return
+	if not _powerups.consume(PowerUp.Type.CLEAR_SMALL):
+		return
+
+	AudioManager.play_sfx(&"merge", 1.15)
+	for index in targets.size():
+		var dumpling: Dumpling = targets[index]
+		# Kademeli pop: tek karede hepsini silmek sert görünüyor.
+		var delay: float = float(index) * CLEAR_STAGGER
+		var timer := get_tree().create_timer(delay)
+		timer.timeout.connect(func() -> void: _pop_and_free(dumpling))
+	_flash_status("%d parça temizlendi" % targets.size())
+
+
+func _pop_and_free(dumpling: Dumpling) -> void:
+	if not is_instance_valid(dumpling) or dumpling.is_queued_for_deletion():
+		return
+	var tier: int = dumpling.tier
+	var at: Vector2 = dumpling.global_position
+	dumpling.queue_free()
+	# Skor ve merge sayacı DEĞİŞMEZ.
+	_spawn_pop(at, TierConfig.color(tier), TierConfig.radius(tier), 2)
 
 
 func _set_aim(x: float) -> void:
@@ -547,6 +831,14 @@ func _physics_process(delta: float) -> void:
 			overflowing = true
 			break
 
+	# Sarsıntı koruması: pencere boyunca taşma birikmiyor. Bitince normal
+	# OVERFLOW_GRACE kuralı aynen geri dönüyor (GAME_DESIGN.md §10).
+	if _shake_protection > 0.0:
+		_shake_protection = maxf(0.0, _shake_protection - delta)
+		_overflow_elapsed = 0.0
+		_danger_tick = 0.0
+		return
+
 	if overflowing:
 		_overflow_elapsed += delta
 		# Gerilim sesi (GAME_DESIGN.md §6): tehlike sürdükçe tekrar eder.
@@ -566,6 +858,9 @@ func _finish(won: bool) -> void:
 		return
 	_is_finished = true
 	_preview.visible = false
+	# Round bitti: hiçbir güç silahlanamaz, silahlı olan iptal olur.
+	_powerups.set_round_active(false)
+	_clear_target_highlights()
 	_set_combo_text("")
 	_status_label.text = "Hedef tamam!" if won else "Bitti"
 	AudioManager.play_sfx(&"level_win" if won else &"level_lose")

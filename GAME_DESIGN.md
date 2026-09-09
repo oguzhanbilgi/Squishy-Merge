@@ -506,3 +506,92 @@ bir sonraki milestone'a öyle geçilir.
 - [ ] O milestone'a ait yeni davranış beklendiği gibi çalışıyor mu?
 - [ ] Önceki milestone'ların davranışı bozulmadı mı (hızlı regresyon kontrolü)?
 - [ ] Mobil ekran oranında (dar/uzun) UI taşması var mı?
+
+## 10. Güçler (consumable power-ups, M8.5-03)
+
+Dört tüketilebilir güç. **Oranlar ve kurallar owner tarafından kilitlendi.**
+
+| güç | ne yapar | hedefli mi |
+|---|---|---|
+| **Bomba** | Seçilen tek dumpling'i yok eder | evet |
+| **Büyütücü** | Seçilen dumpling'i bir üst tier'a çıkarır | evet |
+| **Sarsıntı** | Board'a kontrollü impulse uygular, parçalar karışır | hayır |
+| **Temizleyici** | Tüm tier 1 ve tier 2 parçaları kaldırır | hayır |
+
+### 10.1 Envanter
+
+- Kayıt başına **başlangıç stoğu: her güçten 1 adet.**
+- Bu **tek seferliktir** — her round'da veya her açılışta tekrar verilmez.
+  Eski kayıtlar migration'da hediyeyi bir kez alır (`powerup_starter_granted`
+  bayrağı tekrarı engeller).
+- Stoklar **round'lar arasında kalıcıdır** (`SaveManager.data["powerups"]`).
+- Envanter **asla negatife inmez.**
+
+### 10.2 Tüketim kuralı (KRİTİK)
+
+**Butona basmak güç tüketmez. Stok yalnızca efekt gerçekten gerçekleştiği
+anda düşer.** Tüketmeyen durumlar:
+
+- hedefleme açıldı, oyuncu vazgeçti (boşluğa dokundu / başka butona bastı)
+- hedef geçersiz (Büyütücü ile tier 8 seçilmeye çalışıldı)
+- Temizleyici basıldı ama board'da hiç tier 1/2 yok
+- Sarsıntı basıldı ama board boş
+- stok zaten 0
+
+### 10.3 Puan ve sayaç etkisi
+
+**Güçle yapılan silmeler ve dönüşümler skor, merge sayacı veya bonus-sandık
+ilerlemesi ÜRETMEZ.** Yani güçlerle sandık farm'lanamaz.
+
+Tek istisna **hedef takibi**: Büyütücü ile elde edilen tier, level'ın
+"Tier X'e ulaş" hedefini karşılar ve tier 8'in normal görsel kutlaması
+çalışır. (Skor hedefi olan L8/L10'da skor yine merge ile kazanılmalıdır.)
+
+### 10.4 Hedefleme (Bomba ve Büyütücü)
+
+Ortak, tekrar kullanılabilir bir durum makinesi
+(`scripts/game/power_up_controller.gd`):
+
+- hedefleme açıkken **normal sürükle-bırak devre dışı**
+- geçerli hedefler nabız atarak vurgulanır; **geçersiz hedefler hiç
+  vurgulanmaz**
+- boş alana dokunmak iptal eder (stok tüketmez)
+- başka bir güç butonuna basmak önceki hedeflemeyi temizler;
+  **iki güç aynı anda aktif olamaz**
+- round bittiyse hiçbir güç silahlanamaz
+
+Geçerli hedef: canlı, board'da ve merge işleminde OLMAYAN dumpling.
+Büyütücü için ek koşul: `tier < 8`.
+
+### 10.5 Sarsıntı — taşma koruması
+
+Kap yeniden inşa edilmez, duvarlar oynamaz, hiçbir parça teleport edilmez.
+Yalnızca canlı gövdelere impulse uygulanır; parçalar birbirine yaklaşırsa
+merge **normal çarpışma yolundan** olur — kodda "eşleşenleri bul" mantığı
+yoktur.
+
+Güç uygulanırken taşma sayacı sıfırlanır ve **1.2 saniyelik bir koruma
+penceresi** açılır. Pencere bitince normal 1.5 sn taşma kuralı aynen döner.
+Pencere **stack etmez**: arka arkaya sarsıntı süreyi uzatmaz, aynı süreye
+yeniden kurar.
+
+> **Ölçüm (n=24, 15 parçalık oturmuş yığın, 3 sn gözlem):** sarsıntısız
+> ortalama **0.00** merge, sarsıntılı **4.88** merge; yığın tepesi ortalama
+> 56 px alçalıyor. Yani sarsıntı kaotik değil, gerçekten iş yapıyor.
+
+### 10.6 Refill — henüz YOK
+
+Stok 0 iken butona basmak `refill_requested(type)` sinyali yayar. Bu, ileride
+**ödüllü reklam / Hamur ile satın alma / gerçek para Power Pack** akışlarının
+bağlanacağı tek noktadır.
+
+**Şu an hiçbiri bağlı değil:** sahte reklam yok, sahte satın alma yok,
+bedava stok yok. Güç fiyatları da HENÜZ BELİRLENMEDİ.
+
+### 10.7 Görsel durum
+
+> **STATUS: functional power-ups complete / final power-up art pending.**
+> Güç çubuğu ikonları geçici metin işaretleri (`PowerUp.GLYPHS`), bomba
+> görseli mevcut `fx_dot` yeniden kullanımı. Final power-up art'ı YOK.
+> Güç çubuğu bilerek ekranın en altına sabitlenmedi — alt safe-area ileride
+> AdMob banner'ına ayrılacak.

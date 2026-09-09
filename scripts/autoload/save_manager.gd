@@ -19,6 +19,13 @@ const DEFAULT_DATA: Dictionary = {
 	"merges_since_bonus_chest": 0,
 	"daily_streak": 0,
 	"last_login_date": "",
+	## Güç envanteri (M8.5-03). Anahtarlar PowerUp.SAVE_KEYS.
+	## Başlangıç stoğu burada DEĞİL: _grant_starter_powerups() bir kez veriyor,
+	## böylece eski kayıtlar da hediyeyi bir kez alıyor ve her açılışta
+	## yeniden almıyor.
+	"powerups": {},
+	## Başlangıç hediyesi verildi mi? Kayıt başına tek sefer.
+	"powerup_starter_granted": false,
 }
 
 
@@ -29,6 +36,7 @@ func _ready() -> void:
 func load_game() -> void:
 	data = DEFAULT_DATA.duplicate(true)
 	if not FileAccess.file_exists(SAVE_PATH):
+		_grant_starter_powerups()
 		return
 	var file := FileAccess.open(SAVE_PATH, FileAccess.READ)
 	if file == null:
@@ -41,6 +49,7 @@ func load_game() -> void:
 		return
 	for key: String in parsed:
 		data[key] = parsed[key]
+	_grant_starter_powerups()
 
 
 func save_game() -> void:
@@ -204,6 +213,66 @@ func record_stars(level_number: int, stars: int) -> void:
 	all_stars[str(level_number)] = stars
 	data["level_stars"] = all_stars
 	save_game()
+
+
+# --- Güç envanteri (M8.5-03) ---
+#
+# Stoklar round'lar arasında kalıcı. Başlangıç hediyesi KAYIT BAŞINA BİR KEZ:
+# `powerup_starter_granted` bayrağı hem yeni kayıtta hem eski kayıtların
+# migration'ında hediyeyi tek sefere kilitliyor. Her açılışta yeniden
+# verilmiyor.
+
+## Başlangıç stoğunu bir kez verir. load_game'in iki dalından da çağrılıyor
+## (dosya yok = yeni oyuncu, dosya var = eski kayıt migration'ı).
+func _grant_starter_powerups() -> void:
+	if bool(data.get("powerup_starter_granted", false)):
+		return
+	var stock: Dictionary = _powerup_stock().duplicate()
+	for type in PowerUp.all():
+		var key: String = PowerUp.save_key(type)
+		stock[key] = int(stock.get(key, 0)) + PowerUp.STARTER_COUNT
+	data["powerups"] = stock
+	data["powerup_starter_granted"] = true
+	save_game()
+
+
+func _powerup_stock() -> Dictionary:
+	var raw: Variant = data.get("powerups", {})
+	return raw if raw is Dictionary else {}
+
+
+func powerup_count(type: PowerUp.Type) -> int:
+	return int(_powerup_stock().get(PowerUp.save_key(type), 0))
+
+
+func has_powerup(type: PowerUp.Type) -> bool:
+	return powerup_count(type) > 0
+
+
+func grant_powerup(type: PowerUp.Type, amount: int = 1) -> void:
+	if amount <= 0:
+		return
+	var stock: Dictionary = _powerup_stock().duplicate()
+	var key: String = PowerUp.save_key(type)
+	stock[key] = int(stock.get(key, 0)) + amount
+	data["powerups"] = stock
+	save_game()
+
+
+## Stok düşürür. Yetmiyorsa HİÇBİR ŞEY yapmaz ve false döner — envanter asla
+## negatife inemez. Çağıran taraf yalnızca efekt gerçekten gerçekleştiğinde
+## çağırmalı (GAME_DESIGN.md §10: "başarılı kullanımda tüketim").
+func consume_powerup(type: PowerUp.Type, amount: int = 1) -> bool:
+	if amount <= 0:
+		return false
+	var current: int = powerup_count(type)
+	if current < amount:
+		return false
+	var stock: Dictionary = _powerup_stock().duplicate()
+	stock[PowerUp.save_key(type)] = current - amount
+	data["powerups"] = stock
+	save_game()
+	return true
 
 
 # --- Günlük giriş (M5) ---

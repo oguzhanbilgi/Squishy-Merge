@@ -637,6 +637,7 @@ verilmiyor:
 | 11 | Proje ikonu hâlâ Godot'un varsayılan robotu (`config/icon="res://icon.svg"`). Kompozit ikon üretildi ama `project.godot`'a bağlanmadı. | 🔴 M9/M10 öncesi. |
 | 12 | `_visual_source/` içinde 4 zip (~17.6 MB) var ve bunlar yanlarındaki açılmış klasörlerin **birebir kopyası**. Repo boyutunun dörtte biri. | 🟡 Silinebilir; git geçmişinden çıkarmak history rewrite gerektirir. |
 | 13 | Kazanma/kaybetme jingle'ı kulakla doğrulanmadı (M6 blokajı, hiç kapanmadı). | 🟡 Owner playtest'inde kontrol edilmeli. |
+| 14 | **Gameplay/tooling RNG coupling (pre-existing).** Kamera sarsıntısı `_process` içinde `randf_range` çağırıyor — tamamen görsel ama `drop_bag.shuffle()` ile **aynı global RNG akışını** tüketiyor ve fizik kareleri arasında değişken sayıda çalışıyor. Sonuç: `tools/bot_runner.gd` tekrarlanabilir değil, aynı seed farklı sonuç veriyor ve ölçümler kararsız. M8.5-03'te keşfedildi; bot_runner'ın L10'da %22 vermesi bunun artefaktıydı (kontrollü harness'ta %43). | 🟡 **Bu turda DEĞİŞTİRİLMEDİ** (kapsam dışı). Kalıcı çözüm: drop_bag'e kendi `RandomNumberGenerator`'ını vermek. O zamana kadar denge ölçümleri seedli/`set_process(false)` harness ile yapılmalı. |
 
 ---
 

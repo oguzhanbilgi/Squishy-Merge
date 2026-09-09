@@ -1,0 +1,18 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/ui/power_bar.gd" id="1_bar"]
+[ext_resource type="Theme" path="res://assets/visual/ui_theme.tres" id="2_theme"]
+
+[node name="PowerBar" type="Control"]
+theme = ExtResource("2_theme")
+anchor_right = 1.0
+offset_top = 170.0
+offset_bottom = 246.0
+mouse_filter = 2
+script = ExtResource("1_bar")
+
+[node name="Row" type="HBoxContainer" parent="."]
+anchor_right = 1.0
+anchor_bottom = 1.0
+alignment = 1
+theme_override_constants/separation = 10

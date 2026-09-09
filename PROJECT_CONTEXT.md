@@ -54,6 +54,10 @@ alınacak — şimdi tahmin/vaat yok.
     oyunda uygulan döngüsü çalışıyor. **functional equip complete / final
     skin art pending** — skin renkleri hâlâ placeholder, bkz.
     `SKIN_ART_AUDIT.md`.
+  - `M8.5-03` ✅ dört tüketilebilir güç (Bomba / Büyütücü / Sarsıntı /
+    Temizleyici), kalıcı envanter, hedefleme modu, stok-0 refill kancası.
+    **functional power-ups complete / final power-up art pending** —
+    ikonlar geçici, bkz. GAME_DESIGN §10.
 - **Sırada: M9 — Android export.** Ortam hazır (export template'leri, SDK,
   NDK, JDK 17, debug keystore mevcut); eksik olan `export_presets.cfg` ve
   release/upload keystore.
@@ -71,6 +75,9 @@ alınacak — şimdi tahmin/vaat yok.
 - Sandık **ödül tipi** oranı: %30 skin / %70 Hamur *(ayrı bir rule — rarity
   ile karıştırma, bkz. GAME_DESIGN §5.2)*
 - Shop fiyatları: 50 / 150 / 400 / 900
+- Güç başlangıç stoğu: **kayıt başına 1'er adet, tek seferlik**. Stok
+  yalnızca efekt gerçekleşince düşer; güçle yapılan silmeler skor/merge
+  üretmez (GAME_DESIGN §10)
 - Görsel asset üretimi owner'da — Claude Code final art üretmez
 - Takılı skin kayıtta `equipped_skin` alanında; **boş string = varsayılan
   görünüm**. Skin'in nasıl çizildiği yalnızca `scripts/game/skin_visual.gd`
@@ -90,6 +97,9 @@ alınacak — şimdi tahmin/vaat yok.
 - **Mağaza ekonomisi owner kararı bekliyor:** %30/%70 kuralıyla mağaza artık
   çalışıyor ama fiyatlar bu yeni modele göre kalibre edilmedi. Ölçüm ve
   öneriler `tools/shop_economy.py` çıktısında; fiyat DEĞİŞTİRİLMEDİ.
+- **Güç ekonomisi henüz yok:** stok 0'da `refill_requested` sinyali yayılıyor
+  ama hiçbir şeye bağlı değil. Reklam/Hamur/IAP refill ve güç fiyatları
+  BELİRLENMEDİ (v1 non-goal'ları hâlâ geçerli).
 - **Skin sanatı owner kararı bekliyor:** 20 skin'in renkleri prosedürel
   üretilmiş ve isimleriyle uyuşmuyor (18/20 uyumsuz). Equip sistemi hazır,
   yalnızca veri düzeltmesi gerekiyor. Seçenekler: `SKIN_ART_AUDIT.md`.

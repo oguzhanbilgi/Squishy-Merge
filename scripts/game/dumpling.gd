@@ -84,6 +84,20 @@ func play_squash() -> void:
 	_visual.play_squash()
 
 
+# --- Güç hedefleme (M8.5-03) ---
+#
+# Görsel iş DumplingVisual'da; buradaki tek sorumluluk onu iletmek.
+
+## Bu parça şu an geçerli bir güç hedefi mi? Vurgu/nabız buna göre açılır.
+func set_targetable(targetable: bool) -> void:
+	_visual.set_targetable(targetable)
+
+
+## Bomba kilitlendiğinde oynayan kısa vurgu.
+func play_lock_on() -> void:
+	_visual.play_lock_on()
+
+
 func _on_body_entered(body: Node) -> void:
 	has_landed = true
 	_try_impact_squash()
