@@ -1,7 +1,8 @@
 # PROJECT_STATUS.md — Squishy Merge, tam proje raporu
 
-**Son güncelleme:** 2026-09-09 · **Durum:** M8 tamamlandı, M9 (Android
-export) sırada · **Branch:** `main`
+**Son güncelleme:** 2026-09-09 · **Durum:** M0–M8 tamamlandı, M8.5
+(release/product stabilization) sürüyor, M9 (Android export) sırada ·
+**Branch:** `main`
 
 ---
 
@@ -25,7 +26,12 @@ Diğer dokümanlarla ilişkisi — **bu dosya hiçbirinin yerine geçmiyor:**
 | **`PROJECT_STATUS.md`** | **Bu dosya.** Tarihçe + gerekçeler + envanter + kalan işler. |
 
 > **Öncelik sırası (CLAUDE.md'den):** owner'ın en son açık talimatı >
-> `PROJECT_CONTEXT.md` > `GAME_DESIGN.md` > `OWNER_WORKING_PROFILE.md`.
+> `GAME_DESIGN.md` (kilitli sayılar) > `PROJECT_CONTEXT.md` (durum) >
+> `PROJECT_STATUS.md` / `DEVLOG.md` (tarihçe, otorite değil) >
+> `OWNER_WORKING_PROFILE.md`.
+>
+> Yani **bu dosya kural koymaz.** Buradaki bir cümle kilitli bir sayıyla
+> çelişirse GAME_DESIGN ve kod kazanır.
 
 ---
 
@@ -173,7 +179,8 @@ tarayan `LevelLibrary`. Kod değiştirmeden yeni level eklenebiliyor. 10 level
 ### M3 — Sandık, skin kataloğu, yıldızlar (2026-09-05)
 
 Rarity kurası (60/25/12/3, **20.000 kurada doğrulandı**), 20 skinlik
-data-driven katalog, duplicate→Hamur dedupe, her 75 merge'de bonus sandık,
+data-driven katalog, duplicate→Hamur dedupe (bu kural M8.5'te değişti,
+bkz. §4.8), her 75 merge'de bonus sandık,
 teselli ödülü, gecikmeli yıldız + sandık reveal animasyonu.
 
 **Yıldız formülü iki kez değişti:**
@@ -435,23 +442,33 @@ level'lar ve bitirmek başlı başına üst düzey başarı sayılıyor.
 | Legendary | 900 | 2 | 1800 |
 | | | **20** | **4700 Hamur** |
 
-> ### ⚠️ AÇIK DENGE SORUNU — mağaza hiçbir şey satmıyor
+> ### ⚠️ AÇIK DENGE SORUNU — geç oyun Hamur enflasyonu (M8.5'te güncellendi)
 >
-> `tools/shop_economy.py` simülasyonu (M8) gösterdi ki mevcut sandık
-> kuralıyla mağaza **fiilen ölü**:
+> **M8'deki sorun çözüldü.** O zamanki kural "sandık, o rarity'de açılmamış
+> skin varsa her zaman skin verir" idi ve mağaza **hiçbir şey satmıyordu**
+> (üç senaryoda da 30. günde satın alınan: 0). M8.5'te sandık ödül tipi
+> açık bir **%30 skin / %70 Hamur** rulesine çevrildi (GAME_DESIGN §5.2).
 >
-> | oyuncu | koleksiyon 20/20 | 30. günde satın alınan | 30. günde artan Hamur |
+> Yeni ölçüm (`tools/shop_economy.py`, 5000 deneme/senaryo, Monte Carlo —
+> sonuçlar yaklaşıktır):
+>
+> | oyuncu | 20/20 (p25 / medyan / p75) | 30. günde mağazadan alınan | 30. günde artan Hamur |
 > |---|---|---|---|
-> | kasual (3 round/gün) | 10. gün | **0** | 4.580 |
-> | orta (5 round/gün) | 6. gün | **0** | 8.455 |
-> | yoğun (10 round/gün) | 3. gün | **0** | 18.080 |
+> | kasual (3 round/gün) | 14 / **17** / 20. gün | 11 / 20 | 2.610 |
+> | orta (5 round/gün) | 9 / **11** / 12. gün | 10 / 20 | 6.115 |
+> | yoğun (10 round/gün) | 5 / **6** / 6. gün | 9 / 20 | 14.815 |
 >
-> **Sorun fiyatlarda değil, sandık→skin kuralında:** sandık, o rarity'de
-> açılmamış bir skin varsa HER ZAMAN skin veriyor. Koleksiyon mağaza devreye
-> girmeden doluyor.
+> **Mağaza artık çalışıyor** — medyan oyuncu koleksiyonun yaklaşık yarısını
+> satın alıyor. Ama iki sorun kaldı:
 >
-> Çözüm owner onayına sunuldu, **hiçbir gelir kaynağı veya fiyat
-> değiştirilmedi.** Karar bekliyor.
+> 1. **Koleksiyon hâlâ hızlı doluyor** — üç senaryoda da 30 gün içinde
+>    tamamlanma %100; yoğun oyuncu 6 günde bitiriyor.
+> 2. **Tamamlandıktan sonra Hamur'un alıcısı yok.** Tek sink mağaza ve o da
+>    yalnızca 20 skin satıyor. Koleksiyonun tamamı 4.700 Hamur; yoğun oyuncu
+>    30. günde bunun üç katından fazlasını biriktiriyor.
+>
+> Çözüm alternatifleri (skin sayısı, fiyat, gelir, ikinci sink) **owner
+> kararı**. M8.5'te hiçbir fiyat veya gelir kaynağı değiştirilmedi.
 
 ### 4.9 Görsel/fizik ayrımı: sprite dönüşü ±20°
 
@@ -602,7 +619,7 @@ verilmiyor:
 
 | # | sorun | durum |
 |---|---|---|
-| 1 | **Mağaza hiçbir şey satmıyor** (§4.8). Sandık→skin kuralı yüzünden koleksiyon 3-10 günde doluyor. | 🔴 **Owner kararı bekliyor.** Fiyat/gelir değiştirilmedi. |
+| 1 | **Geç oyun Hamur enflasyonu** (§4.8). M8.5'te mağaza çalışır hâle geldi (medyan oyuncu koleksiyonun ~yarısını satın alıyor) ama koleksiyon hâlâ 6-17 günde doluyor ve sonrasında Hamur'un alıcısı kalmıyor. | 🔴 **Owner kararı bekliyor.** Fiyat/gelir değiştirilmedi. |
 | 2 | **L8 ve L10 bitirilince her zaman 3★** veriyor (§4.7). | 🟡 Kasıtlı, kabul edildi. |
 | 3 | **Görsel yol haritası yok.** Harita zemininde çizili bir patika var ama **level düğümleri onu takip etmiyor** — düğümler hâlâ düz bir grid, zemin dekoratif. GAME_DESIGN §5.5'teki "yol üzerinde sıralı düğümler + unlock animasyonu" yapılmadı. | 🟡 Bilinçli ertelendi. |
 | 4 | Açılmış skin'ler hâlâ placeholder (renkli daire). Skin başına ayrı görsel owner'dan gelmedi; sadece kilitli silüet gerçek asset. | 🟡 Asset bekliyor. |

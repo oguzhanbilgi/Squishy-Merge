@@ -296,20 +296,65 @@ yer.
 4. Başarısız olunsa bile küçük bir teselli ödülü + hemen "tekrar dene" butonu
 
 ### 5.2 Sandık sistemi
+
+**Sandık kaynağı:**
 - Her level tamamlanışında 1 sandık
 - Ayrıca her 75 merge işleminde bir "bonus sandık" (level'dan bağımsız —
   oyuncuyu sürekli oynamaya bağlar)
-- Rarity oranları (KİLİTLİ, owner onaylı):
-  - Common: %60
-  - Rare: %25
-  - Epic: %12
-  - Legendary: %3
-- Sandık içeriği: kozmetik dumpling skin'i VEYA "Hamur" (soft currency).
-  Duplicate skin çıkarsa otomatik Hamur'a çevrilir (dedupe).
-- Duplicate→Hamur oranları: 10/25/60/150 (rarity'e göre), teselli ödülü
-  5 Hamur.
-- **Hamur artık harcanabilir: §5.6'daki mağaza v1 kapsamında.** (M8'de
-  değişti; eski "v1'de harcanacak yer yok, shop v1.1'de" kararı geçersiz.)
+
+Sandık açılışı **iki bağımsız ruleden** oluşur. Bu ikisi ayrı kavramdır ve
+karıştırılmamalıdır.
+
+**Rule 1 — RARITY (sandığın kalitesi). KİLİTLİ, owner onaylı:**
+
+| rarity | oran |
+|---|---|
+| Common | %60 |
+| Rare | %25 |
+| Epic | %12 |
+| Legendary | %3 |
+
+**Rule 2 — ÖDÜL TİPİ (o kalitede ne çıkacağı). KİLİTLİ, owner onaylı (M8.5):**
+
+| ödül tipi | oran |
+|---|---|
+| Skin | **%30** |
+| Hamur | **%70** |
+
+Ödül tipi rarity'den **bağımsızdır**: Legendary bir sandık da %70 olasılıkla
+Hamur verir — ama Legendary miktarında (150).
+
+**Bir sandık her zaman TEK bir şey verir** — ya skin ya Hamur, ikisi birden
+asla değil.
+
+**Skin sonucu (deterministik kural):**
+- O rarity'de oyuncunun **sahip olmadığı** skin varsa, onlardan biri
+  rastgele seçilip verilir. Yani skin sonucu çıktıysa **gerçekten yeni bir
+  skin açılır**; sahip olunanlar havuzdan baştan elenir.
+- O rarity'de açılmamış skin kalmadıysa (bölüm tamamlanmış ya da hiç skin
+  tanımlı değilse) aynı rarity'nin Hamur karşılığına düşülür.
+
+**Hamur sonucu — rarity başına miktar:**
+
+| rarity | Hamur |
+|---|---|
+| Common | 10 |
+| Rare | 25 |
+| Epic | 60 |
+| Legendary | 150 |
+
+Teselli ödülü (kaybedilen round): **5 Hamur** — rarity'den bağımsız.
+
+- **Hamur harcanabilir: §5.6'daki mağaza v1 kapsamında.** (M8'de değişti;
+  eski "v1'de harcanacak yer yok, shop v1.1'de" kararı geçersiz.)
+
+> **M8.5 öncesi kural neydi (artık geçersiz):** sandık ödül tipi rulesi
+> YOKTU. Sandık o rarity'den rastgele bir skin seçiyor, oyuncu ona zaten
+> sahipse Hamur'a çeviriyordu ("duplicate → Hamur"). Bu, koleksiyon
+> doldukça skin verme oranının kendiliğinden düşmesi demekti ve mağazayı
+> fiilen işlevsiz bırakıyordu (`tools/shop_economy.py` ölçtü).
+> Artık skin/Hamur ayrımı açık bir %30/%70 rulesi; "duplicate" kavramı ise
+> yalnızca *o rarity'nin tamamı toplanmışsa* devreye giren bir geri düşüş.
 
 ### 5.3 Koleksiyon albümü
 - Basit bir grid ekranı: kaç skin'den kaçı açıldı. Toplam skin sayısı:
@@ -348,19 +393,32 @@ işaretli ve soluk (listeden çıkarılmıyor — koleksiyonun ne kadarının
 tamamlandığı görünsün). Hamur yetmiyorsa "Satın Al" pasif. Satın alma
 onay diyaloğundan geçiyor.
 
-> **DENGE UYARISI (M8, ölçüldü — `tools/shop_economy.py`):** mevcut sandık
-> kuralıyla **mağaza hiçbir şey satmıyor.** Sandık, o rarity'de açılmamış bir
-> skin varsa HER ZAMAN skin veriyor; koleksiyon mağaza devreye girmeden
-> doluyor:
+> **DENGE ÖLÇÜMÜ (M8.5, `tools/shop_economy.py`, 5000 deneme/senaryo).**
+> Simülatör artık production davranışını birebir modelliyor (%30 skin /
+> %70 Hamur). Monte Carlo — sonuçlar yaklaşıktır.
 >
-> | oyuncu | koleksiyon 20/20 | 30. günde satın alınan | 30. günde artan Hamur |
+> **Mağaza artık çalışıyor.** Medyan oyuncu koleksiyonun yaklaşık yarısını
+> mağazadan satın alıyor (M8'deki eski kuralla bu sayı **0**'dı):
+>
+> | oyuncu | 20/20 tamamlanma (p25 / medyan / p75) | 30. günde mağazadan alınan | 30. günde artan Hamur |
 > |---|---|---|---|
-> | kasual (3 round/gün) | 10. gün | **0** | 4.580 |
-> | orta (5 round/gün) | 6. gün | **0** | 8.455 |
-> | yoğun (10 round/gün) | 3. gün | **0** | 18.080 |
+> | kasual (3 round/gün) | 14 / **17** / 20. gün | 11 / 20 | 2.610 |
+> | orta (5 round/gün) | 9 / **11** / 12. gün | 10 / 20 | 6.115 |
+> | yoğun (10 round/gün) | 5 / **6** / 6. gün | 9 / 20 | 14.815 |
 >
-> Sorun fiyatlarda değil, sandık→skin kuralında. Çözüm owner onayına sunuldu;
-> bu turda **hiçbir gelir kaynağı veya fiyat değiştirilmedi.**
+> **Kalan iki sorun (fiyatlar bu turda DEĞİŞTİRİLMEDİ):**
+>
+> 1. **Koleksiyon hâlâ hızlı doluyor.** Üç senaryoda da 30 gün içinde
+>    tamamlanma oranı %100. Yoğun oyuncu 6 günde bitiriyor.
+> 2. **Tamamlandıktan sonra Hamur'un hiçbir alıcısı yok.** Tek sink mağaza,
+>    mağaza da yalnızca 20 skin satıyor. Koleksiyonun tamamı 4.700 Hamur;
+>    yoğun oyuncu 30. günde bunun **üç katından fazlasını** biriktirmiş
+>    oluyor (14.815) ve harcayacak yer bulamıyor.
+>
+> Yani M8'deki "mağaza ölü" sorunu çözüldü, yerine "geç oyun Hamur enflasyonu"
+> sorunu geçti. Çözüm alternatifleri (skin sayısını artırmak, fiyatları
+> yükseltmek, Hamur gelirini düşürmek, ikinci bir sink eklemek) **owner
+> kararı** — bu turda hiçbir fiyat veya gelir kaynağı değiştirilmedi.
 
 ## 6. Ses tasarımı
 

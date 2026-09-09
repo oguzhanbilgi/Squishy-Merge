@@ -1,12 +1,33 @@
 # CLAUDE.md — Squishy Merge
 
 Bu dosyayı her oturumun başında oku. Ardından şu sırayla oku:
-1. `OWNER_WORKING_PROFILE.md` — owner'ın genel çalışma tarzı (tüm projelerde geçerli)
-2. `PROJECT_CONTEXT.md` — bu projenin durumu, kapsamı, non-goals
-3. `GAME_DESIGN.md` — kilitli oyun tasarımı spec'i
 
-Bu üç dosya çakışırsa: owner'ın en son açık talimatı > PROJECT_CONTEXT.md >
-GAME_DESIGN.md > OWNER_WORKING_PROFILE.md sırası geçerlidir.
+1. `PROJECT_CONTEXT.md` — bu projenin **güncel durumu**, kapsamı, non-goals.
+   Kısa tutulur; devasa tarihçe dosyasına dönüştürülmez.
+2. `GAME_DESIGN.md` — **kilitli** oyun tasarımı spec'i (sayılar ve kurallar).
+3. `PROJECT_STATUS.md` — uzun tarihçe: kararların gerekçeleri, asset
+   envanteri, açık sorunlar, M9/M10 kalan işler. **Açıklayıcıdır, otorite
+   değildir.**
+4. `OWNER_WORKING_PROFILE.md` — owner'ın genel çalışma tarzı.
+   **OPSİYONEL: bu dosya gitignore'lu, temiz bir clone'da BULUNMAZ.**
+   Varsa oku ve uygula; yoksa bu bir hata değildir, çalışmaya devam et —
+   bu dosyanın yokluğu hiçbir işi bloke etmemeli.
+
+## Source of truth — çakışma olursa
+
+1. **Owner'ın en son açık talimatı** — her şeyin üstünde.
+2. **`GAME_DESIGN.md`** — kilitli tasarım sayıları ve kuralları (tier
+   geometrisi, level hedefleri, sandık oranları, fiyatlar, yıldız eşikleri).
+   Bir sayı burada kilitliyse kod ona uymalı; kod ile çelişirse **kod
+   hatalıdır**, doküman değil. Değiştirmek owner onayı gerektirir.
+3. **`PROJECT_CONTEXT.md`** — proje durumu, kapsam ve non-goal'lar.
+   Tasarım sayıları için otorite DEĞİL; durum için otoritedir.
+4. **`PROJECT_STATUS.md`** ve `DEVLOG.md` — tarihsel anlatı. Geçmişi
+   anlatır, kural koymaz. Kilitli bir sayıyla çelişirse GAME_DESIGN kazanır.
+5. **`OWNER_WORKING_PROFILE.md`** — varsa çalışma tarzı rehberi.
+
+Eski bir milestone notu ile mevcut kod çelişiyorsa **kodu ve GAME_DESIGN'ı
+doğrula**; tarihçe dosyasındaki bir cümleye dayanarak iş yapma.
 
 ## UYARI: Godot sürümü — projeyi hangi binary ile açacaksın
 
