@@ -5,8 +5,6 @@ extends CanvasLayer
 
 const COLUMNS: int = 4
 const CARD_SIZE: Vector2 = Vector2(140.0, 150.0)
-## Açılmamış skin'in silüet rengi — tint'i gizler, sadece siluet kalır.
-const LOCKED_COLOR: Color = Color(0.28, 0.28, 0.32)
 
 @onready var _grid: GridContainer = $Margin/VBox/Scroll/Grid
 @onready var _progress: Label = $Margin/VBox/Progress
@@ -38,11 +36,11 @@ func _make_card(skin: SkinData, owned: bool) -> Control:
 	card.alignment = BoxContainer.ALIGNMENT_CENTER
 	card.add_theme_constant_override("separation", 6)
 
-	# Placeholder görsel: skin tint'inde bir daire. Açılmamışsa düz silüet.
+	# Açık skin: tint'inde bir daire (hâlâ placeholder). Kapalı skin: owner'ın
+	# silüet görseli — tint uygulanmıyor, görselin kendi rengi var.
 	var swatch := SkinSwatch.new()
 	swatch.custom_minimum_size = Vector2(88.0, 88.0)
-	swatch.setup(LOCKED_COLOR if not owned else skin.tint,
-		SkinData.rarity_color(skin.rarity), owned)
+	swatch.setup(skin.tint, SkinData.rarity_color(skin.rarity), owned)
 	card.add_child(swatch)
 
 	var name_label := Label.new()

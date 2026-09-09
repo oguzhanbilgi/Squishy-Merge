@@ -75,6 +75,7 @@ milestone tablosu).
 - Android SDK / JDK / Godot export template kurulum durumu doğrulanmadı
 
 ## M9 için hatırlatmalar
+
 - **`tools/` klasörü export preset'inde filtrelenmeli.** Buradaki script'ler
   (bot_runner, bot_brain, screenshot_runner, make_fx_sprites, tier_geometry,
   star_thresholds, make_placeholder_sprites + .tscn'leri) yalnızca geliştirme
@@ -83,6 +84,32 @@ milestone tablosu).
   `exclude_filter` alanına `tools/*` eklenmesi yeterli.
   (M8'de fark edildi, uygulanmadı — export preset'i M9'da oluşturulacak ve
   `export_presets.cfg` zaten gitignore'lu.)
+
+- **`_visual_source/` de filtrelenmeli.** Klasör gitignore'lu, yani temiz bir
+  clone'da yok — ama owner'ın iki makinesinde de duruyor ve orada export
+  alınırsa AAB'ye giriyor. İçindeki ham ChatGPT çıktıları ~17 MB ve Godot
+  bunları içe aktarıyor (M8'de `.import` dosyaları oluştu). `exclude_filter`
+  → `tools/*, _visual_source/*`.
+
+- **Adaptive icon katmanları hazır** (M8 art turunda üretildi, bkz.
+  `assets/visual/CREDITS.md`). Export preset'inde bağlanacak alanlar:
+
+  | preset alanı | dosya |
+  |---|---|
+  | `launcher_icons/adaptive_background_432x432` | `res://assets/visual/icon/adaptive_background_432.png` |
+  | `launcher_icons/adaptive_foreground_432x432` | `res://assets/visual/icon/adaptive_foreground_432.png` |
+  | `launcher_icons/main_192x192` | `res://assets/visual/icon/launcher_main_192.png` |
+
+  Üçüncüsü iki katmanın düz kompoziti ve **owner onayına bağlı** — ama proje
+  hâlâ `config/icon="res://icon.svg"` ile, yani Godot'un varsayılan robot
+  ikonuyla geliyor. Play Store'a o ikonla çıkılmamalı; ya bu kompozit
+  kullanılmalı ya owner ayrı bir kare ikon vermeli.
+
+- **`map_background.png` APK bütçesinin büyük parçası.** 720×1280 ve 1.8 MB —
+  tek başına projenin kalan tüm görsellerinden (~1.2 MB) büyük. Fotoğrafik
+  bir illüstrasyon olduğu için PNG kötü sıkıştırıyor. Gerekirse import
+  ayarında `compress/mode` lossy (WebP) yapılabilir; şimdilik lossless
+  bırakıldı çünkü kayıp oranı gözle doğrulanmadı.
 
 ## Next action
 Milestone 0'ı başlat: ortam doğrulama + proje iskeleti.

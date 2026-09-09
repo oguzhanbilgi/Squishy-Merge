@@ -7,6 +7,8 @@ signal round_finished(won: bool)
 const DUMPLING_SCENE: PackedScene = preload("res://scenes/game/dumpling.tscn")
 const POP_EFFECT_SCENE: PackedScene = preload("res://scenes/game/pop_effect.tscn")
 const BOKEH_TEXTURE: Texture2D = preload("res://assets/visual/fx/fx_dot.png")
+## Taşma çizgisinin görsel katmanı — owner asset'i (M8 art turu).
+const DANGER_STRIPE_TEXTURE: Texture2D = preload("res://assets/visual/ui/danger_stripe.png")
 const DROP_BAG := preload("res://scripts/game/drop_bag.gd")
 
 const WALL_THICKNESS: float = 20.0
@@ -19,6 +21,18 @@ const DROP_COOLDOWN: float = 0.4
 const COMBO_WINDOW: float = 1.2
 ## Taşma tehlikesindeyken gerilim sesinin tekrar aralığı.
 const DANGER_TICK_INTERVAL: float = 0.5
+
+## Taşma şeridinin sakin hâldeki opaklığı; tehlikede DANGER_STRIPE_ALPHA_MAX'a
+## çıkıyor. Çizgi her zaman görünmeli (fail çizgisi), tehlikede vurgulanmalı.
+const DANGER_STRIPE_ALPHA_IDLE: float = 0.55
+const DANGER_STRIPE_ALPHA_MAX: float = 1.0
+
+## Sürükle-bırak ipucunun gösterildiği level. Yalnızca ilk level'da, ilk
+## bırakışa kadar. Bkz. _setup_tutorial().
+const TUTORIAL_LEVEL: int = 1
+const TUTORIAL_SIZE: Vector2 = Vector2(360.0, 220.0)
+## İpucu kabın ağzı ile taşma çizgisi arasında, bu oranda aşağıda duruyor.
+const TUTORIAL_Y_RATIO: float = 0.42
 
 ## Ekran sarsıntısı (M8 juice): merge'in tier'ına göre ölçekleniyor.
 ## Küçük merge'de neredeyse hissedilmiyor, tier 8'de belirgin.
@@ -55,6 +69,9 @@ var _is_finished: bool = false
 var _shake_strength: float = 0.0
 ## Danger highlight'ının nabzı (GAME_DESIGN.md §6) — 0..1 arası salınır.
 var _danger_pulse: float = 0.0
+## İpucu bir kez kapandıktan sonra tekrar açılmasın (fade tween'i sırasında
+## ikinci bir bırakış gelirse iki tween çakışırdı).
+var _tutorial_dismissed: bool = false
 ## Skor pop'u için: değişimin miktarını göstermek gerekiyor, sadece yeni
 ## toplamı değil.
 var _prev_score: int = 0
@@ -76,6 +93,8 @@ var _drop_bag: RefCounted = DROP_BAG.new()
 @onready var _status_label: Label = $HUD/StatusLabel
 @onready var _combo_label: Label = $HUD/ComboLabel
 @onready var _score_pop: Label = $HUD/ScorePop
+@onready var _tutorial: VBoxContainer = $HUD/Tutorial
+@onready var _combo_badge: TextureRect = $HUD/ComboLabel/Badge
 @onready var _camera: Camera2D = $Camera2D
 @onready var _bokeh: CPUParticles2D = $Bokeh
 
@@ -108,12 +127,46 @@ func _ready() -> void:
 	_on_score_changed(GameState.score)
 	_objective_label.text = "%s — %s" % [level.display_name(), level.objective_text()]
 	_status_label.text = ""
-	_combo_label.text = ""
+	_set_combo_text("")
 	_score_pop.text = ""
 	_score_pop.modulate.a = 0.0
 	_score_pop_home = _score_pop.position
 	_prev_score = GameState.score
 	_score_label.pivot_offset = Vector2(0.0, _score_label.size.y * 0.5)
+	_setup_tutorial()
+
+
+## Sürükle-bırak ipucu: yalnızca level 1'de, ilk bırakışa kadar
+## (GAME_DESIGN.md §1.1).
+func _setup_tutorial() -> void:
+	if level.is_endless or level.level_number != TUTORIAL_LEVEL:
+		_tutorial.visible = false
+		return
+	# Kabın ağzı ile taşma çizgisi arasına: round başında burası boş, ve ilk
+	# parça düşmeden ipucu zaten kayboluyor.
+	var span: float = overflow_line_y() - container_top_y()
+	var mid_y: float = container_top_y() + span * TUTORIAL_Y_RATIO
+	_tutorial.size = TUTORIAL_SIZE
+	_tutorial.position = Vector2(_center_x() - TUTORIAL_SIZE.x * 0.5,
+		mid_y - TUTORIAL_SIZE.y * 0.5)
+	_tutorial.visible = true
+
+	# Hafif bir salınım — hareketsiz bir ipucu gözden kaçıyor.
+	var bob := create_tween().set_loops().bind_node(_tutorial)
+	var home: Vector2 = _tutorial.position
+	bob.tween_property(_tutorial, "position", home + Vector2(0.0, 10.0), 0.9) \
+		.set_trans(Tween.TRANS_SINE)
+	bob.tween_property(_tutorial, "position", home, 0.9).set_trans(Tween.TRANS_SINE)
+
+
+## İlk bırakışta sönerek kaybolur — oyuncu mekaniği anladı.
+func _dismiss_tutorial() -> void:
+	if _tutorial_dismissed or not _tutorial.visible:
+		return
+	_tutorial_dismissed = true
+	var fade := create_tween().bind_node(_tutorial)
+	fade.tween_property(_tutorial, "modulate:a", 0.0, 0.35)
+	fade.tween_callback(func() -> void: _tutorial.visible = false)
 
 
 # --- Geometri ---
@@ -189,13 +242,37 @@ func _draw() -> void:
 	draw_rect(Rect2(_right_x(), top, WALL_THICKNESS, height), wall_color)
 	draw_rect(Rect2(_left_x() - WALL_THICKNESS, FLOOR_Y,
 		level.container_width + WALL_THICKNESS * 2.0, WALL_THICKNESS), wall_color)
-	draw_dashed_line(Vector2(_left_x(), overflow_line_y()),
-		Vector2(_right_x(), overflow_line_y()), Color(1.0, 0.35, 0.35, 0.55), 2.0, 12.0)
+	_draw_overflow_stripe()
 	_draw_danger()
+
+
+## Taşma çizgisinin görsel katmanı (owner asset'i). Eskiden kesikli kırmızı
+## bir çizgiydi.
+##
+## TILE EDİLMİYOR, tek parça geriliyor: kaynak dosya piksel-mükemmel seamless
+## değil (sol/sag kenar farkı ort. 0.16, en kötü 1.20 — ölçüldü), tile modunda
+## her tekrarda görünür bir dikiş olurdu. Kap genişliği zaten level'a göre
+## değiştiği (600 / 720) ve şerit ona göre uzatıldığı için tek parça germe
+## hem gerekli hem yeterli.
+##
+## Yükseklik genişlikten türetiliyor: kaynağın en/boy oranı korunuyor, yoksa
+## şeritteki yıldızlar ovale dönerdi.
+func _draw_overflow_stripe() -> void:
+	var tex_size: Vector2 = DANGER_STRIPE_TEXTURE.get_size()
+	var width: float = level.container_width
+	var height: float = width * (tex_size.y / tex_size.x)
+	var alpha: float = lerpf(DANGER_STRIPE_ALPHA_IDLE, DANGER_STRIPE_ALPHA_MAX,
+		_danger_pulse)
+	# Şerit çizginin ÜSTÜNE ortalanıyor: fail çizgisi şeridin ortasından
+	# geçsin, oyuncu bandın neresinin ölümcül olduğunu görsün.
+	draw_texture_rect(DANGER_STRIPE_TEXTURE,
+		Rect2(_left_x(), overflow_line_y() - height * 0.5, width, height),
+		false, Color(1, 1, 1, alpha))
 
 
 ## Taşma tehlikesindeyken kap kenarında kırmızı titreşen highlight
 ## (GAME_DESIGN.md §6). Sesi zaten M6'da eklenmişti, görseli M8'e kalmıştı.
+## Şeridin kendi parlaması _draw_overflow_stripe'ta; burada duvarlar.
 func _draw_danger() -> void:
 	if _danger_pulse <= 0.0:
 		return
@@ -203,14 +280,9 @@ func _draw_danger() -> void:
 	var glow := Color(1.0, 0.25, 0.3, alpha)
 	var top: float = container_top_y()
 	var height: float = FLOOR_Y - top
-	# Duvarların kendisi kırmızıya boyanıyor + çizginin altına bir bant.
+	# Duvarların kendisi kırmızıya boyanıyor.
 	draw_rect(Rect2(_left_x() - WALL_THICKNESS, top, WALL_THICKNESS, height), glow)
 	draw_rect(Rect2(_right_x(), top, WALL_THICKNESS, height), glow)
-	var band: float = 70.0
-	draw_rect(Rect2(_left_x(), overflow_line_y(), level.container_width, band),
-		Color(1.0, 0.25, 0.3, alpha * 0.22))
-	draw_line(Vector2(_left_x(), overflow_line_y()),
-		Vector2(_right_x(), overflow_line_y()), Color(1.0, 0.3, 0.35, alpha), 4.0)
 
 
 # --- Girdi: parmağı sürükle, bırakınca düşür (GAME_DESIGN.md §1) ---
@@ -249,6 +321,7 @@ func _refresh_preview() -> void:
 func _drop() -> void:
 	if _drop_cooldown > 0.0:
 		return
+	_dismiss_tutorial()
 	_spawn_dumpling(_pending_tier, Vector2(_aim_x, drop_line_y()))
 	_pending_tier = _next_tier
 	_next_tier = _drop_bag.next_tier()
@@ -339,12 +412,19 @@ func _register_combo() -> void:
 	if _combo_count < 2:
 		return
 	AudioManager.play_sfx(&"combo", 1.0 + 0.06 * float(mini(_combo_count, 8)))
-	_combo_label.text = "x%d" % _combo_count
+	_set_combo_text("x%d" % _combo_count)
 	# Zincir uzadıkça yazı büyüsün (GAME_DESIGN.md §6).
 	var peak: float = minf(1.3 + 0.12 * float(_combo_count), 2.2)
 	var tween := create_tween()
 	tween.tween_property(_combo_label, "scale", Vector2(peak, peak), 0.1).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 	tween.tween_property(_combo_label, "scale", Vector2.ONE, 0.15)
+
+
+## Combo yazisi ve arkasindaki rozet birlikte acilip kapaniyor — metin bosken
+## ekranda oylece duran bir rozet kalmasin.
+func _set_combo_text(text: String) -> void:
+	_combo_label.text = text
+	_combo_badge.visible = not text.is_empty()
 
 
 func _tick_combo(delta: float) -> void:
@@ -353,7 +433,7 @@ func _tick_combo(delta: float) -> void:
 	_combo_timer -= delta
 	if _combo_timer <= 0.0:
 		_combo_count = 0
-		_combo_label.text = ""
+		_set_combo_text("")
 
 
 func _spawn_pop(at: Vector2, pop_color: Color, radius: float, tier: int,
@@ -476,7 +556,7 @@ func _finish(won: bool) -> void:
 		return
 	_is_finished = true
 	_preview.visible = false
-	_combo_label.text = ""
+	_set_combo_text("")
 	_status_label.text = "Hedef tamam!" if won else "Bitti"
 	AudioManager.play_sfx(&"level_win" if won else &"level_lose")
 	round_finished.emit(won)

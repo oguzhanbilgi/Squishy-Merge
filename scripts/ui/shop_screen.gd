@@ -6,8 +6,6 @@ extends CanvasLayer
 ##
 ## Gerçek para / IAP YOK. Tek para birimi Hamur.
 
-## Açılmamış skin'in silüet rengi — koleksiyon albümüyle aynı dil.
-const LOCKED_COLOR: Color = Color(0.28, 0.28, 0.32)
 const SWATCH_SIZE: Vector2 = Vector2(72.0, 72.0)
 
 var _pending: SkinData = null
@@ -66,8 +64,7 @@ func _make_row(skin: SkinData) -> Control:
 
 	var swatch := SkinSwatch.new()
 	swatch.custom_minimum_size = SWATCH_SIZE
-	swatch.setup(skin.tint if owned else LOCKED_COLOR,
-		SkinData.rarity_color(skin.rarity), owned)
+	swatch.setup(skin.tint, SkinData.rarity_color(skin.rarity), owned)
 	row.add_child(swatch)
 
 	var text := VBoxContainer.new()

@@ -6,7 +6,12 @@ extends Node
 ## ekran goruntusu bos cikar. Pencereli calismali.
 ##
 ## Kullanim:
-##   godot --path . res://tools/screenshot_test.tscn -- <cikti_klasoru>
+##   godot --path . res://tools/screenshot_test.tscn -- <cikti_klasoru> [GxY]
+##
+## Ikinci arguman opsiyonel pencere olcusu ("540x1170" gibi): UI'in dar/uzun
+## modern telefon oraninda (9:19.5) tasip tasmadigini kontrol etmek icin.
+## Proje 9:16 tasarlandi, stretch "expand" oldugu icin uzun ekranda viewport
+## yukseliyor — kontrol edilmesi gereken sey bu.
 
 const GAME_BOARD_SCENE: PackedScene = preload("res://scenes/game/game_board.tscn")
 const ROUND_RESULT_SCENE: PackedScene = preload("res://scenes/ui/round_result.tscn")
@@ -38,11 +43,14 @@ func _ready() -> void:
 	var args: PackedStringArray = OS.get_cmdline_user_args()
 	_out_dir = args[0] if args.size() >= 1 else ProjectSettings.globalize_path("user://shots")
 	DirAccess.make_dir_recursive_absolute(_out_dir)
-	DisplayServer.window_set_size(SHOT_SIZE)
+	DisplayServer.window_set_size(_shot_size(args))
 	_set_speed(SPEEDUP)
 
 	await get_tree().process_frame
 	await _shot_merge()
+	await _shot_combo()
+	await _shot_score_pop()
+	await _shot_tutorial()
 	await _shot_danger()
 	await _shot_chest()
 	await _shot_shell()
@@ -51,6 +59,17 @@ func _ready() -> void:
 
 
 # --- Ortak ---
+
+## Ikinci arguman "GENISLIKxYUKSEKLIK" ise onu, degilse varsayilani dondurur.
+func _shot_size(args: PackedStringArray) -> Vector2i:
+	if args.size() < 2:
+		return SHOT_SIZE
+	var parts: PackedStringArray = args[1].split("x")
+	if parts.size() != 2 or not parts[0].is_valid_int() or not parts[1].is_valid_int():
+		printerr("Olcu okunamadi (\"540x1170\" bekleniyor): ", args[1])
+		return SHOT_SIZE
+	return Vector2i(int(parts[0]), int(parts[1]))
+
 
 func _set_speed(factor: int) -> void:
 	Engine.physics_ticks_per_second = 60 * factor
@@ -124,6 +143,58 @@ func _on_merge_for_shot(tier: int, _position: Vector2) -> void:
 	# merkezde üst üste duruyor.
 	if tier >= 7 and _capture_countdown < 0:
 		_capture_countdown = 2
+
+
+# --- 1b) Combo rozeti: "xN" ve "+N" yazılarının arkasındaki starburst ---
+
+## Combo zinciri 2'ye ulaştığı anda yakalıyor: hem ComboLabel hem ScorePop o
+## anda görünür, ikisinin de arkasında rozet var.
+func _shot_combo() -> void:
+	_make_board(0)
+	_drive = true
+	GameState.merge_performed.connect(_on_merge_for_combo)
+	await _wait_for_capture(60 * 120)
+	GameState.merge_performed.disconnect(_on_merge_for_combo)
+	await _capture("04_combo.png")
+	await _teardown()
+
+
+func _on_merge_for_combo(_tier: int, _position: Vector2) -> void:
+	if _board == null or not is_instance_valid(_board):
+		return
+	# 2 kare pay: rozetin scale pop'u tepeye yaklaşsın.
+	if _board._combo_count >= 2 and _capture_countdown < 0:
+		_capture_countdown = 2
+
+
+# --- 1d) Skor pop rozeti: "+N" yazisinin arkasindaki starburst ---
+
+## Merge beklemek yerine skor dogrudan artiriliyor: pop tween'i 0.55 sn ve
+## normal hizda calisiyor, boylece rozetin yerini kare kare kovalamak
+## gerekmiyor.
+func _shot_score_pop() -> void:
+	_set_speed(1)
+	_make_board(1)
+	await get_tree().process_frame
+	GameState.add_score(150)
+	# Tween'in scale pop'unun tepesi ~0.14 sn; 0.1 sn'de rozet tam acilmis.
+	await get_tree().create_timer(0.1).timeout
+	await _capture("04b_skor_pop.png")
+	await _teardown()
+	_set_speed(SPEEDUP)
+
+
+# --- 1c) Level 1 tutorial ipucu: poz + "sürükle • bırak" ---
+
+## Hiç bırakma yapılmadan yakalanıyor — ipucu ilk bırakışta sönüyor.
+## Aynı karede taşma şeridinin sakin (idle) hâli de görünüyor.
+func _shot_tutorial() -> void:
+	_make_board(1)
+	# Bob tween'i biraz ilerlesin ki poz layout'a oturmuş olsun.
+	for i in 8:
+		await get_tree().process_frame
+	await _capture("05_tutorial.png")
+	await _teardown()
 
 
 # --- 2) Danger: taşma çizgisi aşılmış, kırmızı highlight nabzı ---

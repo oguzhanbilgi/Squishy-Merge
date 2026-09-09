@@ -15,6 +15,22 @@ const STAR_EMPTY_TEXTURE: Texture2D = preload("res://assets/visual/ui/ui_star_em
 ## M3'te placeholder'la anlamlı olmayacağı için ertelenmişti.
 const BURST_TEXTURE: Texture2D = preload("res://assets/visual/fx/fx_burst.png")
 const SPARKLE_TEXTURE: Texture2D = preload("res://assets/visual/fx/fx_sparkle.png")
+## "Yeni skin" satırının arkasındaki banner — owner asset'i (M8 art turu).
+const BANNER_NEW_TEXTURE: Texture2D = preload("res://assets/visual/ui/banner_new.png")
+## Banner'ın yazının etrafında bıraktığı pay (x yatay, y dikey).
+##
+## Bu pay KEYFİ DEĞİL: banner'ın iki ucunda kurdele kuyrukları var, yazının
+## oturabileceği düz plaka ortadaki ~%74. Pay dar olursa yazı kuyrukların
+## altında kalıyor (ilk denemede "Yeni skin: Sade" iki uçtan da kesildi).
+## Plaka kenar payı banner genişliğinin ~%13'ü olduğundan, P >= 0.176 * yazı
+## genişliği gerekiyor; ~200 px'lik yazı için 42 güvenli tarafta kalıyor.
+const BANNER_PAD: Vector2 = Vector2(42.0, 12.0)
+## Banner'ın altına oturduğu yazı bandının en az yüksekliği — banner çok ince
+## bir şeride sıkışmasın.
+const BANNER_MIN_TEXT_HEIGHT: float = 32.0
+## Banner'ın gövdesi açık pembe; tema yazısı beyaz olduğu için üstünde
+## okunmuyor. Banner'lı satırda yazı koyu bir moru kullanıyor.
+const BANNER_TEXT_COLOR: Color = Color("5c2a52")
 ## Ödül görseli kendi dosyasında: sandık + rarity katmanları
 ## (scripts/ui/reward_gem.gd).
 const REWARD_GEM := preload("res://scripts/ui/reward_gem.gd")
@@ -127,8 +143,9 @@ func _make_chest_card(reward: ChestReward) -> Control:
 	# yanlış duruyor; kart kendi sade stilini kullanıyor.
 	card.theme_type_variation = &"CardPanel"
 	card.modulate = Color(1, 1, 1, 0)
-	# Sandık görseli 80 px; kart ona göre büyüdü (eskiden 72).
-	card.custom_minimum_size = Vector2(0, 88)
+	# Sandık görseli 80 px; kart ona göre büyüdü (eskiden 72). "Yeni skin"
+	# satırındaki banner da bu yüksekliğe sığıyor.
+	card.custom_minimum_size = Vector2(0, 100)
 
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 16)
@@ -149,9 +166,52 @@ func _make_chest_card(reward: ChestReward) -> Control:
 
 	var detail_label := Label.new()
 	detail_label.text = reward.description()
-	text.add_child(detail_label)
+	# Banner YALNIZCA gerçekten yeni bir skin açıldığında. Hamur ödülünün ya da
+	# "zaten vardı" satırının arkasında "yeni!" banner'ı yanlış bilgi olurdu.
+	if reward.is_skin_reward():
+		text.add_child(_wrap_in_banner(detail_label))
+	else:
+		text.add_child(detail_label)
 
 	return card
+
+
+## "Yeni skin: X" yazısını banner'ın üstüne oturtur.
+##
+## Etiket bir MarginContainer'a sarılıyor ve banner etiketin ÇOCUĞU olarak
+## `show_behind_parent` ile o payın dışına taşıyor. İki şey birden çözülüyor:
+##
+##  - Banner etiketin dönüşümünü ve modulate'ini (kart reveal'indeki fade)
+##    bedavaya miras alıyor; kardeş düğüm olsaydı elle hizalanması gerekirdi.
+##  - MarginContainer payı layout'ta GERÇEKTEN yer kaplıyor, yani banner
+##    komşularının (soldaki sandık, üstteki rarity satırı) üstüne binmiyor.
+##    Banner doğrudan etikete bağlanınca tam olarak bu oluyordu.
+func _wrap_in_banner(label: Label) -> Control:
+	var box := MarginContainer.new()
+	box.add_theme_constant_override("margin_left", int(BANNER_PAD.x))
+	box.add_theme_constant_override("margin_right", int(BANNER_PAD.x))
+	box.add_theme_constant_override("margin_top", int(BANNER_PAD.y))
+	box.add_theme_constant_override("margin_bottom", int(BANNER_PAD.y))
+
+	label.add_theme_color_override("font_color", BANNER_TEXT_COLOR)
+	label.custom_minimum_size.y = BANNER_MIN_TEXT_HEIGHT
+	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	box.add_child(label)
+
+	var banner := TextureRect.new()
+	banner.texture = BANNER_NEW_TEXTURE
+	banner.show_behind_parent = true
+	banner.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	banner.stretch_mode = TextureRect.STRETCH_SCALE
+	banner.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	banner.set_anchors_preset(Control.PRESET_FULL_RECT)
+	banner.offset_left = -BANNER_PAD.x
+	banner.offset_top = -BANNER_PAD.y
+	banner.offset_right = BANNER_PAD.x
+	banner.offset_bottom = BANNER_PAD.y
+	label.add_child(banner)
+	return box
 
 
 ## Sandık açılışı: rarity renginde bir ışık patlaması + parıltı parçacıkları.

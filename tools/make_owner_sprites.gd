@@ -11,7 +11,7 @@ extends SceneTree
 ##  3) Parcacik/onizleme rengi icin her sprite'in baskin tonunu raporlar.
 ##
 ## Calistirma:
-##   godot --headless --path . --script res://tools/make_character_sprites.gd
+##   godot --headless --path . --script res://tools/make_owner_sprites.gd
 ##
 ## Kaynaklarin `_visual_source/chatgpt_characters/` altinda olmasi gerekir
 ## (gitignore'lu — owner'in urettigi dosyalar repoda tutulmuyor, sadece
@@ -20,14 +20,61 @@ extends SceneTree
 const SRC := "res://_visual_source/chatgpt_characters/"
 const OUT := "res://assets/visual/"
 
-## Sandik gorselleri: karakterlerden farkli klasor ve sabit hedef boyut
-## (tier yariçapina bagli degiller, odul kartinda tek boyutta gosteriliyorlar).
+## UI gorselleri: karakterlerden farkli klasor ve sabit hedef boyut (tier
+## yariçapina bagli degiller, ekranda sabit olculerde duruyorlar).
+##
+## Her kayit su anahtarlari kullanabilir:
+##   size  : hedef GEOMETRIK ORTALAMA (kare-ish gorseller icin)
+##   width : hedef GENISLIK, en/boy korunur (uzun/yatay gorseller icin)
+##   exact : hedef tam olcu, en/boy zorlanir (tam ekran zeminler icin)
+##   crop  : icerik sinirlarina kirpilsin mi (varsayilan true)
 const UI_SRC := "res://_visual_source/chatgpt_ui/"
 const UI_OUT := "res://assets/visual/ui/"
 const UI_ITEMS: Array[Dictionary] = [
 	{"src": "chest_closed.png", "out": "chest_closed.png", "size": 256},
 	{"src": "chest_open.png",   "out": "chest_open.png",   "size": 256},
+
+	# Harita zemini: viewport 720x1280 ile ayni oranda (kaynak 941x1672,
+	# 0.5628 vs 0.5625 — %0.05 fark, gorunmez). Kirpma YOK: gorsel tamamen
+	# opak ve tuvalin tamami icerik.
+	{"src": "map_background.png", "out": "map_background.png",
+		"exact": Vector2i(720, 1280), "crop": false},
+
+	# Logo: ana sayfada ~560 px genislikte duruyor, 2x pay ile 1024.
+	{"src": "logo_lockup.png", "out": "logo_lockup.png", "width": 1024},
+
+	# Kilitli skin silueti: koleksiyonda 88, magazada 72 px kutuda.
+	{"src": "skin_locked_silhouette.png", "out": "skin_locked_silhouette.png",
+		"size": 192},
+
+	# Tehlike seridi: en genis kap 720 px (sonsuz mod), 2x pay ile 1440.
+	# DIKKAT: bu dosya seamless DEGIL (sol/sag kenar farki ort. 0.16, en kotu
+	# 1.20). Tile edilmemeli — kap genisligine tek parca gerilir.
+	{"src": "danger_stripe.png", "out": "danger_stripe.png", "width": 1440},
+
+	# Skor/combo rozeti: metnin arkasinda ~220 px'e kadar buyuyor.
+	{"src": "badge_starburst.png", "out": "badge_starburst.png", "size": 256},
+
+	# "Yeni!" banner: odul kartindaki detay satirinin arkasinda ~360 px.
+	{"src": "banner_new.png", "out": "banner_new.png", "width": 720},
+
+	# Tutorial pozu: level 1 ipucunun yaninda ~180 px.
+	{"src": "tutorial_pose.png", "out": "tutorial_pose.png", "size": 320},
 ]
+
+## --- Android adaptive icon katmanlari ---
+##
+## Godot'un Android export preset'i 432x432 bekliyor
+## (launcher_icons/adaptive_background_432x432 ve _foreground_432x432).
+const ICON_OUT := "res://assets/visual/icon/"
+const ICON_SIZE: int = 432
+## Android adaptive icon'da tuvalin YALNIZCA ortadaki %66'lik dairesi her
+## launcher maskesinde gorunur; disi kirpilabilir. Onplan icerigi bu alana
+## sigdiriliyor, yoksa yuvarlak/squircle maskede kenarlardan kesiliyor.
+const ICON_SAFE: float = 0.66
+## Tek kare launcher ikonu (launcher_icons/main_192x192) — iki katmanin
+## duz kompoziti.
+const ICON_MAIN_SIZE: int = 192
 
 const FILES: Array[String] = ["tier1_mini.png", "tier2_kucuk.png", "tier3_dumpling.png",
 	"tier4_siskin.png", "tier5_buyuk.png", "tier6_dev.png", "tier7_jumbo.png", "tier8_kral.png"]
@@ -53,6 +100,7 @@ func _initialize() -> void:
 		palette.append(result["hex"])
 	for item in UI_ITEMS:
 		ok = _process_ui(item) and ok
+	ok = _process_icons() and ok
 	print("")
 	print("TierConfig icin baskin renkler: ", " ".join(palette))
 	print("SONUC: ", "OK" if ok else "HATA")
@@ -100,31 +148,167 @@ func _process_one(tier: int, file_name: String) -> Dictionary:
 	return {"hex": dominant.to_html(false)}
 
 
-## Sandik gorselleri: kirp + sabit hedefe kucult. Karakterlerdeki gibi
-## yariçapa bagli bir olcek yok, odul kartinda tek boyutta duruyorlar.
+## UI gorselleri: (istege bagli) kirp + hedefe kucult. Karakterlerdeki gibi
+## yariçapa bagli bir olcek yok, ekranda sabit olculerde duruyorlar.
 func _process_ui(item: Dictionary) -> bool:
 	var img := Image.load_from_file(ProjectSettings.globalize_path(UI_SRC + item["src"]))
 	if img == null:
 		printerr("Kaynak okunamadi: ", item["src"])
 		return false
 	img.convert(Image.FORMAT_RGBA8)
-	var region := _content_bounds(img)
-	if region.size.x <= 0:
-		printerr("Tamamen seffaf: ", item["src"])
-		return false
+
+	var region := Rect2i(0, 0, img.get_width(), img.get_height())
+	if item.get("crop", true):
+		region = _content_bounds(img)
+		if region.size.x <= 0:
+			printerr("Tamamen seffaf: ", item["src"])
+			return false
 	var cropped := img.get_region(region)
-	var target: int = item["size"]
-	var mean: float = sqrt(float(region.size.x) * float(region.size.y))
-	var factor: float = float(target) / mean
-	var out_w: int = maxi(1, int(round(float(region.size.x) * factor)))
-	var out_h: int = maxi(1, int(round(float(region.size.y) * factor)))
+
+	var out_w: int = region.size.x
+	var out_h: int = region.size.y
+	if item.has("exact"):
+		var exact: Vector2i = item["exact"]
+		out_w = exact.x
+		out_h = exact.y
+	else:
+		var factor: float = 1.0
+		if item.has("width"):
+			factor = float(item["width"]) / float(region.size.x)
+		else:
+			# Geometrik ortalama: kare olmayan gorsellerde tek bir kenara
+			# gore olceklemek diger kenari asiri buyutuyor/kucultuyor.
+			factor = float(item["size"]) / sqrt(float(region.size.x) * float(region.size.y))
+		out_w = maxi(1, int(round(float(region.size.x) * factor)))
+		out_h = maxi(1, int(round(float(region.size.y) * factor)))
+
+	if out_w > region.size.x or out_h > region.size.y:
+		printerr("UYARI: %s buyutuluyor (%dx%d -> %dx%d) — kaynak yetersiz." % [
+			item["src"], region.size.x, region.size.y, out_w, out_h])
 	cropped.resize(out_w, out_h, Image.INTERPOLATE_LANCZOS)
+
 	var dst := ProjectSettings.globalize_path(UI_OUT + item["out"])
 	if cropped.save_png(dst) != OK:
 		printerr("Yazilamadi: ", dst)
 		return false
-	print("%-20s <- %-20s %dx%d -> %dx%d" % [
+	print("%-28s <- %-28s %dx%d -> %dx%d" % [
 		item["out"], item["src"], region.size.x, region.size.y, out_w, out_h])
+	return true
+
+
+## --- Android adaptive icon ---
+##
+## Iki duzeltme yapiliyor, ikisi de kaynak dosyalardaki gercek sorunlara
+## karsi (olculdu, bkz. CREDITS):
+##
+## 1) ARKA PLAN KATMANI TAM KARE OLMALI. Kaynak dairesel: pikselin %25'i
+##    tamamen seffaf, kosaler bos. Android arka plan katmanini KIRPAR, kendi
+##    maskesini uygular — seffaf kose birakirsan kare/squircle maskeli
+##    launcher'da ikonun kosaleri delik gorunur. Daire, kendi kenar renginden
+##    ornekle doldurulmus opak bir karenin uzerine biniyor.
+##
+## 2) ONPLAN GUVENLI ALANA SIGMALI. Kaynakta icerik tuvalin %92'sini
+##    kapliyor, oysa her maskede gorunmesi garanti alan ortadaki %66.
+##    Icerik bu orana kuculterek ortalaniyor.
+func _process_icons() -> bool:
+	var bg := Image.load_from_file(ProjectSettings.globalize_path(UI_SRC + "icon_bg_layer.png"))
+	var fg := Image.load_from_file(ProjectSettings.globalize_path(UI_SRC + "icon_fg_layer.png"))
+	if bg == null or fg == null:
+		printerr("Ikon katmanlari okunamadi.")
+		return false
+	bg.convert(Image.FORMAT_RGBA8)
+	fg.convert(Image.FORMAT_RGBA8)
+	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(ICON_OUT))
+
+	var bg_out := _icon_background(bg)
+	var fg_out := _icon_foreground(fg)
+
+	var ok := true
+	ok = _save_icon(bg_out, "adaptive_background_432.png") and ok
+	ok = _save_icon(fg_out, "adaptive_foreground_432.png") and ok
+
+	# Tek kare launcher ikonu: iki katmanin duz kompoziti. Proje hala
+	# Godot'un varsayilan robot ikonuyla geliyor; M9'da bu kullanilabilir.
+	var main := bg_out.duplicate()
+	main.blend_rect(fg_out, Rect2i(0, 0, ICON_SIZE, ICON_SIZE), Vector2i.ZERO)
+	main.resize(ICON_MAIN_SIZE, ICON_MAIN_SIZE, Image.INTERPOLATE_LANCZOS)
+	ok = _save_icon(main, "launcher_main_192.png") and ok
+	return ok
+
+
+## Daireyi opak bir karenin uzerine bindirir. Dolgu rengi, dairenin dis
+## kenarindan ornekleniyor: kosaler sanatin kendi rengiyle devam etsin,
+## rastgele bir zemin uzerinde duran daire gibi gorunmesin.
+func _icon_background(src: Image) -> Image:
+	var scaled := src.duplicate()
+	scaled.resize(ICON_SIZE, ICON_SIZE, Image.INTERPOLATE_LANCZOS)
+	var fill := _edge_color(scaled)
+	var out := Image.create_empty(ICON_SIZE, ICON_SIZE, false, Image.FORMAT_RGBA8)
+	out.fill(fill)
+	out.blend_rect(scaled, Rect2i(0, 0, ICON_SIZE, ICON_SIZE), Vector2i.ZERO)
+	print("adaptive arka plan: kose dolgusu #%s (kaynak dairesel, kosaler bostu)"
+		% fill.to_html(false))
+	return out
+
+
+## Onplan icerigini guvenli alana sigdirir, seffaf tuvalde ortalar.
+func _icon_foreground(src: Image) -> Image:
+	var region := _content_bounds(src)
+	if region.size.x <= 0:
+		printerr("Onplan katmani tamamen seffaf.")
+		return Image.create_empty(ICON_SIZE, ICON_SIZE, false, Image.FORMAT_RGBA8)
+	var cropped := src.get_region(region)
+	var safe: float = float(ICON_SIZE) * ICON_SAFE
+	# Uzun kenar guvenli alana otursun — kisa kenar zaten sigar.
+	var factor: float = safe / float(maxi(region.size.x, region.size.y))
+	var w: int = maxi(1, int(round(float(region.size.x) * factor)))
+	var h: int = maxi(1, int(round(float(region.size.y) * factor)))
+	cropped.resize(w, h, Image.INTERPOLATE_LANCZOS)
+	var out := Image.create_empty(ICON_SIZE, ICON_SIZE, false, Image.FORMAT_RGBA8)
+	out.blend_rect(cropped, Rect2i(0, 0, w, h),
+		Vector2i((ICON_SIZE - w) / 2, (ICON_SIZE - h) / 2))
+	print("adaptive onplan: icerik %dx%d -> %dx%d (tuvalin %%%d'i, guvenli alan %%%d)" % [
+		region.size.x, region.size.y, w, h,
+		int(round(100.0 * float(maxi(w, h)) / float(ICON_SIZE))),
+		int(round(ICON_SAFE * 100.0))])
+	return out
+
+
+## Dairenin dis kenarindaki opak piksellerin ortalamasi. Merkez rengi degil:
+## merkez cogu zaman daha acik/koyu bir vurgu, kenar ise kosaye komsu olan.
+func _edge_color(img: Image) -> Color:
+	var center := Vector2(img.get_width(), img.get_height()) * 0.5
+	# Tuvalin yarisinin %80-%95'i arasindaki halka: dairenin dis bandi.
+	var half: float = minf(center.x, center.y)
+	var inner: float = half * 0.80
+	var outer: float = half * 0.95
+	var r := 0.0
+	var g := 0.0
+	var b := 0.0
+	var n := 0
+	for y in img.get_height():
+		for x in img.get_width():
+			var c := img.get_pixel(x, y)
+			if c.a < 0.95:
+				continue
+			var d: float = Vector2(x, y).distance_to(center)
+			if d < inner or d > outer:
+				continue
+			r += c.r
+			g += c.g
+			b += c.b
+			n += 1
+	if n == 0:
+		return img.get_pixel(img.get_width() / 2, img.get_height() / 2)
+	return Color(r / n, g / n, b / n, 1.0)
+
+
+func _save_icon(img: Image, file_name: String) -> bool:
+	var dst := ProjectSettings.globalize_path(ICON_OUT + file_name)
+	if img.save_png(dst) != OK:
+		printerr("Yazilamadi: ", dst)
+		return false
+	print("%-28s %dx%d" % [file_name, img.get_width(), img.get_height()])
 	return true
 
 

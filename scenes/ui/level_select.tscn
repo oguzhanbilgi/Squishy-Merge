@@ -1,7 +1,8 @@
-[gd_scene load_steps=3 format=3]
+[gd_scene load_steps=4 format=3]
 
 [ext_resource type="Script" path="res://scripts/ui/level_select.gd" id="1_select"]
 [ext_resource type="Theme" path="res://assets/visual/ui_theme.tres" id="2_theme"]
+[ext_resource type="Texture2D" path="res://assets/visual/ui/map_background.png" id="3_map"]
 
 [node name="LevelSelect" type="CanvasLayer"]
 layer = 5
@@ -11,6 +12,20 @@ script = ExtResource("1_select")
 anchor_right = 1.0
 anchor_bottom = 1.0
 color = Color(0.16, 0.15, 0.18, 1)
+
+[node name="MapBackground" type="TextureRect" parent="."]
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 2
+texture = ExtResource("3_map")
+expand_mode = 1
+stretch_mode = 6
+
+[node name="Scrim" type="ColorRect" parent="."]
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 2
+color = Color(0.1, 0.08, 0.13, 0.42)
 
 [node name="Margin" type="MarginContainer" parent="."]
 theme = ExtResource("2_theme")
@@ -24,10 +39,6 @@ theme_override_constants/margin_bottom = 130
 [node name="VBox" type="VBoxContainer" parent="Margin"]
 alignment = 1
 theme_override_constants/separation = 28
-
-[node name="Title" type="Label" parent="Margin/VBox"]
-text = "Squishy Merge"
-horizontal_alignment = 1
 
 [node name="Grid" type="GridContainer" parent="Margin/VBox"]
 columns = 5

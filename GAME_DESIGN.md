@@ -27,6 +27,16 @@ uydurulmaz.
 > çalışılmayacak bir "çelişki" değil, tasarımın parçası. Tek şart:
 > kesin/otomatik game-over olmamalı.
 
+### 1.1 Onboarding ipucu (owner onayı, M8 art turu)
+
+Level 1'de ilk drop'a kadar `tutorial_pose` karakteri + "sürükle • bırak"
+ipucu gösterilir, ilk bırakışta söner.
+
+Yalnızca level 1'de; sonsuz modda ve diğer level'larda hiç görünmez.
+Konumu kabın ağzı ile taşma çizgisi arasında hesaplanır (kap genişliği
+level'a göre değiştiği için sabit koordinat değil). Kalıcı bir tutorial
+akışı değil — tek ekranlık, tek seferlik bir ipucu.
+
 ## 2. Tier listesi (8 tier)
 
 | # | İsim (placeholder) | Yarıçap (px) | Çap (px) | Not |
