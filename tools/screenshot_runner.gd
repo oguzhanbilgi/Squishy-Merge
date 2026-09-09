@@ -56,6 +56,7 @@ func _ready() -> void:
 	await _shot_chest()
 	await _shot_shell()
 	await _shot_locked_levels()
+	await _shot_skins()
 	print("bitti -> ", _out_dir)
 	get_tree().quit()
 
@@ -218,6 +219,64 @@ func _shot_locked_levels() -> void:
 
 	select.queue_free()
 	SaveManager.data[key] = original
+	await get_tree().process_frame
+
+
+# --- 1f) Skin onizlemesi: 8 tier x (varsayilan + 4 rarity) ---
+
+## Skin gorsel katmaninin (scripts/game/skin_visual.gd) QA cikti.
+##
+## Tier'lar ESIT BOYUTTA ciziliyor. Gercekte caplari 44-200 px arasi degisiyor
+## ama burada olculmek istenen sey boyut degil RENK: skin uygulandiginda
+## tier'lar birbirinden hala ayirt edilebiliyor mu, yuz/kontur okunuyor mu,
+## parlamalar sonuyor mu.
+const SKIN_SHOT_TIERS: int = 8
+const SKIN_SHOT_CELL: float = 78.0
+const SKIN_SHOT_ROW_HEIGHT: float = 116.0
+## Rarity basina temsilci skin. Ikisi bilerek en kotu eslesmeler
+## (SKIN_ART_AUDIT.md): "Kirmizi Biber" sari-yesil, "Altin Hamur" turkuaz.
+const SKIN_SHOT_IDS: Array[StringName] = [
+	&"common_01", &"rare_02", &"epic_01", &"legendary_01",
+]
+
+
+func _shot_skins() -> void:
+	var root := Node2D.new()
+	add_child(root)
+
+	var rows: Array[Dictionary] = [{"skin": null, "label": "VARSAYILAN (skin yok)"}]
+	for id in SKIN_SHOT_IDS:
+		var skin: SkinData = SkinLibrary.find(id)
+		if skin == null:
+			continue
+		rows.append({"skin": skin, "label": "%s — %s (%s)" % [
+			SkinData.rarity_name(skin.rarity), skin.display_name,
+			skin.tint.to_html(false)]})
+
+	var top: float = 70.0
+	for row in rows:
+		var label := Label.new()
+		label.position = Vector2(24.0, top - 34.0)
+		label.add_theme_font_size_override("font_size", 19)
+		label.text = row["label"]
+		root.add_child(label)
+
+		for tier in range(1, SKIN_SHOT_TIERS + 1):
+			var visual: Node2D = preload("res://scripts/game/dumpling_visual.gd").new()
+			root.add_child(visual)
+			visual.setup(tier)
+			visual.override_skin(row["skin"])
+			# Tum tier'lari ayni ekran boyutuna normalize et.
+			visual.scale = Vector2.ONE * (SKIN_SHOT_CELL / (TierConfig.radius(tier) * 2.0))
+			visual.position = Vector2(
+				60.0 + float(tier - 1) * (SKIN_SHOT_CELL + 9.0),
+				top + SKIN_SHOT_CELL * 0.5)
+		top += SKIN_SHOT_ROW_HEIGHT
+
+	await get_tree().process_frame
+	await get_tree().process_frame
+	await _capture("11_skin_karsilastirma.png")
+	root.queue_free()
 	await get_tree().process_frame
 
 

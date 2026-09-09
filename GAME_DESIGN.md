@@ -361,6 +361,27 @@ Teselli ödülü (kaybedilen round): **5 Hamur** — rarity'den bağımsız.
   **20 (kilitlendi)**
 - Açılmamış skin'ler silüet olarak görünür
 
+**Skin seçimi (M8.5).** Albüm pasif bir vitrin değil: sahip olunan bir karta
+dokunmak o skin'i **takıyor** ve seçim kayda yazılıyor. Grid'in ilk kartı her
+zaman **"Varsayılan"** (orijinal dumpling görünümü) ve o da seçilebilir —
+kayıtta boş string olarak tutulur. Kilitli karta dokunmak hiçbir şey yapmaz.
+Takılı kart yeşil çerçeve + **"TAKILI"** etiketiyle işaretlenir.
+
+Takılı skin oyunda hem yeni bırakılan parçalara hem merge sonucu oluşan yeni
+tier'lara uygulanır.
+
+> **DURUM: functional equip complete / final skin art pending.**
+> Kazan → koleksiyonda gör → seç → kaydet → oyunda uygulan döngüsü uçtan uca
+> çalışıyor. Ancak `resources/skins/*.tres` içindeki renkler **prosedürel
+> placeholder** (20 skin boyunca sabit 49.3° hue spirali) ve yiyecek
+> isimleriyle örtüşmüyorlar — "Kırmızı Biber" sarı-yeşil, "Altın Hamur"
+> turkuaz. Ayrıntılı envanter ve karar seçenekleri: `SKIN_ART_AUDIT.md`.
+>
+> Skin'in nasıl çizildiği tek bir değiştirilebilir katmanda
+> (`scripts/game/skin_visual.gd`): sanat turu geldiğinde kayıt formatı,
+> equip akışı ve oyun kodu değişmeden yalnızca o dosya güncellenecek.
+> **"Skin sistemi tamamlandı" DENMEZ** — işlevsel altyapı tamam, sanat değil.
+
 ### 5.4 Günlük döngü
 - Günlük giriş ödülü (küçük, sabit) + ardışık gün sayacı (streak)
 - Ödül miktarı: **15 Hamur** — §5.2'deki oranlarla aynı gerekçeyle GEÇİCİ

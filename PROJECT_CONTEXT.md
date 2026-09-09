@@ -47,9 +47,13 @@ alınacak — şimdi tahmin/vaat yok.
 - **M0–M8 tamamlandı.** Oyun uçtan uca oynanabilir: 10 level + sonsuz mod,
   sandık/koleksiyon/mağaza, günlük ödül, 4 sekmeli navigasyon, owner'ın
   görsel asset'leri entegre.
-- **Şimdi: M8.5 — release/product stabilization.** Ekonomi ve doküman
-  tutarlılığı (`M8.5-01` tamamlandı: sandık ödül modeli %30 skin / %70 Hamur
-  olarak kilitlendi, simulator production ile eşitlendi).
+- **Şimdi: M8.5 — release/product stabilization.**
+  - `M8.5-01` ✅ sandık ödül modeli %30 skin / %70 Hamur olarak kilitlendi,
+    simulator production ile eşitlendi.
+  - `M8.5-02` ✅ skin equip altyapısı: kazan → koleksiyonda seç → kaydet →
+    oyunda uygulan döngüsü çalışıyor. **functional equip complete / final
+    skin art pending** — skin renkleri hâlâ placeholder, bkz.
+    `SKIN_ART_AUDIT.md`.
 - **Sırada: M9 — Android export.** Ortam hazır (export template'leri, SDK,
   NDK, JDK 17, debug keystore mevcut); eksik olan `export_presets.cfg` ve
   release/upload keystore.
@@ -68,6 +72,9 @@ alınacak — şimdi tahmin/vaat yok.
   ile karıştırma, bkz. GAME_DESIGN §5.2)*
 - Shop fiyatları: 50 / 150 / 400 / 900
 - Görsel asset üretimi owner'da — Claude Code final art üretmez
+- Takılı skin kayıtta `equipped_skin` alanında; **boş string = varsayılan
+  görünüm**. Skin'in nasıl çizildiği yalnızca `scripts/game/skin_visual.gd`
+  içinde (değiştirilebilir katman)
 
 ## Repo notes
 - `_visual_source/` **repoda takip ediliyor** (owner kararı): owner'ın
@@ -83,6 +90,9 @@ alınacak — şimdi tahmin/vaat yok.
 - **Mağaza ekonomisi owner kararı bekliyor:** %30/%70 kuralıyla mağaza artık
   çalışıyor ama fiyatlar bu yeni modele göre kalibre edilmedi. Ölçüm ve
   öneriler `tools/shop_economy.py` çıktısında; fiyat DEĞİŞTİRİLMEDİ.
+- **Skin sanatı owner kararı bekliyor:** 20 skin'in renkleri prosedürel
+  üretilmiş ve isimleriyle uyuşmuyor (18/20 uyumsuz). Equip sistemi hazır,
+  yalnızca veri düzeltmesi gerekiyor. Seçenekler: `SKIN_ART_AUDIT.md`.
 
 ## Next action
 M9: Android export preset'i kur (`exclude_filter` → `tools/*`,

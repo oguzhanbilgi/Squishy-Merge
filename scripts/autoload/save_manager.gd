@@ -11,6 +11,10 @@ const DEFAULT_DATA: Dictionary = {
 	"endless_high_score": 0,
 	"dough": 0,
 	"unlocked_skins": [],
+	## Takılı skin'in id'si. BOŞ STRING = varsayılan/orijinal dumpling görünümü.
+	## Eski kayıtlarda bu anahtar yok; load_game DEFAULT_DATA üzerine yazdığı
+	## için otomatik olarak "" kalıyor (geriye dönük uyumlu).
+	"equipped_skin": "",
 	"total_merges": 0,
 	"merges_since_bonus_chest": 0,
 	"daily_streak": 0,
@@ -118,6 +122,60 @@ func grant_skin(id: StringName) -> void:
 	var owned: Array = owned_skins().duplicate()
 	owned.append(String(id))
 	data["unlocked_skins"] = owned
+	save_game()
+
+
+# --- Takılı skin (M8.5) ---
+#
+# Boş string = varsayılan görünüm. Bu bilinçli: "hiç skin seçilmemiş" ile
+# "varsayılanı seçtim" aynı şey, ayrı bir sentinel id'ye gerek yok.
+
+## Takılı skin'in id'si, DOĞRULANMIŞ hâliyle. Kayıtta duran id artık
+## SkinLibrary'de yoksa ya da oyuncu ona sahip değilse boş string döner —
+## yani güvenli biçimde varsayılana düşer.
+##
+## Bu getter kayda YAZMAZ: okuma sırasında beklenmedik disk yazması olmasın.
+## Kalıcı temizlik equip_skin/clear_equipped_skin üzerinden yapılır.
+func equipped_skin_id() -> StringName:
+	var raw: String = str(data.get("equipped_skin", ""))
+	if raw.is_empty():
+		return &""
+	var id := StringName(raw)
+	if not owns_skin(id):
+		return &""
+	if SkinLibrary.find(id) == null:
+		return &""
+	return id
+
+
+## Takılı SkinData, ya da varsayılan görünümde null.
+func equipped_skin() -> SkinData:
+	var id: StringName = equipped_skin_id()
+	if id == &"":
+		return null
+	return SkinLibrary.find(id)
+
+
+## Skin takar. Sahip olunmayan ya da tanımsız id reddedilir (false döner).
+## Boş string geçerlidir ve varsayılana döner.
+func equip_skin(id: StringName) -> bool:
+	if id == &"":
+		clear_equipped_skin()
+		return true
+	if not owns_skin(id) or SkinLibrary.find(id) == null:
+		return false
+	if StringName(str(data.get("equipped_skin", ""))) == id:
+		return true
+	data["equipped_skin"] = String(id)
+	save_game()
+	return true
+
+
+## Varsayılan görünüme döner.
+func clear_equipped_skin() -> void:
+	if str(data.get("equipped_skin", "")).is_empty():
+		return
+	data["equipped_skin"] = ""
 	save_game()
 
 

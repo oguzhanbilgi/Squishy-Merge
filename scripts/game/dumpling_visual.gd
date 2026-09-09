@@ -8,6 +8,10 @@ extends Node2D
 ##  - tint (modulate) UYGULANMIYOR
 ##  - ayrı yüz katmanı YOK
 ##  - parlama overlay'i YOK (sprite'ların kendi spekuler parlamaları var)
+##
+## M8.5'te takılı skin desteği eklendi. Skin'in NASIL çizildiği bu dosyada
+## değil, `scripts/game/skin_visual.gd` içinde — orası bilerek değiştirilebilir
+## bir katman. Burada yalnızca "hangi skin" sorusu cevaplanıyor.
 
 ## Tier -> sprite. Sıra TierConfig.TIERS ile aynı.
 const TEXTURES: Array[Texture2D] = [
@@ -22,6 +26,15 @@ const TEXTURES: Array[Texture2D] = [
 ]
 
 var radius: float = 20.0
+
+## Bu parçanın kullanacağı skin. null = varsayılan/orijinal görünüm.
+##
+## setup() sırasında doldurulmuyorsa SaveManager'daki takılı skin okunuyor —
+## yani hem yeni drop'lar hem merge sonucu oluşan yeni tier'lar otomatik
+## olarak aynı aktif skin'i kullanıyor. Testler ve önizleme araçları
+## `override_skin()` ile SaveManager'dan bağımsız bir skin verebilir.
+var _skin: SkinData = null
+var _skin_overridden: bool = false
 
 var _tween: Tween
 var _sprite: Sprite2D
@@ -51,6 +64,34 @@ func setup(tier: int) -> void:
 	# (tools/make_character_sprites.gd aynı formülü kullanarak küçültüyor.)
 	var mean: float = sqrt(float(texture.get_width()) * float(texture.get_height()))
 	_sprite.scale = Vector2.ONE * (radius * 2.0 / mean)
+	_refresh_skin()
+
+
+# --- Skin katmanı ---
+#
+# Buradaki tek iş DOĞRU SKIN'İ SEÇMEK. Skin'in nasıl göründüğü tamamen
+# SkinVisual'ın işi (scripts/game/skin_visual.gd) — sanat tekniği değişirse
+# bu dosyaya dokunulmayacak.
+
+## Takılı skin yerine belirli bir skin kullan (QA/önizleme). null = varsayılan.
+func override_skin(skin: SkinData) -> void:
+	_skin = skin
+	_skin_overridden = true
+	_refresh_skin()
+
+
+## Override'ı bırakıp tekrar SaveManager'daki takılı skin'e dön.
+func use_equipped_skin() -> void:
+	_skin_overridden = false
+	_refresh_skin()
+
+
+func _refresh_skin() -> void:
+	if _sprite == null:
+		return
+	if not _skin_overridden:
+		_skin = SaveManager.equipped_skin()
+	SkinVisual.apply(_sprite, _skin)
 
 
 ## Gövde serbest dönüyor (M1 kilitli karar) ama yüz bu sprite'ların İÇİNDE
