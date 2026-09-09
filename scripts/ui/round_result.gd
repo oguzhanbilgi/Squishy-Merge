@@ -9,8 +9,10 @@ signal exit_pressed
 
 const STAR_REVEAL_DELAY: float = 0.4
 const CHEST_REVEAL_DELAY: float = 0.5
-const STAR_FILLED_TEXTURE: Texture2D = preload("res://assets/visual/ui/ui_star_filled.png")
-const STAR_EMPTY_TEXTURE: Texture2D = preload("res://assets/visual/ui/ui_star_empty.png")
+## Yıldızlar owner'ın icon_sheet.png'sinden geliyor (eskiden Kenney UI Pack).
+## Geri dönmek için bu iki yolu ui_star_filled/ui_star_empty yapmak yeterli.
+const STAR_FILLED_TEXTURE: Texture2D = UiIcons.STAR_FILLED
+const STAR_EMPTY_TEXTURE: Texture2D = UiIcons.STAR_EMPTY
 ## Sandık açılışı efektleri (GAME_DESIGN.md §5.1 "kapak, ışık, parçacık").
 ## M3'te placeholder'la anlamlı olmayacağı için ertelenmişti.
 const BURST_TEXTURE: Texture2D = preload("res://assets/visual/fx/fx_burst.png")
@@ -38,8 +40,8 @@ const REWARD_GEM := preload("res://scripts/ui/reward_gem.gd")
 ## Kart belirdikten kaç saniye sonra sandık açılıyor. Kapalı sandığın bir an
 ## görünmesi gerekiyor, yoksa "açılış" okunmuyor.
 const CHEST_OPEN_DELAY: float = 0.35
-## Kaynak sprite 64x60; kutu bu oranda tutuluyor ki yıldız ezilmesin.
-const STAR_SIZE: Vector2 = Vector2(64.0, 60.0)
+## Kaynak sprite 130x126; kutu bu oranda tutuluyor ki yıldız ezilmesin.
+const STAR_SIZE: Vector2 = Vector2(66.0, 64.0)
 
 var _sequence_id: int = 0
 ## Kartlarla aynı sıradaki ödül görselleri — reveal sırasında open() için.
@@ -49,7 +51,7 @@ var _gems: Array[Control] = []
 @onready var _stars: HBoxContainer = $Center/Panel/VBox/Stars
 @onready var _detail: Label = $Center/Panel/VBox/Detail
 @onready var _chests: VBoxContainer = $Center/Panel/VBox/Chests
-@onready var _dough: Label = $Center/Panel/VBox/Dough
+@onready var _dough: RichTextLabel = $Center/Panel/VBox/Dough
 @onready var _retry: Button = $Center/Panel/VBox/Buttons/Retry
 @onready var _exit: Button = $Center/Panel/VBox/Buttons/Exit
 @onready var _fx: Control = $FxLayer
@@ -103,8 +105,13 @@ func _build_stars(level: LevelData, stars: int) -> void:
 		var star := TextureRect.new()
 		star.texture = STAR_FILLED_TEXTURE if i < stars else STAR_EMPTY_TEXTURE
 		star.custom_minimum_size = STAR_SIZE
+		# EXPAND_IGNORE_SIZE olmadan TextureRect'in en küçük ölçüsü texture'ın
+		# kendi boyutu oluyor ve custom_minimum_size'ı eziyor. Kenney yıldızları
+		# 64x60'tı, owner'ınkiler 130x126: bu satır olmayınca yıldızlar sessizce
+		# iki katına çıkıyor (çekimle yakalandı).
+		star.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 		star.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-		# Dolu yıldız zaten sarı (Yellow paketi), tint gerekmiyor; boş olan soluk.
+		# Dolu yıldız zaten sarı, tint gerekmiyor; boş olan soluk.
 		star.modulate = Color(1, 1, 1, 1) if i < stars else Color(1, 1, 1, 0.35)
 		# Kazanılan yıldızlar gizli başlar, tek tek açılır.
 		star.scale = Vector2.ZERO if i < stars else Vector2.ONE
@@ -285,5 +292,6 @@ func _reveal_chests(sequence: int, rewards: Array[ChestReward]) -> void:
 
 
 func _refresh_dough() -> void:
-	_dough.text = "Hamur: %d   ·   Koleksiyon: %d/%d" % [
-		SaveManager.dough(), SaveManager.owned_skins().size(), SkinLibrary.total_count()]
+	_dough.text = "[center]%s   ·   Koleksiyon: %d/%d[/center]" % [
+		UiIcons.labelled(UiIcons.DOUGH, "Hamur: %d" % SaveManager.dough()),
+		SaveManager.owned_skins().size(), SkinLibrary.total_count()]

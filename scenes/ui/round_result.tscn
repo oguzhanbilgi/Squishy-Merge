@@ -46,9 +46,11 @@ text = "-"
 [node name="Chests" type="VBoxContainer" parent="Center/Panel/VBox"]
 theme_override_constants/separation = 10
 
-[node name="Dough" type="Label" parent="Center/Panel/VBox"]
-horizontal_alignment = 1
-text = "Hamur: 0"
+[node name="Dough" type="RichTextLabel" parent="Center/Panel/VBox"]
+custom_minimum_size = Vector2(0, 34)
+bbcode_enabled = true
+fit_content = true
+scroll_active = false
 
 [node name="Buttons" type="HBoxContainer" parent="Center/Panel/VBox"]
 alignment = 1

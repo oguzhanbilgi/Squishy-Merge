@@ -16,6 +16,7 @@ extends Node
 const GAME_BOARD_SCENE: PackedScene = preload("res://scenes/game/game_board.tscn")
 const ROUND_RESULT_SCENE: PackedScene = preload("res://scenes/ui/round_result.tscn")
 const MAIN_SCENE: PackedScene = preload("res://scenes/main.tscn")
+const LEVEL_SELECT_SCENE: PackedScene = preload("res://scenes/ui/level_select.tscn")
 const BOT_BRAIN = preload("res://tools/bot_brain.gd")
 
 ## Proje viewport'u 720x1280; ekrana sigmasi icin ayni oranda kucultuluyor.
@@ -54,6 +55,7 @@ func _ready() -> void:
 	await _shot_danger()
 	await _shot_chest()
 	await _shot_shell()
+	await _shot_locked_levels()
 	print("bitti -> ", _out_dir)
 	get_tree().quit()
 
@@ -195,6 +197,28 @@ func _shot_tutorial() -> void:
 		await get_tree().process_frame
 	await _capture("05_tutorial.png")
 	await _teardown()
+
+
+# --- 1e) Kilitli level rozeti ---
+
+## Gercek kayitta tum level'lar acik oldugu icin kilit rozeti hic gorunmuyor.
+## Ilerleme SADECE BELLEKTE gerileltiliyor (SaveManager.save cagrilmiyor),
+## cekim alinip hemen geri konuyor — owner'in kaydi bozulmaz.
+func _shot_locked_levels() -> void:
+	var key := "highest_level_unlocked"
+	var original: Variant = SaveManager.data.get(key, 1)
+	SaveManager.data[key] = 4
+
+	var select: CanvasLayer = LEVEL_SELECT_SCENE.instantiate()
+	add_child(select)
+	await get_tree().process_frame
+	select.refresh()
+	await get_tree().process_frame
+	await _capture("08b_harita_kilitli.png")
+
+	select.queue_free()
+	SaveManager.data[key] = original
+	await get_tree().process_frame
 
 
 # --- 2) Danger: taşma çizgisi aşılmış, kırmızı highlight nabzı ---

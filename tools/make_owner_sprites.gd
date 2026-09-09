@@ -76,6 +76,27 @@ const ICON_SAFE: float = 0.66
 ## duz kompoziti.
 const ICON_MAIN_SIZE: int = 192
 
+## --- HUD ikon sheet'i ---
+##
+## icon_sheet.png tek dosyada 7 ikon tasiyor, duzenli bir grid DEGIL: ikonlar
+## farkli boyutlarda ve dagilimlari duzensiz. O yuzden sabit hucre olculeri
+## yerine bagli bilesen (connected component) analizi yapiliyor.
+const SHEET_SRC := "res://_visual_source/chatgpt_ui/icon_sheet.png"
+const SHEET_OUT := "res://assets/visual/ui/"
+## Ekranda en buyuk kullanim 64 px (round sonucu yildizlari); 2x pay ile 128.
+const SHEET_ICON_SIZE: int = 128
+## Bu alandan kucuk bilesenler kenar yumusatma artigi sayilir. Olculdu: gercek
+## ikonlar 47.000-92.000 px, kopuk alev kivilcimi 3.536 px, artiklar <= 22 px.
+## 500 esigi kivilcimi tutar, artiklarin 195'ini birden atar.
+const SHEET_MIN_AREA: int = 500
+## Okuma sirasi (soldan saga, ustten alta). Sheet'in duzeni degisirse burasi
+## da degismeli — arac bulunan ikon sayisini bu listeyle karsilastirip
+## uyusmazlikta hata veriyor.
+const SHEET_NAMES: Array[String] = [
+	"icon_star_filled.png", "icon_star_empty.png", "icon_dough.png",
+	"icon_lock.png", "icon_crown.png", "icon_flame.png", "icon_flag.png",
+]
+
 const FILES: Array[String] = ["tier1_mini.png", "tier2_kucuk.png", "tier3_dumpling.png",
 	"tier4_siskin.png", "tier5_buyuk.png", "tier6_dev.png", "tier7_jumbo.png", "tier8_kral.png"]
 
@@ -101,6 +122,7 @@ func _initialize() -> void:
 	for item in UI_ITEMS:
 		ok = _process_ui(item) and ok
 	ok = _process_icons() and ok
+	ok = _process_icon_sheet() and ok
 	print("")
 	print("TierConfig icin baskin renkler: ", " ".join(palette))
 	print("SONUC: ", "OK" if ok else "HATA")
@@ -301,6 +323,162 @@ func _edge_color(img: Image) -> Color:
 	if n == 0:
 		return img.get_pixel(img.get_width() / 2, img.get_height() / 2)
 	return Color(r / n, g / n, b / n, 1.0)
+
+
+## --- HUD ikon sheet'ini parcalara ayirir ---
+##
+## Grid varsaymiyor: alfa uzerinden bagli bilesenler bulunuyor, artiklar
+## eleniyor, kesisen kutular birlestiriliyor (alevin kopuk kivilcimi ayri bir
+## bilesen ama alevin kutusunun icinde kaliyor), sonra okuma sirasina
+## diziliyor. Sheet yeniden uretilirse ikonlar kaysa bile calisir.
+func _process_icon_sheet() -> bool:
+	var img := Image.load_from_file(ProjectSettings.globalize_path(SHEET_SRC))
+	if img == null:
+		printerr("Ikon sheet'i okunamadi: ", SHEET_SRC)
+		return false
+	img.convert(Image.FORMAT_RGBA8)
+
+	var boxes := _merge_overlapping(_components(img))
+	if boxes.size() != SHEET_NAMES.size():
+		printerr("Ikon sheet'inde %d ikon bekleniyordu, %d bulundu — sheet duzeni degismis olabilir." % [
+			SHEET_NAMES.size(), boxes.size()])
+		return false
+	boxes = _reading_order(boxes)
+
+	var ok := true
+	for i in boxes.size():
+		var region: Rect2i = boxes[i]
+		var cropped := img.get_region(region)
+		# Ikonlar kare degil (bayrak genis, kilit uzun); geometrik ortalama
+		# hepsini gorsel olarak ayni "agirlikta" tutuyor.
+		var mean: float = sqrt(float(region.size.x) * float(region.size.y))
+		var factor: float = float(SHEET_ICON_SIZE) / mean
+		var w: int = maxi(1, int(round(float(region.size.x) * factor)))
+		var h: int = maxi(1, int(round(float(region.size.y) * factor)))
+		cropped.resize(w, h, Image.INTERPOLATE_LANCZOS)
+		var dst := ProjectSettings.globalize_path(SHEET_OUT + SHEET_NAMES[i])
+		if cropped.save_png(dst) != OK:
+			printerr("Yazilamadi: ", dst)
+			ok = false
+			continue
+		print("%-28s <- icon_sheet x=%d..%d y=%d..%d  %dx%d -> %dx%d" % [
+			SHEET_NAMES[i], region.position.x, region.end.x - 1,
+			region.position.y, region.end.y - 1,
+			region.size.x, region.size.y, w, h])
+	return ok
+
+
+## Alfasi olan piksellerin bagli bilesenleri; artiklar (SHEET_MIN_AREA alti)
+## atiliyor. Flood fill yigin tabanli — 1254x1254'te rekursiyon patlar.
+func _components(img: Image) -> Array[Rect2i]:
+	var w := img.get_width()
+	var h := img.get_height()
+	var seen := PackedByteArray()
+	seen.resize(w * h)
+	var out: Array[Rect2i] = []
+
+	for y in h:
+		for x in w:
+			if seen[y * w + x] == 1:
+				continue
+			seen[y * w + x] = 1
+			if img.get_pixel(x, y).a <= ALPHA_CUTOFF:
+				continue
+			var stack: Array[Vector2i] = [Vector2i(x, y)]
+			var rect := Rect2i(x, y, 1, 1)
+			var area := 0
+			while not stack.is_empty():
+				var p: Vector2i = stack.pop_back()
+				area += 1
+				rect = rect.expand(p).expand(p + Vector2i.ONE)
+				for dy in range(-1, 2):
+					for dx in range(-1, 2):
+						var n := p + Vector2i(dx, dy)
+						if n.x < 0 or n.y < 0 or n.x >= w or n.y >= h:
+							continue
+						if seen[n.y * w + n.x] == 1:
+							continue
+						seen[n.y * w + n.x] = 1
+						if img.get_pixel(n.x, n.y).a <= ALPHA_CUTOFF:
+							continue
+						stack.append(n)
+			if area >= SHEET_MIN_AREA:
+				out.append(rect)
+	return out
+
+
+## Kopuk parcali ikonlari (alev + kivilcimi) tek kutuya toplar.
+##
+## Sadece "kesisiyorlar mi" YETMEZ: tacin kutusu alevinkiyle 2 px ortusuyor
+## (tac x=337..670, alev x=669..972) ve o kadari bile ikisini birlestiriyordu.
+## Olcut, kesisimin KUCUK kutuya orani:
+##   tac  ∩ alev  =    562 px²  / 93.854 px² = %0.6  -> ayri
+##   alev ∩ kivilcim = 5.104 px² /  6.380 px² = %80   -> birlesir
+## Aradaki fark iki kat buyuklugunde, %25 esigi guvenli.
+const MERGE_OVERLAP_RATIO: float = 0.25
+
+
+func _merge_overlapping(boxes: Array[Rect2i]) -> Array[Rect2i]:
+	var merged := true
+	while merged:
+		merged = false
+		for i in range(boxes.size()):
+			for j in range(i + 1, boxes.size()):
+				if not _mostly_inside(boxes[i], boxes[j]):
+					continue
+				boxes[i] = boxes[i].merge(boxes[j])
+				boxes.remove_at(j)
+				merged = true
+				break
+			if merged:
+				break
+	return boxes
+
+
+func _mostly_inside(a: Rect2i, b: Rect2i) -> bool:
+	var overlap: Rect2i = a.intersection(b)
+	if overlap.size.x <= 0 or overlap.size.y <= 0:
+		return false
+	var overlap_area: float = float(overlap.size.x) * float(overlap.size.y)
+	var smaller: float = minf(float(a.size.x) * float(a.size.y),
+		float(b.size.x) * float(b.size.y))
+	return overlap_area / smaller >= MERGE_OVERLAP_RATIO
+
+
+## Satir satir soldan saga. Satirlar y-merkezlerine gore gruplaniyor: ayni
+## satirdaki ikonlar farkli yuksekliklerde olabildigi icin ust kenara gore
+## siralamak yanlis sonuc veriyor.
+func _reading_order(boxes: Array[Rect2i]) -> Array[Rect2i]:
+	var sorted_boxes := boxes.duplicate()
+	sorted_boxes.sort_custom(func(a: Rect2i, b: Rect2i) -> bool:
+		return a.get_center().y < b.get_center().y)
+
+	var tolerance: float = 0.0
+	for b in sorted_boxes:
+		tolerance += float(b.size.y)
+	tolerance = (tolerance / float(sorted_boxes.size())) * 0.6
+
+	var out: Array[Rect2i] = []
+	var row: Array[Rect2i] = []
+	var row_y: float = 0.0
+	for b in sorted_boxes:
+		if not row.is_empty() and absf(float(b.get_center().y) - row_y) > tolerance:
+			out.append_array(_sorted_by_x(row))
+			row = []
+		row.append(b)
+		var sum: float = 0.0
+		for r in row:
+			sum += float(r.get_center().y)
+		row_y = sum / float(row.size())
+	out.append_array(_sorted_by_x(row))
+	return out
+
+
+func _sorted_by_x(row: Array[Rect2i]) -> Array[Rect2i]:
+	var copy := row.duplicate()
+	copy.sort_custom(func(a: Rect2i, b: Rect2i) -> bool:
+		return a.get_center().x < b.get_center().x)
+	return copy
 
 
 func _save_icon(img: Image, file_name: String) -> bool:

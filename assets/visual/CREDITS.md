@@ -134,8 +134,8 @@ zemine karşı normal alfa yumuşatmasının imzası; halo olsaydı fark pozitif
 |---|---|---|
 | `ui/wenrexa_button.png` | Wenrexa — `PNG/Button11.png` (kırpıldı 308×87 → 286×66) | Buton: normal/hover/pressed/disabled |
 | `ui/wenrexa_panel.png` | Wenrexa — `PNG/Msg17.png` (kırpıldı 500×389 → 490×379) | Diyalog paneli (koyu gövde + camgöbeği başlık çubuğu) |
-| `ui/ui_star_filled.png` | Kenney UI Pack — `PNG/Yellow/Default/star.png` | Round sonucu: kazanılan yıldız |
-| `ui/ui_star_empty.png` | Kenney UI Pack — `PNG/Grey/Default/star_outline.png` | Round sonucu: kazanılmayan yıldız (soluk) |
+| `ui/ui_star_filled.png` | Kenney UI Pack — `PNG/Yellow/Default/star.png` | **artık kullanılmıyor** — owner'ın sheet'iyle değiştirildi |
+| `ui/ui_star_empty.png` | Kenney UI Pack — `PNG/Grey/Default/star_outline.png` | **artık kullanılmıyor** — owner'ın sheet'iyle değiştirildi |
 
 **Neden kırpıldı:** kaynak PNG'lerde görünür grafiğin etrafında geniş şeffaf
 dolgu var (Button11'de buton 87 px'lik tuvalde sadece y=18..70 arasında).
@@ -407,6 +407,109 @@ onayına bağlı, istenmezse silinebilir.**
 
 Export preset'i M9'da kurulacak; bağlanacak alanlar PROJECT_CONTEXT.md'nin
 "M9 için hatırlatmalar" bölümünde yazılı.
+
+## HUD ikonları — `icon_sheet.png` (owner asset'i)
+
+Tek dosyada 7 ikon. Kaynak `_visual_source/chatgpt_ui/icon_sheet.png`
+(1254×1254, gitignore'lu); repoda yalnızca kesilmiş çıktılar var.
+
+| dosya | ne | nerede kullanılıyor |
+|---|---|---|
+| `ui/icon_star_filled.png` | dolu yıldız | Round sonucu: kazanılan yıldız |
+| `ui/icon_star_empty.png` | boş yıldız | Round sonucu: kazanılmayan yıldız |
+| `ui/icon_dough.png` | dumpling | "Hamur: N" sayacı — 5 ekranda |
+| `ui/icon_lock.png` | kilit | Kilitli level düğümü + kilitli skin kartı |
+| `ui/icon_crown.png` | taç | Oyun içi "Level N" göstergesi |
+| `ui/icon_flame.png` | alev | "Günlük seri: N gün" |
+| `ui/icon_flag.png` | bayrak | Oyun içi "Hedef: X" |
+
+Kesme işlemi `make_owner_sprites.gd::_process_icon_sheet()` içinde, diğer
+owner asset'leriyle aynı komutla çalışıyor:
+
+```
+godot --headless --path . --script res://tools/make_owner_sprites.gd
+```
+
+### Neden sabit grid değil
+
+Sheet düzenli bir atlas DEĞİL: ikonlar farklı boyutlarda ve düzensiz
+yerleşmiş. Sabit hücre ölçüsüyle kesmek hepsini yanlış kırpardı. Bunun
+yerine alfa üzerinden **bağlı bileşen (connected component)** analizi
+yapılıyor, sonra bileşenler okuma sırasına (soldan sağa, üstten alta)
+diziliyor.
+
+Üç ayrı sorun çıktı, üçü de ölçümle çözüldü:
+
+**1. Kenar yumuşatma artıkları.** Sheet'te 203 bileşen var, 7 değil.
+Gerçek ikonlar 47.000-92.000 px²; artıkların 195'i ≤ 22 px². `500` eşiği
+ikisini net ayırıyor.
+
+**2. Alevin kopuk kıvılcımı.** Alevin sağ üstündeki küçük kıvılcım ayrı bir
+bileşen (3.536 px²) — eşik onu tutuyor ama tek başına ayrı bir "ikon" olarak
+sayılıyordu. Kutular birleştirilerek çözüldü.
+
+**3. Birleştirme çok agresifti.** İlk denemede "kesişen kutuları birleştir"
+kuralı kullanıldı ve **7 yerine 6 ikon** çıktı: tacın kutusu (x=337..670)
+alevinkiyle (x=669..972) **2 piksel** örtüşüyor ve ikisi birleşiyordu.
+Ölçüt kesişimin küçük kutuya oranına çevrildi:
+
+| çift | kesişim | küçük kutu | oran | sonuç |
+|---|---|---|---|---|
+| taç ∩ alev | 562 px² | 93.854 px² | %0.6 | ayrı |
+| alev ∩ kıvılcım | 5.104 px² | 6.380 px² | %80 | birleşir |
+
+İki kat büyüklüğünde fark var; `%25` eşiği güvenli tarafta.
+
+Araç bulunan ikon sayısını beklenen 7 ile karşılaştırıp uyuşmazlıkta **hata
+veriyor** — sheet yeniden üretilirse sessizce yanlış dosya yazmasın.
+
+### Satır içi ikonlar: neden RichTextLabel
+
+Hamur/alev/taç/bayrak ikonları yazının **içine** giriyor; üstelik çoğu
+birleşik satırda ("Sonsuz mod rekoru: 0 · Hamur: 315 · Koleksiyon: 15/20").
+Ayrı `TextureRect` düğümleri olsalardı bu satırların her birini parçalara
+bölmek gerekirdi.
+
+Bu yüzden ilgili etiketler `Label` → `RichTextLabel` (`bbcode_enabled`)
+oldu ve ikonlar BBCode `[img]` ile gömülüyor. Tek tanım
+`scripts/ui/ui_icons.gd` içinde.
+
+Dönüşen etiketler: ana sayfa (seri + Hamur), harita (rekor satırı),
+koleksiyon (ilerleme), mağaza (Hamur), round sonucu (Hamur), oyun içi hedef
+satırı. `Label`'da `horizontal_alignment = 1` olan yerler BBCode
+`[center]` ile ortalanıyor.
+
+Genişlik ikonun kendi en/boy oranından hesaplanıyor (`UiIcons.inline`):
+ikonlar kare değil (bayrak dar, taç geniş), sadece genişlik verilseydi
+satırdaki yükseklikleri tutmazdı.
+
+**Fiyat/ödül satırlarına ikon KONMADI** — mağazadaki "150 Hamur",
+"Common · 50 Hamur" ve günlük ödüldeki "+15 Hamur". Talimat "Hamur: N"
+sayaçlarını söylüyordu; bunlar farklı bir kalıp ve her satırda ikon
+tekrarlamak listeyi gürültülü yapardı. İstenirse eklenir.
+
+### Kilit rozeti
+
+İki yerde, aynı dil:
+
+- **Kilitli level düğümü** (`level_select.gd::_add_lock_badge`): sağ üst
+  köşede 30×37 ayrı katman. Butonun kendi `icon` özelliği kullanılmadı —
+  ikon yazıyla aynı akışa girip "10 / ☆☆☆" düzenini bozuyordu.
+- **Kilitli skin kartı** (`skin_swatch.gd::_draw_lock_badge`): silüetin
+  sağ altında, kutunun %36'sı. Silüet zaten "açılmamış" diyor; kilit bunu
+  ikonografiyle pekiştiriyor.
+
+### Yıldızlar Kenney'den owner'ın sheet'ine geçti
+
+`round_result.gd` artık `UiIcons.STAR_FILLED/STAR_EMPTY` kullanıyor.
+Kenney dosyaları (`ui/ui_star_filled.png`, `ui/ui_star_empty.png`)
+**silinmedi** — geri dönmek için o iki sabiti eski yollara çevirmek yeterli.
+
+**Dikkat: `expand_mode` gerekiyor.** `TextureRect`in en küçük ölçüsü
+varsayılan olarak texture'ın kendi boyutu ve `custom_minimum_size`'ı eziyor.
+Kenney yıldızları 64×60'tı, owner'ınkiler 130×126: `EXPAND_IGNORE_SIZE`
+eklenmeseydi yıldızlar sessizce iki katına çıkıyordu (çekimle yakalandı,
+düzeltildi).
 
 ## Değiştirirken
 Dosya **isimlerini koru**. Kod bu isimlere `dumpling_visual.gd` sabitleri ve

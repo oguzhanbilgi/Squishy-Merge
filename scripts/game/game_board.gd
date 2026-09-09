@@ -89,7 +89,7 @@ var _drop_bag: RefCounted = DROP_BAG.new()
 @onready var _preview: Node2D = $Preview
 @onready var _score_label: Label = $HUD/ScoreLabel
 @onready var _next_label: Label = $HUD/NextLabel
-@onready var _objective_label: Label = $HUD/ObjectiveLabel
+@onready var _objective_label: RichTextLabel = $HUD/ObjectiveLabel
 @onready var _status_label: Label = $HUD/StatusLabel
 @onready var _combo_label: Label = $HUD/ComboLabel
 @onready var _score_pop: Label = $HUD/ScorePop
@@ -125,7 +125,17 @@ func _ready() -> void:
 	_next_tier = _drop_bag.next_tier()
 	_refresh_preview()
 	_on_score_changed(GameState.score)
-	_objective_label.text = "%s — %s" % [level.display_name(), level.objective_text()]
+	# Taç level göstergesinde, bayrak hedefte (owner ikon seti). Sonsuz modda
+	# "Level N" yok — objective_text() zaten "Hedef yok ..." diyor, oraya
+	# bayrak koymak yanlış olurdu.
+	if level.is_endless:
+		_objective_label.text = "%s — %s" % [
+			UiIcons.labelled(UiIcons.CROWN, level.display_name()),
+			level.objective_text()]
+	else:
+		_objective_label.text = "%s — %s" % [
+			UiIcons.labelled(UiIcons.CROWN, level.display_name()),
+			UiIcons.labelled(UiIcons.FLAG, level.objective_text())]
 	_status_label.text = ""
 	_set_combo_text("")
 	_score_pop.text = ""

@@ -7,7 +7,7 @@ const COLUMNS: int = 4
 const CARD_SIZE: Vector2 = Vector2(140.0, 150.0)
 
 @onready var _grid: GridContainer = $Margin/VBox/Scroll/Grid
-@onready var _progress: Label = $Margin/VBox/Progress
+@onready var _progress: RichTextLabel = $Margin/VBox/Progress
 
 
 func _ready() -> void:
@@ -26,8 +26,9 @@ func refresh() -> void:
 			owned_count += 1
 		_grid.add_child(_make_card(skin, owned))
 
-	_progress.text = "Koleksiyon: %d/%d   ·   Hamur: %d" % [
-		owned_count, SkinLibrary.total_count(), SaveManager.dough()]
+	_progress.text = "[center]Koleksiyon: %d/%d   ·   %s[/center]" % [
+		owned_count, SkinLibrary.total_count(),
+		UiIcons.labelled(UiIcons.DOUGH, "Hamur: %d" % SaveManager.dough())]
 
 
 func _make_card(skin: SkinData, owned: bool) -> Control:

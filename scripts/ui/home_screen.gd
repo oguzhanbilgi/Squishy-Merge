@@ -6,8 +6,8 @@ extends CanvasLayer
 
 signal play_pressed
 
-@onready var _streak: Label = $Margin/VBox/Streak
-@onready var _dough: Label = $Margin/VBox/Dough
+@onready var _streak: RichTextLabel = $Margin/VBox/Streak
+@onready var _dough: RichTextLabel = $Margin/VBox/Dough
 @onready var _play: Button = $Margin/VBox/Play
 
 
@@ -18,7 +18,8 @@ func _ready() -> void:
 
 func refresh() -> void:
 	var streak: int = SaveManager.daily_streak()
-	_streak.text = "Günlük seri: %d gün" % streak if streak > 0 else "Günlük seri henüz başlamadı"
-	_dough.text = "Hamur: %d   ·   Koleksiyon: %d/%d" % [
-		SaveManager.dough(), SaveManager.owned_skins().size(),
-		SkinLibrary.total_count()]
+	var streak_text: String = "Günlük seri: %d gün" % streak if streak > 0 else "Günlük seri henüz başlamadı"
+	_streak.text = "[center]%s[/center]" % UiIcons.labelled(UiIcons.FLAME, streak_text)
+	_dough.text = "[center]%s   ·   Koleksiyon: %d/%d[/center]" % [
+		UiIcons.labelled(UiIcons.DOUGH, "Hamur: %d" % SaveManager.dough()),
+		SaveManager.owned_skins().size(), SkinLibrary.total_count()]

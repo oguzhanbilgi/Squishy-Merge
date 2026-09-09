@@ -9,6 +9,11 @@ extends Control
 
 ## Kilitli skin silueti — owner asset'i (M8 art turu).
 const LOCKED_TEXTURE: Texture2D = preload("res://assets/visual/ui/skin_locked_silhouette.png")
+## Siluetin üstündeki küçük kilit rozeti (icon_sheet.png'den).
+## Kutunun bu oranında ve sağ-alt köşede: silüetin yüzünü kapatmıyor,
+## "kilitli" bilgisi bir bakışta okunuyor.
+const LOCK_BADGE_RATIO: float = 0.36
+const LOCK_BADGE_INSET: float = 0.02
 
 var fill_color: Color = Color.WHITE
 var ring_color: Color = Color.WHITE
@@ -42,3 +47,15 @@ func _draw() -> void:
 	var ring := ring_color
 	ring.a = 0.35
 	draw_arc(center, radius, 0.0, TAU, 48, ring, 4.0, true)
+	_draw_lock_badge()
+
+
+## Sağ-alt köşede küçük kilit ikonu. Silüet zaten "açılmamış" diyor; kilit
+## bunu ikonografiyle pekiştiriyor (koleksiyon ve mağazada aynı dil).
+func _draw_lock_badge() -> void:
+	var badge_h: float = minf(size.x, size.y) * LOCK_BADGE_RATIO
+	var tex_size: Vector2 = UiIcons.LOCK.get_size()
+	var badge: Vector2 = Vector2(badge_h * tex_size.x / tex_size.y, badge_h)
+	var inset: float = minf(size.x, size.y) * LOCK_BADGE_INSET
+	var at := Vector2(size.x - badge.x - inset, size.y - badge.y - inset)
+	draw_texture_rect(UiIcons.LOCK, Rect2(at, badge), false)

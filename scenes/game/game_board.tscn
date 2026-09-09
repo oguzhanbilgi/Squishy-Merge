@@ -41,12 +41,13 @@ offset_right = 500.0
 offset_bottom = 102.0
 text = "Sıradaki: -"
 
-[node name="ObjectiveLabel" type="Label" parent="HUD"]
+[node name="ObjectiveLabel" type="RichTextLabel" parent="HUD"]
 offset_left = 24.0
-offset_top = 108.0
+offset_top = 104.0
 offset_right = 700.0
-offset_bottom = 144.0
-text = "-"
+offset_bottom = 148.0
+bbcode_enabled = true
+scroll_active = false
 
 [node name="ComboLabel" type="Label" parent="HUD"]
 anchor_left = 0.5

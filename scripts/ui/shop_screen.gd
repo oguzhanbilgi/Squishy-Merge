@@ -10,7 +10,7 @@ const SWATCH_SIZE: Vector2 = Vector2(72.0, 72.0)
 
 var _pending: SkinData = null
 
-@onready var _dough: Label = $Margin/VBox/Dough
+@onready var _dough: RichTextLabel = $Margin/VBox/Dough
 @onready var _list: VBoxContainer = $Margin/VBox/Scroll/List
 @onready var _toast: Label = $Toast
 @onready var _confirm: Control = $Confirm
@@ -38,7 +38,8 @@ func refresh() -> void:
 			_list.add_child(_make_rarity_header(skin.rarity))
 		_list.add_child(_make_row(skin))
 
-	_dough.text = "Hamur: %d" % SaveManager.dough()
+	_dough.text = "[center]%s[/center]" % UiIcons.labelled(
+		UiIcons.DOUGH, "Hamur: %d" % SaveManager.dough())
 
 
 func _make_rarity_header(rarity: SkinData.Rarity) -> Control:
