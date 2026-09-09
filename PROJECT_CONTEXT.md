@@ -1,5 +1,9 @@
 # PROJECT_CONTEXT.md — Squishy Merge
 
+> Bu dosya **kısa ve güncel durumu** tutar. Projenin tam tarihçesi, kararların
+> gerekçeleri, asset envanteri ve kalan işlerin ayrıntılı listesi için:
+> **[PROJECT_STATUS.md](PROJECT_STATUS.md)**
+
 ## Product
 Fizik tabanlı (Suika Game / watermelon-game tarzı) squishy dumpling birleştirme
 mobil oyunu. Üstten kaba düşen dumpling'ler aynı tier'da çarpışınca birleşip bir
