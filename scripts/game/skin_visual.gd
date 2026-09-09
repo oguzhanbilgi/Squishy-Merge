@@ -9,7 +9,13 @@ extends RefCounted
 ## desen atlası ya da başka bir teknik gelirse **yalnızca bu dosya** değişir;
 ## kayıt formatı, equip akışı ve oyun kodu aynen kalır.
 ##
-## ⚠️ ŞU ANKİ HÂL BİR ÖNİZLEME, FİNAL SANAT DEĞİL.
+## ⚠️ STATUS: functional equip complete / final skin art pending.
+##
+## Buradaki render tekniği (luminans koruyan hue kaydırma) bir **teknik
+## proof-of-concept**, final skin rendering DEĞİL — owner kararı, M8.5-02.
+## Production/final sanat olarak kilitlenmemiştir; sonraki sanat turunda
+## tamamen değişebilir. Kilitli olan tek şey bu dosyanın ARAYÜZÜ
+## (`apply()` / `clear()`): çağıranlar ona göre yazıldı.
 ## `resources/skins/*.tres` içindeki `tint` değerleri prosedürel üretilmiş
 ## placeholder'lar (20 skin boyunca sabit 49.3° hue spirali) ve yiyecek
 ## isimleriyle hiç örtüşmüyorlar — "Kırmızı Biber" sarı-yeşil, "Havuçlu"
@@ -21,6 +27,10 @@ const SHADER: Shader = preload("res://assets/visual/skin_tint.gdshader")
 ## Renk kaydırmasının gücü. 1.0 sprite'ı tamamen skin rengine boyardı ve
 ## tier'lar yalnızca boyutla ayırt edilir hâle gelirdi; 0.45 skin'i belirgin
 ## kılarken tier paletini de okunur bırakıyor (ekran görüntüsüyle seçildi).
+##
+## GEÇİCİ KALİBRASYON. Bu değerle Common skin'ler varsayılandan neredeyse
+## ayırt edilemiyor (bkz. SKIN_ART_AUDIT.md "Bulgu 3"). Yükseltmek tek başına
+## çözüm değil: renkler zaten yanlış, önce veri düzeltilmeli.
 const STRENGTH: float = 0.45
 
 ## Shader materyali sprite başına yeniden yaratılmıyor: aynı skin'i kullanan

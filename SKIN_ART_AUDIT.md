@@ -4,6 +4,29 @@
 placeholder olduğunu objektif olarak ortaya koymak, karar için veri üretmek.
 **Bu turda hiçbir isim veya renk değiştirilmedi.**
 
+> ## STATUS: functional equip complete / final skin art pending
+>
+> **Current 20 skins are placeholder data; final skin art/rendering pending.**
+>
+> Bu, owner'ın M8.5-02 sonunda verdiği açık karardır. Aşağıdakilerin
+> **hiçbiri final/production sanat olarak kilitlenmemiştir:**
+>
+> | ne | durum |
+> |---|---|
+> | `resources/skins/*.tres` içindeki 20 `tint` değeri | **placeholder veri** — prosedürel üretilmiş, isimlerle uyumsuz |
+> | Gameplay skin renderer'ı (`skin_visual.gd` + `skin_tint.gdshader`) | **teknik proof-of-concept** — değiştirilebilir abstraction, final render tekniği değil |
+> | Koleksiyon/mağaza kartlarındaki renkli daire önizlemeleri (`skin_swatch.gd`) | **placeholder** — final skin asset'i değil |
+> | `SkinVisual.STRENGTH = 0.45` | geçici kalibrasyon, ekran görüntüsüyle seçildi |
+>
+> **Kilitli olan tek şey altyapıdır:** kayıt formatı (`equipped_skin`), equip
+> API'si, koleksiyon seçim akışı ve renderer'ın *arayüzü*
+> (`SkinVisual.apply/clear`). Sanat turu bunları değiştirmeden yalnızca
+> render katmanını ve veriyi güncelleyebilir.
+>
+> **Değiştirilmeyecek olan:** 8 orijinal dumpling texture'ı
+> (`assets/visual/dumpling_tier1..8.png`) ve kendi renkleri. Skin katmanı
+> bunların ÜSTÜNE çalışır, onları kalıcı olarak değiştirmez.
+
 ## Kısa cevap
 
 **Bu 20 skin mevcut hâlleriyle final mağaza içeriği olmaya görsel olarak

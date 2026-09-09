@@ -3,9 +3,12 @@ extends Control
 ## Koleksiyon/mağaza kartındaki skin görseli + rarity renginde çerçeve.
 ##
 ## Açılmamış skin owner'ın silüet görselini kullanıyor ("?" işareti görselin
-## içinde çizili, GAME_DESIGN.md §5.3). Açılmış skin hâlâ placeholder: skin
-## tint'inde dolu bir daire — skin başına ayrı görseller owner'dan gelmedi,
-## silüet tek dosya olduğu için önce o entegre edildi.
+## içinde çizili, GAME_DESIGN.md §5.3).
+##
+## ⚠️ Açılmış skin'in renkli daire önizlemesi PLACEHOLDER, final asset DEĞİL
+## (owner kararı, M8.5-02 — "functional equip complete / final skin art
+## pending", bkz. SKIN_ART_AUDIT.md). Skin başına gerçek görseller owner'dan
+## gelmedi; daire yalnızca hangi skin olduğunu ayırt etmek için.
 
 ## Kilitli skin silueti — owner asset'i (M8 art turu).
 const LOCKED_TEXTURE: Texture2D = preload("res://assets/visual/ui/skin_locked_silhouette.png")
