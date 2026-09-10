@@ -82,8 +82,14 @@ alınacak — şimdi tahmin/vaat yok.
     zemini oyun arkasına (karartılmış) ve candy paneli iki oyun içi
     pencereye bağlandı, kap duvarları pastel oldu, dört gücün efektleri
     (kilitlenme halkası / yükselme parıltısı / toz / süpürme) ayrıştırıldı.
-    **OWNER ASSET NEEDED: dört güç ikonu + pastel bambu duvar dokusu** —
-    ikisi de yok, mimari hazır. Ayrıntı: PROJECT_STATUS §4.10.
+    Ayrıntı: PROJECT_STATUS §4.10.
+  - `M8.5-08` ✅ final asset entegrasyonu: owner'ın ikinci ChatGPT partisi
+    bağlandı — dört gücün gerçek ikonu, candy buton durumları (normal /
+    seçili / pasif), gerçek gece zemini, bambu duvar + taban, kanatlı kalp
+    pencere tepeliği ve dört gücün efekt asset'leri (uçan bomba, patlama,
+    yükselme sütunu, toz, yıldız girdabı). Geçici metin işaretleri
+    (`PowerUp.GLYPHS`) UI'dan kalktı. **Mekanik, ekonomi, fizik ve reklam
+    kuralları DEĞİŞMEDİ.** Ayrıntı: PROJECT_STATUS §4.11.
 - **Sırada: M9 — Android export.** Ortam hazır (export template'leri, SDK,
   NDK, JDK 17, debug keystore mevcut); eksik olan `export_presets.cfg` ve
   release/upload keystore.
@@ -110,7 +116,10 @@ alınacak — şimdi tahmin/vaat yok.
 - Güç başlangıç stoğu: **kayıt başına 1'er adet, tek seferlik**. Stok
   yalnızca efekt gerçekleşince düşer; güçle yapılan silmeler skor/merge
   üretmez (GAME_DESIGN §10)
-- Görsel asset üretimi owner'da — Claude Code final art üretmez
+- Görsel asset üretimi owner'da — Claude Code final art üretmez.
+  Owner kaynakları `_visual_source/` altında ARŞİV; runtime yalnızca
+  `assets/visual/` altındaki türevleri okur. Türetme betiği:
+  `tools/make_gameplay_art.py`
 - Takılı skin kayıtta `equipped_skin` alanında; **boş string = varsayılan
   görünüm**. Skin'in nasıl çizildiği yalnızca `scripts/game/skin_visual.gd`
   içinde (değiştirilebilir katman)
@@ -137,10 +146,10 @@ alınacak — şimdi tahmin/vaat yok.
   çalışıyor ama `rewarded_revive_requested` sinyali boşta. AdMob SDK kurulumu
   ve `Main.set_rewarded_provider()` bağlanması ayrı bir iş. Sahte reklam ve
   bedava devam bilinçli olarak YOK — bkz. GAME_DESIGN §11.6.
-- **Oyun ekranı için iki asset eksik (M8.5-07):** (1) dört güç ikonu —
-  çubuk ve refill penceresi hâlâ geçici metin işareti gösteriyor, mimari
-  `PowerUp.ICON_PATHS` doldurulunca kod değişmeden geçiyor; (2) pastel
-  bambu/ahşap duvar dokusu — kap duvarları şimdilik düz pastel renk.
+- **Oyun ekranı asset'leri TAMAM (M8.5-08):** dört güç ikonu, buton
+  durumları, gece zemini, bambu duvar/taban ve güç efektleri bağlandı.
+  Oyun ekranında görünür placeholder kalmadı. Geriye kalan tek görsel
+  borç skin renkleri (aşağıda) — o oyun ekranının değil koleksiyonun işi.
 - **Skin sanatı owner kararı bekliyor:** 20 skin'in renkleri prosedürel
   üretilmiş ve isimleriyle uyuşmuyor (18/20 uyumsuz). Equip sistemi hazır,
   yalnızca veri düzeltmesi gerekiyor. Seçenekler: `SKIN_ART_AUDIT.md`.

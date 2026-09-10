@@ -20,6 +20,17 @@ const BOKEH_TEXTURE: Texture2D = preload("res://assets/visual/fx/fx_dot.png")
 ## Güç efektlerinin halka/parıltı katmanları (M8.5-07).
 const RING_TEXTURE: Texture2D = preload("res://assets/visual/fx/fx_ring.png")
 const SPARKLE_TEXTURE: Texture2D = preload("res://assets/visual/fx/fx_sparkle.png")
+## Owner'ın güç efekt asset'leri (M8.5-08). Prosedürel katmanların YERİNE
+## GEÇMİYOR, üstüne biniyorlar: halka/toz okunurluğu sağlıyor, bu dokular
+## karakteri veriyor.
+##
+## Uçan bomba ile patlama AYRI dosyalar — uçan bomba görselini "patlama"
+## diye kullanmak yanlış olurdu, patlamanın kendi asset'i var.
+const BOMB_PROJECTILE_TEXTURE: Texture2D = preload("res://assets/visual/fx/fx_bomb_projectile.png")
+const BOMB_IMPACT_TEXTURE: Texture2D = preload("res://assets/visual/fx/fx_bomb_impact.png")
+const UPGRADE_BEAM_TEXTURE: Texture2D = preload("res://assets/visual/fx/fx_upgrade_beam.png")
+const PUFF_TEXTURE: Texture2D = preload("res://assets/visual/fx/fx_puff_cloud.png")
+const STAR_SWIRL_TEXTURE: Texture2D = preload("res://assets/visual/fx/fx_star_swirl.png")
 ## Taşma çizgisinin görsel katmanı — owner asset'i (M8 art turu).
 const DANGER_STRIPE_TEXTURE: Texture2D = preload("res://assets/visual/ui/danger_stripe.png")
 const DROP_BAG := preload("res://scripts/game/drop_bag.gd")
@@ -37,8 +48,17 @@ const DANGER_TICK_INTERVAL: float = 0.5
 
 ## Taşma şeridinin sakin hâldeki opaklığı; tehlikede DANGER_STRIPE_ALPHA_MAX'a
 ## çıkıyor. Çizgi her zaman görünmeli (fail çizgisi), tehlikede vurgulanmalı.
-const DANGER_STRIPE_ALPHA_IDLE: float = 0.55
+##
+## M8.5-08: idle 0.55 → 0.34. Yeni gece zemininin üstünde eski değer sürekli
+## alarm veriyordu ve şerit board'un en parlak öğesiydi; oysa şerit sakin
+## hâlde yalnızca "sınır burası" demeli. MEKANİK DEĞİŞMEDİ — grace süresi,
+## taşma alanı ve `_danger_pulse`ın hesabı aynı; değişen yalnız çizim.
+const DANGER_STRIPE_ALPHA_IDLE: float = 0.34
 const DANGER_STRIPE_ALPHA_MAX: float = 1.0
+## Sakin hâldeki renk yumuşatması. Opaklığı daha da düşürmek şeridi
+## kaybediyordu; bunun yerine renk soğutuluyor, tehlikede tam beyaza
+## (yani asset'in kendi kırmızısına) dönüyor.
+const DANGER_STRIPE_IDLE_TINT: Color = Color(0.74, 0.68, 0.80)
 
 ## --- Güçler (GAME_DESIGN.md §10) ---
 ##
@@ -107,14 +127,20 @@ const SHAKE_DECAY: float = 9.0
 ## Sarsıntının kap parlamasının sönümlenme hızı (yalnızca görsel).
 const SHAKE_FLASH_DECAY: float = 2.6
 
-## --- Kabın görünür renkleri (M8.5-07) ---
+## --- Kabın görünür yüzeyi (M8.5-08) ---
 ##
-## ⚠️ GEÇİCİ: final bambu/ahşap dokusu YOK, bunlar düz renk. Değerler
-## `ui/panel_candy.png` çerçevesinden örneklendi ki kap, modal panelleriyle
-## aynı dünyaya ait görünsün.
-const WALL_COLOR: Color = Color("e8bfa8")
-const FLOOR_COLOR: Color = Color("d8a891")
-const FLOOR_EDGE_COLOR: Color = Color("f6ddc9")
+## Düz pastel renkler GİTTİ: duvar ve taban artık owner'ın bambu asset'leri.
+## Kaynak dikey duvar görselinin şeffaflığı SAHTEYDİ (satranç deseni gerçek
+## piksel olarak basılmıştı, alfa %100 opak); doku o dosyadan satranç
+## desenine ve yaprağa DEĞMEYEN, ölçülmüş temiz bir sütundan kesildi.
+## Ayrıntı: PROJECT_STATUS §4.11.
+const WALL_TEXTURE: Texture2D = preload("res://assets/visual/ui/board_wall_bamboo.png")
+const FLOOR_TEXTURE: Texture2D = preload("res://assets/visual/ui/board_floor_bamboo.png")
+## Görünür taban FLOOR_Y'nin bu kadar ALTINA iniyor. Fizik tabanı 20 px'lik
+## collider olarak yerinde duruyor; yatay bambu rayı 20 px'e sıkıştırılsa
+## boğum ve kalp süsleri okunmazdı. Aşağı doğru büyüyor, oyun alanına
+## GİRMİYOR: FLOOR_Y 1180, viewport 1280, altta 100 px boş yer var.
+const FLOOR_APRON: float = 54.0
 ## Kabın iç zemini — arka plan sahnesinin üstünde oyun alanını ayırıyor.
 const WELL_COLOR: Color = Color(0.09, 0.07, 0.13, 0.34)
 
@@ -375,33 +401,36 @@ func _draw_container_well() -> void:
 		WELL_COLOR)
 
 
-## Görsel duvarlar ve taban.
+## Görsel duvarlar ve taban — owner'ın bambu asset'leri (M8.5-08).
 ##
-## ⚠️ GEÇİCİ RENK — final duvar dokusu YOK. Owner'ın pastel bambu/ahşap
-## texture'ı henüz üretilmedi (bkz. PROJECT_STATUS "OWNER ASSET NEEDED").
-## Eski `#6b5a52` çamurlu kahverengi, candy paletinin yanında kırık
-## duruyordu; yerine panel/çerçeve asset'inden örneklenmiş krem-pembe bir
-## pastel kondu. Bu bir RENK düzeltmesidir, doku taklidi değil: gerçek
-## bambu dokusu geldiğinde bu iki `draw_rect` bir `draw_texture_rect`e
-## dönecek.
+## FİZİĞE DOKUNMAZ. `WALL_THICKNESS`, `FLOOR_Y`, `RIM_ABOVE_LINE` ve kap
+## genişlikleri DEĞİŞMEDİ; collider'lar hâlâ `_build_walls()` içinde ayrı
+## kuruluyor. Buradaki tek fark `draw_rect` yerine `draw_texture_rect`.
+##
+## Dokular hedef dikdörtgene GERİLİYOR, tile edilmiyor: dikey duvar 20 px
+## genişliğinde, tile edilse boğum aralığı ekran yüksekliğine göre değişir
+## ve level'dan level'a tutarsız olurdu. Germe anizotropik (dikey bambu
+## yatayda ~2.4x sıkışıyor) ama bambu zaten dikey çizgiler + yatay boğum
+## bantlarından oluştuğu için 20 px'lik şeritte bu okunmuyor — hedef ölçüde
+## kontrol edildi.
 func _draw_walls() -> void:
 	var top: float = container_top_y()
 	var height: float = FLOOR_Y - top
 	# Sarsıntı parlaması: duvarlar kısa süre gücün vurgu rengine kayıyor.
-	var wall: Color = WALL_COLOR
+	var tint: Color = Color.WHITE
 	if _shake_flash > 0.0:
-		wall = WALL_COLOR.lerp(PowerUp.accent(PowerUp.Type.SHAKE),
+		tint = Color.WHITE.lerp(PowerUp.accent(PowerUp.Type.SHAKE),
 			_shake_flash * 0.55)
-	draw_rect(Rect2(_left_x() - WALL_THICKNESS, top, WALL_THICKNESS, height),
-		wall)
-	draw_rect(Rect2(_right_x(), top, WALL_THICKNESS, height), wall)
-	# Tabanın iç kenarında ince bir açık şerit: taban ile duvarın birleştiği
-	# yer yoksa tek bir blok gibi okunuyor.
-	draw_rect(Rect2(_left_x() - WALL_THICKNESS, FLOOR_Y,
-		level.container_width + WALL_THICKNESS * 2.0, WALL_THICKNESS),
-		FLOOR_COLOR)
-	draw_rect(Rect2(_left_x(), FLOOR_Y, level.container_width, 4.0),
-		FLOOR_EDGE_COLOR)
+	draw_texture_rect(WALL_TEXTURE,
+		Rect2(_left_x() - WALL_THICKNESS, top, WALL_THICKNESS, height),
+		false, tint)
+	draw_texture_rect(WALL_TEXTURE,
+		Rect2(_right_x(), top, WALL_THICKNESS, height), false, tint)
+	# Yatay bambu ray: fizik tabanının hizasından başlayıp aşağı iniyor.
+	draw_texture_rect(FLOOR_TEXTURE,
+		Rect2(_left_x() - WALL_THICKNESS, FLOOR_Y,
+			level.container_width + WALL_THICKNESS * 2.0, FLOOR_APRON),
+		false, tint)
 
 
 ## Taşma çizgisinin görsel katmanı (owner asset'i). Eskiden kesikli kırmızı
@@ -421,11 +450,12 @@ func _draw_overflow_stripe() -> void:
 	var height: float = width * (tex_size.y / tex_size.x)
 	var alpha: float = lerpf(DANGER_STRIPE_ALPHA_IDLE, DANGER_STRIPE_ALPHA_MAX,
 		_danger_pulse)
+	var tint: Color = DANGER_STRIPE_IDLE_TINT.lerp(Color.WHITE, _danger_pulse)
 	# Şerit çizginin ÜSTÜNE ortalanıyor: fail çizgisi şeridin ortasından
 	# geçsin, oyuncu bandın neresinin ölümcül olduğunu görsün.
 	draw_texture_rect(DANGER_STRIPE_TEXTURE,
 		Rect2(_left_x(), overflow_line_y() - height * 0.5, width, height),
-		false, Color(1, 1, 1, alpha))
+		false, Color(tint.r, tint.g, tint.b, alpha))
 
 
 ## Taşma tehlikesindeyken kap kenarında kırmızı titreşen highlight
@@ -597,9 +627,9 @@ func _clear_target_highlights() -> void:
 
 # --- Güç efektleri: ortak yardımcılar (M8.5-07) ---
 #
-# ⚠️ FINAL POWER-UP ART'I YOK. Buradaki efektler mevcut CC0 parçacık
-# dosyalarından (fx_ring / fx_dot / fx_sparkle) kuruluyor; gerçek güç
-# görselleri geldiğinde bunların üstüne binecek, yerine geçmeyecek.
+# M8.5-08: owner'ın güç efekt asset'leri BAĞLANDI. Prosedürel katmanlar
+# (fx_ring / fx_dot / fx_sparkle) KALDIRILMADI — okunurluğu onlar taşıyor,
+# owner asset'leri karakteri veriyor, ikisi birlikte çalışıyor.
 #
 # PERFORMANS KURALI: her efekt TEK atışlık, ömrü < 1 sn ve parçacık sayısı
 # sabit bir tavanla sınırlı. Tier 8 merge'i + güç efekti aynı anda oynasa
@@ -622,19 +652,43 @@ const FX_SWEEP_MIN_TARGETS: int = 3
 ## (içeri doğru), tersi ise patlama (dışarı doğru) okunur.
 func _spawn_ring(at: Vector2, ring_color: Color, from_scale: float,
 		to_scale: float, duration: float = FX_RING_TIME) -> void:
-	var ring := Sprite2D.new()
-	ring.texture = RING_TEXTURE
-	ring.position = at
-	ring.z_index = 5
-	ring.modulate = Color(ring_color.r, ring_color.g, ring_color.b, 0.9)
-	ring.scale = Vector2.ONE * from_scale
-	add_child(ring)
+	_spawn_fx_sprite(at, RING_TEXTURE,
+		Color(ring_color.r, ring_color.g, ring_color.b, 0.9),
+		from_scale, to_scale, duration)
+
+
+## Tek atışlık, ölçeklenip sönen sprite. Halkalar da, owner'ın patlama /
+## yükselme / duman asset'leri de bunu kullanıyor — hepsinin ömrü ve
+## temizliği tek yerde.
+##
+## `alpha_hold`: sönmenin ne kadar geç başladığı (0 = baştan sönmeye başlar).
+## Patlamada asset bir an tam opak durmalı, yoksa hiç okunmadan kayboluyor.
+func _spawn_fx_sprite(at: Vector2, texture: Texture2D, tint: Color,
+		from_scale: float, to_scale: float, duration: float,
+		spin: float = 0.0, alpha_hold: float = 0.0) -> Sprite2D:
+	var fx := Sprite2D.new()
+	fx.texture = texture
+	fx.position = at
+	fx.rotation = spin
+	fx.z_index = 5
+	fx.modulate = tint
+	fx.scale = Vector2.ONE * from_scale
+	add_child(fx)
 	var tween := create_tween()
 	tween.set_parallel(true)
-	tween.tween_property(ring, "scale", Vector2.ONE * to_scale, duration) \
+	tween.tween_property(fx, "scale", Vector2.ONE * to_scale, duration) \
 		.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
-	tween.tween_property(ring, "modulate:a", 0.0, duration)
-	tween.chain().tween_callback(ring.queue_free)
+	tween.tween_property(fx, "modulate:a", 0.0, duration * (1.0 - alpha_hold)) \
+		.set_delay(duration * alpha_hold)
+	tween.chain().tween_callback(fx.queue_free)
+	return fx
+
+
+## Bir asset'in hedef PİKSEL çapı için gereken sprite ölçeği. Dokuları elle
+## "0.42" gibi sihirli sayılarla ölçeklemek, dosya boyutu değişince sessizce
+## bozulurdu.
+static func _scale_for(texture: Texture2D, target_px: float) -> float:
+	return target_px / maxf(1.0, texture.get_size().x)
 
 
 ## Tek atışlık parçacık bulutu. `up_bias` 1.0 = tamamen yukarı, 0.0 = her yöne.
@@ -682,10 +736,8 @@ func _use_targeted_power(target: Dumpling) -> void:
 
 ## Bomba: kilitlenme → hedefe uçan mermi → patlama → parça kaldırılır.
 ## Patlama KOMŞULARI ETKİLEMEZ, tek hedefliktir. MEKANİK DEĞİŞMEDİ —
-## M8.5-07 yalnızca sunumu geliştirdi.
-##
-## ⚠️ Bomba görseli hâlâ PLACEHOLDER: gerçek bomba art'ı YOK, mermi mevcut
-## `fx_dot` dosyasından kuruluyor.
+## M8.5-07 sunumu kurdu, M8.5-08 placeholder dokuları owner asset'leriyle
+## değiştirdi. `BOMB_TRAVEL`, hedef kuralları ve stok tüketimi aynı.
 ##
 ## Okunurluk zinciri — oyuncu "hangi parçayı bombaladım?" sorusunu anında
 ## cevaplayabilmeli:
@@ -702,16 +754,21 @@ func _run_bomb(target: Dumpling) -> void:
 	_spawn_ring(destination, PowerUp.accent(PowerUp.Type.BOMB),
 		2.4, 0.85, BOMB_TRAVEL)
 
+	# Mermi hedefi KAPATMAMALI: çapı hedefin çapının %85'i, ve hiçbir zaman
+	# tier 3'ün çapından büyük değil. Tier 8'e atılan bomba ekranı yutmasın.
+	var shell_px: float = minf(TierConfig.radius(tier) * 1.7,
+		TierConfig.radius(3) * 2.0)
+	var shell_scale: float = _scale_for(BOMB_PROJECTILE_TEXTURE, shell_px)
+
 	var shell := Sprite2D.new()
-	shell.texture = BOKEH_TEXTURE
-	shell.modulate = Color(0.16, 0.12, 0.2)
+	shell.texture = BOMB_PROJECTILE_TEXTURE
 	shell.z_index = 6
-	shell.scale = Vector2.ONE * 0.12
+	shell.scale = Vector2.ONE * shell_scale * 0.35
 	shell.position = Vector2(destination.x, container_top_y() - 60.0)
 	add_child(shell)
 
 	# Anticipation: mermi önce yerinde büyüyor, sonra iniyor.
-	create_tween().tween_property(shell, "scale", Vector2.ONE * 0.42, 0.09) \
+	create_tween().tween_property(shell, "scale", Vector2.ONE * shell_scale, 0.09) \
 		.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 
 	# Yay: x yumuşak, y hızlanarak. Düz çizgi yerine "düşüyor" hissi veriyor.
@@ -722,7 +779,11 @@ func _run_bomb(target: Dumpling) -> void:
 		.set_trans(Tween.TRANS_SINE).from(arc_x)
 	tween.tween_property(shell, "position:y", destination.y, BOMB_TRAVEL) \
 		.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
-	tween.tween_property(shell, "rotation", TAU * 0.75, BOMB_TRAVEL)
+	# Asset'in kendi hareket izi var (sol-alta uzanıyor), o yüzden eskisi gibi
+	# tam tur döndürülmüyor: iz yön değiştirip ters yöne akıyormuş gibi
+	# görünürdü. Bunun yerine küçük bir salınım — düşerken canlı duruyor.
+	tween.tween_property(shell, "rotation", 0.35, BOMB_TRAVEL) \
+		.from(-0.30)
 	tween.chain().tween_callback(func() -> void:
 		shell.queue_free()
 		_detonate_bomb(target, destination, tier))
@@ -735,6 +796,13 @@ func _detonate_bomb(target: Dumpling, at: Vector2, tier: int) -> void:
 	var accent: Color = PowerUp.accent(PowerUp.Type.BOMB)
 	# Genişleyen şok halkası + kısa duman: patlamanın merkezi net okunsun.
 	_spawn_ring(at, accent, 0.5, 2.6, 0.3)
+	# Owner'ın patlama asset'i (uçan bombadan AYRI dosya). Kısa: 0.34 sn.
+	# `alpha_hold` ile ilk üçte biri tam opak duruyor, sonra sönüyor —
+	# baştan sönseydi patlama hiç okunmadan kaybolurdu.
+	_spawn_fx_sprite(at, BOMB_IMPACT_TEXTURE, Color(1, 1, 1, 1),
+		_scale_for(BOMB_IMPACT_TEXTURE, TierConfig.radius(tier) * 2.2),
+		_scale_for(BOMB_IMPACT_TEXTURE, TierConfig.radius(tier) * 4.4),
+		0.34, 0.0, 0.34)
 	_spawn_burst(at, BOKEH_TEXTURE, Color(0.72, 0.66, 0.78, 0.85),
 		FX_DUST_MAX, TierConfig.radius(tier) * 5.0, 0.15, 0.42)
 	_spawn_pop(at, TierConfig.color(tier), TierConfig.radius(tier), maxi(tier, 2))
@@ -769,6 +837,15 @@ func _run_upgrade(target: Dumpling) -> void:
 	var from_r: float = TierConfig.radius(old_tier)
 	var to_r: float = TierConfig.radius(new_tier)
 	_spawn_ring(at, accent, from_r / 64.0, (to_r * 1.5) / 64.0, 0.32)
+	# Owner'ın yükselme sütunu (ok + halkalar). Yeni parçanın ARKASINDA
+	# kalıyor (z_index düşürülüyor) — dönüşen dumpling'in kendisi görünmeli,
+	# efekt onu kapatmamalı.
+	var beam: Sprite2D = _spawn_fx_sprite(at, UPGRADE_BEAM_TEXTURE,
+		Color(1, 1, 1, 0.95),
+		_scale_for(UPGRADE_BEAM_TEXTURE, to_r * 2.6),
+		_scale_for(UPGRADE_BEAM_TEXTURE, to_r * 3.6),
+		0.46, 0.0, 0.30)
+	beam.z_index = -1
 	# Yukarı doğru parıltı: "yükseldi" hissi. up_bias yüksek = dar koni.
 	_spawn_burst(at, SPARKLE_TEXTURE, accent.lerp(Color.WHITE, 0.35),
 		FX_SPARKLE_MAX, to_r * 4.5, 0.85, 0.55)
@@ -846,6 +923,12 @@ func _use_clear_small() -> void:
 		var center := Vector2(_center_x(), (overflow_line_y() + FLOOR_Y) * 0.5)
 		_spawn_ring(center, PowerUp.accent(PowerUp.Type.CLEAR_SMALL),
 			0.4, level.container_width / 52.0, 0.42)
+		# Owner'ın yıldız girdabı: süpürmenin "sihirli süpürge" kimliğini
+		# veriyor. Halka okunurluğu, girdap karakteri sağlıyor.
+		_spawn_fx_sprite(center, STAR_SWIRL_TEXTURE, Color(1, 1, 1, 0.9),
+			_scale_for(STAR_SWIRL_TEXTURE, level.container_width * 0.45),
+			_scale_for(STAR_SWIRL_TEXTURE, level.container_width * 0.78),
+			0.5, 0.0, 0.24)
 	for index in targets.size():
 		var dumpling: Dumpling = targets[index]
 		# Kademeli pop: tek karede hepsini silmek sert görünüyor.
@@ -880,6 +963,13 @@ func _play_shake_feedback() -> void:
 	for i in puffs:
 		var t: float = (float(i) + 0.5) / float(puffs)
 		var at := Vector2(lerpf(_left_x(), _right_x(), t), FLOOR_Y - 12.0)
+		# Owner'ın yumuşak duman bulutu — tabandan kalkıp açılıyor.
+		# Yön hep yukarı (bulut asset'i ağırlıklı olarak üste doğru açık).
+		_spawn_fx_sprite(at + Vector2(0.0, -14.0), PUFF_TEXTURE,
+			Color(1, 1, 1, 0.85),
+			_scale_for(PUFF_TEXTURE, level.container_width * 0.20),
+			_scale_for(PUFF_TEXTURE, level.container_width * 0.34),
+			0.52, 0.0, 0.22)
 		_spawn_burst(at, BOKEH_TEXTURE, Color(0.85, 0.80, 0.90, 0.55),
 			FX_DUST_MAX / puffs, 210.0, 0.7, 0.5)
 	# Kap kenarının kısa parlaması.

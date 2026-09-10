@@ -5,7 +5,7 @@
 [ext_resource type="Texture2D" path="res://assets/visual/ui/badge_starburst.png" id="3_badge"]
 [ext_resource type="Texture2D" path="res://assets/visual/ui/tutorial_pose.png" id="4_pose"]
 [ext_resource type="PackedScene" path="res://scenes/ui/power_bar.tscn" id="5_powerbar"]
-[ext_resource type="Texture2D" path="res://assets/visual/ui/board_background.png" id="6_backdrop"]
+[ext_resource type="Texture2D" path="res://assets/visual/ui/board_background_night.png" id="6_backdrop"]
 
 [node name="GameBoard" type="Node2D"]
 script = ExtResource("1_board")
@@ -17,7 +17,7 @@ layer = -1
 anchor_right = 1.0
 anchor_bottom = 1.0
 mouse_filter = 2
-modulate = Color(0.38, 0.36, 0.5, 1)
+modulate = Color(0.82, 0.8, 0.92, 1)
 texture = ExtResource("6_backdrop")
 expand_mode = 1
 stretch_mode = 6
@@ -26,7 +26,7 @@ stretch_mode = 6
 anchor_right = 1.0
 anchor_bottom = 1.0
 mouse_filter = 2
-color = Color(0.07, 0.05, 0.11, 0.5)
+color = Color(0.06, 0.04, 0.12, 0.18)
 
 [node name="Camera2D" type="Camera2D" parent="."]
 
@@ -100,9 +100,9 @@ stretch_mode = 5
 
 [node name="ScorePop" type="Label" parent="HUD"]
 offset_left = 470.0
-offset_top = 16.0
+offset_top = 32.0
 offset_right = 700.0
-offset_bottom = 60.0
+offset_bottom = 76.0
 theme_override_font_sizes/font_size = 32
 horizontal_alignment = 1
 text = ""

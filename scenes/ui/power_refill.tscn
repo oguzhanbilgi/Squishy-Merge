@@ -44,10 +44,10 @@ anchor_left = 0.5
 anchor_top = 0.5
 anchor_right = 0.5
 anchor_bottom = 0.5
-offset_left = -96.0
-offset_top = -376.0
-offset_right = 96.0
-offset_bottom = -304.0
+offset_left = -150.0
+offset_top = -392.0
+offset_right = 150.0
+offset_bottom = -296.0
 mouse_filter = 2
 texture = ExtResource("9_crown")
 expand_mode = 1
@@ -68,11 +68,11 @@ offset_bottom = 330.0
 alignment = 1
 theme_override_constants/separation = 14
 
-[node name="Glyph" type="Label" parent="Center/Panel/VBox"]
-theme_override_colors/font_color = Color(0.82, 0.34, 0.55, 1)
-theme_override_font_sizes/font_size = 48
-horizontal_alignment = 1
-text = "✸"
+[node name="Icon" type="TextureRect" parent="Center/Panel/VBox"]
+custom_minimum_size = Vector2(0, 96)
+mouse_filter = 2
+expand_mode = 1
+stretch_mode = 5
 
 [node name="Title" type="Label" parent="Center/Panel/VBox"]
 theme_override_colors/font_color = Color(0.36, 0.16, 0.32, 1)
@@ -87,7 +87,6 @@ text = "Stok: ×0"
 autowrap_mode = 2
 
 [node name="Ad" type="Button" parent="Center/Panel/VBox"]
-custom_minimum_size = Vector2(0, 104)
 text = "REKLAM İZLE
 +1"
 
@@ -98,7 +97,6 @@ horizontal_alignment = 1
 text = "Bugünkü reklam hakkı: 1/1"
 
 [node name="Dough" type="Button" parent="Center/Panel/VBox"]
-custom_minimum_size = Vector2(0, 88)
 text = "HAMURLA AL
 120 Hamur"
 
@@ -111,5 +109,4 @@ text = ""
 autowrap_mode = 2
 
 [node name="Close" type="Button" parent="Center/Panel/VBox"]
-custom_minimum_size = Vector2(0, 66)
 text = "Kapat"

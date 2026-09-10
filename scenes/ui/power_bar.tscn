@@ -7,7 +7,7 @@
 theme = ExtResource("2_theme")
 anchor_right = 1.0
 offset_top = 170.0
-offset_bottom = 246.0
+offset_bottom = 256.0
 mouse_filter = 2
 script = ExtResource("1_bar")
 
@@ -15,4 +15,4 @@ script = ExtResource("1_bar")
 anchor_right = 1.0
 anchor_bottom = 1.0
 alignment = 1
-theme_override_constants/separation = 10
+theme_override_constants/separation = 8

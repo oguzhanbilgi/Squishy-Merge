@@ -848,9 +848,12 @@ bağlanacağı tek noktadır.
 
 ### 10.7 Görsel durum
 
-> **STATUS: functional power-ups complete / final power-up art pending.**
-> Güç çubuğu ikonları geçici metin işaretleri (`PowerUp.GLYPHS`), bomba
-> görseli mevcut `fx_dot` yeniden kullanımı. Final power-up art'ı YOK.
+> **STATUS (M8.5-08): final power-up art BAĞLANDI.**
+> Dört gücün de gerçek ikonu var (`PowerUp.ICON_PATHS`); geçici metin
+> işaretleri (`PowerUp.GLYPHS`) UI'dan kalktı, sabit yalnızca son çare
+> olarak duruyor. Güç çubuğu butonları owner'ın candy pill asset'lerini
+> kullanıyor (normal / seçili / stok-0). Bombanın uçan mermisi ve
+> patlaması AYRI asset'ler — `fx_dot` yeniden kullanımı kalktı.
 > Güç çubuğu bilerek ekranın en altına sabitlenmedi — alt safe-area ileride
 > AdMob banner'ına ayrılacak.
 

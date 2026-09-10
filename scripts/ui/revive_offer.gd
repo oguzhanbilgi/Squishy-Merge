@@ -1,9 +1,9 @@
 extends CanvasLayer
 ## Devam etme (revive) teklifi penceresi — GAME_DESIGN.md §11.
 ##
-## ⚠️ GEÇİCİ GÖRSEL. Final revive art'ı YOK: pencere mevcut kawaii UI temasının
-## panel/buton stilini kullanıyor, kendi asset'i yok. Owner'ın art turunda
-## değiştirilecek.
+## GÖRSEL (M8.5-08): owner'ın candy panel + kanatlı kalp tepeliği, CTA'lar
+## candy pill butonlar. Refill penceresiyle AYNI tasarım dilinde — ikisi de
+## `CandyButton.style_cta` kullanıyor, tepelik ve çerçeve aynı asset.
 ##
 ## ⚠️ BU PENCERE REKLAM OYNATMAZ ve DEVAM HAKKI VERMEZ. "DEVAM ET"e basmak
 ## yalnızca `rewarded_revive_requested` sinyalini yayar. Gerçek rewarded ad
@@ -26,6 +26,10 @@ signal decline_pressed
 
 func _ready() -> void:
 	visible = false
+	# Candy pill butonlar tema yerine tek tek uygulanıyor — gerekçe:
+	# scripts/ui/candy_button.gd başlığı.
+	for button: Button in [_continue, _decline]:
+		CandyButton.style_cta(button)
 	_continue.pressed.connect(_on_continue_pressed)
 	_decline.pressed.connect(func() -> void: decline_pressed.emit())
 

@@ -588,3 +588,56 @@ içindeki ölçek formülüne bakman gerekir.
 değerlerini de güncelle. Panelin `texture_margin_top` (76) ve
 `content_margin_top` (88) değerleri başlık çubuğunun yüksekliğine göre
 ölçülmüştür; başlıksız bir panel koyarsan ikisini de küçültmelisin.
+
+## Final oyun ekranı asset'leri (M8.5-08)
+
+Owner'ın ikinci ChatGPT partisi bağlandı. Türetme **tek komutla**
+yeniden üretilebilir (çıktı byte-identical):
+
+```
+python tools/make_gameplay_art.py
+```
+
+| production dosya | kaynak | boyut | nerede |
+|---|---|---|---|
+| `ui/power_bomb.png` | `power_bomb_icon.png` | 256×256 | Güç çubuğu + refill penceresi |
+| `ui/power_upgrade.png` | `power_upgrade_icon.png` | 256×256 | Aynı |
+| `ui/power_clear.png` | `power_cleaner_icon.png` | 256×256 | Aynı |
+| `ui/power_shake.png` | `power_icons_bomb_upgrade_shake_sheet.png` (x 1408-2030 kesit) | 256×256 | Aynı |
+| `ui/power_button_normal.png` | `button_blue_states_normal_selected.png` (sol) | 480×240 | Güç çubuğu butonu |
+| `ui/power_button_selected.png` | Aynı sheet (sağ) | 480×240 | Seçili güç |
+| `ui/power_button_disabled.png` | `button_grey_disabled.png` | 480×240 | Çubuk kapalıyken |
+| `ui/cta_button_normal.png` | `button_blue_states_normal_selected.png` (sol) | 620×120 | Pencere CTA'ları |
+| `ui/cta_button_disabled.png` | `button_grey_disabled.png` | 620×120 | Pasif CTA |
+| `ui/board_background_night.png` | `gameplay_background_candy_night.png` | 941×1672 | Oyun ekranı zemini |
+| `ui/board_wall_bamboo.png` | `board_wall_bamboo_vertical.png` (x 469-560 kesit) | 64×1080 | Kap duvarları |
+| `ui/board_floor_bamboo.png` | `board_floor_bamboo_horizontal.png` | 1024×269 | Kap tabanı |
+| `ui/panel_candy_crown.png` | `panel_header_winged_heart_crown.png` | 1024×328 | Pencere tepeliği (eskisinin yerine) |
+| `fx/fx_bomb_projectile.png` | `power_bomb_projectile.png` | 256×256 | Uçan bomba |
+| `fx/fx_bomb_impact.png` | `power_fx_bomb_impact_upgrade_sheet.png` (orta kesit) | 512×512 | Patlama |
+| `fx/fx_upgrade_beam.png` | Aynı sheet (sağ kesit) | 512×512 | Büyütücü yükselme sütunu |
+| `fx/fx_puff_cloud.png` | `fx_soft_puff_cloud.png` | 512×512 | Sarsıntı tozu |
+| `fx/fx_star_swirl.png` | `fx_magic_star_swirl.png` | 512×512 | Temizleyici süpürme |
+
+### ⚠️ Dikey bambu duvarın şeffaflığı SAHTE
+
+`board_wall_bamboo_vertical.png` **%100 opak.** Görseldeki satranç deseni
+gerçek transparanlık değil, doğrudan piksel olarak basılmış. Alfa kanalı
+programatik olarak kontrol edildi: sıfır-alfa piksel oranı **%0.0**.
+
+Bu dosya **oldu gibi runtime'a bağlanamaz** — bağlansaydı kap duvarlarında
+gri-beyaz bir satranç deseni görünürdü. Desene değmeyen temiz sütun
+aralığı ölçüldü (x 350-677) ve içinden yaprak süsü de içermeyen tek bir
+krem bambu sütunu kesildi (x 469-560).
+
+### Referans kalan / kullanılmayan kaynaklar
+
+| kaynak | neden bağlanmadı |
+|---|---|
+| `power_icons_full_sheet.png` | 2×2 sheet; tekil ikonlar daha yüksek çözünürlüklü ve sheet'te temiz dikey ayraç YOK |
+| `power_icons_bomb_upgrade_shake_sheet.png` | Yalnız Sarsıntı kesiti alındı; sheet'in kendisi runtime'da kullanılmıyor |
+| `power_fx_bomb_impact_upgrade_sheet.png` | İki kesit alındı; sheet'in kendisi kullanılmıyor |
+| `button_blue_blank.png` | Yıldızsız alternatif pill; durum seti (normal/seçili/pasif) diğer ikisinden çıkıyor, tek tasarım dili için elendi |
+| `sparkle_star_icon.png` | Mevcut `fx/fx_sparkle.png` parçacık dosyası bu işi zaten yapıyor; ikinci bir yıldız katmanı gerekmedi |
+| `panel_frame_candy_modal.png` | 2.5:1 başlık şeridi; modal GÖVDESİ değil. Mevcut `ui/panel_candy.png` (1.04:1) pencere dikdörtgenine gerilebiliyor, bu gerilseydi köşe yıldızları ezilirdi |
+| `ui/board_background.png` | M8.5-07'nin karartılmış GÜNDÜZ zemini. Gece varyantı geldiği için runtime'da artık KULLANILMIYOR; dosya silinmedi (owner asset'i, `make_owner_sprites.gd` hâlâ üretiyor) |

@@ -719,6 +719,116 @@ Bu turda **üretilmedi ve placeholder final sayılmadı**:
    bağlanmadı — tema butonu tüm ekranlarda ortak, değiştirmek her ekranı
    yeniden stillendirmek demek. Owner kararı.
 
+---
+
+### 4.11 Final asset entegrasyonu (M8.5-08)
+
+M8.5-07 mimariyi kurmuş ama iki asset'i eksik bırakmıştı (dört güç ikonu,
+bambu duvar dokusu). Owner ikinci bir ChatGPT partisi üretti; bu tur onu
+bağladı. Türetme `tools/make_gameplay_art.py` ile yeniden üretilebilir —
+çıktının diskteki dosyalarla **byte-identical** olduğu doğrulandı.
+
+Tam kaynak→çıktı tablosu ve reddedilenlerin gerekçesi:
+`assets/visual/CREDITS.md` → "Final oyun ekranı asset'leri (M8.5-08)".
+
+#### Bulunan asset sorunu: sahte şeffaflık
+
+`board_wall_bamboo_vertical.png` **%100 opak** — satranç deseni gerçek
+transparanlık değil, piksel olarak basılmış. Sıfır-alfa oranı ölçüldü:
+**%0.0**. Ham hâliyle bağlansaydı kap duvarlarında gri-beyaz kareler
+görünürdü. Desene değmeyen temiz sütun aralığı (x 350-677) ölçülüp
+içinden yaprak süsü de içermeyen tek bir sütun kesildi (x 469-560).
+
+#### Güç ikonları
+
+Bomba / Büyütücü / Temizleyici tekil kaynak dosyalardan geldi. **Sarsıntı
+tekil dosya olarak YOK**, yalnızca sheet'lerin içinde. 2×2 sheet'te temiz
+bir dikey ayraç bulunmadığı (kesim komşu ikondan piksel taşırdı), 3'lü
+sheet'te ise bulunduğu için (boş sütunlar 642-757 ve 1311-1408) kesit
+oradan alındı. Sheet'lerin hiçbiri runtime'da kullanılmıyor.
+
+#### Buton durumları: pill'ler aynı orana getirildi
+
+Üç kaynak pill'in gövde oranı farklıydı: normal **2.45**, seçili **2.30**,
+pasif **3.01**. Aynı dikdörtgene gerilselerdi uçlardaki yıldız süsleri
+durum değiştikçe şekil değiştirirdi.
+
+İki yaklaşım denendi ve **elendi**:
+
+- **Düz alfa-bbox'a kırpma.** Dış parıltı gövdeden çok geniş ve neredeyse
+  şeffaf; bbox onu da alınca pill butonun ancak **yarısını** dolduruyordu.
+  Çözüm: gövde eşiği (alfa ≥ 150) + ölçülü parıltı payı (%7).
+- **Kapak/orta sert kesimi.** Kesim yerinde görünür bir dikey Mach bandı
+  kalıyordu, özellikle çok sıkışan gri pasif pill'de. Çözüm: sürekli bir
+  sütun haritası — ölçek yıldız kapaklarında tam 1:1, farkın tamamı
+  pill'in düz orta şeridinde soğuruluyor, arada smoothstep ile geçiyor.
+
+Buton ölçüsü de kaynağın **doğal oranına** çekildi (172×86 = 2.0). İlk
+denemede 164×104 (1.577) seçilmişti; pill'i ezip köşe yarıçaplarını
+bozuyordu.
+
+**Global tema DEĞİŞMEDİ.** `assets/visual/ui_theme.tres` beş ekranda ortak;
+candy butonlar `scripts/ui/candy_button.gd` üzerinden yalnız oyun ekranına
+ve iki penceresine tek tek uygulanıyor. Ana sayfa / harita / koleksiyon /
+mağaza bu turda görsel olarak hiç değişmedi.
+
+#### Stok-0 okunurluğu
+
+İlk denemede stok 0 butonun TAMAMI `modulate` ile soldurulmuştu; yazı da
+solunca "Bomba ×0" okunmaz hâle geldi (çekimle yakalandı). Solukluk artık
+yalnızca pill dokusuna (`CandyButton.EMPTY_TINT`) ve ikona uygulanıyor,
+yazı tam opak ve koyu kırmızı kalıyor.
+
+#### Zemin: gündüz + ağır karartma → gerçek gece
+
+Owner gerçek bir gece varyantı üretti (`gameplay_background_candy_night.png`,
+941×1672 — 9:16'ya neredeyse tam oturuyor, merkezi koyu bir göl/yol, parlak
+öğeler üstte ve kenarlarda). M8.5-07'nin ağır karartması **gevşetildi**:
+`modulate` (0.38, 0.36, 0.50) → (0.82, 0.80, 0.92), scrim alfası
+0.50 → 0.18. Kabın içindeki koyu dolgu (`WELL_COLOR`) **korundu** —
+karakterlerin siluetini arka plandan ayıran şey o.
+
+#### Kap: düz renk → bambu
+
+`_draw_walls()` içindeki üç `draw_rect` iki `draw_texture_rect`e döndü.
+**Fizik hiç değişmedi:** `WALL_THICKNESS`, `FLOOR_Y`, `RIM_ABOVE_LINE`,
+kap genişlikleri ve `_build_walls()` aynı — diffle doğrulandı.
+
+Görünür taban `FLOOR_APRON` (54 px) ile fizik tabanının **altına** iniyor:
+yatay bambu rayı 20 px'e sıkıştırılsa boğumlar ve kalp süsleri okunmazdı.
+Aşağı doğru büyüyor, oyun alanına girmiyor (FLOOR_Y 1180, viewport 1280).
+
+> Sonsuz modda kap genişliği 720 = ekran genişliği, dolayısıyla dikey
+> duvarlar ekran dışında kalıyor ve bambu görünmüyor. Bu M8'den beri
+> böyle (düz renkte de görünmüyordu), regresyon DEĞİL.
+
+#### VFX: prosedürel katman KALDIRILMADI
+
+Owner asset'leri mevcut halka/toz/parıltı katmanlarının **yerine değil
+üstüne** bindi: okunurluğu prosedürel katman taşıyor, karakteri asset
+veriyor. Uçan bomba ile patlama **ayrı dosyalar** — uçan bomba görselini
+"patlama" diye kullanmak yanlış olurdu.
+
+Mermi çapı hedefe göre ölçekleniyor ama tavanlı (`tier 3` çapı): tier 8'e
+atılan bomba hedefi kapatmasın. Büyütücünün yükselme sütunu `z_index = -1`
+ile yeni parçanın ARKASINDA — dönüşen dumpling görünür kalmalı.
+
+#### Taşma şeridi sakinleştirildi
+
+`DANGER_STRIPE_ALPHA_IDLE` 0.55 → 0.34 ve sakin hâlde renk soğutuluyor
+(`DANGER_STRIPE_IDLE_TINT`), tehlikede tam beyaza dönüyor. Yeni gece
+zemininin üstünde eski değer sürekli alarm veriyordu ve şerit board'un en
+parlak öğesiydi. **Mekanik değişmedi:** grace süresi, taşma alanı ve
+`_danger_pulse` hesabı aynı; değişen yalnız çizim.
+
+#### QA aracı
+
+`tools/vfx_shots.gd` genişletildi: uçuştaki mermi, refill penceresi ve
+devam penceresi çekimleri eklendi. Ayrıca `_fill_live()` eklendi — bot
+bazen level 3'ün hedefini 10 bırakışta tamamlıyor, round bitince güç
+çubuğu `set_enabled(false)` ile pasife düşüyor ve "normal güç çubuğu"
+çekimi yanlışlıkla PASİF durumu gösteriyordu.
+
 ## 5. Dosya/klasör yapısı ve script envanteri
 
 ```

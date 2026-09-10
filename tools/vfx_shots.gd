@@ -1,11 +1,12 @@
 extends Node
-## M8.5-07 gorsel QA cekimleri: dort gucun efektleri + dolu board + uzun
-## portrait. Dev araci — oyun calisirken kullanilmaz.
+## Gorsel QA cekimleri: dort gucun efektleri, dolu board, guc cubugu
+## durumlari, iki pencere ve uzun portrait (M8.5-07; M8.5-08'de
+## genisletildi). Dev araci — oyun calisirken kullanilmaz.
 ##
 ## `--headless` ILE CALISTIRILAMAZ (dummy rasterizer, cekimler bos cikar).
 ##
 ## Kullanim:
-##   godot --path . res://tools/vfx_shots.tscn -- <cikti_klasoru> [GxY]
+##   godot --path . res://tools/vfx_shots.tscn -- <cikti_klasoru> [GxY] [GxY]
 ##
 ## KAYIT DOSYASINA YAZMAZ: guc stogu bellekte sisiriliyor, save_game
 ## cagrilmiyor ve kosu sonunda eski stok geri konuyor.
@@ -13,9 +14,15 @@ extends Node
 const GAME_BOARD_SCENE: PackedScene = preload("res://scenes/game/game_board.tscn")
 const BOT_BRAIN = preload("res://tools/bot_brain.gd")
 
+## Varsayilan cekim olcusu. Proje viewport'u 720x1280; ekrana sigmasi icin
+## ayni oranda kucultuluyor. Ikinci argumanla degistirilebilir.
 const SHOT_SIZE := Vector2i(540, 960)
 ## Uzun/dar modern telefon orani (9:19.5) — HUD tasmasi kontrolu.
-const TALL_SIZE := Vector2i(540, 1170)
+## Cekim olcusu degisirse ayni oranda olceklenir.
+const TALL_RATIO: float = 1170.0 / 540.0
+
+var _shot_size: Vector2i = SHOT_SIZE
+var _tall_size: Vector2i = Vector2i(540, 1170)
 
 var _out_dir: String = ""
 var _board: Node2D
@@ -27,7 +34,9 @@ func _ready() -> void:
 	var args: PackedStringArray = OS.get_cmdline_user_args()
 	_out_dir = args[0] if args.size() >= 1 else ProjectSettings.globalize_path("user://shots")
 	DirAccess.make_dir_recursive_absolute(_out_dir)
-	DisplayServer.window_set_size(SHOT_SIZE)
+	_shot_size = _parse_size(args)
+	_tall_size = Vector2i(_shot_size.x, roundi(_shot_size.x * TALL_RATIO))
+	DisplayServer.window_set_size(_shot_size)
 	_inflate_stock()
 
 	await get_tree().process_frame
@@ -38,11 +47,24 @@ func _ready() -> void:
 	await _shot_shake()
 	await _shot_clear()
 	await _shot_stock_zero()
+	await _shot_refill_modal()
+	await _shot_revive_modal()
 	await _shot_tall()
 
 	_restore_stock()
 	print("bitti -> ", _out_dir)
 	get_tree().quit()
+
+
+## Ikinci arguman "GENISLIKxYUKSEKLIK" ise onu, degilse varsayilani dondurur.
+func _parse_size(args: PackedStringArray) -> Vector2i:
+	if args.size() < 2:
+		return SHOT_SIZE
+	var parts: PackedStringArray = args[1].split("x")
+	if parts.size() != 2 or not parts[0].is_valid_int() or not parts[1].is_valid_int():
+		printerr("Olcu okunamadi (\"720x1280\" bekleniyor): ", args[1])
+		return SHOT_SIZE
+	return Vector2i(int(parts[0]), int(parts[1]))
 
 
 ## Guc stoklari BELLEKTE sisiriliyor; save_game CAGRILMIYOR.
@@ -135,10 +157,27 @@ func _biggest() -> Dumpling:
 	return best
 
 
-# --- 1) Normal oynanis ---
+## Round BITMEDEN dolu bir board kurar.
+##
+## Bot bazen 10 birakista level 3'un hedefini tamamliyor; round bitince
+## guc cubugu `set_enabled(false)` ile pasife duşuyor ve cekim "normal guc
+## cubugu" yerine pasif durumu gosteriyordu. Bitmisse board atilip yeniden
+## deneniyor.
+func _fill_live(level_number: int, drops: int) -> bool:
+	for attempt in 4:
+		await _fill(level_number, drops)
+		if _board != null and is_instance_valid(_board) and not _board._is_finished:
+			return true
+		await _teardown()
+	printerr("bitmemis board kurulamadi (level %d)" % level_number)
+	return false
+
+
+# --- 1) Normal oynanis (+ guc cubugu normal durumu) ---
 
 func _shot_gameplay() -> void:
-	await _fill(3, 10)
+	if not await _fill_live(3, 10):
+		return
 	await _capture("v01_gameplay.png")
 	await _teardown()
 
@@ -187,9 +226,12 @@ func _shot_bomb() -> void:
 	await _capture("v03_bomba_hedefleme.png")
 	# Kilitlenme + mermi + carpma.
 	_board._use_targeted_power(target)
-	# BOMB_TRAVEL 0.28 sn; carpmadan hemen sonrasini yakala.
-	await get_tree().create_timer(0.34).timeout
-	await _capture("v04_bomba_carpma.png")
+	# BOMB_TRAVEL 0.28 sn; mermiyi yolun ortasinda yakala.
+	await get_tree().create_timer(0.15).timeout
+	await _capture("v04a_bomba_mermi.png")
+	# Carpmadan hemen sonrasi.
+	await get_tree().create_timer(0.19).timeout
+	await _capture("v04b_bomba_carpma.png")
 	await _teardown()
 
 
@@ -233,18 +275,61 @@ func _shot_clear() -> void:
 func _shot_stock_zero() -> void:
 	var stock: Dictionary = SaveManager.data["powerups"]
 	SaveManager.data["powerups"] = {}
-	await _fill(10, 8)
-	await _capture("v08_stok_sifir.png")
+	if await _fill_live(10, 8):
+		await _capture("v08_stok_sifir.png")
+		await _teardown()
+	SaveManager.data["powerups"] = stock
+
+
+# --- Pencereler ---
+#
+# Pencereler main.tscn'e bagli; burada TEK BASLARINA sahneye ekleniyor.
+# HICBIR odul/stok akisi tetiklenmiyor: yalnizca show_* cagriliyor, CTA'ya
+# basilmiyor, kota tuketilmiyor.
+
+const POWER_REFILL_SCENE: PackedScene = preload("res://scenes/ui/power_refill.tscn")
+const REVIVE_OFFER_SCENE: PackedScene = preload("res://scenes/ui/revive_offer.tscn")
+
+
+func _shot_refill_modal() -> void:
+	var stock: Dictionary = SaveManager.data["powerups"]
+	SaveManager.data["powerups"] = {}
+	await _fill(3, 8)
+	var modal: CanvasLayer = POWER_REFILL_SCENE.instantiate()
+	add_child(modal)
+	await get_tree().process_frame
+	# provider_ready = false: AdMob YOK, gercek durum bu.
+	modal.show_refill(PowerUp.Type.BOMB, false)
+	for i in 6:
+		await get_tree().process_frame
+	await _capture("v11_refill_penceresi.png")
+	modal.queue_free()
 	await _teardown()
 	SaveManager.data["powerups"] = stock
+
+
+func _shot_revive_modal() -> void:
+	await _fill(3, 8)
+	var modal: CanvasLayer = REVIVE_OFFER_SCENE.instantiate()
+	add_child(modal)
+	await get_tree().process_frame
+	modal.show_offer(2, 2)
+	for i in 6:
+		await get_tree().process_frame
+	await _capture("v12_devam_penceresi.png")
+	modal.queue_free()
+	await _teardown()
 
 
 # --- 8) Uzun portrait ---
 
 func _shot_tall() -> void:
-	DisplayServer.window_set_size(TALL_SIZE)
+	DisplayServer.window_set_size(_tall_size)
 	await get_tree().process_frame
-	await _fill(3, 12)
-	await _capture("v09_uzun_portrait.png")
+	# Sonsuz mod: hedefi yok, round kendiliginden bitmiyor. Level 3 ile
+	# denendi, bot 12 birakista hedefi surekli tamamlayip round'u bitiriyordu
+	# ve cekim alinamiyordu. HUD tasmasi kontrolu level'dan bagimsiz.
+	if await _fill_live(0, 12):
+		await _capture("v09_uzun_portrait.png")
 	await _teardown()
-	DisplayServer.window_set_size(SHOT_SIZE)
+	DisplayServer.window_set_size(_shot_size)

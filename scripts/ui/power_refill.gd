@@ -1,9 +1,10 @@
 extends CanvasLayer
 ## Stok 0 güç refill penceresi — GAME_DESIGN.md §5.7.3.
 ##
-## ⚠️ GEÇİCİ GÖRSEL. Final refill/power art'ı YOK: pencere mevcut kawaii UI
-## temasının panel/buton stilini ve güç çubuğuyla aynı geçici metin
-## işaretlerini (`PowerUp.GLYPHS`) kullanıyor.
+## GÖRSEL (M8.5-08): pencere artık owner'ın candy panel + kanatlı kalp
+## tepeliğini, CTA'lar candy pill butonları, başlıktaki işaret ise gücün
+## GERÇEK ikonunu kullanıyor. Geçici metin işareti (`PowerUp.GLYPHS`)
+## kaldırıldı. Devam (revive) penceresiyle aynı tasarım dilinde.
 ##
 ## ⚠️ BU PENCERE REKLAM OYNATMAZ ve STOK VERMEZ. "REKLAM İZLE"ye basmak
 ## yalnızca `rewarded_refill_requested(type)` yayar; gerçek rewarded ad
@@ -32,7 +33,7 @@ const QUOTA_EMPTY_COLOR: Color = Color(0.78, 0.22, 0.28)
 
 var _type: int = -1
 
-@onready var _glyph: Label = $Center/Panel/VBox/Glyph
+@onready var _icon: TextureRect = $Center/Panel/VBox/Icon
 @onready var _title: Label = $Center/Panel/VBox/Title
 @onready var _detail: Label = $Center/Panel/VBox/Detail
 @onready var _ad: Button = $Center/Panel/VBox/Ad
@@ -44,6 +45,10 @@ var _type: int = -1
 
 func _ready() -> void:
 	visible = false
+	# Candy pill butonlar tema yerine tek tek uygulanıyor — gerekçe:
+	# scripts/ui/candy_button.gd başlığı.
+	for button: Button in [_ad, _dough, _close]:
+		CandyButton.style_cta(button)
 	_ad.pressed.connect(_on_ad_pressed)
 	_dough.pressed.connect(_on_dough_pressed)
 	_close.pressed.connect(_on_close_pressed)
@@ -57,7 +62,7 @@ func current_type() -> int:
 ## AdMob kurulmadı.
 func show_refill(type: PowerUp.Type, provider_ready: bool) -> void:
 	_type = int(type)
-	_glyph.text = PowerUp.glyph(type)
+	_icon.texture = PowerUp.icon(type)
 	_title.text = "%s bitti" % PowerUp.display_name(type)
 	_detail.text = "Stok: ×%d" % SaveManager.powerup_count(type)
 	_ad.text = "REKLAM İZLE\n+1 %s" % PowerUp.display_name(type)

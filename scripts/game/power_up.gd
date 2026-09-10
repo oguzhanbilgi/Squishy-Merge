@@ -28,8 +28,10 @@ const DISPLAY_NAMES: Dictionary = {
 	Type.CLEAR_SMALL: "Temizleyici",
 }
 
-## Geçici placeholder işaretler. Final power-up art'ı YOK (M8.5-03).
-## İkon dosyaları geldiğinde bunlar otomatik devre dışı kalır — bkz. ICONS.
+## Son çare metin işareti. M8.5-08'den beri KULLANILMIYOR: dört gücün de
+## gerçek ikonu var (`ICON_PATHS`), `icon()` null dönmüyor ve UI hiçbir
+## yerde bu işaretlere düşmüyor. Yalnızca ikon dosyası silinirse/bozulursa
+## UI'ın boş kalmaması için duruyor.
 const GLYPHS: Dictionary = {
 	Type.BOMB: "✸",
 	Type.UPGRADE: "▲",
@@ -37,22 +39,22 @@ const GLYPHS: Dictionary = {
 	Type.CLEAR_SMALL: "⌫",
 }
 
-## Güç ikonlarının dosya yolları (M8.5-07).
+## Güç ikonlarının dosya yolları (M8.5-08'de DOLDURULDU).
 ##
-## ⚠️ HEPSİ BOŞ — final power-up ikonları HENÜZ YOK, owner'dan bekleniyor.
-## Mimari hazır: dosya `assets/visual/ui/` altına konup yolu buraya yazılınca
-## güç çubuğu ve refill penceresi otomatik olarak metin işaretinden gerçek
-## Texture2D'ye geçer (kod değişikliği GEREKMEZ). Boş kaldığı sürece
-## `GLYPHS` kullanılmaya devam eder.
+## Dördü de owner'ın ChatGPT asset'lerinden türetildi (`_visual_source/
+## chatgpt_ui/`). Bomba / Büyütücü / Temizleyici tekil kaynak dosyalardan;
+## Sarsıntı yalnızca 3'lü sheet içinde olduğu için sheet'in ölçülmüş boş
+## sütun aralığından (x 1408-2030) temiz kesildi. Sheet'lerin kendisi
+## runtime'da KULLANILMIYOR, yalnız `_visual_source` arşivinde duruyor.
 ##
-## Beklenen dosyalar (öneri): `power_bomb.png`, `power_upgrade.png`,
-## `power_shake.png`, `power_clear.png` — kare, ~128 px, saydam zemin.
+## Hepsi 256x256, saydam zeminli, trim edilip kareye ortalanmış.
 const ICON_PATHS: Dictionary = {
-	Type.BOMB: "",
-	Type.UPGRADE: "",
-	Type.SHAKE: "",
-	Type.CLEAR_SMALL: "",
+	Type.BOMB: "res://assets/visual/ui/power_bomb.png",
+	Type.UPGRADE: "res://assets/visual/ui/power_upgrade.png",
+	Type.SHAKE: "res://assets/visual/ui/power_shake.png",
+	Type.CLEAR_SMALL: "res://assets/visual/ui/power_clear.png",
 }
+
 
 ## Güç başına vurgu rengi. Dört gücün tek bakışta ayırt edilmesi için;
 ## seçili çerçevesinde ve stok yazısında kullanılıyor. Renkler candy
