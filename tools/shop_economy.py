@@ -33,6 +33,7 @@ Kullanim:
   python tools/shop_economy.py            # production raporu
   python tools/shop_economy.py sweep      # fiyat taramasi + rewarded modelleri
   python tools/shop_economy.py packs      # gercek para pack taslagi olcumu
+  python tools/shop_economy.py caps       # gunluk rewarded cap karsilastirmasi
 """
 import random
 import sys
@@ -124,6 +125,8 @@ CHECKPOINTS = [1, 7, 14, 30, 60, 90]
 TRIALS = 4000
 # Fiyat taramasi kiyaslama amacli; daha az deneme yeterli.
 SWEEP_TRIALS = 1200
+# Cap karsilastirmasi production karari uretiyor; daha yuksek deneme.
+CAP_TRIALS = 3000
 
 TOTAL_SKINS = sum(SKIN_COUNTS)
 
@@ -595,6 +598,84 @@ def rewarded_study():
         print("")
 
 
+
+# =====================================================================
+# 4) Gunluk rewarded cap karsilastirmasi (M8.5-06)
+# =====================================================================
+#
+# M8.5-05 raporu "gunde 1" onermisti ama yalnizca 1/gun ve 2/gun olculmustu.
+# Bu tur 1 / 2 / 3 ve kontrol olarak per-round (cap yok) modelini tam metrik
+# setiyle kiyasliyor.
+#
+# ONEMLI: revive reklamlari (GAME_DESIGN §11) BURAYA SAYILMAZ. Revive guc
+# envanteri VERMEZ ve gunluk guc quota'sindan BAGIMSIZDIR. Reklam yuku
+# raporunda ikisi ayri ayri toplaniyor.
+
+CAP_CANDIDATES = [
+    Rewarded("rewarded YOK (referans)"),
+    Rewarded("1 / gun", per_round=1, per_day=1),
+    Rewarded("2 / gun", per_round=1, per_day=2),
+    Rewarded("3 / gun", per_round=1, per_day=3),
+    Rewarded("KONTROL: 1/round, cap YOK", per_round=1),
+]
+
+# Revive reklaminin teorik ust siniri: round basina en fazla 2 (GAME_DESIGN
+# §11.1). Gercekte yalnizca fail olan round'larda ve oyuncu kabul ederse
+# oynuyor; burada SADECE teorik tavan raporlaniyor.
+MAX_REVIVE_ADS_PER_ROUND = 2
+
+
+def cap_study():
+    print("=" * 100)
+    print("GUNLUK REWARDED GUC CAP'I — 1 / 2 / 3 vs kontrol")
+    print("=" * 100)
+    print("Quota DORT GUCUN TOPLAMI icindir, tip basina degildir.")
+    print("Revive reklamlari bu tabloya DAHIL DEGIL (ayri sistem, §11).")
+    print("")
+
+    for rounds, prof_name in ((3, "dusuk"), (5, "orta"), (10, "yuksek")):
+        want = CONSUMPTION_PROFILES[prof_name]
+        print("#" * 100)
+        print("# %d round/gun | guc kullanimi: %s" % (rounds, prof_name))
+        print("#" * 100)
+        print("%-26s | %-8s %-8s %-8s %-7s %-7s | %-7s %-7s | %-7s %-7s %-7s | %-9s %s"
+              % ("cap", "rekl/gun", "bedava", "Hamurla", "bedava%", "unmet",
+                 "H.->guc", "H.->skin", "gun30", "gun60", "gun90",
+                 "koleksiyon", "stok"))
+        for rw in CAP_CANDIDATES:
+            snaps, cd = simulate(rounds, want, POWER_PRICES, rw, CAP_TRIALS)
+            s = summarize(snaps, cd)
+            r90 = s[90]
+            free = r90["p_rewarded"]
+            paid = r90["p_bought"]
+            # Bedava oran: starter hediyesi (4 adet) haric, EDINILEN gucler.
+            total_acquired = free + paid
+            free_pct = (100.0 * free / total_acquired) if total_acquired else 0.0
+            print("%-26s | %-8.2f %-8d %-8d %-7.1f %-7d | %-7d %-7d | %-7d %-7d %-7d | %-9s %d"
+                  % (rw.label, r90["ads"] / 90.0, free, paid, free_pct,
+                     r90["p_unmet"], r90["d_powers"], r90["d_skins"],
+                     s[30]["dough_p50"], s[60]["dough_p50"], s[90]["dough_p50"],
+                     fmt_day(s["complete"]["p50"]), r90["inventory"]))
+        print("")
+
+    print("=" * 100)
+    print("REKLAM YUKU — guc + revive birlikte (TEORIK TAVAN)")
+    print("=" * 100)
+    print("Revive: round basina en fazla %d (§11.1). Gercekte yalnizca fail"
+          % MAX_REVIVE_ADS_PER_ROUND)
+    print("olan round'larda ve oyuncu kabul ederse oynuyor — asagidaki")
+    print("revive sutunu ULASILAMAZ bir tavandir, beklenen deger degildir.")
+    print("")
+    print("%-10s %-10s %-14s %-16s %s"
+          % ("round/gun", "guc capi", "guc rekl/gun", "revive tavani/gun",
+             "toplam tavan/gun"))
+    for rounds in (3, 5, 10):
+        for cap in (1, 2, 3):
+            revive_ceiling = rounds * MAX_REVIVE_ADS_PER_ROUND
+            print("%-10d %-10d %-14d %-16d %d"
+                  % (rounds, cap, cap, revive_ceiling, cap + revive_ceiling))
+        print("")
+
 # =====================================================================
 # 3) Gercek para Power Pack taslagi (SADECE OLCUM — billing YOK)
 # =====================================================================
@@ -694,6 +775,9 @@ def main():
         return
     if mode == "packs":
         packs()
+        return
+    if mode == "caps":
+        cap_study()
         return
 
     header()

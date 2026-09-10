@@ -463,7 +463,7 @@ Güç edinmenin dört yolu:
 |---|---|
 | Başlangıç hediyesi — kayıt başına BİR KEZ her güçten ×1 | ✅ var (§10.1) |
 | **Hamur ile satın alma** | ✅ **bu turda eklendi** |
-| Ödüllü reklam ile sınırlı refill | ⏳ PENDING — SDK yok (§5.7.3) |
+| Ödüllü reklam ile sınırlı refill | ⚙️ **UX + kota HAZIR, SDK yok** (§5.7.3) |
 | Gerçek para Power Pack | ⏳ PENDING — billing yok (§5.7.4) |
 
 > **Revive AYRI bir sistemdir (§11).** Revive Hamurla satın alınmaz, güç
@@ -542,47 +542,111 @@ oyuncu artık gerçekten **skin mi güç mü** seçiyor.
 **Kasual oyuncu fakirleşmiyor:** karşılanmayan istek 0, 7. günde ~335 Hamur
 ile geziyor, ilk hafta bütün güç isteklerini karşılıyor.
 
-#### 5.7.3 Ödüllü reklam refill — PENDING, cap ÖNERİSİ
+#### 5.7.3 Ödüllü reklam refill — cap KİLİTLENDİ, SDK pending (M8.5-06)
 
-Stok 0 iken güç butonuna basmak `refill_requested(type)` yayar (§10.6).
-**Hiçbir şey bağlı değil.** Cap ölçüldü ve şu öneri çıktı:
+> **KİLİTLİ: günde 1 ödüllü güç refill'i, dört gücün TOPLAMI için.**
+> `scripts/game/rewarded_policy.gd` → `DAILY_POWER_REFILLS`.
 
-> **ÖNERİ: günde 1 ödüllü refill, dört gücün TOPLAMI için.**
-> Round başına DEĞİL, gün başına.
+**Kurallar:**
 
-Ölçüm (yoğun oyuncu, 30. gün):
+- Kota **dört gücün toplamı** içindir, **tip başına DEĞİL**.
+- Kotayı **yalnızca başarılı reward grant** tüketir. Reklamın istenmesi,
+  açılması, yüklenememesi ve **ödülsüz kapanması TÜKETMEZ**.
+  *(§11.2'deki revive invariant'ının aynısı: `ad closed != reward earned`.)*
+- Yeni gün kotayı sıfırlar. **Round değişimi ve uygulama yeniden başlatması
+  sıfırlamaz** — kayıtta tarih + sayaç duruyor
+  (`rewarded_power_date` / `rewarded_power_grants`).
+- **Revive hakları (§11) bu kotadan TAMAMEN BAĞIMSIZDIR.** Aynı round'da hem
+  bir güç refill'i hem iki revive reklamı görülebilir.
+- Yalnızca **gameplay'de ve stok 0 iken** sunulur. Mağazada "bedava stok
+  biriktir" butonu YOKTUR — amaç reklam izleyerek onlarca güç stoklamak
+  değil, o anki ihtiyacı karşılamak.
 
-| politika | Hamurla alınan güç | reklam/gün | 30. gün Hamur |
-|---|---|---|---|
-| rewarded yok | 119 | 0 | 325 |
-| **1/gün** | **108** | **1,0** | **1.395** |
-| 2/gün | 86 | 2,0 | 4.280 |
-| Model A (1/round, cap yok) | **0** | 4,9 | **14.915** |
-| Model B (1/round HER TİP) | **0** | 4,9 | 14.990 |
+**Neden 1 (ölçüldü, `python tools/shop_economy.py caps`, 3000 deneme/senaryo,
+90 gün).** Yoğun oyuncu (10 round/gün, yüksek kullanım) — kararın verildiği
+senaryo:
 
-**Round başına refill Hamur mağazasını tamamen öldürüyor** — yoğun oyuncu
-hiç güç satın almıyor ve Hamur'u sink öncesi seviyeye geri dönüyor.
+| cap | reklam/gün | bedava | Hamurla | bedava% | karşılanmayan | gün90 Hamur |
+|---|---|---|---|---|---|---|
+| yok | 0,00 | 0 | 379 | %0 | 67 | 330 |
+| **1** | **1,00** | **90** | **348** | **%20,5** | **8** | **3.735** |
+| 2 | 1,99 | 179 | 265 | %40,3 | 1 | 14.685 |
+| 3 | 2,92 | 263 | 182 | %59,1 | 0 | 25.610 |
+| cap yok (1/round) | 4,96 | 446 | 0 | %100 | 0 | 50.220 |
 
-**Model A vs Model B:** normal kullanımda **ayırt edilemiyorlar** (oyuncu
-round başına ~0,5 güç istiyor, Model B'nin fazla kapasitesi hiç
-kullanılmıyor). Fark yalnızca spam altında çıkıyor — round başına 2 güç
-isteyen oyuncu, 10 round/gün:
+**1, "mağazayı en çok koruyan" olduğu için seçilmedi.** Gerekçe marjinal
+fayda/maliyet:
 
-| politika | bedava güç | güç/round | reklam/gün | Hamur güce |
-|---|---|---|---|---|
-| Model A (1/round) | 299 | 1,45 | 10,0 | 16.380 |
-| **Model B (1/tip/round)** | **520** | **1,99** | **17,3** | **9.900** |
-| Model A + 1/gün cap | 30 | 0,57 | 1,0 | 16.360 |
+- 1/gün, karşılanmayan güç isteğini zaten **67 → 8 (%88)** düşürüyor; yani
+  oyuncunun yaşadığı mahrumiyetin neredeyse tamamını çözüyor.
+- 2/gün bunun üstüne 90 günde yalnızca **7 istek** daha karşılıyor (günde
+  0,08) ama 90. gün Hamur fazlasını **3.735 → 14.685'e (4 kat)** çıkarıyor.
+- **3/gün elendi:** 90. gün Hamur'u **25.610** — güç sink'i olmayan referansın
+  (50.025) yalnızca yarısı kadar aşağıda, yani M8.5-05'te çözülen geç oyun
+  enflasyonuna yarı yola kadar geri dönüş. Ayrıca güçlerin **%59'u bedava**
+  geliyor: rewarded artık ana kaynak, Hamur mağazası ikincil.
 
-Model B her isteği bedava karşılıyor, günde 17 reklam gerektiriyor ve
-mağazayı bozuyor. **Model B elendi.** Asıl kaldıraç per-round şekli değil,
-**günlük cap**.
+Reklam adedi ayırt edici değil: yoğun oyuncuda revive'ın **teorik** tavanı
+zaten 20 reklam/gün (10 round × 2), güç capi 1 → 3 toplam tavanı yalnızca
+21 → 23 yapıyor.
 
-Bedeli dürüstçe: 1/gün cap kasual oyuncunun güç isteklerinin çoğunu bedava
-karşılıyor, dolayısıyla kasualdeki Hamur sink'i büyük ölçüde kayboluyor
-(90. gün 8.200 → 13.010). Enflasyon asıl olarak yoğun oyuncuda sorun olduğu
-için bu kabul edilebilir bir takas. Reklam gelirini önceliklendirmek
-istenirse 2/gün alternatifi ölçülü olarak duruyor.
+Kasual oyuncuda (3 round/gün) 1/gün zaten isteklerin %84'ünü bedava
+karşılıyor; 2 ve 3'te bu %100 oluyor ve kasualdeki Hamur sink'i tamamen
+kayboluyor. Yani daha yüksek cap'in kasualde de getirisi yok.
+
+**Durum: cap KİLİTLİ, gerçek reklam PENDING.** AdMob SDK kurulmadı; sağlayıcı
+`main.gd` → `set_rewarded_provider()` ile bağlanacak. Beklenen akış:
+`rewarded_refill_requested(type)` → reklam → **reward earned** →
+`Main.grant_rewarded_power(type, token)`. Ödül gelmezse
+`Main.notify_power_rewarded_unavailable(mesaj)`.
+
+**Callback güvenliği (token):** her talep artan bir token üretir; grant
+yalnızca açık talebin token'ı VE tipi eşleşirse kabul edilir ve kabul edilir
+edilmez token sıfırlanır. Böylece duplicate callback ikinci kez grant etmez,
+stale/iptal edilmiş talebin callback'i grant etmez, yanlış güç için gelen
+callback başka bir güce stok vermez. Başarısız reklam da token'ı geçersiz
+kılar.
+
+#### 5.7.3.1 Refill penceresi (stok 0 UX)
+
+Stok 0 bir güce basınca **oyun DURUR** ve pencere açılır. Durdurma kozmetik
+değil: ödüllü reklam 20–40 sn açık kalabiliyor ve board arka planda oynasaydı
+oyuncu reklam izlerken taşıp round'u kaybederdi. Revive'ın (§11.3) dondurma
+makinesinin aynısı kullanılıyor ama **round BİTMİYOR** — pencere kapanınca
+oyun tam kaldığı yerden devam ediyor.
+
+Pencerede hangi gücün istendiği açıkça yazıyor ve iki çalışan yol var:
+
+| CTA | durum |
+|---|---|
+| **REKLAM İZLE → +1** | kota dolduysa veya sağlayıcı yoksa **pasif**, sebebi yazıyla açıklanıyor |
+| **HAMURLA AL → §5.7.1 fiyatı** | Hamur yetmiyorsa **pasif** |
+| Kapat | hiçbir şey alınmaz, oyun devam eder |
+
+Fiyat UI'da hardcode DEĞİL — mağazayla aynı `PowerUpEconomy` kaynağı.
+Hamur satın alması M8.5-05'teki tek mutasyon + tek save yolundan geçiyor.
+
+**Niyet geri dönüşü:** refill başarılı olduğunda oyuncunun ilk niyetine
+dönülür. **Hedefli** güçlerde (Bomba / Büyütücü) hedefleme yeniden açılır —
+bu tamamen geri alınabilir, stok tüketmez. **Anında çalışan** güçlerde
+(Sarsıntı / Temizleyici) bilerek **OTOMATİK ÇALIŞTIRILMIYOR**: pencereden
+çıkar çıkmaz gücün kendiliğinden harcanması "yanlışlıkla harcama" olurdu.
+Stok gelir, çubuk güncellenir, oyuncu bir kez daha basar.
+
+> ⚠️ **Saat manipülasyonu:** günlük kota cihazın yerel tarihine bakıyor.
+> Backend yok, doğrulanabilir sunucu saati yok; saatini ileri alan bir oyuncu
+> kotayı tazeleyebilir. Bu, günlük giriş ödülünün (§5.4) zaten taşıdığı aynı
+> açık ve **bilinçli kabul ediliyor**: v1'de backend bir non-goal ve
+> kazanılabilecek şey tüketilebilir bir güç. Sunucu doğrulaması olmadan
+> yapılacak her "önlem" güvenlik tiyatrosu olurdu.
+
+> ⚠️ Pencerenin **final art'ı YOK**: mevcut kawaii UI temasının panel/buton
+> stilini ve güç çubuğuyla aynı geçici metin işaretlerini kullanıyor.
+
+> **Gerçek para Güç Paketi** üçüncü bir CTA olarak buraya eklenecek. Seam
+> `power_pack_requested` sinyali olarak duruyor ama **hiçbir yere bağlı
+> değil ve buton gösterilmiyor** — çalışmayan sahte bir satın alma butonu
+> göstermek yanlış olurdu (§5.7.4).
 
 #### 5.7.4 Gerçek para Power Pack — PENDING, sadece taslak
 

@@ -13,6 +13,7 @@ const GAME_BOARD_SCENE: PackedScene = preload("res://scenes/game/game_board.tscn
 const ROUND_RESULT_SCENE: PackedScene = preload("res://scenes/ui/round_result.tscn")
 const DAILY_POPUP_SCENE: PackedScene = preload("res://scenes/ui/daily_reward_popup.tscn")
 const REVIVE_OFFER_SCENE: PackedScene = preload("res://scenes/ui/revive_offer.tscn")
+const POWER_REFILL_SCENE: PackedScene = preload("res://scenes/ui/power_refill.tscn")
 
 ## Round bitip sonuç ekranı açılmadan önceki kısa nefes payı — son merge'in
 ## efekti ekranda kalsın diye.
@@ -22,12 +23,30 @@ var _tabs: CanvasLayer
 var _result: CanvasLayer
 var _daily: CanvasLayer
 var _revive: CanvasLayer
+var _refill: CanvasLayer
 var _board: Node2D
 ## Ödüllü reklam sağlayıcısı (M9+ AdMob). null = sağlayıcı yok.
-## Beklenen arayüz: `show_rewarded_revive(main: Node) -> void`; sağlayıcı
-## ödülü kazanıldığında `main.grant_revive()`, kazanılmadığında
-## `main.notify_rewarded_unavailable(mesaj)` çağırır.
+##
+## Beklenen arayüz (ikisi de opsiyonel, `has_method` ile kontrol ediliyor):
+##   show_rewarded_revive(main: Node) -> void
+##       ödül kazanılınca  main.grant_revive()
+##       kazanılmayınca    main.notify_rewarded_unavailable(mesaj)
+##   show_rewarded_power(main: Node, type: int, token: int) -> void
+##       ödül kazanılınca  main.grant_rewarded_power(type, token)
+##       kazanılmayınca    main.notify_power_rewarded_unavailable(mesaj)
 var _rewarded_provider: Object = null
+
+## --- Ödüllü güç refill talebi (M8.5-06) ---
+##
+## Stale/duplicate reward callback'lerine karşı token. Her yeni talep
+## token'ı artırıyor; grant yalnızca AÇIK talebin token'ıyla eşleşirse
+## kabul ediliyor ve kabul edilir edilmez token sıfırlanıyor. Böylece:
+##   - aynı callback iki kez gelirse ikincisi eşleşmez  (çift grant yok)
+##   - eski/iptal edilmiş bir talebin callback'i eşleşmez (stale grant yok)
+##   - başka bir güç için gelen callback tip kontrolüne takılır
+var _refill_token: int = 0
+var _refill_pending_token: int = 0
+var _refill_pending_type: int = -1
 var _current_level: LevelData
 ## Sekme indeksi -> ekran. Sıra tab_bar.gd'deki Tab enum'u ile aynı.
 var _screens: Array[CanvasLayer] = []
@@ -62,6 +81,12 @@ func _ready() -> void:
 	_revive.rewarded_revive_requested.connect(_on_rewarded_revive_requested)
 	_revive.decline_pressed.connect(decline_revive)
 	add_child(_revive)
+
+	_refill = POWER_REFILL_SCENE.instantiate()
+	_refill.rewarded_refill_requested.connect(_on_rewarded_power_requested)
+	_refill.dough_refill_requested.connect(_on_dough_refill_requested)
+	_refill.closed.connect(_on_refill_closed)
+	add_child(_refill)
 
 	_show_tab(0)
 	_check_daily_reward()
@@ -116,17 +141,23 @@ func _start_level(level: LevelData) -> void:
 	_clear_board()
 
 	_revive.hide_offer()
+	_refill.hide_refill()
+	_clear_refill_request()
 
 	_board = GAME_BOARD_SCENE.instantiate()
 	_board.setup(level)
 	_board.round_finished.connect(_on_round_finished)
 	_board.revive_offered.connect(_on_revive_offered)
+	_board.power_refill_offered.connect(_on_power_refill_offered)
 	add_child(_board)
 
 
 func _clear_board() -> void:
 	if _revive != null:
 		_revive.hide_offer()
+	if _refill != null:
+		_refill.hide_refill()
+	_clear_refill_request()
 	if _board != null:
 		_board.queue_free()
 		_board = null
@@ -194,6 +225,133 @@ func notify_rewarded_unavailable(message: String) -> void:
 ## tanımına bakın.
 func set_rewarded_provider(provider: Object) -> void:
 	_rewarded_provider = provider
+
+
+# --- Stok 0 güç refill'i — GAME_DESIGN.md §5.7.3 ---
+#
+# Sorumluluk dağılımı:
+#   GameBoard   : oyunu dondurma, niyeti hatırlama, çözülme
+#   PowerRefill : pencere ve iki CTA; STOK VERMEZ, yalnızca talep yayar
+#   RewardedPolicy : günlük kota + tek transaction grant
+#   Main (bu)   : hepsini bağlayan sağlayıcı kancası ve token güvenliği
+#
+# INVARIANT: ödüllü stok YALNIZCA `grant_rewarded_power()` ile verilir ve bu
+# metodu yalnızca "ödül kazanıldı" callback'i çağırmalıdır. Reklamın
+# istenmesi, açılması, yüklenememesi ve ödülsüz kapanması NE stok verir NE
+# kota tüketir — revive'daki (§11.2) invariant'ın aynısı.
+
+## Sağlayıcı gerçekten bağlı ve ödüllü güç gösterebiliyor mu?
+func _power_provider_ready() -> bool:
+	return (_rewarded_provider != null
+		and _rewarded_provider.has_method("show_rewarded_power"))
+
+
+## Board stok 0 bir güç istedi ve oyunu dondurdu.
+func _on_power_refill_offered(type: int) -> void:
+	_clear_refill_request()
+	_refill.show_refill(type as PowerUp.Type, _power_provider_ready())
+
+
+## Oyuncu ödüllü CTA'ya bastı.
+##
+## ⚠️ BURADA REKLAM YOK ve STOK VERİLMİYOR. Sağlayıcı bağlanana kadar tek
+## yaptığı şey oyuncuya durumu söylemek. Sahte reklam oynatmak ya da bedava
+## stok vermek bilinçli olarak YAPILMIYOR.
+func _on_rewarded_power_requested(type: int) -> void:
+	if not PowerUp.is_valid_type(type):
+		return
+	# Kota kontrolü talep anında da yapılıyor: buton zaten pasif olmalı ama
+	# tek savunma hattı UI olmasın.
+	if not RewardedPolicy.can_grant():
+		notify_power_rewarded_unavailable(
+			"Bugünkü reklam hakkın doldu, yarın yenilenir.")
+		return
+
+	# Yeni talep = yeni token. Önceki talebin callback'i artık geçersiz.
+	_refill_token += 1
+	_refill_pending_token = _refill_token
+	_refill_pending_type = type
+
+	if _power_provider_ready():
+		_rewarded_provider.call("show_rewarded_power", self, type,
+			_refill_pending_token)
+		return
+	notify_power_rewarded_unavailable("Ödüllü reklam henüz bağlı değil.")
+
+
+## Sağlayıcının "ödül kazanıldı" callback'i. Ödüllü stok vermenin TEK yolu.
+##
+## Üç kapı: açık bir talep olmalı, token eşleşmeli, tip eşleşmeli. Token
+## kabul edilir edilmez sıfırlanıyor — aynı callback ikinci kez gelirse
+## artık eşleşmez.
+##
+## Dönüş: stok gerçekten verildiyse true.
+func grant_rewarded_power(type: int, token: int) -> bool:
+	if _refill_pending_token == 0 or token != _refill_pending_token:
+		# Stale ya da duplicate callback: sessizce yok sayılır.
+		return false
+	if type != _refill_pending_type or not PowerUp.is_valid_type(type):
+		# Yanlış güç için gelen callback başka bir güce stok VERMEZ.
+		return false
+
+	# Token'ı ÖNCE tüket: grant başarısız olsa bile aynı callback tekrar
+	# denenemesin.
+	_clear_refill_request()
+
+	if not RewardedPolicy.grant(type as PowerUp.Type):
+		# Kota dolmuş (yarış durumu): stok verilmedi, pencere açık kalıyor.
+		notify_power_rewarded_unavailable(
+			"Bugünkü reklam hakkın doldu, yarın yenilenir.")
+		return false
+
+	_finish_refill(type as PowerUp.Type, "%s ×1 kazandın!")
+	return true
+
+
+## Oyuncu Hamurla almayı seçti. Fiyat `PowerUpEconomy`'den — mağazayla
+## AYNI source-of-truth, UI'da hardcode yok. Satın alma M8.5-05'teki tek
+## mutasyon + tek save yolundan geçiyor.
+func _on_dough_refill_requested(type: int) -> void:
+	if not PowerUp.is_valid_type(type):
+		return
+	if not PowerUpEconomy.purchase(type as PowerUp.Type):
+		# Yetersiz Hamur: HİÇBİR state değişmez, pencere açık kalır.
+		_refill.show_unavailable("Hamur yetmiyor (%d Hamur'un var)."
+			% SaveManager.dough(), _power_provider_ready())
+		return
+	_finish_refill(type as PowerUp.Type, "%s ×1 alındı!")
+
+
+## Refill başarılı: pencereyi kapat, oyunu sürdür ve oyuncunun ilk
+## niyetine dön (hedefli güçlerde hedefleme yeniden açılır — bkz.
+## GameBoard.exit_refill_pending).
+func _finish_refill(type: PowerUp.Type, message: String) -> void:
+	AudioManager.play_sfx(&"chest_open", 1.1)
+	_refill.hide_refill()
+	if _board != null and is_instance_valid(_board):
+		_board.exit_refill_pending(true)
+	print_verbose(message % PowerUp.display_name(type))
+
+
+## Reklam yüklenemedi / gösterilemedi / ödül kazanılmadı. Pencere AÇIK
+## KALIR, kota tüketilmez, stok değişmez.
+func notify_power_rewarded_unavailable(message: String) -> void:
+	_clear_refill_request()
+	_refill.show_unavailable(message, _power_provider_ready())
+
+
+## Oyuncu pencereyi kapattı: hiçbir şey alınmadı, oyun kaldığı yerden
+## devam ediyor. Niyet geri dönüşü YOK (oyuncu vazgeçti).
+func _on_refill_closed() -> void:
+	_clear_refill_request()
+	_refill.hide_refill()
+	if _board != null and is_instance_valid(_board):
+		_board.exit_refill_pending(false)
+
+
+func _clear_refill_request() -> void:
+	_refill_pending_token = 0
+	_refill_pending_type = -1
 
 
 func _on_round_finished(won: bool) -> void:

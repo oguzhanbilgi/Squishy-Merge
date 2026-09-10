@@ -9,6 +9,10 @@ signal round_finished(won: bool)
 signal revive_offered(remaining: int)
 ## Devam hakkı kullanıldı ve board tekrar oynanabilir hâle geldi.
 signal revive_granted(used: int, remaining: int)
+## Stok 0 bir güç istendi: refill penceresi açılmalı ve oyun DURMALI
+## (M8.5-06). `refill_requested` yalnızca olayı haber veriyordu; bu sinyal
+## board'un fiilen donduğunu da bildiriyor.
+signal power_refill_offered(type: int)
 
 const DUMPLING_SCENE: PackedScene = preload("res://scenes/game/dumpling.tscn")
 const POP_EFFECT_SCENE: PackedScene = preload("res://scenes/game/pop_effect.tscn")
@@ -133,6 +137,12 @@ var _is_fail_pending: bool = false
 var _revives_used: int = 0
 ## Devam sonrası taşma koruması kalan süre (sn). >0 iken taşma birikmiyor.
 var _revive_protection: float = 0.0
+## Stok 0 refill penceresi açık: oyun DURDU (M8.5-06). Fail-pending ile aynı
+## dondurma makinesini kullanıyor ama round bitmiyor — pencere kapanınca
+## oyun kaldığı yerden devam ediyor.
+var _is_refill_pending: bool = false
+## Refill penceresinin hangi güç için açıldığı — niyet geri dönüşü için.
+var _refill_type: PowerUp.Type = PowerUp.Type.BOMB
 var _shake_strength: float = 0.0
 ## Danger highlight'ının nabzı (GAME_DESIGN.md §6) — 0..1 arası salınır.
 var _danger_pulse: float = 0.0
@@ -376,9 +386,9 @@ func _draw_danger() -> void:
 # seçimi olarak yorumlanıyor, boşluğa dokunmak iptal ediyor.
 
 func _unhandled_input(event: InputEvent) -> void:
-	# Devam teklifi açıkken oyun girdisi tamamen kapalı: ne nişan, ne bırakma,
+	# Bir overlay açıkken oyun girdisi tamamen kapalı: ne nişan, ne bırakma,
 	# ne hedefleme. Tek etkileşim overlay'in kendi butonları.
-	if _is_finished or _is_fail_pending:
+	if _is_finished or _is_paused():
 		return
 
 	if _powerups.is_armed():
@@ -460,7 +470,7 @@ func _on_power_armed_changed(type: int) -> void:
 ## Güç butonu. Hedefli güçler hedefleme moduna girer; anında çalışanlar
 ## burada yürütülür. HİÇBİRİ butona basıldığı için stok tüketmez.
 func _on_power_pressed(type_index: int) -> void:
-	if _is_finished or _is_fail_pending:
+	if _is_finished or _is_paused():
 		return
 	var type: PowerUp.Type = type_index as PowerUp.Type
 	if PowerUp.is_targeted(type):
@@ -498,9 +508,10 @@ func _on_power_pressed(type_index: int) -> void:
 func _on_power_refill_requested(type_index: int) -> void:
 	if not PowerUp.is_valid_type(type_index):
 		return
-	var type: PowerUp.Type = type_index as PowerUp.Type
-	_flash_status("%s bitti — mağazada %d Hamur" % [
-		PowerUp.display_name(type), PowerUpEconomy.price(type)])
+	if _is_finished or _is_paused():
+		return
+	_refill_type = type_index as PowerUp.Type
+	_enter_refill_pending(_refill_type)
 
 
 # --- Hedef vurgusu ---
@@ -681,7 +692,7 @@ func _drop() -> void:
 	# Fail-pending kontrolü BURADA da lazım: _unhandled_input zaten eliyor ama
 	# drop cooldown teklif sırasında ilerlemediği için tek başına ona
 	# güvenilemez, ve _drop() dışarıdan da (test/bot) çağrılabiliyor.
-	if _is_finished or _is_fail_pending or _drop_cooldown > 0.0:
+	if _is_finished or _is_paused() or _drop_cooldown > 0.0:
 		return
 	_dismiss_tutorial()
 	_spawn_dumpling(_pending_tier, Vector2(_aim_x, drop_line_y()))
@@ -702,7 +713,7 @@ func _spawn_dumpling(tier: int, at: Vector2) -> Dumpling:
 	# Fail teklifi açıldığı KARE'de uçuşta olan bir merge hâlâ çözülebilir
 	# (_resolve_merge deferred çağrılıyor). Doğan parça da donmuş board'a
 	# katılmalı, yoksa reklam beklerken tek başına düşerdi.
-	if _is_fail_pending:
+	if _is_paused():
 		dumpling.set_simulation_frozen(true)
 	return dumpling
 
@@ -890,7 +901,7 @@ func _physics_process(delta: float) -> void:
 	# Devam teklifi açıkken oyun ZAMANI durur: drop cooldown, combo penceresi
 	# ve taşma sayacı hiç ilerlemez. Reklam 40 sn açık kalsa bile board
 	# oyuncunun bıraktığı yerde bulunur.
-	if _is_fail_pending:
+	if _is_paused():
 		return
 
 	if _drop_cooldown > 0.0:
@@ -933,6 +944,65 @@ func _is_overflowing() -> bool:
 		if dumpling != null and dumpling.has_landed and not dumpling.is_merging:
 			return true
 	return false
+
+
+# --- Stok 0 refill duraklaması (GAME_DESIGN.md §5.7.3) ---
+#
+# Refill penceresi açıkken oyun DURUR. Bu kozmetik bir tercih değil:
+# ödüllü reklam 20-40 sn açık kalabiliyor ve board arka planda oynamaya
+# devam etseydi oyuncu reklam izlerken taşıp round'u kaybederdi.
+#
+# Fail-pending ile AYNI dondurma makinesini kullanıyor ama farkı önemli:
+# round BİTMİYOR, hiçbir sinyal round'u finalize etmiyor. Pencere kapanınca
+# oyun tam kaldığı yerden devam ediyor.
+
+## Oyun herhangi bir overlay yüzünden durmuş mu?
+func _is_paused() -> bool:
+	return _is_fail_pending or _is_refill_pending
+
+
+func is_refill_pending() -> bool:
+	return _is_refill_pending
+
+
+## Stok 0 iken güç butonuna basıldı: oyunu dondur ve pencereyi iste.
+func _enter_refill_pending(type: PowerUp.Type) -> void:
+	if _is_refill_pending or _is_fail_pending or _is_finished:
+		return
+	_is_refill_pending = true
+	_preview.visible = false
+	_powerups.set_round_active(false)
+	_clear_target_highlights()
+	_power_bar.set_enabled(false)
+	_set_board_frozen(true)
+	power_refill_offered.emit(int(type))
+
+
+## Pencere kapandı (kapatıldı, satın alındı ya da vazgeçildi): oyunu
+## kaldığı yerden sürdür.
+##
+## `resume_intent`: refill başarılıysa oyuncunun ilk niyetine dönülür.
+## HEDEFLİ güçlerde hedefleme yeniden açılır — bu tamamen geri
+## alınabilir, stok tüketmez. ANINDA çalışan güçlerde (Sarsıntı /
+## Temizleyici) bilerek OTOMATİK ÇALIŞTIRILMIYOR: pencereden çıkar
+## çıkmaz gücün kendiliğinden harcanması "yanlışlıkla harcama" olurdu.
+## Stok geldi, çubuk güncellendi, oyuncu bir kez daha basar.
+func exit_refill_pending(resume_intent: bool = false) -> void:
+	if not _is_refill_pending:
+		return
+	_is_refill_pending = false
+	_set_board_frozen(false)
+	_powerups.set_round_active(true)
+	_power_bar.set_enabled(true)
+	_refresh_power_bar()
+	_preview.visible = true
+	_refresh_preview()
+
+	if not resume_intent:
+		return
+	var type: PowerUp.Type = _refill_type
+	if SaveManager.has_powerup(type) and PowerUp.is_targeted(type):
+		_powerups.request(type)
 
 
 # --- Devam etme (revive) akışı — GAME_DESIGN.md §11 ---
@@ -1089,9 +1159,9 @@ func _finish(won: bool) -> void:
 	if _is_finished:
 		return
 	_is_finished = true
-	# Teklif açıkken kazanılmış olabilir (fail karesinde uçuşta olan bir merge
-	# hedefi tamamlarsa). Board donmuş kalmasın.
+	# Bir overlay açıkken round bitmiş olabilir. Board donmuş kalmasın.
 	_is_fail_pending = false
+	_is_refill_pending = false
 	_set_board_frozen(false)
 	_preview.visible = false
 	# Round bitti: hiçbir güç silahlanamaz, silahlı olan iptal olur.

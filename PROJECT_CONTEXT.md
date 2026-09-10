@@ -74,6 +74,10 @@ alınacak — şimdi tahmin/vaat yok.
     Büyütücü 180). Yoğun oyuncunun 90 günlük Hamur fazlası 50.025 → 335.
     Satın almalar tek transaction. **Hamur mağazası tamam / rewarded refill
     ve IAP pending** — bkz. GAME_DESIGN §5.7.
+  - `M8.5-06` ✅ stok 0 refill akışı: oyun içi refill penceresi (reklam / Hamur),
+    board refill sırasında donuyor, günlük ödüllü kota **1/gün (dört gücün
+    toplamı)** olarak kilitlendi ve token'lı callback güvenliği eklendi.
+    **UX + kota hazır / AdMob SDK pending** — bkz. GAME_DESIGN §5.7.3.
 - **Sırada: M9 — Android export.** Ortam hazır (export template'leri, SDK,
   NDK, JDK 17, debug keystore mevcut); eksik olan `export_presets.cfg` ve
   release/upload keystore.
@@ -95,6 +99,8 @@ alınacak — şimdi tahmin/vaat yok.
   Büyütücü 180 (`power_up_economy.gd`; simülatördeki `POWER_PRICES` ile
   aynı tutulmalı)
 - Satın alma invariant'ı: para düşmesi + ödül verilmesi TEK transaction
+- Ödüllü güç kotası: **1/gün, dört gücün toplamı**, yalnızca reward-earned
+  tüketir (`rewarded_policy.gd`). Revive hakları bundan BAĞIMSIZ
 - Güç başlangıç stoğu: **kayıt başına 1'er adet, tek seferlik**. Stok
   yalnızca efekt gerçekleşince düşer; güçle yapılan silmeler skor/merge
   üretmez (GAME_DESIGN §10)
@@ -117,9 +123,10 @@ alınacak — şimdi tahmin/vaat yok.
 - **Geç oyun Hamur enflasyonu ÇÖZÜLDÜ (M8.5-05):** güç mağazası ikinci ve
   tekrarlanabilir sink oldu. Skin fiyatlarına, sandık oranlarına ve Hamur
   gelir kaynaklarına dokunulmadı — hâlâ owner kararına açıklar.
-- **Güç ekonomisi kısmen bağlandı (M8.5-05):** güçler Hamur ile satın
-  alınabiliyor (100/120/160/180). Ödüllü reklam refill ve gerçek para Güç
-  Paketi hâlâ YOK — ikisi de ölçüldü ve önerildi, kurulmadı.
+- **Güç ekonomisi kısmen bağlandı (M8.5-05/06):** güçler Hamur ile satın
+  alınabiliyor (100/120/160/180) ve stok 0 refill penceresi çalışıyor.
+  Ödüllü kota **1/gün** olarak kilitli ama **AdMob SDK yok** — reklam CTA'sı
+  sağlayıcı bağlanana kadar pasif. Gerçek para Güç Paketi hâlâ YOK.
 - **Ödüllü reklam sağlayıcısı bağlı değil:** devam (revive) akışı uçtan uca
   çalışıyor ama `rewarded_revive_requested` sinyali boşta. AdMob SDK kurulumu
   ve `Main.set_rewarded_provider()` bağlanması ayrı bir iş. Sahte reklam ve

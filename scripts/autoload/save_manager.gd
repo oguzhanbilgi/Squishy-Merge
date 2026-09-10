@@ -26,6 +26,12 @@ const DEFAULT_DATA: Dictionary = {
 	"powerups": {},
 	## Başlangıç hediyesi verildi mi? Kayıt başına tek sefer.
 	"powerup_starter_granted": false,
+	## Ödüllü güç refill kotası (M8.5-06). Günlük giriş ödülüyle aynı desen:
+	## tarih + sayaç. Eski kayıtlarda bu anahtarlar yok; load_game
+	## DEFAULT_DATA üzerine yazdığı için otomatik olarak "" / 0 kalıyor
+	## (geriye dönük uyumlu, kimse hak kaybetmiyor).
+	"rewarded_power_date": "",
+	"rewarded_power_grants": 0,
 }
 
 
@@ -306,6 +312,43 @@ func purchase_powerup_with_dough(type: PowerUp.Type, amount: int = 1) -> bool:
 	stock[key] = int(stock.get(key, 0)) + amount
 	data["powerups"] = stock
 	data["dough"] = dough() - cost
+	save_game()
+	return true
+
+
+## Bugün kaç ödüllü güç refill'i verildi.
+##
+## Tarih değiştiyse 0 döner ve KAYDA YAZMAZ: okuma sırasında beklenmedik
+## disk yazması olmasın (equipped_skin_id ile aynı yaklaşım). Kalıcı sıfırlama
+## bir sonraki grant'te yapılıyor.
+func rewarded_power_grants_today(today: String) -> int:
+	if String(data.get("rewarded_power_date", "")) != today:
+		return 0
+	return int(data.get("rewarded_power_grants", 0))
+
+
+## Ödüllü reklam ödülü: +1 güç ve kotadan bir düşüş, TEK transaction.
+##
+## Kota kontrolü BURADA yapılıyor (çağıranın ayrıca kontrol etmesine
+## güvenilmiyor) — böylece stale/duplicate bir callback kota dolmuşken
+## stok veremez.
+##
+## Dönüş: verildiyse true. Kota dolmuşsa ya da tip geçersizse hiçbir alan
+## değişmez ve diske yazma da olmaz.
+func grant_rewarded_powerup(type: PowerUp.Type, today: String) -> bool:
+	if not PowerUp.is_valid_type(type):
+		return false
+	var used: int = rewarded_power_grants_today(today)
+	if used >= RewardedPolicy.DAILY_POWER_REFILLS:
+		return false
+
+	# Üç mutasyon, tek yazma.
+	var stock: Dictionary = _powerup_stock().duplicate()
+	var key: String = PowerUp.save_key(type)
+	stock[key] = int(stock.get(key, 0)) + 1
+	data["powerups"] = stock
+	data["rewarded_power_date"] = today
+	data["rewarded_power_grants"] = used + 1
 	save_game()
 	return true
 

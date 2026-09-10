@@ -550,6 +550,58 @@ level'lar ve bitirmek başlı başına üst düzey başarı sayılıyor.
 > gelirine denk geldiği (işleme değmeyecek kadar küçük) için ×3/×6/×12'ye
 > çekildi. **TL/USD fiyat, product ID ve Play Billing YOK.**
 
+> ### 📌 ÖDÜLLÜ GÜÇ CAP'İ KİLİTLENDİ — 1/gün (M8.5-06)
+>
+> M8.5-05 raporu "günde 1" ÖNERMİŞTİ ama yalnızca 1 ve 2 ölçülmüştü. Bu turda
+> 1 / 2 / 3 ve kontrol olarak per-round modeli tam metrik setiyle karşılaştırıldı
+> (`python tools/shop_economy.py caps`, 3000 deneme/senaryo, 90 gün).
+>
+> **Karar: günde 1 refill, dört gücün TOPLAMI için.**
+> `scripts/game/rewarded_policy.gd` → `DAILY_POWER_REFILLS`.
+>
+> Yoğun oyuncu (10 round/gün, yüksek kullanım) — kararın verildiği senaryo:
+>
+> | cap | reklam/gün | bedava | Hamurla | bedava% | karşılanmayan | gün30 | gün60 | gün90 |
+> |---|---|---|---|---|---|---|---|---|
+> | yok | 0,00 | 0 | 379 | %0 | 67 | 325 | 320 | 330 |
+> | **1** | **1,00** | **90** | **348** | **%20,5** | **8** | **1.380** | **2.570** | **3.735** |
+> | 2 | 1,99 | 179 | 265 | %40,3 | 1 | 4.235 | 9.440 | 14.685 |
+> | 3 | 2,92 | 263 | 182 | %59,1 | 0 | 7.490 | 16.565 | 25.610 |
+> | cap yok (1/round) | 4,96 | 446 | 0 | %100 | 0 | 15.000 | 32.550 | 50.220 |
+>
+> **1, "mağazayı en çok koruyan" olduğu için seçilmedi** — marjinal
+> fayda/maliyet hesabı:
+>
+> - 1/gün karşılanmayan güç isteğini **67 → 8 (%88)** düşürüyor, yani
+>   oyuncunun yaşadığı mahrumiyetin neredeyse tamamını çözüyor.
+> - 2/gün bunun üstüne 90 günde yalnızca **7 istek** daha karşılıyor (günde
+>   0,08) ama 90. gün Hamur fazlasını **3.735 → 14.685'e (4 kat)** çıkarıyor.
+> - **3/gün elendi:** 90. gün Hamur'u 25.610 — güç sink'i olmayan referansın
+>   (50.025) yalnızca yarısı kadar aşağıda. M8.5-05'te çözülen enflasyona
+>   yarı yola kadar geri dönmek demek. Ayrıca güçlerin %59'u bedava geliyor,
+>   yani Hamur mağazası ikincil kaynağa düşüyor.
+>
+> Kasual (3 round/gün) tarafında 1/gün zaten isteklerin %84'ünü bedava
+> karşılıyor; 2 ve 3'te %100 oluyor ve kasualdeki Hamur sink'i tamamen
+> kayboluyor — daha yüksek cap'in orada da getirisi yok.
+>
+> **Reklam adedi ayırt edici değil.** Yoğun oyuncuda revive'ın *teorik*
+> tavanı zaten 20 reklam/gün (10 round × 2 revive); güç capi 1 → 3 toplam
+> tavanı yalnızca 21 → 23 yapıyor. Karar ekonomiye göre verildi, reklam
+> yüküne göre değil.
+>
+> | round/gün | güç capi | güç reklam/gün | revive TAVANI/gün | toplam tavan |
+> |---|---|---|---|---|
+> | 3 | 1 | 1 | 6 | 7 |
+> | 5 | 1 | 1 | 10 | 11 |
+> | 10 | 1 | 1 | 20 | 21 |
+>
+> (Revive sütunu ulaşılamaz bir tavandır: yalnızca fail olan round'larda ve
+> oyuncu kabul ederse oynar.)
+>
+> **Pack taslağı DEĞİŞMEDİ.** Yeni cap analizi Mini/Power/Mega ×3/×6/×12
+> ladder'ında bir sorun göstermedi, o yüzden sessizce dokunulmadı.
+
 ### 4.9 Görsel/fizik ayrımı: sprite dönüşü ±20°
 
 Gövde fizikte serbest dönmeye devam ediyor (M1 kararı) ama yüz sprite'ın
