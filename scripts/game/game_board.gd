@@ -3,6 +3,12 @@ extends Node2D
 ## taşma (fail) kontrolü. Geometri ve hedefler LevelData'dan gelir.
 
 signal round_finished(won: bool)
+## Taşma grace'i doldu ama round HENÜZ BİTMEDİ: oyuncuya devam etme teklifi
+## sunulmalı (M8.5-04). `remaining` bu round'da kalan devam hakkı.
+## round_finished bu noktada YAYILMAZ.
+signal revive_offered(remaining: int)
+## Devam hakkı kullanıldı ve board tekrar oynanabilir hâle geldi.
+signal revive_granted(used: int, remaining: int)
 
 const DUMPLING_SCENE: PackedScene = preload("res://scenes/game/dumpling.tscn")
 const POP_EFFECT_SCENE: PackedScene = preload("res://scenes/game/pop_effect.tscn")
@@ -46,6 +52,38 @@ const CLEAR_STAGGER: float = 0.045
 ## Bombanın hedefe uçma süresi.
 const BOMB_TRAVEL: float = 0.28
 
+## --- Devam etme / revive (GAME_DESIGN.md §11) ---
+##
+## Round başına en fazla iki devam hakkı. Sayaç ROUND-LOCAL: kayda yazılmıyor,
+## her yeni round/retry'da 0'dan başlıyor.
+const MAX_REVIVES_PER_ROUND: int = 2
+## Devam edildikten sonra board'un oturması için taşma sayacının donduğu süre.
+## Sarsıntı korumasıyla aynı mantık: STACK ETMEZ, bitince normal
+## OVERFLOW_GRACE kuralı aynen döner.
+const REVIVE_PROTECTION: float = 1.5
+## Kurtarma temizliği taşma çizgisinin bu kadar ALTINA kadar iner. Üst kenarı
+## bu derinliğin üstünde kalan yerleşmiş parçalar kaldırılır.
+##
+## 120 px = oyun alanı yüksekliğinin (`playable_height`, her level'da 400)
+## %30'u. Değer TAHMİN DEĞİL, ölçüldü (`tools/_revive_probe`, level 10,
+## rastgele oynayan bot, n=10 her derinlik için; referans: devam olmadan bir
+## round medyan **34 sn** sürüyor):
+##
+## | derinlik | kaldırılan | çizgi altı boşluk | devam sonrası oynanan |
+## |---|---|---|---|
+## | 0   | %8  | 16 px  | 3.1 sn  |
+## | 60  | %30 | 67 px  | 7.6 sn  |
+## | **120** | **%42** | **126 px** | **12.1 sn** |
+## | 180 | %55 | 199 px | 18.0 sn |
+## | 260 | %68 | 280 px | 29.7 sn |
+##
+## 0 elendi: yalnızca çizgiyi fiilen aşanları kaldırmak board'u dolu bırakıyor,
+## oyuncu 3 saniyede aynı fail'e düşüyor — reklam izlemenin karşılığı yok.
+## 180+ elendi: board'un yarısından fazlası gidiyor, iki devam hakkıyla
+## birlikte round'u fiilen ikiye katlıyor. 120 bir round'un üçte biri kadar
+## oyun açıyor; devam anlamlı ama round yeniden başlamıyor.
+const REVIVE_RESCUE_DEPTH: float = 120.0
+
 ## Sürükle-bırak ipucunun gösterildiği level. Yalnızca ilk level'da, ilk
 ## bırakışa kadar. Bkz. _setup_tutorial().
 const TUTORIAL_LEVEL: int = 1
@@ -85,6 +123,16 @@ var _combo_timer: float = 0.0
 var _danger_tick: float = 0.0
 var _reached_target_tier: bool = false
 var _is_finished: bool = false
+## Taşma doldu, round DURDURULDU, devam teklifi bekleniyor. `_is_finished`
+## ile aynı anda true olamaz: teklif ya revive ile kapanır ya `_finish(false)`
+## ile.
+var _is_fail_pending: bool = false
+## Bu round'da GERÇEKTEN kullanılmış devam hakkı. Yalnızca grant_revive()
+## başarılı olunca artar — teklifin açılması, CTA'ya basılması, reklamın
+## yüklenememesi ve "Bitir" hak TÜKETMEZ.
+var _revives_used: int = 0
+## Devam sonrası taşma koruması kalan süre (sn). >0 iken taşma birikmiyor.
+var _revive_protection: float = 0.0
 var _shake_strength: float = 0.0
 ## Danger highlight'ının nabzı (GAME_DESIGN.md §6) — 0..1 arası salınır.
 var _danger_pulse: float = 0.0
@@ -328,7 +376,9 @@ func _draw_danger() -> void:
 # seçimi olarak yorumlanıyor, boşluğa dokunmak iptal ediyor.
 
 func _unhandled_input(event: InputEvent) -> void:
-	if _is_finished:
+	# Devam teklifi açıkken oyun girdisi tamamen kapalı: ne nişan, ne bırakma,
+	# ne hedefleme. Tek etkileşim overlay'in kendi butonları.
+	if _is_finished or _is_fail_pending:
 		return
 
 	if _powerups.is_armed():
@@ -410,7 +460,7 @@ func _on_power_armed_changed(type: int) -> void:
 ## Güç butonu. Hedefli güçler hedefleme moduna girer; anında çalışanlar
 ## burada yürütülür. HİÇBİRİ butona basıldığı için stok tüketmez.
 func _on_power_pressed(type_index: int) -> void:
-	if _is_finished:
+	if _is_finished or _is_fail_pending:
 		return
 	var type: PowerUp.Type = type_index as PowerUp.Type
 	if PowerUp.is_targeted(type):
@@ -613,7 +663,10 @@ func _refresh_preview() -> void:
 
 
 func _drop() -> void:
-	if _drop_cooldown > 0.0:
+	# Fail-pending kontrolü BURADA da lazım: _unhandled_input zaten eliyor ama
+	# drop cooldown teklif sırasında ilerlemediği için tek başına ona
+	# güvenilemez, ve _drop() dışarıdan da (test/bot) çağrılabiliyor.
+	if _is_finished or _is_fail_pending or _drop_cooldown > 0.0:
 		return
 	_dismiss_tutorial()
 	_spawn_dumpling(_pending_tier, Vector2(_aim_x, drop_line_y()))
@@ -631,6 +684,11 @@ func _spawn_dumpling(tier: int, at: Vector2) -> Dumpling:
 	dumpling.position = at
 	dumpling.merge_requested.connect(_on_merge_requested)
 	_dumpling_layer.add_child(dumpling)
+	# Fail teklifi açıldığı KARE'de uçuşta olan bir merge hâlâ çözülebilir
+	# (_resolve_merge deferred çağrılıyor). Doğan parça da donmuş board'a
+	# katılmalı, yoksa reklam beklerken tek başına düşerdi.
+	if _is_fail_pending:
+		dumpling.set_simulation_frozen(true)
 	return dumpling
 
 
@@ -814,6 +872,12 @@ func _process(delta: float) -> void:
 
 
 func _physics_process(delta: float) -> void:
+	# Devam teklifi açıkken oyun ZAMANI durur: drop cooldown, combo penceresi
+	# ve taşma sayacı hiç ilerlemez. Reklam 40 sn açık kalsa bile board
+	# oyuncunun bıraktığı yerde bulunur.
+	if _is_fail_pending:
+		return
+
 	if _drop_cooldown > 0.0:
 		_drop_cooldown = maxf(0.0, _drop_cooldown - delta)
 		if _drop_cooldown == 0.0:
@@ -824,22 +888,17 @@ func _physics_process(delta: float) -> void:
 	if _is_finished:
 		return
 
-	var overflowing: bool = false
-	for body in _overflow_area.get_overlapping_bodies():
-		var dumpling := body as Dumpling
-		if dumpling != null and dumpling.has_landed and not dumpling.is_merging:
-			overflowing = true
-			break
-
-	# Sarsıntı koruması: pencere boyunca taşma birikmiyor. Bitince normal
-	# OVERFLOW_GRACE kuralı aynen geri dönüyor (GAME_DESIGN.md §10).
-	if _shake_protection > 0.0:
+	# Koruma pencereleri: sarsıntı (GAME_DESIGN.md §10.5) ve devam sonrası
+	# (§11). İkisi de taşma sayacını dondurur, ikisi de STACK ETMEZ; aynı anda
+	# açık olabilirler, o yüzden ikisi de ayrı ayrı eritiliyor.
+	if _shake_protection > 0.0 or _revive_protection > 0.0:
 		_shake_protection = maxf(0.0, _shake_protection - delta)
+		_revive_protection = maxf(0.0, _revive_protection - delta)
 		_overflow_elapsed = 0.0
 		_danger_tick = 0.0
 		return
 
-	if overflowing:
+	if _is_overflowing():
 		_overflow_elapsed += delta
 		# Gerilim sesi (GAME_DESIGN.md §6): tehlike sürdükçe tekrar eder.
 		_danger_tick -= delta
@@ -847,20 +906,183 @@ func _physics_process(delta: float) -> void:
 			AudioManager.play_sfx(&"danger", 1.0)
 			_danger_tick = DANGER_TICK_INTERVAL
 		if _overflow_elapsed >= OVERFLOW_GRACE:
-			_finish(false)
+			_trigger_overflow_fail()
 	else:
 		_overflow_elapsed = 0.0
 		_danger_tick = 0.0
+
+
+func _is_overflowing() -> bool:
+	for body in _overflow_area.get_overlapping_bodies():
+		var dumpling := body as Dumpling
+		if dumpling != null and dumpling.has_landed and not dumpling.is_merging:
+			return true
+	return false
+
+
+# --- Devam etme (revive) akışı — GAME_DESIGN.md §11 ---
+#
+# Taşma dolduğunda round ARTIK doğrudan bitmiyor. Üç ayrı kavram var:
+#
+#   1. fail candidate  -> _trigger_overflow_fail()  (hak varsa teklif açılır)
+#   2. revive granted  -> grant_revive()            (yalnız reward callback'i)
+#   3. final loss      -> _finish(false)            (tek sefer, tek yerden)
+#
+# round_finished(false) YALNIZCA 3'te yayılır. Teklif açıkken ne teselli
+# ödülü, ne merge muhasebesi, ne sonuç ekranı çalışır — bunların hepsi
+# main.gd'de round_finished'a bağlı.
+
+func max_revives() -> int:
+	return MAX_REVIVES_PER_ROUND
+
+
+func revives_used() -> int:
+	return _revives_used
+
+
+func revives_remaining() -> int:
+	return maxi(0, MAX_REVIVES_PER_ROUND - _revives_used)
+
+
+func is_fail_pending() -> bool:
+	return _is_fail_pending
+
+
+## Taşma grace'i doldu. Hak varsa teklif, yoksa kesin kayıp.
+func _trigger_overflow_fail() -> void:
+	if _is_finished or _is_fail_pending:
+		return
+	if revives_remaining() <= 0:
+		# Haklar bitti: normal final loss yolu, mevcut davranışın aynısı.
+		_finish(false)
+		return
+	_enter_fail_pending()
+
+
+## Board'u tamamen durdurup teklifi yayar. Bu noktadan sonra board'un state'i
+## yalnızca grant_revive() veya decline_revive() ile değişir.
+func _enter_fail_pending() -> void:
+	_is_fail_pending = true
+	_preview.visible = false
+	# Hedefleme açıksa iptal olur, yeni güç silahlanamaz. Stok TÜKETİLMEZ.
+	_powerups.set_round_active(false)
+	_clear_target_highlights()
+	_power_bar.set_enabled(false)
+	# Zincir kesin koptu; donmuş board'un üstünde asılı bir "xN" kalmasın.
+	_combo_count = 0
+	_combo_timer = 0.0
+	_set_combo_text("")
+	_set_board_frozen(true)
+	AudioManager.play_sfx(&"danger", 0.7)
+	_status_label.text = "Taştı!"
+	revive_offered.emit(revives_remaining())
+
+
+## Devam hakkını GERÇEKTEN verir. Yalnızca ödül kazanıldığı doğrulandığında
+## çağrılmalı (reklam kapandı callback'i DEĞİL — GAME_DESIGN.md §11).
+##
+## Dönüş: devam gerçekleştiyse true. Teklif açık değilse ya da hak kalmadıysa
+## hiçbir şey yapmaz ve false döner — sayaç da artmaz.
+func grant_revive() -> bool:
+	if not _is_fail_pending or _is_finished:
+		return false
+	if revives_remaining() <= 0:
+		return false
+
+	_revives_used += 1
+	_is_fail_pending = false
+
+	var rescued: int = _rescue_overflow_dumplings()
+	_set_board_frozen(false)
+
+	# Taşma durumu tamamen sıfırlanıyor ve kısa koruma açılıyor: cleanup
+	# sonrası yığının oturması için. STACK ETMEZ (atama, toplama değil).
+	_overflow_elapsed = 0.0
+	_danger_tick = 0.0
+	_danger_pulse = 0.0
+	_revive_protection = REVIVE_PROTECTION
+	queue_redraw()
+
+	# Girdi ve güçler geri geliyor; stoklar kaldığı yerden devam ediyor
+	# (kurtarma temizliği Bomba/Temizleyici kullanımı SAYILMAZ).
+	_powerups.set_round_active(true)
+	_power_bar.set_enabled(true)
+	_drop_cooldown = 0.0
+	_preview.visible = true
+	_refresh_preview()
+
+	AudioManager.play_sfx(&"level_win", 1.15)
+	_flash_status("Devam! %d parça kurtarıldı" % rescued)
+	revive_granted.emit(_revives_used, revives_remaining())
+	return true
+
+
+## Oyuncu teklifi reddetti. Hak TÜKETİLMEZ; round kesin biter.
+func decline_revive() -> void:
+	if not _is_fail_pending:
+		return
+	_is_fail_pending = false
+	_finish(false)
+
+
+## Taşmaya sebep olan parçaları kaldırır ve kaldırılan sayısını döner.
+##
+## Ölçüt geometrik: parçanın ÜST KENARI taşma çizgisine ulaşmışsa (yani
+## çizgiyi fiilen aşıyorsa) kaldırılır. OverflowArea 8 px'lik ince bir şerit
+## olduğu için onun `get_overlapping_bodies()` listesi çizginin tam üstünde
+## duran ama şeride değmeyen parçaları kaçırıyor; bu ölçüt onların üst
+## kümesi ve "fail'in sebebi" tanımına birebir oturuyor.
+##
+## Çizginin GÜVENLİ ALTINDA kalan hiçbir parçaya dokunulmuyor — board
+## temizlenmiyor, yalnızca tehlike bandı boşaltılıyor.
+##
+## Kaldırılan parçalar skor, merge sayacı ve bonus sandık ilerlemesi ÜRETMEZ
+## (güçlerdeki kuralın aynısı, GAME_DESIGN.md §10.3).
+func _rescue_overflow_dumplings() -> int:
+	var line: float = overflow_line_y() + REVIVE_RESCUE_DEPTH
+	var removed: int = 0
+	for node in _dumpling_layer.get_children():
+		var dumpling := node as Dumpling
+		if dumpling == null or not is_instance_valid(dumpling):
+			continue
+		if dumpling.is_queued_for_deletion() or dumpling.is_merging:
+			continue
+		# Henüz inmemiş parça taşmaya sebep olmuyor (taşma kontrolü de
+		# `has_landed` istiyor) — düşmeye devam etsin.
+		if not dumpling.has_landed:
+			continue
+		if dumpling.global_position.y - TierConfig.radius(dumpling.tier) > line:
+			continue
+		_pop_and_free(dumpling)
+		removed += 1
+	# Kalanların uyandırılması çözülme adımında: set_simulation_frozen(false)
+	# zaten `sleeping = false` yapıyor, donmuş gövdeye burada dokunmak
+	# etkisiz olurdu.
+	return removed
+
+
+## Tüm canlı gövdeleri simülasyondan çıkarır/geri alır.
+func _set_board_frozen(frozen: bool) -> void:
+	for node in _dumpling_layer.get_children():
+		var dumpling := node as Dumpling
+		if dumpling != null and is_instance_valid(dumpling) \
+				and not dumpling.is_queued_for_deletion():
+			dumpling.set_simulation_frozen(frozen)
 
 
 func _finish(won: bool) -> void:
 	if _is_finished:
 		return
 	_is_finished = true
+	# Teklif açıkken kazanılmış olabilir (fail karesinde uçuşta olan bir merge
+	# hedefi tamamlarsa). Board donmuş kalmasın.
+	_is_fail_pending = false
+	_set_board_frozen(false)
 	_preview.visible = false
 	# Round bitti: hiçbir güç silahlanamaz, silahlı olan iptal olur.
 	_powerups.set_round_active(false)
 	_clear_target_highlights()
+	_power_bar.set_enabled(false)
 	_set_combo_text("")
 	_status_label.text = "Hedef tamam!" if won else "Bitti"
 	AudioManager.play_sfx(&"level_win" if won else &"level_lose")

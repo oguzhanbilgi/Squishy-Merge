@@ -20,8 +20,14 @@ const ARMED_COLOR: Color = Color("6ddc8b")
 ## refill_requested yayılsın (ileride reklam/Hamur akışı buraya bağlanacak).
 const EMPTY_ALPHA: float = 0.45
 
+## Çubuk tümden kapalıyken (round bitti, ya da devam teklifi açık) butonlar
+## `disabled` ve bu opaklıkta. Stok-0 solukluğundan AYRI bir durum: orada
+## buton hâlâ basılabilir (refill sinyali için), burada hiç basılamaz.
+const DISABLED_ALPHA: float = 0.3
+
 var _buttons: Dictionary = {}
 var _armed: int = PowerUpController.ARMED_NONE
+var _enabled: bool = true
 
 @onready var _row: HBoxContainer = $Row
 
@@ -54,8 +60,22 @@ func refresh() -> void:
 		var count: int = SaveManager.powerup_count(type)
 		button.text = "%s\n%s ×%d" % [
 			PowerUp.glyph(type), PowerUp.display_name(type), count]
-		button.modulate.a = 1.0 if count > 0 else EMPTY_ALPHA
+		button.disabled = not _enabled
+		if not _enabled:
+			button.modulate.a = DISABLED_ALPHA
+		else:
+			button.modulate.a = 1.0 if count > 0 else EMPTY_ALPHA
 		_style_armed(button, _armed == int(type))
+
+
+## Çubuğu tümden açar/kapatır (M8.5-04). Kapalıyken hiçbir güç kullanılamaz
+## ve stok tüketilemez; stoklar olduğu gibi durur, tekrar açılınca kaldığı
+## yerden devam eder.
+func set_enabled(enabled: bool) -> void:
+	if enabled == _enabled:
+		return
+	_enabled = enabled
+	refresh()
 
 
 func set_armed(type: int) -> void:

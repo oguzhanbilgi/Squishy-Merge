@@ -85,6 +85,11 @@ func _start_trial() -> void:
 	_board = GAME_BOARD_SCENE.instantiate()
 	_board.setup(_level)
 	_board.round_finished.connect(_on_round_finished)
+	# Devam teklifini HER ZAMAN reddet (M8.5-04). Bu bot balans olcuyor:
+	# GAME_DESIGN'daki kilitli sureler/skorlar HAM fail semantigiyle
+	# uretildi, revive kabul etmek onlari kiyaslanamaz hale getirirdi.
+	_board.revive_offered.connect(func(_remaining: int) -> void:
+		_board.decline_revive())
 	add_child(_board)
 	if not GameState.merge_performed.is_connected(_on_merge):
 		GameState.merge_performed.connect(_on_merge)

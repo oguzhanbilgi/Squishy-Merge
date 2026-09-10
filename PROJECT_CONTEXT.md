@@ -58,6 +58,12 @@ alınacak — şimdi tahmin/vaat yok.
     Temizleyici), kalıcı envanter, hedefleme modu, stok-0 refill kancası.
     **functional power-ups complete / final power-up art pending** —
     ikonlar geçici, bkz. GAME_DESIGN §10.
+  - `M8.5-04` ✅ iki aşamalı devam (revive) altyapısı: taşma artık round'u
+    doğrudan bitirmiyor, round başına 2 devam hakkı sunuluyor
+    (FAIL → Devam #1 → FAIL → Devam #2 → FAIL → kesin kayıp). Board
+    donduruluyor, devam edilince taşma bandı temizlenip 1.5 sn koruma
+    açılıyor. **revive foundation complete / real rewarded ad pending** —
+    AdMob YOK, buton yalnızca sinyal yayıyor, bkz. GAME_DESIGN §11.
 - **Sırada: M9 — Android export.** Ortam hazır (export template'leri, SDK,
   NDK, JDK 17, debug keystore mevcut); eksik olan `export_presets.cfg` ve
   release/upload keystore.
@@ -100,6 +106,10 @@ alınacak — şimdi tahmin/vaat yok.
 - **Güç ekonomisi henüz yok:** stok 0'da `refill_requested` sinyali yayılıyor
   ama hiçbir şeye bağlı değil. Reklam/Hamur/IAP refill ve güç fiyatları
   BELİRLENMEDİ (v1 non-goal'ları hâlâ geçerli).
+- **Ödüllü reklam sağlayıcısı bağlı değil:** devam (revive) akışı uçtan uca
+  çalışıyor ama `rewarded_revive_requested` sinyali boşta. AdMob SDK kurulumu
+  ve `Main.set_rewarded_provider()` bağlanması ayrı bir iş. Sahte reklam ve
+  bedava devam bilinçli olarak YOK — bkz. GAME_DESIGN §11.6.
 - **Skin sanatı owner kararı bekliyor:** 20 skin'in renkleri prosedürel
   üretilmiş ve isimleriyle uyuşmuyor (18/20 uyumsuz). Equip sistemi hazır,
   yalnızca veri düzeltmesi gerekiyor. Seçenekler: `SKIN_ART_AUDIT.md`.

@@ -595,3 +595,108 @@ bedava stok yok. Güç fiyatları da HENÜZ BELİRLENMEDİ.
 > görseli mevcut `fx_dot` yeniden kullanımı. Final power-up art'ı YOK.
 > Güç çubuğu bilerek ekranın en altına sabitlenmedi — alt safe-area ileride
 > AdMob banner'ına ayrılacak.
+
+## 11. Devam etme — ödüllü reklamla revive (M8.5-04)
+
+**Owner tarafından kilitlendi.** Taşma (overflow) artık round'u doğrudan
+bitirmez; oyuncuya reklam izleyerek devam etme fırsatı sunulur.
+
+Nihai akış:
+
+```
+FAIL → Devam #1 → FAIL → Devam #2 → FAIL → KESİN KAYIP
+```
+
+### 11.1 Devam hakkı
+
+- **Round başına en fazla 2 devam.** (`GameBoard.MAX_REVIVES_PER_ROUND`)
+- Sayaç **round-local**: kayda YAZILMAZ. Yeni round ve "tekrar dene" 0/2 ile
+  başlar.
+- Devam **Hamur, güç veya skorla ilişkili değildir**. Tek kaynağı ödüllü
+  reklamdır.
+
+### 11.2 Hak ne zaman düşer (KRİTİK)
+
+**Yalnızca `grant_revive()` başarılı olduğunda +1.** Bu metodu YALNIZCA
+"ödül kazanıldı" callback'i çağırabilir.
+
+> **INVARIANT: "reklam kapandı" callback'i devam DEĞİLDİR.** Reklam ödülsüz
+> de kapanabilir; devam hakkını yalnızca *reward earned* verir.
+
+Hak TÜKETMEYEN durumlar:
+
+- devam penceresinin açılması
+- "DEVAM ET" (ödüllü CTA) butonuna basılması
+- reklamın yüklenememesi / gösterilememesi
+- reklamın kapatılması ama ödülün kazanılmaması
+- oyuncunun "Bitir" demesi
+
+Bu ayrım gelecekte reklam hatalarında kritik: yüklenmeyen bir reklam
+oyuncunun hakkını yakmamalı.
+
+### 11.3 Fail-pending: teklif açıkken ne olmaz
+
+Grace dolduğunda ve hak varsa **`round_finished` YAYILMAZ.** Dolayısıyla
+teklif açıkken şunların HİÇBİRİ çalışmaz:
+
+- teselli ödülü / sandık
+- round merge muhasebesi (`SaveManager.add_merges`)
+- sonuç ekranı
+- endless rekor kaydı
+
+Ayrıca oyun tamamen durur: yeni drop yok, nişan/sürükleme kapalı, güç
+butonları `disabled`, açık hedefleme iptal, taşma sayacı ilerlemiyor, combo
+penceresi duruyor. Canlı `RigidBody2D` parçalar `FREEZE_MODE_STATIC` ile
+dondurulur; hız ve açısal hız saklanıp devam edilince geri verilir. Reklam
+ekranı 20–40 sn açık kalsa bile board arka planda oynamaz.
+
+`round_finished(false)` **tam bir kez**, yalnızca şu iki durumda yayılır:
+oyuncu devam istemedi, ya da devam hakkı kalmadı.
+
+### 11.4 Devam edilince board'a ne olur
+
+1. **Taşma temizliği.** Üst kenarı taşma çizgisinin **120 px altına** kadar
+   uzanan, yerleşmiş (`has_landed`) ve merge işleminde olmayan parçalar kısa
+   bir pop efektiyle kaldırılır. Board'un geri kalanı korunur — **tüm board
+   temizlenmez.**
+   - 120 px = oyun alanı yüksekliğinin (400) %30'u. Ölçüm ve elenen
+     alternatifler `GameBoard.REVIVE_RESCUE_DEPTH` yorumunda.
+   - Kaldırılan parçalar **skor, merge sayacı ve bonus sandık ilerlemesi
+     ÜRETMEZ** (§10.3'teki kuralın aynısı) ve güç envanteriyle ilgisizdir.
+     Kurtarma temizliği Bomba/Temizleyici kullanımı SAYILMAZ.
+2. **Taşma sıfırlanır**: sayaç, danger durumu ve fail-pending temizlenir.
+3. **1.5 saniyelik koruma penceresi** açılır; bu süre boyunca taşma
+   birikmez. **STACK ETMEZ.** Bitince normal 1.5 sn `OVERFLOW_GRACE` kuralı
+   aynen geri döner.
+4. **Fizik ve girdi geri gelir**; güç çubuğu tekrar açılır, stoklar kaldığı
+   yerden devam eder.
+
+> **Ölçüm (level 10, rastgele oynayan bot, n=10):** devam olmadan bir round
+> medyan **34 sn**. Devam sonrası median **12 sn** daha oynanıyor ve board'un
+> %42'si kalkıyor — yani devam gerçek bir ikinci şans, ama round'u yeniden
+> başlatmıyor.
+
+### 11.5 Kazanma ve sonsuz mod
+
+Devam kullanıldıktan sonra level kazanılırsa **normal kazanma**: normal
+yıldız, normal sandık, normal merge ödülleri. **Devam cezası YOK.**
+
+Sonsuz modda revive aynen çalışır (kodda `is_endless` dalı yoktur); rekor
+kaydı yine tek `round_finished` sinyaline bağlı olduğu için mevcut endless
+kuralları değişmez.
+
+### 11.6 Durum: gerçek reklam BEKLİYOR
+
+> **STATUS: revive foundation complete / real rewarded ad pending.**
+>
+> AdMob SDK **kurulmadı.** "DEVAM ET" butonu yalnızca
+> `rewarded_revive_requested` sinyalini yayar; sağlayıcı bağlanana kadar
+> pencerede "Ödüllü reklam henüz bağlı değil." yazar ve teklif açık kalır.
+> **Sahte reklam ve otomatik bedava devam YOKTUR.**
+>
+> Sağlayıcı `main.gd` üzerinden bağlanacak (`set_rewarded_provider`); beklenen
+> akış: `rewarded_revive_requested` → rewarded ad göster → *reward earned* →
+> `Main.grant_revive()`. Ödül gelmezse `Main.notify_rewarded_unavailable()`.
+>
+> Devam penceresinin **final art'ı YOK**: mevcut kawaii UI temasının panel ve
+> buton stilini kullanıyor, kendi asset'i yok.

@@ -101,7 +101,9 @@ func _teardown() -> void:
 func _physics_process(_delta: float) -> void:
 	if not _drive or _board == null or not is_instance_valid(_board):
 		return
-	if _board._is_finished or _board._drop_cooldown > 0.0:
+	# Devam teklifi acikken (M8.5-04) board donmus durumda; birakma zaten
+	# reddedilir, bosuna denenmesin.
+	if _board._is_finished or _board.is_fail_pending() or _board._drop_cooldown > 0.0:
 		return
 	var x: float = BOT_BRAIN.pick_x(_board, _board._pending_tier)
 	if _drive_random:
@@ -296,7 +298,8 @@ func _shot_danger() -> void:
 		while frames < 60 * 150:
 			await get_tree().process_frame
 			frames += 1
-			if _board == null or not is_instance_valid(_board) or _board._is_finished:
+			if _board == null or not is_instance_valid(_board) or _board._is_finished \
+					or _board.is_fail_pending():
 				break
 			# Grace 1.5 sn; 0.7'de yakalamak hem highlight'ın açılmasını
 			# bekler hem game-over'dan önce kalır.

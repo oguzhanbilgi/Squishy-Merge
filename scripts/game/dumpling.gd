@@ -36,6 +36,17 @@ var has_landed: bool = false
 var _approach_speed: float = 0.0
 var _squash_cooldown: float = 0.0
 
+## --- Simülasyon dondurma (M8.5-04, revive teklifi) ---
+##
+## Reklam ekranı 20-40 sn açık kalabilir; o sürede board arka planda oynamaya
+## devam etmemeli. Hızlar ELLE saklanıp geri veriliyor: `freeze = false`
+## gövdeyi uyandırıyor ama Godot dondurma öncesindeki hızı geri vermeyi
+## garanti etmiyor, o yüzden havada donan bir parça çözülünce düşmeye
+## kaldığı hızla devam etmeli.
+var _is_frozen: bool = false
+var _frozen_linear: Vector2 = Vector2.ZERO
+var _frozen_angular: float = 0.0
+
 @onready var _shape: CollisionShape2D = $CollisionShape2D
 @onready var _visual: Node2D = $Visual
 
@@ -82,6 +93,39 @@ func _physics_process(delta: float) -> void:
 
 func play_squash() -> void:
 	_visual.play_squash()
+
+
+## Gövdeyi simülasyondan çıkarır/geri alır (M8.5-04).
+##
+## FREEZE_MODE_STATIC kullanılıyor: gövde geçici olarak statik davranıyor,
+## yerinde duruyor ve komşularını itmiyor. Tüm board aynı anda donduğu için
+## dondurulmuş parçalar arasında çözülecek temas da kalmıyor.
+##
+## `_physics_process` de kapatılıyor — donmuş parçanın yaklaşma hızını
+## izlemeye devam etmesi anlamsız ve çözülme anında yanlış squash tetikler.
+func set_simulation_frozen(frozen: bool) -> void:
+	if frozen == _is_frozen:
+		return
+	_is_frozen = frozen
+	if frozen:
+		_frozen_linear = linear_velocity
+		_frozen_angular = angular_velocity
+		freeze_mode = RigidBody2D.FREEZE_MODE_STATIC
+		freeze = true
+		set_physics_process(false)
+		return
+	freeze = false
+	set_physics_process(true)
+	# Uyandır: dondurma sırasında uyumuş olabilir, ayrıca komşuları temizlenmiş
+	# olabileceği için düşmeye başlaması gerekiyor.
+	sleeping = false
+	linear_velocity = _frozen_linear
+	angular_velocity = _frozen_angular
+	_approach_speed = _frozen_linear.length()
+
+
+func is_simulation_frozen() -> bool:
+	return _is_frozen
 
 
 # --- Güç hedefleme (M8.5-03) ---
