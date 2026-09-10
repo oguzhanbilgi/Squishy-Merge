@@ -26,6 +26,10 @@ signal dough_refill_requested(type: int)
 signal power_pack_requested(type: int)
 signal closed
 
+## Kota satırının rengi — candy panelin krem zemininde okunacak tonlar.
+const QUOTA_COLOR: Color = Color(0.54, 0.32, 0.19)
+const QUOTA_EMPTY_COLOR: Color = Color(0.78, 0.22, 0.28)
+
 var _type: int = -1
 
 @onready var _glyph: Label = $Center/Panel/VBox/Glyph
@@ -77,10 +81,10 @@ func refresh(provider_ready: bool) -> void:
 	# Kota dolduysa VEYA sağlayıcı yoksa CTA basılamaz — basılıp reddedilmek
 	# kötü his, ve iki sebep ayrı ayrı yazıyla açıklanıyor.
 	_ad.disabled = quota_left <= 0 or not provider_ready
-	if quota_left <= 0:
-		_quota.modulate = Color(1, 0.6, 0.6)
-	else:
-		_quota.modulate = Color(1, 1, 1, 0.7)
+	# Renk doğrudan yazıya veriliyor: `modulate` koyu erik yazının üstünde
+	# bulanık bir ton bırakıyordu (candy panel krem zeminli).
+	_quota.add_theme_color_override("font_color",
+		QUOTA_EMPTY_COLOR if quota_left <= 0 else QUOTA_COLOR)
 
 	_dough.disabled = not PowerUpEconomy.can_afford(type)
 

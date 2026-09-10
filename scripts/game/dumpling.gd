@@ -91,8 +91,10 @@ func _physics_process(delta: float) -> void:
 		_squash_cooldown = maxf(0.0, _squash_cooldown - delta)
 
 
-func play_squash() -> void:
-	_visual.play_squash()
+## Varsayılanlar DumplingVisual.play_squash ile aynı; Büyütücü daha güçlü
+## bir squash istediği için parametreler dışarı açıldı (M8.5-07).
+func play_squash(amount: float = 0.2, duration: float = 0.15) -> void:
+	_visual.play_squash(amount, duration)
 
 
 ## Gövdeyi simülasyondan çıkarır/geri alır (M8.5-04).

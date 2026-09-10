@@ -408,6 +408,62 @@ onayına bağlı, istenmezse silinebilir.**
 Export preset'i M9'da kurulacak; bağlanacak alanlar PROJECT_CONTEXT.md'nin
 "M9 için hatırlatmalar" bölümünde yazılı.
 
+## Oyun ekranı görsel pası — owner asset'leri (M8.5-07)
+
+Owner'ın `_visual_source/chatgpt_ui/` altında DURAN ama o güne kadar hiçbir
+yerden kullanılmayan üç kaynağı bağlandı. Dönüşüm diğerleriyle aynı komutla:
+
+```
+godot --headless --path . --script res://tools/make_owner_sprites.gd
+```
+
+| dosya | kaynak | boyut | nerede |
+|---|---|---|---|
+| `ui/board_background.png` | `bg_scene.png` (941×1672) | 720×1280 | Oyun ekranı zemini |
+| `ui/panel_candy.png` | `panel_frame.png` (kırpıldı) | 720×692 | Devam + refill pencereleri |
+| `ui/panel_candy_crown.png` | `panel_frame.png` (kırpıldı) | 338×140 | Aynı pencerelerin tepesi |
+
+### Oyun zemini karartılıyor — kaynak GÜNDÜZ sahnesi
+
+`bg_scene.png` parlak, doygun bir gündüz karnavalı. Ham hâliyle oyun
+zemini yapılamazdı: dumpling karakterlerinden daha parlak, ve zeminin
+KENDİ dumpling çizimleri oyun parçalarıyla karışıyordu.
+
+Karartma çalışma zamanında, `game_board.tscn` → `Backdrop` katmanında:
+`Scene` düğümünde `modulate` (0.38, 0.36, 0.50) + üstünde `Scrim`
+(alfa 0.50). Sonuç akşam/gece hissi veriyor, arka plandaki karakterler
+uzak dekor olarak okunuyor.
+
+**Owner gerçekten koyu bir gece varyantı üretirse** bu iki değer
+gevşetilmeli — dosya adı aynı kaldığı sürece kodda değişiklik gerekmez.
+
+### Panel: taç AYRI dosya
+
+`panel_frame.png` 9-patch'e uygun DEĞİL — tepesinde ortalanmış kanatlı bir
+kalp var, 9-patch'in üst-orta şeridi onu yatayda ezerdi.
+
+Bunun yerine kaynak ölçülüp (`icerik x 247..1200, y 17..1066`; çerçevenin
+düz üst kenarı y=131, tacın tabanı y=150'ye kadar taşıyor) **iki dosyaya**
+bölündü: çerçeve gövdesi ve taç. Çerçeve modal dikdörtgenine geriliyor
+(kaynak oranı 1.04, modal oranı 1.03 — %1 fark, görünmez), taç ayrı bir
+`TextureRect` olarak panelin üst kenarına ortalanıyor.
+
+Modal panelleri artık `theme_override_styles/panel` ile boş bir
+`StyleBoxEmpty` kullanıyor (koyu Wenrexa paneli kapatıldı); içerik payı o
+boş stylebox'ın `content_margin_*` alanlarından geliyor.
+
+**Yazı renkleri:** tema Label rengi tanımlamıyor, yani Godot'un beyaza
+yakın varsayılanı geliyordu ve krem panelde okunmuyordu. İki modal
+sahnesinde etiketlere koyu erik/kahve `font_color` override'ları eklendi.
+
+### Kullanılmayan owner asset'leri (bilinçli)
+
+`btn_normal_a.png`, `btn_normal_b.png`, `btn_disabled.png` — owner'ın candy
+buton seti. **Bağlanmadı:** tema butonu tüm ekranlarda ortak, değiştirmek
+mağaza/ana sayfa/koleksiyon dâhil her ekranı yeniden stillendirmek demek
+ve her durum için 9-patch payı ölçmek gerekiyor. M8.5-07'nin kapsamı oyun
+ekranıydı. Owner isterse ayrı bir turda yapılabilir.
+
 ## HUD ikonları — `icon_sheet.png` (owner asset'i)
 
 Tek dosyada 7 ikon. Kaynak `_visual_source/chatgpt_ui/icon_sheet.png`

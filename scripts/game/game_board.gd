@@ -17,6 +17,9 @@ signal power_refill_offered(type: int)
 const DUMPLING_SCENE: PackedScene = preload("res://scenes/game/dumpling.tscn")
 const POP_EFFECT_SCENE: PackedScene = preload("res://scenes/game/pop_effect.tscn")
 const BOKEH_TEXTURE: Texture2D = preload("res://assets/visual/fx/fx_dot.png")
+## Güç efektlerinin halka/parıltı katmanları (M8.5-07).
+const RING_TEXTURE: Texture2D = preload("res://assets/visual/fx/fx_ring.png")
+const SPARKLE_TEXTURE: Texture2D = preload("res://assets/visual/fx/fx_sparkle.png")
 ## Taşma çizgisinin görsel katmanı — owner asset'i (M8 art turu).
 const DANGER_STRIPE_TEXTURE: Texture2D = preload("res://assets/visual/ui/danger_stripe.png")
 const DROP_BAG := preload("res://scripts/game/drop_bag.gd")
@@ -101,6 +104,19 @@ const SHAKE_MIN: float = 1.5
 const SHAKE_MAX: float = 16.0
 ## Sarsıntı saniyede bu oranda sönümleniyor (yüksek = daha kısa/keskin).
 const SHAKE_DECAY: float = 9.0
+## Sarsıntının kap parlamasının sönümlenme hızı (yalnızca görsel).
+const SHAKE_FLASH_DECAY: float = 2.6
+
+## --- Kabın görünür renkleri (M8.5-07) ---
+##
+## ⚠️ GEÇİCİ: final bambu/ahşap dokusu YOK, bunlar düz renk. Değerler
+## `ui/panel_candy.png` çerçevesinden örneklendi ki kap, modal panelleriyle
+## aynı dünyaya ait görünsün.
+const WALL_COLOR: Color = Color("e8bfa8")
+const FLOOR_COLOR: Color = Color("d8a891")
+const FLOOR_EDGE_COLOR: Color = Color("f6ddc9")
+## Kabın iç zemini — arka plan sahnesinin üstünde oyun alanını ayırıyor.
+const WELL_COLOR: Color = Color(0.09, 0.07, 0.13, 0.34)
 
 ## Duvar/taban da sekmeli olmalı, yoksa yalnızca dumpling-dumpling
 ## çarpışmaları zıpluyor ve kap ölü hissettiriyor.
@@ -151,8 +167,15 @@ var _danger_pulse: float = 0.0
 var _tutorial_dismissed: bool = false
 ## Sarsıntı sonrası taşma koruması kalan süre (sn). >0 iken taşma birikmiyor.
 var _shake_protection: float = 0.0
+## Sarsıntının kap kenarındaki parlaması (1 → 0). Yalnızca GÖRSEL; fizik
+## ve taşma mantığıyla hiçbir ilgisi yok.
+var _shake_flash: float = 0.0
 ## Sarsıntının rastgeleliği; testlerde sabitlenebilsin diye ayrı bir üreteç.
 var _shake_rng := RandomNumberGenerator.new()
+## YALNIZCA görsel efektler için. Gameplay RNG akışından (drop_bag, kamera
+## sarsıntısı) ayrı tutuluyor: yeni bir efekt eklemek bırakma sırasını
+## değiştirmesin. Mevcut RNG coupling teknik borcuna DOKUNULMADI.
+var _fx_rng := RandomNumberGenerator.new()
 ## Güç seçimi/hedefleme durum makinesi (scripts/game/power_up_controller.gd).
 var _powerups: PowerUpController
 ## Skor pop'u için: değişimin miktarını göstermek gerekiyor, sadece yeni
@@ -327,18 +350,58 @@ func _setup_overflow_area() -> void:
 	_overflow_shape.position = Vector2(_center_x(), overflow_line_y())
 
 
+## Kabın görünür katmanı. FİZİĞE DOKUNMAZ: collider'lar `_build_walls()`
+## içinde ayrı kuruluyor ve buradaki hiçbir sayı onları etkilemiyor.
+## Görsel duvar ile fizik duvarı bilerek ayrı — biri değişirken diğeri
+## kazara kaymasın.
+##
+## Çizim sırası: kabın iç zemini → duvarlar → taşma şeridi → tehlike parlaması.
 func _draw() -> void:
 	if level == null:
 		return
-	var wall_color := Color("6b5a52")
-	var top: float = container_top_y()
-	var height: float = FLOOR_Y - top
-	draw_rect(Rect2(_left_x() - WALL_THICKNESS, top, WALL_THICKNESS, height), wall_color)
-	draw_rect(Rect2(_right_x(), top, WALL_THICKNESS, height), wall_color)
-	draw_rect(Rect2(_left_x() - WALL_THICKNESS, FLOOR_Y,
-		level.container_width + WALL_THICKNESS * 2.0, WALL_THICKNESS), wall_color)
+	_draw_container_well()
+	_draw_walls()
 	_draw_overflow_stripe()
 	_draw_danger()
+
+
+## Kabın içi. Arka plan sahnesi (Backdrop katmanı) tüm ekranı kapladığı için
+## kabın içi ile dışı aynı parlaklıkta kalıyordu ve "kap" okunmuyordu; bu
+## hafif koyu dolgu oyun alanını ayırıyor ve karakterlerin siluetini
+## okunur tutuyor. Düz renk — sahte doku DEĞİL.
+func _draw_container_well() -> void:
+	var top: float = container_top_y()
+	draw_rect(Rect2(_left_x(), top, level.container_width, FLOOR_Y - top),
+		WELL_COLOR)
+
+
+## Görsel duvarlar ve taban.
+##
+## ⚠️ GEÇİCİ RENK — final duvar dokusu YOK. Owner'ın pastel bambu/ahşap
+## texture'ı henüz üretilmedi (bkz. PROJECT_STATUS "OWNER ASSET NEEDED").
+## Eski `#6b5a52` çamurlu kahverengi, candy paletinin yanında kırık
+## duruyordu; yerine panel/çerçeve asset'inden örneklenmiş krem-pembe bir
+## pastel kondu. Bu bir RENK düzeltmesidir, doku taklidi değil: gerçek
+## bambu dokusu geldiğinde bu iki `draw_rect` bir `draw_texture_rect`e
+## dönecek.
+func _draw_walls() -> void:
+	var top: float = container_top_y()
+	var height: float = FLOOR_Y - top
+	# Sarsıntı parlaması: duvarlar kısa süre gücün vurgu rengine kayıyor.
+	var wall: Color = WALL_COLOR
+	if _shake_flash > 0.0:
+		wall = WALL_COLOR.lerp(PowerUp.accent(PowerUp.Type.SHAKE),
+			_shake_flash * 0.55)
+	draw_rect(Rect2(_left_x() - WALL_THICKNESS, top, WALL_THICKNESS, height),
+		wall)
+	draw_rect(Rect2(_right_x(), top, WALL_THICKNESS, height), wall)
+	# Tabanın iç kenarında ince bir açık şerit: taban ile duvarın birleştiği
+	# yer yoksa tek bir blok gibi okunuyor.
+	draw_rect(Rect2(_left_x() - WALL_THICKNESS, FLOOR_Y,
+		level.container_width + WALL_THICKNESS * 2.0, WALL_THICKNESS),
+		FLOOR_COLOR)
+	draw_rect(Rect2(_left_x(), FLOOR_Y, level.container_width, 4.0),
+		FLOOR_EDGE_COLOR)
 
 
 ## Taşma çizgisinin görsel katmanı (owner asset'i). Eskiden kesikli kırmızı
@@ -450,6 +513,7 @@ func _setup_powerups() -> void:
 	_powerups.refill_requested.connect(_on_power_refill_requested)
 	_power_bar.power_pressed.connect(_on_power_pressed)
 	_shake_rng.randomize()
+	_fx_rng.randomize()
 	_refresh_power_bar()
 
 
@@ -531,6 +595,73 @@ func _clear_target_highlights() -> void:
 			dumpling.set_targetable(false)
 
 
+# --- Güç efektleri: ortak yardımcılar (M8.5-07) ---
+#
+# ⚠️ FINAL POWER-UP ART'I YOK. Buradaki efektler mevcut CC0 parçacık
+# dosyalarından (fx_ring / fx_dot / fx_sparkle) kuruluyor; gerçek güç
+# görselleri geldiğinde bunların üstüne binecek, yerine geçmeyecek.
+#
+# PERFORMANS KURALI: her efekt TEK atışlık, ömrü < 1 sn ve parçacık sayısı
+# sabit bir tavanla sınırlı. Tier 8 merge'i + güç efekti aynı anda oynasa
+# bile toplam parçacık birkaç yüzü geçmiyor.
+#
+# RNG: görsel rastgelelik `_fx_rng` üzerinden — gameplay RNG akışına
+# (drop_bag / kamera sarsıntısı) DOKUNMUYOR.
+
+## Halka efektinin en fazla yaşayacağı süre.
+const FX_RING_TIME: float = 0.34
+## Toz/parıltı bulutlarının parçacık tavanı.
+const FX_DUST_MAX: int = 20
+const FX_SPARKLE_MAX: int = 16
+## Temizleyicinin süpürme halkası bu kadar parça kaldırıldıysa oynuyor —
+## tek parça için ekranın ortasında halka açmak abartı olurdu.
+const FX_SWEEP_MIN_TARGETS: int = 3
+
+
+## Genişleyen ya da daralan halka. `from_scale` > `to_scale` ise kilitlenme
+## (içeri doğru), tersi ise patlama (dışarı doğru) okunur.
+func _spawn_ring(at: Vector2, ring_color: Color, from_scale: float,
+		to_scale: float, duration: float = FX_RING_TIME) -> void:
+	var ring := Sprite2D.new()
+	ring.texture = RING_TEXTURE
+	ring.position = at
+	ring.z_index = 5
+	ring.modulate = Color(ring_color.r, ring_color.g, ring_color.b, 0.9)
+	ring.scale = Vector2.ONE * from_scale
+	add_child(ring)
+	var tween := create_tween()
+	tween.set_parallel(true)
+	tween.tween_property(ring, "scale", Vector2.ONE * to_scale, duration) \
+		.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+	tween.tween_property(ring, "modulate:a", 0.0, duration)
+	tween.chain().tween_callback(ring.queue_free)
+
+
+## Tek atışlık parçacık bulutu. `up_bias` 1.0 = tamamen yukarı, 0.0 = her yöne.
+func _spawn_burst(at: Vector2, texture: Texture2D, burst_color: Color,
+		count: int, speed: float, up_bias: float, life: float) -> void:
+	var fx := CPUParticles2D.new()
+	fx.texture = texture
+	fx.position = at
+	fx.z_index = 5
+	fx.emitting = false
+	fx.one_shot = true
+	fx.explosiveness = 1.0
+	fx.lifetime = life
+	fx.amount = maxi(1, count)
+	fx.direction = Vector2.UP
+	fx.spread = lerpf(180.0, 25.0, clampf(up_bias, 0.0, 1.0))
+	fx.gravity = Vector2(0.0, lerpf(700.0, 180.0, up_bias))
+	fx.initial_velocity_min = speed * 0.45
+	fx.initial_velocity_max = speed
+	fx.scale_amount_min = 0.10
+	fx.scale_amount_max = 0.26
+	fx.color = burst_color
+	add_child(fx)
+	fx.emitting = true
+	get_tree().create_timer(life + 0.25).timeout.connect(fx.queue_free)
+
+
 # --- Bomba ve Büyütücü ---
 
 func _use_targeted_power(target: Dumpling) -> void:
@@ -550,32 +681,62 @@ func _use_targeted_power(target: Dumpling) -> void:
 
 
 ## Bomba: kilitlenme → hedefe uçan mermi → patlama → parça kaldırılır.
-## Patlama KOMŞULARI ETKİLEMEZ, tek hedefliktir.
-## ⚠️ Bomba görseli placeholder (fx_dot yeniden kullanılıyor), final art yok.
+## Patlama KOMŞULARI ETKİLEMEZ, tek hedefliktir. MEKANİK DEĞİŞMEDİ —
+## M8.5-07 yalnızca sunumu geliştirdi.
+##
+## ⚠️ Bomba görseli hâlâ PLACEHOLDER: gerçek bomba art'ı YOK, mermi mevcut
+## `fx_dot` dosyasından kuruluyor.
+##
+## Okunurluk zinciri — oyuncu "hangi parçayı bombaladım?" sorusunu anında
+## cevaplayabilmeli:
+##   1. hedef nabzı durur, kısa beyaz kilitlenme flaşı (play_lock_on)
+##   2. hedefin üstüne DARALAN halka — nişan alınan parça bu      (yeni)
+##   3. mermi büyüyerek fırlar, yay çizerek ve dönerek iner       (yeni)
+##   4. çarpma: genişleyen şok halkası + duman + normal pop       (yeni)
 func _run_bomb(target: Dumpling) -> void:
 	var destination: Vector2 = target.global_position
+	var tier: int = target.tier
 	target.play_lock_on()
+	# Kilitlenme halkası hedefin üstüne kapanıyor: mermi daha yola çıkmadan
+	# hangi parçanın seçildiği belli oluyor.
+	_spawn_ring(destination, PowerUp.accent(PowerUp.Type.BOMB),
+		2.4, 0.85, BOMB_TRAVEL)
 
 	var shell := Sprite2D.new()
 	shell.texture = BOKEH_TEXTURE
-	shell.modulate = Color(0.15, 0.12, 0.18)
-	shell.scale = Vector2.ONE * 0.35
+	shell.modulate = Color(0.16, 0.12, 0.2)
+	shell.z_index = 6
+	shell.scale = Vector2.ONE * 0.12
 	shell.position = Vector2(destination.x, container_top_y() - 60.0)
 	add_child(shell)
 
+	# Anticipation: mermi önce yerinde büyüyor, sonra iniyor.
+	create_tween().tween_property(shell, "scale", Vector2.ONE * 0.42, 0.09) \
+		.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+
+	# Yay: x yumuşak, y hızlanarak. Düz çizgi yerine "düşüyor" hissi veriyor.
+	var arc_x: float = destination.x + _fx_rng.randf_range(-26.0, 26.0)
 	var tween := create_tween()
-	tween.tween_property(shell, "position", destination, BOMB_TRAVEL) \
+	tween.set_parallel(true)
+	tween.tween_property(shell, "position:x", destination.x, BOMB_TRAVEL) \
+		.set_trans(Tween.TRANS_SINE).from(arc_x)
+	tween.tween_property(shell, "position:y", destination.y, BOMB_TRAVEL) \
 		.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
-	tween.tween_callback(func() -> void:
+	tween.tween_property(shell, "rotation", TAU * 0.75, BOMB_TRAVEL)
+	tween.chain().tween_callback(func() -> void:
 		shell.queue_free()
-		_detonate_bomb(target, destination))
+		_detonate_bomb(target, destination, tier))
 
 
-func _detonate_bomb(target: Dumpling, at: Vector2) -> void:
-	var tier: int = target.tier if is_instance_valid(target) else 1
+func _detonate_bomb(target: Dumpling, at: Vector2, tier: int) -> void:
 	if is_instance_valid(target):
 		target.queue_free()
 	# Skor ve merge sayacı DEĞİŞMEZ (GAME_DESIGN.md §10).
+	var accent: Color = PowerUp.accent(PowerUp.Type.BOMB)
+	# Genişleyen şok halkası + kısa duman: patlamanın merkezi net okunsun.
+	_spawn_ring(at, accent, 0.5, 2.6, 0.3)
+	_spawn_burst(at, BOKEH_TEXTURE, Color(0.72, 0.66, 0.78, 0.85),
+		FX_DUST_MAX, TierConfig.radius(tier) * 5.0, 0.15, 0.42)
 	_spawn_pop(at, TierConfig.color(tier), TierConfig.radius(tier), maxi(tier, 2))
 	_add_shake(tier)
 	AudioManager.play_sfx(&"merge", 0.75)
@@ -588,6 +749,7 @@ func _detonate_bomb(target: Dumpling, at: Vector2) -> void:
 ## Momentum korunuyor ki parça havada donmasın. Skor/merge sayacı ARTMAZ ama
 ## level hedefi yeni tier'ı görür.
 func _run_upgrade(target: Dumpling) -> void:
+	var old_tier: int = target.tier
 	var new_tier: int = target.tier + 1
 	var at: Vector2 = target.global_position
 	var velocity: Vector2 = target.linear_velocity
@@ -595,7 +757,21 @@ func _run_upgrade(target: Dumpling) -> void:
 
 	var upgraded := _spawn_dumpling(new_tier, at)
 	upgraded.linear_velocity = velocity
-	upgraded.play_squash()
+	# Normal merge'den daha güçlü squash: dönüşüm "büyüdü" diye okunmalı.
+	upgraded.play_squash(0.34, 0.26)
+
+	# --- Reveal (M8.5-07). Dönüşüm ANI değişmedi; efekt onun etrafında. ---
+	#
+	# Normal merge ile karışmasın diye Büyütücü'nün kendi imzası var:
+	# merge'de halka YOK, burada eski tier'ın çapından yeni tier'ın çapına
+	# AÇILAN bir halka + yukarı fırlayan parıltı sütunu var.
+	var accent: Color = PowerUp.accent(PowerUp.Type.UPGRADE)
+	var from_r: float = TierConfig.radius(old_tier)
+	var to_r: float = TierConfig.radius(new_tier)
+	_spawn_ring(at, accent, from_r / 64.0, (to_r * 1.5) / 64.0, 0.32)
+	# Yukarı doğru parıltı: "yükseldi" hissi. up_bias yüksek = dar koni.
+	_spawn_burst(at, SPARKLE_TEXTURE, accent.lerp(Color.WHITE, 0.35),
+		FX_SPARKLE_MAX, to_r * 4.5, 0.85, 0.55)
 
 	_spawn_pop(at, TierConfig.color(new_tier), TierConfig.radius(new_tier), new_tier)
 	_add_shake(new_tier)
@@ -640,6 +816,13 @@ func _use_shake() -> void:
 	AudioManager.play_sfx(&"danger", 0.8)
 	_flash_status("Sarsıntı!")
 
+	# --- Sunum (M8.5-07). IMPULSE DEĞERLERİ DEĞİŞMEDİ. ---
+	#
+	# Kamera sarsıntısı tek başına "bir şey oldu" diyor ama "ne oldu"
+	# demiyordu. Kabın tabanından kalkan toz + kap kenarının kısa parlaması
+	# gücün board'a uygulandığını gösteriyor.
+	_play_shake_feedback()
+
 
 # --- Temizleyici ---
 
@@ -656,6 +839,13 @@ func _use_clear_small() -> void:
 		return
 
 	AudioManager.play_sfx(&"merge", 1.15)
+	# Süpürme halkası: tek tek pop'lar "dağınık" okunuyordu; ortak bir
+	# halka hepsinin AYNI güçle kaldırıldığını anlatıyor. Tek parça için
+	# gereksiz olurdu, o yüzden eşik var.
+	if targets.size() >= FX_SWEEP_MIN_TARGETS:
+		var center := Vector2(_center_x(), (overflow_line_y() + FLOOR_Y) * 0.5)
+		_spawn_ring(center, PowerUp.accent(PowerUp.Type.CLEAR_SMALL),
+			0.4, level.container_width / 52.0, 0.42)
 	for index in targets.size():
 		var dumpling: Dumpling = targets[index]
 		# Kademeli pop: tek karede hepsini silmek sert görünüyor.
@@ -665,6 +855,8 @@ func _use_clear_small() -> void:
 	_flash_status("%d parça temizlendi" % targets.size())
 
 
+## Tek bir parçayı patlatıp kaldırır. Hem Temizleyici hem devam (revive)
+## kurtarma temizliği bunu kullanıyor.
 func _pop_and_free(dumpling: Dumpling) -> void:
 	if not is_instance_valid(dumpling) or dumpling.is_queued_for_deletion():
 		return
@@ -673,6 +865,27 @@ func _pop_and_free(dumpling: Dumpling) -> void:
 	dumpling.queue_free()
 	# Skor ve merge sayacı DEĞİŞMEZ.
 	_spawn_pop(at, TierConfig.color(tier), TierConfig.radius(tier), 2)
+	# Kısa yukarı iz: parça "silinmiyor", kaldırılıyor gibi okunsun.
+	# Parçacık sayısı bilerek küçük — 20 parça birden temizlenebiliyor.
+	_spawn_burst(at, SPARKLE_TEXTURE, Color(1.0, 0.95, 0.85, 0.9),
+		4, TierConfig.radius(tier) * 3.0, 0.8, 0.34)
+
+
+## Sarsıntının görsel geri bildirimi. Fizik YOK: yalnızca toz ve kap parlaması.
+func _play_shake_feedback() -> void:
+	var accent: Color = PowerUp.accent(PowerUp.Type.SHAKE)
+	# Taban boyunca birkaç noktadan toz — tek merkezden çıksa "patlama"
+	# gibi okunurdu, sarsıntı ise kabın tamamına yayılıyor.
+	var puffs: int = 3
+	for i in puffs:
+		var t: float = (float(i) + 0.5) / float(puffs)
+		var at := Vector2(lerpf(_left_x(), _right_x(), t), FLOOR_Y - 12.0)
+		_spawn_burst(at, BOKEH_TEXTURE, Color(0.85, 0.80, 0.90, 0.55),
+			FX_DUST_MAX / puffs, 210.0, 0.7, 0.5)
+	# Kap kenarının kısa parlaması.
+	_shake_flash = 1.0
+	_spawn_ring(Vector2(_center_x(), (overflow_line_y() + FLOOR_Y) * 0.5),
+		accent, level.container_width / 90.0, level.container_width / 60.0, 0.36)
 
 
 func _set_aim(x: float) -> void:
@@ -888,6 +1101,10 @@ func _process(delta: float) -> void:
 			randf_range(-_shake_strength, _shake_strength))
 		if _shake_strength == 0.0:
 			_camera.offset = Vector2.ZERO
+
+	if _shake_flash > 0.0:
+		_shake_flash = maxf(0.0, _shake_flash - SHAKE_FLASH_DECAY * delta)
+		queue_redraw()
 
 	if _overflow_elapsed > 0.0 and not _is_finished:
 		_danger_pulse = 0.5 + 0.5 * sin(Time.get_ticks_msec() * 0.012)

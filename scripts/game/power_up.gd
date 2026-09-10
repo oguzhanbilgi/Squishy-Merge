@@ -29,6 +29,7 @@ const DISPLAY_NAMES: Dictionary = {
 }
 
 ## Geçici placeholder işaretler. Final power-up art'ı YOK (M8.5-03).
+## İkon dosyaları geldiğinde bunlar otomatik devre dışı kalır — bkz. ICONS.
 const GLYPHS: Dictionary = {
 	Type.BOMB: "✸",
 	Type.UPGRADE: "▲",
@@ -36,11 +37,57 @@ const GLYPHS: Dictionary = {
 	Type.CLEAR_SMALL: "⌫",
 }
 
+## Güç ikonlarının dosya yolları (M8.5-07).
+##
+## ⚠️ HEPSİ BOŞ — final power-up ikonları HENÜZ YOK, owner'dan bekleniyor.
+## Mimari hazır: dosya `assets/visual/ui/` altına konup yolu buraya yazılınca
+## güç çubuğu ve refill penceresi otomatik olarak metin işaretinden gerçek
+## Texture2D'ye geçer (kod değişikliği GEREKMEZ). Boş kaldığı sürece
+## `GLYPHS` kullanılmaya devam eder.
+##
+## Beklenen dosyalar (öneri): `power_bomb.png`, `power_upgrade.png`,
+## `power_shake.png`, `power_clear.png` — kare, ~128 px, saydam zemin.
+const ICON_PATHS: Dictionary = {
+	Type.BOMB: "",
+	Type.UPGRADE: "",
+	Type.SHAKE: "",
+	Type.CLEAR_SMALL: "",
+}
+
+## Güç başına vurgu rengi. Dört gücün tek bakışta ayırt edilmesi için;
+## seçili çerçevesinde ve stok yazısında kullanılıyor. Renkler candy
+## paletinden, birbirinden uzak hue'larda seçildi.
+const ACCENTS: Dictionary = {
+	Type.BOMB: Color("ff8fa8"),        # pembe
+	Type.UPGRADE: Color("ffd166"),     # altın
+	Type.SHAKE: Color("7fd4ff"),       # camgöbeği
+	Type.CLEAR_SMALL: Color("b6f2a8"), # yeşil
+}
+
+
 ## Kayıt başına bir kez verilen başlangıç stoğu (GAME_DESIGN.md §10).
 const STARTER_COUNT: int = 1
 
 ## Temizleyicinin kaldırdığı en yüksek tier.
 const CLEAR_SMALL_MAX_TIER: int = 2
+
+
+## Gücün ikonu, ya da tanımlı/yüklenebilir değilse null.
+## null dönerse çağıran taraf `glyph()` metnine düşer.
+static func icon(type: Type) -> Texture2D:
+	var path: String = String(ICON_PATHS.get(type, ""))
+	if path.is_empty() or not ResourceLoader.exists(path):
+		return null
+	return load(path) as Texture2D
+
+
+## Bu güç için gerçek ikon var mı?
+static func has_icon(type: Type) -> bool:
+	return icon(type) != null
+
+
+static func accent(type: Type) -> Color:
+	return ACCENTS[type]
 
 
 static func all() -> Array[Type]:

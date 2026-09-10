@@ -60,6 +60,28 @@ const UI_ITEMS: Array[Dictionary] = [
 
 	# Tutorial pozu: level 1 ipucunun yaninda ~180 px.
 	{"src": "tutorial_pose.png", "out": "tutorial_pose.png", "size": 320},
+
+	# --- M8.5-07 gorsel pas ---
+
+	# Oyun alani zemini. Kaynak map_background ile AYNI olcude (941x1672),
+	# yani viewport oraniyla (720x1280) ayni — kirpma gerekmiyor.
+	# DIKKAT: bu gorsel parlak bir GUNDUZ sahnesi. Oyun icinde ham hali
+	# kullanilamaz; game_board.tscn onu karartip doygunlugunu dusuruyor
+	# (bkz. Backdrop dugumu). Owner koyu bir gece varyanti verirse bu
+	# karartma azaltilabilir.
+	{"src": "bg_scene.png", "out": "board_background.png",
+		"exact": Vector2i(720, 1280), "crop": false},
+
+	# Candy panel — TAC AYRI DOSYAYA cikiyor. Tek parca birakilsaydi
+	# panelin en/boy orani degistiginde tac da ezilirdi; ayri katman olarak
+	# panelin ustune ortalaniyor.
+	# Kirpilan bolge olculdu (tools/_panel_probe): icerik x 247..1200,
+	# y 17..1066; cercevenin duz ust kenari y=131'de basliyor ama tacin
+	# tabani y=150'ye kadar tasiyor, kesim oradan yapiliyor.
+	{"src": "panel_frame.png", "out": "panel_candy.png",
+		"region": Rect2i(247, 150, 954, 917), "width": 720},
+	{"src": "panel_frame.png", "out": "panel_candy_crown.png",
+		"region": Rect2i(556, 12, 338, 140), "width": 338},
 ]
 
 ## --- Android adaptive icon katmanlari ---
@@ -180,7 +202,11 @@ func _process_ui(item: Dictionary) -> bool:
 	img.convert(Image.FORMAT_RGBA8)
 
 	var region := Rect2i(0, 0, img.get_width(), img.get_height())
-	if item.get("crop", true):
+	if item.has("region"):
+		# Elle olculmus alt bolge (bkz. panel_candy): otomatik icerik
+		# siniri burada yanlis olurdu.
+		region = item["region"]
+	elif item.get("crop", true):
 		region = _content_bounds(img)
 		if region.size.x <= 0:
 			printerr("Tamamen seffaf: ", item["src"])

@@ -1,13 +1,32 @@
-[gd_scene load_steps=6 format=3]
+[gd_scene load_steps=7 format=3]
 
 [ext_resource type="Script" path="res://scripts/game/game_board.gd" id="1_board"]
 [ext_resource type="Script" path="res://scripts/game/dumpling_visual.gd" id="2_visual"]
 [ext_resource type="Texture2D" path="res://assets/visual/ui/badge_starburst.png" id="3_badge"]
 [ext_resource type="Texture2D" path="res://assets/visual/ui/tutorial_pose.png" id="4_pose"]
 [ext_resource type="PackedScene" path="res://scenes/ui/power_bar.tscn" id="5_powerbar"]
+[ext_resource type="Texture2D" path="res://assets/visual/ui/board_background.png" id="6_backdrop"]
 
 [node name="GameBoard" type="Node2D"]
 script = ExtResource("1_board")
+
+[node name="Backdrop" type="CanvasLayer" parent="."]
+layer = -1
+
+[node name="Scene" type="TextureRect" parent="Backdrop"]
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 2
+modulate = Color(0.38, 0.36, 0.5, 1)
+texture = ExtResource("6_backdrop")
+expand_mode = 1
+stretch_mode = 6
+
+[node name="Scrim" type="ColorRect" parent="Backdrop"]
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 2
+color = Color(0.07, 0.05, 0.11, 0.5)
 
 [node name="Camera2D" type="Camera2D" parent="."]
 
@@ -27,6 +46,12 @@ monitoring = true
 script = ExtResource("2_visual")
 
 [node name="HUD" type="CanvasLayer" parent="."]
+
+[node name="TopPlate" type="ColorRect" parent="HUD"]
+anchor_right = 1.0
+offset_bottom = 160.0
+mouse_filter = 2
+color = Color(0.05, 0.03, 0.09, 0.42)
 
 [node name="ScoreLabel" type="Label" parent="HUD"]
 offset_left = 24.0
@@ -74,20 +99,20 @@ expand_mode = 1
 stretch_mode = 5
 
 [node name="ScorePop" type="Label" parent="HUD"]
-offset_left = 340.0
-offset_top = 78.0
-offset_right = 580.0
-offset_bottom = 122.0
+offset_left = 470.0
+offset_top = 16.0
+offset_right = 700.0
+offset_bottom = 60.0
 theme_override_font_sizes/font_size = 32
 horizontal_alignment = 1
 text = ""
 
 [node name="Badge" type="TextureRect" parent="HUD/ScorePop"]
 show_behind_parent = true
-offset_left = 60.0
-offset_top = -35.0
-offset_right = 180.0
-offset_bottom = 79.0
+offset_left = 68.0
+offset_top = -26.0
+offset_right = 162.0
+offset_bottom = 68.0
 mouse_filter = 2
 texture = ExtResource("3_badge")
 expand_mode = 1

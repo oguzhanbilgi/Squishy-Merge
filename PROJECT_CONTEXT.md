@@ -78,6 +78,12 @@ alınacak — şimdi tahmin/vaat yok.
     board refill sırasında donuyor, günlük ödüllü kota **1/gün (dört gücün
     toplamı)** olarak kilitlendi ve token'lı callback güvenliği eklendi.
     **UX + kota hazır / AdMob SDK pending** — bkz. GAME_DESIGN §5.7.3.
+  - `M8.5-07` ✅ oyun ekranı görsel pası: owner'ın kullanılmayan candy
+    zemini oyun arkasına (karartılmış) ve candy paneli iki oyun içi
+    pencereye bağlandı, kap duvarları pastel oldu, dört gücün efektleri
+    (kilitlenme halkası / yükselme parıltısı / toz / süpürme) ayrıştırıldı.
+    **OWNER ASSET NEEDED: dört güç ikonu + pastel bambu duvar dokusu** —
+    ikisi de yok, mimari hazır. Ayrıntı: PROJECT_STATUS §4.10.
 - **Sırada: M9 — Android export.** Ortam hazır (export template'leri, SDK,
   NDK, JDK 17, debug keystore mevcut); eksik olan `export_presets.cfg` ve
   release/upload keystore.
@@ -131,6 +137,10 @@ alınacak — şimdi tahmin/vaat yok.
   çalışıyor ama `rewarded_revive_requested` sinyali boşta. AdMob SDK kurulumu
   ve `Main.set_rewarded_provider()` bağlanması ayrı bir iş. Sahte reklam ve
   bedava devam bilinçli olarak YOK — bkz. GAME_DESIGN §11.6.
+- **Oyun ekranı için iki asset eksik (M8.5-07):** (1) dört güç ikonu —
+  çubuk ve refill penceresi hâlâ geçici metin işareti gösteriyor, mimari
+  `PowerUp.ICON_PATHS` doldurulunca kod değişmeden geçiyor; (2) pastel
+  bambu/ahşap duvar dokusu — kap duvarları şimdilik düz pastel renk.
 - **Skin sanatı owner kararı bekliyor:** 20 skin'in renkleri prosedürel
   üretilmiş ve isimleriyle uyuşmuyor (18/20 uyumsuz). Equip sistemi hazır,
   yalnızca veri düzeltmesi gerekiyor. Seçenekler: `SKIN_ART_AUDIT.md`.

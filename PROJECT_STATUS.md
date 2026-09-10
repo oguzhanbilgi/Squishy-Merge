@@ -616,6 +616,109 @@ içine gömülü olduğu için, gövdeyle tam dönerse karakter baş aşağı ka
 
 ---
 
+### 4.10 Oyun ekranı görsel pası (M8.5-07)
+
+M8.5-03/04/05/06 mekaniği ve monetization altyapısını bitirdi ama oyun
+ekranı hâlâ prototip gibi duruyordu: **düz koyu gri zemin, çamurlu kahverengi
+(`#6b5a52`) duvarlar, koyu generic Wenrexa panelli pencereler.** Mağaza ve
+harita ekranları candy görünürken oyun ekranı başka bir üründen gibiydi.
+
+#### Bağlanan owner asset'leri
+
+Üçü de repoda **zaten duruyordu ama hiçbir yerden kullanılmıyordu**
+(`_visual_source/chatgpt_ui/`):
+
+| kaynak | çıktı | nerede |
+|---|---|---|
+| `bg_scene.png` | `ui/board_background.png` | Oyun ekranı zemini |
+| `panel_frame.png` | `ui/panel_candy.png` + `ui/panel_candy_crown.png` | Devam + refill pencereleri |
+
+**Zemin karartılıyor.** Kaynak parlak bir GÜNDÜZ karnavalı; ham hâliyle
+dumpling'lerden parlak kalıyor ve zeminin kendi dumpling çizimleri oyun
+parçalarıyla karışıyordu. Çalışma zamanında `modulate` (0.38, 0.36, 0.50)
++ alfa 0.50 scrim ile akşam hissine çekildi. Fizik geometrisine
+DOKUNULMADI — zemin ayrı bir `CanvasLayer` (layer −1).
+
+**Panel ikiye bölündü.** `panel_frame.png` 9-patch'e uygun değil: tepesinde
+ortalanmış kanatlı kalp var, üst-orta şerit onu yatayda ezerdi. Kaynak
+ölçülüp (çerçevenin düz üst kenarı y=131, tacın tabanı y=150) çerçeve ve
+taç ayrı dosyalara çıkarıldı; çerçeve modal dikdörtgenine geriliyor
+(oran farkı %1, görünmez), taç üstüne ortalanıyor.
+
+#### Kap görünümü
+
+Duvarlar `#6b5a52` → `#e8bfa8` (krem-pembe), taban `#d8a891` + ince açık iç
+şerit. Kabın içine hafif koyu bir dolgu kondu: zemin tüm ekranı kapladığı
+için kabın içi ile dışı aynı parlaklıktaydı ve "kap" okunmuyordu.
+
+**Görsel duvar ile fizik duvarı ayrıldı:** `_draw_walls()` yalnızca çiziyor,
+collider'lar `_build_walls()` içinde ayrı kuruluyor. `WALL_THICKNESS`,
+`FLOOR_Y`, `RIM_ABOVE_LINE` ve kap genişlikleri DEĞİŞMEDİ.
+
+#### Güç efektleri
+
+Mekanik hiç değişmedi (impulse, hedef kuralları, stok tüketimi, skor/merge
+etkisi aynı). Eklenen yalnızca sunum ve dört güç artık birbirinden renkle de
+ayrılıyor (`PowerUp.ACCENTS`):
+
+| güç | eklenen | renk |
+|---|---|---|
+| Bomba | hedefe kapanan kilitlenme halkası → büyüyerek fırlayan, yay çizen ve dönen mermi → genişleyen şok halkası + duman | pembe |
+| Büyütücü | eski çaptan yeni çapa AÇILAN halka + yukarı parıltı sütunu + daha güçlü squash | altın |
+| Sarsıntı | taban boyunca üç toz bulutu + kap kenarının kısa parlaması + geniş halka | camgöbeği |
+| Temizleyici | ortak süpürme halkası (≥3 parça) + parça başına kısa yukarı iz | yeşil |
+
+Normal merge'de halka YOK — halka bilerek güçlerin imzası, ikisi
+karışmasın diye.
+
+**Performans:** her efekt tek atışlık, ömrü < 0.6 sn, parçacık sayısı sabit
+tavanlı (`FX_DUST_MAX` 20, `FX_SPARKLE_MAX` 16, Temizleyici izi parça başına
+4). Tier 8 merge'i + güç efekti aynı anda oynasa bile toplam birkaç yüz
+parçacık.
+
+**RNG:** görsel rastgelelik ayrı bir `_fx_rng` üzerinden. Gameplay RNG
+akışına (drop_bag / kamera sarsıntısı) dokunulmadı; mevcut RNG coupling
+teknik borcu bu turda da refactor EDİLMEDİ.
+
+#### Üst HUD
+
+Yeni zemin yer yer parlak olduğu için HUD yazılarının arkasına yumuşak koyu
+bir plaka kondu (`HUD/TopPlate`). Ayrıca skor pop rozeti hedef satırının
+üstüne biniyordu: rozet küçültülüp pop sağ üst köşeye çekildi.
+
+#### Balans doğrulaması
+
+Hiçbir gameplay sabiti değişmedi — `tier_config.gd`, `drop_bag.gd` ve level
+`.tres` dosyalarına dokunulmadı, `dumpling.gd` fizik satırları aynı.
+
+`bot_test` L10'da 6/20 (%30) verdi. GAME_DESIGN §3'teki kilitli değer %43
+(n=30). **Bu bir regresyon DEĞİL, bilinen ölçüm gürültüsü:** M8.5-03'te
+kaydedildiği gibi `bot_runner` deterministik değil (kamera sarsıntısı
+`_process` içinde global RNG tüketiyor) ve aynı kod için tarihsel olarak
+%22–%43 arası sonuç vermişti. n=20'de %43'ün güven aralığı zaten %30'u
+kapsıyor.
+
+#### ⚠️ OWNER ASSET NEEDED
+
+Bu turda **üretilmedi ve placeholder final sayılmadı**:
+
+1. **Dört güç ikonu** — `power_bomb.png` / `power_upgrade.png` /
+   `power_shake.png` / `power_clear.png` (kare, ~128 px, saydam zemin).
+   Güç çubuğu ve refill penceresi hâlâ `PowerUp.GLYPHS` metin işaretlerini
+   (`✸ ▲ ≈ ⌫`) gösteriyor. **Mimari hazır:** dosyalar konup
+   `PowerUp.ICON_PATHS` doldurulunca ikisi de otomatik gerçek `Texture2D`'ye
+   geçer, kod değişikliği gerekmez.
+2. **Pastel bambu/ahşap duvar dokusu** — kap duvarları şu an düz pastel
+   RENK. Bu bir renk düzeltmesidir, doku taklidi değil; gerçek doku
+   geldiğinde `_draw_walls()` içindeki iki `draw_rect` bir
+   `draw_texture_rect`e dönecek.
+3. **Koyu gece varyantı `bg_scene`** (opsiyonel) — mevcut gündüz sahnesi
+   çalışma zamanında karartılıyor; owner koyu bir varyant üretirse
+   karartma gevşetilebilir.
+4. **Candy buton seti** (`btn_normal_a/b`, `btn_disabled`) repoda VAR ama
+   bağlanmadı — tema butonu tüm ekranlarda ortak, değiştirmek her ekranı
+   yeniden stillendirmek demek. Owner kararı.
+
 ## 5. Dosya/klasör yapısı ve script envanteri
 
 ```
