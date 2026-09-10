@@ -275,6 +275,59 @@ func consume_powerup(type: PowerUp.Type, amount: int = 1) -> bool:
 	return true
 
 
+# --- Satın alma işlemleri (M8.5-05) ---
+#
+# ORTAK KURAL: bir satın alma "para düş" + "ödülü ver" adımlarının İKİSİNİ
+# birden, TEK `save_game()` ile yazar. Ayrı ayrı yazılsaydı (eski Shop
+# davranışı: spend_dough() sonra grant_skin()) aradaki bir çökme Hamur'u
+# yakıp ödülü vermeyebilirdi.
+#
+# Bu, tam bir atomic-file/journaling sistemi DEĞİL — dosyanın kendisi hâlâ
+# tek `store_string` ile yazılıyor. Çözülen şey uygulama seviyesindeki
+# "yarım işlem" penceresi: bellekteki durum tek seferde tutarlı hale
+# getiriliyor ve tek seferde diske iniyor.
+
+## Hamur ile güç satın alır (GAME_DESIGN.md §5.7).
+##
+## Dönüş: başarılıysa true. Hamur yetmiyorsa, amount <= 0 ise ya da tip
+## geçersizse HİÇBİR alan değişmez ve diske yazma DA olmaz.
+func purchase_powerup_with_dough(type: PowerUp.Type, amount: int = 1) -> bool:
+	if amount <= 0:
+		return false
+	if not PowerUp.is_valid_type(type):
+		return false
+	var cost: int = PowerUpEconomy.price(type) * amount
+	if dough() < cost:
+		return false
+
+	# İki mutasyon, tek yazma.
+	var stock: Dictionary = _powerup_stock().duplicate()
+	var key: String = PowerUp.save_key(type)
+	stock[key] = int(stock.get(key, 0)) + amount
+	data["powerups"] = stock
+	data["dough"] = dough() - cost
+	save_game()
+	return true
+
+
+## Hamur ile skin satın alır. Aynı transactional kural: tek yazma.
+##
+## Dönüş: başarılıysa true. Sahip olunan skin, tanımsız id ya da yetersiz
+## Hamur durumunda hiçbir şey değişmez.
+func purchase_skin_with_dough(id: StringName, cost: int) -> bool:
+	if cost < 0 or owns_skin(id):
+		return false
+	if dough() < cost:
+		return false
+
+	var owned: Array = owned_skins().duplicate()
+	owned.append(String(id))
+	data["unlocked_skins"] = owned
+	data["dough"] = dough() - cost
+	save_game()
+	return true
+
+
 # --- Günlük giriş (M5) ---
 
 func daily_streak() -> int:

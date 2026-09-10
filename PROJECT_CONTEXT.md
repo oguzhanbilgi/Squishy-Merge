@@ -18,6 +18,10 @@ sevenler. Kısa oturumlarla (30–90 sn round) oynamayı tercih eden kullanıcı
 ## Business model
 - v1: reklamsız, IAP yok. Amaç: organik/ASO testi, gerçek retention verisi
   toplamak.
+- **Owner kararı (M8.5) bu tabloyu güncelledi:** ödüllü reklam ve gerçek para
+  **Güç Paketi** artık PLANLANIYOR ama **HENÜZ KURULMADI** — AdMob SDK yok,
+  Play Billing yok, fiyat/product ID yok. Skinler hiçbir zaman gerçek parayla
+  satılmayacak. Bkz. GAME_DESIGN §5.7.
 - v1'de **oyun içi mağaza VAR**: Hamur ile kozmetik skin satın alınıyor.
   Gerçek para geçmiyor — soft-currency sink'i, IAP değil. Bkz. GAME_DESIGN §5.6.
 - v1.1+ (şimdi YAPILMIYOR): ödüllü reklam, muhtemel kozmetik IAP.
@@ -29,7 +33,8 @@ alınacak — şimdi tahmin/vaat yok.
 
 ## Non-goals (v1 — bilinçli olarak YAPILMIYOR)
 - Çoklu kavanoz/tema seçeneği (tek sabit tema)
-- IAP, reklam, herhangi bir ödeme entegrasyonu
+- IAP, reklam, herhangi bir ödeme entegrasyonu **kurulumu** (tasarımı
+  yapıldı, kod YOK — GAME_DESIGN §5.7.3 / §5.7.4 / §11)
 - Haptic feedback (v1.1'e bırakıldı)
 - Leaderboard, bulut kayıt, hesap sistemi, backend/sunucu
 - Otomatik test framework'ü (GUT vb.) — bu ölçekte disproportionate
@@ -64,6 +69,11 @@ alınacak — şimdi tahmin/vaat yok.
     donduruluyor, devam edilince taşma bandı temizlenip 1.5 sn koruma
     açılıyor. **revive foundation complete / real rewarded ad pending** —
     AdMob YOK, buton yalnızca sinyal yayıyor, bkz. GAME_DESIGN §11.
+  - `M8.5-05` ✅ güç mağazası: dört güç Hamur ile alınabiliyor, fiyatlar
+    simülasyonla seçildi (Sarsıntı 100 / Bomba 120 / Temizleyici 160 /
+    Büyütücü 180). Yoğun oyuncunun 90 günlük Hamur fazlası 50.025 → 335.
+    Satın almalar tek transaction. **Hamur mağazası tamam / rewarded refill
+    ve IAP pending** — bkz. GAME_DESIGN §5.7.
 - **Sırada: M9 — Android export.** Ortam hazır (export template'leri, SDK,
   NDK, JDK 17, debug keystore mevcut); eksik olan `export_presets.cfg` ve
   release/upload keystore.
@@ -80,7 +90,11 @@ alınacak — şimdi tahmin/vaat yok.
 - Sandık **rarity** oranları: Common %60 / Rare %25 / Epic %12 / Legendary %3
 - Sandık **ödül tipi** oranı: %30 skin / %70 Hamur *(ayrı bir rule — rarity
   ile karıştırma, bkz. GAME_DESIGN §5.2)*
-- Shop fiyatları: 50 / 150 / 400 / 900
+- Shop fiyatları — skin: 50 / 150 / 400 / 900
+- Shop fiyatları — güç: Sarsıntı 100 / Bomba 120 / Temizleyici 160 /
+  Büyütücü 180 (`power_up_economy.gd`; simülatördeki `POWER_PRICES` ile
+  aynı tutulmalı)
+- Satın alma invariant'ı: para düşmesi + ödül verilmesi TEK transaction
 - Güç başlangıç stoğu: **kayıt başına 1'er adet, tek seferlik**. Stok
   yalnızca efekt gerçekleşince düşer; güçle yapılan silmeler skor/merge
   üretmez (GAME_DESIGN §10)
@@ -100,12 +114,12 @@ alınacak — şimdi tahmin/vaat yok.
 - **Google Play Developer hesabı** henüz açılmadı / kimlik doğrulaması
   bekliyor (owner tarafından paralel yürütülmeli — bu repo işiyle ilgisiz).
   M10'u bloke ediyor, M9'u etmiyor.
-- **Mağaza ekonomisi owner kararı bekliyor:** %30/%70 kuralıyla mağaza artık
-  çalışıyor ama fiyatlar bu yeni modele göre kalibre edilmedi. Ölçüm ve
-  öneriler `tools/shop_economy.py` çıktısında; fiyat DEĞİŞTİRİLMEDİ.
-- **Güç ekonomisi henüz yok:** stok 0'da `refill_requested` sinyali yayılıyor
-  ama hiçbir şeye bağlı değil. Reklam/Hamur/IAP refill ve güç fiyatları
-  BELİRLENMEDİ (v1 non-goal'ları hâlâ geçerli).
+- **Geç oyun Hamur enflasyonu ÇÖZÜLDÜ (M8.5-05):** güç mağazası ikinci ve
+  tekrarlanabilir sink oldu. Skin fiyatlarına, sandık oranlarına ve Hamur
+  gelir kaynaklarına dokunulmadı — hâlâ owner kararına açıklar.
+- **Güç ekonomisi kısmen bağlandı (M8.5-05):** güçler Hamur ile satın
+  alınabiliyor (100/120/160/180). Ödüllü reklam refill ve gerçek para Güç
+  Paketi hâlâ YOK — ikisi de ölçüldü ve önerildi, kurulmadı.
 - **Ödüllü reklam sağlayıcısı bağlı değil:** devam (revive) akışı uçtan uca
   çalışıyor ama `rewarded_revive_requested` sinyali boşta. AdMob SDK kurulumu
   ve `Main.set_rewarded_provider()` bağlanması ayrı bir iş. Sahte reklam ve

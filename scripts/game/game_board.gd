@@ -482,10 +482,25 @@ func _on_power_pressed(type_index: int) -> void:
 			_use_clear_small()
 
 
+## Stok 0 iken güç butonuna basıldı.
+##
+## Bu, güç edinmenin ÜÇ yolunun buluşacağı tek nokta (GAME_DESIGN.md §5.7):
+##
+##   1. Ödüllü reklam → +1   — HENÜZ YOK (SDK kurulmadı)
+##   2. Hamurla al           — VAR, mağazada (PowerUpEconomy.purchase)
+##   3. Güç Paketi (IAP)     — HENÜZ YOK (billing kurulmadı)
+##
+## Sinyal hangi gücün istendiğini eksiksiz taşıyor (`type_index`), böylece
+## ileride buraya bir refill modalı takıldığında doğru güç önceden seçili
+## gelebilir. BU TURDA MODAL YOK ve hiçbir şey verilmiyor: oyuncuya yalnızca
+## Hamur karşılığı söyleniyor, satın alma mağazadan yapılıyor. Round'un
+## ortasında mağaza açmak oyunu böler — bilinçli olarak yapılmadı.
 func _on_power_refill_requested(type_index: int) -> void:
+	if not PowerUp.is_valid_type(type_index):
+		return
 	var type: PowerUp.Type = type_index as PowerUp.Type
-	# Monetization kancası — bu turda hiçbir şey vermiyoruz (GAME_DESIGN §10).
-	_flash_status("%s bitti" % PowerUp.display_name(type))
+	_flash_status("%s bitti — mağazada %d Hamur" % [
+		PowerUp.display_name(type), PowerUpEconomy.price(type)])
 
 
 # --- Hedef vurgusu ---

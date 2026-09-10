@@ -396,8 +396,14 @@ tier'lara uygulanır.
 
 ### 5.6 Mağaza (M8'de eklendi)
 
-Sahip olunmayan skin'ler Hamur ile satın alınır. **Gerçek para / IAP YOK** —
-PROJECT_CONTEXT'teki non-goal aynen geçerli, tek para birimi oyun içi Hamur.
+Sahip olunmayan skin'ler Hamur ile satın alınır. Tek para birimi oyun içi
+Hamur.
+
+> **GÜNCELLEME (owner, M8.5-05):** "Gerçek para / IAP YOK" ifadesi artık
+> yalnızca SKİNLER için geçerli — skinler hiçbir zaman gerçek parayla
+> satılmayacak. Güçler için gerçek para **Power Pack**'ler PLANLANDI ama
+> **HENÜZ KURULMADI** (Google Play Billing yok, product ID yok, fiyat yok).
+> Bkz. §5.7.4.
 
 Fiyatlar (`scripts/game/shop.gd` → `PRICES`, tune edilebilir tek yer):
 
@@ -440,6 +446,192 @@ onay diyaloğundan geçiyor.
 > sorunu geçti. Çözüm alternatifleri (skin sayısını artırmak, fiyatları
 > yükseltmek, Hamur gelirini düşürmek, ikinci bir sink eklemek) **owner
 > kararı** — bu turda hiçbir fiyat veya gelir kaynağı değiştirilmedi.
+
+> **ÇÖZÜLDÜ (M8.5-05): ikinci sink eklendi.** Güçler Hamur ile satılabilir
+> hale geldi (§5.7). Skin fiyatlarına, sandık oranlarına ve Hamur gelir
+> kaynaklarına DOKUNULMADI. Enflasyonun ne kadar emildiği §5.7.2'de.
+
+### 5.7 Güç mağazası (M8.5-05)
+
+Dört güç (§10) artık **Hamur ile satın alınabilir**. Bu, oyunun ikinci ve
+ilk defa TEKRARLANABİLİR Hamur sink'i: skinler bir kez alınır ve biter,
+güçler tükenir.
+
+Güç edinmenin dört yolu:
+
+| yol | durum |
+|---|---|
+| Başlangıç hediyesi — kayıt başına BİR KEZ her güçten ×1 | ✅ var (§10.1) |
+| **Hamur ile satın alma** | ✅ **bu turda eklendi** |
+| Ödüllü reklam ile sınırlı refill | ⏳ PENDING — SDK yok (§5.7.3) |
+| Gerçek para Power Pack | ⏳ PENDING — billing yok (§5.7.4) |
+
+> **Revive AYRI bir sistemdir (§11).** Revive Hamurla satın alınmaz, güç
+> envanteri VERMEZ ve buradaki hiçbir sayıya dahil değildir.
+
+#### 5.7.1 Fiyatlar (KİLİTLİ)
+
+`scripts/game/power_up_economy.gd` → `DOUGH_PRICES`. Tek tanım noktası; UI
+hiçbir yerde sayı hardcode etmiyor.
+
+| güç | fiyat | gerekçe |
+|---|---|---|
+| **Sarsıntı** | **100** | En ucuz: tek başına round kurtarmıyor, faydası kaotik |
+| **Bomba** | **120** | Taban: tek parça siler, öngörülebilir |
+| **Temizleyici** | **160** | Tüm tier 1-2'yi siler — en güçlü kurtarma aracı |
+| **Büyütücü** | **180** | En pahalı: level'ın tier HEDEFİNİ doğrudan karşılayabilen tek güç (§10.3'teki istisna) |
+
+Fiyatın **şekli** gameplay değerinden türetildi, kullanım sıklığından değil.
+Fiyatın **seviyesi** simülasyonla tarandı (taban 80→200, `python
+tools/shop_economy.py sweep`). Yoğun oyuncu (10 round/gün), 30. gün Hamur
+medyanı ve karşılanmayan istek sayısı:
+
+| taban | fiyat seti | gün30 | gün90 | karşılanmayan/30g |
+|---|---|---|---|---|
+| — | (güç sink'i yok) | 14.745 | 49.975 | — |
+| 80 | [80,120,70,110] | 2.895 | 10.045 | 4 |
+| 100 | [100,150,80,140] | 950 | 1.925 | 11 |
+| **120** | **[120,180,100,160]** | **315** | **330** | **27** |
+| 140 | [140,210,120,190] | 235 | 235 | 42 |
+| 200 | [200,300,170,270] | 235 | 230 | 71 |
+
+**120 seçildi.** 140 ve üstü DAHA FAZLA Hamur emmiyor — güce giden Hamur
+16.200'de doyuyor, artan tek şey oyuncunun karşılanmayan isteği. Yani
+pahalıya kaçmanın ekonomik getirisi yok, sadece mahrumiyet üretiyor.
+
+Skin fiyatlarıyla tutarlılık: Sarsıntı 100 = iki Common skin (50), Büyütücü
+180 > bir Rare skin (150), hepsi Legendary'nin (900) çok altında.
+Tüketilebilir bir güç, kalıcı bir Common ile Rare skin arasında duruyor.
+
+#### 5.7.2 Denge ölçümü
+
+> `tools/shop_economy.py`, 4000 deneme/senaryo, 90 gün. Monte Carlo —
+> sonuçlar yaklaşıktır.
+>
+> ⚠️ **Güç kullanım sıklıkları ÖLÇÜLMÜŞ DEĞİL, VARSAYIM** — gerçek
+> telemetry yok. Üç profil modellendi: düşük (~her 5-6 roundda 1), orta
+> (~her 3-4 roundda 1), yüksek (~her 2 roundda 1). Gerçek veri gelince
+> yeniden kalibre edilmeli.
+
+**Hamur enflasyonu — kalan Hamur medyanı:**
+
+| oyuncu | | gün 30 | gün 60 | gün 90 |
+|---|---|---|---|---|
+| kasual (3/gün) | sink yok | 2.615 | 8.210 | 13.805 |
+| | **sink açık** | **1.515** | **4.865** | **8.200** |
+| orta (5/gün) | sink yok | 6.095 | 15.140 | 24.185 |
+| | **sink açık** | **1.995** | **5.170** | **8.245** |
+| yoğun (10/gün) | sink yok | 14.835 | 32.415 | 50.025 |
+| | **sink açık** | **325** | **335** | **335** |
+
+Yoğun oyuncunun 90 günlük fazlası **50.025 → 335 (%99,3 azalma)**; 51.220
+Hamur güce gitti. Orta oyuncuda %66, kasualde %41 azalma.
+
+**Koleksiyon tamamlanması (medyan gün):**
+
+| oyuncu | sink yok | sink açık | + önerilen rewarded |
+|---|---|---|---|
+| kasual | 17 | 21 | 18 |
+| orta | 11 | 15 | 12 |
+| yoğun | 6 | 9 | 9 |
+
+Koleksiyon hâlâ tamamlanıyor (30 gün içinde %92-99), sadece 1-4 gün
+gecikiyor. Mağazadan alınan skin sayısı düşüyor (orta oyuncuda 10 → 4):
+oyuncu artık gerçekten **skin mi güç mü** seçiyor.
+
+**Kasual oyuncu fakirleşmiyor:** karşılanmayan istek 0, 7. günde ~335 Hamur
+ile geziyor, ilk hafta bütün güç isteklerini karşılıyor.
+
+#### 5.7.3 Ödüllü reklam refill — PENDING, cap ÖNERİSİ
+
+Stok 0 iken güç butonuna basmak `refill_requested(type)` yayar (§10.6).
+**Hiçbir şey bağlı değil.** Cap ölçüldü ve şu öneri çıktı:
+
+> **ÖNERİ: günde 1 ödüllü refill, dört gücün TOPLAMI için.**
+> Round başına DEĞİL, gün başına.
+
+Ölçüm (yoğun oyuncu, 30. gün):
+
+| politika | Hamurla alınan güç | reklam/gün | 30. gün Hamur |
+|---|---|---|---|
+| rewarded yok | 119 | 0 | 325 |
+| **1/gün** | **108** | **1,0** | **1.395** |
+| 2/gün | 86 | 2,0 | 4.280 |
+| Model A (1/round, cap yok) | **0** | 4,9 | **14.915** |
+| Model B (1/round HER TİP) | **0** | 4,9 | 14.990 |
+
+**Round başına refill Hamur mağazasını tamamen öldürüyor** — yoğun oyuncu
+hiç güç satın almıyor ve Hamur'u sink öncesi seviyeye geri dönüyor.
+
+**Model A vs Model B:** normal kullanımda **ayırt edilemiyorlar** (oyuncu
+round başına ~0,5 güç istiyor, Model B'nin fazla kapasitesi hiç
+kullanılmıyor). Fark yalnızca spam altında çıkıyor — round başına 2 güç
+isteyen oyuncu, 10 round/gün:
+
+| politika | bedava güç | güç/round | reklam/gün | Hamur güce |
+|---|---|---|---|---|
+| Model A (1/round) | 299 | 1,45 | 10,0 | 16.380 |
+| **Model B (1/tip/round)** | **520** | **1,99** | **17,3** | **9.900** |
+| Model A + 1/gün cap | 30 | 0,57 | 1,0 | 16.360 |
+
+Model B her isteği bedava karşılıyor, günde 17 reklam gerektiriyor ve
+mağazayı bozuyor. **Model B elendi.** Asıl kaldıraç per-round şekli değil,
+**günlük cap**.
+
+Bedeli dürüstçe: 1/gün cap kasual oyuncunun güç isteklerinin çoğunu bedava
+karşılıyor, dolayısıyla kasualdeki Hamur sink'i büyük ölçüde kayboluyor
+(90. gün 8.200 → 13.010). Enflasyon asıl olarak yoğun oyuncuda sorun olduğu
+için bu kabul edilebilir bir takas. Reklam gelirini önceliklendirmek
+istenirse 2/gün alternatifi ölçülü olarak duruyor.
+
+#### 5.7.4 Gerçek para Power Pack — PENDING, sadece taslak
+
+**Google Play Billing KURULMADI. Product ID YOK. TL/USD fiyat YOK.**
+Aşağıdaki yalnızca içerik taslağı ve Hamur cinsinden değer ölçümü.
+
+| pack | içerik | toplam güç | Hamur değeri | yoğun oyuncunun kaç günlük geliri | kaç round'a yeter |
+|---|---|---|---|---|---|
+| Mini Pack | her güçten ×3 | 12 | 1.680 | 3,1 gün | ~24 round |
+| Power Pack | her güçten ×6 | 24 | 3.360 | 6,2 gün | ~48 round |
+| Mega Pack | her güçten ×12 | 48 | 6.720 | 12,3 gün | ~96 round |
+
+İlk taslak ×2/×5/×12 idi; ölçüm sonrası ×3/×6/×12'ye çekildi: ×2 Mini yoğun
+oyuncunun yalnızca **2,1 günlük** gelirine denk geliyordu, yani satın alma
+işlemine değmeyecek kadar küçüktü. Yeni ladder temiz bir 1:2:4 (3 / 6 / 12
+günlük gelir).
+
+**Spam riski:** Mega ×12, yoğun oyuncuda ~10 gün boyunca stok bitmemesi
+demek — günlük rewarded cap'i o süre boyunca fiilen atlıyor. Sınırlı ve
+ücretli olduğu için kabul edilebilir, ama ×12'nin üstüne çıkmak gating'i
+tamamen anlamsızlaştırır.
+
+#### 5.7.5 Mağaza ekranı
+
+İki bölüm: **GÜÇLER** (üstte, tekrar alınabilir) ve **SKİNLER** (altta,
+kalıcı). Üstte Hamur bakiyesi. Güç kartı: isim, `Stok: ×N`, fiyat, "Satın
+Al". Hamur yetmiyorsa buton pasif. Satın alma onay diyaloğundan geçiyor;
+sonrasında bakiye, stok ve toast anında güncelleniyor.
+
+> ⚠️ Güç ikonları hâlâ geçici metin işaretleri (`PowerUp.GLYPHS`) — final
+> power-up art'ı YOK (§10.7).
+
+#### 5.7.6 Transaction kuralı
+
+**INVARIANT: başarılı satın alma = para düşmesi + ödül verilmesi AYNI
+logical transaction.**
+
+Eski skin satın alma `spend_dough()` + `grant_skin()` şeklinde İKİ ayrı kayıt
+yazması yapıyordu; aradaki bir çökme Hamur'u yakıp skin'i vermeyebilirdi.
+Artık hem güç hem skin satın alma `SaveManager` içinde tek mutasyon + tek
+`save_game()` ile yapılıyor (`purchase_powerup_with_dough`,
+`purchase_skin_with_dough`).
+
+Bu tam bir atomic-file/journaling sistemi DEĞİL — dosyanın kendisi hâlâ tek
+`store_string` ile yazılıyor. Çözülen şey uygulama seviyesindeki "yarım
+işlem" penceresi.
+
+Başarısız satın alma (yetersiz Hamur, geçersiz tip, adet ≤ 0) **hiçbir alanı
+değiştirmez ve diske yazmaz.** Envanter ve Hamur asla negatife inmez.
 
 ## 6. Ses tasarımı
 
@@ -585,8 +777,10 @@ Stok 0 iken butona basmak `refill_requested(type)` sinyali yayar. Bu, ileride
 **ödüllü reklam / Hamur ile satın alma / gerçek para Power Pack** akışlarının
 bağlanacağı tek noktadır.
 
-**Şu an hiçbiri bağlı değil:** sahte reklam yok, sahte satın alma yok,
-bedava stok yok. Güç fiyatları da HENÜZ BELİRLENMEDİ.
+> **GÜNCELLENDİ (M8.5-05):** Hamurla satın alma artık BAĞLANDI ve güç
+> fiyatları BELİRLENDİ — bkz. §5.7. Bu maddede hâlâ bağlı OLMAYAN iki yol
+> kaldı: ödüllü reklam refill (§5.7.3) ve gerçek para Güç Paketi (§5.7.4).
+> Sahte reklam yok, sahte satın alma yok, bedava stok yok.
 
 ### 10.7 Görsel durum
 

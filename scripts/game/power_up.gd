@@ -47,6 +47,12 @@ static func all() -> Array[Type]:
 	return [Type.BOMB, Type.UPGRADE, Type.SHAKE, Type.CLEAR_SMALL]
 
 
+## Enum aralığı dışındaki bir int'i güç sanmayı engeller. Satın alma yolu
+## dışarıdan int alıyor (UI sinyalleri int taşıyor), o yüzden gerekli.
+static func is_valid_type(type: int) -> bool:
+	return SAVE_KEYS.has(type)
+
+
 static func save_key(type: Type) -> String:
 	return SAVE_KEYS[type]
 

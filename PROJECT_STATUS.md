@@ -470,6 +470,86 @@ level'lar ve bitirmek başlı başına üst düzey başarı sayılıyor.
 > Çözüm alternatifleri (skin sayısı, fiyat, gelir, ikinci sink) **owner
 > kararı**. M8.5'te hiçbir fiyat veya gelir kaynağı değiştirilmedi.
 
+> ### ✅ ÇÖZÜLDÜ — ikinci sink eklendi (M8.5-05)
+>
+> Yukarıdaki iki sorundan **ikincisi** (Hamur'un alıcısı yok) çözüldü:
+> dört güç artık Hamur ile satın alınabiliyor (GAME_DESIGN §5.7). Bu,
+> oyunun ilk **tekrarlanabilir** sink'i — skin bir kez alınır ve biter,
+> güç tükenir.
+>
+> **Skin fiyatlarına, sandık oranlarına ve Hamur gelir kaynaklarına
+> DOKUNULMADI.** Birinci sorun (koleksiyon hızlı doluyor) hâlâ owner
+> kararına açık; güç sink'i onu yalnızca 1-4 gün geciktiriyor.
+>
+> **Seçilen güç fiyatları:** Sarsıntı 100 · Bomba 120 · Temizleyici 160 ·
+> Büyütücü 180 (`scripts/game/power_up_economy.gd` → `DOUGH_PRICES`).
+>
+> Fiyatın **şekli** gameplay değerinden türetildi (Büyütücü en pahalı: level
+> tier hedefini doğrudan karşılayabilen tek güç). Fiyatın **seviyesi**
+> tarandı (taban 80→200, `python tools/shop_economy.py sweep`).
+>
+> **Neden taban 120:** 140 ve üstü daha fazla Hamur EMMİYOR — güce giden
+> Hamur 16.200'de doyuyor, artan tek şey karşılanmayan istek sayısı
+> (27 → 42 → 71). Pahalıya kaçmanın ekonomik getirisi yok.
+>
+> #### Yeni ölçüm (`tools/shop_economy.py`, 4000 deneme/senaryo, 90 gün)
+>
+> ⚠️ **Güç kullanım sıklıkları VARSAYIM** — gerçek telemetry yok. Üç profil:
+> düşük (~her 5-6 roundda 1), orta (~her 3-4 roundda 1), yüksek (~her 2
+> roundda 1). Gerçek veri gelince yeniden kalibre edilmeli.
+>
+> **Kalan Hamur medyanı — enflasyon:**
+>
+> | oyuncu | | gün 30 | gün 60 | gün 90 |
+> |---|---|---|---|---|
+> | kasual (3/gün) | sink yok | 2.615 | 8.210 | 13.805 |
+> | | **sink açık** | **1.515** | **4.865** | **8.200** |
+> | orta (5/gün) | sink yok | 6.095 | 15.140 | 24.185 |
+> | | **sink açık** | **1.995** | **5.170** | **8.245** |
+> | yoğun (10/gün) | sink yok | 14.835 | 32.415 | 50.025 |
+> | | **sink açık** | **325** | **335** | **335** |
+>
+> Yoğun oyuncunun 90 günlük fazlası **50.025 → 335 (%99,3)**; 51.220 Hamur
+> güce gitti. Orta oyuncuda %66, kasualde %41 azalma.
+>
+> **Koleksiyon tamamlanma medyanı:** kasual 17→21, orta 11→15, yoğun 6→9 gün
+> (önerilen rewarded cap ile 18/12/9). 30 gün içinde tamamlanma %92-99.
+> Mağazadan alınan skin sayısı düşüyor (orta oyuncuda 10 → 4): oyuncu artık
+> gerçekten **skin mi güç mü** seçiyor.
+>
+> **Kasual fakirleşmiyor:** karşılanmayan istek 0, 7. günde ~335 Hamur.
+>
+> #### Rewarded refill cap — ÖNERİ, implement EDİLMEDİ
+>
+> **ÖNERİ: günde 1 ödüllü refill, dört gücün TOPLAMI için** (round başına
+> değil, gün başına). Ölçüm (yoğun oyuncu, 30. gün):
+>
+> | politika | Hamurla alınan | reklam/gün | 30. gün Hamur |
+> |---|---|---|---|
+> | rewarded yok | 119 | 0 | 325 |
+> | **1/gün** | **108** | **1,0** | **1.395** |
+> | 2/gün | 86 | 2,0 | 4.280 |
+> | Model A (1/round, cap yok) | **0** | 4,9 | **14.915** |
+> | Model B (1/round HER TİP) | **0** | 4,9 | 14.990 |
+>
+> **Round başına refill Hamur mağazasını tamamen öldürüyor.** Model A ve B
+> normal kullanımda ayırt edilemiyor (oyuncu round başına ~0,5 güç istiyor);
+> fark yalnızca spam altında çıkıyor — round başına 2 güç isteyen oyuncuda
+> Model B günde **17,3 reklam** gerektiriyor ve her isteği bedava
+> karşılıyor. **Model B elendi.** Asıl kaldıraç günlük cap.
+>
+> #### Gerçek para Power Pack — TASLAK, billing YOK
+>
+> | pack | içerik | Hamur değeri | yoğun oyuncunun geliri | round |
+> |---|---|---|---|---|
+> | Mini | her güçten ×3 | 1.680 | 3,1 gün | ~24 |
+> | Power | her güçten ×6 | 3.360 | 6,2 gün | ~48 |
+> | Mega | her güçten ×12 | 6.720 | 12,3 gün | ~96 |
+>
+> İlk taslak ×2/×5/×12 idi; ×2 Mini yoğun oyuncunun yalnızca 2,1 günlük
+> gelirine denk geldiği (işleme değmeyecek kadar küçük) için ×3/×6/×12'ye
+> çekildi. **TL/USD fiyat, product ID ve Play Billing YOK.**
+
 ### 4.9 Görsel/fizik ayrımı: sprite dönüşü ±20°
 
 Gövde fizikte serbest dönmeye devam ediyor (M1 kararı) ama yüz sprite'ın
