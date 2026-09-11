@@ -30,6 +30,9 @@ func _ready() -> void:
 	# scripts/ui/candy_button.gd başlığı.
 	for button: Button in [_continue, _decline]:
 		CandyButton.style_cta(button)
+	# Birincil CTA iki satirli: eylem Baloo, aciklama Nunito. "Bitir" ikincil
+	# ve tek satir — tema yazisiyla birakiliyor.
+	CandyButton.set_cta_text(_continue, "DEVAM ET", "Reklam izle")
 	_continue.pressed.connect(_on_continue_pressed)
 	_decline.pressed.connect(func() -> void: decline_pressed.emit())
 
@@ -43,6 +46,7 @@ func show_offer(remaining: int, max_revives: int) -> void:
 	# Talep gönderilip cevap beklenirken buton kapanıyor; yeni bir teklifte
 	# yeniden açılmalı.
 	_continue.disabled = false
+	CandyButton.refresh_cta(_continue)
 	visible = true
 
 
@@ -55,10 +59,12 @@ func hide_offer() -> void:
 func show_unavailable(message: String) -> void:
 	_note.text = message
 	_continue.disabled = false
+	CandyButton.refresh_cta(_continue)
 
 
 func _on_continue_pressed() -> void:
 	# Çift dokunuşa karşı: cevap gelene kadar ikinci talep gitmesin.
 	_continue.disabled = true
+	CandyButton.refresh_cta(_continue)
 	_note.text = "Reklam isteniyor…"
 	rewarded_revive_requested.emit()

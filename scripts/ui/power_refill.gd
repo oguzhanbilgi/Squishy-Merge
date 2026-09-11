@@ -65,8 +65,11 @@ func show_refill(type: PowerUp.Type, provider_ready: bool) -> void:
 	_icon.texture = PowerUp.icon(type)
 	_title.text = "%s bitti" % PowerUp.display_name(type)
 	_detail.text = "Stok: ×%d" % SaveManager.powerup_count(type)
-	_ad.text = "REKLAM İZLE\n+1 %s" % PowerUp.display_name(type)
-	_dough.text = "HAMURLA AL\n%d Hamur" % PowerUpEconomy.price(type)
+	# Iki satirli CTA: ust satir eylem (Baloo), alt satir odul/bedel (Nunito).
+	CandyButton.set_cta_text(_ad, "REKLAM İZLE",
+		"+1 %s" % PowerUp.display_name(type))
+	CandyButton.set_cta_text(_dough, "HAMURLA AL",
+		"%d Hamur" % PowerUpEconomy.price(type))
 	_note.text = ""
 	visible = true
 	refresh(provider_ready)
@@ -92,6 +95,10 @@ func refresh(provider_ready: bool) -> void:
 		QUOTA_EMPTY_COLOR if quota_left <= 0 else QUOTA_COLOR)
 
 	_dough.disabled = not PowerUpEconomy.can_afford(type)
+	# Pasiflik yazi rengini otomatik degistirmiyor (overlay Label'lar):
+	# iki CTA'nin kontrasti burada elle tazeleniyor.
+	CandyButton.refresh_cta(_ad)
+	CandyButton.refresh_cta(_dough)
 
 	if _ad.disabled and _dough.disabled:
 		_note.text = _unavailable_reason(quota_left, provider_ready) \
@@ -129,6 +136,7 @@ func _on_ad_pressed() -> void:
 		return
 	# Çift dokunuşa karşı: cevap gelene kadar ikinci talep gitmesin.
 	_ad.disabled = true
+	CandyButton.refresh_cta(_ad)
 	_note.text = "Reklam isteniyor…"
 	rewarded_refill_requested.emit(_type)
 

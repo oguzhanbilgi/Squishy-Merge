@@ -28,10 +28,17 @@ const DISPLAY_NAMES: Dictionary = {
 	Type.CLEAR_SMALL: "Temizleyici",
 }
 
-## Son çare metin işareti. M8.5-08'den beri KULLANILMIYOR: dört gücün de
-## gerçek ikonu var (`ICON_PATHS`), `icon()` null dönmüyor ve UI hiçbir
-## yerde bu işaretlere düşmüyor. Yalnızca ikon dosyası silinirse/bozulursa
-## UI'ın boş kalmaması için duruyor.
+## Eski metin işaretleri. ARTIK HİÇBİR YERDE KULLANILMIYOR ve yeni bir
+## çağıran EKLENMEMELİ.
+##
+## M8.5-08 bunları güç çubuğundan kaldırdı ama mağaza kartı gözden kaçmıştı;
+## M8.5-09 orayı da gerçek ikona çevirdi. Dördü de artık bilinçli olarak
+## "son çare" DEĞİL: hiçbiri Baloo 2 / Nunito cmap'inde yok (U+2738, U+25B2,
+## U+2248, U+232B — dört font dosyasının cmap'i okundu), yani bu işaretlere
+## düşmek boş kutu ya da bambaşka bir yazı tipi demek olurdu.
+##
+## `icon()` null dönerse doğru davranış boş bir TextureRect bırakmaktır,
+## metne düşmek değil.
 const GLYPHS: Dictionary = {
 	Type.BOMB: "✸",
 	Type.UPGRADE: "▲",
@@ -75,7 +82,7 @@ const CLEAR_SMALL_MAX_TIER: int = 2
 
 
 ## Gücün ikonu, ya da tanımlı/yüklenebilir değilse null.
-## null dönerse çağıran taraf `glyph()` metnine düşer.
+## null dönmesi bir hata durumudur; çağıran taraf metne DÜŞMEZ (bkz. GLYPHS).
 static func icon(type: Type) -> Texture2D:
 	var path: String = String(ICON_PATHS.get(type, ""))
 	if path.is_empty() or not ResourceLoader.exists(path):

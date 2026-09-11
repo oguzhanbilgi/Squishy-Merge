@@ -829,6 +829,98 @@ bazen level 3'ün hedefini 10 bırakışta tamamlıyor, round bitince güç
 çubuğu `set_enabled(false)` ile pasife düşüyor ve "normal güç çubuğu"
 çekimi yanlışlıkla PASİF durumu gösteriyordu.
 
+### 4.12 Tipografi sistemi (M8.5-09)
+
+M8.5-08'e kadar oyunun HER yazısı Godot'un varsayılan fontu ve varsayılan
+16 px'iydi — candy asset'lerin yanında "debug overlay" gibi duruyordu.
+Bu tur iki font ailesi ve merkezi bir rol sistemi getirdi. **Mekanik,
+ekonomi, fizik ve reklam kuralı DEĞİŞMEDİ**; diffte `tier_config`,
+`drop_bag`, `dumpling`, `power_up_economy`, `rewarded_policy`,
+`power_up_controller`, level `.tres` dosyaları YOK.
+
+#### Font seçimi (kilitli art direction, owner)
+
+| aile | ağırlık | iş |
+|---|---|---|
+| **Baloo 2** | ExtraBold 800 | pencere kahramanı ("Devam etmek ister misin?", "Bomba bitti", "Level 3 tamam!"), ekran başlığı |
+| **Baloo 2** | Bold 700 | bölüm/kart başlığı, birincil CTA, level numarası |
+| **Nunito** | Bold 700 | HUD, skor, stok, fiyat, "TAKILI", ikincil buton, sekme |
+| **Nunito** | SemiBold 600 | gövde metni, kota/not satırları, rarity etiketi |
+
+Kural: **başlık ve CTA Baloo, geri kalan her şey Nunito.** "Her şey Baloo"
+bilinçli olarak yapılmadı — güç çubuğu ve koleksiyon kartı gibi dar
+kutularda Baloo'nun tombulluğu okunurluğu düşürüyor. Kaynak resmi Google
+Fonts (`fonts.gstatic.com` statik TTF'leri), lisans OFL 1.1, SHA ve
+doğrulama `assets/fonts/CREDITS.md`.
+
+#### Mimari: tema variation'ları + proje geneli varsayılan
+
+- `assets/visual/ui_theme.tres` artık `default_font` (Nunito SemiBold 20)
+  ve rol başına **type variation** tanımlıyor: `Display` 42, `ScreenTitle`
+  38, `SectionTitle` 27, `CardTitle` 23, `Stat` 20, `Caption` 16,
+  `HudPrimary` 25, `HudSecondary` 22, `HudObjective` (RichTextLabel) 25,
+  `SecondaryButton` 22, `TabButton` 21; `Button` varsayılanı Baloo Bold 27.
+- Tema `project.godot` → `gui/theme/custom` ile **proje geneli varsayılan**
+  oldu. Sebep: oyun HUD'u (`game_board.tscn`) hiçbir temaya bağlı değildi;
+  sahne başına `theme =` atamaları duruyor ama artık yalnızca belgeleyici.
+- `scripts/ui/ui_type.gd` (`UiType`): rol adlarının tek tanımı. Kodla
+  kurulan etiketler (mağaza, koleksiyon, güç çubuğu, sonuç kartı)
+  `UiType.apply(label, UiType.CARD_TITLE)` diyor; string dağılmıyor.
+- Sahnede boyut override'ı YALNIZCA rolün varsayılanının fiziksel olarak
+  sığmadığı yerlerde ve her biri `tools/type_probe.gd` ölçümüyle
+  gerekçeli (güç çubuğu 15, koleksiyon adı 16, level numarası 28, sonuç
+  kartı 20/17).
+
+#### Ölçümle bulunan ve düzeltilen şeyler
+
+- **Fontlarda olmayan glyph'ler.** ★☆ (level düğümü), ✓ (mağaza
+  "Sahipsin"), ●○ (günlük seri sayacı) ve mağaza güç kartında hâlâ duran
+  eski metin işaretleri ✸▲≈⌫ — dördü de her iki ailede YOK (cmap okundu).
+  Godot'un sistem fallback'i açık olduğu için masaüstünde "çalışıyor gibi"
+  görünüyordu ama bambaşka bir yazı tipinden çiziliyordu; Android'de hangi
+  fontun geleceği belirsiz. Yıldızlar mevcut `icon_star_*.png` asset'ine,
+  güç işaretleri mevcut `power_*.png` ikonlarına (M8.5-08 güç çubuğunu
+  çevirmiş, mağazayı atlamıştı), ✓ düz metne, ●○ ise iki renkli "•"ya
+  (RichTextLabel) çevrildi. `PowerUp.GLYPHS` artık hiçbir yerde
+  kullanılmıyor.
+- **İki satırlı CTA.** "HAMURLA AL / 120 Hamur" tek `Button.text` iken iki
+  satır aynı ağırlıkta çıkıyordu. `CandyButton.set_cta_text()` butonun
+  üstüne Baloo başlık + Nunito alt satır bindiriyor (güç çubuğu deseni).
+  Godot `font_disabled_color`u çocuk Label'a uygulamadığı için pasif
+  kontrast `refresh_cta()` ile elle tazeleniyor — `power_refill.gd` ve
+  `revive_offer.gd` her `disabled` değişiminde çağırıyor.
+- **Pencere çerçeveleri büyüdü.** Refill 660→770 px, devam 580→650 px,
+  sonuç paneli üst kenarı -300→-380: yeni satır yükseklikleriyle içerik
+  eski çerçeveden taşıyordu ("Kapat" pencere dışına düşmüştü, çekimle
+  yakalandı).
+- **Buton dokusu gölgesi.** Level düğümü ve güç pill'i içeriği tam
+  dikdörtgene yayılınca yazı/yıldız alt kenara yapışıyordu; kutular
+  temanın kendi content margin'leriyle (üst 12 / alt 20) içeri alındı.
+- **Harita başlığı** eklendi ("Harita", ScreenTitle + gölge): dört
+  sekmenin üçünün kimliği vardı, haritanın yoktu. Parlak harita zemininde
+  başlık ve rekor satırına gölge verildi.
+
+#### CTA yazım kuralı (§14 tutarlılık)
+
+Büyük harf yalnızca **ekranı kilitleyen pencerenin birincil eylemi**:
+DEVAM ET, REKLAM İZLE, HAMURLA AL, SATIN AL (onay diyaloğu), TEKRAR DENE,
+OYNA, AL. Liste satırındaki "Satın Al" ve tüm ikincil butonlar ("Kapat",
+"Vazgeç", "Bitir", "Level listesi", "Sonsuz Mod") başlık/cümle düzeninde.
+Düzeltilen gerçek tutarsızlık: onay diyaloğunda "Satın al" ile liste
+satırında "Satın Al" farklıydı.
+
+#### Araçlar
+
+- `tools/type_probe.gd` (headless): glyph kapsamı (`has_char`), dar
+  kutularda en büyük sığan boyut, en kötü durum metinleri ("Temizleyici
+  ×99", "Hamur: 99999", level 10 hedef satırı). 0 uyarı.
+- `tools/type_shots.gd` (pencereli): Türkçe glyph tablosu dört ağırlıkta,
+  günlük ödül penceresi, en kötü durum değerleriyle HUD/sekmeler/refill.
+  Kayda YAZMAZ (bellekte değiştirip geri koyar).
+
+Bilinçli olarak YAPILMAYANLAR: skin art/tint, HUD ikon sistemi, logo,
+copywriting, variable font, font subset (bkz. `assets/fonts/CREDITS.md`).
+
 ## 5. Dosya/klasör yapısı ve script envanteri
 
 ```

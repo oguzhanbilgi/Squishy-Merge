@@ -31,9 +31,19 @@ const ICON_SIZE: Vector2 = Vector2(40.0, 40.0)
 ## pay. Yıldızlar butonun dış %16'sını kaplıyor (ölçüldü); 30 px onların
 ## dışında kalıyor ve ortada 112 px bırakıyor.
 const CONTENT_INSET: float = 30.0
-## İsim + stok satırı. "Temizleyici ×9" bu boyda ~84 px — 112 px'lik iç
-## boşluğa sığıyor.
-const LABEL_FONT_SIZE: int = 13
+## İsim + stok satırı. Rol: `UiType.STAT` (Nunito Bold).
+##
+## Boyut rolün varsayılanını (20) EZİYOR: bu satır bir liste öğesi değil,
+## 172x86'lık pill'in içinde ikonun altındaki dar şerit ve iki yanda 30'ar
+## px yıldız payı düşünce 112 px kalıyor. Ölçüm (`tools/type_probe.gd`, en
+## uzun kombinasyon "Temizleyici ×99"): 15 px'te 107 px ile sığıyor,
+## 16 px'te 114 px ile taşıyor. Yani 15 sığan en büyük değer.
+##
+## NOT — Baloo burada GENİŞLİK yüzünden elenmedi: aynı metin Baloo 2 Bold'da
+## biraz daha DAR çıkıyor (15 px'te 103 px). Eleme gerekçesi tipografi
+## sistemi: bu satır bir başlık değil, stok VERİSİ; sayı ve kısa etiket
+## Nunito'nun işi (bkz. scripts/ui/ui_type.gd).
+const LABEL_FONT_SIZE: int = 15
 
 ## Stok 0'da ikonun opaklığı. Butonun TAMAMI soldurulmuyor — yazı da
 ## solunca "Bomba ×0" okunmaz oluyordu. Pill'i `CandyButton.EMPTY_TINT`
@@ -51,7 +61,17 @@ const DISABLED_ALPHA: float = 0.55
 
 ## Koyu yazının açık camgöbeği pill üstünde kenarını netleştiren ince
 ## açık hâle. Pill'in kendi gölgeleri yazıyı yer yer yutuyordu.
-const LABEL_SHADOW: Color = Color(1, 1, 1, 0.55)
+const LABEL_SHADOW: Color = Color(1, 1, 1, 0.7)
+## Hâlenin kalınlığı. 3'ten 2'ye indi (M8.5-09): Nunito'nun ince ve düzgün
+## konturunda 3 px hâle harfleri şişirip bulanıklaştırıyordu.
+const LABEL_OUTLINE_SIZE: int = 2
+
+## İçeriğin pill'in DİKEY olarak neresine oturduğu. Buton dokusunun alt
+## kısmı düşen gölge; kutu tam dikdörtgene yayılınca yazı pill'in alt
+## kenarına yapışıyordu (çekimle yakalandı). Üstten biraz, alttan daha çok
+## içeri alınıyor.
+const CONTENT_TOP_INSET: float = 2.0
+const CONTENT_BOTTOM_INSET: float = 14.0
 
 var _buttons: Dictionary = {}
 var _labels: Dictionary = {}
@@ -83,6 +103,8 @@ func _make_button(type: PowerUp.Type) -> Button:
 	box.set_anchors_preset(Control.PRESET_FULL_RECT)
 	box.offset_left = CONTENT_INSET
 	box.offset_right = -CONTENT_INSET
+	box.offset_top = CONTENT_TOP_INSET
+	box.offset_bottom = -CONTENT_BOTTOM_INSET
 	box.alignment = BoxContainer.ALIGNMENT_CENTER
 	box.add_theme_constant_override("separation", 0)
 	button.add_child(box)
@@ -96,12 +118,13 @@ func _make_button(type: PowerUp.Type) -> Button:
 	box.add_child(icon)
 
 	var label := Label.new()
+	UiType.apply(label, UiType.STAT)
 	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	label.add_theme_font_size_override("font_size", LABEL_FONT_SIZE)
 	label.add_theme_color_override("font_color", CandyButton.FONT_COLOR)
 	label.add_theme_color_override("font_outline_color", LABEL_SHADOW)
-	label.add_theme_constant_override("outline_size", 3)
+	label.add_theme_constant_override("outline_size", LABEL_OUTLINE_SIZE)
 	box.add_child(label)
 
 	_icons[int(type)] = icon

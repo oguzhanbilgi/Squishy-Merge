@@ -90,6 +90,13 @@ alınacak — şimdi tahmin/vaat yok.
     yükselme sütunu, toz, yıldız girdabı). Geçici metin işaretleri
     (`PowerUp.GLYPHS`) UI'dan kalktı. **Mekanik, ekonomi, fizik ve reklam
     kuralları DEĞİŞMEDİ.** Ayrıntı: PROJECT_STATUS §4.11.
+  - `M8.5-09` ✅ tipografi ve görsel bütünlük pası: Baloo 2 (başlık/CTA)
+    + Nunito (gövde/veri), OFL 1.1, resmi Google Fonts statik TTF'leri.
+    Merkezi rol sistemi (`ui_theme.tres` type variation'ları +
+    `scripts/ui/ui_type.gd`), tema proje geneli varsayılan oldu. Fontlarda
+    olmayan Unicode işaretler (★☆ ✓ ●○ ve mağazada unutulmuş güç
+    işaretleri) mevcut asset/metinle değiştirildi. **Mekanik, ekonomi,
+    fizik ve reklam kuralları DEĞİŞMEDİ.** Ayrıntı: PROJECT_STATUS §4.12.
 - **Sırada: M9 — Android export.** Ortam hazır (export template'leri, SDK,
   NDK, JDK 17, debug keystore mevcut); eksik olan `export_presets.cfg` ve
   release/upload keystore.
@@ -146,6 +153,8 @@ alınacak — şimdi tahmin/vaat yok.
   çalışıyor ama `rewarded_revive_requested` sinyali boşta. AdMob SDK kurulumu
   ve `Main.set_rewarded_provider()` bağlanması ayrı bir iş. Sahte reklam ve
   bedava devam bilinçli olarak YOK — bkz. GAME_DESIGN §11.6.
+- **Tipografi TAMAM (M8.5-09):** bütün production ekranlar aynı iki font
+  ailesinde. Kalan görsel borç yalnızca skin renkleri (aşağıda).
 - **Oyun ekranı asset'leri TAMAM (M8.5-08):** dört güç ikonu, buton
   durumları, gece zemini, bambu duvar/taban ve güç efektleri bağlandı.
   Oyun ekranında görünür placeholder kalmadı. Geriye kalan tek görsel

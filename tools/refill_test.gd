@@ -227,8 +227,10 @@ func _scenario_modal_opens() -> void:
 	_check("Hamur yeterli -> Hamur CTA aktif", not _refill()._dough.disabled)
 	_check("kota satiri gorunuyor",
 		_refill()._quota.text.contains("1/1"))
+	# M8.5-09: CTA iki satirli bir overlay oldu, `button.text` artik bos.
+	# Oyuncuya gorunen yazi CandyButton.cta_text() ile okunuyor.
 	_check("gercek fiyat gosteriliyor",
-		_refill()._dough.text.contains(
+		CandyButton.cta_text(_refill()._dough).contains(
 			"%d Hamur" % PowerUpEconomy.price(PowerUp.Type.BOMB)))
 	await _capture("f02_saglayici_yok.png")
 

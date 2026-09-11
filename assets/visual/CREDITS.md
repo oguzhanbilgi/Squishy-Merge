@@ -567,6 +567,20 @@ Kenney yıldızları 64×60'tı, owner'ınkiler 130×126: `EXPAND_IGNORE_SIZE`
 eklenmeseydi yıldızlar sessizce iki katına çıkıyordu (çekimle yakalandı,
 düzeltildi).
 
+## Tipografi — `assets/fonts/` (M8.5-09)
+
+UI yazı tipleri görsel asset DEĞİL ama aynı sanat yönetiminin parçası:
+**Baloo 2** (başlık / CTA) ve **Nunito** (gövde / veri), ikisi de OFL 1.1.
+Kaynak, SHA, lisans metinleri ve glyph kapsamı `assets/fonts/CREDITS.md`
+içinde. Rol tablosu `scripts/ui/ui_type.gd`; tema `ui_theme.tres` artık
+`project.godot` → `gui/theme/custom` ile proje geneli varsayılan.
+
+Bu turda görsel asset'te değişiklik YOK. Yalnızca, fontlarda bulunmayan
+Unicode işaretlerin yerine mevcut asset'ler bağlandı: level düğümlerindeki
+"★☆" yazısı `ui/icon_star_filled.png` / `icon_star_empty.png` oldu, mağaza
+güç kartındaki eski metin işaretleri (✸ ▲ ≈ ⌫) `ui/power_*.png` ikonlarına
+çevrildi (güç çubuğu zaten M8.5-08'de çevrilmişti, mağaza atlanmıştı).
+
 ## Değiştirirken
 Dosya **isimlerini koru**. Kod bu isimlere `dumpling_visual.gd` sabitleri ve
 `ui_theme.tres` üzerinden bağlı; aynı isimle üzerine yazarsan kodda hiçbir

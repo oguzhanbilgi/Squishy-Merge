@@ -81,6 +81,96 @@ static func style_cta(button: Button) -> void:
 	button.add_theme_color_override("font_disabled_color", FONT_DISABLED_COLOR)
 
 
+## --- İki satırlı pencere CTA'sı (M8.5-09) ---
+##
+## Üst satır eylem ("HAMURLA AL"), alt satır bedel/ödül ("120 Hamur").
+## GAME_DESIGN §5.7.3'ün istediği hiyerarşi bu: oyuncu önce ne yapacağını,
+## sonra ne ödeyeceğini okusun.
+##
+## Neden `button.text` DEĞİL: Godot'un Button'ı tek font kullanıyor. İki
+## satır aynı ağırlıkta çıkıyor ve "HAMURLA AL" ile "120 Hamur" görsel
+## olarak eşitleniyordu. İçerik, butonun üstüne serilen bir VBox — güç
+## çubuğundaki desenin aynısı, dokunuş `MOUSE_FILTER_IGNORE` ile butona
+## geçiyor.
+##
+## DİKKAT: Godot'un `font_disabled_color`u yalnızca `button.text`e uygulanır,
+## çocuk Label'lara DEĞİL. Butonun `disabled` durumu değiştiğinde
+## `refresh_cta()` çağrılmalı — yoksa pasif CTA'nın yazısı tam kontrastta
+## kalır ve buton basılabilir görünür.
+const CTA_TITLE_FONT_SIZE: int = 26
+const CTA_SUBTITLE_FONT_SIZE: int = 17
+## Alt satırın normal durumdaki tonu: başlıkla aynı koyu lacivertin biraz
+## açığı. Ayrı bir renk değil, aynı rengin zayıflatılmışı — iki satır tek
+## bir blok gibi okunsun.
+const CTA_SUBTITLE_ALPHA: float = 0.78
+
+const _META_TITLE: StringName = &"cta_title"
+const _META_SUBTITLE: StringName = &"cta_subtitle"
+
+
+## CTA'nın iki satırını kurar/günceller. `subtitle` boşsa alt satır gizlenir
+## ve başlık tek başına dikey ortalanır.
+static func set_cta_text(button: Button, title: String, subtitle: String = "") -> void:
+	# Yazı `button.text`ten TAMAMEN alınıyor: ikisi birden dolu olursa
+	# tema yazısı overlay'in altında ikinci kez çizilir.
+	button.text = ""
+	var box: VBoxContainer = button.get_node_or_null("CtaText") as VBoxContainer
+	if box == null:
+		box = VBoxContainer.new()
+		box.name = "CtaText"
+		box.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		box.set_anchors_preset(Control.PRESET_FULL_RECT)
+		box.alignment = BoxContainer.ALIGNMENT_CENTER
+		box.add_theme_constant_override("separation", 0)
+		button.add_child(box)
+
+		var title_label := Label.new()
+		UiType.apply(title_label, UiType.CARD_TITLE)
+		title_label.add_theme_font_size_override("font_size", CTA_TITLE_FONT_SIZE)
+		title_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		title_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		box.add_child(title_label)
+		button.set_meta(_META_TITLE, title_label)
+
+		var subtitle_label := Label.new()
+		UiType.apply(subtitle_label, UiType.STAT)
+		subtitle_label.add_theme_font_size_override("font_size", CTA_SUBTITLE_FONT_SIZE)
+		subtitle_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		subtitle_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		box.add_child(subtitle_label)
+		button.set_meta(_META_SUBTITLE, subtitle_label)
+
+	(button.get_meta(_META_TITLE) as Label).text = title
+	var sub_label: Label = button.get_meta(_META_SUBTITLE)
+	sub_label.text = subtitle
+	sub_label.visible = not subtitle.is_empty()
+	refresh_cta(button)
+
+
+## Pasif/aktif kontrastını tazeler. `button.disabled` değiştikten SONRA
+## çağrılmalı.
+static func refresh_cta(button: Button) -> void:
+	if not button.has_meta(_META_TITLE):
+		return
+	var base: Color = FONT_DISABLED_COLOR if button.disabled else FONT_COLOR
+	var title_label: Label = button.get_meta(_META_TITLE)
+	title_label.add_theme_color_override("font_color", base)
+	var sub_label: Label = button.get_meta(_META_SUBTITLE)
+	sub_label.add_theme_color_override("font_color",
+		Color(base.r, base.g, base.b, CTA_SUBTITLE_ALPHA))
+
+
+## CTA'nın oyuncuya görünen yazısı, tek string olarak. Test/QA için:
+## `button.text` artık boş, doğrulama bu iki satırı okumalı.
+static func cta_text(button: Button) -> String:
+	if not button.has_meta(_META_TITLE):
+		return button.text
+	var sub_label: Label = button.get_meta(_META_SUBTITLE)
+	var title: String = (button.get_meta(_META_TITLE) as Label).text
+	return title if sub_label.text.is_empty() else "%s
+%s" % [title, sub_label.text]
+
+
 ## Güç çubuğu butonu.
 ##
 ## `armed` = bu güç seçili (hedefleme açık). Seçili durum ayrı bir asset:

@@ -24,31 +24,32 @@ theme_override_constants/margin_bottom = 140
 
 [node name="VBox" type="VBoxContainer" parent="Margin"]
 alignment = 1
-theme_override_constants/separation = 24
+theme_override_constants/separation = 18
 
 [node name="Logo" type="TextureRect" parent="Margin/VBox"]
-custom_minimum_size = Vector2(0, 112)
+custom_minimum_size = Vector2(0, 132)
 mouse_filter = 2
 texture = ExtResource("3_logo")
 expand_mode = 1
 stretch_mode = 5
 
 [node name="Welcome" type="Label" parent="Margin/VBox"]
+theme_type_variation = &"SectionTitle"
 horizontal_alignment = 1
 text = "Hoş geldin!"
 
 [node name="Streak" type="RichTextLabel" parent="Margin/VBox"]
-custom_minimum_size = Vector2(0, 34)
+custom_minimum_size = Vector2(0, 40)
 bbcode_enabled = true
 fit_content = true
 scroll_active = false
 
 [node name="Dough" type="RichTextLabel" parent="Margin/VBox"]
-custom_minimum_size = Vector2(0, 34)
+custom_minimum_size = Vector2(0, 40)
 bbcode_enabled = true
 fit_content = true
 scroll_active = false
 
 [node name="Play" type="Button" parent="Margin/VBox"]
-custom_minimum_size = Vector2(0, 96)
-text = "Oyna"
+custom_minimum_size = Vector2(0, 100)
+text = "OYNA"

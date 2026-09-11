@@ -17,6 +17,9 @@ func _ready() -> void:
 	var group := ButtonGroup.new()
 	for i in LABELS.size():
 		var button := Button.new()
+		# Sekme yazisi Nunito Bold: dort sekme adi ("Koleksiyon" 10 karakter)
+		# 720 px'i dortte bolen bir seride Baloo ile tasiyor.
+		UiType.apply(button, UiType.TAB_BUTTON)
 		button.text = LABELS[i]
 		button.toggle_mode = true
 		button.button_group = group

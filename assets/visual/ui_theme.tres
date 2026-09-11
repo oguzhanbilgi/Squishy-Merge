@@ -1,7 +1,11 @@
-[gd_resource type="Theme" load_steps=10 format=3]
+[gd_resource type="Theme" load_steps=14 format=3]
 
 [ext_resource type="Texture2D" path="res://assets/visual/ui/wenrexa_button.png" id="1_btn"]
 [ext_resource type="Texture2D" path="res://assets/visual/ui/wenrexa_panel.png" id="2_panel"]
+[ext_resource type="FontFile" path="res://assets/fonts/Baloo2-ExtraBold.ttf" id="3_display"]
+[ext_resource type="FontFile" path="res://assets/fonts/Baloo2-Bold.ttf" id="4_title"]
+[ext_resource type="FontFile" path="res://assets/fonts/Nunito-Bold.ttf" id="5_num"]
+[ext_resource type="FontFile" path="res://assets/fonts/Nunito-SemiBold.ttf" id="6_body"]
 
 [sub_resource type="StyleBoxTexture" id="SB_normal"]
 content_margin_left = 30.0
@@ -94,10 +98,14 @@ corner_radius_bottom_right = 12
 corner_radius_bottom_left = 12
 
 [resource]
+default_font = ExtResource("6_body")
+default_font_size = 20
 Button/colors/font_color = Color(0.09, 0.2, 0.25, 1)
 Button/colors/font_disabled_color = Color(0.78, 0.82, 0.85, 0.65)
 Button/colors/font_hover_color = Color(0.05, 0.15, 0.2, 1)
 Button/colors/font_pressed_color = Color(0.05, 0.15, 0.2, 1)
+Button/font_sizes/font_size = 27
+Button/fonts/font = ExtResource("4_title")
 Button/styles/disabled = SubResource("SB_disabled")
 Button/styles/focus = SubResource("SB_focus")
 Button/styles/hover = SubResource("SB_hover")
@@ -105,5 +113,56 @@ Button/styles/normal = SubResource("SB_normal")
 Button/styles/pressed = SubResource("SB_pressed")
 Panel/styles/panel = SubResource("SB_panel")
 PanelContainer/styles/panel = SubResource("SB_panel")
+RichTextLabel/font_sizes/bold_font_size = 21
+RichTextLabel/font_sizes/normal_font_size = 21
+RichTextLabel/fonts/bold_font = ExtResource("4_title")
+RichTextLabel/fonts/normal_font = ExtResource("5_num")
 CardPanel/base_type = &"PanelContainer"
 CardPanel/styles/panel = SubResource("SB_card")
+Display/base_type = &"Label"
+Display/font_sizes/font_size = 42
+Display/fonts/font = ExtResource("3_display")
+ScreenTitle/base_type = &"Label"
+ScreenTitle/font_sizes/font_size = 38
+ScreenTitle/fonts/font = ExtResource("3_display")
+SectionTitle/base_type = &"Label"
+SectionTitle/font_sizes/font_size = 27
+SectionTitle/fonts/font = ExtResource("4_title")
+CardTitle/base_type = &"Label"
+CardTitle/font_sizes/font_size = 23
+CardTitle/fonts/font = ExtResource("4_title")
+Stat/base_type = &"Label"
+Stat/font_sizes/font_size = 20
+Stat/fonts/font = ExtResource("5_num")
+Caption/base_type = &"Label"
+Caption/font_sizes/font_size = 16
+Caption/fonts/font = ExtResource("6_body")
+HudPrimary/base_type = &"Label"
+HudPrimary/colors/font_shadow_color = Color(0.02, 0.01, 0.05, 0.65)
+HudPrimary/constants/shadow_offset_x = 0
+HudPrimary/constants/shadow_offset_y = 2
+HudPrimary/constants/shadow_outline_size = 1
+HudPrimary/font_sizes/font_size = 25
+HudPrimary/fonts/font = ExtResource("5_num")
+HudSecondary/base_type = &"Label"
+HudSecondary/colors/font_shadow_color = Color(0.02, 0.01, 0.05, 0.65)
+HudSecondary/constants/shadow_offset_x = 0
+HudSecondary/constants/shadow_offset_y = 2
+HudSecondary/constants/shadow_outline_size = 1
+HudSecondary/font_sizes/font_size = 22
+HudSecondary/fonts/font = ExtResource("5_num")
+HudObjective/base_type = &"RichTextLabel"
+HudObjective/colors/font_shadow_color = Color(0.02, 0.01, 0.05, 0.65)
+HudObjective/constants/shadow_offset_x = 0
+HudObjective/constants/shadow_offset_y = 2
+HudObjective/constants/shadow_outline_size = 1
+HudObjective/font_sizes/bold_font_size = 25
+HudObjective/font_sizes/normal_font_size = 25
+HudObjective/fonts/bold_font = ExtResource("4_title")
+HudObjective/fonts/normal_font = ExtResource("5_num")
+SecondaryButton/base_type = &"Button"
+SecondaryButton/font_sizes/font_size = 22
+SecondaryButton/fonts/font = ExtResource("5_num")
+TabButton/base_type = &"Button"
+TabButton/font_sizes/font_size = 21
+TabButton/fonts/font = ExtResource("5_num")

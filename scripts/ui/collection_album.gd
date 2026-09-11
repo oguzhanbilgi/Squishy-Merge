@@ -15,7 +15,21 @@ const COLUMNS: int = 4
 ## Kart genisligi: 4 sutun, kenar paylari (2x32) ve sutun araligi (3x12)
 ## dusulunce sutun basina ~155 px kaliyor; panel ic paylari da eklenince
 ## 140 tasip son sutunu kirpiyordu.
-const CARD_SIZE: Vector2 = Vector2(126.0, 176.0)
+##
+## Yukseklik M8.5-09'da 176'dan 186'ya cikti: adlar Baloo 2 Bold'a gecince
+## satir yuksekligi biraz buyudu.
+const CARD_SIZE: Vector2 = Vector2(126.0, 186.0)
+## Ad bandinin EN AZ yuksekligi (tek satir). Sabit degil: bugunku 20 adin
+## hepsi tek satira siginca kartlar esit yukseklikte kaliyor, ileride daha
+## uzun bir ad gelirse kart sessizce kirpmak yerine buyuyor.
+const NAME_BAND_HEIGHT: float = 26.0
+## Kart adi rolun varsayilan boyutunu (23) EZIYOR: 126 px'lik kartin ic
+## genisligi (CardPanel ic payi 14+14 dusunce) 98 px.
+##
+## Olcum (`tools/type_probe.gd`, en uzun ad "Kirmizi Biber", Baloo 2 Bold):
+## 16 px -> 92 px, 17 px -> 98 px, 18 px -> 104 px. 17 tam butceye oturuyor
+## ama SIFIR pay birakiyor; 16 secildi.
+const NAME_FONT_SIZE: int = 16
 
 ## Takılı kartın çerçeve rengi ve etiketi.
 const EQUIPPED_COLOR: Color = Color("6ddc8b")
@@ -137,8 +151,15 @@ func _make_card(skin: SkinData, owned: bool) -> PanelContainer:
 
 func _make_name_label(text: String, bright: bool) -> Label:
 	var label := Label.new()
+	UiType.apply(label, UiType.CARD_TITLE)
+	label.add_theme_font_size_override("font_size", NAME_FONT_SIZE)
 	label.text = text
 	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	# Uzun adlar kirpilmak yerine sarsin; bant sabit yukseklikte oldugu icin
+	# tek satirlik adlar da ayni yeri kapliyor.
+	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	label.custom_minimum_size = Vector2(0.0, NAME_BAND_HEIGHT)
 	label.modulate = Color.WHITE if bright else Color(1, 1, 1, 0.45)
 	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	return label
@@ -146,9 +167,10 @@ func _make_name_label(text: String, bright: bool) -> Label:
 
 func _make_rarity_label(text: String, color: Color) -> Label:
 	var label := Label.new()
+	UiType.apply(label, UiType.CAPTION)
 	label.text = text
 	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	label.add_theme_font_size_override("font_size", 12)
+	label.add_theme_font_size_override("font_size", 14)
 	label.modulate = color
 	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	return label
@@ -158,11 +180,14 @@ func _make_rarity_label(text: String, color: Color) -> Label:
 ## değiştiğinde kartlar zıplamasın.
 func _make_state_label() -> Label:
 	var label := Label.new()
+	UiType.apply(label, UiType.STAT)
 	label.name = "State"
 	label.text = ""
 	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	label.add_theme_font_size_override("font_size", 13)
-	label.custom_minimum_size = Vector2(0.0, 18.0)
+	# Rolun varsayilani 20; "TAKILI" kart genisligine gore kucuk ama Nunito
+	# Bold oldugu icin hala en guclu okunan satirlardan biri.
+	label.add_theme_font_size_override("font_size", 15)
+	label.custom_minimum_size = Vector2(0.0, 20.0)
 	label.modulate = EQUIPPED_COLOR
 	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	return label

@@ -42,6 +42,12 @@ const REWARD_GEM := preload("res://scripts/ui/reward_gem.gd")
 const CHEST_OPEN_DELAY: float = 0.35
 ## Kaynak sprite 130x126; kutu bu oranda tutuluyor ki yıldız ezilmesin.
 const STAR_SIZE: Vector2 = Vector2(66.0, 64.0)
+## Sandık kartı yazıları (M8.5-09). Rollerin varsayılan boyutları (23/20)
+## 100 px'lik kartı taşırıyor ve "Yeni skin: Altin Hamur" banner plakasından
+## dışarı çıkıyordu (çekimle yakalandı) — BANNER_PAD yazı genişliğine göre
+## hesaplı, yazı büyüyünce pay yetmiyor. 20/17 ikisini de çözüyor.
+const CARD_TITLE_FONT_SIZE: int = 20
+const CARD_DETAIL_FONT_SIZE: int = 17
 
 var _sequence_id: int = 0
 ## Kartlarla aynı sıradaki ödül görselleri — reveal sırasında open() için.
@@ -167,11 +173,16 @@ func _make_chest_card(reward: ChestReward) -> Control:
 	row.add_child(text)
 
 	var rarity_label := Label.new()
+	UiType.apply(rarity_label, UiType.CARD_TITLE)
+	# Kart 100 px; rolun varsayilani (23) iki satirla birlikte karti tasiriyor.
+	rarity_label.add_theme_font_size_override("font_size", CARD_TITLE_FONT_SIZE)
 	rarity_label.text = reward.title()
 	rarity_label.modulate = reward.color()
 	text.add_child(rarity_label)
 
 	var detail_label := Label.new()
+	UiType.apply(detail_label, UiType.STAT)
+	detail_label.add_theme_font_size_override("font_size", CARD_DETAIL_FONT_SIZE)
 	detail_label.text = reward.description()
 	# Banner YALNIZCA gerçekten yeni bir skin açıldığında. Hamur ödülünün ya da
 	# "zaten vardı" satırının arkasında "yeni!" banner'ı yanlış bilgi olurdu.

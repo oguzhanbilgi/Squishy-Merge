@@ -55,23 +55,28 @@ color = Color(0.05, 0.03, 0.09, 0.42)
 
 [node name="ScoreLabel" type="Label" parent="HUD"]
 offset_left = 24.0
-offset_top = 24.0
+offset_top = 20.0
 offset_right = 400.0
-offset_bottom = 60.0
+offset_bottom = 52.0
+theme_type_variation = &"HudSecondary"
+vertical_alignment = 1
 text = "Skor: 0"
 
 [node name="NextLabel" type="Label" parent="HUD"]
 offset_left = 24.0
-offset_top = 66.0
-offset_right = 500.0
-offset_bottom = 102.0
+offset_top = 54.0
+offset_right = 520.0
+offset_bottom = 86.0
+theme_type_variation = &"HudSecondary"
+vertical_alignment = 1
 text = "Sıradaki: -"
 
 [node name="ObjectiveLabel" type="RichTextLabel" parent="HUD"]
 offset_left = 24.0
-offset_top = 104.0
+offset_top = 90.0
 offset_right = 700.0
-offset_bottom = 148.0
+offset_bottom = 138.0
+theme_type_variation = &"HudObjective"
 bbcode_enabled = true
 scroll_active = false
 
@@ -83,7 +88,8 @@ offset_top = 540.0
 offset_right = 80.0
 offset_bottom = 600.0
 pivot_offset = Vector2(80, 30)
-theme_override_font_sizes/font_size = 40
+theme_type_variation = &"Display"
+theme_override_font_sizes/font_size = 44
 horizontal_alignment = 1
 text = ""
 
@@ -103,7 +109,8 @@ offset_left = 470.0
 offset_top = 32.0
 offset_right = 700.0
 offset_bottom = 76.0
-theme_override_font_sizes/font_size = 32
+theme_type_variation = &"Display"
+theme_override_font_sizes/font_size = 34
 horizontal_alignment = 1
 text = ""
 
@@ -120,9 +127,15 @@ stretch_mode = 5
 
 [node name="StatusLabel" type="Label" parent="HUD"]
 anchor_right = 1.0
-offset_top = 640.0
-offset_bottom = 700.0
+offset_top = 636.0
+offset_bottom = 704.0
+theme_type_variation = &"Display"
+theme_override_font_sizes/font_size = 36
+theme_override_colors/font_shadow_color = Color(0.02, 0.01, 0.05, 0.7)
+theme_override_constants/shadow_offset_x = 0
+theme_override_constants/shadow_offset_y = 3
 horizontal_alignment = 1
+vertical_alignment = 1
 text = ""
 
 [node name="Tutorial" type="VBoxContainer" parent="HUD"]
@@ -138,7 +151,8 @@ expand_mode = 1
 stretch_mode = 5
 
 [node name="Hint" type="Label" parent="HUD/Tutorial"]
-theme_override_font_sizes/font_size = 30
+theme_type_variation = &"HudPrimary"
+theme_override_font_sizes/font_size = 28
 horizontal_alignment = 1
 text = "sürükle • bırak"
 

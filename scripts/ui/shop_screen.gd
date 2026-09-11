@@ -11,10 +11,13 @@ extends CanvasLayer
 ## skinler `Shop.PRICES` üzerinden geliyor.
 
 const SWATCH_SIZE: Vector2 = Vector2(72.0, 72.0)
-## Güç kartındaki geçici ikon kutusu. ⚠️ Final power-up art'ı YOK — güç
-## çubuğuyla aynı `PowerUp.GLYPHS` metin işaretleri kullanılıyor (M8.5-03).
-const GLYPH_SIZE: Vector2 = Vector2(72.0, 72.0)
-const SECTION_FONT_SIZE: int = 27
+## Güç kartındaki ikon kutusu. M8.5-09'a kadar burada hâlâ `PowerUp.GLYPHS`
+## metin işareti duruyordu (✸ ▲ ≈ ⌫) — M8.5-08 bunları güç çubuğundan
+## kaldırmış ama mağazayı atlamıştı. Yeni tipografi bunu zorunlu kıldı:
+## dört işaretin hiçbiri Baloo 2 / Nunito cmap'inde YOK, yani ya tofu ya da
+## sistem fallback'inden bambaşka bir yazı tipi çizilirdi. Gerçek ikonlar
+## zaten var (`PowerUp.ICON_PATHS`), güç çubuğu da onları kullanıyor.
+const POWER_ICON_SIZE: Vector2 = Vector2(72.0, 72.0)
 ## Bölüm başlıklarının rengi — rarity renkleriyle çakışmayan nötr bir ton.
 const SECTION_COLOR: Color = Color("ffd9a0")
 
@@ -71,16 +74,16 @@ func _refresh_dough() -> void:
 
 func _make_section_header(text: String) -> Control:
 	var label := Label.new()
+	UiType.apply(label, UiType.SECTION_TITLE)
 	label.text = text
 	label.modulate = SECTION_COLOR
-	label.add_theme_font_size_override("font_size", SECTION_FONT_SIZE)
 	return label
 
 
 func _make_section_note(text: String) -> Control:
 	var label := Label.new()
+	UiType.apply(label, UiType.CAPTION)
 	label.text = text
-	label.add_theme_font_size_override("font_size", 15)
 	label.modulate = Color(1, 1, 1, 0.55)
 	return label
 
@@ -96,39 +99,42 @@ func _make_power_row(type: PowerUp.Type) -> Control:
 	row.add_theme_constant_override("separation", 14)
 	card.add_child(row)
 
-	# ⚠️ Geçici ikon: final power-up art'ı yok, güç çubuğundaki metin
-	# işaretinin aynısı kullanılıyor.
-	var glyph := Label.new()
-	glyph.custom_minimum_size = GLYPH_SIZE
-	glyph.text = PowerUp.glyph(type)
-	glyph.add_theme_font_size_override("font_size", 40)
-	glyph.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	glyph.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	row.add_child(glyph)
+	var icon := TextureRect.new()
+	icon.texture = PowerUp.icon(type)
+	icon.custom_minimum_size = POWER_ICON_SIZE
+	# EXPAND_IGNORE_SIZE olmadan ikonun kendi 256x256'sı satırı patlatır.
+	icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	row.add_child(icon)
 
 	var text := VBoxContainer.new()
 	text.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	row.add_child(text)
 
 	var name_label := Label.new()
+	UiType.apply(name_label, UiType.CARD_TITLE)
 	name_label.text = PowerUp.display_name(type)
 	text.add_child(name_label)
 
+	# Stok sakin (Caption), fiyat guclu (Stat): ikisi ayni boyda olunca
+	# satirda hangisinin karar bilgisi oldugu okunmuyordu.
 	var stock_label := Label.new()
-	stock_label.add_theme_font_size_override("font_size", 15)
+	UiType.apply(stock_label, UiType.CAPTION)
 	stock_label.text = "Stok: ×%d" % SaveManager.powerup_count(type)
 	stock_label.modulate = Color(1, 1, 1, 0.7)
 	text.add_child(stock_label)
 
 	var price_label := Label.new()
-	price_label.add_theme_font_size_override("font_size", 15)
+	UiType.apply(price_label, UiType.STAT)
 	price_label.text = "%d Hamur" % PowerUpEconomy.price(type)
 	price_label.modulate = SECTION_COLOR
 	text.add_child(price_label)
 
 	var buy := Button.new()
+	UiType.apply(buy, UiType.SECONDARY_BUTTON)
 	buy.text = "Satın Al"
-	buy.custom_minimum_size = Vector2(150, 68)
+	buy.custom_minimum_size = Vector2(158, 68)
 	# Parası yetmiyorsa pasif — basılabilir görünüp reddetmek kötü his.
 	buy.disabled = not PowerUpEconomy.can_afford(type)
 	buy.pressed.connect(_open_power_confirm.bind(type))
@@ -141,9 +147,12 @@ func _make_power_row(type: PowerUp.Type) -> Control:
 
 func _make_rarity_header(rarity: SkinData.Rarity) -> Control:
 	var label := Label.new()
+	UiType.apply(label, UiType.SECTION_TITLE)
+	# Bolum basligindan (GUCLER / SKINLER) bir kademe zayif: ayni rolu
+	# kullaniyor ama boyutu eziliyor, boylece iki seviye ayirt ediliyor.
+	label.add_theme_font_size_override("font_size", 21)
 	label.text = "%s  ·  %d Hamur" % [SkinData.rarity_name(rarity), Shop.price(rarity)]
 	label.modulate = SkinData.rarity_color(rarity)
-	label.add_theme_font_size_override("font_size", 22)
 	return label
 
 
@@ -170,13 +179,17 @@ func _make_row(skin: SkinData) -> Control:
 	row.add_child(text)
 
 	var name_label := Label.new()
+	UiType.apply(name_label, UiType.CARD_TITLE)
 	name_label.text = skin.display_name
 	text.add_child(name_label)
 
 	var detail := Label.new()
-	detail.add_theme_font_size_override("font_size", 15)
+	UiType.apply(detail, UiType.STAT)
 	if owned:
-		detail.text = "✓ Sahipsin"
+		# ✓ (U+2713) kaldirildi: iki font ailesinde de yok, sistem
+		# fallback'inden bambaska bir yazi tipiyle cizilirdi. Yesil renk
+		# ve soluk kart zaten "sahipsin" mesajini veriyor.
+		detail.text = "Sahipsin"
 		detail.modulate = Color(0.6, 0.85, 0.6)
 	else:
 		detail.text = "%d Hamur" % Shop.price_of(skin)
@@ -185,8 +198,9 @@ func _make_row(skin: SkinData) -> Control:
 
 	if not owned:
 		var buy := Button.new()
+		UiType.apply(buy, UiType.SECONDARY_BUTTON)
 		buy.text = "Satın Al"
-		buy.custom_minimum_size = Vector2(150, 68)
+		buy.custom_minimum_size = Vector2(158, 68)
 		buy.disabled = not Shop.can_afford(skin)
 		buy.pressed.connect(_open_confirm.bind(skin))
 		row.add_child(buy)

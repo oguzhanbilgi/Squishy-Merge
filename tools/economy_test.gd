@@ -361,8 +361,9 @@ func _scenario_shop_ui() -> void:
 
 ## Bir alt agactaki tum gorunur metni toplar.
 ##
-## Button DA dahil: guc cubugu stogunu buton yazisinda gosteriyor
-## ("⌫\nTemizleyici ×5"), yalnizca Label'lara bakmak onu kaciriyordu.
+## Button DA dahil: butonlarin yazisi da oyuncuya gorunen metnin parcasi
+## (ornegin magaza satirindaki "Satın Al"). Guc cubugunun stok yazisi ise
+## butonun COCUGU olan bir Label — o da bu gezinmeye takiliyor.
 func _collect_text(node: Node) -> String:
 	var parts: PackedStringArray = []
 	for child in node.get_children():
