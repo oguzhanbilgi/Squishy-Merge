@@ -11,7 +11,7 @@ script = ExtResource("1_select")
 [node name="Background" type="ColorRect" parent="."]
 anchor_right = 1.0
 anchor_bottom = 1.0
-color = Color(0.16, 0.15, 0.18, 1)
+color = Color(0.05, 0.04, 0.16, 1)
 
 [node name="MapBackground" type="TextureRect" parent="."]
 anchor_right = 1.0
@@ -25,45 +25,53 @@ stretch_mode = 6
 anchor_right = 1.0
 anchor_bottom = 1.0
 mouse_filter = 2
-color = Color(0.1, 0.08, 0.13, 0.42)
+color = Color(0.1, 0.06, 0.16, 0.4)
 
 [node name="Margin" type="MarginContainer" parent="."]
 theme = ExtResource("2_theme")
 anchor_right = 1.0
 anchor_bottom = 1.0
-theme_override_constants/margin_left = 40
-theme_override_constants/margin_top = 60
-theme_override_constants/margin_right = 40
-theme_override_constants/margin_bottom = 130
+theme_override_constants/margin_left = 30
+theme_override_constants/margin_top = 30
+theme_override_constants/margin_right = 30
+theme_override_constants/margin_bottom = 128
 
 [node name="VBox" type="VBoxContainer" parent="Margin"]
-alignment = 1
-theme_override_constants/separation = 24
+theme_override_constants/separation = 18
 
-[node name="Title" type="Label" parent="Margin/VBox"]
+[node name="Header" type="HBoxContainer" parent="Margin/VBox"]
+theme_override_constants/separation = 12
+
+[node name="Title" type="Label" parent="Margin/VBox/Header"]
+size_flags_horizontal = 3
 theme_type_variation = &"ScreenTitle"
-theme_override_colors/font_shadow_color = Color(0.09, 0.04, 0.14, 0.75)
-theme_override_constants/shadow_offset_x = 0
-theme_override_constants/shadow_offset_y = 3
-theme_override_constants/shadow_outline_size = 2
-horizontal_alignment = 1
+vertical_alignment = 1
 text = "Harita"
 
+[node name="ChipSlot" type="HBoxContainer" parent="Margin/VBox/Header"]
+alignment = 2
+
+[node name="TopSpace" type="Control" parent="Margin/VBox"]
+size_flags_vertical = 3
+size_flags_stretch_ratio = 0.7
+
 [node name="Grid" type="GridContainer" parent="Margin/VBox"]
+size_flags_horizontal = 4
 columns = 5
 theme_override_constants/h_separation = 16
 theme_override_constants/v_separation = 16
 
+[node name="MidSpace" type="Control" parent="Margin/VBox"]
+custom_minimum_size = Vector2(0, 10)
+
 [node name="Endless" type="Button" parent="Margin/VBox"]
 custom_minimum_size = Vector2(0, 84)
+size_flags_horizontal = 4
 text = "Sonsuz Mod"
 
-[node name="Record" type="RichTextLabel" parent="Margin/VBox"]
-theme_override_colors/font_shadow_color = Color(0.09, 0.04, 0.14, 0.8)
-theme_override_constants/shadow_offset_x = 0
-theme_override_constants/shadow_offset_y = 2
-theme_override_constants/shadow_outline_size = 1
-custom_minimum_size = Vector2(0, 84)
-bbcode_enabled = true
-fit_content = true
-scroll_active = false
+[node name="Chips" type="HBoxContainer" parent="Margin/VBox"]
+alignment = 1
+theme_override_constants/separation = 12
+
+[node name="BottomSpace" type="Control" parent="Margin/VBox"]
+size_flags_vertical = 3

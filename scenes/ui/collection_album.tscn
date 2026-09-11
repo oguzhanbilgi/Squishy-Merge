@@ -1,46 +1,75 @@
-[gd_scene load_steps=3 format=3]
+[gd_scene load_steps=4 format=3]
 
 [ext_resource type="Script" path="res://scripts/ui/collection_album.gd" id="1_album"]
 [ext_resource type="Theme" path="res://assets/visual/ui_theme.tres" id="2_theme"]
+[ext_resource type="PackedScene" path="res://scenes/ui/shell_backdrop.tscn" id="3_backdrop"]
 
 [node name="CollectionAlbum" type="CanvasLayer"]
 layer = 5
 script = ExtResource("1_album")
 
-[node name="Background" type="ColorRect" parent="."]
-anchor_right = 1.0
-anchor_bottom = 1.0
-color = Color(0.16, 0.15, 0.18, 1)
+[node name="Backdrop" parent="." instance=ExtResource("3_backdrop")]
 
 [node name="Margin" type="MarginContainer" parent="."]
 theme = ExtResource("2_theme")
 anchor_right = 1.0
 anchor_bottom = 1.0
-theme_override_constants/margin_left = 32
-theme_override_constants/margin_top = 48
-theme_override_constants/margin_right = 32
-theme_override_constants/margin_bottom = 130
+theme_override_constants/margin_left = 30
+theme_override_constants/margin_top = 30
+theme_override_constants/margin_right = 30
+theme_override_constants/margin_bottom = 128
 
 [node name="VBox" type="VBoxContainer" parent="Margin"]
-theme_override_constants/separation = 16
+theme_override_constants/separation = 14
 
-[node name="Title" type="Label" parent="Margin/VBox"]
+[node name="Header" type="HBoxContainer" parent="Margin/VBox"]
+theme_override_constants/separation = 12
+
+[node name="Title" type="Label" parent="Margin/VBox/Header"]
+size_flags_horizontal = 3
 theme_type_variation = &"ScreenTitle"
-horizontal_alignment = 1
+vertical_alignment = 1
 text = "Koleksiyon"
 
-[node name="Progress" type="RichTextLabel" parent="Margin/VBox"]
-custom_minimum_size = Vector2(0, 40)
-bbcode_enabled = true
-fit_content = true
-scroll_active = false
+[node name="ChipSlot" type="HBoxContainer" parent="Margin/VBox/Header"]
+alignment = 2
+
+[node name="ProgressCard" type="PanelContainer" parent="Margin/VBox"]
+theme_type_variation = &"QuietCardPanel"
+
+[node name="Row" type="HBoxContainer" parent="Margin/VBox/ProgressCard"]
+theme_override_constants/separation = 14
+
+[node name="IconSlot" type="HBoxContainer" parent="Margin/VBox/ProgressCard/Row"]
+alignment = 1
+
+[node name="Column" type="VBoxContainer" parent="Margin/VBox/ProgressCard/Row"]
+size_flags_horizontal = 3
+theme_override_constants/separation = 6
+
+[node name="Labels" type="HBoxContainer" parent="Margin/VBox/ProgressCard/Row/Column"]
+
+[node name="Caption" type="Label" parent="Margin/VBox/ProgressCard/Row/Column/Labels"]
+size_flags_horizontal = 3
+theme_type_variation = &"Caption"
+theme_override_colors/font_color = Color(1, 1, 1, 0.62)
+text = "Albüm ilerlemesi"
+
+[node name="Count" type="Label" parent="Margin/VBox/ProgressCard/Row/Column/Labels"]
+theme_type_variation = &"Stat"
+theme_override_colors/font_color = Color(1, 0.82, 0.4, 1)
+text = "0/20"
+
+[node name="Bar" type="ProgressBar" parent="Margin/VBox/ProgressCard/Row/Column"]
+custom_minimum_size = Vector2(0, 18)
+show_percentage = false
 
 [node name="Scroll" type="ScrollContainer" parent="Margin/VBox"]
 size_flags_vertical = 3
+horizontal_scroll_mode = 0
 
 [node name="Grid" type="GridContainer" parent="Margin/VBox/Scroll"]
 size_flags_horizontal = 3
 columns = 4
 theme_override_constants/h_separation = 12
-theme_override_constants/v_separation = 16
-
+theme_override_constants/v_separation = 12

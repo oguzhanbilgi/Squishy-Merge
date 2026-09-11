@@ -921,6 +921,114 @@ satırında "Satın Al" farklıydı.
 Bilinçli olarak YAPILMAYANLAR: skin art/tint, HUD ikon sistemi, logo,
 copywriting, variable font, font subset (bkz. `assets/fonts/CREDITS.md`).
 
+### 4.13 Production UI kabuğu (M8.5-10)
+
+**Production UI shell TAMAMLANDI** — dört sekme, alt sekme çubuğu,
+ayarlar, günlük ödül ve mağaza onayı tek tasarım sisteminde. Gameplay
+ekranı, güç butonları, devam/refill pencereleri, logo ve tipografi
+DEĞİŞMEDİ (owner'ın final kimliği referans alındı).
+
+#### Tasarım sistemi (`scripts/ui/ui_palette.gd` + `assets/visual/ui_theme.tres`)
+
+| katman | uygulama |
+|---|---|
+| BACKGROUND | `scenes/ui/shell_backdrop.tscn` — owner'ın gece zemini karartılmış (tint 0.62/0.60/0.78 + erik scrim 0.5 + alt gradyan). Harita kendi art'ını koruyor |
+| SURFACE | tema `PanelContainer` — erik/lacivert yarı saydam, radius 26 |
+| CARD | tema `CardPanel` / `QuietCardPanel` — biraz açık, ince pastel/rarity kenar, radius 20 |
+| CHIP | tema `ChipPanel` — ikon + değer pill'i (Hamur, seri, koleksiyon, rekor) |
+| PRIMARY CTA | owner'ın candy pill dokusu (OYNA, pencere CTA'ları) ya da tema `Button` (candy cyan StyleBoxFlat + koyu alt dudak) |
+| SECONDARY | tema `SecondaryButton` (beyaz hayalet pill); krem panelde `UiPalette.style_ghost_on_cream` (erik hayalet) |
+| SELECTED | nane (`UiPalette.SELECTED`, koleksiyon TAKILI) / altın (sekme, sıradaki level halkası) |
+| DISABLED | lavanta-gri gövde + koyu okunur yazı |
+| MODAL | candy panel + kanatlı kalp tepeliği (revive/refill ile aynı) — ayarlar, günlük ödül, mağaza onayı |
+
+Renkler owner asset'lerinden ölçüldü (`cta_button_normal` #5eddf9,
+logo #fee85f/#c694fa/#84d7fc/#d9799e, gece zemini #0d153f/#2d2a6c).
+Wenrexa buton/panel dokuları temadan çıktı (dosyalar duruyor).
+Dekorasyon bütçesi: hero/CTA yoğun (~%10), kartlar orta (~%30), yüzeyler
+sakin (~%60).
+
+#### Ekranlar
+
+- **Ana Sayfa:** üst çubuk (seri cipi · ayarlar dişlisi), hero (logo +
+  owner'ın `tutorial_pose` maskotu, hafif nefes animasyonu), Hamur +
+  koleksiyon cipleri, OYNA (610 px candy pill, Display 40) + "Sıradaki:
+  Level N" satırı.
+- **Alt sekme çubuğu:** ikon + etiket, seçili altın + arkasında yumuşak
+  pill + ikon pop. 112 px, tek `TabBarPanel` yüzeyi. **AdMob seam:**
+  `TabBar.AD_SAFE_INSET` (şu an 0) — banner gelince çubuk yukarı kayar,
+  ekran payları `TabBar.bottom_inset()` ile büyür.
+- **Mağaza:** başlık + Hamur cipi; bölüm başlıkları ikon+başlık+not;
+  güç kartı = vurgu renkli yuvarlak ikon kuyusu → ad → fiyat (Hamur
+  ikonu, altın) → stok (sakin) → candy "Satın Al"; skin kartı rarity
+  kenarlı, sahip olunan sakin yüzey + nane tik. Onay diyaloğu candy modal
+  (başlık / detay / fiyat / SATIN AL / Vazgeç, karartmaya dokunma =
+  vazgeç). Başarıda kart pop + bakiye cipi pop + cip toast.
+- **Koleksiyon:** başlık + Hamur cipi, altın ilerleme çubuğu kartı
+  (`ProgressBar`), 4 sütun kart: açık = rarity kenar, kilitli = koyu sakin
+  yüzey + silüet, takılı = nane 3 px çerçeve + "TAKILI" nane rozeti + pop.
+  Skin önizlemesi hâlâ placeholder (dokunulmadı).
+- **Harita:** art korundu; başlık + Hamur cipi, düğümler tema candy
+  butonu (kilitli lavanta + kilit rozeti), **sıradaki level altın halka +
+  nabız**, Sonsuz Mod butonu, rekor + seri cipleri.
+- **Ayarlar (yeni, `scenes/ui/settings_panel.tscn`):** Ses Efektleri
+  (gerçek — `AudioManager.set_sfx_enabled` SFX bus mute, kayıtta
+  `sfx_enabled`), Gizlilik (kısa doğru metin), "Squishy Merge · Sürüm
+  0.8.5" (`config/version`), Kapat + sağ üst X + karartmaya dokunma.
+  **Müzik anahtarı bilerek YOK** — Music bus'ı boş, çalışmayan anahtar
+  koymadık. Müzik gelirse `_add_toggle_row` ile tek satır.
+- **Android geri tuşu** (`main.gd` `_notification`): açık pencereyi
+  kapatır → Ana Sayfa'ya döner → oyun sırasında yok sayılır.
+
+#### Mikro-etkileşimler (`scripts/ui/ui_motion.gd`)
+
+| ne | süre |
+|---|---|
+| buton basışı: 0.94 scale, TRANS_BACK ile geri | 0.06 s / 0.18 s |
+| pop (sekme ikonu, satın alınan kart, bakiye cipi, TAKILI) | 0.22 s |
+| pencere açılışı: karartma fade + panel 0.92→1.0 scale + fade | 0.20 s |
+| sekme geçişi: içerik 14 px alttan solarak | 0.16 s |
+| toast: yükselip sönen cip | 1.0 s |
+| sıradaki level nabzı / maskot nefesi | 0.9 s / 1.2 s döngü |
+
+Hepsi kesilebilir (`UiMotion._restart` eski tween'i öldürür). Sekme
+geçişi yalnızca `Container` çocuklara uygulanır (zemin kaymaz, alfa 0
+toast ellenmez — ilk denemede toast görünür olmuştu, çekimle yakalandı).
+
+#### Free Casual GUI paketi
+
+Yalnızca 14 beyaz ikon alındı (`tools/make_pack_icons.gd`, beyaz maske
+olarak). Butonlar (neon-glass), paneller (krem), HUD, rozetler, lekeler
+REJECT/REFERENCE — tablo ve gerekçeler `assets/visual/CREDITS.md`.
+**Kaynak paket repoya EKLENMEDİ:** Unity Asset Store EULA ham paketin
+yeniden dağıtımına izin vermiyor olabilir; `_visual_source/` politikasının
+tek istisnası. Owner isterse `.gitignore`'a açık istisna yazılıp eklenir.
+
+#### QA
+
+- `tools/ui_shots.gd` (yeni): dört sekme, takılı koleksiyon, mağaza
+  üst/alt, ayarlar, en kötü durum (Hamur 99999, 20/20, stok ×99, seri
+  365), oyun ekranı — BEFORE (d214f63) ve AFTER aynı kayıtla üç ölçüde
+  (720×1280, 720×1560, 540×960). Taşma/kırpılma yok.
+- `tools/ui_smoke_test.gd` (yeni, headless): 26 davranış kontrolü —
+  sekmeler, ayar anahtarı (bus mute + kayıt), gizlilik, geri tuşu, onay
+  diyaloğu, satın alma sonrası stok/Hamur/cip, equip/rozet/kilitli skin.
+- Regresyon: economy 100/100 (4 metin kalıbı "Stok ×N" / "N Hamur"a
+  güncellendi — mantık değil, kopya), refill 119/119, revive 103/103,
+  smoke boot temiz.
+- `type_shots.gd` ve `screenshot_runner.gd` sekme/pencere çekimlerine 0.3 s
+  bekleme eklendi (geçiş animasyonu bitmeden çekim yarı saydam çıkıyordu).
+
+#### Kalan görsel borç
+
+1. Skin art (placeholder daireler) — koleksiyon ve mağaza kartlarının tek
+   zayıf noktası.
+2. Harita düğümleri hâlâ düz grid (§7 #3) — patika takip etmiyor.
+3. Round sonuç paneli koyu yüzey (candy krem modal değil) — bilinçli:
+   sandık reveal katmanları koyu zeminde okunuyor; owner isterse modal
+   şablonuna geçer.
+4. Ayarlarda müzik satırı yok (müzik yok).
+
 ## 5. Dosya/klasör yapısı ve script envanteri
 
 ```
@@ -930,7 +1038,8 @@ squishy-merge/
 │   ├── main.tscn            # akış kontrolü (tek gerçek "sahne")
 │   ├── game/                # dumpling, game_board, pop_effect
 │   └── ui/                  # home_screen, level_select, collection_album,
-│                            #   shop_screen, round_result, daily_reward_popup, tab_bar
+│                            #   shop_screen, round_result, daily_reward_popup, tab_bar,
+│                            #   settings_panel, shell_backdrop (M8.5-10)
 ├── scripts/
 │   ├── autoload/            # GameState, AudioManager, SaveManager
 │   ├── game/                # oyun mantığı
@@ -983,12 +1092,21 @@ squishy-merge/
 | `ui/reward_gem.gd` | Sandık ödül görseli: kapalı → açılış → rarity katmanları. |
 | `ui/skin_swatch.gd` | Skin kartı görseli (açık: renkli daire, kilitli: silüet + kilit). |
 | `ui/ui_icons.gd` | HUD ikonlarının tek tanımı, BBCode `[img]` üretir. |
+| `ui/ui_type.gd` | Tipografi rol adları (M8.5-09). |
+| `ui/ui_palette.gd` | Tasarım sistemi: renkler, katmanlar, cip/ikon buton fabrikaları (M8.5-10). |
+| `ui/ui_motion.gd` | Mikro-etkileşimler: basış, pop, pencere açılışı, sekme geçişi, toast (M8.5-10). |
+| `ui/ui_toggle.gd` | Ayarlar anahtarı (M8.5-10). |
+| `ui/settings_panel.gd` | Ayarlar penceresi: ses efektleri, gizlilik, sürüm (M8.5-10). |
+| `ui/candy_button.gd` | Owner'ın candy pill dokularının tek bağlanma noktası (oyun ekranı + pencereler). |
 
 ### Geliştirme araçları (`tools/` — oyun çalışırken hiçbiri kullanılmaz)
 
 | araç | işi |
 |---|---|
 | `bot_runner.gd` + `bot_brain.gd` | **Headless denge testi.** Gerçek `GameBoard`'u gerçek fizikle oynatır. Bu projedeki tüm kazanma oranı ölçümlerinin kaynağı. |
+| `ui_shots.gd` + `ui_shots.tscn` | **Production UI kabuğu çekimleri** (M8.5-10): dört sekme, ayarlar, en kötü durum, oyun ekranı; üç ölçü. `--headless` ile çalışmaz. |
+| `ui_smoke_test.gd` + `ui_smoke_test.tscn` | **Headless UI davranış testi** (26 kontrol): ayar anahtarı, onay diyaloğu, geri tuşu, equip. |
+| `make_pack_icons.gd` | Free Casual GUI SVG ikonlarını beyaz maske PNG'ye türetir. |
 | `screenshot_runner.gd` + `screenshot_test.tscn` | Ekran görüntüsü üretir (merge, combo, skor pop, tutorial, danger, sandık, 4 sekme, kilitli harita). İkinci argümanla pencere ölçüsü verilebilir (`540x1170` → dar/uzun telefon testi). **`--headless` ile çalışmaz.** |
 | `make_owner_sprites.gd` | Owner'ın ChatGPT görsellerini hazırlar: kırpma, küçültme, adaptive icon düzeltmeleri, `icon_sheet.png` parçalama. |
 | `make_ui_sprites.gd` | Wenrexa UI paketinden tema sprite'ları. |

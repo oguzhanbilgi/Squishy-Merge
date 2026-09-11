@@ -3,6 +3,10 @@ extends CanvasLayer
 ## Koleksiyon butonu M8'de alt sekme çubuğuna taşındı.
 ## GAME_DESIGN.md §5.5'teki yol/düğüm görselleştirmesi ve unlock animasyonu
 ## henüz yok — bu ekran şimdilik işlevsel, görsel hâli owner asset'leriyle gelecek.
+##
+## M8.5-10: harita art'ı ve düğüm grid'i KORUNDU; başlık, cipler, düğüm
+## stilleri (candy cyan / kilitli lavanta / sıradaki level altın halka +
+## nabız) ve Sonsuz Mod butonu global tasarım sistemine bağlandı.
 
 signal level_chosen(level: LevelData)
 
@@ -34,22 +38,41 @@ const NODE_NUMBER_FONT_SIZE: int = 28
 ## Kutu tam dikdörtgene yayılınca yıldız sırası pill'in alt kenarından
 ## taşıyordu (çekimle yakalandı).
 const NODE_TOP_INSET: float = 12.0
-const NODE_BOTTOM_INSET: float = 20.0
+const NODE_BOTTOM_INSET: float = 18.0
 ## Kazanılmamış yıldızın opaklığı. Açık mavi pill üstünde 0.35 neredeyse
 ## görünmüyordu (level 10 düğümü ölçüldü); 0.5 hâlâ belirgin şekilde soluk
 ## ama "üç yıldızdan kaçı" sayılabiliyor.
 const NODE_STAR_EMPTY_ALPHA: float = 0.5
 
+## Sıradaki (oynanacak) level düğümünün altın halkası ve nabzı.
+const NEXT_RING_COLOR: Color = UiPalette.GOLD
+const NEXT_PULSE_SCALE: float = 1.05
+const NEXT_PULSE_TIME: float = 0.9
+
 var _levels: Array[LevelData] = []
+var _dough_chip: PanelContainer
+var _record_chip: PanelContainer
+var _streak_chip: PanelContainer
+var _pulse: Tween
 
 @onready var _grid: GridContainer = $Margin/VBox/Grid
 @onready var _endless_button: Button = $Margin/VBox/Endless
-@onready var _record_label: RichTextLabel = $Margin/VBox/Record
+@onready var _chip_slot: HBoxContainer = $Margin/VBox/Header/ChipSlot
+@onready var _chips: HBoxContainer = $Margin/VBox/Chips
 
 
 func _ready() -> void:
 	_levels = LevelLibrary.load_levels()
 	_endless_button.pressed.connect(_on_endless_pressed)
+	_endless_button.focus_mode = Control.FOCUS_NONE
+	_endless_button.custom_minimum_size.x = 400.0
+	UiMotion.attach_press(_endless_button)
+	_dough_chip = UiPalette.chip(UiIcons.DOUGH, "")
+	_chip_slot.add_child(_dough_chip)
+	_record_chip = UiPalette.chip(UiPalette.ICON_TROPHY, "", 24, UiPalette.GOLD)
+	_streak_chip = UiPalette.chip(UiIcons.FLAME, "")
+	_chips.add_child(_record_chip)
+	_chips.add_child(_streak_chip)
 	refresh()
 
 
@@ -57,28 +80,56 @@ func refresh() -> void:
 	for child in _grid.get_children():
 		child.queue_free()
 
+	if _pulse != null and _pulse.is_valid():
+		_pulse.kill()
+	# Sıradaki level: açık ama henüz yıldızı yok (ilk kez oynanacak).
+	var next_level: int = SaveManager.highest_level_unlocked()
 	for level in _levels:
 		var button := Button.new()
 		button.custom_minimum_size = Vector2(96.0, 96.0)
+		button.focus_mode = Control.FOCUS_NONE
 		button.disabled = not SaveManager.is_level_unlocked(level.level_number)
 		button.pressed.connect(_on_level_pressed.bind(level))
+		UiMotion.attach_press(button)
 		# Kazanılmış yıldızlar burada görünsün, yoksa kayıtta duran veri
 		# oyuncuya hiç yansımıyor.
 		_add_node_content(button, level.level_number,
 			SaveManager.stars_for_level(level.level_number))
 		if button.disabled:
 			_add_lock_badge(button)
+		elif level.level_number == next_level:
+			_mark_next(button)
 		_grid.add_child(button)
 
 	var endless_unlocked: bool = SaveManager.is_endless_unlocked(_levels.size())
 	_endless_button.disabled = not endless_unlocked
-	_endless_button.text = "Sonsuz Mod" if endless_unlocked else "Sonsuz Mod (Level %d'i bitir)" % _levels.size()
-	_record_label.text = "[center]Sonsuz mod rekoru: %d   ·   %s   ·   Koleksiyon: %d/%d\n%s[/center]" % [
-		SaveManager.endless_high_score(),
-		UiIcons.labelled(UiIcons.DOUGH, "Hamur: %d" % SaveManager.dough()),
-		SaveManager.owned_skins().size(), SkinLibrary.total_count(),
-		UiIcons.labelled(UiIcons.FLAME,
-			"Günlük seri: %d gün" % SaveManager.daily_streak())]
+	_endless_button.text = "Sonsuz Mod" if endless_unlocked else "Sonsuz Mod · Level %d'i bitir" % _levels.size()
+	UiPalette.set_chip_value(_dough_chip, "%d Hamur" % SaveManager.dough(), false)
+	UiPalette.set_chip_value(_record_chip, "Rekor %d" % SaveManager.endless_high_score(), false)
+	var streak: int = SaveManager.daily_streak()
+	UiPalette.set_chip_value(_streak_chip,
+		"%d günlük seri" % streak if streak > 0 else "Seri başlasın", false)
+
+
+## Sıradaki level: altın halka + hafif nabız. "Nereye basacağım?" sorusunun
+## cevabı haritada tek bakışta görünsün.
+func _mark_next(button: Button) -> void:
+	for state in ["normal", "hover"]:
+		var box := (button.get_theme_stylebox(state) as StyleBoxFlat).duplicate()
+		box.set_border_width_all(3)
+		box.border_width_bottom = 6
+		box.border_color = NEXT_RING_COLOR
+		button.add_theme_stylebox_override(state, box)
+	button.pivot_offset = button.custom_minimum_size * 0.5
+	# Basinca nabiz durur; basma animasyonu (UiMotion) scale'i devralir.
+	button.button_down.connect(func() -> void:
+		if _pulse != null and _pulse.is_valid():
+			_pulse.kill())
+	_pulse = button.create_tween().set_loops()
+	_pulse.tween_property(button, "scale", Vector2.ONE * NEXT_PULSE_SCALE, NEXT_PULSE_TIME) \
+		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	_pulse.tween_property(button, "scale", Vector2.ONE, NEXT_PULSE_TIME) \
+		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
 
 
 ## Düğümün içeriği: numara üstte, yıldız sırası altta.

@@ -97,6 +97,16 @@ alınacak — şimdi tahmin/vaat yok.
     olmayan Unicode işaretler (★☆ ✓ ●○ ve mağazada unutulmuş güç
     işaretleri) mevcut asset/metinle değiştirildi. **Mekanik, ekonomi,
     fizik ve reklam kuralları DEĞİŞMEDİ.** Ayrıntı: PROJECT_STATUS §4.12.
+  - `M8.5-10` ✅ production UI kabuğu: tek tasarım sistemi
+    (`ui_palette.gd` + `ui_theme.tres` StyleBoxFlat katmanları, candy-night
+    zemin), commercial home (hero + cipler + büyük OYNA), ikonlu alt sekme
+    çubuğu, kart tabanlı mağaza, albüm hissi veren koleksiyon, harita
+    başlık/düğüm/cip pası, **Ayarlar** (gerçek ses efekti anahtarı,
+    gizlilik, sürüm), mikro-etkileşimler (basış/pop/pencere/sekme geçişi),
+    Android geri tuşu. Free Casual GUI paketinden yalnız 14 beyaz ikon
+    alındı; butonlar/paneller reddedildi. **Gameplay, ekonomi, fizik,
+    reklam kuralları DEĞİŞMEDİ.** Skin art hâlâ placeholder. Ayrıntı:
+    PROJECT_STATUS §4.13.
 - **Sırada: M9 — Android export.** Ortam hazır (export template'leri, SDK,
   NDK, JDK 17, debug keystore mevcut); eksik olan `export_presets.cfg` ve
   release/upload keystore.
@@ -153,8 +163,15 @@ alınacak — şimdi tahmin/vaat yok.
   çalışıyor ama `rewarded_revive_requested` sinyali boşta. AdMob SDK kurulumu
   ve `Main.set_rewarded_provider()` bağlanması ayrı bir iş. Sahte reklam ve
   bedava devam bilinçli olarak YOK — bkz. GAME_DESIGN §11.6.
-- **Tipografi TAMAM (M8.5-09):** bütün production ekranlar aynı iki font
-  ailesinde. Kalan görsel borç yalnızca skin renkleri (aşağıda).
+- **Tipografi TAMAM (M8.5-09), production UI kabuğu TAMAM (M8.5-10):**
+  bütün production ekranlar aynı font ailesinde ve aynı tasarım
+  sisteminde (zemin/yüzey/kart/CTA/seçili/pasif katmanları, candy modal,
+  ikonlu sekme çubuğu, ayarlar). Kalan görsel borç: skin renkleri
+  (aşağıda) ve haritanın düz grid düğümleri.
+- **Unity Asset Store paketi repoda DEĞİL:** `_visual_source/
+  unity_free_casual_gui/` owner'ın makinesinde; EULA ham paketin yeniden
+  dağıtımına izin vermeyebilir. Türetilmiş 14 ikon `assets/visual/ui/icons/`
+  altında repoda. Owner paketi de eklemek isterse karar onun.
 - **Oyun ekranı asset'leri TAMAM (M8.5-08):** dört güç ikonu, buton
   durumları, gece zemini, bambu duvar/taban ve güç efektleri bağlandı.
   Oyun ekranında görünür placeholder kalmadı. Geriye kalan tek görsel

@@ -1,0 +1,97 @@
+[gd_scene load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://scripts/ui/settings_panel.gd" id="1_settings"]
+[ext_resource type="Theme" path="res://assets/visual/ui_theme.tres" id="2_theme"]
+[ext_resource type="Texture2D" path="res://assets/visual/ui/panel_candy.png" id="3_panel"]
+[ext_resource type="Texture2D" path="res://assets/visual/ui/panel_candy_crown.png" id="4_crown"]
+
+[node name="SettingsPanel" type="CanvasLayer"]
+layer = 12
+script = ExtResource("1_settings")
+
+[node name="Center" type="Control" parent="."]
+theme = ExtResource("2_theme")
+anchor_right = 1.0
+anchor_bottom = 1.0
+
+[node name="Dim" type="ColorRect" parent="Center"]
+anchor_right = 1.0
+anchor_bottom = 1.0
+color = Color(0.05, 0, 0.06, 0.62)
+
+[node name="Modal" type="Control" parent="Center"]
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -300.0
+offset_top = -280.0
+offset_right = 300.0
+offset_bottom = 280.0
+mouse_filter = 2
+
+[node name="Frame" type="TextureRect" parent="Center/Modal"]
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 2
+texture = ExtResource("3_panel")
+expand_mode = 1
+stretch_mode = 0
+
+[node name="Crown" type="TextureRect" parent="Center/Modal"]
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -150.0
+offset_top = -62.0
+offset_right = 150.0
+offset_bottom = 34.0
+mouse_filter = 2
+texture = ExtResource("4_crown")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="Panel" type="PanelContainer" parent="Center/Modal"]
+theme_type_variation = &"ModalPanel"
+anchor_right = 1.0
+anchor_bottom = 1.0
+
+[node name="VBox" type="VBoxContainer" parent="Center/Modal/Panel"]
+theme_override_constants/separation = 14
+
+[node name="Title" type="Label" parent="Center/Modal/Panel/VBox"]
+theme_type_variation = &"Display"
+theme_override_colors/font_color = Color(0.36, 0.16, 0.32, 1)
+horizontal_alignment = 1
+text = "Ayarlar"
+
+[node name="Rows" type="VBoxContainer" parent="Center/Modal/Panel/VBox"]
+theme_override_constants/separation = 10
+
+[node name="Privacy" type="VBoxContainer" parent="Center/Modal/Panel/VBox"]
+visible = false
+theme_override_constants/separation = 10
+
+[node name="PrivacyTitle" type="Label" parent="Center/Modal/Panel/VBox/Privacy"]
+theme_type_variation = &"SectionTitle"
+theme_override_colors/font_color = Color(0.36, 0.16, 0.32, 1)
+horizontal_alignment = 1
+text = "Gizlilik"
+
+[node name="PrivacyText" type="Label" parent="Center/Modal/Panel/VBox/Privacy"]
+theme_override_colors/font_color = Color(0.48, 0.29, 0.41, 1)
+theme_override_constants/line_spacing = 4
+horizontal_alignment = 1
+autowrap_mode = 2
+text = ""
+
+[node name="Spacer" type="Control" parent="Center/Modal/Panel/VBox"]
+size_flags_vertical = 3
+
+[node name="About" type="Label" parent="Center/Modal/Panel/VBox"]
+theme_type_variation = &"Caption"
+theme_override_colors/font_color = Color(0.54, 0.29, 0.35, 1)
+horizontal_alignment = 1
+text = ""
+
+[node name="Close" type="Button" parent="Center/Modal/Panel/VBox"]
+text = "Kapat"

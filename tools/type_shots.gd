@@ -145,6 +145,8 @@ func _shot_daily() -> void:
 	add_child(popup)
 	await get_tree().process_frame
 	popup.show_reward({"reward": 15, "streak": 4, "streak_broken": false})
+	# Pencere 0.2 sn'lik fade+scale ile aciliyor (M8.5-10); bitmesini bekle.
+	await get_tree().create_timer(0.35).timeout
 	await get_tree().process_frame
 	await _capture("t02_gunluk_odul.png")
 	popup.queue_free()
@@ -186,7 +188,8 @@ func _shot_worst_case_tabs() -> void:
 	for tab in names.size():
 		main._show_tab(tab)
 		main._tabs.set_active(tab)
-		await get_tree().process_frame
+		# Sekme gecisi 0.16 sn solma (M8.5-10); bitmeden cekilirse yari saydam.
+		await get_tree().create_timer(0.3).timeout
 		await get_tree().process_frame
 		await _capture(names[tab] + ".png")
 

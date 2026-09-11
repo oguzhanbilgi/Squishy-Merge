@@ -1,0 +1,50 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="Texture2D" path="res://assets/visual/ui/board_background_night.png" id="1_night"]
+
+[sub_resource type="Gradient" id="Grad_bottom"]
+offsets = PackedFloat32Array(0, 0.55, 1)
+colors = PackedColorArray(0.05, 0.03, 0.14, 0, 0.05, 0.03, 0.14, 0.25, 0.05, 0.03, 0.14, 0.8)
+
+[sub_resource type="GradientTexture2D" id="GradTex_bottom"]
+gradient = SubResource("Grad_bottom")
+fill_from = Vector2(0, 0)
+fill_to = Vector2(0, 1)
+
+[node name="ShellBackdrop" type="Control"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 2
+
+[node name="Base" type="ColorRect" parent="."]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 2
+color = Color(0.05, 0.04, 0.16, 1)
+
+[node name="Night" type="TextureRect" parent="."]
+modulate = Color(0.62, 0.6, 0.78, 1)
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 2
+texture = ExtResource("1_night")
+expand_mode = 1
+stretch_mode = 6
+
+[node name="Scrim" type="ColorRect" parent="."]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 2
+color = Color(0.07, 0.05, 0.18, 0.5)
+
+[node name="BottomFade" type="TextureRect" parent="."]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 2
+texture = SubResource("GradTex_bottom")
+expand_mode = 1

@@ -71,3 +71,19 @@ func set_bus_volume_db(bus: StringName, volume_db: float) -> void:
 	if index < 0:
 		return
 	AudioServer.set_bus_volume_db(index, volume_db)
+
+
+## Ses efektlerini toptan kapatır/açar (Ayarlar → Ses Efektleri). Bus
+## seviyesinde mute: çağrı noktaları değişmiyor, kapalıyken play_sfx
+## çalışıyor ama duyulmuyor. Kayıtla bağını SaveManager.set_sfx_enabled
+## kuruyor; açılışta main.gd kayıttaki değeri buraya uyguluyor.
+func set_sfx_enabled(enabled: bool) -> void:
+	var index: int = AudioServer.get_bus_index(SFX_BUS)
+	if index < 0:
+		return
+	AudioServer.set_bus_mute(index, not enabled)
+
+
+func is_sfx_enabled() -> bool:
+	var index: int = AudioServer.get_bus_index(SFX_BUS)
+	return index < 0 or not AudioServer.is_bus_mute(index)

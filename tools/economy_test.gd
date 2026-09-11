@@ -336,17 +336,19 @@ func _scenario_shop_ui() -> void:
 			text.contains(PowerUp.display_name(type)))
 		_check("%s fiyati gorunuyor" % PowerUp.display_name(type),
 			text.contains("%d Hamur" % PowerUpEconomy.price(type)))
-	_check("stok x1 gorunuyor", text.contains("Stok: ×1"))
-	_check("Hamur bakiyesi gorunuyor", text.contains("Hamur: 5000"))
+	# Metin kaliplari M8.5-10 magaza kartiyla ayni: "Stok ×N", "N Hamur"
+	# (bakiye cipi). Kalip degisirse burasi da degismeli.
+	_check("stok x1 gorunuyor", text.contains("Stok ×1"))
+	_check("Hamur bakiyesi gorunuyor", text.contains("5000 Hamur"))
 
 	# Satin alma sonrasi refresh stogu ve bakiyeyi guncelliyor mu?
 	PowerUpEconomy.purchase(PowerUp.Type.BOMB, 2)
 	shop.refresh()
 	await get_tree().process_frame
 	var after: String = _collect_text(shop)
-	_check("satin alma sonrasi stok x3 gorunuyor", after.contains("Stok: ×3"))
+	_check("satin alma sonrasi stok x3 gorunuyor", after.contains("Stok ×3"))
 	_check("satin alma sonrasi bakiye guncellendi",
-		after.contains("Hamur: %d" % SaveManager.dough()))
+		after.contains("%d Hamur" % SaveManager.dough()))
 
 	# Parasi yetmeyince buton pasif olmali.
 	_reset_save(0)

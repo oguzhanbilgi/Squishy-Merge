@@ -1,6 +1,9 @@
 extends CanvasLayer
 ## Günlük giriş ödülü penceresi (GAME_DESIGN.md §5.4).
 ## Sadece gösterge: ödül zaten SaveManager'a işlenmiş olarak buraya geliyor.
+##
+## M8.5-10: devam/refill/ayarlar pencereleriyle AYNI candy panel + tepelik,
+## "AL" candy CTA, fade+scale açılış. Ödül satırında Hamur ikonu.
 
 signal closed
 
@@ -13,21 +16,25 @@ signal closed
 ## Bu yüzden etiket `Label` değil `RichTextLabel`: tek satırda iki farklı
 ## renk gerekiyor.
 const STREAK_DOT: String = "•"
-const STREAK_DOT_FILLED_COLOR: String = "ffd166"
-const STREAK_DOT_EMPTY_COLOR: String = "ffffff55"
+const STREAK_DOT_FILLED_COLOR: String = "e0a020"
+const STREAK_DOT_EMPTY_COLOR: String = "5c2a5040"
 const STREAK_DOT_FONT_SIZE: int = 32
 ## Sayaçta gösterilen gün sayısı — seri bundan uzunsa "+N" olarak yazılır.
 const STREAK_DOTS: int = 7
 
-@onready var _title: Label = $Center/Panel/VBox/Title
-@onready var _reward: Label = $Center/Panel/VBox/Reward
-@onready var _streak: RichTextLabel = $Center/Panel/VBox/Streak
-@onready var _note: Label = $Center/Panel/VBox/Note
-@onready var _close: Button = $Center/Panel/VBox/Close
+@onready var _dim: ColorRect = $Center/Dim
+@onready var _modal: Control = $Center/Modal
+@onready var _title: Label = $Center/Modal/Panel/VBox/Title
+@onready var _reward: RichTextLabel = $Center/Modal/Panel/VBox/Reward
+@onready var _streak: RichTextLabel = $Center/Modal/Panel/VBox/Streak
+@onready var _note: Label = $Center/Modal/Panel/VBox/Note
+@onready var _close: Button = $Center/Modal/Panel/VBox/Close
 
 
 func _ready() -> void:
 	visible = false
+	CandyButton.style_cta(_close)
+	UiMotion.attach_press(_close)
 	_close.pressed.connect(func() -> void:
 		visible = false
 		closed.emit())
@@ -36,12 +43,14 @@ func _ready() -> void:
 func show_reward(result: Dictionary) -> void:
 	var streak: int = result["streak"]
 	_title.text = "Günlük ödül"
-	_reward.text = "+%d Hamur" % result["reward"]
+	_reward.text = "[center]%s[/center]" % UiIcons.labelled(
+		UiIcons.DOUGH, "+%d Hamur" % result["reward"], 36)
 	_streak.text = "[center]%d günlük seri\n%s[/center]" % [
 		streak, _streak_dots(streak)]
 	# Seri kırıldıysa oyuncuya sebebini söyle, sessizce sıfırlama.
 	_note.text = "Serin kırılmıştı, sayaç sıfırlandı." if result["streak_broken"] else ""
 	visible = true
+	UiMotion.modal_open(_modal, _dim)
 
 
 ## Noktalar BBCode döner — `_streak` bir RichTextLabel.

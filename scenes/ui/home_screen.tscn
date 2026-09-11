@@ -1,55 +1,112 @@
-[gd_scene load_steps=4 format=3]
+[gd_scene load_steps=7 format=3]
 
 [ext_resource type="Script" path="res://scripts/ui/home_screen.gd" id="1_home"]
 [ext_resource type="Theme" path="res://assets/visual/ui_theme.tres" id="2_theme"]
 [ext_resource type="Texture2D" path="res://assets/visual/ui/logo_lockup.png" id="3_logo"]
+[ext_resource type="PackedScene" path="res://scenes/ui/shell_backdrop.tscn" id="4_backdrop"]
+[ext_resource type="Texture2D" path="res://assets/visual/ui/tutorial_pose.png" id="5_mascot"]
+[ext_resource type="Texture2D" path="res://assets/visual/ui/cta_button_normal.png" id="6_cta"]
 
 [node name="HomeScreen" type="CanvasLayer"]
 layer = 5
 script = ExtResource("1_home")
 
-[node name="Background" type="ColorRect" parent="."]
+[node name="Backdrop" parent="." instance=ExtResource("4_backdrop")]
+
+[node name="TopBar" type="MarginContainer" parent="."]
+theme = ExtResource("2_theme")
 anchor_right = 1.0
-anchor_bottom = 1.0
-color = Color(0.16, 0.15, 0.18, 1)
+offset_bottom = 96.0
+theme_override_constants/margin_left = 24
+theme_override_constants/margin_top = 22
+theme_override_constants/margin_right = 24
+theme_override_constants/margin_bottom = 0
+
+[node name="Row" type="HBoxContainer" parent="TopBar"]
+theme_override_constants/separation = 12
+
+[node name="StreakSlot" type="HBoxContainer" parent="TopBar/Row"]
+size_flags_horizontal = 3
+alignment = 0
+
+[node name="SettingsSlot" type="HBoxContainer" parent="TopBar/Row"]
+alignment = 2
 
 [node name="Margin" type="MarginContainer" parent="."]
 theme = ExtResource("2_theme")
 anchor_right = 1.0
 anchor_bottom = 1.0
-theme_override_constants/margin_left = 40
-theme_override_constants/margin_top = 80
-theme_override_constants/margin_right = 40
+theme_override_constants/margin_left = 44
+theme_override_constants/margin_top = 96
+theme_override_constants/margin_right = 44
 theme_override_constants/margin_bottom = 140
 
 [node name="VBox" type="VBoxContainer" parent="Margin"]
 alignment = 1
-theme_override_constants/separation = 18
+theme_override_constants/separation = 0
+
+[node name="TopSpace" type="Control" parent="Margin/VBox"]
+size_flags_vertical = 3
+size_flags_stretch_ratio = 0.8
 
 [node name="Logo" type="TextureRect" parent="Margin/VBox"]
-custom_minimum_size = Vector2(0, 132)
+custom_minimum_size = Vector2(0, 118)
 mouse_filter = 2
 texture = ExtResource("3_logo")
 expand_mode = 1
 stretch_mode = 5
 
-[node name="Welcome" type="Label" parent="Margin/VBox"]
-theme_type_variation = &"SectionTitle"
+[node name="MascotSlot" type="Control" parent="Margin/VBox"]
+custom_minimum_size = Vector2(0, 250)
+mouse_filter = 2
+
+[node name="Mascot" type="TextureRect" parent="Margin/VBox/MascotSlot"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 2
+texture = ExtResource("5_mascot")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="MidSpace" type="Control" parent="Margin/VBox"]
+custom_minimum_size = Vector2(0, 18)
+
+[node name="Chips" type="HBoxContainer" parent="Margin/VBox"]
+alignment = 1
+theme_override_constants/separation = 12
+
+[node name="ChipSpace" type="Control" parent="Margin/VBox"]
+custom_minimum_size = Vector2(0, 30)
+
+[node name="Play" type="TextureButton" parent="Margin/VBox"]
+custom_minimum_size = Vector2(0, 118)
+size_flags_horizontal = 4
+texture_normal = ExtResource("6_cta")
+ignore_texture_size = true
+stretch_mode = 5
+
+[node name="PlayLabel" type="Label" parent="Margin/VBox/Play"]
+theme_type_variation = &"Display"
+theme_override_colors/font_color = Color(0.06, 0.18, 0.3, 1)
+theme_override_font_sizes/font_size = 40
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_top = -6.0
+offset_bottom = -6.0
+mouse_filter = 2
 horizontal_alignment = 1
-text = "Hoş geldin!"
-
-[node name="Streak" type="RichTextLabel" parent="Margin/VBox"]
-custom_minimum_size = Vector2(0, 40)
-bbcode_enabled = true
-fit_content = true
-scroll_active = false
-
-[node name="Dough" type="RichTextLabel" parent="Margin/VBox"]
-custom_minimum_size = Vector2(0, 40)
-bbcode_enabled = true
-fit_content = true
-scroll_active = false
-
-[node name="Play" type="Button" parent="Margin/VBox"]
-custom_minimum_size = Vector2(0, 100)
+vertical_alignment = 1
 text = "OYNA"
+
+[node name="PlayHint" type="Label" parent="Margin/VBox"]
+theme_type_variation = &"Caption"
+theme_override_colors/font_color = Color(1, 1, 1, 0.62)
+custom_minimum_size = Vector2(0, 34)
+horizontal_alignment = 1
+vertical_alignment = 1
+text = ""
+
+[node name="BottomSpace" type="Control" parent="Margin/VBox"]
+size_flags_vertical = 3

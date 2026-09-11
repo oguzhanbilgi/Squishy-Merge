@@ -14,6 +14,7 @@ const ROUND_RESULT_SCENE: PackedScene = preload("res://scenes/ui/round_result.ts
 const DAILY_POPUP_SCENE: PackedScene = preload("res://scenes/ui/daily_reward_popup.tscn")
 const REVIVE_OFFER_SCENE: PackedScene = preload("res://scenes/ui/revive_offer.tscn")
 const POWER_REFILL_SCENE: PackedScene = preload("res://scenes/ui/power_refill.tscn")
+const SETTINGS_SCENE: PackedScene = preload("res://scenes/ui/settings_panel.tscn")
 
 ## Round bitip sonuç ekranı açılmadan önceki kısa nefes payı — son merge'in
 ## efekti ekranda kalsın diye.
@@ -24,6 +25,7 @@ var _result: CanvasLayer
 var _daily: CanvasLayer
 var _revive: CanvasLayer
 var _refill: CanvasLayer
+var _settings: CanvasLayer
 var _board: Node2D
 ## Ödüllü reklam sağlayıcısı (M9+ AdMob). null = sağlayıcı yok.
 ##
@@ -59,8 +61,13 @@ func _ready() -> void:
 	_result.exit_pressed.connect(_on_exit_pressed)
 	add_child(_result)
 
+	# Kayıttaki ses ayarı açılışta uygulanır (AudioManager SaveManager'dan
+	# önce yükleniyor, kendisi okuyamıyor).
+	AudioManager.set_sfx_enabled(SaveManager.sfx_enabled())
+
 	var home: CanvasLayer = HOME_SCENE.instantiate()
 	home.play_pressed.connect(_on_play_pressed)
+	home.settings_pressed.connect(open_settings)
 	var select: CanvasLayer = LEVEL_SELECT_SCENE.instantiate()
 	select.level_chosen.connect(_start_level)
 	var album: CanvasLayer = COLLECTION_SCENE.instantiate()
@@ -88,6 +95,9 @@ func _ready() -> void:
 	_refill.closed.connect(_on_refill_closed)
 	add_child(_refill)
 
+	_settings = SETTINGS_SCENE.instantiate()
+	add_child(_settings)
+
 	_show_tab(0)
 	_check_daily_reward()
 
@@ -99,6 +109,7 @@ func _ready() -> void:
 func _show_tab(tab: int) -> void:
 	if tab < 0 or tab >= _screens.size():
 		return
+	var changed: bool = tab != _active_tab or not _screens[tab].visible
 	_active_tab = tab
 	for i in _screens.size():
 		var screen: CanvasLayer = _screens[i]
@@ -107,6 +118,39 @@ func _show_tab(tab: int) -> void:
 			screen.refresh()
 	_tabs.visible = true
 	_tabs.set_active(tab)
+	# Kısa giriş geçişi (0.16 sn, solma + hafif kayma). Aynı sekme yeniden
+	# istenirse (günlük ödül kapanışı gibi) oynatılmıyor.
+	if changed:
+		UiMotion.screen_in(_screens[tab])
+
+
+# --- Ayarlar (M8.5-10) ---
+
+func open_settings() -> void:
+	_settings.open_panel()
+
+
+func close_settings() -> void:
+	_settings.close_panel()
+
+
+## Android geri tuşu (M8.5-10 UX). Sıra: açık pencere kapanır → sekme
+## ekranındaysa Ana Sayfa'ya dönülür → Ana Sayfa'da hiçbir şey olmaz.
+## Oyun sırasında bilerek YOK SAYILIYOR: yanlışlıkla round kaybettirmek
+## ya da uygulamadan çıkmak istemiyoruz.
+func _notification(what: int) -> void:
+	if what != NOTIFICATION_WM_GO_BACK_REQUEST:
+		return
+	if _settings != null and _settings.visible:
+		close_settings()
+		return
+	if _board != null and is_instance_valid(_board):
+		return
+	var active: CanvasLayer = _screens[_active_tab] if _active_tab < _screens.size() else null
+	if active != null and active.has_method("handle_back") and active.handle_back():
+		return
+	if _active_tab != 0:
+		_show_tab(0)
 
 
 ## Oyun sırasında ve sonuç ekranında hiçbir sekme ekranı görünmemeli.

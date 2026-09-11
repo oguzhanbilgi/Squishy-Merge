@@ -32,6 +32,9 @@ const DEFAULT_DATA: Dictionary = {
 	## (geriye dönük uyumlu, kimse hak kaybetmiyor).
 	"rewarded_power_date": "",
 	"rewarded_power_grants": 0,
+	## Ayarlar (M8.5-10). Ses efektleri açık mı? Eski kayıtlarda anahtar yok,
+	## load_game DEFAULT_DATA üzerine yazdığı için otomatik true kalıyor.
+	"sfx_enabled": true,
 }
 
 
@@ -384,4 +387,17 @@ func last_login_date() -> String:
 func record_daily_login(date: String, streak: int) -> void:
 	data["last_login_date"] = date
 	data["daily_streak"] = streak
+	save_game()
+
+
+# --- Ayarlar (M8.5-10) ---
+
+func sfx_enabled() -> bool:
+	return bool(data.get("sfx_enabled", true))
+
+
+## Kaydeder ve AudioManager'a uygular — ayarın tek yazma noktası.
+func set_sfx_enabled(enabled: bool) -> void:
+	data["sfx_enabled"] = enabled
+	AudioManager.set_sfx_enabled(enabled)
 	save_game()

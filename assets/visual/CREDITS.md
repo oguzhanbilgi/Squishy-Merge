@@ -16,7 +16,8 @@ Kenney dışı kaynak:
   (226 PNG). Lisans pakete dosya olarak eklenmemiş; CC0 bilgisi itch.io
   ürün sayfasındaki "Asset license" alanından geliyor.
 
-Kaynak zip'ler `_visual_source/` altında duruyor (gitignore'lu).
+Kaynak zip'ler `_visual_source/` altında duruyor (repoda takip ediliyor;
+tek istisna Unity Asset Store paketi — aşağıda M8.5-10 bölümü).
 
 ## Dumpling (8 tier) — owner asset'leri
 
@@ -655,3 +656,79 @@ krem bambu sütunu kesildi (x 469-560).
 | `sparkle_star_icon.png` | Mevcut `fx/fx_sparkle.png` parçacık dosyası bu işi zaten yapıyor; ikinci bir yıldız katmanı gerekmedi |
 | `panel_frame_candy_modal.png` | 2.5:1 başlık şeridi; modal GÖVDESİ değil. Mevcut `ui/panel_candy.png` (1.04:1) pencere dikdörtgenine gerilebiliyor, bu gerilseydi köşe yıldızları ezilirdi |
 | `ui/board_background.png` | M8.5-07'nin karartılmış GÜNDÜZ zemini. Gece varyantı geldiği için runtime'da artık KULLANILMIYOR; dosya silinmedi (owner asset'i, `make_owner_sprites.gd` hâlâ üretiyor) |
+
+## Production UI kabuğu — Free Casual GUI ikonları (M8.5-10)
+
+Kaynak: **"Free Casual GUI"** — Unco Games Studio, Unity Asset Store
+(ücretsiz). Owner tarafından indirildi:
+`_visual_source/unity_free_casual_gui/Free_Casual_GUI/`.
+
+**Lisans:** Unity Asset Store EULA (Standard Unity Asset Store EULA —
+ücretsiz asset). Ürüne gömülü kullanım serbest; **paketin ham hâlinin
+yeniden dağıtımı EULA'ya aykırı olabilir.** Bu yüzden kaynak klasör
+`_visual_source/` politikasının aksine **repoya EKLENMEDİ** (owner kararı
+bekliyor — bkz. PROJECT_STATUS §4.13). Paket içindeki Baloo (Regular) fontu
+OFL 1.1 ama kullanılmadı; oyun zaten Baloo 2'yi (Google Fonts, OFL 1.1)
+kullanıyor.
+
+Türetme tek komutla yeniden üretilebilir (kaynak klasör yerinde olmalı):
+
+```
+godot --headless --path . -s res://tools/make_pack_icons.gd
+```
+
+Yalnızca **beyaz, gölgesiz ikon seti** kullanıldı; her ikon 128 px'e
+rasterize edilip RGB'si SAF BEYAZA çekildi (alfa maskesi). Paketin krem tonu
+`modulate` ile boyandığında kirli renk veriyordu; beyaz maske paletteki her
+renge temiz boyanıyor (sekme altın, pasif lavanta, krem panelde erik).
+
+| production dosya | kaynak (`Icons_white_brown/White_icon_No_shadow/`) | nerede |
+|---|---|---|
+| `ui/icons/home.png` | `icon_home_white.svg` | Alt sekme: Ana Sayfa |
+| `ui/icons/play.png` | `icon_play_white.svg` | Alt sekme: Harita (oynanacak level'lar) |
+| `ui/icons/badge.png` | `icon_badge_white.svg` | Alt sekme: Koleksiyon, albüm ilerleme kartı, koleksiyon cipi |
+| `ui/icons/cart.png` | `icon_cart_white.svg` | Alt sekme: Mağaza |
+| `ui/icons/settings.png` | `icon_settings_white.svg` | Ana Sayfa dişli butonu |
+| `ui/icons/volume.png` | `icon_volume_white.svg` | Ayarlar: Ses Efektleri satırı |
+| `ui/icons/volume_mute.png` | `icon_volume_mute_white.svg` | (yedek; şu an bağlı değil) |
+| `ui/icons/close.png` | `icon_close_white.svg` | Ayarlar kapatma ikonu |
+| `ui/icons/back.png` | `icon_arrow_back_white.svg` | (yedek; şu an bağlı değil) |
+| `ui/icons/info.png` | `icon_info_white.svg` | Ayarlar: Gizlilik satırı |
+| `ui/icons/check.png` | `icon_check_white.svg` | Mağaza: "Sahipsin" |
+| `ui/icons/trophy.png` | `icon_trophy_white.svg` | Harita: sonsuz mod rekor cipi |
+| `ui/icons/sparkle.png` | `icon_sparkle_white.svg` | Mağaza: GÜÇLER bölüm başlığı |
+| `ui/icons/gift.png` | `icon_gift_white.svg` | Mağaza: SKİNLER bölüm başlığı |
+
+Paketteki ad yanıltıcıları: `icon_reload` aslında nota (müzik),
+`icon_refresh` dairesel ok. Çıktılar İŞLEVE göre adlandırıldı.
+
+### Paket audit — kategori kararları
+
+Her SVG Godot'un kendi yükleyicisiyle rasterize edilip görsel olarak
+incelendi (dosya adına göre karar verilmedi). Paketin `Demo/` altındaki
+önceden render edilmiş PNG'ler filtreli (glow/iç gölge) görünümü
+doğrulamak için kullanıldı.
+
+| kategori | karar | gerekçe |
+|---|---|---|
+| Beyaz ikonlar (57, gölgesiz) | **USE / ADAPT** (14 tanesi) | Tek renkli, yuvarlak, boyanabilir; paketin tek gerçek yapı malzemesi |
+| Kahverengi ikonlar / gölgeli beyaz | REJECT | Aynı şekiller; tek kaynak + tek maske yeterli |
+| Butonlar (53: plain/soft/fx/back/exit/circle) | **REJECT** | Neon-glass gradyanlar (mor/kırmızı/yeşil); pastel candy paletle çatışıyor. Owner'ın candy CTA pill'i korundu, diğer butonlar tema StyleBoxFlat |
+| Paneller (18: type1-4, list, lobby, score) | REFERENCE ONLY | Düz krem dikdörtgen + gölge; koyu candy-night yüzeyine uymuyor. Köşe yarıçapı dili (rx 40) StyleBoxFlat panellerde uygulandı |
+| Toggle ("Pannel_time") | REFERENCE ONLY | Biçim `UiToggle` çizimine referans; krem/turuncu renk paletin dışında |
+| Progress/slider (Progress_Bar, Handle_Bar) | REFERENCE ONLY | Tema `ProgressBar` StyleBoxFlat (altın dolgu) ile aynı biçim |
+| Yıldızlar (Stars_*) | REJECT | Owner'ın `icon_star_*` asset'i var |
+| Sıralama rozetleri (1/2/3/4+) | REJECT | Leaderboard yok (non-goal) |
+| Stain/splash lekeleri | REJECT | Dekor; candy-night zemini zaten dünyayı veriyor, karmaşa eklerdi |
+| HUD (joystick / aim / shooter / boba) | REJECT | Merge oyununa yabancı |
+| Renkli vektör ikonlar (user/room/close gradyan) | REJECT | Gradyan dili paketin butonlarıyla aynı sorunu taşıyor |
+| Demo sprite'ları (Logo, MainBG, Profile_pic, Splash) | REJECT | Başka ürünün markası |
+| Baloo Regular font | REJECT | Baloo 2 zaten kullanımda |
+
+### Artık kullanılmayan tema asset'leri
+
+`ui/wenrexa_button.png` ve `ui/wenrexa_panel.png` (Wenrexa, CC0)
+**M8.5-10'da temadan çıktı** — tema butonu/paneli artık StyleBoxFlat
+(candy cyan pill / erik yüzey). Dosyalar geri dönüş için duruyor,
+hiçbir sahne referans vermiyor. Aynı durum eski Kenney
+`ui_button_*.png`, `ui_panel.png`, `ui_star_*.png` için M8'den beri geçerli.
