@@ -8,6 +8,10 @@ extends RigidBody2D
 ## mantıktan geçer.
 
 signal merge_requested(a: Dumpling, b: Dumpling, point: Vector2)
+## Anlamli bir carpma (M8.5-11, yalnizca sunum): hiz LAND_PUFF_SPEED'i
+## gecince yayilir, GameBoard alt kenarda kucuk bir toz pufu acar.
+## Yerlesmis yigin bunu ASLA yaymaz — IMPACT_SPEED_MIN + debounce + esik.
+signal impact_landed(dumpling: Dumpling, speed: float)
 
 ## Bu hızın altındaki temaslar squash tetiklemez (yerleşmiş yığındaki
 ## sürekli mikro temaslar titreşim yaratmasın diye).
@@ -19,6 +23,10 @@ const IMPACT_SQUASH_MAX: float = 0.25
 const IMPACT_SQUASH_DURATION: float = 0.12
 ## Aynı parça bu süre içinde ikinci kez squash tetikleyemez.
 const IMPACT_DEBOUNCE: float = 0.13
+## Bu hizin ustundeki carpmalar toz pufu ister (px/sn). Serbest dususte
+## drop cizgisinden tabana inen tier 1 ~900 px/sn'ye ulasiyor; yigina
+## kisa mesafeden dusen parca ~300-400. Esik "ciddi inis"i ayiriyor.
+const LAND_PUFF_SPEED: float = 420.0
 
 var tier: int = 1
 ## Sonsuz modda iki tier 8 birbirini yok eder (GAME_DESIGN.md §4). Level
@@ -97,6 +105,17 @@ func play_squash(amount: float = 0.2, duration: float = 0.15) -> void:
 	_visual.play_squash(amount, duration)
 
 
+## Merge'de dogan parcanin acilis pop'u (M8.5-11, sunum).
+func play_reveal(strength: float = 1.0) -> void:
+	_visual.play_reveal(strength)
+
+
+## Sunum: bu parcanin sprite'inin tek atislik kopyasi (merge "iceri cekilme"
+## hayali icin). Fizik govdesiyle ilgisi yok.
+func make_ghost() -> Sprite2D:
+	return _visual.make_ghost()
+
+
 ## Gövdeyi simülasyondan çıkarır/geri alır (M8.5-04).
 ##
 ## FREEZE_MODE_STATIC kullanılıyor: gövde geçici olarak statik davranıyor,
@@ -171,4 +190,7 @@ func _try_impact_squash() -> void:
 		return
 	var t: float = clampf((speed - IMPACT_SPEED_MIN) / (IMPACT_SPEED_MAX - IMPACT_SPEED_MIN), 0.0, 1.0)
 	_squash_cooldown = IMPACT_DEBOUNCE
-	_visual.play_squash(lerpf(IMPACT_SQUASH_MIN, IMPACT_SQUASH_MAX, t), IMPACT_SQUASH_DURATION)
+	# Alt kenardan basilan squash: parca yere/yigina BASILIYOR gibi okunsun.
+	_visual.play_squash(lerpf(IMPACT_SQUASH_MIN, IMPACT_SQUASH_MAX, t), IMPACT_SQUASH_DURATION, true)
+	if speed >= LAND_PUFF_SPEED:
+		impact_landed.emit(self, speed)

@@ -1029,6 +1029,96 @@ tek istisnası. Owner isterse `.gitignore`'a açık istisna yazılıp eklenir.
    şablonuna geçer.
 4. Ayarlarda müzik satırı yok (müzik yok).
 
+### 4.14 Dumpling teması ve game feel (M8.5-11)
+
+**Physics collider DEĞİŞMEDİ. Çözüm yalnızca görsel.** `TierConfig`
+yarıçapları, `CircleShape2D`, kütle, sürtünme, sekme, level `.tres`,
+drop bag — hiçbirine dokunulmadı. Kanıt: `tools/contact_rig.gd` BEFORE
+(55b0152 worktree) ve AFTER aynı deterministik sahnelerde **birebir aynı**
+settle süresi / yığın yüksekliği / merge sayısı / kaçan gövde / overlap
+verdi.
+
+#### Kök sebep (ölçüldü, `tools/contact_audit.py`)
+
+Owner'ın "fizik değiyor ama sprite'lar değmiyor" gözlemi doğru; sebep
+**şeffaf padding DEĞİL** (sekiz dokunun alfa>0 bbox'ı tam doku). Sebep:
+sprite'lar ~1.3–1.4 en/boy oranlı geniş bloblar, collider daire; M8'in
+geometrik-ortalama ölçeği (`2r / sqrt(w·h)`) görsel gövdeyi dikeyde çapın
+yalnızca **%70–79**'una sığdırıyordu.
+
+| tier | r | eski yatay boşluk (A) | eski taban boşluğu (B) | eski duvar (C) | eski üst boşluk |
+|---|---|---|---|---|---|
+| 1 | 22 | +1.1 | +3.3 | +0.6 | 9.5 |
+| 2 | 27 | −0.4 | +4.4 | −0.2 | 10.8 |
+| 3 | 34 | +8.6 | +3.1 | +4.3 | 5.5 |
+| 4 | 42 | +1.1 | +6.1 | +0.6 | 18.3 |
+| 5 | 52 | +0.4 | +8.3 | +0.2 | 17.3 |
+| 6 | 65 | +1.4 | +9.8 | +0.3 | 21.3 |
+| 7 | 81 | −1.9 | +12.7 | −3.6 | 24.3 |
+| 8 | 100 | +19.4 | +8.1 | +7.7 | 34.0 |
+
+(px, dünya; + boşluk / − overlap; "üst boşluk" = collider üst kenarı ile
+görsel gövde üstü arası — yığındaki dikey/çapraz temaslarda görünen boşluk
+bunun ~iki katı.) Yani yan yana zeminde bile T3/T8 açık, taban her tier'da
+havada, yığında 10–30 px boşluk.
+
+#### Kalibrasyon (`DumplingVisual.CONTACT_FIT`, tier başına)
+
+Aksesuarsız gövde silueti (satır/sütun genişliği en genişin %42'sinin
+altına düşen şeritler — yaprak, taç, fiyonk ucu, gölge — hariç) esas alındı:
+
+- `scale.x`: gövde genişliği = **2r + 2 px** (hafif overlap, yumuşak his)
+- `scale.y`: gövde yüksekliği 2r'nin %90'ına yaklaşır; dikey uzama en fazla
+  **1.25×** (T1 1.18, T2 1.22, T3 1.00, T4 1.22, T5 1.17, T6 1.15, T7 1.17,
+  T8 1.02). Daire yapmak karakteri bozardı; "biraz daha tombul" kabul.
+- `offset`: gövde yatayda collider merkezine, gövde alt kenarı collider alt
+  kenarının **1 px** üstüne.
+
+Sonuç sekiz tier'da: yan yana **−2 px**, taban **+1 px**, duvar **−1 px**;
+üst boşluk T1 3.4 → T8 19 px (T3'te −3, yaprak taşıyor). Çapraz (45°)
+temasta kalan boşluk ≈ 0.1r.
+
+Elenen alternatifler: (a) uniform büyütme — yatay %25 overlap, "iç içe";
+(b) padding kırpma — padding yok; (c) collider küçültme (0.90–0.97) —
+gerekmedi, balans kalibrasyonuna dokunmamak için yapılmadı.
+
+#### Game feel (yalnızca sunum)
+
+| an | eklenen | süre |
+|---|---|---|
+| düşüş | hıza bağlı dikey gerilme (en fazla %10, `FALL_STRETCH`), dünya dikeyinde | sürekli, yumuşatılmış |
+| iniş | mevcut hız-orantılı squash **alt kenardan basılıyor** (sprite lift telafisi); ≥ 420 px/sn'de 3–6 parçacık toz pufu (`impact_landed`) | 0.12 s / 0.28 s |
+| merge | iki kaynağın hayaleti birleşme noktasına çekilir (80 ms) → yumuşak parlama (0.18 s, halka DEĞİL — halka güçlerin imzası) → yeni tier 0.7→1.12→1.0 açılış (`play_reveal`, 190 ms) → mevcut parçacık patlaması + HUD skor pop; tier ≥ 4'te birleşme noktasında "+N" | ~200 ms |
+| tier 8 | ek altın parıltı yıldızı (dönerek açılır) + ikinci çapraz beyaz | 0.55 s |
+| combo | mevcut xN rozeti; x2→x6 arası rozet altına/beyaza ısınır, x3+ çok hafif kamera darbesi (1.5–4 px) | — |
+| kamera | tier ≤ 3 merge **sarsıntısız**, 4–6 hafif (2–5 px), 7–8 kısa belirgin (≤ 14 px); annihilation eski gibi | `SHAKE_DECAY` aynı |
+| tehlike | düz kırmızı duvar dikdörtgeni yerine taşma çizgisinden solan pembe rim glow + duvar üst yarısı; nabız hızı sayaç doldukça 1.9 → 4.5 Hz | alfa 0.16–0.62 |
+| hedef | "Hedef tamam!" pop + kap ağzından parıltı yağmuru (22+14 parçacık) + 5 px sarsıntı; `RESULT_DELAY` 0.8 s zaten okunabilir an veriyor | 0.3 s |
+
+**RNG:** kamera sarsıntısı artık `_fx_rng` kullanıyor — GLOBAL RNG'yi
+tüketen tek görsel kod buydu (§7 #14). Drop bag'e dokunulmadı; global RNG'yi
+artık yalnızca o tüketiyor. Yeni efektlerin tamamı deterministik tween ya
+da `_fx_rng`.
+
+#### Ölçüm ve QA araçları
+
+- `tools/contact_audit.py [--fit]` — alfa/gövde/collider tablosu + GDScript
+  tablosu üretimi.
+- `tools/contact_rig.gd` — deterministik temas/yığın rig'i (lineup T1/T2/T4,
+  pile_contact/pile_merge en dar kapta, wall T1/T5, large T7+T7+T8, stress
+  35 parça + zincir); settle/yükseklik/merge/kaçan/overlap raporu.
+- `tools/feel_shots.gd` — düşüş, iniş, merge (temas/pop/açılış), zincir,
+  tehlike, hedef, tier 7→8 kare dizileri.
+- Stress (35 gövde + 17 zincir merge + parçacıklar): masaüstünde en kötü
+  kare ~22 ms (spawn karesi), yerleşince < 8 ms. Android ölçümü M9'da.
+
+#### Balans
+
+Collider değişmediği için zorunlu regresyon yok; `contact_rig` fizik
+metrikleri BEFORE/AFTER birebir aynı. Sanity: headless bot L10 n=40 (aşağıda
+DEVLOG'da sayılar) — kamera RNG değişimi drop sırasını farklı örnekliyor,
+oran gürültü bandında.
+
 ## 5. Dosya/klasör yapısı ve script envanteri
 
 ```
@@ -1107,6 +1197,9 @@ squishy-merge/
 | `ui_shots.gd` + `ui_shots.tscn` | **Production UI kabuğu çekimleri** (M8.5-10): dört sekme, ayarlar, en kötü durum, oyun ekranı; üç ölçü. `--headless` ile çalışmaz. |
 | `ui_smoke_test.gd` + `ui_smoke_test.tscn` | **Headless UI davranış testi** (26 kontrol): ayar anahtarı, onay diyaloğu, geri tuşu, equip. |
 | `make_pack_icons.gd` | Free Casual GUI SVG ikonlarını beyaz maske PNG'ye türetir. |
+| `contact_audit.py` | **Temas geometrisi denetimi** (M8.5-11): alfa bbox, gövde silueti, collider, dünya boşlukları; `--fit` kalibrasyon tablosu. |
+| `contact_rig.gd` + `contact_rig.tscn` | **Deterministik temas/yığın rig'i**: lineup, pile, wall, large, stress; settle/yükseklik/merge/kaçan/overlap. |
+| `feel_shots.gd` + `feel_shots.tscn` | Game-feel kare dizileri: düşüş, iniş, merge, zincir, tehlike, hedef, tier 8. |
 | `screenshot_runner.gd` + `screenshot_test.tscn` | Ekran görüntüsü üretir (merge, combo, skor pop, tutorial, danger, sandık, 4 sekme, kilitli harita). İkinci argümanla pencere ölçüsü verilebilir (`540x1170` → dar/uzun telefon testi). **`--headless` ile çalışmaz.** |
 | `make_owner_sprites.gd` | Owner'ın ChatGPT görsellerini hazırlar: kırpma, küçültme, adaptive icon düzeltmeleri, `icon_sheet.png` parçalama. |
 | `make_ui_sprites.gd` | Wenrexa UI paketinden tema sprite'ları. |
@@ -1192,7 +1285,7 @@ verilmiyor:
 | 11 | Proje ikonu hâlâ Godot'un varsayılan robotu (`config/icon="res://icon.svg"`). Kompozit ikon üretildi ama `project.godot`'a bağlanmadı. | 🔴 M9/M10 öncesi. |
 | 12 | `_visual_source/` içinde 4 zip (~17.6 MB) var ve bunlar yanlarındaki açılmış klasörlerin **birebir kopyası**. Repo boyutunun dörtte biri. | 🟡 Silinebilir; git geçmişinden çıkarmak history rewrite gerektirir. |
 | 13 | Kazanma/kaybetme jingle'ı kulakla doğrulanmadı (M6 blokajı, hiç kapanmadı). | 🟡 Owner playtest'inde kontrol edilmeli. |
-| 14 | **Gameplay/tooling RNG coupling (pre-existing).** Kamera sarsıntısı `_process` içinde `randf_range` çağırıyor — tamamen görsel ama `drop_bag.shuffle()` ile **aynı global RNG akışını** tüketiyor ve fizik kareleri arasında değişken sayıda çalışıyor. Sonuç: `tools/bot_runner.gd` tekrarlanabilir değil, aynı seed farklı sonuç veriyor ve ölçümler kararsız. M8.5-03'te keşfedildi; bot_runner'ın L10'da %22 vermesi bunun artefaktıydı (kontrollü harness'ta %43). | 🟡 **Bu turda DEĞİŞTİRİLMEDİ** (kapsam dışı). Kalıcı çözüm: drop_bag'e kendi `RandomNumberGenerator`'ını vermek. O zamana kadar denge ölçümleri seedli/`set_process(false)` harness ile yapılmalı. |
+| 14 | **Gameplay/tooling RNG coupling.** Kamera sarsıntısı `_process` içinde `randf_range` çağırıyordu — görsel ama `drop_bag.shuffle()` ile aynı global RNG akışını tüketiyor ve fizik kareleri arasında değişken sayıda çalışıyordu; `bot_runner` tekrarlanamazdı. | 🟢 **M8.5-11'de kaldırıldı:** sarsıntı `_fx_rng` kullanıyor; global RNG'yi artık yalnızca drop bag tüketiyor. Bot hâlâ seed'siz (rastgele başlangıç); seedli harness istenirse `seed()` eklemek yeter, drop_bag'e dokunmak gerekmiyor. |
 
 ---
 

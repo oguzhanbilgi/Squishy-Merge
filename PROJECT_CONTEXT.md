@@ -107,6 +107,17 @@ alınacak — şimdi tahmin/vaat yok.
     alındı; butonlar/paneller reddedildi. **Gameplay, ekonomi, fizik,
     reklam kuralları DEĞİŞMEDİ.** Skin art hâlâ placeholder. Ayrıntı:
     PROJECT_STATUS §4.13.
+  - `M8.5-11` ✅ dumpling teması + game feel: "fizik değiyor, sprite
+    değmiyor" boşluğu ölçüldü (kök sebep: 1.3–1.4 en/boy sprite'ların
+    geometrik-ortalama ölçeği dikeyde çapın %70–79'unu dolduruyordu;
+    padding değil) ve **yalnızca görsel** tier başına scale/offset
+    kalibrasyonuyla kapatıldı (yan yana −2 px, taban +1 px). **Collider,
+    yarıçap, fizik, level, bag DEĞİŞMEDİ** — rig metrikleri before/after
+    birebir. Düşüş gerilmesi, alt kenardan iniş squash + toz, merge
+    çekim/parlama/açılış, "+N", tier 8 parıltısı, combo ısınması, tier ≤ 3
+    sarsıntısız kamera, pembe rim-glow tehlike, hedef kutlaması. Kamera
+    sarsıntısı global RNG'den ayrıldı (§7 #14 kapandı). Ayrıntı:
+    PROJECT_STATUS §4.14.
 - **Sırada: M9 — Android export.** Ortam hazır (export template'leri, SDK,
   NDK, JDK 17, debug keystore mevcut); eksik olan `export_presets.cfg` ve
   release/upload keystore.

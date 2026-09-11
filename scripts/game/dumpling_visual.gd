@@ -27,6 +27,33 @@ const TEXTURES: Array[Texture2D] = [
 
 var radius: float = 20.0
 
+## --- Temas kalibrasyonu (M8.5-11) — COLLIDER DEGISMEDI ---
+##
+## Sprite'lar ~1.3-1.4 en/boy oranli genis bloblar, collider ise daire.
+## M8'in geometrik-ortalama olcegi govdeyi dikeyde capin yalnizca %70-79'una
+## sigdiriyordu: yatay temas ~1 px ama taban 3-13 px havada, dikey/capraz
+## temaslarda 10-30 px gorunur bosluk ("fizik degiyor, sprite degmiyor").
+## Seffaf padding hipotezi olculup ELENDI: dokularin alfa bbox'i tam doku.
+##
+## Tablo `python tools/contact_audit.py --fit` ciktisi (aksesuarsiz govde
+## silueti esas alinarak):
+##   scale.x : govde genisligi = 2r + 2 px (yan yana hafif overlap)
+##   scale.y : govde yuksekligi 2r'nin %90'ina yaklasir, dikey uzama en fazla
+##             1.25x (daha fazlasi karakteri bozar); T3/T8 neredeyse uniform
+##   offset  : govde alt kenari collider alt kenarinin 1 px ustune (dunya px)
+## Sonuc: gapAB -2 px (overlap), taban 1 px, duvar -1 px — sekiz tier'da.
+## Dokular veya TierConfig yaricaplari degisirse tabloyu yeniden uret.
+const CONTACT_FIT: Array[Dictionary] = [
+	{"scale": Vector2(0.36800, 0.43516), "offset": Vector2(0.00, -2.72)},  # tier 1, stretch 1.18
+	{"scale": Vector2(0.43411, 0.52826), "offset": Vector2(0.00, -2.26)},  # tier 2, stretch 1.22
+	{"scale": Vector2(0.31250, 0.31250), "offset": Vector2(0.00, -3.41)},  # tier 3, stretch 1.00
+	{"scale": Vector2(0.33992, 0.41538), "offset": Vector2(0.00, -4.48)},  # tier 4, stretch 1.22
+	{"scale": Vector2(0.41569, 0.48497), "offset": Vector2(0.00, -1.13)},  # tier 5, stretch 1.17
+	{"scale": Vector2(0.26036, 0.30000), "offset": Vector2(-0.39, -1.25)},  # tier 6, stretch 1.15
+	{"scale": Vector2(0.31660, 0.36911), "offset": Vector2(-2.69, 0.27)},  # tier 7, stretch 1.17
+	{"scale": Vector2(0.43723, 0.44554), "offset": Vector2(-2.19, -5.70)},  # tier 8, stretch 1.02
+]
+
 ## Bu parçanın kullanacağı skin. null = varsayılan/orijinal görünüm.
 ##
 ## setup() sırasında doldurulmuyorsa SaveManager'daki takılı skin okunuyor —
@@ -57,13 +84,12 @@ func setup(tier: int) -> void:
 	_ensure_sprite()
 	var texture: Texture2D = TEXTURES[tier - 1]
 	_sprite.texture = texture
-	# Sprite'lar dairesel DEĞİL (en/boy ~1.25), collider ise CircleShape2D.
-	# Ölçek, görselin geometrik ortalamasını çapa eşitliyor: sadece genişliğe
-	# göre ölçeklesek parçalar dikey boşlukla dururdu, sadece yüksekliğe göre
-	# ölçeklesek yatayda taşıp üst üste binerdi. Bu ikisinin hatasını böler.
-	# (tools/make_character_sprites.gd aynı formülü kullanarak küçültüyor.)
-	var mean: float = sqrt(float(texture.get_width()) * float(texture.get_height()))
-	_sprite.scale = Vector2.ONE * (radius * 2.0 / mean)
+	# Eski formul (geometrik ortalama, M8) yerine olculmus temas kalibrasyonu
+	# — gerekce CONTACT_FIT basliginda.
+	var fit: Dictionary = CONTACT_FIT[tier - 1]
+	_sprite.scale = fit["scale"]
+	_fit_offset = fit["offset"]
+	_sprite.position = _fit_offset
 	_refresh_skin()
 
 
@@ -112,8 +138,27 @@ const TILT_SPEED: float = 12.0
 var _tilt: float = 0.0
 
 
-## Ölçek burada değiştirilmiyor — squash-stretch tween'i self.scale'i
-## animasyonluyor ve ondan etkilenmemesi gerekiyor.
+## --- Dusus gerilmesi (M8.5-11, yalnizca sunum) ---
+##
+## Hizli duserken govde dusme yonunde hafifce uzar (en fazla FALL_STRETCH),
+## yere/yigina carpinca mevcut squash devreye giriyor. Gerilme HIZ'a bagli
+## ve dunya dikeyinde: yatay hizli parcalar (sarsinti) uzamaz, dusen parca
+## "RigidBody sprite" degil dusen squishy karakter gibi okunsun.
+## Skala bilesimi: scale = _squash * (1 - k, 1 + k). Squash tween'i artik
+## `scale`i degil `_squash`i animasyonluyor; ikisi birbirini ezmiyor.
+const FALL_STRETCH: float = 0.10
+const FALL_SPEED_MIN: float = 220.0
+const FALL_SPEED_MAX: float = 1100.0
+const FALL_SMOOTH: float = 18.0
+
+var _squash: Vector2 = Vector2.ONE
+var _fall: float = 0.0
+## Bu tier'in CONTACT_FIT offset'i (sprite'in temel konumu).
+var _fit_offset: Vector2 = Vector2.ZERO
+## Squash'in cekim noktasi: 1 = alt kenar sabit (yere carpma), 0 = merkez.
+var _squash_anchor: float = 0.0
+
+
 func _process(delta: float) -> void:
 	var parent := get_parent() as Node2D
 	if parent == null:
@@ -122,6 +167,31 @@ func _process(delta: float) -> void:
 	var target: float = clampf(body_rotation, -MAX_TILT, MAX_TILT)
 	_tilt = lerp_angle(_tilt, target, 1.0 - exp(-delta * TILT_SPEED))
 	rotation = _tilt - parent.global_rotation
+
+	var body := parent as RigidBody2D
+	var fall_target: float = 0.0
+	if body != null and not body.freeze:
+		var vy: float = body.linear_velocity.y
+		if vy > FALL_SPEED_MIN:
+			fall_target = clampf((vy - FALL_SPEED_MIN) / (FALL_SPEED_MAX - FALL_SPEED_MIN), 0.0, 1.0)
+	_fall = lerpf(_fall, fall_target, 1.0 - exp(-delta * FALL_SMOOTH))
+	_apply_scale()
+
+
+## Squash ve dusus gerilmesini tek scale'de birlestirir. Alt kenar cekimi:
+## dikey ezilme alt kenari yukari cekerdi; position.y ile telafi edilince
+## parca yere BASILIYOR gibi okunuyor, havada eziliyor gibi degil.
+func _apply_scale() -> void:
+	var k: float = FALL_STRETCH * _fall
+	scale = Vector2(_squash.x * (1.0 - k), _squash.y * (1.0 + k))
+	# Telafi SPRITE'a uygulaniyor, bu dugume degil: Preview ayni script'i
+	# tasiyor ve konumu GameBoard veriyor, buradan ezilmemeli. Dugum olcegi
+	# sprite konumunu da olceklediginden pay 1/scale.y ile bolunuyor.
+	if _sprite != null:
+		var lift: float = 0.0
+		if _squash_anchor > 0.0 and scale.y > 0.01:
+			lift = radius * (1.0 - scale.y) / scale.y * _squash_anchor
+		_sprite.position = _fit_offset + Vector2(0.0, lift)
 
 
 # --- Güç hedefleme vurgusu (M8.5-03) ---
@@ -158,6 +228,17 @@ func set_targetable(targetable: bool) -> void:
 		1.0 / TARGET_PULSE_SPEED).set_trans(Tween.TRANS_SINE)
 
 
+## Sprite'in bagimsiz bir kopyasi, dunya donusumuyle (M8.5-11 merge pull).
+## Skin materyali de kopyalaniyor ki hayalet takili skinle ayni gorunsun.
+func make_ghost() -> Sprite2D:
+	var ghost := Sprite2D.new()
+	if _sprite != null:
+		ghost.texture = _sprite.texture
+		ghost.material = _sprite.material
+		ghost.transform = _sprite.global_transform
+	return ghost
+
+
 ## Bomba kilitlenmesi: tek seferlik keskin bir büyüme.
 func play_lock_on() -> void:
 	set_targetable(false)
@@ -170,13 +251,33 @@ func play_lock_on() -> void:
 
 ## Squash-stretch. Merge'de tam genlik (GAME_DESIGN.md §1: 1.0 -> 1.2/0.8 -> 1.0,
 ## ~150 ms); çarpmada aynı tween'in hıza orantılı hafif versiyonu.
-func play_squash(amount: float = 0.2, duration: float = 0.15) -> void:
+## `anchored` (M8.5-11): carpma squash'i alt kenardan basilir (bkz. _apply_scale).
+func play_squash(amount: float = 0.2, duration: float = 0.15, anchored: bool = false) -> void:
 	# Önceki squash hâlâ oynuyorsa kes — üst üste binince titreşim oluyor.
 	if _tween != null and _tween.is_valid():
 		_tween.kill()
-	scale = Vector2.ONE
+	_squash = Vector2.ONE
+	_squash_anchor = 1.0 if anchored else 0.0
 	var half: float = duration * 0.5
 	_tween = create_tween()
 	var squashed := Vector2(1.0 + amount, 1.0 - amount)
-	_tween.tween_property(self, "scale", squashed, half).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
-	_tween.tween_property(self, "scale", Vector2.ONE, half).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	_tween.tween_property(self, "_squash", squashed, half).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	_tween.tween_property(self, "_squash", Vector2.ONE, half).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	_tween.tween_callback(func() -> void: _squash_anchor = 0.0)
+
+
+## Merge'de dogan parcanin acilisi (M8.5-11): 0.7 -> 1.12 -> 1.0, ~190 ms.
+## Eski merge squash'inin yerine — "yeni tier belirdi" hissi, ezilme degil.
+## `strength` 1.0 = normal, >1 ust tier'lar icin biraz daha genis pop.
+func play_reveal(strength: float = 1.0) -> void:
+	if _tween != null and _tween.is_valid():
+		_tween.kill()
+	_squash_anchor = 0.0
+	_squash = Vector2.ONE * 0.7
+	_apply_scale()
+	var peak: float = 1.0 + 0.12 * strength
+	_tween = create_tween()
+	_tween.tween_property(self, "_squash", Vector2.ONE * peak, 0.09) \
+		.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	_tween.tween_property(self, "_squash", Vector2.ONE, 0.10) \
+		.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)

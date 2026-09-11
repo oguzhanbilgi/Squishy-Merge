@@ -120,8 +120,11 @@ const TUTORIAL_Y_RATIO: float = 0.42
 
 ## Ekran sarsıntısı (M8 juice): merge'in tier'ına göre ölçekleniyor.
 ## Küçük merge'de neredeyse hissedilmiyor, tier 8'de belirgin.
-const SHAKE_MIN: float = 1.5
-const SHAKE_MAX: float = 16.0
+## M8.5-11: kucuk merge'lerde (tier <= 3) sarsinti YOK; tier 4-6 hafif,
+## tier 7-8 kisa ve belirgin. Eski egri tier 2'de bile 1.5 px titretiyordu.
+const SHAKE_MIN_TIER: int = 4
+const SHAKE_MIN: float = 2.0
+const SHAKE_MAX: float = 14.0
 ## Sarsıntı saniyede bu oranda sönümleniyor (yüksek = daha kısa/keskin).
 const SHAKE_DECAY: float = 9.0
 ## Sarsıntının kap parlamasının sönümlenme hızı (yalnızca görsel).
@@ -188,6 +191,9 @@ var _refill_type: PowerUp.Type = PowerUp.Type.BOMB
 var _shake_strength: float = 0.0
 ## Danger highlight'ının nabzı (GAME_DESIGN.md §6) — 0..1 arası salınır.
 var _danger_pulse: float = 0.0
+## Tehlike nabzinin fazi ve aciliyeti (0..1, tasma sayaci / grace) — sunum.
+var _danger_phase: float = 0.0
+var _danger_urgency: float = 0.0
 ## İpucu bir kez kapandıktan sonra tekrar açılmasın (fade tween'i sırasında
 ## ikinci bir bırakış gelirse iki tween çakışırdı).
 var _tutorial_dismissed: bool = false
@@ -464,13 +470,41 @@ func _draw_overflow_stripe() -> void:
 func _draw_danger() -> void:
 	if _danger_pulse <= 0.0:
 		return
-	var alpha: float = 0.25 + 0.45 * _danger_pulse
-	var glow := Color(1.0, 0.25, 0.3, alpha)
+	# M8.5-11: duz kirmizi duvar dikdortgeni yerine tasma cizgisinden asagi
+	# ve yukari solan pembe-kirmizi bir "rim glow" + duvarlarin ust
+	# bolumunde ayni tonda hafif parlama. Surekli flash degil: nabiz
+	# alfayi 0.16-0.48 arasinda gezdiriyor, aciliyet arttikca ust sinir
+	# hafif yukseliyor (ilk deneme 0.10-0.38 cekimde neredeyse okunmadi).
+	var peak: float = lerpf(0.16, 0.48 + 0.14 * _danger_urgency, _danger_pulse)
+	var glow := Color(1.0, 0.30, 0.42, peak)
+	var clear := Color(1.0, 0.30, 0.42, 0.0)
+	var line_y: float = overflow_line_y()
+	var left: float = _left_x()
+	var right: float = _right_x()
+	var band: float = 150.0
+	# Cizginin ustu: cizgide en parlak, kap agzina dogru solar.
+	draw_polygon(PackedVector2Array([
+		Vector2(left, line_y - band), Vector2(right, line_y - band),
+		Vector2(right, line_y), Vector2(left, line_y)]),
+		PackedColorArray([clear, clear, glow, glow]))
+	# Cizginin alti: daha kisa, daha soluk — tehlike bolgesi asagi sarkmasin.
+	var under := Color(1.0, 0.30, 0.42, peak * 0.6)
+	draw_polygon(PackedVector2Array([
+		Vector2(left, line_y), Vector2(right, line_y),
+		Vector2(right, line_y + band * 0.5), Vector2(left, line_y + band * 0.5)]),
+		PackedColorArray([under, under, clear, clear]))
+	# Duvarlarin ust yarisi ayni tonla parlar (alt yari sakin kalir).
 	var top: float = container_top_y()
-	var height: float = FLOOR_Y - top
-	# Duvarların kendisi kırmızıya boyanıyor.
-	draw_rect(Rect2(_left_x() - WALL_THICKNESS, top, WALL_THICKNESS, height), glow)
-	draw_rect(Rect2(_right_x(), top, WALL_THICKNESS, height), glow)
+	var wall_h: float = (line_y + band * 0.5) - top
+	var wall_glow := Color(1.0, 0.30, 0.42, peak * 0.8)
+	draw_polygon(PackedVector2Array([
+		Vector2(left - WALL_THICKNESS, top), Vector2(left, top),
+		Vector2(left, top + wall_h), Vector2(left - WALL_THICKNESS, top + wall_h)]),
+		PackedColorArray([wall_glow, wall_glow, clear, clear]))
+	draw_polygon(PackedVector2Array([
+		Vector2(right, top), Vector2(right + WALL_THICKNESS, top),
+		Vector2(right + WALL_THICKNESS, top + wall_h), Vector2(right, top + wall_h)]),
+		PackedColorArray([wall_glow, wall_glow, clear, clear]))
 
 
 # --- Girdi: parmağı sürükle, bırakınca düşür (GAME_DESIGN.md §1) ---
@@ -1012,6 +1046,7 @@ func _spawn_dumpling(tier: int, at: Vector2) -> Dumpling:
 	dumpling.annihilates_at_max = level.is_endless
 	dumpling.position = at
 	dumpling.merge_requested.connect(_on_merge_requested)
+	dumpling.impact_landed.connect(_on_impact_landed)
 	_dumpling_layer.add_child(dumpling)
 	# Fail teklifi açıldığı KARE'de uçuşta olan bir merge hâlâ çözülebilir
 	# (_resolve_merge deferred çağrılıyor). Doğan parça da donmuş board'a
@@ -1037,15 +1072,21 @@ func _resolve_merge(a: Dumpling, b: Dumpling, point: Vector2) -> void:
 		return
 
 	var new_tier: int = a.tier + 1
+	# Sunum (M8.5-11): iki kaynak parcanin hayaleti birlesme noktasina
+	# cekilir — fizik merge'i BU KAREDE cozuluyor, hicbir sey ertelenmiyor.
+	_play_merge_pull(a, b, point)
 	a.queue_free()
 	b.queue_free()
 
 	var merged := _spawn_dumpling(new_tier, point)
-	merged.play_squash()
-
 	var celebratory: bool = new_tier == TierConfig.MAX_TIER
+	# Yeni tier: 0.7 -> 1.12 -> 1.0 acilis. Ust tier'larda biraz daha genis.
+	merged.play_reveal(1.0 + 0.5 * _tier_t(new_tier))
+	_play_merge_flash(point, TierConfig.color(new_tier), TierConfig.radius(new_tier), new_tier)
 	_spawn_pop(point, TierConfig.color(new_tier), TierConfig.radius(new_tier), new_tier)
 	_add_shake(new_tier)
+	if celebratory:
+		_play_king_shine(point)
 
 	GameState.add_score(TierConfig.merge_score(new_tier))
 	GameState.register_merge(new_tier, point)
@@ -1055,6 +1096,8 @@ func _resolve_merge(a: Dumpling, b: Dumpling, point: Vector2) -> void:
 
 	if celebratory:
 		_flash_status("%s!" % TierConfig.tier_name(new_tier))
+	if new_tier >= FLOAT_SCORE_MIN_TIER:
+		_spawn_float_score(point, TierConfig.merge_score(new_tier), TierConfig.color(new_tier))
 
 	if not level.is_endless and new_tier >= level.target_tier:
 		_reached_target_tier = true
@@ -1099,6 +1142,15 @@ func _register_combo() -> void:
 	var tween := create_tween()
 	tween.tween_property(_combo_label, "scale", Vector2(peak, peak), 0.1).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 	tween.tween_property(_combo_label, "scale", Vector2.ONE, 0.15)
+	# M8.5-11: zincir uzadikca rozet altina, sonra beyaza dogru parlar ve
+	# x3'ten itibaren cok hafif kamera darbesi — ekrani kaplayan yazi degil,
+	# "zincir buyuyor" hissi.
+	var heat: float = clampf(float(_combo_count - 2) / 4.0, 0.0, 1.0)
+	_combo_badge.modulate = Color.WHITE.lerp(COMBO_HOT_TINT, heat)
+	_combo_label.add_theme_color_override("font_color",
+		Color.WHITE.lerp(COMBO_HOT_TEXT, heat))
+	if _combo_count >= 3:
+		_shake_strength = maxf(_shake_strength, lerpf(1.5, 4.0, heat))
 
 
 ## Combo yazisi ve arkasindaki rozet birlikte acilip kapaniyor — metin bosken
@@ -1106,6 +1158,9 @@ func _register_combo() -> void:
 func _set_combo_text(text: String) -> void:
 	_combo_label.text = text
 	_combo_badge.visible = not text.is_empty()
+	if text.is_empty():
+		_combo_badge.modulate = Color.WHITE
+		_combo_label.remove_theme_color_override("font_color")
 
 
 func _tick_combo(delta: float) -> void:
@@ -1128,7 +1183,9 @@ func _spawn_pop(at: Vector2, pop_color: Color, radius: float, tier: int,
 ## Ekran sarsıntısı, merge'in tier'ına göre. Kamera offset'i kullanılıyor:
 ## gövdeleri veya tahtayı oynatmak fizik çözümüne karışırdı.
 func _add_shake(tier: int) -> void:
-	var t: float = clampf(float(tier - 2) / float(TierConfig.MAX_TIER - 2), 0.0, 1.0)
+	if tier < SHAKE_MIN_TIER:
+		return
+	var t: float = clampf(float(tier - SHAKE_MIN_TIER) / float(TierConfig.MAX_TIER - SHAKE_MIN_TIER), 0.0, 1.0)
 	# Kuvvetli sarsıntı zayıfını ezmesin: üst üste binerse büyük olan kalır.
 	_shake_strength = maxf(_shake_strength, lerpf(SHAKE_MIN, SHAKE_MAX, t * t))
 
@@ -1168,6 +1225,135 @@ func _flash_status(text: String) -> void:
 		_status_label.text = ""
 
 
+# --- Merge / inis / hedef sunumu (M8.5-11) ---
+#
+# Hepsi YALNIZCA sunum: fizik merge'i, skor zamanlamasi, taşma ve hedef
+# mantigi ayni karede, ayni sirayla cozuluyor. Efektlerin omru < 0.6 sn,
+# parcacik sayilari sabit tavanli; rastgelelik `_fx_rng`.
+#
+# Guc efektleriyle karismamasi icin: normal merge'de HALKA yok (halka
+# guclerin imzasi, M8.5-07), onun yerine yumusak parlama + hayalet cekimi.
+
+const COMBO_HOT_TINT: Color = Color(1.0, 0.86, 0.45)
+const COMBO_HOT_TEXT: Color = Color(1.0, 0.95, 0.75)
+## Birlesme noktasinda ucan "+N" bu tier'dan itibaren (kucuk merge'ler hizli
+## ve hafif kalsin; HUD'daki skor pop'u her merge'de zaten var).
+const FLOAT_SCORE_MIN_TIER: int = 4
+const MERGE_PULL_TIME: float = 0.08
+const MERGE_FLASH_TIME: float = 0.18
+const PUFF_MAX: int = 6
+
+
+static func _tier_t(tier: int) -> float:
+	return clampf(float(tier - 2) / float(TierConfig.MAX_TIER - 2), 0.0, 1.0)
+
+
+## Iki kaynak parcanin hayaleti 80 ms'de birlesme noktasina cekilip kucularak
+## soner: "temas -> iceri cekilme -> pop" okumasi. Kaynaklar bu karede
+## siliniyor; hayalet ayri bir Sprite2D, fizikle ilgisi yok.
+func _play_merge_pull(a: Dumpling, b: Dumpling, point: Vector2) -> void:
+	for source in [a, b]:
+		var ghost: Sprite2D = source.make_ghost()
+		if ghost.texture == null:
+			ghost.queue_free()
+			continue
+		ghost.z_index = 4
+		add_child(ghost)
+		var tween := create_tween()
+		tween.set_parallel(true)
+		tween.tween_property(ghost, "global_position", point, MERGE_PULL_TIME) \
+			.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+		tween.tween_property(ghost, "scale", ghost.scale * 0.55, MERGE_PULL_TIME) \
+			.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+		tween.tween_property(ghost, "modulate:a", 0.0, MERGE_PULL_TIME) \
+			.set_delay(MERGE_PULL_TIME * 0.4)
+		tween.chain().tween_callback(ghost.queue_free)
+
+
+## Yumusak parlama: beyaza kirilmis tier renginde bir nokta, yaricapin
+## 0.6'sindan 1.9'una acilip soner. Guc halkalarindan farkli (dolu, yumusak).
+func _play_merge_flash(at: Vector2, flash_color: Color, radius: float, tier: int) -> void:
+	var size_scale: float = _scale_for(BOKEH_TEXTURE, radius * 2.0)
+	var tint: Color = flash_color.lerp(Color.WHITE, 0.55)
+	tint.a = lerpf(0.55, 0.85, _tier_t(tier))
+	_spawn_fx_sprite(at, BOKEH_TEXTURE, tint, size_scale * 0.6,
+		size_scale * lerpf(1.6, 2.1, _tier_t(tier)), MERGE_FLASH_TIME)
+
+
+## Tier 8: altin parilti yildizi donerek acilir — premium kutlama, guc
+## efektlerinden ayri (sparkle dokusu, halka yok).
+func _play_king_shine(at: Vector2) -> void:
+	var gold := Color(1.0, 0.9, 0.55, 0.95)
+	var base: float = _scale_for(SPARKLE_TEXTURE, TierConfig.radius(TierConfig.MAX_TIER) * 3.2)
+	var shine: Sprite2D = _spawn_fx_sprite(at, SPARKLE_TEXTURE, gold, base * 0.3, base, 0.55,
+		0.0, 0.35)
+	var spin := create_tween()
+	spin.tween_property(shine, "rotation", 0.9, 0.55).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	# Ikinci, gecikmeli ve capraz: tek yildiz duz durunca "ikon" gibi kaliyordu.
+	get_tree().create_timer(0.08).timeout.connect(func() -> void:
+		if not is_inside_tree():
+			return
+		var second: Sprite2D = _spawn_fx_sprite(at, SPARKLE_TEXTURE,
+			Color(1.0, 1.0, 1.0, 0.8), base * 0.2, base * 0.8, 0.45, 0.78, 0.3)
+		var spin2 := create_tween()
+		spin2.tween_property(second, "rotation", 0.78 - 0.7, 0.45))
+
+
+## Birlesme noktasinda ucan "+N" (dunya uzayinda, HUD pop'undan ayri).
+func _spawn_float_score(at: Vector2, amount: int, tint: Color) -> void:
+	var label := Label.new()
+	UiType.apply(label, UiType.CARD_TITLE)
+	label.text = "+%d" % amount
+	label.add_theme_font_size_override("font_size", 26)
+	label.add_theme_color_override("font_color", tint.lerp(Color.WHITE, 0.7))
+	label.add_theme_color_override("font_shadow_color", Color(0.05, 0.02, 0.1, 0.8))
+	label.add_theme_constant_override("shadow_offset_y", 2)
+	label.add_theme_constant_override("shadow_outline_size", 2)
+	label.z_index = 6
+	label.position = at + Vector2(-40.0, -TierConfig.radius(2) - 30.0)
+	label.size = Vector2(80.0, 32.0)
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	label.pivot_offset = label.size * 0.5
+	label.scale = Vector2(0.6, 0.6)
+	add_child(label)
+	var tween := create_tween()
+	tween.set_parallel(true)
+	tween.tween_property(label, "scale", Vector2.ONE, 0.12).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	tween.tween_property(label, "position:y", label.position.y - 46.0, 0.5).set_ease(Tween.EASE_OUT)
+	tween.tween_property(label, "modulate:a", 0.0, 0.3).set_delay(0.2)
+	tween.chain().tween_callback(label.queue_free)
+
+
+## Anlamli inis: parcanin alt kenarinda kucuk toz pufu. Yerlesmis yigin
+## bunu tetiklemez (Dumpling.LAND_PUFF_SPEED esigi + debounce).
+func _on_impact_landed(dumpling: Dumpling, speed: float) -> void:
+	if _is_finished or not is_instance_valid(dumpling):
+		return
+	var r: float = TierConfig.radius(dumpling.tier)
+	var t: float = clampf((speed - Dumpling.LAND_PUFF_SPEED) / 500.0, 0.0, 1.0)
+	var count: int = mini(PUFF_MAX, 3 + int(round(3.0 * t)))
+	_spawn_burst(dumpling.global_position + Vector2(0.0, r * 0.8), PUFF_TEXTURE,
+		Color(1.0, 0.95, 0.9, lerpf(0.35, 0.6, t)), count,
+		lerpf(70.0, 140.0, t) * clampf(r / 40.0, 0.7, 1.6), 0.15, 0.28)
+
+
+## Hedef tamam: durum yazisi pop + kabin agzindan yukari parilti yagmuru
+## (tek atis, 22 parcacik) + kisa hafif sarsinti. Sonuc ekrani main.gd'de
+## RESULT_DELAY (0.8 sn) sonra aciliyor; bu pencere okunabilir bir basari ani.
+## Durum degismiyor: _is_finished zaten set, girdi zaten kapali.
+func _play_goal_celebration() -> void:
+	_status_label.pivot_offset = _status_label.size * 0.5
+	_status_label.scale = Vector2(0.6, 0.6)
+	var tween := create_tween()
+	tween.tween_property(_status_label, "scale", Vector2(1.15, 1.15), 0.16) \
+		.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	tween.tween_property(_status_label, "scale", Vector2.ONE, 0.14)
+	var at := Vector2(_center_x(), container_top_y() + 40.0)
+	_spawn_burst(at, SPARKLE_TEXTURE, Color(1.0, 0.92, 0.6, 0.95), 22, 420.0, 0.85, 0.9)
+	_spawn_burst(at, BOKEH_TEXTURE, Color(1.0, 0.75, 0.9, 0.7), 14, 300.0, 0.7, 0.7)
+	_shake_strength = maxf(_shake_strength, 5.0)
+
+
 # --- Hedef, süre, taşma ---
 
 ## Hedef tier'a ulaşmak yetmez; level 10'da ayrıca skor hedefi var, o yüzden
@@ -1186,9 +1372,13 @@ func _check_objective() -> void:
 func _process(delta: float) -> void:
 	if _shake_strength > 0.0:
 		_shake_strength = maxf(0.0, _shake_strength - SHAKE_DECAY * delta)
+		# M8.5-11: kamera sarsintisi artik GLOBAL RNG'yi tuketmiyor. Eskiden
+		# randf_range drop_bag'in shuffle'iyla ayni akisi paylasiyordu ve
+		# bot_runner'i tekrarlanamaz kiliyordu (PROJECT_STATUS §7 #14).
+		# Gorsel rastgelelik `_fx_rng`den — gameplay RNG'ye dokunulmuyor.
 		_camera.offset = Vector2(
-			randf_range(-_shake_strength, _shake_strength),
-			randf_range(-_shake_strength, _shake_strength))
+			_fx_rng.randf_range(-_shake_strength, _shake_strength),
+			_fx_rng.randf_range(-_shake_strength, _shake_strength))
 		if _shake_strength == 0.0:
 			_camera.offset = Vector2.ZERO
 
@@ -1197,10 +1387,17 @@ func _process(delta: float) -> void:
 		queue_redraw()
 
 	if _overflow_elapsed > 0.0 and not _is_finished:
-		_danger_pulse = 0.5 + 0.5 * sin(Time.get_ticks_msec() * 0.012)
+		# Nabiz hizi tasma sayaci doldukca artar (~1.9 Hz -> ~4.5 Hz): ses
+		# kapaliyken de "sure bitiyor" okunur. Mekanik (OVERFLOW_GRACE) ayni.
+		var urgency: float = clampf(_overflow_elapsed / OVERFLOW_GRACE, 0.0, 1.0)
+		_danger_phase += delta * TAU * lerpf(1.9, 4.5, urgency)
+		_danger_pulse = 0.5 + 0.5 * sin(_danger_phase)
+		_danger_urgency = urgency
 		queue_redraw()
 	elif _danger_pulse != 0.0:
 		_danger_pulse = 0.0
+		_danger_urgency = 0.0
+		_danger_phase = 0.0
 		queue_redraw()
 
 
@@ -1478,6 +1675,8 @@ func _finish(won: bool) -> void:
 	_set_combo_text("")
 	_status_label.text = "Hedef tamam!" if won else "Bitti"
 	AudioManager.play_sfx(&"level_win" if won else &"level_lose")
+	if won:
+		_play_goal_celebration()
 	round_finished.emit(won)
 
 
