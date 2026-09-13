@@ -155,7 +155,7 @@ alınacak — şimdi tahmin/vaat yok.
     gövde/tier 8/dört güç/ödül rarity'leri/pencereler için olaylar,
     `Haptics` statik servisi (LIGHT/MEDIUM/STRONG/SPECIAL, 70 ms spam
     penceresi, editor'de güvenli), Ayarlar → **Titreşim** anahtarı
-    (kayıtta `haptics_enabled`), `tools/audio_test.gd` 47/47,
+    (kayıtta `haptics_enabled`), `tools/audio_test.gd` 45/45,
     `tools/audio_qa.tscn` dev sahnesi, `tools/audio_probe.gd` tepe ölçümü.
     **Ses SİSTEMİ production-ready; ÖRNEKLER DEĞİL:** 5 Kenney CC0 + 22
     sentez (`tools/make_sfx.gd`) GEÇİCİ, kulakla doğrulanmadı — şartname

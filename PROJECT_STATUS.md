@@ -1334,13 +1334,13 @@ formatına yalnız `haptics_enabled` (varsayılan true) eklendi. Ayrıntı ve
   Legendary SPECIAL; temizleyici tek LIGHT. Ayarlar → Titreşim (`vibration`
   ikonu paketin `icon_bell`'inden türetildi). Android VIBRATE izni M9
   preset'inde açılmalı. **Cihazda doğrulanmadı.**
-- **QA / test:** `tools/audio_test.gd` 47/47 (yükleme, olay eşlemesi, eksik
+- **QA / test:** `tools/audio_test.gd` 45/45 (yükleme, olay eşlemesi, eksik
   akış çökmez, RNG izolasyonu, iniş spam 10→≤2, soğuma, merge steal_self,
   CRITICAL korunması, SFX/haptics kalıcılık, haptics kapalı → çağrı yok,
   editor güvenli, spam penceresi, SPECIAL, ≤60 ms, gameplay durumu sabit).
   `tools/audio_qa.tscn` (48 düğme: her olay, rarity, titreşim seviyesi,
   spam/stres senaryoları, kanal/atılan sayaçları). Mevcut testler: ui_smoke
-  67/67, economy 100/100, refill 119/119, revive 103/103, skin 25/25, bot L3
+  72/72, economy 100/100, refill 119/119, revive 103/103, skin 26/26, bot L3
   2/2. Pencereli gerçek sürücüde `ui_shots` hatasız.
 - **Doğrulanmayan:** hiçbir ses kulakla dinlenmedi; Android titreşimi
   fiziksel olarak doğrulanmadı.
@@ -1426,7 +1426,7 @@ squishy-merge/
 | `ui_shots.gd` + `ui_shots.tscn` | **Production UI kabuğu çekimleri** (M8.5-10): dört sekme, ayarlar, en kötü durum, oyun ekranı; üç ölçü. `--headless` ile çalışmaz. |
 | `ui_smoke_test.gd` + `ui_smoke_test.tscn` | **Headless UI davranış testi** (26 kontrol): ayar anahtarı, onay diyaloğu, geri tuşu, equip. |
 | `make_pack_icons.gd` | Free Casual GUI SVG ikonlarını beyaz maske PNG'ye türetir. |
-| `audio_test.gd` + `audio_test.tscn` | **Headless ses + titreşim davranış testi** (M8.5-15, 47 kontrol): eşleme, RNG izolasyonu, soğuma/tavan/öncelik, ayar kalıcılığı, haptik politikası. Kaydı kendi yedekler. |
+| `audio_test.gd` + `audio_test.tscn` | **Headless ses + titreşim davranış testi** (M8.5-15, 45 kontrol): eşleme, RNG izolasyonu, soğuma/tavan/öncelik, ayar kalıcılığı, haptik politikası. Kaydı kendi yedekler. |
 | `audio_qa.gd` + `audio_qa.tscn` | **Ses/titreşim QA sahnesi** (pencereli): her olay, rarity, güç, titreşim seviyesi, spam/stres düğmeleri; kanal ve atılan çağrı sayaçları. Production navigasyonunda yok. |
 | `audio_probe.gd` | Eşlenmiş her ses dosyasının süre / tepe dBFS / RMS / sessizlik / kırpma ölçümü (AudioEffectCapture, headless). |
 | `make_sfx.gd` | GEÇİCİ sentez SFX üretici (22 dosya, deterministik). Final örnek gelince gereksizleşir. |

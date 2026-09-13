@@ -10,7 +10,7 @@
 - **Sistem production-ready:** merkezi olay tablosu, öncelikli kanal
   yönetimi, soğuma/tavan, yerel RNG, HardLimiter, Ayarlar'da gerçek SFX +
   Titreşim anahtarları, Android için yerleşik `Input.vibrate_handheld`
-  tabanı, otomatik test (47 kontrol) ve QA sahnesi.
+  tabanı, otomatik test (45 kontrol) ve QA sahnesi.
 - **Sesler production-ready DEĞİL.** Repoda 7 Kenney CC0 placeholder vardı,
   başka kaynak yoktu (`_audio_source/` bu makinede yok, gitignore'lu).
   Bu turda 22 kısa ses `tools/make_sfx.gd` ile **sentezlendi** (saf sinüs /
@@ -156,13 +156,13 @@ kırpma 0, baş fade 2 ms, kuyruk ≤ 120 ms sessizlik.
 ## 6. Doğrulanan / doğrulanmayan
 
 **Doğrulandı (otomatik, headless, Dummy sürücü):** `tools/audio_test.gd`
-47/47 — yükleme, 31 beklenen olay + akış, bilinmeyen olay / silinen akış
+45/45 — yükleme, 31 beklenen olay + akış, bilinmeyen olay / silinen akış
 çökmez, tablo tutarlılığı, global RNG izolasyonu, iniş spam (10 → ≤2),
 soğuma, merge steal_self, CRITICAL korunması, SFX/haptics ayar kalıcılığı,
 haptics kapalı → platform çağrısı yok, editor'de destek yok → güvenli,
 spam penceresi, SPECIAL iki darbe, ≤ 60 ms, gameplay durumu değişmiyor.
-Mevcut testler: ui_smoke 67/67, economy 100/100, refill 119/119, revive
-103/103, skin 25/25, bot L3 2/2 kazandı. Pencereli (gerçek WASAPI sürücü):
+Mevcut testler: ui_smoke 72/72, economy 100/100, refill 119/119, revive
+103/103, skin 26/26, bot L3 2/2 kazandı. Pencereli (gerçek WASAPI sürücü):
 `ui_shots` 13 çekim hatasız (Ayarlar'da Titreşim satırı görüldü).
 
 **Doğrulanmadı:** hiçbir ses **kulakla** dinlenmedi (ortamda çıkış yok);
