@@ -2,6 +2,7 @@ extends CanvasLayer
 ## Ayarlar penceresi (M8.5-10) — production temeli, bilerek küçük:
 ##
 ##   Ses Efektleri   gerçek anahtar: SFX bus'ını susturur, kayda yazar
+##   Titreşim        gerçek anahtar (M8.5-15): Haptics'i kapatır, kayda yazar
 ##   Gizlilik        kısa, doğru metin (veri toplanmıyor, backend yok)
 ##   Hakkında        uygulama adı + sürüm (project.godot → config/version)
 ##   Kapat           candy CTA + sağ üst kapatma ikonu + karartmaya dokunma
@@ -17,6 +18,7 @@ signal closed
 const PRIVACY_TEXT: String = "Squishy Merge kişisel veri toplamaz. İlerlemen yalnızca bu cihazda saklanır; hesap, sunucu ve analitik yoktur. Şu an reklam ve uygulama içi satın alma da yok."
 
 var _sfx_toggle: UiToggle
+var _haptics_toggle: UiToggle
 var _privacy_button: Button
 var _close_icon: Button
 
@@ -38,6 +40,8 @@ func _ready() -> void:
 
 	_sfx_toggle = _add_toggle_row(UiPalette.ICON_VOLUME, "Ses Efektleri")
 	_sfx_toggle.toggled.connect(_on_sfx_toggled)
+	_haptics_toggle = _add_toggle_row(UiPalette.ICON_VIBRATION, "Titreşim")
+	_haptics_toggle.toggled.connect(_on_haptics_toggled)
 	_privacy_button = _add_link_row(UiPalette.ICON_INFO, "Gizlilik", "Göster")
 	_privacy_button.pressed.connect(_toggle_privacy)
 	_privacy_text.text = PRIVACY_TEXT
@@ -59,16 +63,19 @@ func _ready() -> void:
 
 func open_panel() -> void:
 	_sfx_toggle.set_on(SaveManager.sfx_enabled())
+	_haptics_toggle.set_on(SaveManager.haptics_enabled())
 	_privacy.visible = false
 	_privacy_button.text = "Göster"
 	visible = true
 	UiMotion.modal_open(_modal, _dim)
+	AudioManager.play(&"ui_modal_open")
 
 
 func close_panel() -> void:
 	if not visible:
 		return
 	visible = false
+	AudioManager.play(&"ui_modal_close")
 	closed.emit()
 
 
@@ -76,7 +83,14 @@ func _on_sfx_toggled(on: bool) -> void:
 	SaveManager.set_sfx_enabled(on)
 	# Açınca duyulur bir onay; kapatınca zaten sessiz.
 	if on:
-		AudioManager.play_sfx(&"star_pat", 1.2)
+		AudioManager.play(&"ui_toggle_on")
+
+
+func _on_haptics_toggled(on: bool) -> void:
+	SaveManager.set_haptics_enabled(on)
+	# Açınca hissedilir bir onay (destekleyen cihazda); kapatınca zaten yok.
+	if on:
+		Haptics.medium()
 
 
 func _toggle_privacy() -> void:

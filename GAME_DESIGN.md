@@ -709,12 +709,18 @@ değiştirmez ve diske yazmaz.** Envanter ve Hamur asla negatife inmez.
 
 ## 6. Ses tasarımı
 
-> **Ses dosyaları (M6):** Kenney.nl CC0 placeholder — owner kendi asset'leriyle
-> değiştirecek. **Dosya isimleri sabit tutulmalı** ki değişim kod dokunmadan
-> olsun; `assets/audio/` altındaki dosyanın üzerine aynı isimle yazmak yeterli.
-> Eşleşme tablosu ve kaynaklar: `assets/audio/CREDITS.md`.
-> Bus yapısı: Master → SFX / Music (`default_bus_layout.tres`).
-> Tier başına pitch escalation tek sample üzerinden yapılıyor, ayrı dosya yok.
+> **Ses dosyaları (M8.5-15):** merkezi olay tablosu `AudioManager.EVENTS`
+> (`scripts/autoload/audio_manager.gd`), dosyalar `assets/audio/sfx/<ui|
+> gameplay|powers|rewards>/`. Beş Kenney CC0 örnek + 22 GEÇİCİ sentez örnek;
+> hiçbiri kulakla doğrulanmış final değil. **Dosya isimleri sabit
+> tutulmalı** — owner final örneği aynı adla üzerine yazınca kod değişmez.
+> Envanter/mimari: `docs/AUDIO_AUDIT.md`; eksik örnek şartnamesi:
+> `docs/AUDIO_ASSET_REQUIREMENTS.md`; kaynaklar: `assets/audio/CREDITS.md`.
+> Bus yapısı: Master → SFX (HardLimiter) / Music (`default_bus_layout.tres`).
+> Tier başına pitch escalation tek örnek üzerinden (`TierConfig.merge_pitch`),
+> üstüne tier'a göre pesleşen gövde katmanı; tier 8'de premium parıltı.
+> Titreşim (owner kararı, M8.5-15): `scripts/haptics.gd`, Ayarlar → Titreşim;
+> politika `docs/AUDIO_AUDIT.md` §4.
 
 - Her tier'ın merge sesi bir öncekinden hafifçe yüksek pitch'te (escalation)
 - Combo yapılırsa (kısa süre içinde art arda merge) ekstra "combo" sesi +

@@ -14,7 +14,7 @@ extends Node
 ##   godot --headless --audio-driver Dummy --path . res://tools/ui_smoke_test.tscn
 ##
 ## Cikista "ObjectDB instances leaked" uyarisi BEKLENEN bir durum: equip ve
-## ses anahtari star_pat SFX'ini caliyor, Dummy surucude playback hic
+## ses anahtari ui_equip / ui_toggle_on SFX'ini caliyor, Dummy surucude playback hic
 ## bitmiyor ve quit aninda OggPacketSequence acik kaliyor (--verbose ile
 ## dogrulandi). Bizim kodumuzda sizinti yok.
 

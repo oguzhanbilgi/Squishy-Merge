@@ -67,6 +67,8 @@ func _ready() -> void:
 	hide_result()
 	_retry.pressed.connect(func() -> void: retry_pressed.emit())
 	_exit.pressed.connect(func() -> void: exit_pressed.emit())
+	UiMotion.attach_tap(_retry)
+	UiMotion.attach_tap(_exit)
 
 
 func hide_result() -> void:
@@ -135,8 +137,8 @@ func _reveal_stars(sequence: int, stars: int) -> void:
 		tween.tween_property(star, "scale", Vector2(1.25, 1.25), 0.12) \
 			.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 		tween.tween_property(star, "scale", Vector2.ONE, 0.1)
-		# "Pat" sesi — stream M6'da gelecek, pitch her yıldızda biraz yükseliyor.
-		AudioManager.play_sfx(&"star_pat", 1.0 + 0.12 * float(i))
+		# "Pat" sesi (GAME_DESIGN §5.1), pitch her yıldızda biraz yükseliyor.
+		AudioManager.play(&"star_reveal", 1.0 + 0.12 * float(i))
 
 
 # --- Sandıklar ---
@@ -289,6 +291,9 @@ func _reveal_chests(sequence: int, rewards: Array[ChestReward]) -> void:
 		tween.tween_property(card, "modulate:a", 1.0, 0.18)
 		tween.tween_property(card, "scale", Vector2.ONE, 0.25) \
 			.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+		# İki aşamalı ses (M8.5-15): kart belirirken "açılış" (beklenti),
+		# sandık açılınca rarity'e göre ödül cue'su (reveal).
+		AudioManager.play(&"chest_open")
 		# Işık patlaması sandığın rarity renginde — legendary belirgin şekilde
 		# daha parlak bir an olsun.
 		# Kapalı sandık bir an görünsün, sonra açılsın.
@@ -298,8 +303,26 @@ func _reveal_chests(sequence: int, rewards: Array[ChestReward]) -> void:
 		_gems[i].open()
 		_burst_at(card.global_position + card.size * 0.5, rewards[i].color(),
 			REWARD_GEM.fx_level(rewards[i]))
-		AudioManager.play_sfx(&"chest_open", 0.9)
+		_play_reveal_feedback(rewards[i])
 		_refresh_dough()
+
+
+## Ödül reveal'inin ses + titreşimi. Teselli ödülü Common gibi (sessiz
+## değil ama gösterişsiz). Titreşim: Legendary premium desen, Epic orta,
+## yeni skin orta, Hamur hafif — sandık açılışı zaten "orta" bir an.
+func _play_reveal_feedback(reward: ChestReward) -> void:
+	var rarity: int = SkinData.Rarity.COMMON if reward.is_consolation else int(reward.rarity)
+	AudioManager.play_reward(rarity)
+	match rarity:
+		SkinData.Rarity.LEGENDARY:
+			Haptics.special()
+		SkinData.Rarity.EPIC:
+			Haptics.medium()
+		_:
+			if reward.is_skin_reward():
+				Haptics.medium()
+			else:
+				Haptics.light()
 
 
 func _refresh_dough() -> void:

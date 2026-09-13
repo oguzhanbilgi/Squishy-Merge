@@ -591,6 +591,7 @@ func _on_power_armed_changed(type: int) -> void:
 		_clear_target_highlights()
 	else:
 		_highlight_valid_targets()
+		AudioManager.play(&"power_arm")
 	# Silahlıyken önizleme gizleniyor: drop yapılamıyor, sahte umut vermesin.
 	_preview.visible = not _powerups.is_armed()
 
@@ -804,6 +805,7 @@ func _run_bomb(target: Dumpling) -> void:
 	# Anticipation: mermi önce yerinde büyüyor, sonra iniyor.
 	create_tween().tween_property(shell, "scale", Vector2.ONE * shell_scale, 0.09) \
 		.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	AudioManager.play(&"bomb_whoosh")
 
 	# Yay: x yumuşak, y hızlanarak. Düz çizgi yerine "düşüyor" hissi veriyor.
 	var arc_x: float = destination.x + _fx_rng.randf_range(-26.0, 26.0)
@@ -841,7 +843,8 @@ func _detonate_bomb(target: Dumpling, at: Vector2, tier: int) -> void:
 		FX_DUST_MAX, TierConfig.radius(tier) * 5.0, 0.15, 0.42)
 	_spawn_pop(at, TierConfig.color(tier), TierConfig.radius(tier), maxi(tier, 2))
 	_add_shake(tier)
-	AudioManager.play_sfx(&"merge", 0.75)
+	AudioManager.play(&"bomb_impact")
+	Haptics.strong()
 
 
 ## Büyütücü: parçayı mutate etmek yerine kaldırıp bir üst tier'ı aynı yerde
@@ -886,7 +889,11 @@ func _run_upgrade(target: Dumpling) -> void:
 
 	_spawn_pop(at, TierConfig.color(new_tier), TierConfig.radius(new_tier), new_tier)
 	_add_shake(new_tier)
-	AudioManager.play_sfx(&"merge", TierConfig.merge_pitch(new_tier))
+	# Sihirli yükseliş + varılan tier'ın merge sesi (tier 8'de premium kutlama
+	# da play_merge içinden gelir).
+	AudioManager.play(&"upgrade")
+	AudioManager.play_merge(new_tier)
+	Haptics.medium()
 
 	# Tier 8'in normal kutlaması güçle elde edilse de çalışır.
 	if new_tier == TierConfig.MAX_TIER:
@@ -924,7 +931,9 @@ func _use_shake() -> void:
 	_overflow_elapsed = 0.0
 	_shake_protection = SHAKE_OVERFLOW_GRACE
 	_shake_strength = maxf(_shake_strength, SHAKE_MAX * 0.8)
-	AudioManager.play_sfx(&"danger", 0.8)
+	AudioManager.play(&"shake")
+	# TEK darbe: sarsıntı boyunca tekrar titreşim yok.
+	Haptics.medium()
 	_flash_status("Sarsıntı!")
 
 	# --- Sunum (M8.5-07). IMPULSE DEĞERLERİ DEĞİŞMEDİ. ---
@@ -949,7 +958,9 @@ func _use_clear_small() -> void:
 	if not _powerups.consume(PowerUp.Type.CLEAR_SMALL):
 		return
 
-	AudioManager.play_sfx(&"merge", 1.15)
+	# Tek hafif aktivasyon darbesi; parça başına titreşim YOK. Puf sesleri
+	# _pop_and_free'de (soğuma + kanal tavanı spam'i kesiyor).
+	Haptics.light()
 	# Süpürme halkası: tek tek pop'lar "dağınık" okunuyordu; ortak bir
 	# halka hepsinin AYNI güçle kaldırıldığını anlatıyor. Tek parça için
 	# gereksiz olurdu, o yüzden eşik var.
@@ -981,6 +992,7 @@ func _pop_and_free(dumpling: Dumpling) -> void:
 	var at: Vector2 = dumpling.global_position
 	dumpling.queue_free()
 	# Skor ve merge sayacı DEĞİŞMEZ.
+	AudioManager.play(&"clear_puff", 1.0 + 0.04 * float(tier))
 	_spawn_pop(at, TierConfig.color(tier), TierConfig.radius(tier), 2)
 	# Kısa yukarı iz: parça "silinmiyor", kaldırılıyor gibi okunsun.
 	# Parçacık sayısı bilerek küçük — 20 parça birden temizlenebiliyor.
@@ -1032,6 +1044,7 @@ func _drop() -> void:
 	if _is_finished or _is_paused() or _drop_cooldown > 0.0:
 		return
 	_dismiss_tutorial()
+	AudioManager.play_drop()
 	_spawn_dumpling(_pending_tier, Vector2(_aim_x, drop_line_y()))
 	_pending_tier = _next_tier
 	_next_tier = _drop_bag.next_tier()
@@ -1090,8 +1103,16 @@ func _resolve_merge(a: Dumpling, b: Dumpling, point: Vector2) -> void:
 
 	GameState.add_score(TierConfig.merge_score(new_tier))
 	GameState.register_merge(new_tier, point)
-	# Tek sample, tier başına artan pitch (GAME_DESIGN.md §6).
-	AudioManager.play_sfx(&"merge", TierConfig.merge_pitch(new_tier))
+	# Tier başına artan pitch (GAME_DESIGN.md §6) + tier 8 premium kutlama;
+	# ayrıntı AudioManager.play_merge. Titreşim: normal hafif, yüksek tier
+	# orta, tier 8 özel desen. Combo AYRICA titreşmez (merge taşıyor).
+	AudioManager.play_merge(new_tier)
+	if new_tier >= TierConfig.MAX_TIER:
+		Haptics.special()
+	elif new_tier >= AudioManager.MERGE_HIGH_MIN_TIER:
+		Haptics.medium()
+	else:
+		Haptics.light()
 	_register_combo()
 
 	if celebratory:
@@ -1123,8 +1144,9 @@ func _resolve_annihilation(a: Dumpling, b: Dumpling, point: Vector2) -> void:
 	GameState.add_score(TierConfig.ANNIHILATION_BONUS)
 	# Sandık ilerlemesi açısından normal bir merge sayılıyor.
 	GameState.register_merge(tier, point)
-	# Merge sesinin en pesi — ağırlık hissi için.
-	AudioManager.play_sfx(&"merge", 0.7)
+	# Merge sesinin en pesi + büyük parıltı — ağırlık ve ödül hissi.
+	AudioManager.play(&"annihilation")
+	Haptics.strong()
 	_register_combo()
 	_flash_status("%s x2  +%d!" % [TierConfig.tier_name(tier), TierConfig.ANNIHILATION_BONUS])
 
@@ -1135,7 +1157,7 @@ func _register_combo() -> void:
 	_combo_timer = COMBO_WINDOW
 	if _combo_count < 2:
 		return
-	AudioManager.play_sfx(&"combo", 1.0 + 0.06 * float(mini(_combo_count, 8)))
+	AudioManager.play_combo(_combo_count)
 	_set_combo_text("x%d" % _combo_count)
 	# Zincir uzadıkça yazı büyüsün (GAME_DESIGN.md §6).
 	var peak: float = minf(1.3 + 0.12 * float(_combo_count), 2.2)
@@ -1329,6 +1351,9 @@ func _spawn_float_score(at: Vector2, amount: int, tint: Color) -> void:
 func _on_impact_landed(dumpling: Dumpling, speed: float) -> void:
 	if _is_finished or not is_instance_valid(dumpling):
 		return
+	# İniş sesi: seviye hıza, pitch tier'a bağlı; spam koruması AudioManager'da.
+	# Titreşim YOK: iniş için haptik gerekçesiz (task politikası).
+	AudioManager.play_landing(dumpling.tier, speed)
 	var r: float = TierConfig.radius(dumpling.tier)
 	var t: float = clampf((speed - Dumpling.LAND_PUFF_SPEED) / 500.0, 0.0, 1.0)
 	var count: int = mini(PUFF_MAX, 3 + int(round(3.0 * t)))
@@ -1433,7 +1458,7 @@ func _physics_process(delta: float) -> void:
 		# Gerilim sesi (GAME_DESIGN.md §6): tehlike sürdükçe tekrar eder.
 		_danger_tick -= delta
 		if _danger_tick <= 0.0:
-			AudioManager.play_sfx(&"danger", 1.0)
+			AudioManager.play(&"danger")
 			_danger_tick = DANGER_TICK_INTERVAL
 		if _overflow_elapsed >= OVERFLOW_GRACE:
 			_trigger_overflow_fail()
@@ -1562,7 +1587,9 @@ func _enter_fail_pending() -> void:
 	_combo_timer = 0.0
 	_set_combo_text("")
 	_set_board_frozen(true)
-	AudioManager.play_sfx(&"danger", 0.7)
+	# Yumuşak inen ton + tek kontrollü darbe; sert buzzer yok.
+	AudioManager.play(&"fail")
+	Haptics.medium()
 	_status_label.text = "Taştı!"
 	revive_offered.emit(revives_remaining())
 
@@ -1600,7 +1627,8 @@ func grant_revive() -> bool:
 	_preview.visible = true
 	_refresh_preview()
 
-	AudioManager.play_sfx(&"level_win", 1.15)
+	AudioManager.play(&"revive")
+	Haptics.medium()
 	_flash_status("Devam! %d parça kurtarıldı" % rescued)
 	revive_granted.emit(_revives_used, revives_remaining())
 	return true
@@ -1674,7 +1702,7 @@ func _finish(won: bool) -> void:
 	_power_bar.set_enabled(false)
 	_set_combo_text("")
 	_status_label.text = "Hedef tamam!" if won else "Bitti"
-	AudioManager.play_sfx(&"level_win" if won else &"level_lose")
+	AudioManager.play(&"round_win" if won else &"round_lose")
 	if won:
 		_play_goal_celebration()
 	round_finished.emit(won)

@@ -27,10 +27,15 @@ const _META_TWEEN: StringName = &"ui_motion_tween"
 
 ## Butona basinca 0.94'e cekilir, birakinca yayla (TRANS_BACK) geri gelir.
 ## Bir kez baglanir; ayni butona ikinci cagri yok sayilir.
-static func attach_press(button: BaseButton) -> void:
+##
+## `sound`: evrensel UI dokunus sesi (M8.5-15, tek aile: `ui_tap`). Kendi
+## sesi olan kontroller (sekme, anahtar) false gecer; cift ses olmasin.
+static func attach_press(button: BaseButton, sound: bool = true) -> void:
 	if button.has_meta(&"ui_motion_press"):
 		return
 	button.set_meta(&"ui_motion_press", true)
+	if sound:
+		attach_tap(button)
 	button.button_down.connect(func() -> void: _press_in(button))
 	button.button_up.connect(func() -> void: _press_out(button))
 	# Basili tutup disari surukleyince button_up gelmeyebilir; mouse_exited
@@ -38,6 +43,16 @@ static func attach_press(button: BaseButton) -> void:
 	button.mouse_exited.connect(func() -> void:
 		if not button.button_pressed or not button.toggle_mode:
 			_press_out(button))
+
+
+## Yalnizca dokunus sesi (basis animasyonu olmayan candy CTA'lar, guc
+## cubugu). `button_down`: bekleme yok, parmak dokundugu an. Pasif buton
+## button_down yaymaz -> ses de yok.
+static func attach_tap(button: BaseButton) -> void:
+	if button.has_meta(&"ui_motion_tap"):
+		return
+	button.set_meta(&"ui_motion_tap", true)
+	button.button_down.connect(func() -> void: AudioManager.play(&"ui_tap"))
 
 
 static func _press_in(control: Control) -> void:

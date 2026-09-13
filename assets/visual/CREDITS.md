@@ -701,6 +701,7 @@ renge temiz boyanıyor (sekme altın, pasif lavanta, krem panelde erik).
 | `ui/icons/trophy.png` | `icon_trophy_white.svg` | Harita: sonsuz mod rekor cipi |
 | `ui/icons/sparkle.png` | `icon_sparkle_white.svg` | Mağaza: GÜÇLER bölüm başlığı |
 | `ui/icons/gift.png` | `icon_gift_white.svg` | Mağaza: SKİNLER bölüm başlığı |
+| `ui/icons/vibration.png` | `icon_bell_white.svg` | Ayarlar: Titreşim satırı (M8.5-15; pakette titreşim ikonu yok, zil metaforu) |
 
 Paketteki ad yanıltıcıları: `icon_reload` aslında nota (müzik),
 `icon_refresh` dairesel ok. Çıktılar İŞLEVE göre adlandırıldı.

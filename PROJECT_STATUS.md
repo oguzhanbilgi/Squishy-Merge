@@ -72,7 +72,8 @@ alınacak; şimdi tahmin veya vaat yok.
 
 ### Non-goal'lar (v1'de bilinçli olarak YAPILMIYOR)
 
-Çoklu kavanoz/tema · IAP/reklam/ödeme · haptic feedback · leaderboard ·
+Çoklu kavanoz/tema · IAP/reklam/ödeme · native haptik plugin (yerleşik
+titreşim M8.5-15'te v1'e alındı) · leaderboard ·
 bulut kayıt · hesap sistemi · backend/sunucu · **otomatik test framework'ü
 (GUT vb.)** · iOS build.
 
@@ -1290,6 +1291,60 @@ kayıt formatı, skin id'leri DEĞİŞMEDİ.** Ayrıntı: `SKIN_ART_AUDIT.md`
   gameplay'e taşınmadı (tier başına overlay art gerekir, 6×8 parça) —
   placeholder ile taklit edilmedi, `SkinVisual.attach_fx` takılma noktası.
 
+### 4.18 Final SFX + titreşim + ses game-feel (M8.5-15)
+
+Ses, görsel game-feel'in kalitesine çekildi. **Fizik, merge, bag, skor,
+ekonomi, skin, harita, tipografi, reklam/billing DEĞİŞMEDİ.** Kayıt
+formatına yalnız `haptics_enabled` (varsayılan true) eklendi. Ayrıntı ve
+ölçümler: `docs/AUDIO_AUDIT.md`; eksik örnek şartnamesi:
+`docs/AUDIO_ASSET_REQUIREMENTS.md`.
+
+- **Denetim:** M6'nın 7 Kenney CC0 dosyası ölçüldü (`tools/audio_probe.gd`,
+  AudioEffectCapture). Eski mimari 8 kanal round-robin idi: ödül sesi bir
+  sonraki inişle kesilebiliyor, olay başına soğuma/tavan yok, bırakma /
+  iniş / UI / güç aktivasyonu sessiz, `chest_open` ve `danger` üçer anlamda.
+  `pluck_001` +0.4 dBFS (kırpıyor); `lowDown` 0.84 s tepe −0.6 dB ve 0.5
+  s'de bir tekrar (siren etkisi). Digital Audio paketinden iki dosya
+  (`sfx_danger`, `sfx_combo`) kaldırıldı; beşi `kenney_*` adıyla kategorili
+  klasörlere taşındı.
+- **Mimari:** `AudioManager.EVENTS` (olay → varyant havuzu, gain_db, pitch,
+  jitter, cooldown_ms, max_voices, steal_self, priority, layers, fallback);
+  12 kanal; kanal çalma LOW<NORMAL<HIGH<CRITICAL, CRITICAL asla kesilmez;
+  yerel `RandomNumberGenerator` (global RNG'ye dokunmuyor — test `seed()`
+  dizisiyle doğruluyor); eksik dosya → fallback → sessiz, tek uyarı; SFX
+  bus'ında `AudioEffectHardLimiter` (−0.5 dB). Yardımcılar
+  `play_drop/play_landing(tier, hız)/play_merge(tier)/play_combo/play_reward`.
+- **Olaylar (36):** UI (tap/tab/modal open-close/toggle/select/purchase/
+  invalid/equip), gameplay (drop, land hız+tier'a göre, merge + tier'a göre
+  pesleşen gövde katmanı + tier ≥ 6 parıltı + tier 8 CRITICAL kutlama,
+  annihilation, combo, danger, fail, round_win/lose, revive), güçler
+  (power_arm, bomb_whoosh → bomb_impact, upgrade, shake, clear_puff), ödül
+  (star_reveal, chest_open → reward_common/rare/epic/legendary,
+  daily_reward, level_unlock). Evrensel buton sesi `UiMotion.attach_press`
+  / `attach_tap` (`button_down`); sekme ve anahtar kendi sesini kullanır.
+- **Sentez (geçici):** `tools/make_sfx.gd` → 22 `sfx_*.wav` (sinüs/gürültü,
+  deterministik, tepe −3…−9 dBFS, kırpma 0, PCM 16-bit mono). Kulakla
+  DOĞRULANMADI; final değil. Aynı adla üzerine yazılınca kod değişmez.
+- **Titreşim:** `scripts/haptics.gd` (`class_name Haptics`, statik; autoload
+  eklenmedi). LIGHT 18 / MEDIUM 32 / STRONG 55 ms, SPECIAL 35+60+60 ms,
+  amplitude 0.35/0.65/1.0, `MIN_GAP_MS` 70 (yalnız daha güçlü darbe geçer).
+  Editor/masaüstü: `is_supported()` false, platform çağrısı yok. Politika:
+  buton/bırakma/iniş/combo/tehlike YOK; merge LIGHT, tier 6–7 / güç
+  aktivasyon / satın alma / devam / taşma MEDIUM; bomba STRONG; tier 8 ve
+  Legendary SPECIAL; temizleyici tek LIGHT. Ayarlar → Titreşim (`vibration`
+  ikonu paketin `icon_bell`'inden türetildi). Android VIBRATE izni M9
+  preset'inde açılmalı. **Cihazda doğrulanmadı.**
+- **QA / test:** `tools/audio_test.gd` 47/47 (yükleme, olay eşlemesi, eksik
+  akış çökmez, RNG izolasyonu, iniş spam 10→≤2, soğuma, merge steal_self,
+  CRITICAL korunması, SFX/haptics kalıcılık, haptics kapalı → çağrı yok,
+  editor güvenli, spam penceresi, SPECIAL, ≤60 ms, gameplay durumu sabit).
+  `tools/audio_qa.tscn` (48 düğme: her olay, rarity, titreşim seviyesi,
+  spam/stres senaryoları, kanal/atılan sayaçları). Mevcut testler: ui_smoke
+  67/67, economy 100/100, refill 119/119, revive 103/103, skin 25/25, bot L3
+  2/2. Pencereli gerçek sürücüde `ui_shots` hatasız.
+- **Doğrulanmayan:** hiçbir ses kulakla dinlenmedi; Android titreşimi
+  fiziksel olarak doğrulanmadı.
+
 ## 5. Dosya/klasör yapısı ve script envanteri
 
 ```
@@ -1309,7 +1364,7 @@ squishy-merge/
 │   ├── levels/              # level_01..10.tres + endless.tres  (data-driven)
 │   └── skins/               # 20 skin .tres                      (data-driven)
 ├── assets/
-│   ├── audio/               # 7 SFX + CREDITS.md
+│   ├── audio/               # sfx/{ui,gameplay,powers,rewards}/ (27 dosya) + CREDITS.md
 │   └── visual/              # sprite'lar, fx/, ui/, icon/, ui_theme.tres, CREDITS.md
 ├── tools/                   # ⚠️ SADECE geliştirme araçları — export'ta filtrelenmeli
 └── _visual_source/          # ⚠️ ham kaynaklar — export'ta filtrelenmeli
@@ -1320,7 +1375,8 @@ squishy-merge/
 | script | işi |
 |---|---|
 | `autoload/game_state.gd` | Koşu-anı durumu: skor, merge sayısı, aktif level. Sinyal yayar (`score_changed`, `merge_performed`). |
-| `autoload/audio_manager.gd` | Tüm SFX çalma noktası. Kimlik tabanlı (`play_sfx(&"merge", pitch)`). Bus: Master → SFX/Music. |
+| `autoload/audio_manager.gd` | Tüm SFX çalma noktası (M8.5-15): `EVENTS` olay tablosu, 12 kanal + öncelikli kanal çalma, soğuma/tavan, yerel RNG, fallback. `play(&"merge")`, `play_merge(tier)`, `play_landing(tier, hız)`. Bus: Master → SFX (limiter) / Music. |
+| `haptics.gd` | `Haptics` statik servisi (M8.5-15): LIGHT/MEDIUM/STRONG/SPECIAL, spam penceresi, editor'de güvenli, test sink'i. |
 | `autoload/save_manager.gd` | Yerel kalıcı kayıt, JSON, `user://`. Bulut yok. |
 
 ### Oyun mantığı
@@ -1359,7 +1415,7 @@ squishy-merge/
 | `ui/ui_palette.gd` | Tasarım sistemi: renkler, katmanlar, cip/ikon buton fabrikaları (M8.5-10). |
 | `ui/ui_motion.gd` | Mikro-etkileşimler: basış, pop, pencere açılışı, sekme geçişi, toast (M8.5-10). |
 | `ui/ui_toggle.gd` | Ayarlar anahtarı (M8.5-10). |
-| `ui/settings_panel.gd` | Ayarlar penceresi: ses efektleri, gizlilik, sürüm (M8.5-10). |
+| `ui/settings_panel.gd` | Ayarlar penceresi: ses efektleri, titreşim (M8.5-15), gizlilik, sürüm (M8.5-10). |
 | `ui/candy_button.gd` | Owner'ın candy pill dokularının tek bağlanma noktası (oyun ekranı + pencereler). |
 
 ### Geliştirme araçları (`tools/` — oyun çalışırken hiçbiri kullanılmaz)
@@ -1370,6 +1426,10 @@ squishy-merge/
 | `ui_shots.gd` + `ui_shots.tscn` | **Production UI kabuğu çekimleri** (M8.5-10): dört sekme, ayarlar, en kötü durum, oyun ekranı; üç ölçü. `--headless` ile çalışmaz. |
 | `ui_smoke_test.gd` + `ui_smoke_test.tscn` | **Headless UI davranış testi** (26 kontrol): ayar anahtarı, onay diyaloğu, geri tuşu, equip. |
 | `make_pack_icons.gd` | Free Casual GUI SVG ikonlarını beyaz maske PNG'ye türetir. |
+| `audio_test.gd` + `audio_test.tscn` | **Headless ses + titreşim davranış testi** (M8.5-15, 47 kontrol): eşleme, RNG izolasyonu, soğuma/tavan/öncelik, ayar kalıcılığı, haptik politikası. Kaydı kendi yedekler. |
+| `audio_qa.gd` + `audio_qa.tscn` | **Ses/titreşim QA sahnesi** (pencereli): her olay, rarity, güç, titreşim seviyesi, spam/stres düğmeleri; kanal ve atılan çağrı sayaçları. Production navigasyonunda yok. |
+| `audio_probe.gd` | Eşlenmiş her ses dosyasının süre / tepe dBFS / RMS / sessizlik / kırpma ölçümü (AudioEffectCapture, headless). |
+| `make_sfx.gd` | GEÇİCİ sentez SFX üretici (22 dosya, deterministik). Final örnek gelince gereksizleşir. |
 | `contact_audit.py` | **Temas geometrisi denetimi** (M8.5-11): alfa bbox, gövde silueti, collider, dünya boşlukları; `--fit` kalibrasyon tablosu. |
 | `contact_rig.gd` + `contact_rig.tscn` | **Deterministik temas/yığın rig'i**: lineup, pile, wall, large, stress; settle/yükseklik/merge/kaçan/overlap. |
 | `feel_shots.gd` + `feel_shots.tscn` | Game-feel kare dizileri: düşüş, iniş, merge, zincir, tehlike, hedef, tier 8. |
@@ -1413,7 +1473,8 @@ böylece GitHub'da yedeklenmiş oluyor.
 | **Kenney** — Particle Pack | fx parçacıkları (dot, sparkle, burst, ring) | ✅ kullanımda |
 | **Kenney** — UI Pack | yıldızlar | ⚠️ **artık kullanılmıyor** (owner'ın sheet'iyle değiştirildi), dosyalar geri dönüş için duruyor |
 | **Kenney** — Shape Characters | eski placeholder karakterler | ❌ kullanılmıyor |
-| **Kenney** — ses paketleri | 7 SFX | ✅ kullanımda, owner değiştirecek |
+| **Kenney** — ses paketleri | 5 SFX (`kenney_*`) | ✅ kullanımda, owner kulakla onaylayacak / değiştirecek |
+| **Sentez** — `tools/make_sfx.gd` | 22 SFX (`sfx_*.wav`) | ⚠️ GEÇİCİ, kulakla doğrulanmadı — final örnekler bekleniyor (`docs/AUDIO_ASSET_REQUIREMENTS.md`) |
 
 > Lisans notu: Wenrexa paketinde lisans dosyası yok; CC0 bilgisi itch.io
 > ürün sayfasındaki "Asset license" alanından geliyor. Kenney paketlerinde

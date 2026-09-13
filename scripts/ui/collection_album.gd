@@ -341,7 +341,7 @@ func _on_card_tapped(skin_id: StringName) -> void:
 		return
 	if entry.is_locked():
 		_focus(skin_id)
-		AudioManager.play_sfx(&"star_pat", 0.8)
+		AudioManager.play(&"ui_select")
 		return
 	_try_equip(skin_id)
 
@@ -376,7 +376,8 @@ func _on_skin_equipped(skin_id: StringName) -> void:
 		(_entries[id] as SkinEntry).equipped = id == skin_id
 	if _is_new(skin_id):
 		_has_new = false
-	AudioManager.play_sfx(&"star_pat", 1.0)
+	AudioManager.play(&"ui_equip")
+	Haptics.light()
 	_focus(skin_id)
 
 

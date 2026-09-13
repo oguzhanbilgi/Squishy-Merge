@@ -37,6 +37,7 @@ func _ready() -> void:
 	UiMotion.attach_press(_close)
 	_close.pressed.connect(func() -> void:
 		visible = false
+		AudioManager.play(&"ui_modal_close")
 		closed.emit())
 
 
@@ -51,6 +52,8 @@ func show_reward(result: Dictionary) -> void:
 	_note.text = "Serin kırılmıştı, sayaç sıfırlandı." if result["streak_broken"] else ""
 	visible = true
 	UiMotion.modal_open(_modal, _dim)
+	# Neşeli ödül cue'su pencerenin açılış sesi yerine geçiyor.
+	AudioManager.play(&"daily_reward")
 
 
 ## Noktalar BBCode döner — `_streak` bir RichTextLabel.

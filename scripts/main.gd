@@ -64,6 +64,7 @@ func _ready() -> void:
 	# Kayıttaki ses ayarı açılışta uygulanır (AudioManager SaveManager'dan
 	# önce yükleniyor, kendisi okuyamıyor).
 	AudioManager.set_sfx_enabled(SaveManager.sfx_enabled())
+	Haptics.set_enabled(SaveManager.haptics_enabled())
 
 	var home: CanvasLayer = HOME_SCENE.instantiate()
 	home.play_pressed.connect(_on_play_pressed)
@@ -367,6 +368,7 @@ func _on_dough_refill_requested(type: int) -> void:
 		return
 	if not PowerUpEconomy.purchase(type as PowerUp.Type):
 		# Yetersiz Hamur: HİÇBİR state değişmez, pencere açık kalır.
+		AudioManager.play(&"ui_invalid")
 		_refill.show_unavailable("Hamur yetmiyor (%d Hamur'un var)."
 			% SaveManager.dough(), _power_provider_ready())
 		return
@@ -377,7 +379,8 @@ func _on_dough_refill_requested(type: int) -> void:
 ## niyetine dön (hedefli güçlerde hedefleme yeniden açılır — bkz.
 ## GameBoard.exit_refill_pending).
 func _finish_refill(type: PowerUp.Type, message: String) -> void:
-	AudioManager.play_sfx(&"chest_open", 1.1)
+	AudioManager.play(&"ui_purchase")
+	Haptics.medium()
 	_refill.hide_refill()
 	if _board != null and is_instance_valid(_board):
 		_board.exit_refill_pending(true)

@@ -35,7 +35,9 @@ alınacak — şimdi tahmin/vaat yok.
 - Çoklu kavanoz/tema seçeneği (tek sabit tema)
 - IAP, reklam, herhangi bir ödeme entegrasyonu **kurulumu** (tasarımı
   yapıldı, kod YOK — GAME_DESIGN §5.7.3 / §5.7.4 / §11)
-- Haptic feedback (v1.1'e bırakıldı)
+- ~~Haptic feedback (v1.1'e bırakıldı)~~ → **owner kararıyla M8.5-15'te
+  v1'e alındı** (yerleşik `Input.vibrate_handheld`, Ayarlar'da anahtar;
+  native haptik plugin hâlâ non-goal)
 - Leaderboard, bulut kayıt, hesap sistemi, backend/sunucu
 - Otomatik test framework'ü (GUT vb.) — bu ölçekte disproportionate
   overhead; manuel playtest checklist + headless bot kullanılıyor
@@ -145,9 +147,27 @@ alınacak — şimdi tahmin/vaat yok.
     QA: `tools/skin_gallery.gd`, `tools/skin_test.gd` 25/25. **Fizik,
     ekonomi, kayıt, id'ler DEĞİŞMEDİ.** Ayrıntı: PROJECT_STATUS §4.17,
     SKIN_ART_AUDIT.md.
+  - `M8.5-15` ✅ final SFX + titreşim + ses game-feel: merkezi
+    `AudioManager` olay tablosu (36 olay, gain/pitch/jitter/soğuma/kanal
+    tavanı/öncelik/katman), 12 kanal + öncelikli kanal çalma (CRITICAL
+    kesilmez), yerel ses RNG'si (global RNG'ye dokunmuyor — testle), SFX
+    bus'ında HardLimiter, evrensel UI dokunuş ailesi, bırakma/iniş/merge
+    gövde/tier 8/dört güç/ödül rarity'leri/pencereler için olaylar,
+    `Haptics` statik servisi (LIGHT/MEDIUM/STRONG/SPECIAL, 70 ms spam
+    penceresi, editor'de güvenli), Ayarlar → **Titreşim** anahtarı
+    (kayıtta `haptics_enabled`), `tools/audio_test.gd` 47/47,
+    `tools/audio_qa.tscn` dev sahnesi, `tools/audio_probe.gd` tepe ölçümü.
+    **Ses SİSTEMİ production-ready; ÖRNEKLER DEĞİL:** 5 Kenney CC0 + 22
+    sentez (`tools/make_sfx.gd`) GEÇİCİ, kulakla doğrulanmadı — şartname
+    `docs/AUDIO_ASSET_REQUIREMENTS.md`. Android titreşimi cihazda
+    doğrulanmadı (M9). **Fizik, ekonomi, skin, harita, kayıt semantiği
+    DEĞİŞMEDİ** (yalnız `haptics_enabled` alanı eklendi). Ayrıntı:
+    `docs/AUDIO_AUDIT.md`, PROJECT_STATUS §4.18.
 - **Sırada: M9 — Android export.** Ortam hazır (export template'leri, SDK,
   NDK, JDK 17, debug keystore mevcut); eksik olan `export_presets.cfg` ve
-  release/upload keystore.
+  release/upload keystore. Preset'te **VIBRATE izni** açık olmalı
+  (titreşim). Paralel owner işi: `tools/audio_qa.tscn` ile sesleri dinleyip
+  final örnekleri sağlamak.
 - **Sonra: M10 — Play Store submission / kapalı test.**
 
 ## Quality gates
@@ -215,6 +235,10 @@ alınacak — şimdi tahmin/vaat yok.
 - **Oyun ekranı asset'leri TAMAM (M8.5-08):** dört güç ikonu, buton
   durumları, gece zemini, bambu duvar/taban ve güç efektleri bağlandı.
   Oyun ekranında görünür placeholder kalmadı.
+- **Ses örnekleri GEÇİCİ (M8.5-15):** sistem hazır, 22 sentez + 5 Kenney
+  örnek kulakla doğrulanmadı; final örnekler owner'dan bekleniyor
+  (`docs/AUDIO_ASSET_REQUIREMENTS.md`). Titreşim Android'de cihazda
+  doğrulanmadı.
 - **Skin sanatı TAMAM (M8.5-14):** 20 final önizleme bağlı, gameplay
   render production. Kalan tek sanat borcu opsiyonel: Epic/Legendary
   önizlemelerindeki özel aksesuar/ifadeler gameplay tier'larında yok

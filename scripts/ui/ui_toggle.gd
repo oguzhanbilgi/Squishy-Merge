@@ -33,7 +33,8 @@ func _ready() -> void:
 	_track_off = get_theme_stylebox("panel", &"ToggleOff")
 	_knob = 1.0 if button_pressed else 0.0
 	toggled.connect(_on_toggled)
-	UiMotion.attach_press(self)
+	# Anahtarin kendi sesi var (ayarlar paneli); evrensel tik'i alma.
+	UiMotion.attach_press(self, false)
 	queue_redraw()
 
 

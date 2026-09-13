@@ -130,6 +130,7 @@ func _make_button(type: PowerUp.Type) -> Button:
 	_icons[int(type)] = icon
 	_labels[int(type)] = label
 	button.pressed.connect(func() -> void: power_pressed.emit(int(type)))
+	UiMotion.attach_tap(button)
 	return button
 
 

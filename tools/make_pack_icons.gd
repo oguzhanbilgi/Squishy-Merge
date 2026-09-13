@@ -44,6 +44,9 @@ const ICONS: Dictionary = {
 	"trophy": "icon_trophy_white.svg.svg",
 	"sparkle": "icon_sparkle_white.svg.svg",
 	"gift": "icon_gift_white.svg.svg",
+	# M8.5-15: Ayarlar "Titreşim" satırı. Pakette titreşim ikonu yok; zil
+	# (bell) mobil ayarlarda titreşim/bildirim için yerleşik bir metafor.
+	"vibration": "icon_bell_white.svg.svg",
 }
 
 

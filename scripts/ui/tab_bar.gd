@@ -56,7 +56,8 @@ func _ready() -> void:
 		button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		button.custom_minimum_size = Vector2(0, BAR_HEIGHT - 16.0)
 		button.pressed.connect(_on_tab_pressed.bind(i))
-		UiMotion.attach_press(button)
+		# Sekmenin kendi (daha hafif) sesi set_active'de; evrensel tik yok.
+		UiMotion.attach_press(button, false)
 		_row.add_child(button)
 		_buttons.append(button)
 
@@ -120,6 +121,7 @@ func set_active(tab: int) -> void:
 	if changed:
 		# İkon pop + pill'in belirmesi: seçim geçişi hissedilsin.
 		UiMotion.pop(_icons[tab], 1.18)
+		AudioManager.play(&"ui_tab")
 
 
 static func _pill_style() -> StyleBoxFlat:

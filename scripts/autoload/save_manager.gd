@@ -44,6 +44,9 @@ const DEFAULT_DATA: Dictionary = {
 	## Ayarlar (M8.5-10). Ses efektleri açık mı? Eski kayıtlarda anahtar yok,
 	## load_game DEFAULT_DATA üzerine yazdığı için otomatik true kalıyor.
 	"sfx_enabled": true,
+	## Titreşim (M8.5-15). Mobilde varsayılan AÇIK; eski kayıtlarda anahtar
+	## yok, DEFAULT_DATA üzerine yazıldığı için otomatik true kalıyor.
+	"haptics_enabled": true,
 }
 
 
@@ -413,4 +416,15 @@ func sfx_enabled() -> bool:
 func set_sfx_enabled(enabled: bool) -> void:
 	data["sfx_enabled"] = enabled
 	AudioManager.set_sfx_enabled(enabled)
+	save_game()
+
+
+func haptics_enabled() -> bool:
+	return bool(data.get("haptics_enabled", true))
+
+
+## Kaydeder ve Haptics'e uygular — ayarın tek yazma noktası (M8.5-15).
+func set_haptics_enabled(enabled: bool) -> void:
+	data["haptics_enabled"] = enabled
+	Haptics.set_enabled(enabled)
 	save_game()

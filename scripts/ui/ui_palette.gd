@@ -71,6 +71,7 @@ const ICON_CHECK: Texture2D = preload("res://assets/visual/ui/icons/check.png")
 const ICON_TROPHY: Texture2D = preload("res://assets/visual/ui/icons/trophy.png")
 const ICON_SPARKLE: Texture2D = preload("res://assets/visual/ui/icons/sparkle.png")
 const ICON_GIFT: Texture2D = preload("res://assets/visual/ui/icons/gift.png")
+const ICON_VIBRATION: Texture2D = preload("res://assets/visual/ui/icons/vibration.png")
 
 
 ## Rarity kenar rengi: kartin ince pastel cizgisi. SkinData'nin doygun

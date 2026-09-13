@@ -345,11 +345,14 @@ func _show_confirm(price: int) -> void:
 		UiIcons.DOUGH, "%d Hamur" % price, 30)
 	_confirm.visible = true
 	UiMotion.modal_open(_confirm_modal, _confirm_dim)
+	AudioManager.play(&"ui_modal_open")
 
 
 func _close_confirm() -> void:
 	_pending_skin = null
 	_pending_power = -1
+	if _confirm.visible:
+		AudioManager.play(&"ui_modal_close")
 	_confirm.visible = false
 
 
@@ -399,20 +402,24 @@ func _on_confirm_yes() -> void:
 
 func _buy_power(type: PowerUp.Type) -> bool:
 	if PowerUpEconomy.purchase(type):
-		AudioManager.play_sfx(&"chest_open", 1.1)
+		AudioManager.play(&"ui_purchase")
+		Haptics.medium()
 		_show_toast("%s ×1 alındı · Stok ×%d" % [
 			PowerUp.display_name(type), SaveManager.powerup_count(type)])
 		return true
 	# Araya başka bir harcama girdiyse (teorik) sessizce düşmesin.
+	AudioManager.play(&"ui_invalid")
 	_show_toast("Hamur yetmedi.")
 	return false
 
 
 func _buy_skin(skin: SkinData) -> bool:
 	if Shop.purchase(skin):
-		AudioManager.play_sfx(&"chest_open", 1.0)
+		AudioManager.play(&"ui_purchase")
+		Haptics.medium()
 		_show_toast("%s alındı!" % skin.display_name)
 		return true
+	AudioManager.play(&"ui_invalid")
 	_show_toast("Hamur yetmedi.")
 	return false
 

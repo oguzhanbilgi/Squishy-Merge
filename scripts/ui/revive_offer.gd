@@ -30,6 +30,7 @@ func _ready() -> void:
 	# scripts/ui/candy_button.gd başlığı.
 	for button: Button in [_continue, _decline]:
 		CandyButton.style_cta(button)
+		UiMotion.attach_tap(button)
 	# Birincil CTA iki satirli: eylem Baloo, aciklama Nunito. "Bitir" ikincil
 	# ve tek satir — tema yazisiyla birakiliyor.
 	CandyButton.set_cta_text(_continue, "DEVAM ET", "Reklam izle")

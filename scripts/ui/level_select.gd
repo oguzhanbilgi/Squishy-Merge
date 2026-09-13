@@ -417,6 +417,7 @@ func _play_unlock(level_number: int) -> void:
 		.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 	pop.tween_property(target, "scale", Vector2.ONE, UNLOCK_POP_TIME * 0.45)
 	pop.tween_callback(_spawn_unlock_sparkles.bind(target))
+	pop.tween_callback(AudioManager.play.bind(&"level_unlock"))
 
 
 func _spawn_unlock_sparkles(target: Control) -> void:

@@ -49,6 +49,7 @@ func _ready() -> void:
 	# scripts/ui/candy_button.gd başlığı.
 	for button: Button in [_ad, _dough, _close]:
 		CandyButton.style_cta(button)
+		UiMotion.attach_tap(button)
 	_ad.pressed.connect(_on_ad_pressed)
 	_dough.pressed.connect(_on_dough_pressed)
 	_close.pressed.connect(_on_close_pressed)
@@ -73,6 +74,7 @@ func show_refill(type: PowerUp.Type, provider_ready: bool) -> void:
 	_note.text = ""
 	visible = true
 	refresh(provider_ready)
+	AudioManager.play(&"ui_modal_open")
 
 
 ## Butonların açık/kapalı durumunu ve kota satırını tazeler. Satın alma
@@ -128,6 +130,8 @@ func show_unavailable(message: String, provider_ready: bool) -> void:
 
 func hide_refill() -> void:
 	_type = -1
+	if visible:
+		AudioManager.play(&"ui_modal_close")
 	visible = false
 
 
