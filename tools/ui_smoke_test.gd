@@ -98,6 +98,39 @@ func _ready() -> void:
 	album._try_equip(&"")
 	_c("varsayilan geri", SaveManager.equipped_skin_id() == &"")
 	_c("eski kart rozeti gizlendi", card.find_child("State", true, false).modulate.a < 0.1)
+	# Harita (M8.5-12): patika dugumleri, durumlar, kapi, secim sinyali
+	main._show_tab(1)
+	await get_tree().process_frame
+	var map_screen: CanvasLayer = main._screens[1]
+	var saved_high: Variant = SaveManager.data.get("highest_level_unlocked", 1)
+	var saved_stars: Variant = (SaveManager.data.get("level_stars", {}) as Dictionary).duplicate()
+	SaveManager.data["highest_level_unlocked"] = 4
+	SaveManager.data["level_stars"] = {"1": 2, "2": 3, "3": 3}
+	map_screen.refresh()
+	await get_tree().process_frame
+	_c("harita 10 dugum", map_screen._nodes.size() == 10)
+	_c("level 1-3 tamamlandi (acik)", not map_screen._nodes[0].disabled and not map_screen._nodes[2].disabled)
+	_c("level 4 siradaki (acik, hale bagli)", not map_screen._nodes[3].disabled and map_screen._halo.get_meta("node") == map_screen._nodes[3])
+	_c("level 5-10 kilitli", map_screen._nodes[4].disabled and map_screen._nodes[9].disabled)
+	_c("sonsuz kapisi kilitli", map_screen._portal.disabled)
+	_c("dugumler grid degil (x farkli)", map_screen._nodes[0].position.x != map_screen._nodes[1].position.x)
+	var chosen: Array = []
+	map_screen.level_chosen.connect(func(l: LevelData) -> void: chosen.append(l.level_number))
+	map_screen._nodes[3].pressed.emit()
+	_c("dugum basisi level_chosen(4) yaydi", chosen == [4])
+	# Acilis: level 4 bitti -> 5 acildi, animasyon kaydi degistirmez
+	SaveManager.data["highest_level_unlocked"] = 5
+	SaveManager.data["level_stars"] = {"1": 2, "2": 3, "3": 3, "4": 3}
+	map_screen.refresh()
+	await get_tree().process_frame
+	_c("acilis sonrasi level 5 siradaki", map_screen._halo.get_meta("node") == map_screen._nodes[4])
+	SaveManager.data["highest_level_unlocked"] = 11
+	map_screen.refresh()
+	await get_tree().process_frame
+	_c("sonsuz kapisi acik", not map_screen._portal.disabled)
+	SaveManager.data["highest_level_unlocked"] = saved_high
+	SaveManager.data["level_stars"] = saved_stars
+	map_screen.refresh()
 	# Home refresh & hint
 	main._show_tab(0); await get_tree().process_frame
 	_c("home hint dolu", not main._screens[0]._play_hint.text.is_empty())

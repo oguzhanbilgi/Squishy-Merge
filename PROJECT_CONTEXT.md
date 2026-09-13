@@ -118,6 +118,13 @@ alınacak — şimdi tahmin/vaat yok.
     sarsıntısız kamera, pembe rim-glow tehlike, hedef kutlaması. Kamera
     sarsıntısı global RNG'den ayrıldı (§7 #14 kapandı). Ayrıntı:
     PROJECT_STATUS §4.14.
+  - `M8.5-12` ✅ level haritası patika yerleşimi: düz 5×2 grid kalktı, on
+    düğüm harita art'ındaki yolu takip ediyor (aşağıdan yukarı zig-zag),
+    programatik candy patika (tamamlanmış sıcak / gelecek soluk), dört
+    düğüm durumu (kilitli / açık / sıradaki altın hale / tamamlanmış
+    yıldızlı), açılış animasyonu (~0.7 s), Sonsuz Mod kalede altın kapı.
+    **Level verisi, hedefler, yıldızlar, unlock kuralı DEĞİŞMEDİ.**
+    Ayrıntı: PROJECT_STATUS §4.15.
 - **Sırada: M9 — Android export.** Ortam hazır (export template'leri, SDK,
   NDK, JDK 17, debug keystore mevcut); eksik olan `export_presets.cfg` ve
   release/upload keystore.
@@ -177,8 +184,8 @@ alınacak — şimdi tahmin/vaat yok.
 - **Tipografi TAMAM (M8.5-09), production UI kabuğu TAMAM (M8.5-10):**
   bütün production ekranlar aynı font ailesinde ve aynı tasarım
   sisteminde (zemin/yüzey/kart/CTA/seçili/pasif katmanları, candy modal,
-  ikonlu sekme çubuğu, ayarlar). Kalan görsel borç: skin renkleri
-  (aşağıda) ve haritanın düz grid düğümleri.
+  ikonlu sekme çubuğu, ayarlar). Harita patikası M8.5-12'de geldi. Kalan
+  görsel borç: skin renkleri (aşağıda).
 - **Unity Asset Store paketi repoda DEĞİL:** `_visual_source/
   unity_free_casual_gui/` owner'ın makinesinde; EULA ham paketin yeniden
   dağıtımına izin vermeyebilir. Türetilmiş 14 ikon `assets/visual/ui/icons/`

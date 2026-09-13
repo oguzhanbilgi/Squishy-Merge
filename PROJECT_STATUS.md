@@ -1119,6 +1119,75 @@ metrikleri BEFORE/AFTER birebir aynı. Sanity: headless bot L10 n=40 (aşağıda
 DEVLOG'da sayılar) — kamera RNG değişimi drop sırasını farklı örnekliyor,
 oran gürültü bandında.
 
+### 4.15 Level haritası: patika yerleşimi (M8.5-12)
+
+Düz 5×2 grid kalktı; on düğüm owner'ın harita art'ındaki pembe kaldırım
+taşı yolun orta hattını takip ediyor. **Level verisi, hedefler, yıldızlar,
+unlock kuralı (`SaveManager.highest_level_unlocked`) DEĞİŞMEDİ** — yalnızca
+yerleşim ve sunum (`scripts/ui/level_select.gd`, `scripts/ui/map_trail.gd`).
+
+#### Yerleşim (doku uzayı, 720×1280 zemin)
+
+| level | (x, y) | not |
+|---|---|---|
+| 1 | 420, 1120 | yolun alt geniş bölümü, sağ |
+| 2 | 300, 1030 | sol |
+| 3 | 440, 940 | sağ |
+| 4 | 310, 850 | sol |
+| 5 | 300, 740 | yolun sola kıvrımı (sol köprünün sağında) |
+| 6 | 395, 645 | |
+| 7 | 470, 555 | yolun sağa dönüşü |
+| 8 | 410, 465 | |
+| 9 | 475, 385 | lamba direğinin solunda |
+| 10 | 440, 296 | kapı kemeri |
+| Sonsuz | 445, 150 | kale (patikanın sonu) |
+
+Zemin `KEEP_ASPECT_COVERED` çizildiği için uzun ekranda büyüyüp kırpılıyor;
+düğümler aynı dönüşümle (`_map_to_screen`: ölçek = max(vw/720, vh/1280),
+merkezleme) taşınıyor — 720×1560'ta patika hizası korunuyor, kesilme yok.
+Düğüm 88 px (96'da on düğüm + kapı 1000 px'lik yola sığmıyordu), kapı
+116 px. Dekoratif karakterler (sol alt sarı, sağ alt pembe), köprüler ve
+başlık satırıyla çakışma yok.
+
+#### Düğüm durumları
+
+| durum | görünüm |
+|---|---|
+| LOCKED | tema pasif (lavanta), alfa 0.78, kilit rozeti, **yıldız sırası yok** |
+| AVAILABLE | candy cyan + ince krem kenar (teorik — unlock sıralı olduğu için pratikte NEXT ile aynı düğüm) |
+| NEXT | altın 3 px halka + arkasında nabız atan altın hale (`fx_dot`, 210 px, alfa 0.7↔1.0) + 1.05 ölçek nabzı |
+| COMPLETED | candy cyan + 1/2/3 yıldız |
+
+#### Patika (`MapTrail`)
+
+Programatik, asset yok: düğüm merkezlerinden Catmull-Rom eğrisi, 6 px
+krem çizgi + 10 px koyu gölge çizgisi, 26 px aralıklı noktalar (düğüm
+altında kalanlar atlanır). Tamamlanmış segment sıcak krem-altın (alfa
+0.95), gelecek segment beyaz alfa 0.32. `highest = H` → H−1 segment sıcak.
+
+#### Açılış animasyonu
+
+Bellek içi `_last_unlocked` (kayda yazılmaz): tazelemede `highest`
+arttıysa yeni segment 0→1 yanar (0.4 s), yeni düğüm 0.4→1.15→1.0 pop
+(0.32 s, 0.24 s gecikmeli), 12 parıltı. Toplam ~0.7 s, kesilebilir.
+Sonsuz Mod açılışında aynı animasyon kapıya uygulanır.
+
+#### Sonsuz Mod kapısı
+
+Normal düğüm değil: kalenin önünde 116 px yuvarlak altın kapı (kupa +
+"Sonsuz" içeride, dış altın parıltı gölgesi), altında tek cip — açıksa
+"Rekor N" (kupa), kilitliyse "Level 10'u bitir" (kilit). Unlock kuralı
+`is_endless_unlocked` aynı. Rekor/seri cipleri artık alt satırda değil:
+seri + Hamur başlıkta, rekor kapının altında.
+
+#### QA
+
+`tools/map_shots.gd`: owner kaydı (10/10), orta ilerleme (1-3 tamam,
+sıradaki 4), sıfır kayıt, açılış animasyonu ortası/sonu — 720×1280,
+720×1560, 540×960. `ui_smoke_test` +9 kontrol (35/35): düğüm sayısı,
+durumlar, kapı kilidi, grid olmadığı, `level_chosen`, açılış sonrası
+sıradaki, sonsuz açılışı.
+
 ## 5. Dosya/klasör yapısı ve script envanteri
 
 ```
@@ -1175,7 +1244,8 @@ squishy-merge/
 | `main.gd` | Sekmeler ↔ oyun ↔ sonuç akışını bağlar. Kurallar burada DEĞİL. |
 | `ui/tab_bar.gd` | Alt sekme çubuğu (4 sekme). |
 | `ui/home_screen.gd` | Ana sayfa: logo, streak, Hamur, "Oyna". |
-| `ui/level_select.gd` | Harita: level grid + kilit rozetleri + sonsuz mod. |
+| `ui/level_select.gd` | Harita: patika üstünde 10 düğüm + durumlar + açılış animasyonu + Sonsuz Mod kapısı (M8.5-12). |
+| `ui/map_trail.gd` | Düğümleri bağlayan programatik candy patika (Catmull-Rom + noktalar, tamamlanmış/gelecek). |
 | `ui/collection_album.gd` | Koleksiyon albümü. |
 | `ui/shop_screen.gd` | Mağaza listesi + onay diyaloğu + toast. |
 | `ui/round_result.gd` | Round sonu: yıldız reveal → sandık reveal. |
@@ -1200,6 +1270,7 @@ squishy-merge/
 | `contact_audit.py` | **Temas geometrisi denetimi** (M8.5-11): alfa bbox, gövde silueti, collider, dünya boşlukları; `--fit` kalibrasyon tablosu. |
 | `contact_rig.gd` + `contact_rig.tscn` | **Deterministik temas/yığın rig'i**: lineup, pile, wall, large, stress; settle/yükseklik/merge/kaçan/overlap. |
 | `feel_shots.gd` + `feel_shots.tscn` | Game-feel kare dizileri: düşüş, iniş, merge, zincir, tehlike, hedef, tier 8. |
+| `map_shots.gd` + `map_shots.tscn` | Harita QA çekimleri: owner / orta / sıfır kayıt (bellekte), açılış animasyonu. |
 | `screenshot_runner.gd` + `screenshot_test.tscn` | Ekran görüntüsü üretir (merge, combo, skor pop, tutorial, danger, sandık, 4 sekme, kilitli harita). İkinci argümanla pencere ölçüsü verilebilir (`540x1170` → dar/uzun telefon testi). **`--headless` ile çalışmaz.** |
 | `make_owner_sprites.gd` | Owner'ın ChatGPT görsellerini hazırlar: kırpma, küçültme, adaptive icon düzeltmeleri, `icon_sheet.png` parçalama. |
 | `make_ui_sprites.gd` | Wenrexa UI paketinden tema sprite'ları. |
@@ -1269,7 +1340,7 @@ verilmiyor:
 |---|---|---|
 | 1 | **Geç oyun Hamur enflasyonu** (§4.8). M8.5'te mağaza çalışır hâle geldi (medyan oyuncu koleksiyonun ~yarısını satın alıyor) ama koleksiyon hâlâ 6-17 günde doluyor ve sonrasında Hamur'un alıcısı kalmıyor. | 🔴 **Owner kararı bekliyor.** Fiyat/gelir değiştirilmedi. |
 | 2 | **L8 ve L10 bitirilince her zaman 3★** veriyor (§4.7). | 🟡 Kasıtlı, kabul edildi. |
-| 3 | **Görsel yol haritası yok.** Harita zemininde çizili bir patika var ama **level düğümleri onu takip etmiyor** — düğümler hâlâ düz bir grid, zemin dekoratif. GAME_DESIGN §5.5'teki "yol üzerinde sıralı düğümler + unlock animasyonu" yapılmadı. | 🟡 Bilinçli ertelendi. |
+| 3 | Görsel yol haritası. | 🟢 **M8.5-12'de yapıldı** (§4.15): düğümler patikayı takip ediyor, candy patika, açılış animasyonu, Sonsuz Mod kapısı. |
 | 4 | Açılmış skin'ler hâlâ placeholder (renkli daire). Skin başına ayrı görsel owner'dan gelmedi; sadece kilitli silüet gerçek asset. | 🟡 Asset bekliyor. |
 | 5 | Sandık görseli her rarity'de aynı; Common-Legendary farkı yalnızca efekt katmanlarında. | 🟢 Owner'a soruldu, şimdilik böyle kalsın denmedi/denildi — düşük öncelik. |
 

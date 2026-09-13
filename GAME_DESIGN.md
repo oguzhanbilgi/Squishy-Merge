@@ -391,8 +391,10 @@ tier'lara uygulanır.
 ### 5.5 Level haritası
 - Level'lar bir yol üzerinde sıralı düğümler; kilitli level bulanık/gri,
   açılınca kısa bir "unlock" animasyonu
-- **Görsel yol haritası henüz YOK** — "Harita" sekmesi şimdilik mevcut
-  grid'i gösteriyor, ayrı bir art entegrasyon turunda gelecek.
+- **Görsel yol haritası M8.5-12'de GELDİ:** düğümler owner'ın harita
+  art'ındaki patikayı takip ediyor, programatik candy patika, kısa açılış
+  animasyonu, Sonsuz Mod patikanın sonundaki kalede ayrı kapı. Kurallar
+  (unlock/yıldız) değişmedi — bkz. PROJECT_STATUS §4.15.
 
 ### 5.6 Mağaza (M8'de eklendi)
 
