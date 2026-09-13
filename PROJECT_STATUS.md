@@ -1188,6 +1188,65 @@ sıradaki 4), sıfır kayıt, açılış animasyonu ortası/sonu — 720×1280,
 durumlar, kapı kilidi, grid olmadığı, `level_chosen`, açılış sonrası
 sıradaki, sonsuz açılışı.
 
+### 4.16 Skin sistemi temeli + koleksiyon vitrini (M8.5-13)
+
+Amaç: "gerçek ürün gibi dursun" — sanat gelmeden önce **sistem** ve
+**koleksiyon hissi** tamam olsun. **Gameplay, ekonomi (fiyatlar 50/150/
+400/900), sandık oranları, kayıt formatı (`unlocked_skins` + `equipped_skin`,
+boş string = varsayılan) DEĞİŞMEDİ.**
+
+- **Veri modeli.** `SkinData` (katalog: id, ad, rarity, tint, **yeni**
+  `preview_texture` — boşsa önizleme orijinal dumpling + SkinVisual'dan
+  türetilir; owner'ın görseli gelince yalnız bu alan dolar) + **yeni
+  `SkinEntry`** (oyuncuya göre durum: price / owned / equipped / locked,
+  `SkinEntry.all(with_default)`, `find`, `equipped_entry`, `owned_count`).
+  Koleksiyon, mağaza, ana sayfa ve sonuç ekranı skin durumunu artık tek
+  kaynaktan okuyor — "sahip değil ama takılı" yapısal olarak imkânsız.
+- **Sinyaller.** `SaveManager.skin_granted(id)` / `skin_equipped(id)`;
+  `grant_skin`, `purchase_skin_with_dough`, `equip_skin`,
+  `clear_equipped_skin` yayıyor. Koleksiyon abone: görünürken anında,
+  görünmezken (mağazadan satın alma) bir sonraki açılışta yeni skin'i
+  vitrine alıyor ("YENİ" + "Tak"). Gameplay abone değil — parça skin'ini
+  doğarken okuyor, round içinde equip mümkün değil.
+- **Önizleme.** `SkinSwatch` yeniden yazıldı: renkli daire placeholder'ı
+  kalktı; sahip olunan skin **gameplay'deki materyalin aynısıyla**
+  (`SkinVisual.apply` artık `CanvasItem` alıyor — Sprite2D ve TextureRect)
+  tier-3 dumpling'i çiziyor, arkada rarity renginde radyal parıltı
+  (GradientTexture2D, rarity başına önbellek); kilitli: silüet + kilit
+  rozeti + soluk parıltı; varsayılan: nötr.
+- **Koleksiyon ekranı.** Vitrin (150 px önizleme + ad + rarity pill +
+  TAKILI/KİLİTLİ/YENİ pill + bağlam satırı + tek aksiyon: "Tak" candy CTA
+  ya da kilitliyse "Mağazaya Git" ikincil buton → `shop_requested` →
+  main.gd Mağaza sekmesi), ince albüm ilerleme şeridi, grid. Kartlar:
+  sahip olunan plum + rarity kenar (Legendary altın 3 px), kilitli koyu +
+  ad soluk + **fiyat bandı** (oyuncu neye ne kadar uzak olduğunu görsün),
+  takılı nane + rozet, vitrindeki kilitli kart beyaz kenar. **Karar:**
+  kilitli kartta ad artık "???" değil soluk ad — mağaza zaten adı
+  gösteriyordu, iki ekran çelişiyordu; owner isterse tek satırlık geri alım.
+- **Mağaza.** Skin satırları `SkinEntry`'den: sahip olunan "Sahipsin",
+  takılıysa "Sahipsin · Takılı" + nane kenar; önizleme koleksiyonla aynı
+  bileşen (72 px). Satın alma transaction'ı, onay diyaloğu, güç bölümü
+  DEĞİŞMEDİ.
+- **Dürüst sınır.** 20 skin'in tint verisi hâlâ placeholder
+  (SKIN_ART_AUDIT.md): pastel dumpling üstünde luminans koruyan hue
+  kaydırması **tüm rarity'lerde neredeyse görünmez** — koleksiyon
+  önizlemeleri artık oyunu doğru yansıttığı için bu gerçek olarak ortaya
+  çıktı (eski daireler bunu gizliyordu). Bilerek `STRENGTH` / tint
+  DEĞİŞTİRİLMEDİ (owner kararı bekliyor, audit seçenek A/D). Sistem tarafı
+  bu turla tamam; görsel ayrım tamamen veri/sanat işi.
+- **QA.** `ui_smoke_test` +32 kontrol (67/67): fresh save (bozuk
+  `equipped_skin` → güvenli fallback, 0/20, 21 kart, vitrin Varsayılan),
+  kilitli dokunuş → vitrin/fiyat/"Mağazaya Git" → mağaza sekmesi, mağazadan
+  satın alma (tek transaction, Hamur −150, takılı DEĞİL), koleksiyona dönüş
+  → "Tak" → kayıt/kart/vitrin/mağaza "Takılı", **gameplay parçası skin
+  materyalini taşıyor** (shader param = skin.tint), `load_game()` ile
+  restore. `ui_shots` +1 kare (kilitli vitrin). Regresyon: economy
+  100/100, refill 119/119, revive 103/103, bot L5 n=3 sanity. Owner kaydı
+  byte-identical geri yüklendi (c46b9c80...).
+- Yeni class_name'ler için `.godot/global_script_class_cache.cfg`
+  yenilenmesi gerekti (`godot --headless --editor --quit`); editor
+  açılmadan headless koşan test bunu kendisi yapmıyor.
+
 ## 5. Dosya/klasör yapısı ve script envanteri
 
 ```
@@ -1230,7 +1289,7 @@ squishy-merge/
 | `game/dumpling_visual.gd` | Görsel katman: tier sprite'ı, ±20° eğim, squash-stretch. |
 | `game/tier_config.gd` | 8 tier'ın veri tablosu: yarıçap, isim, renk, merge puanı, yıldız eşikleri. |
 | `game/level_data.gd` / `level_library.gd` | `.tres` level verisi + klasör tarayıcı. |
-| `game/skin_data.gd` / `skin_library.gd` | Skin verisi + klasör tarayıcı. |
+| `game/skin_data.gd` / `skin_library.gd` / `skin_entry.gd` | Skin kataloğu + klasör tarayıcı + oyuncuya göre durum (owned/equipped/price) view model'i (M8.5-13). |
 | `game/drop_bag.gd` | Bag randomizer (§4.4). |
 | `game/chest_system.gd` / `chest_reward.gd` | Sandık kurası ve ödül nesnesi. |
 | `game/shop.gd` | Fiyatlar ve satın alma. **Fiyat tune edilecek tek yer.** |
@@ -1250,7 +1309,7 @@ squishy-merge/
 | `ui/shop_screen.gd` | Mağaza listesi + onay diyaloğu + toast. |
 | `ui/round_result.gd` | Round sonu: yıldız reveal → sandık reveal. |
 | `ui/reward_gem.gd` | Sandık ödül görseli: kapalı → açılış → rarity katmanları. |
-| `ui/skin_swatch.gd` | Skin kartı görseli (açık: renkli daire, kilitli: silüet + kilit). |
+| `ui/skin_swatch.gd` | Skin önizlemesi (M8.5-13): sahip olunan = gameplay materyaliyle dumpling + rarity parıltısı, kilitli = silüet + kilit, varsayılan = nötr. |
 | `ui/ui_icons.gd` | HUD ikonlarının tek tanımı, BBCode `[img]` üretir. |
 | `ui/ui_type.gd` | Tipografi rol adları (M8.5-09). |
 | `ui/ui_palette.gd` | Tasarım sistemi: renkler, katmanlar, cip/ikon buton fabrikaları (M8.5-10). |

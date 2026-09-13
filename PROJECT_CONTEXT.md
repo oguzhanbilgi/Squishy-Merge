@@ -125,6 +125,16 @@ alınacak — şimdi tahmin/vaat yok.
     yıldızlı), açılış animasyonu (~0.7 s), Sonsuz Mod kalede altın kapı.
     **Level verisi, hedefler, yıldızlar, unlock kuralı DEĞİŞMEDİ.**
     Ayrıntı: PROJECT_STATUS §4.15.
+  - `M8.5-13` ✅ skin sistemi temeli + koleksiyon vitrini: `SkinEntry`
+    view model (owned/equipped/locked/price tek kaynak), `SaveManager`
+    `skin_granted`/`skin_equipped` sinyalleri, `SkinData.preview_texture`
+    (sanat için hazır kanca), önizleme artık gameplay materyaliyle gerçek
+    dumpling (renkli daire placeholder'ı kalktı), koleksiyonda vitrin
+    (büyük önizleme + Tak / Mağazaya Git), rarity parıltılı kartlar,
+    kilitli kartta fiyat, mağazada "Sahipsin · Takılı". **Ekonomi, kayıt
+    formatı, sandık, gameplay DEĞİŞMEDİ.** Tint verisi hâlâ placeholder ve
+    önizlemede skinler birbirinden ayırt edilmiyor — owner kararı
+    (SKIN_ART_AUDIT). Ayrıntı: PROJECT_STATUS §4.16.
 - **Sırada: M9 — Android export.** Ortam hazır (export template'leri, SDK,
   NDK, JDK 17, debug keystore mevcut); eksik olan `export_presets.cfg` ve
   release/upload keystore.
@@ -195,8 +205,12 @@ alınacak — şimdi tahmin/vaat yok.
   Oyun ekranında görünür placeholder kalmadı. Geriye kalan tek görsel
   borç skin renkleri (aşağıda) — o oyun ekranının değil koleksiyonun işi.
 - **Skin sanatı owner kararı bekliyor:** 20 skin'in renkleri prosedürel
-  üretilmiş ve isimleriyle uyuşmuyor (18/20 uyumsuz). Equip sistemi hazır,
-  yalnızca veri düzeltmesi gerekiyor. Seçenekler: `SKIN_ART_AUDIT.md`.
+  üretilmiş ve isimleriyle uyuşmuyor (18/20 uyumsuz). Equip sistemi,
+  koleksiyon vitrini ve `preview_texture` kancası hazır (M8.5-13); yalnızca
+  veri/sanat gerekiyor. Mevcut tint + `SkinVisual.STRENGTH 0.45` pastel
+  dumpling üstünde **hiçbir rarity'de** okunmuyor — koleksiyon önizlemesi
+  artık oyunu birebir yansıttığı için bu görünür oldu. Seçenekler:
+  `SKIN_ART_AUDIT.md` (kısa vade A: tint'leri isme göre düzelt + STRENGTH).
 
 ## Next action
 M9: Android export preset'i kur (`exclude_filter` → `tools/*`,

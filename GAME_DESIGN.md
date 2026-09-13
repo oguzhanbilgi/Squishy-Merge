@@ -381,6 +381,14 @@ tier'lara uygulanır.
 > (`scripts/game/skin_visual.gd`): sanat turu geldiğinde kayıt formatı,
 > equip akışı ve oyun kodu değişmeden yalnızca o dosya güncellenecek.
 > **"Skin sistemi tamamlandı" DENMEZ** — işlevsel altyapı tamam, sanat değil.
+>
+> **M8.5-13 (ekran, kural değişmedi):** albümün üstünde bir **vitrin** var:
+> takılı skin'in (ya da dokunulan kilitli kartın) büyük önizlemesi, ad,
+> rarity, durum ve tek aksiyon ("Tak" / kilitliyse "Mağazaya Git").
+> Kilitli kartlar silüet + kilit + **fiyat** gösteriyor; ad soluk ama
+> okunur (mağazada zaten görünüyordu). Sahip olunan karta dokunmak yine
+> doğrudan takıyor. Önizleme oyundaki render'la aynı materyali kullanıyor;
+> skin başına hazır görsel için `SkinData.preview_texture` alanı var.
 
 ### 5.4 Günlük döngü
 - Günlük giriş ödülü (küçük, sabit) + ardışık gün sayacı (streak)

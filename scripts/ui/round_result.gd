@@ -305,4 +305,4 @@ func _reveal_chests(sequence: int, rewards: Array[ChestReward]) -> void:
 func _refresh_dough() -> void:
 	_dough.text = "[center]%s   ·   Koleksiyon: %d/%d[/center]" % [
 		UiIcons.labelled(UiIcons.DOUGH, "Hamur: %d" % SaveManager.dough()),
-		SaveManager.owned_skins().size(), SkinLibrary.total_count()]
+		SkinEntry.owned_count(), SkinLibrary.total_count()]

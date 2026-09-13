@@ -1,7 +1,20 @@
 class_name SkinData
 extends Resource
-## Kozmetik dumpling skin'i (GAME_DESIGN.md §5.2). Placeholder görsel: dumpling
-## rengini `tint`e kaydırır. Gerçek skin görselleri M7'de owner'dan gelecek.
+## Kozmetik dumpling skin'inin KATALOG tanımı (GAME_DESIGN.md §5.2):
+## kimlik, ad, rarity ve görsel referansları. Oyuncuya özgü durum (sahip mi,
+## takılı mı, fiyat) burada DEĞİL — o bilgi `SkinEntry` ile birleştiriliyor.
+##
+## Görsel alanlar:
+##   tint             — placeholder renk kaydırması (SkinVisual, hue shift).
+##                      Sanat gelene kadar hem oyunda hem önizlemede bu kullanılır.
+##   preview_texture  — koleksiyon/mağaza önizlemesi için hazır görsel.
+##                      BOŞSA önizleme orijinal dumpling + SkinVisual ile
+##                      türetilir (yani oyunda ne görünüyorsa o). Owner'ın
+##                      skin başına önizleme görseli geldiğinde yalnızca bu
+##                      alan doldurulur; kod değişmez.
+##
+## ⚠️ STATUS: functional equip complete / final skin art pending.
+## 20 skin'in `tint` değerleri prosedürel placeholder (bkz. SKIN_ART_AUDIT.md).
 
 enum Rarity { COMMON, RARE, EPIC, LEGENDARY }
 
@@ -9,6 +22,8 @@ enum Rarity { COMMON, RARE, EPIC, LEGENDARY }
 @export var display_name: String = ""
 @export var rarity: Rarity = Rarity.COMMON
 @export var tint: Color = Color.WHITE
+## Opsiyonel hazır önizleme görseli. null = orijinal dumpling + tint.
+@export var preview_texture: Texture2D = null
 
 
 static func rarity_name(value: Rarity) -> String:

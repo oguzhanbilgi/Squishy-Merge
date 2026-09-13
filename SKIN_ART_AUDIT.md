@@ -15,7 +15,7 @@ placeholder olduğunu objektif olarak ortaya koymak, karar için veri üretmek.
 > |---|---|
 > | `resources/skins/*.tres` içindeki 20 `tint` değeri | **placeholder veri** — prosedürel üretilmiş, isimlerle uyumsuz |
 > | Gameplay skin renderer'ı (`skin_visual.gd` + `skin_tint.gdshader`) | **teknik proof-of-concept** — değiştirilebilir abstraction, final render tekniği değil |
-> | Koleksiyon/mağaza kartlarındaki renkli daire önizlemeleri (`skin_swatch.gd`) | **placeholder** — final skin asset'i değil |
+> | Koleksiyon/mağaza önizlemeleri (`skin_swatch.gd`) | M8.5-13'ten beri gameplay materyaliyle **gerçek dumpling** — renkli daire kalktı. Görsel yine placeholder tint'e bağlı; skin başına hazır görsel için `SkinData.preview_texture` |
 > | `SkinVisual.STRENGTH = 0.45` | geçici kalibrasyon, ekran görüntüsüyle seçildi |
 >
 > **Kilitli olan tek şey altyapıdır:** kayıt formatı (`equipped_skin`), equip
@@ -94,6 +94,13 @@ edilmiş hâlde karşılaştırıldı (`tools/screenshot_runner.gd::_shot_skins`
 - yüz, göz, ağız ve konturlar dört rarity'de de tam okunuyor ✅
 - spekuler parlamalar ve gövde shading'i korunuyor ✅
 - düz flat recolor yok, tier'lar hâlâ birbirinden ayırt edilebiliyor ✅
+
+> **M8.5-13 ölçümü:** koleksiyon önizlemesi artık oyundaki shader'ı birebir
+> kullanınca görüldü ki mevcut tint + `STRENGTH 0.45`, pastel tier-3
+> dumpling üstünde **Rare/Epic'te de** ayırt edilmiyor (Legendary turkuaz
+> hafif okunuyor). Sebep: tint luminansa normalize edilip clamp'leniyor ve
+> gövdenin %64'ü highlight_guard (0.82) üstünde. Kod DEĞİŞTİRİLMEDİ; karar
+> owner'da (A: veri + STRENGTH/guard yeniden kalibrasyonu birlikte).
 
 **Ürün olarak zayıf:**
 - **Common skin neredeyse görünmüyor.** "Sade" satırı varsayılan satırdan

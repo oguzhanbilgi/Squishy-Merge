@@ -3,6 +3,15 @@ extends Node
 
 const SAVE_PATH: String = "user://squishy_merge_save.json"
 
+## Skin durumu değişti (M8.5-13). Koleksiyon, mağaza ve ana sayfa bunlara
+## abone: sekme geçişindeki refresh()'e ek olarak, ekran açıkken gelen bir
+## değişiklik (aynı ekrandan satın alma / equip) de anında yansısın.
+## Gameplay abone DEĞİL: parça skin'ini doğarken okuyor, round içinde equip
+## mümkün değil.
+signal skin_granted(id: StringName)
+## Boş id = varsayılan görünüme dönüldü.
+signal skin_equipped(id: StringName)
+
 var data: Dictionary = {}
 
 const DEFAULT_DATA: Dictionary = {
@@ -141,6 +150,7 @@ func grant_skin(id: StringName) -> void:
 	owned.append(String(id))
 	data["unlocked_skins"] = owned
 	save_game()
+	skin_granted.emit(id)
 
 
 # --- Takılı skin (M8.5) ---
@@ -186,6 +196,7 @@ func equip_skin(id: StringName) -> bool:
 		return true
 	data["equipped_skin"] = String(id)
 	save_game()
+	skin_equipped.emit(id)
 	return true
 
 
@@ -195,6 +206,7 @@ func clear_equipped_skin() -> void:
 		return
 	data["equipped_skin"] = ""
 	save_game()
+	skin_equipped.emit(&"")
 
 
 ## Round sonunda çağrılır. Toplam merge sayacını ilerletir ve hak edilen
@@ -371,6 +383,7 @@ func purchase_skin_with_dough(id: StringName, cost: int) -> bool:
 	data["unlocked_skins"] = owned
 	data["dough"] = dough() - cost
 	save_game()
+	skin_granted.emit(id)
 	return true
 
 

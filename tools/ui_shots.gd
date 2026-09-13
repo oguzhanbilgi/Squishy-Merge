@@ -108,6 +108,16 @@ func _shot_collection_equipped() -> void:
 	SaveManager.data["equipped_skin"] = String(owned[0])
 	await _show_tab(2)
 	await _capture("06_collection_equipped.png")
+	# M8.5-13: kilitli karta dokunma -> vitrin kilitli skin'i gosterir
+	# (ad, rarity, fiyat, "Magazaya Git"). Kayda yazmaz.
+	var album: CanvasLayer = _main._screens[2]
+	if album.has_method("_on_card_tapped"):
+		for skin in SkinLibrary.all():
+			if not SaveManager.owns_skin(skin.id):
+				album._on_card_tapped(skin.id)
+				await _settle()
+				await _capture("07_collection_locked_focus.png")
+				break
 	SaveManager.data["equipped_skin"] = before
 
 

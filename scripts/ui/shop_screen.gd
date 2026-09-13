@@ -16,7 +16,7 @@ extends CanvasLayer
 ## ve toast candy penceresi/cipi; satın alma başarısında kart pop + bakiye
 ## cipi pop. Ekonomi/transaction kodu DEĞİŞMEDİ (Shop / PowerUpEconomy).
 
-const SWATCH_SIZE: Vector2 = Vector2(64.0, 64.0)
+const SWATCH_SIZE: Vector2 = Vector2(72.0, 72.0)
 ## Güç kartındaki ikon kuyusu (yuvarlak, gücün vurgu renginde) ve içindeki
 ## ikon. M8.5-09'a kadar burada `PowerUp.GLYPHS` metin işareti duruyordu;
 ## gerçek ikonlar `PowerUp.ICON_PATHS`.
@@ -248,8 +248,11 @@ func _make_rarity_header(rarity: SkinData.Rarity) -> Control:
 
 
 func _make_row(skin: SkinData) -> Control:
-	var owned: bool = SaveManager.owns_skin(skin.id)
-	var rarity_color: Color = SkinData.rarity_color(skin.rarity)
+	# Durum tek kaynaktan (SkinEntry): koleksiyonla aynı sahip/takılı bilgisi,
+	# ayrı türetme yok (M8.5-13).
+	var entry: SkinEntry = SkinEntry.for_skin(skin)
+	var owned: bool = entry.owned
+	var rarity_color: Color = entry.rarity_color()
 
 	var card := PanelContainer.new()
 	card.theme_type_variation = &"QuietCardPanel" if owned else &"CardPanel"
@@ -259,18 +262,25 @@ func _make_row(skin: SkinData) -> Control:
 		var box := (card.get_theme_stylebox("panel", &"CardPanel") as StyleBoxFlat).duplicate()
 		box.border_color = UiPalette.rarity_border(rarity_color)
 		card.add_theme_stylebox_override("panel", box)
+	elif entry.equipped:
+		# Takılı skin mağazada da nane kenarla işaretli — koleksiyonla aynı dil.
+		var box := (card.get_theme_stylebox("panel", &"QuietCardPanel") as StyleBoxFlat).duplicate()
+		box.border_color = UiPalette.SELECTED
+		card.add_theme_stylebox_override("panel", box)
 	_cards[String(skin.id)] = card
 
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 16)
 	card.add_child(row)
 
+	# Önizleme: koleksiyondaki kartla aynı bileşen — sahip olunan skin
+	# gameplay materyaliyle, kilitli skin silüetle.
 	var swatch := SkinSwatch.new()
 	swatch.custom_minimum_size = SWATCH_SIZE
 	swatch.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	swatch.setup(skin.tint, rarity_color, owned)
-	if owned:
-		swatch.modulate = Color(1, 1, 1, 0.7)
+	swatch.setup(entry)
+	if owned and not entry.equipped:
+		swatch.modulate = Color(1, 1, 1, 0.8)
 	row.add_child(swatch)
 
 	var text := VBoxContainer.new()
@@ -281,13 +291,14 @@ func _make_row(skin: SkinData) -> Control:
 
 	var name_label := Label.new()
 	UiType.apply(name_label, UiType.CARD_TITLE)
-	name_label.text = skin.display_name
-	if owned:
+	name_label.text = entry.display_name
+	if owned and not entry.equipped:
 		name_label.add_theme_color_override("font_color", UiPalette.TEXT_MUTED)
 	text.add_child(name_label)
 
 	if owned:
-		# Sahip olunan: tik + "Sahipsin", nane. Kart sakin yüzeyde, CTA yok.
+		# Sahip olunan: tik + "Sahipsin" (takılıysa "Sahipsin · Takılı"), nane.
+		# Kart sakin yüzeyde, CTA yok.
 		var state := HBoxContainer.new()
 		state.add_theme_constant_override("separation", 6)
 		var check := UiPalette.icon_rect(UiPalette.ICON_CHECK, 18.0, UiPalette.MINT)
@@ -295,13 +306,13 @@ func _make_row(skin: SkinData) -> Control:
 		state.add_child(check)
 		var detail := Label.new()
 		UiType.apply(detail, UiType.STAT)
-		detail.text = "Sahipsin"
+		detail.text = "Sahipsin · Takılı" if entry.equipped else "Sahipsin"
 		detail.add_theme_color_override("font_color", UiPalette.MINT)
 		state.add_child(detail)
 		text.add_child(state)
 	else:
-		text.add_child(_make_price_line(Shop.price_of(skin)))
-		var buy := _make_buy_button(Shop.can_afford(skin))
+		text.add_child(_make_price_line(entry.price))
+		var buy := _make_buy_button(entry.can_afford())
 		buy.pressed.connect(_open_confirm.bind(skin))
 		row.add_child(buy)
 

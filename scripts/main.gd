@@ -71,6 +71,7 @@ func _ready() -> void:
 	var select: CanvasLayer = LEVEL_SELECT_SCENE.instantiate()
 	select.level_chosen.connect(_start_level)
 	var album: CanvasLayer = COLLECTION_SCENE.instantiate()
+	album.shop_requested.connect(_on_shop_requested)
 	var shop: CanvasLayer = SHOP_SCENE.instantiate()
 	_screens = [home, select, album, shop]
 	for screen in _screens:
@@ -163,6 +164,12 @@ func _hide_shell() -> void:
 func _on_play_pressed() -> void:
 	_show_tab(1)
 	_tabs.set_active(1)
+
+
+## Koleksiyon vitrinindeki kilitli skin'in "Mağazaya Git" kısayolu.
+func _on_shop_requested() -> void:
+	_show_tab(3)
+	_tabs.set_active(3)
 
 
 ## Günlük giriş ödülü (GAME_DESIGN.md §5.4). Günde bir kez, açılışta.

@@ -40,20 +40,24 @@ static var _materials: Dictionary = {}
 
 ## Sprite'a skin görünümünü uygular. `skin` null ise varsayılan/orijinal
 ## görünüme döner (materyal tamamen kaldırılır — shader hiç çalışmaz).
-static func apply(sprite: Sprite2D, skin: SkinData) -> void:
-	if sprite == null:
+##
+## `item` bir Sprite2D (gameplay) ya da TextureRect (koleksiyon/mağaza
+## önizlemesi, M8.5-13) olabilir: ikisi de CanvasItem, aynı materyal aynı
+## shader — önizleme oyundakiyle birebir aynı görünür.
+static func apply(item: CanvasItem, skin: SkinData) -> void:
+	if item == null:
 		return
 	if skin == null:
-		clear(sprite)
+		clear(item)
 		return
-	sprite.material = _material_for(skin)
+	item.material = _material_for(skin)
 
 
 ## Varsayılan görünüm: materyal yok, sprite kendi renkleriyle çizilir.
-static func clear(sprite: Sprite2D) -> void:
-	if sprite == null:
+static func clear(item: CanvasItem) -> void:
+	if item == null:
 		return
-	sprite.material = null
+	item.material = null
 
 
 static func _material_for(skin: SkinData) -> ShaderMaterial:

@@ -57,7 +57,7 @@ func refresh() -> void:
 		"%d günlük seri" % streak if streak > 0 else "Seri başlasın", false)
 	UiPalette.set_chip_value(_dough_chip, "%d Hamur" % SaveManager.dough(), false)
 	UiPalette.set_chip_value(_collection_chip, "%d/%d" % [
-		SaveManager.owned_skins().size(), SkinLibrary.total_count()], false)
+		SkinEntry.owned_count(), SkinLibrary.total_count()], false)
 
 	# OYNA'nın altındaki tek satır: oyuncu nereye gideceğini bilsin.
 	var next_level: int = SaveManager.highest_level_unlocked()
