@@ -146,7 +146,9 @@ func _refresh_showcase() -> void:
 	if entry == null:
 		entry = SkinEntry.equipped_entry()
 		_focused_id = entry.id
-	_showcase_swatch.setup(entry)
+	# Vitrin kilitli skin'i de gerçek sanatıyla gösterir (grid kartı silüet
+	# kalır): oyuncu neyi açmaya çalıştığını inceleyebilsin.
+	_showcase_swatch.setup(entry, true)
 	_showcase_name.text = entry.display_name
 	_showcase_name.modulate = Color.WHITE if entry.owned else Color(1, 1, 1, 0.7)
 

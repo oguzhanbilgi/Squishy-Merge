@@ -33,6 +33,10 @@ func _row_text(card: Control) -> String:
 	return out
 
 
+func _first_swatch(card: Control) -> SkinSwatch:
+	return card.find_children("*", "SkinSwatch", true, false)[0] as SkinSwatch
+
+
 func _ready() -> void:
 	await get_tree().process_frame
 	var main: Node2D = MAIN_SCENE.instantiate()
@@ -130,12 +134,17 @@ func _ready() -> void:
 	_c("vitrin fiyat metni", album._showcase_detail.text.contains("150 Hamur"))
 	_c("vitrin Magazaya Git", album._showcase_action.visible and album._showcase_action.text == "Mağazaya Git")
 	_c("kilitli kart fiyat bandi", album._cards[&"rare_02"].find_child("Price", true, false) != null)
+	_c("kilitli grid karti siluet (kesif korunur)", _first_swatch(album._cards[&"rare_02"])._image.texture == SkinSwatch.LOCKED_TEXTURE)
+	_c("kilitli vitrin: FINAL onizleme + kilit", album._showcase_swatch._image.texture == SkinLibrary.find(&"rare_02").preview_texture and album._showcase_swatch._lock.visible)
 	album._showcase_action.pressed.emit(); await get_tree().process_frame
 	_c("Magazaya Git -> magaza sekmesi", main._active_tab == 3 and shop.visible)
 	# Magazadan skin satin al (koleksiyon gorunmezken) -> tek transaction
 	SaveManager.data["dough"] = 500
 	shop.refresh(); await get_tree().process_frame
 	_c("magaza: kilitli satirda Satin Al", shop._cards.has("rare_02"))
+	_c("magaza: kilitli satir FINAL onizleme + kilit", _first_swatch(shop._cards["rare_02"])._image.texture == SkinLibrary.find(&"rare_02").preview_texture and _first_swatch(shop._cards["rare_02"])._lock.visible)
+	_c("magaza: kilitli Legendary gercek sanat", _first_swatch(shop._cards["legendary_01"])._image.texture == SkinLibrary.find(&"legendary_01").preview_texture)
+	_c("magaza: kilitli satir fiyat metni", (shop._cards["rare_02"].find_children("*", "RichTextLabel", true, false)[0] as RichTextLabel).text.contains("150 Hamur"))
 	shop._open_confirm(SkinLibrary.find(&"rare_02")); await get_tree().process_frame
 	shop._confirm_yes.pressed.emit()
 	await get_tree().process_frame

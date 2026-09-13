@@ -26,6 +26,9 @@ const IMAGE_INSET: float = 0.06
 const GLOW_ALPHA_OWNED: float = 0.8
 const GLOW_ALPHA_LOCKED: float = 0.2
 const GLOW_ALPHA_DEFAULT: float = 0.28
+## Kilitli ama açığa çıkarılmış önizleme hafif soluk: "henüz senin değil"
+## okunsun ama sanat görünsün.
+const LOCKED_REVEAL_TINT: Color = Color(0.86, 0.86, 0.9, 1.0)
 
 ## Rarity rengi -> radyal parıltı dokusu. Her kart için yeniden üretilmiyor.
 static var _glow_cache: Dictionary = {}
@@ -48,7 +51,12 @@ func _init() -> void:
 	resized.connect(_layout)
 
 
-func setup(entry: SkinEntry) -> void:
+## `reveal_locked` (M8.5-14 polish): kilitli skin'de silüet yerine FİNAL
+## önizlemeyi göster, kilit rozeti kalsın. Mağaza (satın alınan şey
+## görünmeli — 900 Hamur'luk Legendary "?" olarak satılmaz) ve koleksiyon
+## VİTRİNİ (kilitli karta dokununca inceleme) bunu kullanır; koleksiyon
+## GRID'i kullanmaz — keşif hissi orada korunur.
+func setup(entry: SkinEntry, reveal_locked: bool = false) -> void:
 	_entry = entry
 	if entry == null:
 		visible = false
@@ -56,12 +64,20 @@ func setup(entry: SkinEntry) -> void:
 	visible = true
 	var color: Color = entry.rarity_color()
 	if entry.is_locked():
-		_image.texture = LOCKED_TEXTURE
+		var ready_made: Texture2D = entry.preview_texture()
+		if reveal_locked and ready_made != null:
+			_image.texture = ready_made
+			_image.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
+			_image.modulate = LOCKED_REVEAL_TINT
+		else:
+			_image.texture = LOCKED_TEXTURE
+			_image.modulate = Color.WHITE
 		SkinVisual.clear(_image)
 		_glow.texture = _glow_for(color, GLOW_ALPHA_LOCKED)
 		_lock.visible = true
 		_lock.texture = UiIcons.LOCK
 	else:
+		_image.modulate = Color.WHITE
 		var ready_made: Texture2D = entry.preview_texture()
 		if ready_made != null:
 			# Final önizleme sanatı (M8.5-14): 512 px import, kartta 64-150 px

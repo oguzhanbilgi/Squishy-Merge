@@ -278,7 +278,9 @@ func _make_row(skin: SkinData) -> Control:
 	var swatch := SkinSwatch.new()
 	swatch.custom_minimum_size = SWATCH_SIZE
 	swatch.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	swatch.setup(entry)
+	# Kilitli skin de gerçek sanatıyla gösterilir: oyuncu ne aldığını görsün
+	# (kilit rozeti + fiyat durumu aynen kalır).
+	swatch.setup(entry, true)
 	if owned and not entry.equipped:
 		swatch.modulate = Color(1, 1, 1, 0.8)
 	row.add_child(swatch)

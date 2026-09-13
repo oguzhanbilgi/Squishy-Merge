@@ -77,7 +77,10 @@ func _ready() -> void:
 	_c("SkinSwatch sahip skin: final onizleme dokusu, materyal yok",
 		sw._image.texture == SkinLibrary.find(&"common_02").preview_texture and sw._image.material == null)
 	sw.setup(SkinEntry.find(&"rare_01"))
-	_c("SkinSwatch kilitli: siluet", sw._image.texture == SkinSwatch.LOCKED_TEXTURE)
+	_c("SkinSwatch kilitli (grid): siluet + kilit", sw._image.texture == SkinSwatch.LOCKED_TEXTURE and sw._lock.visible)
+	sw.setup(SkinEntry.find(&"legendary_01"), true)
+	_c("SkinSwatch kilitli (magaza/vitrin, reveal): final onizleme + kilit",
+		sw._image.texture == SkinLibrary.find(&"legendary_01").preview_texture and sw._lock.visible and sw._image.material == null)
 	sw.setup(SkinEntry.default_entry())
 	_c("SkinSwatch varsayilan: orijinal dumpling, materyal yok",
 		sw._image.texture == SkinEntry.PREVIEW_BASE_TEXTURE and sw._image.material == null)

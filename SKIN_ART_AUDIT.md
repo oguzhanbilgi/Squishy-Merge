@@ -28,6 +28,10 @@
   `SkinSwatch` sahip olunan skin'de bunu çizer (aspect-fit, `KEEP_ASPECT_CENTERED`),
   kilitlide silüet + kilit, varsayılanda orijinal tier-3 dumpling.
   Koleksiyon kartı, vitrin ve mağaza satırı aynı bileşen.
+- **Kilitli görünürlük (polish):** mağaza satırı ve koleksiyon vitrini
+  kilitli skin'i de **gerçek sanatıyla** gösterir (`setup(entry, true)`:
+  hafif soluk + kilit rozeti) — oyuncu 900 Hamur'a ne aldığını görsün.
+  Koleksiyon grid kartı silüet kalır (keşif hissi).
 - Doğrulama: `tools/skin_test.gd` — 20 doku yükleniyor (≥256 px), 20'si
   farklı dosya, ad/rarity/id tablosu sabit, fiyatlar 50/150/400/900.
 

@@ -385,7 +385,8 @@ tier'lara uygulanır.
 > takılı skin'in (ya da dokunulan kilitli kartın) büyük önizlemesi, ad,
 > rarity, durum ve tek aksiyon ("Tak" / kilitliyse "Mağazaya Git").
 > Kilitli kartlar silüet + kilit + **fiyat** gösteriyor; ad soluk ama
-> okunur (mağazada zaten görünüyordu). Sahip olunan karta dokunmak yine
+> okunur (mağazada zaten görünüyordu). Vitrin ve mağaza satırı kilitli
+> skin'in GERÇEK önizlemesini gösterir (kilit rozetiyle) — grid silüet. Sahip olunan karta dokunmak yine
 > doğrudan takıyor. Önizleme oyundaki render'la aynı materyali kullanıyor;
 > skin başına hazır görsel için `SkinData.preview_texture` alanı var.
 
