@@ -27,8 +27,10 @@ const GLOW_ALPHA_OWNED: float = 0.8
 const GLOW_ALPHA_LOCKED: float = 0.2
 const GLOW_ALPHA_DEFAULT: float = 0.28
 ## Kilitli ama açığa çıkarılmış önizleme hafif soluk: "henüz senin değil"
-## okunsun ama sanat görünsün.
-const LOCKED_REVEAL_TINT: Color = Color(0.86, 0.86, 0.9, 1.0)
+## okunsun ama sanat görünsün. 0.86/0.90 açık pastel Legendary'leri
+## (Gökkuşağı) fazla söndürüyordu; %7 karartma + hafif soğuk ton yeterli,
+## kilitli bilgisini zaten kilit rozeti + KİLİTLİ pill taşıyor.
+const LOCKED_REVEAL_TINT: Color = Color(0.93, 0.93, 0.96, 1.0)
 
 ## Rarity rengi -> radyal parıltı dokusu. Her kart için yeniden üretilmiyor.
 static var _glow_cache: Dictionary = {}
