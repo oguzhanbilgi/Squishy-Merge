@@ -1077,6 +1077,20 @@ func _on_merge_requested(a: Dumpling, b: Dumpling, point: Vector2) -> void:
 
 
 func _resolve_merge(a: Dumpling, b: Dumpling, point: Vector2) -> void:
+	# Round KESİN bittiyse merge artık işlenmez (M8.5-16). Motor sırası her
+	# fizik adımında: body_entered (merge_requested -> bu çağrı ertelenir) ->
+	# _physics_process (taşma -> _finish -> round_finished) -> ertelenmiş
+	# çağrılar. Yani aynı adımda istenen bir merge, main.gd merge_count'u
+	# örnekledikten SONRA skor/sayaç/yeni parça/efekt üretebiliyordu (kayıt
+	# ile GameState bir farkla ayrışıyordu). Bitişten sonra canlı fiziğin
+	# ürettiği yeni istekler de aynı kapıdan eleniyor.
+	#
+	# Fail-pending (devam teklifi) BİTİŞ DEĞİLDİR: o sırada kuyruktaki merge
+	# çözülüp donmuş board'a katılır (_spawn_dumpling'deki not, §11.3).
+	# Elenen çiftin is_merging bayrağı kasten kalıyor: round bitti, bir daha
+	# istek üretmemeleri doğru.
+	if _is_finished:
+		return
 	if not is_instance_valid(a) or not is_instance_valid(b):
 		return
 

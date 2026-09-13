@@ -163,6 +163,15 @@ alınacak — şimdi tahmin/vaat yok.
     doğrulanmadı (M9). **Fizik, ekonomi, skin, harita, kayıt semantiği
     DEĞİŞMEDİ** (yalnız `haptics_enabled` alanı eklendi). Ayrıntı:
     `docs/AUDIO_AUDIT.md`, PROJECT_STATUS §4.18.
+  - `M8.5-16` ✅ ertelenmiş merge / round bitişi yarışı: aynı fizik
+    adımında istenen merge (`_resolve_merge` call_deferred) round kesin
+    bittikten ve `main._on_round_finished` merge_count'u örnekledikten
+    SONRA çözülebiliyordu (kayıt ile GameState 1 farklı; revive_test
+    aralıklı 102/103) — skor/yeni parça/efekt de üretiyordu. Düzeltme:
+    `_resolve_merge` `_is_finished` iken çıkıyor; fail-pending (devam
+    teklifi) bitiş DEĞİL, o yoldaki merge'ler aynen çözülüyor. revive_test
+    +17 deterministik yarış kontrolü (**120/120**, 20 ardışık koşu).
+    **Fizik, skor, ekonomi, kayıt formatı DEĞİŞMEDİ.**
 - **Sırada: M9 — Android export.** Ortam hazır (export template'leri, SDK,
   NDK, JDK 17, debug keystore mevcut); eksik olan `export_presets.cfg` ve
   release/upload keystore. Preset'te **VIBRATE izni** açık olmalı

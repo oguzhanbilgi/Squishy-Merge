@@ -17,8 +17,8 @@ extends Node
 ##   godot --headless --audio-driver Dummy --path . res://tools/revive_test.tscn
 ##
 ## KAYIT DOSYASI: senaryo 1-5 yazmaz (hicbir round finalize edilmiyor,
-## SaveManager yalnizca guc stogu icin okunuyor). Senaryo 6 gercek main.gd
-## akisini kullandigi icin YAZAR — calistirmadan once owner kaydini yedekle,
+## SaveManager yalnizca guc stogu icin okunuyor). Senaryo 6 ve 7c gercek
+## main.gd akisini kullandigi icin YAZAR — calistirmadan once owner kaydini yedekle,
 ## sonra byte-identical geri yukle.
 
 const GAME_BOARD_SCENE: PackedScene = preload("res://scenes/game/game_board.tscn")
@@ -54,6 +54,9 @@ var _finished_won: Array[bool] = []
 var _offered_count: int = 0
 var _offered_remaining: Array[int] = []
 var _granted_count: int = 0
+## round_finished aninda (sinyal icinde) orneklenen merge sayaci — main.gd'nin
+## yaptigi orneklemenin aynisi (senaryo 7).
+var _merges_at_finish: int = -1
 
 var _passed: int = 0
 var _failed: int = 0
@@ -89,6 +92,7 @@ func _ready() -> void:
 	await _scenario_win_after_revive()
 	await _scenario_endless()
 	await _scenario_main_flow()
+	await _scenario_deferred_merge_race()
 
 	print("")
 	print("=== SONUC: %d gecti / %d kaldi ===" % [_passed, _failed])
@@ -152,6 +156,7 @@ func _teardown() -> void:
 
 func _on_round_finished(won: bool) -> void:
 	_finished_count += 1
+	_merges_at_finish = GameState.merge_count
 	_finished_won.append(won)
 
 
@@ -695,6 +700,166 @@ func _scenario_main_flow() -> void:
 	_check_eq("main: kayit merge sayaci TAM BIR KEZ islendi",
 		int(SaveManager.data.get("total_merges", 0)), merges_before + round_merges)
 
+	main.queue_free()
+	_board = null
+	await get_tree().process_frame
+
+
+# --- 7) Ertelenmis merge vs round bitisi yarisi (M8.5-16) ---
+#
+# Motor sirasi (Main::iteration, HER fizik adiminda):
+#   1. flush_queries   -> body_entered -> Dumpling.merge_requested
+#                      -> GameBoard._resolve_merge.call_deferred(...)
+#   2. _physics_process-> tasma kontrolu -> _finish(false) -> round_finished
+#   3. message flush   -> _resolve_merge SIMDI calisir
+#
+# Yani ayni fizik adiminda istenen bir merge, round KESIN bittikten SONRA
+# cozulebiliyordu: main.gd round_finished icinde merge_count'u ornekliyor,
+# ardindan ertelenmis merge bir tane daha kaydediyor -> kayit ile
+# GameState bir farkla ayrisiyordu (revive_test 102/103, "beklenen 1130,
+# gelen 1129"). Ayni yol skor, yeni parca, efekt/ses/titresim ve combo da
+# uretiyordu.
+#
+# Burada yaris DETERMINISTIK kuruluyor: merge, Dumpling._on_body_entered'in
+# yaptigi gibi elle kuyruga aliniyor, AYNI kare icinde round bitiriliyor,
+# sonra ertelenmis cagrinin calismasina izin verilip durumun degismedigi
+# olculuyor. Fail-pending (revive) yolu icin ise tam tersi bekleniyor: teklif
+# acikken kuyruktaki merge cozulmeli ve donmus board'a katilmali (§11.3).
+
+const RACE_REPEATS: int = 10
+
+
+## Iki ayni tier parca dogurup merge'i Dumpling._on_body_entered ile aynı
+## yoldan kuyruga alir (is_merging + merge_requested -> call_deferred).
+## Dönüş: [a, b].
+func _queue_manual_merge(tier: int) -> Array:
+	var point := Vector2(_board._center_x(), _board.drop_line_y() + 200.0)
+	var a: Dumpling = _board._spawn_dumpling(tier, point - Vector2(20.0, 0.0))
+	var b: Dumpling = _board._spawn_dumpling(tier, point + Vector2(20.0, 0.0))
+	a.is_merging = true
+	b.is_merging = true
+	_board._on_merge_requested(a, b, point)
+	return [a, b]
+
+
+func _alive_count() -> int:
+	return _positions().size()
+
+
+func _scenario_deferred_merge_race() -> void:
+	_section("Senaryo 7: ertelenmis merge, round kesin bittikten sonra islenmez")
+
+	# --- 7a) Kesin bitis: hak yokken tasma -> _finish(false) ---
+	var legit_resolved: int = 0
+	var finished_once: int = 0
+	var count_stable: int = 0
+	var sample_matches: int = 0
+	var score_stable: int = 0
+	var no_spawn: int = 0
+	var sources_kept: int = 0
+	for i in RACE_REPEATS:
+		_make_board()
+		await get_tree().process_frame
+
+		# Round bitmeden kuyruga alinan mesru merge: normal cozulmeli.
+		_queue_manual_merge(2)
+		await get_tree().process_frame
+		if GameState.merge_count == 1 and _alive_count() == 1:
+			legit_resolved += 1
+
+		# Yaris: merge kuyrukta, ayni karede haklar bitmis tasma -> kesin kayip.
+		var pair: Array = _queue_manual_merge(2)
+		_board._revives_used = _board.max_revives()
+		var score_at_finish: int = GameState.score
+		var alive_at_finish: int = _alive_count()
+		_board._trigger_overflow_fail()
+		if _finished_count == 1 and _board._is_finished and not _board.is_fail_pending():
+			finished_once += 1
+
+		# Ertelenmis cagri bu karenin sonunda calisir.
+		await get_tree().process_frame
+		await get_tree().process_frame
+		if GameState.merge_count == 1:
+			count_stable += 1
+		if GameState.merge_count == _merges_at_finish:
+			sample_matches += 1
+		if GameState.score == score_at_finish:
+			score_stable += 1
+		if _alive_count() == alive_at_finish:
+			no_spawn += 1
+		if is_instance_valid(pair[0]) and is_instance_valid(pair[1]) \
+				and not pair[0].is_queued_for_deletion() \
+				and not pair[1].is_queued_for_deletion():
+			sources_kept += 1
+		await _teardown()
+
+	_check_eq("yaris: bitisten ONCEKI merge normal cozuldu (%d tekrar)" % RACE_REPEATS,
+		legit_resolved, RACE_REPEATS)
+	_check_eq("yaris: round_finished tam bir kez, fail-pending degil",
+		finished_once, RACE_REPEATS)
+	_check_eq("yaris: bitisten sonra merge sayaci DEGISMEDI",
+		count_stable, RACE_REPEATS)
+	_check_eq("yaris: round_finished'ta orneklenen sayac = nihai sayac",
+		sample_matches, RACE_REPEATS)
+	_check_eq("yaris: bitisten sonra skor DEGISMEDI", score_stable, RACE_REPEATS)
+	_check_eq("yaris: bitisten sonra yeni parca DOGMADI", no_spawn, RACE_REPEATS)
+	_check_eq("yaris: kaynak parcalar silinmedi", sources_kept, RACE_REPEATS)
+
+	# --- 7b) Fail-pending: teklif acikken kuyruktaki merge COZULMELI (§11.3) ---
+	_make_board()
+	await get_tree().process_frame
+	var pair: Array = _queue_manual_merge(2)
+	_board._trigger_overflow_fail()
+	_check("revive yolu: fail-pending acildi, round bitmedi",
+		_board.is_fail_pending() and not _board._is_finished and _finished_count == 0)
+	await get_tree().process_frame
+	_check_eq("revive yolu: teklif acikken merge cozuldu", GameState.merge_count, 1)
+	_check("revive yolu: kaynaklar silindi",
+		not is_instance_valid(pair[0]) or pair[0].is_queued_for_deletion())
+	var merged: Dumpling = null
+	for node in _board._dumpling_layer.get_children():
+		var d := node as Dumpling
+		if d != null and is_instance_valid(d) and not d.is_queued_for_deletion():
+			merged = d
+	_check("revive yolu: dogan parca donmus board'a katildi",
+		merged != null and merged.tier == 3 and merged.is_simulation_frozen())
+	_check("revive yolu: grant_revive() devam etti", _board.grant_revive())
+	_check("revive yolu: dogan parca cozuldu, board oynanabilir",
+		merged != null and is_instance_valid(merged)
+		and not merged.is_simulation_frozen()
+		and not _board._is_finished and not _board.is_fail_pending())
+	# Devam sonrasi merge hala islenmeli — guard yalnizca kesin bitisi tanir.
+	# Farkli tier: dogan parca, ilk merge'in ayni noktadaki tier 3'uyle
+	# fiziksel olarak birlesmesin (o mesru bir merge olur ve sayaci sasirtir).
+	_queue_manual_merge(1)
+	await get_tree().process_frame
+	_check_eq("revive yolu: devam sonrasi merge islendi", GameState.merge_count, 2)
+	await _teardown()
+
+	# --- 7c) Gercek main.gd: kayit = round_finished'ta orneklenen = nihai ---
+	var main: Node2D = MAIN_SCENE.instantiate()
+	add_child(main)
+	await get_tree().process_frame
+	main._daily.visible = false
+	var merges_before: int = int(SaveManager.data.get("total_merges", 0))
+	main._start_level(load("res://resources/levels/level_%02d.tres" % TEST_LEVEL))
+	await get_tree().process_frame
+	_board = main._board
+	_board.round_finished.connect(_on_round_finished)
+	_finished_count = 0
+	_queue_manual_merge(2)
+	await get_tree().process_frame
+	_queue_manual_merge(2)
+	_board._revives_used = _board.max_revives()
+	_board._trigger_overflow_fail()
+	var waited: int = 0
+	while not main._result.visible and waited < 60 * 20:
+		await get_tree().process_frame
+		waited += 1
+	_check("main yaris: sonuc ekrani acildi", main._result.visible)
+	_check_eq("main yaris: nihai merge sayaci", GameState.merge_count, 1)
+	_check_eq("main yaris: kayit merge sayaci = nihai sayac",
+		int(SaveManager.data.get("total_merges", 0)), merges_before + GameState.merge_count)
 	main.queue_free()
 	_board = null
 	await get_tree().process_frame
