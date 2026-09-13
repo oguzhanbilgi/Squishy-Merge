@@ -4,12 +4,11 @@ extends Control
 ##
 ## Üç durum, tek bileşen:
 ##   varsayılan  — orijinal dumpling (tier 3), materyal yok, nötr hale
-##   sahip       — SkinData.preview_texture varsa o; yoksa orijinal dumpling +
-##                 SkinVisual materyali. Yani OYUNDA NE GÖRÜNÜYORSA O —
-##                 eski renkli daire placeholder'ı kalktı, önizleme artık
-##                 gameplay render'ıyla aynı shader'dan geçiyor. Arkada
-##                 rarity renginde yumuşak radyal parıltı: kart "collectible"
-##                 okunsun, rarity bir bakışta ayırt edilsin.
+##   sahip       — SkinData.preview_texture (owner'ın FİNAL önizleme sanatı,
+##                 M8.5-14; 20 skin'in hepsinde dolu). Yoksa fallback: orijinal
+##                 dumpling + gameplay SkinVisual materyali. Arkada rarity
+##                 renginde yumuşak radyal parıltı: kart "collectible" okunsun,
+##                 rarity bir bakışta ayırt edilsin.
 ##   kilitli     — owner'ın silüet görseli (GAME_DESIGN.md §5.3) + sağ-altta
 ##                 kilit rozeti; parıltı soluk ama rarity rengi okunuyor.
 ##
@@ -65,7 +64,10 @@ func setup(entry: SkinEntry) -> void:
 	else:
 		var ready_made: Texture2D = entry.preview_texture()
 		if ready_made != null:
+			# Final önizleme sanatı (M8.5-14): 512 px import, kartta 64-150 px
+			# — mipmap'li filtre yoksa küçültme kırpışır.
 			_image.texture = ready_made
+			_image.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
 			SkinVisual.clear(_image)
 		else:
 			_image.texture = SkinEntry.PREVIEW_BASE_TEXTURE

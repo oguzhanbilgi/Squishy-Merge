@@ -135,6 +135,16 @@ alınacak — şimdi tahmin/vaat yok.
     formatı, sandık, gameplay DEĞİŞMEDİ.** Tint verisi hâlâ placeholder ve
     önizlemede skinler birbirinden ayırt edilmiyor — owner kararı
     (SKIN_ART_AUDIT). Ayrıntı: PROJECT_STATUS §4.16.
+  - `M8.5-14` ✅ final skin sanatı + production gameplay render: owner'ın
+    20 önizleme PNG'si koleksiyon/vitrin/mağazaya bağlandı (512 px import,
+    mipmap); gameplay'de tier sprite'ı korunup yalnız hamur gövdesi
+    boyanıyor (8 üretilmiş gövde maskesi + `skin_body.gdshader`: luminans
+    tabanlı recolor, 11 deterministik desen ailesi, gloss/pearl/sparkle,
+    Legendary aura). 20 render profili `.tres` verisinde
+    (`tools/make_skin_resources.py`). Eski hue-shift + `tint` silindi.
+    QA: `tools/skin_gallery.gd`, `tools/skin_test.gd` 25/25. **Fizik,
+    ekonomi, kayıt, id'ler DEĞİŞMEDİ.** Ayrıntı: PROJECT_STATUS §4.17,
+    SKIN_ART_AUDIT.md.
 - **Sırada: M9 — Android export.** Ortam hazır (export template'leri, SDK,
   NDK, JDK 17, debug keystore mevcut); eksik olan `export_presets.cfg` ve
   release/upload keystore.
@@ -167,7 +177,9 @@ alınacak — şimdi tahmin/vaat yok.
   `tools/make_gameplay_art.py`
 - Takılı skin kayıtta `equipped_skin` alanında; **boş string = varsayılan
   görünüm**. Skin'in nasıl çizildiği yalnızca `scripts/game/skin_visual.gd`
-  içinde (değiştirilebilir katman)
+  içinde (gövde maskesi + `assets/visual/skins/skin_body.gdshader`); skin
+  verisi `resources/skins/*.tres` = `tools/make_skin_resources.py` çıktısı,
+  gövde maskeleri `tools/make_skin_masks.py` çıktısı — elle düzenleme yok
 
 ## Repo notes
 - `_visual_source/` **repoda takip ediliyor** (owner kararı): owner'ın
@@ -202,15 +214,12 @@ alınacak — şimdi tahmin/vaat yok.
   altında repoda. Owner paketi de eklemek isterse karar onun.
 - **Oyun ekranı asset'leri TAMAM (M8.5-08):** dört güç ikonu, buton
   durumları, gece zemini, bambu duvar/taban ve güç efektleri bağlandı.
-  Oyun ekranında görünür placeholder kalmadı. Geriye kalan tek görsel
-  borç skin renkleri (aşağıda) — o oyun ekranının değil koleksiyonun işi.
-- **Skin sanatı owner kararı bekliyor:** 20 skin'in renkleri prosedürel
-  üretilmiş ve isimleriyle uyuşmuyor (18/20 uyumsuz). Equip sistemi,
-  koleksiyon vitrini ve `preview_texture` kancası hazır (M8.5-13); yalnızca
-  veri/sanat gerekiyor. Mevcut tint + `SkinVisual.STRENGTH 0.45` pastel
-  dumpling üstünde **hiçbir rarity'de** okunmuyor — koleksiyon önizlemesi
-  artık oyunu birebir yansıttığı için bu görünür oldu. Seçenekler:
-  `SKIN_ART_AUDIT.md` (kısa vade A: tint'leri isme göre düzelt + STRENGTH).
+  Oyun ekranında görünür placeholder kalmadı.
+- **Skin sanatı TAMAM (M8.5-14):** 20 final önizleme bağlı, gameplay
+  render production. Kalan tek sanat borcu opsiyonel: Epic/Legendary
+  önizlemelerindeki özel aksesuar/ifadeler gameplay tier'larında yok
+  (tier başına overlay art gerekir, bkz. SKIN_ART_AUDIT §4). Android'de
+  shader/aura performans ölçümü M9'da.
 
 ## Next action
 M9: Android export preset'i kur (`exclude_filter` → `tools/*`,

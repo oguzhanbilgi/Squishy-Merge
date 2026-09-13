@@ -1,10 +1,25 @@
-[gd_resource type="Resource" script_class="SkinData" load_steps=2 format=3]
+[gd_resource type="Resource" script_class="SkinData" load_steps=3 format=3]
 
 [ext_resource type="Script" path="res://scripts/game/skin_data.gd" id="1_skin"]
+[ext_resource type="Texture2D" path="res://assets/visual/skins/previews/skin_legendary_altin_hamur.png" id="2_preview"]
 
 [resource]
 script = ExtResource("1_skin")
 id = &"legendary_01"
-display_name = "Altin Hamur"
+display_name = "Altın Hamur"
 rarity = 3
-tint = Color(0.249, 0.86, 0.735, 1)
+preview_texture = ExtResource("2_preview")
+body_color = Color(0.9608, 0.7725, 0.2275, 1)
+shade_color = Color(0.6588, 0.4431, 0.0549, 1)
+highlight_color = Color(1, 0.9647, 0.7843, 1)
+pattern = 10
+pattern_color = Color(1, 0.949, 0.651, 1)
+pattern_color2 = Color(1, 1, 1, 1)
+pattern_density = 0.5
+pattern_scale = 1
+pattern_strength = 0.9
+gloss = 0.9
+pearl = 0.2
+sparkle = 0.7
+aura_color = Color(1, 0.8196, 0.3529, 1)
+anim_speed = 1

@@ -361,9 +361,12 @@ satırının arkasında "yeni!" banner'ı yanlış bilgi olurdu.
 çizili. Rarity halkası kaldı (alpha 0.35) — hangi rarity'nin kilitli olduğu
 görünmeye devam etsin.
 
-**Açılmış** skin hâlâ placeholder: skin tint'inde dolu bir daire. Skin başına
-ayrı görseller owner'dan gelmedi; silüet tek dosya olduğu için önce o
-entegre edildi.
+**Açılmış** skin (M8.5-14'ten beri): owner'ın 20 final önizleme görseli,
+`skins/previews/skin_<rarity>_<ad>.png` (kaynak: `_visual_source/
+squishy_merge_final_skins_named.zip`, 1254×1254, import 512 px + mipmap).
+Gameplay'de skin, tier sprite'ının gövdesini `skins/skin_body.gdshader` ile
+boyar; gövde maskeleri `skins/generated/body_mask_tier1..8.png`
+(`tools/make_skin_masks.py` çıktısı, tier dokularından türetildi).
 
 Bu turda `collection_album.gd` ve `shop_screen.gd` içindeki `LOCKED_COLOR`
 sabitleri silindi — silüet kendi rengiyle geldiği için tint uygulanmıyor,

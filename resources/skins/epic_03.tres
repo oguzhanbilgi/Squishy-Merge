@@ -1,10 +1,25 @@
-[gd_resource type="Resource" script_class="SkinData" load_steps=2 format=3]
+[gd_resource type="Resource" script_class="SkinData" load_steps=3 format=3]
 
 [ext_resource type="Script" path="res://scripts/game/skin_data.gd" id="1_skin"]
+[ext_resource type="Texture2D" path="res://assets/visual/skins/previews/skin_epic_kakao.png" id="2_preview"]
 
 [resource]
 script = ExtResource("1_skin")
 id = &"epic_03"
 display_name = "Kakao"
 rarity = 2
-tint = Color(0.819, 0.9, 0.369, 1)
+preview_texture = ExtResource("2_preview")
+body_color = Color(0.5412, 0.3216, 0.2, 1)
+shade_color = Color(0.2588, 0.1294, 0.05882, 1)
+highlight_color = Color(0.8902, 0.7216, 0.5804, 1)
+pattern = 4
+pattern_color = Color(0.2902, 0.1412, 0.06275, 1)
+pattern_color2 = Color(1, 1, 1, 1)
+pattern_density = 0.5
+pattern_scale = 1.2
+pattern_strength = 0.85
+gloss = 0.55
+pearl = 0
+sparkle = 0.3
+aura_color = Color(1, 1, 1, 0)
+anim_speed = 1

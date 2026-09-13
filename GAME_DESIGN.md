@@ -370,17 +370,16 @@ Takılı kart yeşil çerçeve + **"TAKILI"** etiketiyle işaretlenir.
 Takılı skin oyunda hem yeni bırakılan parçalara hem merge sonucu oluşan yeni
 tier'lara uygulanır.
 
-> **DURUM: functional equip complete / final skin art pending.**
-> Kazan → koleksiyonda gör → seç → kaydet → oyunda uygulan döngüsü uçtan uca
-> çalışıyor. Ancak `resources/skins/*.tres` içindeki renkler **prosedürel
-> placeholder** (20 skin boyunca sabit 49.3° hue spirali) ve yiyecek
-> isimleriyle örtüşmüyorlar — "Kırmızı Biber" sarı-yeşil, "Altın Hamur"
-> turkuaz. Ayrıntılı envanter ve karar seçenekleri: `SKIN_ART_AUDIT.md`.
->
-> Skin'in nasıl çizildiği tek bir değiştirilebilir katmanda
-> (`scripts/game/skin_visual.gd`): sanat turu geldiğinde kayıt formatı,
-> equip akışı ve oyun kodu değişmeden yalnızca o dosya güncellenecek.
-> **"Skin sistemi tamamlandı" DENMEZ** — işlevsel altyapı tamam, sanat değil.
+> **DURUM (M8.5-14): final preview art complete / production gameplay
+> render complete.** Kazan → koleksiyonda gör → seç → kaydet → oyunda
+> uygulan döngüsü çalışıyor; koleksiyon/mağaza owner'ın 20 final önizleme
+> görselini gösteriyor; gameplay'de 8 tier karakteri korunup yalnız hamur
+> gövdesi skin'in rengi/deseni/malzemesiyle boyanıyor (gövde maskesi +
+> shader, `scripts/game/skin_visual.gd`). Rarity: Common/Rare yalnız
+> malzeme, Epic gövde içi sparkle, Legendary sparkle + kompakt aura —
+> hepsi kozmetik, fizik/skor/RNG'ye dokunmaz. Ayrıntı: `SKIN_ART_AUDIT.md`.
+> Bilinen sınır: Epic/Legendary önizlemelerindeki özel aksesuarlar
+> gameplay tier'larında yok (ayrı overlay art turu gerekir).
 >
 > **M8.5-13 (ekran, kural değişmedi):** albümün üstünde bir **vitrin** var:
 > takılı skin'in (ya da dokunulan kilitli kartın) büyük önizlemesi, ad,

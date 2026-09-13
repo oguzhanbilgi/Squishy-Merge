@@ -1,10 +1,25 @@
-[gd_resource type="Resource" script_class="SkinData" load_steps=2 format=3]
+[gd_resource type="Resource" script_class="SkinData" load_steps=3 format=3]
 
 [ext_resource type="Script" path="res://scripts/game/skin_data.gd" id="1_skin"]
+[ext_resource type="Texture2D" path="res://assets/visual/skins/previews/skin_rare_kirmizi_biber.png" id="2_preview"]
 
 [resource]
 script = ExtResource("1_skin")
 id = &"rare_02"
-display_name = "Kirmizi Biber"
+display_name = "Kırmızı Biber"
 rarity = 1
-tint = Color(0.764, 0.94, 0.498, 1)
+preview_texture = ExtResource("2_preview")
+body_color = Color(0.9412, 0.4431, 0.2902, 1)
+shade_color = Color(0.702, 0.2275, 0.1098, 1)
+highlight_color = Color(1, 0.8235, 0.7216, 1)
+pattern = 2
+pattern_color = Color(0.7843, 0.1216, 0.07059, 1)
+pattern_color2 = Color(1, 0.698, 0.4784, 1)
+pattern_density = 0.6
+pattern_scale = 1.2
+pattern_strength = 0.85
+gloss = 0.3
+pearl = 0
+sparkle = 0
+aura_color = Color(1, 1, 1, 0)
+anim_speed = 1

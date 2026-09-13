@@ -253,7 +253,7 @@ func _shot_skins() -> void:
 			continue
 		rows.append({"skin": skin, "label": "%s — %s (%s)" % [
 			SkinData.rarity_name(skin.rarity), skin.display_name,
-			skin.tint.to_html(false)]})
+			skin.body_color.to_html(false)]})
 
 	var top: float = 70.0
 	for row in rows:
@@ -264,15 +264,19 @@ func _shot_skins() -> void:
 		root.add_child(label)
 
 		for tier in range(1, SKIN_SHOT_TIERS + 1):
-			var visual: Node2D = preload("res://scripts/game/dumpling_visual.gd").new()
-			root.add_child(visual)
-			visual.setup(tier)
-			visual.override_skin(row["skin"])
-			# Tum tier'lari ayni ekran boyutuna normalize et.
-			visual.scale = Vector2.ONE * (SKIN_SHOT_CELL / (TierConfig.radius(tier) * 2.0))
-			visual.position = Vector2(
+			# Olcek sarmalayici dugumde: DumplingVisual kendi scale'ini squash
+			# icin her kare yeniden yaziyor. (Asil skin QA araci artik
+			# tools/skin_gallery.gd; bu kare kisa karsilastirma icin kaldi.)
+			var holder := Node2D.new()
+			root.add_child(holder)
+			holder.scale = Vector2.ONE * (SKIN_SHOT_CELL / (TierConfig.radius(tier) * 2.0))
+			holder.position = Vector2(
 				60.0 + float(tier - 1) * (SKIN_SHOT_CELL + 9.0),
 				top + SKIN_SHOT_CELL * 0.5)
+			var visual: Node2D = preload("res://scripts/game/dumpling_visual.gd").new()
+			holder.add_child(visual)
+			visual.setup(tier)
+			visual.override_skin(row["skin"])
 		top += SKIN_SHOT_ROW_HEIGHT
 
 	await get_tree().process_frame

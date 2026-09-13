@@ -1,10 +1,25 @@
-[gd_resource type="Resource" script_class="SkinData" load_steps=2 format=3]
+[gd_resource type="Resource" script_class="SkinData" load_steps=3 format=3]
 
 [ext_resource type="Script" path="res://scripts/game/skin_data.gd" id="1_skin"]
+[ext_resource type="Texture2D" path="res://assets/visual/skins/previews/skin_rare_mantar.png" id="2_preview"]
 
 [resource]
 script = ExtResource("1_skin")
 id = &"rare_03"
 display_name = "Mantar"
 rarity = 1
-tint = Color(0.498, 0.94, 0.595, 1)
+preview_texture = ExtResource("2_preview")
+body_color = Color(0.851, 0.7412, 0.6118, 1)
+shade_color = Color(0.5608, 0.4157, 0.2784, 1)
+highlight_color = Color(0.9647, 0.9176, 0.8392, 1)
+pattern = 4
+pattern_color = Color(0.6039, 0.451, 0.3216, 1)
+pattern_color2 = Color(1, 1, 1, 1)
+pattern_density = 0.5
+pattern_scale = 1.1
+pattern_strength = 0.55
+gloss = 0.15
+pearl = 0
+sparkle = 0
+aura_color = Color(1, 1, 1, 0)
+anim_speed = 1

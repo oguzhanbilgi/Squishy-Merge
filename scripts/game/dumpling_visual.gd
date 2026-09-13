@@ -62,6 +62,8 @@ const CONTACT_FIT: Array[Dictionary] = [
 ## `override_skin()` ile SaveManager'dan bağımsız bir skin verebilir.
 var _skin: SkinData = null
 var _skin_overridden: bool = false
+## setup()'ta verilen tier — gövde maskesi seçimi için (SkinVisual).
+var _tier: int = 1
 
 var _tween: Tween
 var _sprite: Sprite2D
@@ -81,6 +83,7 @@ func _ensure_sprite() -> void:
 
 func setup(tier: int) -> void:
 	radius = TierConfig.radius(tier)
+	_tier = tier
 	_ensure_sprite()
 	var texture: Texture2D = TEXTURES[tier - 1]
 	_sprite.texture = texture
@@ -117,7 +120,10 @@ func _refresh_skin() -> void:
 		return
 	if not _skin_overridden:
 		_skin = SaveManager.equipped_skin()
-	SkinVisual.apply(_sprite, _skin)
+	SkinVisual.apply(_sprite, _skin, _tier)
+	# Rarity efekti (Legendary aura) sprite'ın çocuğu; skin değişince
+	# SkinVisual eskisini kaldırır.
+	SkinVisual.attach_fx(_sprite, _skin)
 
 
 ## Gövde serbest dönüyor (M1 kilitli karar) ama yüz bu sprite'ların İÇİNDE

@@ -1,131 +1,161 @@
-# SKIN_ART_AUDIT.md — 20 placeholder skin'in durumu
+# SKIN_ART_AUDIT.md — skin sanatı ve gameplay render durumu
 
-**Tarih:** 2026-09-09 (M8.5-02) · **Amaç:** mevcut skin verisinin ne kadar
-placeholder olduğunu objektif olarak ortaya koymak, karar için veri üretmek.
-**Bu turda hiçbir isim veya renk değiştirilmedi.**
+**Son güncelleme:** 2026-09-13 (M8.5-14) · İlk audit: 2026-09-09 (M8.5-02).
 
-> ## STATUS: functional equip complete / final skin art pending
+> ## STATUS: final preview art complete / production gameplay skin pipeline complete
 >
-> **Current 20 skins are placeholder data; final skin art/rendering pending.**
->
-> Bu, owner'ın M8.5-02 sonunda verdiği açık karardır. Aşağıdakilerin
-> **hiçbiri final/production sanat olarak kilitlenmemiştir:**
+> M8.5-02'deki **"20 skin placeholder hue-shift verisidir"** ifadesi
+> ARTIK GEÇERSİZ. Bu turda:
 >
 > | ne | durum |
 > |---|---|
-> | `resources/skins/*.tres` içindeki 20 `tint` değeri | **placeholder veri** — prosedürel üretilmiş, isimlerle uyumsuz |
-> | Gameplay skin renderer'ı (`skin_visual.gd` + `skin_tint.gdshader`) | **teknik proof-of-concept** — değiştirilebilir abstraction, final render tekniği değil |
-> | Koleksiyon/mağaza önizlemeleri (`skin_swatch.gd`) | M8.5-13'ten beri gameplay materyaliyle **gerçek dumpling** — renkli daire kalktı. Görsel yine placeholder tint'e bağlı; skin başına hazır görsel için `SkinData.preview_texture` |
-> | `SkinVisual.STRENGTH = 0.45` | geçici kalibrasyon, ekran görüntüsüyle seçildi |
->
-> **Kilitli olan tek şey altyapıdır:** kayıt formatı (`equipped_skin`), equip
-> API'si, koleksiyon seçim akışı ve renderer'ın *arayüzü*
-> (`SkinVisual.apply/clear`). Sanat turu bunları değiştirmeden yalnızca
-> render katmanını ve veriyi güncelleyebilir.
->
-> **Değiştirilmeyecek olan:** 8 orijinal dumpling texture'ı
-> (`assets/visual/dumpling_tier1..8.png`) ve kendi renkleri. Skin katmanı
-> bunların ÜSTÜNE çalışır, onları kalıcı olarak değiştirmez.
+> | Koleksiyon / mağaza / vitrin önizlemeleri | **FİNAL** — owner'ın 20 önizleme sanatı, `assets/visual/skins/previews/skin_<rarity>_<ad>.png` |
+> | Gameplay skin render'ı | **PRODUCTION** — gövde maskesi + seçici recolor + deterministik desen + rarity malzemesi (`assets/visual/skins/skin_body.gdshader`) |
+> | `resources/skins/*.tres` | **FİNAL VERİ** — `tools/make_skin_resources.py` tablosundan üretilen 20 render profili (renk/desen/malzeme); id'ler değişmedi |
+> | Eski `skin_tint.gdshader` + `tint` alanı | **SİLİNDİ** |
+> | Epic/Legendary'nin önizlemedeki özel ifade/aksesuarları gameplay'de | **YOK, bilinçli** — aşağıda "Bilinen sınır" |
 
-## Kısa cevap
+## 1. Final önizleme sanatı
 
-**Bu 20 skin mevcut hâlleriyle final mağaza içeriği olmaya görsel olarak
-YETERLİ DEĞİL.** Sistem çalışıyor, veri çalışmıyor.
+- Kaynak: owner'ın ChatGPT partisi, `_visual_source/squishy_merge_final_skins_named.zip`
+  (arşiv, repoda). Runtime kopyaları `assets/visual/skins/previews/`
+  (1254×1254 RGBA, saydam zemin, dosya adı = `skin_<rarity>_<ad>`).
+- Import: `process/size_limit=512` + `mipmaps/generate=true` (`.import`
+  dosyaları repoda). 20 dokunun VRAM'i ~20 MB yerine ~5 MB; kartta 64–150
+  px'e küçülürken mipmap'li filtre (`SkinSwatch` → `TEXTURE_FILTER_LINEAR_WITH_MIPMAPS`).
+  Kaynak PNG'ler değiştirilmedi.
+- Bağlantı: `SkinData.preview_texture` (ext_resource, .tres içinde).
+  `SkinSwatch` sahip olunan skin'de bunu çizer (aspect-fit, `KEEP_ASPECT_CENTERED`),
+  kilitlide silüet + kilit, varsayılanda orijinal tier-3 dumpling.
+  Koleksiyon kartı, vitrin ve mağaza satırı aynı bileşen.
+- Doğrulama: `tools/skin_test.gd` — 20 doku yükleniyor (≥256 px), 20'si
+  farklı dosya, ad/rarity/id tablosu sabit, fiyatlar 50/150/400/900.
 
-## Bulgu 1 — Renkler prosedürel üretilmiş, isimlerle ilgisi yok
+## 2. Gameplay render mimarisi
 
-20 skin'in tint'i tek bir **sabit 49.3° hue spirali**. Rarity sınırlarında
-bile kesintiye uğramıyor: Common 345.3° ile biter, Rare 34.6° ile başlar
-(345.3 + 49.3 mod 360). Doygunluk ve parlaklık rarity başına sabit.
+Tier sprite'ları (8 karakter, kendi silueti/yüzü/aksesuarı) **temel kalır**.
+Skin yalnızca hamur gövdesini boyar ve desenler. 20×8 = 160 sprite ÜRETİLMEDİ.
 
-| rarity | hue adımı | saturation | value |
+```
+SkinData (.tres profili)  ──►  SkinVisual._material_for(skin, tier)
+                                    │  ShaderMaterial (skin_body.gdshader)
+                                    │   - body_mask  = generated/body_mask_tier{tier}.png
+                                    │   - body/shade/highlight/pattern*/gloss/pearl/sparkle
+                                    ▼
+DumplingVisual._refresh_skin() → sprite.material   (+ Legendary: SkinAura çocuğu)
+```
+
+### 2.1 Gövde maskeleri (`assets/visual/skins/generated/body_mask_tier1..8.png`)
+
+`python tools/make_skin_masks.py [--debug <klasör>]` üretir; 8 gri maske,
+tier dokusuyla aynı boyut, aynı UV. Beyaz = gövde, siyah = korunur.
+
+Yöntem: opak piksel ∧ ton gövde merkezine yakın (tier başına merkez +
+tolerans) ∧ V ≥ 0.40 (kontur/göz/ağız dışarıda) ∪ beyaz parlamalar; ardından
+aynı tondaki aksesuar/yanaklar için elle **dışlama elipsleri** (tier 2 ve 7
+yanak — gövdeyle aynı pembe; tier 6 yıldız; tier 7 fiyonk), tier 3 yaprak
+doygunlukla ayrılıyor, tier 8 taç ve tier 5 fiyonk tonla ayrılıyor. Küçük
+delikler kapatılır, kenar 1 px yumuşatılır. `--debug` kontrol karelerinde
+kırmızı = korunan alan; sekiz tier'da göz/ağız/yanak/aksesuar korunduğu
+görüldü.
+
+### 2.2 Shader (`skin_body.gdshader`)
+
+1. Gövde pikselinin **luminansı** okunur — gölge/ışık dağılımı sprite'ın.
+2. Luminansa göre `shade_color → body_color → highlight_color` seçilir;
+   `gloss` orta-üst tonlara ek parlama.
+3. Desen ailesi (`pattern_type`, 11 aile: NONE / SPECKLE / FLECK / RING /
+   MARBLE / SWIRL / CRYSTAL / STREAK / WAVE / IRIDESCENT / METAL) hücre
+   tabanlı hash veya sin alanlarıyla, **sprite UV'sinde** (parçayla döner
+   ve ezilir, ekranda kaymaz). `detail_scale` tier'a göre: küçük parçada
+   daha az ama daha büyük hücre (tier 1'de 4 px'lik benek okunmuyordu).
+4. `pearl` (sedef, luminans+konum tabanlı ton döngüsü), `sparkle`
+   (hücre başına faz kaydırmalı, TIME ile nabız atan glint'ler).
+5. Sonuç `mix(src, body, mask)`; maske dışı piksel dokunulmaz.
+
+Rastgelelik: `hash1/hash2` (deterministik), `TIME`. **Global RNG yok**
+(`tools/skin_test.gd` "skin kozmetiği global RNG'yi tüketmiyor").
+
+Godot 4 notu: fragment'taki `COLOR` = doku × modulate. Doku kendimiz
+okunduğu için modulate `vertex()`'ten varying ile taşınıyor; `src * COLOR`
+dokuyu ikinci kez çarpıyordu — **eski hue-shift'in "hiç görünmemesinin"
+asıl sebebi buydu**, sadece zayıf tint değil.
+
+### 2.3 Rarity katmanı
+
+| rarity | gövde | malzeme | efekt |
 |---|---|---|---|
-| Common (8) | 49.3° | 0.350 | 0.980 |
-| Rare (6) | 49.3° | 0.470 | 0.940 |
-| Epic (4) | 49.3° | 0.590 | 0.900 |
-| Legendary (2) | 49.3° | 0.710 | 0.860 |
+| Common | renk + desen | gloss ≤ 0.35 | yok |
+| Rare | renk + desen | gloss 0.15–0.4, Deniz Tuzu pearl 0.25 | yok (kristal glint statik+hafif twinkle) |
+| Epic | renk + desen | gloss 0.5–0.6 | `sparkle` 0.3–0.4 (gövde içinde, animasyonlu) |
+| Legendary | METAL / IRIDESCENT | gloss 0.6–0.9, pearl 0.2–0.7 | sparkle 0.6–0.7 + **aura** (`skin_aura.gdshader`, sprite'ın arkasında 6 kollu yumuşak parıltı, TIME ile nefes) |
 
-Yani renkler bir renk çarkından otomatik dağıtılmış; hiçbiri malzemeye
-bakılarak seçilmemiş.
+Aura: `SkinVisual.attach_fx` sprite'a `SkinAura` çocuğu ekler
+(`show_behind_parent`, sprite ile ölçeklenir/eğilir), paylaşılan
+GradientTexture2D + tek materyal; parçacık yok, script yok. Skin değişince
+/ varsayılana dönünce kaldırılır (test: "epic'e geçince aura kalktı",
+"varsayılana dönüş: materyal ve aura yok").
 
-## Bulgu 2 — Tam envanter
+Fizik, collider, CONTACT_FIT, squash/stretch, merge/skor: DOKUNULMADI.
+Merge hayaleti materyali kopyalar (test: "ghost skin materyalini taşıyor").
 
-| id | display_name | rarity | tint (hex) | görünen renk | beklenen | eşleşme |
-|---|---|---|---|---|---|---|
-| `common_01` | Sade | Common | `faa2a2` | pembe-kırmızı | krem/hamur | ❌ |
-| `common_02` | Susamlı | Common | `faeaa2` | soluk sarı | krem/bej | ✅ |
-| `common_03` | Kepekli | Common | `c2faa2` | sarı-yeşil | kahve | ❌ |
-| `common_04` | Havuçlu | Common | `a2facb` | nane yeşili | **turuncu** | ❌ |
-| `common_05` | Yeşil Soğan | Common | `a2e1fa` | açık mavi | **yeşil** | ❌ |
-| `common_06` | Mısır | Common | `aca2fa` | mor | sarı | ❌ |
-| `common_07` | Peynirli | Common | `f4a2fa` | macenta | sarı | ❌ |
-| `common_08` | Sarımsaklı | Common | `faa2b8` | pembe | beyaz/krem | ❌ |
-| `rare_01` | Karabiber | Rare | `f0c07f` | açık ten | **siyah/koyu** | ❌ |
-| `rare_02` | Kırmızı Biber | Rare | `c3f07f` | sarı-yeşil | **kırmızı** | ❌❌ |
-| `rare_03` | Mantar | Rare | `7ff098` | yeşil | kahve/bej | ❌ |
-| `rare_04` | Ispanak | Rare | `7febf0` | camgöbeği | koyu yeşil | ❌ |
-| `rare_05` | Deniz Tuzu | Rare | `7f8ef0` | mavi-mor | beyaz | ❌ |
-| `rare_06` | Zencefil | Rare | `cc7ff0` | mor | bej/tan | ❌ |
-| `epic_01` | Acı Sos | Epic | `e65ea1` | pembe | kırmızı | ⚠️ |
-| `epic_02` | Yosun | Epic | `e68b5e` | turuncu | koyu yeşil | ❌ |
-| `epic_03` | Kakao | Epic | `d1e65e` | sarı-yeşil | kahve | ❌ |
-| `epic_04` | Safran | Epic | `62e65e` | yeşil | koyu altın | ❌ |
-| `legendary_01` | Altın Hamur | Legendary | `3fdbbb` | turkuaz | **altın** | ❌❌ |
-| `legendary_02` | Gökkuşağı | Legendary | `3f7bdb` | tek renk mavi | **çok renkli** | ❌❌ |
+### 2.4 Materyal paylaşımı / performans
 
-**Sonuç: 1 uyumlu (Susamlı), 1 kısmen (Acı Sos), 18 uyumsuz.**
+(skin, tier) çifti başına bir ShaderMaterial (`SkinVisual._materials`);
+bir round'da tek skin aktif → en fazla 8 materyal, aynı tier'daki tüm
+parçalar aynı materyal. Ek doku örneği 1 (maske) + hücre döngüsü 3×3;
+tier 8 (~130 px) ekranda en fazla birkaç tane. Android ölçümü M9'da.
 
-### En savunulamaz üçü
+## 3. 20 skin gameplay kimliği (`tools/make_skin_resources.py`)
 
-Bu üç isim rengi **doğrudan söylüyor**, dolayısıyla oyuncu hatayı anında
-görür:
+| skin | gövde | desen |
+|---|---|---|
+| Sade | sıcak fildişi krem | — |
+| Susamlı | fildişi/bej | siyah + açık susam benekleri (SPECKLE) |
+| Kepekli | buğday/kepek bej | ince kahve kepek parçaları (FLECK) |
+| Havuçlu | pastel havuç turuncusu | koyu turuncu parçalar (FLECK) |
+| Yeşil Soğan | soluk taze yeşil | yeşil soğan halkaları (RING) |
+| Mısır | mısır sarısı | altın mısır taneleri (FLECK) |
+| Peynirli | kremsi peynir sarısı | düz, tereyağ parlaması (gloss) |
+| Sarımsaklı | kavrulmuş sarımsak beji | seyrek kızarmış benek (SPECKLE) |
+| Karabiber | biber beji / taupe | koyu biber benekleri (SPECKLE, yoğun) |
+| Kırmızı Biber | paprika / mercan | kırmızı biber parçaları (FLECK) |
+| Mantar | mantar taupe / karamel | yumuşak toprak mermeri (MARBLE) |
+| Ispanak | ıspanak yeşili | koyu yaprak parçaları (FLECK) |
+| Deniz Tuzu | aqua / buz camgöbeği | kristal glint'ler (CRYSTAL) + sedef |
+| Zencefil | altın amber | sıcak girdap (SWIRL) |
+| Acı Sos | biber turuncusu / kırmızı | sos çizgileri + parçalar (STREAK), gloss, sparkle |
+| Yosun | derin deniz yeşili | dalga + kabarcık (WAVE), sparkle |
+| Kakao | sütlü kakao | çikolata mermeri (MARBLE), gloss, sparkle |
+| Safran | safran sarısı / amber | iplik girdabı (SWIRL), sparkle |
+| Altın Hamur | cilalı altın | metalik bant + tane (METAL), pearl, sparkle, altın aura |
+| Gökkuşağı | pastel sedef | yanardöner ton geçişi (IRIDESCENT), pearl, sparkle, lavanta aura |
 
-1. **Kırmızı Biber** → sarı-yeşil
-2. **Altın Hamur** → turkuaz
-3. **Gökkuşağı** → tek renk mavi (tek `tint` alanıyla yapısal olarak
-   imkânsız; çok renkli bir skin ayrı bir teknik gerektirir)
+QA kareleri: `tools/skin_gallery.gd` (rarity başına tier 1/4/8 + final
+önizleme yan yana; tier 1 ×3 okunurluk; tier 8 detay; 8 skin için gerçek
+gameplay merge anı). Kontrol edilen: yüz/yanak/aksesuar boyanmıyor, 20 skin
+birbirinden ayrılıyor, tier 1'de renk kimliği okunuyor (desen küçük ama
+var), aura kompakt, merge/parçacık/combo uyumlu.
 
-## Bulgu 3 — Gameplay'de nasıl görünüyor
+## 4. Bilinen sınır (dürüst)
 
-QA çekimi: 8 tier × (varsayılan + 4 rarity), tier'lar eşit boyuta normalize
-edilmiş hâlde karşılaştırıldı (`tools/screenshot_runner.gd::_shot_skins`).
+- **Epic/Legendary önizlemelerindeki özel ifade ve aksesuarlar** (Acı Sos'un
+  biberi, Yosun'un incisi/kabarcıkları, Kakao'nun çikolata parçası, Safran'ın
+  çiçeği, Altın Hamur'un tacı, Gökkuşağı'nın yıldız tacı) yalnızca
+  **koleksiyon/mağaza önizlemesinde** var. Gameplay'de tier'ın kendi yüzü ve
+  aksesuarı korunur; skin kimliği renk + malzeme + desen + rarity efektiyle
+  taşınır. Bunları 8 tier'a taşımak **tier başına overlay art** (6 skin × 8
+  tier = 48 küçük aksesuar parçası) ister — placeholder ile taklit edilmedi.
+  Owner isterse ayrı bir art turu; sistem tarafında `SkinVisual.attach_fx`
+  bu overlay'in takılacağı nokta.
+- Tier 1 (~40 px) parçada desenler renk kadar okunmuyor (Susamlı/Karabiber
+  benekleri görünüyor, Mantar/Kakao mermeri yalnızca ton olarak). Tasarım
+  gereği: küçük parçada kimlik = renk.
+- Maskeler dokuya göre kalibre; tier dokuları değişirse
+  `make_skin_masks.py` yeniden çalıştırılmalı ve `--debug` ile bakılmalı.
+- Android performans ölçümü (aura + shader, 35 parça) M9'da yapılacak.
 
-**Teknik olarak iyi** — `SkinVisual` katmanı istenen korumaları sağlıyor:
-- yüz, göz, ağız ve konturlar dört rarity'de de tam okunuyor ✅
-- spekuler parlamalar ve gövde shading'i korunuyor ✅
-- düz flat recolor yok, tier'lar hâlâ birbirinden ayırt edilebiliyor ✅
+## 5. Kapsam dışı (bu turda yapılmadı)
 
-> **M8.5-13 ölçümü:** koleksiyon önizlemesi artık oyundaki shader'ı birebir
-> kullanınca görüldü ki mevcut tint + `STRENGTH 0.45`, pastel tier-3
-> dumpling üstünde **Rare/Epic'te de** ayırt edilmiyor (Legendary turkuaz
-> hafif okunuyor). Sebep: tint luminansa normalize edilip clamp'leniyor ve
-> gövdenin %64'ü highlight_guard (0.82) üstünde. Kod DEĞİŞTİRİLMEDİ; karar
-> owner'da (A: veri + STRENGTH/guard yeniden kalibrasyonu birlikte).
-
-**Ürün olarak zayıf:**
-- **Common skin neredeyse görünmüyor.** "Sade" satırı varsayılan satırdan
-  ayırt edilemiyor. Oyuncu kazandığı/satın aldığı ödülün etkisini göremiyor.
-- Güç artırılırsa (`SkinVisual.STRENGTH`) Common görünür hâle gelir ama
-  tier'lar tek renge yakınsar ve renkler **zaten yanlış** olduğu için sorun
-  çözülmez, büyür.
-
-## Karar seçenekleri (owner)
-
-Bu turda hiçbiri uygulanmadı.
-
-| # | seçenek | maliyet | not |
-|---|---|---|---|
-| A | 20 tint'i isimlere göre elle yeniden seç | düşük (20 satır `.tres`) | En hızlı düzeltme. Sistem hazır, sadece veri değişir. Gökkuşağı yine çözülmez. |
-| B | İsimleri mevcut renklere uydur | düşük | Renk çarkı ürünü isimler yaratır ("Mor Dumpling"), tematik kaybı var. |
-| C | Skin başına gerçek sprite/desen | yüksek | 20 skin × 8 tier = 160 asset. v1 için gerçekçi değil. |
-| D | Desen/aksesuar katmanı (tek asset, tier'dan bağımsız) | orta | Renk yerine "susam serpme", "taç" gibi katmanlar. Daha okunur ödül hissi. |
-
-**Öneri:** kısa vadede **A** (isimlere uygun tint'ler) + `SkinVisual.STRENGTH`
-yeniden kalibrasyonu. Bu, mevcut equip altyapısına hiç dokunmadan yapılabilir
-— `SkinVisual` tam da bu yüzden ayrı bir katman.
-
-## Bu audit'in kapsamı dışında
-
-- Skin isimlerini/renklerini sessizce yeniden tasarlamak
-- Yeni skin eklemek
-- Fiyat/ekonomi değişikliği
+Yeni skin, fiyat/ekonomi değişikliği, kayıt formatı değişikliği, gameplay
+UI/harita/tipografi yeniden tasarımı, M9 Android/AdMob/Billing.

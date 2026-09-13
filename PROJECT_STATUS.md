@@ -1247,6 +1247,49 @@ boş string = varsayılan) DEĞİŞMEDİ.**
   yenilenmesi gerekti (`godot --headless --editor --quit`); editor
   açılmadan headless koşan test bunu kendisi yapmıyor.
 
+### 4.17 Final skin sanatı + production gameplay skin render'ı (M8.5-14)
+
+Owner'ın 20 final önizleme PNG'si bağlandı ve gameplay skin render'ı
+placeholder hue-shift'ten production pipeline'a geçti. **Fizik, collider,
+CONTACT_FIT, merge/skor, bag, level, ekonomi (50/150/400/900), sandık,
+kayıt formatı, skin id'leri DEĞİŞMEDİ.** Ayrıntı: `SKIN_ART_AUDIT.md`
+(yeniden yazıldı — artık "placeholder" demiyor).
+
+- **Önizleme:** `assets/visual/skins/previews/skin_<rarity>_<ad>.png`
+  (1254², saydam), import `size_limit=512` + mipmap (VRAM ~5 MB / 20 doku).
+  `SkinData.preview_texture` ext_resource; `SkinSwatch` mipmap'li filtre.
+  Kaynak PNG'ler ve arşiv zip'i (`_visual_source/`) dokunulmadı.
+- **Veri:** `SkinData` render profili alanları (body/shade/highlight,
+  pattern + renk/yoğunluk/ölçek/güç, gloss/pearl/sparkle, aura_color,
+  anim_speed); `tint` alanı ve `skin_tint.gdshader` silindi. 20 `.tres`
+  `tools/make_skin_resources.py` tablosundan üretiliyor (elle düzenleme
+  yok). Adlar Türkçe diyakritikli ("Susamlı", "Gökkuşağı").
+- **Gövde maskeleri:** `tools/make_skin_masks.py` → 8 gri maske
+  (`assets/visual/skins/generated/`). Ton + V eşiği + elle dışlama elipsleri
+  (tier 2/7 yanak, 6 yıldız, 7 fiyonk), `--debug` kontrol kareleri.
+- **Shader:** `assets/visual/skins/skin_body.gdshader` — luminans tabanlı
+  shade/body/highlight, 11 deterministik desen ailesi (sprite UV'si, hash/sin,
+  TIME dışında rastgelelik yok), tier'a göre `detail_scale`, gloss/pearl/
+  sparkle. Legendary aura `skin_aura.gdshader` (sprite çocuğu, arkada,
+  paylaşılan doku+materyal). `SkinVisual.apply(item, skin, tier)` +
+  `attach_fx`; (skin,tier) başına tek paylaşılan materyal.
+- **Bulunan kök sebep:** Godot 4 canvas_item'da `COLOR` zaten doku×modulate;
+  eski shader `src * COLOR` ile dokuyu iki kez çarpıyordu → hue-shift
+  "görünmüyor"du. Yeni shader modulate'i vertex'ten varying ile alıyor.
+- **QA araçları:** `tools/skin_gallery.gd` (rarity sayfaları tier 1/4/8 +
+  final önizleme, tier 1 ×3, tier 8 detay, 8 skin gerçek gameplay merge anı
+  — pencereli), `tools/skin_test.gd` (headless, 25 kontrol: 20 skin / sabit
+  id / 8-6-4-2 / adlar / 20 önizleme / fiyatlar / 160 materyal + paylaşım /
+  aura ekleme-kaldırma / varsayılan-Sade temiz dönüş / ghost materyali /
+  global RNG tüketmiyor / takılı skin → yeni parça).
+- **Sonuçlar:** skin_test 25/25, ui_smoke 67/67, economy 100/100, refill
+  119/119, revive 103/103. Görsel: 20 skin birbirinden ayrılıyor, yüz/yanak/
+  aksesuar boyanmıyor, aura kompakt, merge/parçacık/combo uyumlu; koleksiyon
+  + mağaza 540×960 / 720×1280 / 720×1560 kırpılma yok.
+- **Bilinen sınır:** Epic/Legendary önizlemelerindeki özel aksesuar/ifade
+  gameplay'e taşınmadı (tier başına overlay art gerekir, 6×8 parça) —
+  placeholder ile taklit edilmedi, `SkinVisual.attach_fx` takılma noktası.
+
 ## 5. Dosya/klasör yapısı ve script envanteri
 
 ```
@@ -1289,7 +1332,8 @@ squishy-merge/
 | `game/dumpling_visual.gd` | Görsel katman: tier sprite'ı, ±20° eğim, squash-stretch. |
 | `game/tier_config.gd` | 8 tier'ın veri tablosu: yarıçap, isim, renk, merge puanı, yıldız eşikleri. |
 | `game/level_data.gd` / `level_library.gd` | `.tres` level verisi + klasör tarayıcı. |
-| `game/skin_data.gd` / `skin_library.gd` / `skin_entry.gd` | Skin kataloğu + klasör tarayıcı + oyuncuya göre durum (owned/equipped/price) view model'i (M8.5-13). |
+| `game/skin_data.gd` / `skin_library.gd` / `skin_entry.gd` | Skin kataloğu (final önizleme + gameplay render profili, M8.5-14) + klasör tarayıcı + oyuncuya göre durum view model'i (M8.5-13). |
+| `game/skin_visual.gd` | Gameplay skin render katmanı (M8.5-14): gövde maskesi + `skin_body.gdshader` materyali (skin×tier paylaşımlı), Legendary aura. |
 | `game/drop_bag.gd` | Bag randomizer (§4.4). |
 | `game/chest_system.gd` / `chest_reward.gd` | Sandık kurası ve ödül nesnesi. |
 | `game/shop.gd` | Fiyatlar ve satın alma. **Fiyat tune edilecek tek yer.** |

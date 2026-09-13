@@ -1,10 +1,25 @@
-[gd_resource type="Resource" script_class="SkinData" load_steps=2 format=3]
+[gd_resource type="Resource" script_class="SkinData" load_steps=3 format=3]
 
 [ext_resource type="Script" path="res://scripts/game/skin_data.gd" id="1_skin"]
+[ext_resource type="Texture2D" path="res://assets/visual/skins/previews/skin_common_susamli.png" id="2_preview"]
 
 [resource]
 script = ExtResource("1_skin")
 id = &"common_02"
-display_name = "Susamli"
+display_name = "Susamlı"
 rarity = 0
-tint = Color(0.98, 0.919, 0.637, 1)
+preview_texture = ExtResource("2_preview")
+body_color = Color(0.949, 0.8902, 0.7686, 1)
+shade_color = Color(0.7686, 0.6353, 0.4549, 1)
+highlight_color = Color(1, 0.9725, 0.9176, 1)
+pattern = 1
+pattern_color = Color(0.1647, 0.1255, 0.09412, 1)
+pattern_color2 = Color(1, 0.9529, 0.8392, 1)
+pattern_density = 0.55
+pattern_scale = 1.15
+pattern_strength = 0.95
+gloss = 0
+pearl = 0
+sparkle = 0
+aura_color = Color(1, 1, 1, 0)
+anim_speed = 1

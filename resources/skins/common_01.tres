@@ -1,10 +1,25 @@
-[gd_resource type="Resource" script_class="SkinData" load_steps=2 format=3]
+[gd_resource type="Resource" script_class="SkinData" load_steps=3 format=3]
 
 [ext_resource type="Script" path="res://scripts/game/skin_data.gd" id="1_skin"]
+[ext_resource type="Texture2D" path="res://assets/visual/skins/previews/skin_common_sade.png" id="2_preview"]
 
 [resource]
 script = ExtResource("1_skin")
 id = &"common_01"
 display_name = "Sade"
 rarity = 0
-tint = Color(0.98, 0.637, 0.637, 1)
+preview_texture = ExtResource("2_preview")
+body_color = Color(0.9647, 0.9137, 0.8118, 1)
+shade_color = Color(0.7882, 0.6627, 0.4941, 1)
+highlight_color = Color(1, 0.9804, 0.9412, 1)
+pattern = 0
+pattern_color = Color(0, 0, 0, 1)
+pattern_color2 = Color(1, 1, 1, 1)
+pattern_density = 0.5
+pattern_scale = 1
+pattern_strength = 0.8
+gloss = 0
+pearl = 0
+sparkle = 0
+aura_color = Color(1, 1, 1, 0)
+anim_speed = 1

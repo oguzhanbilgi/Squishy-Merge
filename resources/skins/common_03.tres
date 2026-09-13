@@ -1,10 +1,25 @@
-[gd_resource type="Resource" script_class="SkinData" load_steps=2 format=3]
+[gd_resource type="Resource" script_class="SkinData" load_steps=3 format=3]
 
 [ext_resource type="Script" path="res://scripts/game/skin_data.gd" id="1_skin"]
+[ext_resource type="Texture2D" path="res://assets/visual/skins/previews/skin_common_kepekli.png" id="2_preview"]
 
 [resource]
 script = ExtResource("1_skin")
 id = &"common_03"
 display_name = "Kepekli"
 rarity = 0
-tint = Color(0.759, 0.98, 0.637, 1)
+preview_texture = ExtResource("2_preview")
+body_color = Color(0.8863, 0.7882, 0.6275, 1)
+shade_color = Color(0.6627, 0.498, 0.3333, 1)
+highlight_color = Color(0.9765, 0.9333, 0.8471, 1)
+pattern = 2
+pattern_color = Color(0.4784, 0.3098, 0.1725, 1)
+pattern_color2 = Color(0.7255, 0.5412, 0.3608, 1)
+pattern_density = 0.7
+pattern_scale = 1.4
+pattern_strength = 0.75
+gloss = 0
+pearl = 0
+sparkle = 0
+aura_color = Color(1, 1, 1, 0)
+anim_speed = 1

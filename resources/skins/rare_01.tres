@@ -1,10 +1,25 @@
-[gd_resource type="Resource" script_class="SkinData" load_steps=2 format=3]
+[gd_resource type="Resource" script_class="SkinData" load_steps=3 format=3]
 
 [ext_resource type="Script" path="res://scripts/game/skin_data.gd" id="1_skin"]
+[ext_resource type="Texture2D" path="res://assets/visual/skins/previews/skin_rare_karabiber.png" id="2_preview"]
 
 [resource]
 script = ExtResource("1_skin")
 id = &"rare_01"
 display_name = "Karabiber"
 rarity = 1
-tint = Color(0.94, 0.753, 0.498, 1)
+preview_texture = ExtResource("2_preview")
+body_color = Color(0.8902, 0.8275, 0.7216, 1)
+shade_color = Color(0.6275, 0.5216, 0.3765, 1)
+highlight_color = Color(1, 0.9725, 0.9176, 1)
+pattern = 1
+pattern_color = Color(0.1216, 0.102, 0.08627, 1)
+pattern_color2 = Color(0.3529, 0.2902, 0.2275, 1)
+pattern_density = 0.6
+pattern_scale = 1.5
+pattern_strength = 0.95
+gloss = 0.2
+pearl = 0
+sparkle = 0
+aura_color = Color(1, 1, 1, 0)
+anim_speed = 1

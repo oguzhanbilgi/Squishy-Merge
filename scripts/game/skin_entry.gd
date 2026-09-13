@@ -68,13 +68,13 @@ func rarity_color() -> Color:
 	return SkinData.rarity_color(rarity)
 
 
-## Placeholder tint'i (SkinVisual'a gidiyor); varsayılanda beyaz.
-func tint() -> Color:
-	return skin.tint if skin != null else Color.WHITE
+## Skin'in özet rengi (gövde orta tonu); varsayılanda beyaz.
+func body_color() -> Color:
+	return skin.body_color if skin != null else Color.WHITE
 
 
-## Hazır önizleme görseli varsa o, yoksa null (çağıran orijinal dumpling +
-## SkinVisual ile türetir — bkz. SkinSwatch).
+## Final önizleme görseli (M8.5-14'ten beri 20 skin'in hepsinde dolu);
+## null ise çağıran orijinal dumpling + SkinVisual ile türetir (fallback).
 func preview_texture() -> Texture2D:
 	if skin != null and skin.preview_texture != null:
 		return skin.preview_texture

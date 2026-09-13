@@ -1,29 +1,57 @@
 class_name SkinData
 extends Resource
 ## Kozmetik dumpling skin'inin KATALOG tanımı (GAME_DESIGN.md §5.2):
-## kimlik, ad, rarity ve görsel referansları. Oyuncuya özgü durum (sahip mi,
-## takılı mı, fiyat) burada DEĞİL — o bilgi `SkinEntry` ile birleştiriliyor.
+## kimlik, ad, rarity, koleksiyon/mağaza önizleme görseli ve gameplay render
+## profili. Oyuncuya özgü durum (sahip mi, takılı mı, fiyat) burada DEĞİL —
+## o bilgi `SkinEntry` ile birleştiriliyor.
 ##
-## Görsel alanlar:
-##   tint             — placeholder renk kaydırması (SkinVisual, hue shift).
-##                      Sanat gelene kadar hem oyunda hem önizlemede bu kullanılır.
-##   preview_texture  — koleksiyon/mağaza önizlemesi için hazır görsel.
-##                      BOŞSA önizleme orijinal dumpling + SkinVisual ile
-##                      türetilir (yani oyunda ne görünüyorsa o). Owner'ın
-##                      skin başına önizleme görseli geldiğinde yalnızca bu
-##                      alan doldurulur; kod değişmez.
+## İki görsel katman (M8.5-14):
+##   preview_texture — owner'ın FİNAL önizleme sanatı
+##                     (assets/visual/skins/previews/skin_<rarity>_<ad>.png).
+##                     Koleksiyon kartı, vitrin ve mağaza satırı bunu çizer.
+##   gameplay profili — 8 tier sprite'ının GÖVDESİNİ yeniden boyayan/desenleyen
+##                     shader parametreleri (assets/visual/skins/skin_body.gdshader,
+##                     uygulayan: scripts/game/skin_visual.gd). Tier siluetleri,
+##                     yüzler ve aksesuarlar korunur; skin yalnızca hamurun
+##                     rengi + malzemesi + deseni. 20×8 sprite ÜRETİLMİYOR.
 ##
-## ⚠️ STATUS: functional equip complete / final skin art pending.
-## 20 skin'in `tint` değerleri prosedürel placeholder (bkz. SKIN_ART_AUDIT.md).
+## Profil alanlarının hepsi veri: yeni skin = yeni .tres, kod değişmez.
+## Tüm 20 skin: tools/make_skin_resources.py tablosundan üretildi.
 
 enum Rarity { COMMON, RARE, EPIC, LEGENDARY }
+
+## Desen ailesi — skin_body.gdshader `pattern_type` ile aynı sıra.
+enum Pattern { NONE, SPECKLE, FLECK, RING, MARBLE, SWIRL, CRYSTAL, STREAK, WAVE, IRIDESCENT, METAL }
 
 @export var id: StringName = &""
 @export var display_name: String = ""
 @export var rarity: Rarity = Rarity.COMMON
-@export var tint: Color = Color.WHITE
-## Opsiyonel hazır önizleme görseli. null = orijinal dumpling + tint.
+## Final koleksiyon/mağaza önizlemesi. null olursa SkinSwatch orijinal
+## dumpling + gameplay profiliyle türetir (güvenli fallback, prod'da olmamalı).
 @export var preview_texture: Texture2D = null
+
+@export_group("Gameplay render")
+## Hamur gövdesinin ana rengi (orta ton). Kart/renk özeti de bunu kullanır.
+@export var body_color: Color = Color(0.96, 0.92, 0.84)
+## Gölge tonu (sprite'ın koyu bölgeleri buna gider).
+@export var shade_color: Color = Color(0.72, 0.62, 0.50)
+## Spekuler parlama tonu.
+@export var highlight_color: Color = Color.WHITE
+@export var pattern: Pattern = Pattern.NONE
+@export var pattern_color: Color = Color(0.3, 0.2, 0.1)
+@export var pattern_color2: Color = Color.WHITE
+## 0..1: hücrelerin dolu olma olasılığı.
+@export_range(0.0, 1.0) var pattern_density: float = 0.5
+## Hücre sayısı çarpanı (1 = 9 hücre / doku genişliği).
+@export_range(0.2, 4.0) var pattern_scale: float = 1.0
+@export_range(0.0, 1.0) var pattern_strength: float = 0.8
+## Rarity malzemesi: gloss (parlama), pearl (sedef), sparkle (animasyonlu glint).
+@export_range(0.0, 1.0) var gloss: float = 0.0
+@export_range(0.0, 1.0) var pearl: float = 0.0
+@export_range(0.0, 1.0) var sparkle: float = 0.0
+## Legendary aura rengi; alfa 0 = aura yok.
+@export var aura_color: Color = Color(1, 1, 1, 0)
+@export_range(0.0, 3.0) var anim_speed: float = 1.0
 
 
 static func rarity_name(value: Rarity) -> String:

@@ -1,10 +1,25 @@
-[gd_resource type="Resource" script_class="SkinData" load_steps=2 format=3]
+[gd_resource type="Resource" script_class="SkinData" load_steps=3 format=3]
 
 [ext_resource type="Script" path="res://scripts/game/skin_data.gd" id="1_skin"]
+[ext_resource type="Texture2D" path="res://assets/visual/skins/previews/skin_legendary_gokkusagi.png" id="2_preview"]
 
 [resource]
 script = ExtResource("1_skin")
 id = &"legendary_02"
-display_name = "Gokkusagi"
+display_name = "Gökkuşağı"
 rarity = 3
-tint = Color(0.249, 0.483, 0.86, 1)
+preview_texture = ExtResource("2_preview")
+body_color = Color(0.949, 0.8471, 0.9608, 1)
+shade_color = Color(0.6627, 0.5333, 0.7686, 1)
+highlight_color = Color(1, 1, 1, 1)
+pattern = 9
+pattern_color = Color(1, 1, 1, 1)
+pattern_color2 = Color(1, 1, 1, 1)
+pattern_density = 0.5
+pattern_scale = 1
+pattern_strength = 0.85
+gloss = 0.6
+pearl = 0.7
+sparkle = 0.6
+aura_color = Color(0.902, 0.7216, 1, 1)
+anim_speed = 1

@@ -162,7 +162,7 @@ func _ready() -> void:
 	var visual: Node2D = preload("res://scripts/game/dumpling_visual.gd").new()
 	add_child(visual); visual.setup(3); await get_tree().process_frame
 	var mat: Material = visual._sprite.material
-	_c("gameplay: parca skin materyali", mat is ShaderMaterial and (mat as ShaderMaterial).get_shader_parameter("skin_tint") == SkinLibrary.find(&"rare_02").tint)
+	_c("gameplay: parca skin materyali", mat is ShaderMaterial and (mat as ShaderMaterial).get_shader_parameter("body_color") == SkinLibrary.find(&"rare_02").body_color)
 	visual.queue_free()
 	# Save/restore: diskten geri oku
 	SaveManager.load_game()
