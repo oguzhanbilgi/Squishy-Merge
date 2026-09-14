@@ -736,3 +736,15 @@ doğrulamak için kullanıldı.
 (candy cyan pill / erik yüzey). Dosyalar geri dönüş için duruyor,
 hiçbir sahne referans vermiyor. Aynı durum eski Kenney
 `ui_button_*.png`, `ui_panel.png`, `ui_star_*.png` için M8'den beri geçerli.
+
+## LayerLab "GUI Pro – Casual Game" v4.1.1 (M8.6-01) — `ui/core/`
+
+Owner tarafından Unity Asset Store'dan **lisanslı** satın alındı. Ham paket
+`_visual_source/layerlab_casual_game/` altında, **repoda değil** (EULA:
+yeniden dağıtım yok). Türetilen 56 beyaz 9-slice gövde + 32 picto ikon
+(`tools/make_ui_core.py`, Unity `spriteBorder` → Godot margin, 1440p →
+720 tuvali için 0.3–0.5 ölçek, `Title_Ribbon` parlaklık tabanlı beyaza
+indirgendi) `assets/visual/ui/core/` altında; hepsi `modulate` ile
+paletten boyanır. USE / MAYBE / REJECT politikası ve tam liste:
+`docs/UI_VISUAL_SYSTEM.md` §9. Yalnızca yapısal katman alındı; kimlik
+katmanı (dumpling, skin, güç, Hamur, sandık, tepelik) owner sanatıdır.

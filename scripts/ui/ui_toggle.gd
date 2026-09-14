@@ -8,11 +8,22 @@ extends Button
 ##
 ## `toggle_mode` açık bir Button: dokunma alanı 88x48, durum `button_pressed`.
 ## Topuz `_knob` (0..1) ile kayıyor, tween ile 0.14 sn.
+##
+## M8.6-01: ray variation'ları ve topuz dokusu dışarıdan verilebiliyor
+## (`UiKit.switch_toggle` → `SwitchOn`/`SwitchOff` + LayerLab topuz);
+## varsayılanlar M8.5 ayarlar panelini aynen korur.
 
 const TRACK_SIZE: Vector2 = Vector2(88.0, 48.0)
 const KNOB_RADIUS: float = 18.0
 const KNOB_INSET: float = 6.0
 const SLIDE_TIME: float = 0.14
+
+## Ray stylebox'larının tema variation'ları.
+var on_variation: StringName = &"ToggleOn"
+var off_variation: StringName = &"ToggleOff"
+## Verilirse topuz daire yerine bu dokuyla çizilir (9-slice değil; en/boy
+## korunarak KNOB_RADIUS*2 yüksekliğe ölçeklenir).
+var knob_texture: Texture2D = null
 
 var _knob: float = 0.0
 var _track_on: StyleBox
@@ -29,8 +40,8 @@ func _init() -> void:
 
 
 func _ready() -> void:
-	_track_on = get_theme_stylebox("panel", &"ToggleOn")
-	_track_off = get_theme_stylebox("panel", &"ToggleOff")
+	_track_on = get_theme_stylebox("panel", on_variation)
+	_track_off = get_theme_stylebox("panel", off_variation)
 	_knob = 1.0 if button_pressed else 0.0
 	toggled.connect(_on_toggled)
 	# Anahtarin kendi sesi var (ayarlar paneli); evrensel tik'i alma.
@@ -56,6 +67,11 @@ func _set_knob(value: float) -> void:
 
 
 func _draw() -> void:
+	# Pasif anahtar butunuyle soluk (ray + topuz); yalniz farkliysa yaz,
+	# modulate degisimi yeniden cizim tetiklemesin.
+	var target_alpha: float = 0.55 if disabled else 1.0
+	if not is_equal_approx(modulate.a, target_alpha):
+		modulate.a = target_alpha
 	var rect := Rect2(Vector2.ZERO, size)
 	# Kapalıdan açığa geçerken iki ray üst üste soluyor: renk sıçramasın.
 	draw_style_box(_track_off, rect)
@@ -66,7 +82,21 @@ func _draw() -> void:
 			faded.bg_color.a = on_box.bg_color.a * _knob
 			faded.border_color.a = on_box.border_color.a * _knob
 			draw_style_box(faded, rect)
+		var on_tex := _track_on as StyleBoxTexture
+		if on_tex != null:
+			var faded_tex := on_tex.duplicate() as StyleBoxTexture
+			faded_tex.modulate_color.a = on_tex.modulate_color.a * _knob
+			draw_style_box(faded_tex, rect)
 	var travel: float = size.x - 2.0 * (KNOB_INSET + KNOB_RADIUS)
 	var center := Vector2(KNOB_INSET + KNOB_RADIUS + travel * _knob, size.y * 0.5)
+	if knob_texture != null:
+		# Doku golgesini kendi tasiyor; yukseklik = topuz capi + tasma payi.
+		var tex_size: Vector2 = knob_texture.get_size()
+		var height: float = KNOB_RADIUS * 2.0 + 8.0
+		var width: float = height * tex_size.x / tex_size.y
+		var top_left := center - Vector2(width * 0.5, KNOB_RADIUS + 3.0)
+		draw_texture_rect(knob_texture, Rect2(top_left, Vector2(width, height)), false,
+			Color(1, 1, 1, 0.92 if disabled else 1.0))
+		return
 	draw_circle(center + Vector2(0, 2), KNOB_RADIUS, Color(0, 0, 0, 0.18))
 	draw_circle(center, KNOB_RADIUS, Color(1, 1, 1, 0.92 if disabled else 1.0))

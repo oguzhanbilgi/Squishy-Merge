@@ -193,7 +193,18 @@ alınacak — şimdi tahmin/vaat yok.
     `com.example.squishymerge`, arm64, VIBRATE açık). **Fizik, ekonomi,
     kayıt, önizleme sanatı DEĞİŞMEDİ.** Ayrıntı: SKIN_ART_AUDIT §2.2,
     PROJECT_STATUS §4.19.
-- **Sırada: M9 — Android export.** Ortam hazır (export template'leri, SDK,
+  - `M8.6-01` ✅ production UI temeli (Visual Cohesion Rebuild'in ilk
+    işi): tek token kaynağı `scripts/ui/ui_tokens.gd`, LayerLab yapısal
+    katmanı spike'tan **seçici** promote (`assets/visual/ui/core/`, 56 beyaz
+    9-slice + 32 picto; renkli/RPG/brawler REJECT), `tools/make_ui_theme.gd`
+    → `ui_theme.tres`'e 55 variation (M8.5 rolleri ve tipografi aynen),
+    `UiKit` bileşen fabrikası, `tools/ui_system_gallery.tscn` (dev-only, 5
+    sayfa), `tools/ui_foundation_test` 126/126, masaüstü 4 boyut + A36
+    cihaz çekimleri. **Production ekranlar henüz sisteme geçmedi** — sırada
+    M8.6-02 Gameplay Shell. Kaynak doküman: `docs/UI_VISUAL_SYSTEM.md`.
+- **Sırada: M8.6 — Visual Cohesion Rebuild** (ekranlar `UiKit`/`UiTokens`
+  sistemine geçirilecek: gameplay shell → home → shop → collection → map →
+  result/reward/revive), ardından **M9 — Android export.** Ortam hazır (export template'leri, SDK,
   NDK, JDK 17, debug keystore mevcut, ETC2/ASTC import açık, iş
   makinesinde debug `export_presets.cfg` var — gitignore'lu, her makinede
   ayrı); eksik olan kalıcı paket adı, release/upload keystore ve uzun
