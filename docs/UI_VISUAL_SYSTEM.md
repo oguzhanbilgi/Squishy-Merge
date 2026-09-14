@@ -6,7 +6,7 @@
 **Asset kaynağı:** `tools/make_ui_core.py` → `assets/visual/ui/core/**` +
 `scripts/ui/ui_core_assets.gd` (üretilir, elle düzenlenmez).
 **Galeri:** `tools/ui_system_gallery.tscn` (dev-only, 5 sayfa).
-**Test:** `tools/ui_foundation_test.tscn` (126 kontrol).
+**Test:** `tools/ui_foundation_test.tscn` (135 kontrol).
 
 Çakışma kuralı: owner'ın son talimatı > GAME_DESIGN.md > bu doküman > kod.
 Bir sayı burada ve `ui_tokens.gd`'de farklıysa **doküman güncellenir, token
@@ -45,7 +45,7 @@ Tonlar owner asset'lerinden ölçüldü; `UiPalette` (M8.5 kabuğu) ile aynı sa
 | Satın alma / pozitif | `MINT` / `MINT_DEEP` | `#6ddc8b` / `#2f9e57` | ButtonPurchase, EquippedBadge, ilerleme dolgusu, anahtar açık |
 | Vurgu | `PINK` / `PINK_DEEP` | `#f06aa8` / `#c94a86` | HeaderRibbon, ButtonRoundIcon (kapat), NewBadge, ButtonDanger |
 | Premium | `GOLD` / `GOLD_BRIGHT` / `GOLD_DEEP` | `#ffd166` / `#fee85f` / `#b8731f` | **yalnız** Legendary, ödül anları, Badge (stok/level), fiyat metni (deep) |
-| Pasif | `DISABLED` / `DISABLED_DEEP` | `#8a86a8` / `#5c5878` | pasif buton gövdesi, LockBadge |
+| Pasif | `DISABLED` / `DISABLED_DEEP` | `#a19dba` / `#5c5878` | pasif buton gövdesi (açık, üstündeki koyu yazı ~4.8:1), LockBadge / LabelDisabled |
 | Metin (krem üstü) | `TEXT_PRIMARY` / `TEXT_SECONDARY` / `TEXT_TERTIARY` | `#5c2952` / `#7a4a69` / `#a07f95` | başlık / gövde / not |
 | Metin (koyu üstü) | `TEXT_ON_DARK` / `TEXT_ON_DARK_MUTED` | beyaz / beyaz %62 | HUD, kurdele |
 | Metin (vurgu üstü) | `TEXT_ON_ACCENT` | `#0f2e4d` | cyan/nane/altın buton ve etiket yazısı |
@@ -113,7 +113,7 @@ için önceden ölçeklendi (§8).
 | `PanelModal` | `popup_body` | krem, üst 56 px boş | pencere gövdesi — `UiKit.modal_frame` kurdele + kapat + parıltı ekler |
 | `PanelCard` | `card_large` | krem | mağaza/koleksiyon kartı |
 | `PanelElevated` | `card_bevel` | krem | küçük yükseltilmiş kart ("Sıradaki") |
-| `PanelListRow` | `list_row` | krem α .94 | sahip olunan skin satırı, ayar satırı |
+| `PanelListRow` | `list_row` | `CREAM_DEEP` opak | sahip olunan skin satırı, ayar satırı — kartla aynı vanilya ailesi, bir ton geri (alfa ile gri kaçmaz) |
 
 Owner'ın candy paneli (`panel_candy` + kanatlı-kalp tepelik) kimlik katmanıdır:
 pencerelerde `modal_frame` iskeletinin **üstüne** tepelik olarak eklenir ya da
@@ -135,8 +135,16 @@ iskeletin yerine kullanılır — kitin düz krem gövdesi tek başına kimlik t
 | `ButtonResourceAdd` | `resource_btn` | nane | pill'deki "+" (mağaza kısayolu) |
 
 Durumlar (hepsi temada): **normal**, **hover** (%6 açık), **pressed** (%12
-koyu + içerik 3 px aşağı), **disabled** (lavanta-gri gövde + koyu gri yazı,
-okunur). Basış hissi `UiMotion.attach_press` (0.94 ölçek + `ui_tap` sesi) —
+koyu + içerik 3 px aşağı), **disabled** (açık lavanta-gri gövde `#a19dba` +
+koyu yazı/ikon `TEXT_DISABLED #33304d`, ≈ 4.8:1 — testle kilitli; cyan/nane
+ile karışmaz).
+
+**Dikey hizalama (ölçüldü):** Baloo 2'nin büyük harf mürekkebi Godot'un
+satır kutusu merkezinin üstüne düşer ve pill'in görsel merkezi (gölge hariç)
+dikdörtgen merkezinin üstündedir. İçerik margin'leri ekran görüntüsünden
+piksel sayarak seçildi: 58 px gövde **10/10** (mürekkep merkezi 26.5, pill
+26), 88 px CTA **14/16** (42 / 41.5). Yeni bir buton yüksekliği eklenirken
+aynı ölçüm tekrarlanır; gözle offset verilmez. Basış hissi `UiMotion.attach_press` (0.94 ölçek + `ui_tap` sesi) —
 `UiKit.button/icon_button/cta` bunu otomatik bağlar; ikinci bir animasyon
 sistemi YOK.
 
@@ -260,8 +268,8 @@ production'a taşınmadı; asset yollarında "spike" kelimesi yok.
   48–108 px, keskin). Owner sanatı zaten 512 px + mipmap.
 - Dokunma hedefi ≥ 48 px; ikon butonu 56–64.
 - Krem/koyu kontrast: krem üstünde `TEXT_PRIMARY` (≈ 9:1), koyu üstünde beyaz;
-  cyan/nane üstünde lacivert (≈ 7:1). Pasif yazı `TEXT_DISABLED` (`#4a4766`)
-  gri gövdede ≈ 3:1 — kasıtlı olarak "soluk ama okunur".
+  cyan/nane üstünde lacivert (≈ 7:1). Pasif yazı `TEXT_DISABLED` (`#33304d`)
+  açık gri gövdede ≈ 4.8:1 — pasif olduğu belli, telefonda okunur.
 
 ---
 

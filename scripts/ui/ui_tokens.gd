@@ -45,7 +45,9 @@ const GOLD: Color = Color("ffd166")
 const GOLD_BRIGHT: Color = Color("fee85f")
 const GOLD_DEEP: Color = Color("b8731f")
 ## Pasif: doygunlugu alinmis lavanta-gri (okunur kalir, bagirmaz).
-const DISABLED: Color = Color("8a86a8")
+## Govde acik tutulur ki ustundeki koyu yazi/ikon telefonda okunsun
+## (TEXT_DISABLED ile ~4.8:1); koyu ton rozet/etiket icin.
+const DISABLED: Color = Color("a19dba")
 const DISABLED_DEEP: Color = Color("5c5878")
 
 # --- Metin -------------------------------------------------------------------
@@ -58,7 +60,8 @@ const TEXT_ON_DARK: Color = Color(0.99, 0.97, 1.0)
 const TEXT_ON_DARK_MUTED: Color = Color(1, 1, 1, 0.62)
 ## Cyan / nane / altin butonlarin ustundeki lacivert.
 const TEXT_ON_ACCENT: Color = Color("0f2e4d")
-const TEXT_DISABLED: Color = Color("4a4766")
+## Pasif buton yazisi/ikonu: DISABLED govde ustunde ~4.8:1 (olculdu).
+const TEXT_DISABLED: Color = Color("33304d")
 const TEXT_DISABLED_ON_DARK: Color = Color(1, 1, 1, 0.45)
 ## Fiyat: krem ustunde koyu altin (GOLD kremde okunmuyor).
 const TEXT_PRICE: Color = GOLD_DEEP

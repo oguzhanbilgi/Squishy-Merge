@@ -166,6 +166,35 @@ func _ready() -> void:
 				and theme.has_color("font_disabled_color", type) \
 				and theme.get_color("font_disabled_color", type) != theme.get_color("font_color", type)
 		_c("%s: normal / basili (koyu + 3 px) / pasif (lavanta-gri) ayri" % type, ok)
+	# Dikey hizalama (polish): Baloo buyuk harf murekkebi satir merkezinin
+	# ustunde ve pill'in gorsel merkezi golge yuzunden dikdortgen merkezinin
+	# ustunde -> margin'ler olculerek secildi (58: 10/10, 88: 14/16); basili +3.
+	var primary_normal := theme.get_stylebox("normal", &"ButtonPrimary") as StyleBoxTexture
+	var primary_pressed := theme.get_stylebox("pressed", &"ButtonPrimary") as StyleBoxTexture
+	var cta_normal := theme.get_stylebox("normal", &"ButtonCTA") as StyleBoxTexture
+	_c("yazi butonu icerik merkezi pill merkezine hizali (58: 10/10, 88: 14/16)",
+		primary_normal.content_margin_top == 10.0 and primary_normal.content_margin_bottom == 10.0
+		and cta_normal.content_margin_top == 14.0 and cta_normal.content_margin_bottom == 16.0)
+	_c("basili durum yalniz +3 px kaydirir, toplam yukseklik ayni",
+		primary_pressed.content_margin_top == 13.0 and primary_pressed.content_margin_bottom == 7.0)
+	for type in [&"ButtonSecondary", &"ButtonPurchase", &"ButtonDanger"]:
+		var box := theme.get_stylebox("normal", type) as StyleBoxTexture
+		_c("%s hizalamasi ButtonPrimary ile ayni" % type,
+			box.content_margin_top == primary_normal.content_margin_top
+			and box.content_margin_bottom == primary_normal.content_margin_bottom)
+	var ratio: float = _contrast(UiTokens.TEXT_DISABLED, UiTokens.DISABLED)
+	_c("pasif yazi/govde kontrasti >= 4.5:1 (%.2f)" % ratio, ratio >= 4.5)
+	_c("pasif govde etkin CTA'dan ayrik (dusuk doygunluk)",
+		UiTokens.DISABLED.s < 0.25 and UiTokens.CYAN.s > 0.5 and UiTokens.MINT.s > 0.4)
+	var all_disabled_dark: bool = true
+	for type in BUTTONS:
+		if theme.get_color("font_disabled_color", type) != UiTokens.TEXT_DISABLED \
+				or theme.get_color("icon_disabled_color", type) != UiTokens.TEXT_DISABLED:
+			all_disabled_dark = false
+	_c("her butonda pasif yazi/ikon TEXT_DISABLED", all_disabled_dark)
+	var list_row := theme.get_stylebox("panel", &"PanelListRow") as StyleBoxTexture
+	_c("PanelListRow opak koyu krem (CREAM_DEEP), kart ailesinde",
+		list_row.modulate_color.is_equal_approx(UiTokens.CREAM_DEEP) and list_row.modulate_color.a == 1.0)
 	_c("ButtonCTA govdesi hero yukseklik (88)", (theme.get_stylebox("normal", &"ButtonCTA") as StyleBoxTexture)
 		.texture.get_height() == UiTokens.HEIGHT_HERO)
 	_c("ButtonPrimary govdesi normal yukseklik (58)", (theme.get_stylebox("normal", &"ButtonPrimary") as StyleBoxTexture)
@@ -298,6 +327,19 @@ func _scan_file(path: String, hits: Array[String]) -> void:
 			if code.contains(word):
 				hits.append("%s -> %s" % [path, word])
 				break
+
+
+## WCAG kontrast orani.
+func _contrast(a: Color, b: Color) -> float:
+	var la: float = _lum(a)
+	var lb: float = _lum(b)
+	return (maxf(la, lb) + 0.05) / (minf(la, lb) + 0.05)
+
+
+func _lum(c: Color) -> float:
+	var lin := func(v: float) -> float:
+		return v / 12.92 if v <= 0.03928 else pow((v + 0.055) / 1.055, 2.4)
+	return 0.2126 * lin.call(c.r) + 0.7152 * lin.call(c.g) + 0.0722 * lin.call(c.b)
 
 
 func _font_is(theme: Theme, type: StringName, stem: String) -> bool:

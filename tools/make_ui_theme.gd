@@ -135,15 +135,27 @@ func _build_panels() -> void:
 	# Modal: ust kenar kurdele icin bos birakilir (kurdele -34 px tasar).
 	_panel(&"PanelModal", "popup_body", UiTokens.CREAM, Vector4(36, 56, 36, 36))
 	_panel(&"PanelElevated", "card_bevel", UiTokens.CREAM, Vector4(14, 10, 14, 16))
-	_panel(&"PanelListRow", "list_row", Color(UiTokens.CREAM, 0.94), Vector4(14, 8, 16, 14))
+	# Liste satiri: ayni vanilya ailesinden bir ton koyu krem, TAM opak
+	# (0.94 alfa koyu zemin ustunde griye kayiyordu); kartlardan bir kademe
+	# geri, ama ayni paket.
+	_panel(&"PanelListRow", "list_row", UiTokens.CREAM_DEEP, Vector4(14, 8, 16, 14))
 
 
 # --- Butonlar ----------------------------------------------------------------
 
 func _build_buttons() -> void:
-	# Normal yukseklik (58): kart/satir CTA'lari. Alt bevel ~7 px -> icerik
-	# gorsel merkeze gelsin diye alt margin ustten fazla.
-	var normal := Vector4(24, 6, 24, 14)
+	# Yazi butonlarinda dikey hizalama (M8.6-01 polish) EKRAN GORUNTUSUNDEN
+	# OLCULDU (tools/ui_system_gallery.tscn -- shots, piksel sayimi):
+	#   - btn_normal (58): pill govdesi 1..52 (53..57 golge) -> gorsel merkez
+	#     rect ustunden 26. Baloo 2 Bold 22 buyuk harf murekkebi Button
+	#     icinde icerik merkezinin ~2.5 px ustune duser (ascent 24 / descent
+	#     12, diyakritik payi buyuk). Eski 6/14 murekkebi 3.5 px yukarida
+	#     birakiyordu; 10/10 ile murekkep merkezi 26.5 (pill 26).
+	#   - btn_cta (88): pill 0..83 -> merkez 41.5; UiKit.cta govdesi (EB 28)
+	#     icerik merkezinin ~1 px ustunde -> 14/16 ile murekkep 42.
+	#   Toplam ust+alt (20 / 30) korunur; basili durum +3 px ekler. Pasif
+	#   yazi her butonda koyu (govde her zaman lavanta-gri): ~4.8:1.
+	var normal := Vector4(24, 10, 24, 10)
 	_button(&"ButtonPrimary", "btn_normal", UiTokens.CYAN, normal,
 		FONT_TITLE, 22, UiTokens.TEXT_ON_ACCENT, UiTokens.TEXT_DISABLED)
 	_button(&"ButtonSecondary", "btn_normal", UiTokens.LAVENDER_SURFACE, normal,
@@ -151,14 +163,14 @@ func _build_buttons() -> void:
 	_button(&"ButtonPurchase", "btn_normal", UiTokens.MINT, normal,
 		FONT_TITLE, 22, UiTokens.TEXT_ON_ACCENT, UiTokens.TEXT_DISABLED)
 	_button(&"ButtonDanger", "btn_normal", UiTokens.PINK, normal,
-		FONT_TITLE, 22, UiTokens.TEXT_ON_DARK, UiTokens.TEXT_DISABLED_ON_DARK)
+		FONT_TITLE, 22, UiTokens.TEXT_ON_DARK, UiTokens.TEXT_DISABLED)
 	# Ikon butonlari: kare (ayarlar/geri) lavanta, daire (kapat) pembe.
 	_button(&"ButtonIcon", "btn_square", UiTokens.LAVENDER, Vector4(12, 10, 12, 16),
-		FONT_TITLE, 22, UiTokens.TEXT_ON_DARK, UiTokens.TEXT_DISABLED_ON_DARK, 30)
+		FONT_TITLE, 22, UiTokens.TEXT_ON_DARK, UiTokens.TEXT_DISABLED, 30)
 	_button(&"ButtonRoundIcon", "btn_circle", UiTokens.PINK, Vector4(14, 12, 14, 20),
-		FONT_TITLE, 22, UiTokens.TEXT_ON_DARK, UiTokens.TEXT_DISABLED_ON_DARK, 28)
-	# Kahraman CTA (88): pencere/ana sayfa birincil eylemi.
-	_button(&"ButtonCTA", "btn_cta", UiTokens.CYAN, Vector4(28, 8, 28, 22),
+		FONT_TITLE, 22, UiTokens.TEXT_ON_DARK, UiTokens.TEXT_DISABLED, 28)
+	# Kahraman CTA (88): pencere/ana sayfa birincil eylemi. Pill 0..83.
+	_button(&"ButtonCTA", "btn_cta", UiTokens.CYAN, Vector4(28, 14, 28, 16),
 		FONT_DISPLAY, 28, UiTokens.TEXT_ON_ACCENT, UiTokens.TEXT_DISABLED, 34)
 	# Kaynak pill'inin nane "+" butonu.
 	_button(&"ButtonResourceAdd", "resource_btn", UiTokens.MINT, Vector4(8, 6, 8, 10),
@@ -177,7 +189,7 @@ func _build_labels() -> void:
 	_label(&"LabelPrice", FONT_NUM, 21, UiTokens.TEXT_PRICE)
 	_label(&"LabelPositive", FONT_NUM, 18, UiTokens.TEXT_POSITIVE)
 	_label(&"LabelWarning", FONT_NUM, 18, UiTokens.TEXT_WARNING)
-	_label(&"LabelDisabled", FONT_BODY, 18, UiTokens.DISABLED)
+	_label(&"LabelDisabled", FONT_BODY, 18, UiTokens.DISABLED_DEEP)
 	_label(&"LabelStat", FONT_NUM, 20, UiTokens.TEXT_PRIMARY)
 	# Koyu yuzey (dunya, plaka, kurdele): beyaz, golgeli.
 	_label(&"LabelDisplayOnDark", FONT_DISPLAY, 42, UiTokens.TEXT_ON_DARK, true)
