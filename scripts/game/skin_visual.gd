@@ -12,6 +12,10 @@ extends RefCounted
 ##     kendi shading'i luminanstan okunur), deterministik desen ailesi,
 ##     gloss/pearl/sparkle rarity malzemesi. Global RNG yok, TIME dışında
 ##     rastgelelik yok.
+##   - M8.5-17: skin rengi tier rengini DEĞİŞTİRİR, YERİNE GEÇMEZ —
+##     `tint_strength` (rarity'ye göre 0.30–0.50) kadar karışır, ton kayması
+##     sınırlı; sekiz tier her skinde ayırt edilebilir kalır. Sade
+##     (`is_baseline()`) hiç materyal takmaz = varsayılan görünüm.
 ##   - Legendary: sprite'ın ARKASINA kompakt bir aura sprite'ı eklenir
 ##     (`attach_fx`), TIME ile nefes alır; parçacık yok, script yok.
 ##
@@ -65,7 +69,7 @@ static var _aura_material: ShaderMaterial = null
 static func apply(item: CanvasItem, skin: SkinData, tier: int = DEFAULT_TIER) -> void:
 	if item == null:
 		return
-	if skin == null:
+	if skin == null or skin.is_baseline():
 		clear(item)
 		return
 	item.material = _material_for(skin, clampi(tier, 1, 8))
@@ -124,6 +128,7 @@ static func _material_for(skin: SkinData, tier: int) -> ShaderMaterial:
 	material.set_shader_parameter("body_color", skin.body_color)
 	material.set_shader_parameter("shade_color", skin.shade_color)
 	material.set_shader_parameter("highlight_color", skin.highlight_color)
+	material.set_shader_parameter("tint_strength", skin.tint_strength)
 	material.set_shader_parameter("pattern_type", int(skin.pattern))
 	material.set_shader_parameter("pattern_color", skin.pattern_color)
 	material.set_shader_parameter("pattern_color2", skin.pattern_color2)

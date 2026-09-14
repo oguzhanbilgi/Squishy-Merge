@@ -1,6 +1,6 @@
 # SKIN_ART_AUDIT.md — skin sanatı ve gameplay render durumu
 
-**Son güncelleme:** 2026-09-13 (M8.5-14) · İlk audit: 2026-09-09 (M8.5-02).
+**Son güncelleme:** 2026-09-14 (M8.5-17: tier kimliği korunan karışım) · İlk audit: 2026-09-09 (M8.5-02).
 
 > ## STATUS: final preview art complete / production gameplay skin pipeline complete
 >
@@ -66,8 +66,13 @@ görüldü.
 ### 2.2 Shader (`skin_body.gdshader`)
 
 1. Gövde pikselinin **luminansı** okunur — gölge/ışık dağılımı sprite'ın.
-2. Luminansa göre `shade_color → body_color → highlight_color` seçilir;
-   `gloss` orta-üst tonlara ek parlama.
+2. Luminansa göre `shade_color → body_color → highlight_color` ile skin
+   rengi hesaplanır; **M8.5-17:** bu renk tier'ın kendi gövde rengiyle
+   `tint_strength` oranında karıştırılır (`tier_blend`: ton kayması ≤ ~32°,
+   uzak tonlarda ton çekimi yok, doygunluk kısmen tier'dan) — **skin tier'ı
+   değiştirir, yerine geçmez**; 8 tier her skinde ayırt edilir. Rarity
+   varsayılanları 0.30 / 0.35 / 0.40 / 0.50 (Gökkuşağı 0.40, Sade 0 →
+   materyal takılmaz). `gloss` orta-üst tonlara ek parlama.
 3. Desen ailesi (`pattern_type`, 11 aile: NONE / SPECKLE / FLECK / RING /
    MARBLE / SWIRL / CRYSTAL / STREAK / WAVE / IRIDESCENT / METAL) hücre
    tabanlı hash veya sin alanlarıyla, **sprite UV'sinde** (parçayla döner

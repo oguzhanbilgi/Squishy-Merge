@@ -44,3 +44,6 @@ Thumbs.db
 # Editor
 .vscode/
 .idea/
+
+# Android export ciktisi + cihaz QA kareleri (M8.5-17)
+build/

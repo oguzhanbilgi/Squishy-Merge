@@ -8,7 +8,8 @@ extends Node
 ## rarity dagilimi, fiyatlar, 20 final onizleme yukleniyor, her (skin x tier)
 ## materyali kuruluyor ve paylasiliyor, skin degisince materyal/aura
 ## temizleniyor, Sade/varsayilan temiz donus, kozmetikler global RNG'yi
-## TUKETMIYOR.
+## TUKETMIYOR. M8.5-17: tint_strength rarity tavanlari (tier kimligi korunur),
+## Sade = taban (materyal YOK), shader tier rengini capa aliyor.
 
 const EXPECTED_IDS: Array[String] = [
 	"common_01", "common_02", "common_03", "common_04", "common_05", "common_06", "common_07", "common_08",
@@ -85,7 +86,25 @@ func _ready() -> void:
 	_c("SkinSwatch varsayilan: orijinal dumpling, materyal yok",
 		sw._image.texture == SkinEntry.PREVIEW_BASE_TEXTURE and sw._image.material == null)
 
-	# Gameplay: her skin x her tier materyali hatasiz kuruluyor
+	# Tier kimligi (M8.5-17): skin tinti rarity tavanini asmaz, Sade 0.
+	var tint_cap: Array[float] = [0.30, 0.35, 0.40, 0.50]
+	var tint_ok: bool = true
+	var baseline_count: int = 0
+	for s in skins:
+		if s.is_baseline():
+			baseline_count += 1
+			continue
+		if s.tint_strength <= 0.0 or s.tint_strength > tint_cap[int(s.rarity)] + 0.001:
+			tint_ok = false
+	_c("tint_strength rarity tavani 0.30/0.35/0.40/0.50, Sade disinda > 0", tint_ok)
+	_c("yalniz Sade taban profili (tint 0, desen/malzeme yok)",
+		baseline_count == 1 and SkinLibrary.find(&"common_01").is_baseline())
+	var shader_src: String = SkinVisual.SHADER.code
+	_c("shader tier rengini capa aliyor (tint_strength uniform + tier_blend)",
+		shader_src.contains("uniform float tint_strength") and shader_src.contains("tier_blend(src.rgb"))
+
+	# Gameplay: her skin x her tier materyali hatasiz kuruluyor (Sade haric:
+	# taban profili materyal takmaz, varsayilanla birebir ayni cizilir)
 	var visual: Node2D = VISUAL.new()
 	add_child(visual)
 	var all_ok: bool = true
@@ -95,17 +114,23 @@ func _ready() -> void:
 			visual.setup(tier)
 			visual.override_skin(s)
 			var mat: ShaderMaterial = visual._sprite.material as ShaderMaterial
+			if s.is_baseline():
+				if mat != null:
+					all_ok = false
+				continue
 			if mat == null or mat.shader != SkinVisual.SHADER:
 				all_ok = false
 			elif mat.get_shader_parameter("body_mask") != SkinVisual.BODY_MASKS[tier - 1]:
 				all_ok = false
 			elif mat.get_shader_parameter("body_color") != s.body_color:
 				all_ok = false
+			elif not is_equal_approx(float(mat.get_shader_parameter("tint_strength")), s.tint_strength):
+				all_ok = false
 			elif int(mat.get_shader_parameter("pattern_type")) != int(s.pattern):
 				all_ok = false
 			mats[mat] = true
-	_c("20 skin x 8 tier materyal kuruldu, maske tier'a gore", all_ok)
-	_c("materyal (skin,tier) basina bir kez (160)", mats.size() == 160)
+	_c("19 skin x 8 tier materyal kuruldu, maske tier'a gore, tint profilden; Sade materyalsiz", all_ok)
+	_c("materyal (skin,tier) basina bir kez (152)", mats.size() == 152)
 	visual.setup(4)
 	visual.override_skin(SkinLibrary.find(&"common_02"))
 	var v2: Node2D = VISUAL.new()
@@ -133,10 +158,13 @@ func _ready() -> void:
 	await get_tree().process_frame
 	_c("varsayilana donus: materyal ve aura yok",
 		visual._sprite.material == null and visual._sprite.get_node_or_null("SkinAura") == null)
+	visual.override_skin(SkinLibrary.find(&"legendary_01"))
 	visual.override_skin(SkinLibrary.find(&"common_01"))
-	_c("Sade: materyal var, desen NONE, aura yok",
-		visual._sprite.material != null and int(SkinLibrary.find(&"common_01").pattern) == 0
+	await get_tree().process_frame
+	_c("Sade: taban = materyal YOK (varsayilanla ayni), desen NONE, aura yok",
+		visual._sprite.material == null and int(SkinLibrary.find(&"common_01").pattern) == 0
 		and visual._sprite.get_node_or_null("SkinAura") == null)
+	visual.override_skin(SkinLibrary.find(&"epic_02"))
 	var ghost: Sprite2D = visual.make_ghost()
 	_c("ghost skin materyalini tasiyor (merge cekimi)", ghost.material == visual._sprite.material)
 	ghost.free()
@@ -160,6 +188,12 @@ func _ready() -> void:
 	v3.setup(2)
 	_c("yeni parca takili skin profilini aliyor",
 		(v3._sprite.material as ShaderMaterial).get_shader_parameter("body_color") == SkinLibrary.find(&"epic_02").body_color)
+	SaveManager.data["unlocked_skins"] = ["common_01"]
+	SaveManager.data["equipped_skin"] = "common_01"
+	var v4: Node2D = VISUAL.new()
+	add_child(v4)
+	v4.setup(5)
+	_c("takili Sade: yeni parca materyalsiz (orijinal tier rengi)", v4._sprite.material == null)
 	SaveManager.data["unlocked_skins"] = saved_skins
 	SaveManager.data["equipped_skin"] = saved_equipped
 	print("=== SONUC: %d kaldi ===" % _fails)

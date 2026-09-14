@@ -7,11 +7,19 @@ extends Node2D
 ## kayda dokunmaz. Yakalamak istedigi: yuz boyanmasi, okunmayan desen,
 ## birbirine benzeyen skinler, asiri VFX, maske hatasi, tier 1 okunurlugu.
 ##
+## M8.5-17: tier okunurluk sayfalari — temsilci skinlerde 8 tier YAN YANA
+## (varsayilan satiri referans). Amac: skin takiliyken sekiz tier'in renk /
+## deger olarak hala ayirt edilebildigini, skin kimliginin okundugunu, yuz /
+## aksesuarin korundugunu ve Legendary efektlerin bastirmadigini gormek.
+## Hucre konumlari `skin_gallery_tiers_layout.json`a yazilir; sayisal
+## kontrol: `python tools/skin_tier_contrast.py <cikti_klasoru>`.
+##
 ## Kullanim (pencereli; --headless ile CALISMAZ):
-##   godot --path . res://tools/skin_gallery.tscn -- <cikti_klasoru>
+##   godot --path . res://tools/skin_gallery.tscn -- <cikti_klasoru> [tiers]
+## Ikinci arguman `tiers`: yalniz 8-tier okunurluk sayfalari (hizli ayar).
 ## Cikti: skin_gallery_<rarity>.png (4 kare) + skin_gallery_tier1.png
 ## (tier 1 x3 — kucuk parca okunurlugu) + skin_gallery_tier8.png (tier 8
-## detay — yuz/maske/desen).
+## detay — yuz/maske/desen) + skin_gallery_tiers_a/b.png (8 tier yan yana).
 ## Arguman verilmezse ekranda kalir (canli inceleme, animasyonlu efektler).
 
 const VISUAL: GDScript = preload("res://scripts/game/dumpling_visual.gd")
@@ -19,9 +27,10 @@ const GAME_BOARD_SCENE: PackedScene = preload("res://scenes/game/game_board.tscn
 const BOT_BRAIN: GDScript = preload("res://tools/bot_brain.gd")
 ## Gercek gameplay karesi (sonsuz mod, bot birakir, tier >= 4 merge aninda
 ## yakalanir) alinan skinler: her rarity'den temsilci + tum Epic/Legendary.
-const PLAY_SKINS: Array[StringName] = [&"common_02", &"rare_05", &"epic_01", &"epic_02",
-	&"epic_03", &"epic_04", &"legendary_01", &"legendary_02"]
+const PLAY_SKINS: Array[StringName] = [&"common_01", &"common_02", &"common_04", &"rare_04",
+	&"rare_05", &"epic_01", &"epic_02", &"epic_03", &"epic_04", &"legendary_01", &"legendary_02"]
 const PLAY_SPEEDUP: int = 4
+const PLAY_MIN_PIECES: int = 12
 const TIERS: Array[int] = [1, 4, 8]
 ## Pencere 1080x1500; proje canvas_items stretch (720 taban) oldugu icin
 ## yerlesim 720x1000 TABAN koordinatinda yapilir (1.5x buyur).
@@ -34,6 +43,16 @@ const TOP: float = 46.0
 const DRAW_RADIUS: Dictionary = {1: 18.0, 4: 28.0, 8: 33.0}
 const PREVIEW_BOX: float = 92.0
 const RARITY_LABELS: Array[String] = ["COMMON", "RARE", "EPIC", "LEGENDARY"]
+## Tier okunurluk sayfalari: her sayfa 5 satir, satirda 8 tier yan yana.
+## Bos StringName = varsayilan (skin yok) referans satiri.
+const READABILITY_PAGES: Array = [
+	[&"", &"common_01", &"common_04", &"rare_04", &"rare_02"],
+	[&"rare_05", &"epic_03", &"epic_04", &"legendary_01", &"legendary_02"],
+]
+## Gercek gameplay yaricapinin kati (8 tier 720 px'e sigsin; T8 = 60 px).
+const READABILITY_ZOOM: float = 0.6
+const READABILITY_ROW_H: float = 178.0
+const READABILITY_GAP: float = 10.0
 
 var _out_dir: String = ""
 var _root: Node2D
@@ -48,13 +67,29 @@ func _ready() -> void:
 		_build_page(SkinData.Rarity.COMMON)
 		return
 	DirAccess.make_dir_recursive_absolute(_out_dir)
-	for rarity in 4:
-		_build_page(rarity as SkinData.Rarity)
-		await _capture("skin_gallery_%s.png" % RARITY_LABELS[rarity].to_lower())
-	_build_tier_page(1, 3.0)
-	await _capture("skin_gallery_tier1.png")
-	_build_tier_page(8, 0.48)
-	await _capture("skin_gallery_tier8.png")
+	var tiers_only: bool = args.size() >= 2 and args[1] == "tiers"
+	if not tiers_only:
+		for rarity in 4:
+			_build_page(rarity as SkinData.Rarity)
+			await _capture("skin_gallery_%s.png" % RARITY_LABELS[rarity].to_lower())
+		_build_tier_page(1, 3.0)
+		await _capture("skin_gallery_tier1.png")
+		_build_tier_page(8, 0.48)
+		await _capture("skin_gallery_tier8.png")
+	var layout: Dictionary = {}
+	for page in READABILITY_PAGES.size():
+		var file_name: String = "skin_gallery_tiers_%s.png" % ["a", "b"][page]
+		layout[file_name] = _build_readability_page(READABILITY_PAGES[page])
+		await _capture(file_name)
+	var layout_file: FileAccess = FileAccess.open(
+		_out_dir.path_join("skin_gallery_tiers_layout.json"), FileAccess.WRITE)
+	if layout_file != null:
+		layout_file.store_string(JSON.stringify(layout, "  "))
+		layout_file.close()
+	if tiers_only:
+		print("bitti (tiers) -> ", _out_dir)
+		get_tree().quit()
+		return
 	_clear()
 	await _shot_gameplay()
 	print("bitti -> ", _out_dir)
@@ -108,12 +143,46 @@ func _build_tier_page(tier: int, zoom: float) -> void:
 		i += 1
 
 
+## Tier okunurluk: her satir bir skin, 8 tier yan yana gercek gameplay
+## oraninda (READABILITY_ZOOM). Donus: satir/hucre yerlesimi (ekran px,
+## 1.5x olcek dahil) — skin_tier_contrast.py bunu okur.
+func _build_readability_page(ids: Array) -> Dictionary:
+	_clear()
+	_label(Vector2(16, 10), "SKIN QA — TIER OKUNURLUK (8 tier yan yana, gameplay x%.1f)" % READABILITY_ZOOM,
+		17, UiPalette.GOLD)
+	# Taban koordinat -> ekran px (canvas_items stretch, aspect expand).
+	var to_screen: Transform2D = get_viewport().get_final_transform()
+	var px_scale: float = to_screen.get_scale().x
+	var rows: Array = []
+	var y: float = TOP + 34.0
+	for id in ids:
+		var skin: SkinData = null if String(id).is_empty() else SkinLibrary.find(id)
+		var title: String = "Varsayılan (skin yok)" if skin == null else 			"%s  ·  %s  ·  tint %.2f" % [skin.display_name, SkinData.rarity_name(skin.rarity), skin.tint_strength]
+		_label(Vector2(16, y - 22.0), title, 14, Color.WHITE)
+		var cy: float = y + READABILITY_ROW_H * 0.5 - 4.0
+		var x: float = 16.0
+		var cells: Array = []
+		for tier in range(1, 9):
+			var r: float = TierConfig.radius(tier) * READABILITY_ZOOM
+			var cx: float = x + r
+			_place_visual(skin, tier, Vector2(cx, cy), r)
+			_label(Vector2(cx - 8.0, cy + r + 2.0), "T%d" % tier, 11, UiPalette.TEXT_MUTED)
+			var screen_c: Vector2 = to_screen * Vector2(cx, cy)
+			cells.append({"tier": tier, "x": screen_c.x, "y": screen_c.y, "r": r * px_scale})
+			x += r * 2.0 + READABILITY_GAP
+		rows.append({"skin": String(id), "cells": cells})
+		y += READABILITY_ROW_H
+	return {"rows": rows}
+
+
 # --- Gercek gameplay: takili skin + merge ani ---
 #
 # Takili skin YALNIZCA bellekte degistirilir (save_game cagrilmaz), cekim
-# bitince geri konur. Board sonsuz modda, bot birakiyor, tier >= 4 merge'den
-# 2 kare sonra yakalaniyor (screenshot_runner._shot_merge ile ayni yontem):
-# squash/stretch, merge cekimi, aura ve parcacik uyumu gercek kosulda gorunur.
+# bitince geri konur. Board sonsuz modda, bot birakiyor, kapta en az
+# PLAY_MIN_PIECES parca varken tier >= 4 merge'den 2 kare sonra yakalaniyor
+# (screenshot_runner._shot_merge ile ayni yontem): squash/stretch, merge
+# cekimi, aura ve parcacik uyumu KARISIK BIR YIGINDA gercek kosulda gorunur
+# (M8.5-17: tier okunurlugu gameplay olceginde).
 
 var _board: Node2D
 var _drive: bool = false
@@ -167,7 +236,7 @@ func _physics_process(_delta: float) -> void:
 
 
 func _on_merge(tier: int, _position: Vector2) -> void:
-	if tier >= 4 and _capture_countdown < 0:
+	if tier >= 4 and _capture_countdown < 0 and _board != null 			and _board._dumpling_layer.get_child_count() >= PLAY_MIN_PIECES:
 		_capture_countdown = 2
 
 

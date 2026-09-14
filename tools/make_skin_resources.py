@@ -18,6 +18,11 @@ Renk notasyonu: hex "rrggbb". Alanlar:
   gloss / pearl / spark rarity malzemesi
   aura                  Legendary aura rengi (None = yok)
   speed                 animasyon hizi
+  tint                  skin renginin TIER rengine karisma orani (M8.5-17);
+                        None = rarity varsayilani (TINT_BY_RARITY). Tier rengi
+                        her zaman capa: 0 = tier oldugu gibi (Sade), 1 = eski
+                        tam recolor (kullanilmiyor — sekiz tier tek renge
+                        donuyordu).
 """
 import os
 
@@ -27,21 +32,26 @@ PREVIEW = "res://assets/visual/skins/previews/skin_{}.png"
 PATTERNS = ["NONE", "SPECKLE", "FLECK", "RING", "MARBLE", "SWIRL", "CRYSTAL",
             "STREAK", "WAVE", "IRIDESCENT", "METAL"]
 RARITY = {"common": 0, "rare": 1, "epic": 2, "legendary": 3}
+# Rarity'ye gore skin tint agirligi: tier kimligi ~%70 / %65 / %60 / %50.
+# Baslangic degerleri; gorsel olarak ayarlanir (tools/skin_gallery.gd).
+TINT_BY_RARITY = {"common": 0.30, "rare": 0.35, "epic": 0.40, "legendary": 0.50}
 
 
 def P(body, shade, hi="ffffff", pattern="NONE", pc="000000", pc2="ffffff",
       dens=0.5, scale=1.0, strength=0.8, gloss=0.0, pearl=0.0, spark=0.0,
-      aura=None, speed=1.0):
+      aura=None, speed=1.0, tint=None):
     return dict(body=body, shade=shade, hi=hi, pattern=pattern, pc=pc, pc2=pc2,
                 dens=dens, scale=scale, strength=strength, gloss=gloss,
-                pearl=pearl, spark=spark, aura=aura, speed=speed)
+                pearl=pearl, spark=spark, aura=aura, speed=speed, tint=tint)
 
 
 # id, rarity, gorsel dosya adi, gosterilen ad, profil
 SKINS = [
     # --- COMMON: govde/malzeme/desen, aura yok ---
+    # Sade = temiz taban: tint 0, desen/malzeme yok -> SkinVisual materyal
+    # takmaz, sekiz tier orijinal renkleriyle cizilir.
     ("common_01", "common", "sade", "Sade",
-     P("f6e9cf", "c9a97e", "fffaf0")),
+     P("f6e9cf", "c9a97e", "fffaf0", tint=0.0)),
     ("common_02", "common", "susamli", "Susamlı",
      P("f2e3c4", "c4a274", "fff8ea", "SPECKLE", "2a2018", "fff3d6", dens=0.55, scale=1.15, strength=0.95)),
     ("common_03", "common", "kepekli", "Kepekli",
@@ -75,14 +85,16 @@ SKINS = [
     ("epic_02", "epic", "yosun", "Yosun",
      P("2f9c8c", "155248", "b8f3e6", "WAVE", "0f6b5e", "cfffee", dens=0.5, scale=1.1, strength=0.8, gloss=0.5, spark=0.3, speed=0.8)),
     ("epic_03", "epic", "kakao", "Kakao",
-     P("8a5233", "42210f", "e3b894", "MARBLE", "4a2410", strength=0.85, scale=1.2, gloss=0.55, spark=0.3)),
+     P("8a5233", "42210f", "e3b894", "MARBLE", "4a2410", strength=0.6, scale=1.2, gloss=0.55, spark=0.3)),
     ("epic_04", "epic", "safran", "Safran",
-     P("f2b135", "b46f10", "fff0b8", "SWIRL", "c96a12", strength=0.85, scale=1.2, gloss=0.5, spark=0.4)),
+     P("f2b135", "b46f10", "fff0b8", "SWIRL", "c96a12", strength=0.7, scale=1.2, gloss=0.5, spark=0.4)),
     # --- LEGENDARY: en guclu malzeme + kompakt aura ---
+    # Gokkusagi: kimlik yanardoner katmandan geliyor; govde tinti 0.40 ki
+    # sekiz tier lavanta pastelinde birbirine karismasin (M8.5-17 QA).
     ("legendary_01", "legendary", "altin_hamur", "Altın Hamur",
      P("f5c53a", "a8710e", "fff6c8", "METAL", "fff2a6", strength=0.9, scale=1.0, gloss=0.9, pearl=0.2, spark=0.7, aura="ffd15a", speed=1.0)),
     ("legendary_02", "legendary", "gokkusagi", "Gökkuşağı",
-     P("f2d8f5", "a988c4", "ffffff", "IRIDESCENT", "ffffff", "ffffff", strength=0.85, scale=1.0, gloss=0.6, pearl=0.7, spark=0.6, aura="e6b8ff", speed=1.0)),
+     P("f2d8f5", "a988c4", "ffffff", "IRIDESCENT", "ffffff", "ffffff", strength=0.8, scale=1.0, gloss=0.6, pearl=0.55, spark=0.6, aura="e6b8ff", speed=1.0, tint=0.4)),
 ]
 
 
@@ -110,6 +122,7 @@ def write(skin_id, rarity, file_key, name, p):
         'body_color = %s' % col(p["body"]),
         'shade_color = %s' % col(p["shade"]),
         'highlight_color = %s' % col(p["hi"]),
+        'tint_strength = %g' % (TINT_BY_RARITY[rarity] if p["tint"] is None else p["tint"]),
         'pattern = %d' % PATTERNS.index(p["pattern"]),
         'pattern_color = %s' % col(p["pc"]),
         'pattern_color2 = %s' % col(p["pc2"]),

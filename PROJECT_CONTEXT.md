@@ -172,10 +172,33 @@ alınacak — şimdi tahmin/vaat yok.
     teklifi) bitiş DEĞİL, o yoldaki merge'ler aynen çözülüyor. revive_test
     +17 deterministik yarış kontrolü (**120/120**, 20 ardışık koşu).
     **Fizik, skor, ekonomi, kayıt formatı DEĞİŞMEDİ.**
+  - `M8.5-17` ✅ skin render'ında tier kimliği: M8.5-14 shader'ı gövde
+    rengini tamamen skin'den alıyordu (sprite yalnız luminans veriyordu)
+    → skin takılıyken 8 tier tek renge dönüyordu (turuncu skin = turuncu
+    kap). Düzeltme: **skin tier'ı değiştirir, yerine geçmez** — tier'ın
+    kendi rengi çapa, skin `tint_strength` kadar karışır (Common 0.30 /
+    Rare 0.35 / Epic 0.40 / Legendary 0.50; Gökkuşağı 0.40), ton kayması
+    ≤ ~32°, uzak tonlarda ton çekimi söner (mavi tier altın skinde mavi
+    kalır), doygunluk kısmen tier'a geri çekilir; desen/gloss/pearl/
+    sparkle/aura skin kimliğini taşır. Gökkuşağı = tier tonu etrafında ince
+    film salınımı (tek gradyan değil). **Sade = taban: materyal takılmaz,
+    varsayılanla birebir.** `tools/skin_gallery.gd` 8 tier yan yana
+    sayfaları + `tools/skin_tier_contrast.py` (ΔE ölçümü, 0 uyarı),
+    skin_test 30/30. **İlk gerçek cihaz kapısı:** debug APK Samsung A36'ya
+    kuruldu, Sade/Havuçlu/Ispanak/Altın/Gökkuşağı yığınları cihazda
+    doğrulandı (build/qa_m8.5-17/). Bunun için
+    `rendering/textures/vram_compression/import_etc2_astc=true` açıldı
+    (Godot bu ayar kapalıyken Android export'u mesajsız reddediyor) ve
+    yerel (gitignore'lu) `export_presets.cfg` yazıldı (paket adı geçici
+    `com.example.squishymerge`, arm64, VIBRATE açık). **Fizik, ekonomi,
+    kayıt, önizleme sanatı DEĞİŞMEDİ.** Ayrıntı: SKIN_ART_AUDIT §2.2,
+    PROJECT_STATUS §4.19.
 - **Sırada: M9 — Android export.** Ortam hazır (export template'leri, SDK,
-  NDK, JDK 17, debug keystore mevcut); eksik olan `export_presets.cfg` ve
-  release/upload keystore. Preset'te **VIBRATE izni** açık olmalı
-  (titreşim). Paralel owner işi: `tools/audio_qa.tscn` ile sesleri dinleyip
+  NDK, JDK 17, debug keystore mevcut, ETC2/ASTC import açık, iş
+  makinesinde debug `export_presets.cfg` var — gitignore'lu, her makinede
+  ayrı); eksik olan kalıcı paket adı, release/upload keystore ve uzun
+  ekranda HUD düzeni (A36'da güç butonları "Sıradaki" satırını örtüyor,
+  §7 #9). Paralel owner işi: `tools/audio_qa.tscn` ile sesleri dinleyip
   final örnekleri sağlamak.
 - **Sonra: M10 — Play Store submission / kapalı test.**
 
@@ -209,6 +232,14 @@ alınacak — şimdi tahmin/vaat yok.
   içinde (gövde maskesi + `assets/visual/skins/skin_body.gdshader`); skin
   verisi `resources/skins/*.tres` = `tools/make_skin_resources.py` çıktısı,
   gövde maskeleri `tools/make_skin_masks.py` çıktısı — elle düzenleme yok
+- **Skin tier'ı değiştirir, yerine geçmez (M8.5-17):** tier gövde rengi
+  çapa, skin `tint_strength` ≤ rarity tavanı (0.30/0.35/0.40/0.50); her
+  skinde 8 tier ayırt edilebilir kalmalı (`tools/skin_tier_contrast.py`
+  0 uyarı). Sade = taban, materyal yok
+- **Büyük iş akışı kapısı (M8.5-17'den itibaren):** gameplay/render/skin/
+  UI/ses/güç/Android işleri → otomatik testler → masaüstü QA → Android
+  debug APK → USB'deki telefona kur → başlat → cihaz QA → rapor → commit.
+  Yalnız doküman/ufak test temizliği bundan muaf
 
 ## Repo notes
 - `_visual_source/` **repoda takip ediliyor** (owner kararı): owner'ın

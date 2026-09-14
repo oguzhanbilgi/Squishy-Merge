@@ -12,6 +12,7 @@ preview_texture = ExtResource("2_preview")
 body_color = Color(0.9373, 0.8784, 0.7608, 1)
 shade_color = Color(0.7255, 0.5922, 0.4157, 1)
 highlight_color = Color(1, 0.9765, 0.9255, 1)
+tint_strength = 0.3
 pattern = 1
 pattern_color = Color(0.6118, 0.4196, 0.2275, 1)
 pattern_color2 = Color(0.851, 0.7255, 0.5412, 1)

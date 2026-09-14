@@ -3,15 +3,27 @@ shader_type canvas_item;
 //
 // Tier sprite'i OLDUGU GIBI kalir (siluet, yuz, yanak, aksesuar); yalnizca
 // `body_mask` (assets/visual/skins/generated/body_mask_tier*.png, tools/
-// make_skin_masks.py) ile isaretlenen HAMUR GOVDESI yeniden boyanir ve
-// desenlenir. Eski tum-sprite hue kaydirmasi (skin_tint.gdshader) yerine:
+// make_skin_masks.py) ile isaretlenen HAMUR GOVDESI boyanir ve desenlenir.
 //
-//   1. govde pikselinin LUMINANSI okunur (golge/isik dagilimi buradan gelir),
-//   2. luminansa gore shade -> body -> highlight rengi secilir (renk tamamen
-//      skin'in, shading tamamen sprite'in),
-//   3. deterministik desen (hash/sin, TIME disinda rastgelelik yok) govde
+// M8.5-17 kurali: SKIN TIER'I DEGISTIRIR, TIER'IN YERINE GECMEZ. Tier'in
+// kendi govde rengi birincil gorsel capa; skin ona SINIRLI bir tint,
+// malzeme ve desen ekler. Sekiz tier her skinde renk/deger olarak ayirt
+// edilebilir kalmali (M8.5-14'te renk tamamen skin'indi -> butun kap tek
+// renge donuyordu).
+//
+//   1. govde pikselinin LUMINANSI okunur (golge/isik dagilimi sprite'in),
+//   2. skin'in kendi rengi luminansa gore shade -> body -> highlight
+//      olarak hesaplanir (skin_rgb),
+//   3. tier rengi ile skin_rgb `tint_strength` oraninda karistirilir
+//      (0 = tier oldugu gibi, 1 = eski tam recolor); ardindan
+//      - ton kaymasi tier tonundan en fazla tint_strength * HUE_SHIFT_MAX
+//        derece uzaklasabilir (mavi tier altin skinde yesile donmez, uzak
+//        tonlar yalnizca "sirlanir", yakin tonlar skin'e dogru kayar),
+//      - doygunluk kismen tier'a geri cekilir (tamamlayici karisim
+//        griye dusmesin, tier canli kalsin),
+//   4. deterministik desen (hash/sin, TIME disinda rastgelelik yok) govde
 //      uzerine bindirilir; desen sprite UV'siyle tasinir, ekranda kaymaz,
-//   4. rarity katmani: gloss / pearl / sparkle (Epic-Legendary), hepsi maske
+//   5. rarity katmani: gloss / pearl / sparkle (Epic-Legendary), hepsi maske
 //      icinde — yuz asla boyanmaz.
 //
 // Renkler `SkinData` .tres alanlarindan gelir (scripts/game/skin_data.gd),
@@ -22,6 +34,9 @@ uniform sampler2D body_mask : filter_linear, repeat_disable;
 uniform vec4 body_color : source_color = vec4(0.96, 0.92, 0.84, 1.0);
 uniform vec4 shade_color : source_color = vec4(0.72, 0.62, 0.50, 1.0);
 uniform vec4 highlight_color : source_color = vec4(1.0, 1.0, 1.0, 1.0);
+// Skin renginin tier rengine karisma orani (SkinData.tint_strength; rarity
+// varsayilanlari Common 0.30 / Rare 0.35 / Epic 0.40 / Legendary 0.50).
+uniform float tint_strength : hint_range(0.0, 1.0) = 0.35;
 // Desen ailesi — SkinData.Pattern ile ayni sira:
 // 0 NONE 1 SPECKLE 2 FLECK 3 RING 4 MARBLE 5 SWIRL 6 CRYSTAL 7 STREAK
 // 8 WAVE 9 IRIDESCENT 10 METAL
@@ -52,6 +67,54 @@ void vertex() {
 const vec3 LUMA = vec3(0.2126, 0.7152, 0.0722);
 // Govde orta tonunun referans luminansi (8 tier'in olcumu ~0.80-0.86).
 const float BODY_MID = 0.82;
+// Ton kaymasi tavani (tur; 0.09 = ~32 derece), rarity'den bagimsiz: tint
+// gucu karisimi/degeri buyutur, ton kimligini degil.
+const float HUE_SHIFT_CAP = 0.09;
+// Tier tonu skin tonundan bu kadar uzaksa (tur; 0.5 = 180 derece) ton
+// cekimi baslar/biter: yakin tonlar skin'e dogru kayar (sari -> turuncu),
+// uzak tonlar yalnizca "sirlanir" (mavi tier altin skinde mavi kalir).
+const float HUE_PULL_NEAR = 0.20;
+const float HUE_PULL_FAR = 0.45;
+// Karisimin dusurdugu doygunlugun ne kadari tier'dan geri alinir.
+const float SAT_KEEP = 0.6;
+
+vec3 rgb2hsv(vec3 c) {
+	vec4 K = vec4(0.0, -1.0 / 3.0, 2.0 / 3.0, -1.0);
+	vec4 p = mix(vec4(c.bg, K.wz), vec4(c.gb, K.xy), step(c.b, c.g));
+	vec4 q = mix(vec4(p.xyw, c.r), vec4(c.r, p.yzx), step(p.x, c.r));
+	float d = q.x - min(q.w, q.y);
+	float e = 1.0e-10;
+	return vec3(abs(q.z + (q.w - q.y) / (6.0 * d + e)), d / (q.x + e), q.x);
+}
+
+vec3 hsv2rgb(vec3 c) {
+	vec4 K = vec4(1.0, 2.0 / 3.0, 1.0 / 3.0, 3.0);
+	vec3 p = abs(fract(c.xxx + K.xyz) * 6.0 - K.www);
+	return c.z * mix(K.xxx, clamp(p - K.xxx, 0.0, 1.0), c.y);
+}
+
+// Tier rengi + skin rengi -> tier kimligi korunan govde rengi.
+vec3 tier_blend(vec3 tier_rgb, vec3 skin_rgb, float k) {
+	vec3 mixed = mix(tier_rgb, skin_rgb, k);
+	vec3 ht = rgb2hsv(tier_rgb);
+	vec3 hs = rgb2hsv(skin_rgb);
+	vec3 hm = rgb2hsv(mixed);
+	// Ton: tier tonundan en kisa yay boyunca sinirli kayma; skin tonu
+	// uzaksa cekim soner (RGB karisiminin tamamlayici renkte urettigi
+	// rastgele ara ton kullanilmaz). Cok soluk tier pikselinde (parlama)
+	// ton anlamsiz -> kaymayi serbest birak.
+	float dh = hm.x - ht.x;
+	dh -= floor(dh + 0.5);
+	float dts = abs(hs.x - ht.x);
+	dts = min(dts, 1.0 - dts);
+	float pull = 1.0 - smoothstep(HUE_PULL_NEAR, HUE_PULL_FAR, dts);
+	float anchored = smoothstep(0.04, 0.16, ht.y);
+	dh = mix(dh, clamp(dh, -HUE_SHIFT_CAP, HUE_SHIFT_CAP) * pull, anchored);
+	// Doygunluk: tamamlayici karisim griye duser; tier'in doygunlugunu
+	// kismen geri koy (yalniz karisim daha soluksa).
+	float sat = mix(hm.y, max(hm.y, ht.y), SAT_KEEP * anchored);
+	return hsv2rgb(vec3(fract(ht.x + dh), sat, hm.z));
+}
 
 float hash1(vec2 p) {
 	return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
@@ -133,9 +196,11 @@ void fragment() {
 		float lum = dot(src.rgb, LUMA);
 		// Sprite shading'i skin renklerine cevir.
 		float t = clamp(lum / BODY_MID, 0.0, 1.35);
-		vec3 base = mix(shade_color.rgb, body_color.rgb, smoothstep(0.30, 1.0, t));
+		vec3 skin_rgb = mix(shade_color.rgb, body_color.rgb, smoothstep(0.30, 1.0, t));
 		float hi = smoothstep(0.90, 0.99, lum);
-		base = mix(base, highlight_color.rgb, hi * (0.7 + 0.3 * gloss));
+		skin_rgb = mix(skin_rgb, highlight_color.rgb, hi * (0.7 + 0.3 * gloss));
+		// Tier rengi capa, skin sinirli tint (M8.5-17).
+		vec3 base = tier_blend(src.rgb, skin_rgb, tint_strength);
 		// Gloss: orta-ustu tonlarda hafif ekstra parlama.
 		base += gloss * 0.12 * smoothstep(0.78, 0.92, lum);
 
@@ -186,10 +251,17 @@ void fragment() {
 			pat = mix(pat, pattern_color2.rgb, b.x);
 			pw = max(pw, b.x * 0.9);
 		} else if (pattern_type == 9) {   // IRIDESCENT (gokkusagi)
+			// Yanardoner katman = tier renginin ince film gibi ton salinimi
+			// (+-36 derece, konum + TIME) + hafif pastel gokkusagi parlamasi.
+			// Her tier KENDI tonu etrafinda salinir; sekiz tier tek bir
+			// gradyana donmez. Kapsama kismi (tier rengi altta gorunur kalir).
+			vec3 hb = rgb2hsv(base);
 			float phase = (puv.x * 0.6 + puv.y * 0.8) * 0.9 + tm * 0.08;
-			vec3 rainbow = hue_wheel(phase);
-			pat = rainbow * (0.75 + 0.25 * t);
-			pw = 1.0;
+			float wobble = 0.10 * sin(6.2832 * phase);
+			vec3 film = hsv2rgb(vec3(fract(hb.x + wobble), min(1.0, hb.y * 1.15 + 0.06), hb.z));
+			vec3 rainbow = hue_wheel(phase + hb.x);
+			pat = mix(film, rainbow, 0.3) * (0.85 + 0.15 * t);
+			pw = 0.4 + 0.45 * fnoise(puv * 3.0 + tm * 0.05);
 		} else if (pattern_type == 10) {  // METAL (altin hamur)
 			float band = 0.5 + 0.5 * sin((puv.x + puv.y * 0.6) * 7.0 - tm * 0.9);
 			float grain = fnoise(puv * cells * 0.8);

@@ -1345,6 +1345,50 @@ formatına yalnız `haptics_enabled` (varsayılan true) eklendi. Ayrıntı ve
 - **Doğrulanmayan:** hiçbir ses kulakla dinlenmedi; Android titreşimi
   fiziksel olarak doğrulanmadı.
 
+### 4.19 Skin render'ında tier kimliği + ilk gerçek cihaz kapısı (M8.5-17)
+
+- **Kök sebep:** `skin_body.gdshader` gövde rengini
+  `mix(shade, body, luminans)` ile TAMAMEN skin profilinden alıyordu; tier
+  sprite'ından yalnız gölge/ışık dağılımı (luminans) geliyordu. Skin
+  takılıyken 8 tier aynı gövde rengine dönüyordu (Havuçlu = turuncu kap);
+  siluet/aksesuar farklı kalsa da renk okunurluğu ve ilerleme hissi
+  gidiyordu. Sade de gereksiz yere krem recolor uyguluyordu.
+- **Model:** `final = tier_blend(tier_rgb, skin_rgb, tint_strength)`:
+  RGB karışım → HSV'de ton kayması tier tonundan en fazla ~32° (sabit,
+  rarity'den bağımsız), skin tonu tier tonundan ≥ ~72° uzaksa ton çekimi
+  sönüyor (162°+ → sıfır; mavi tier altında altın = "sırlanmış" mavi, yeşil
+  tier değil), doygunluğun %60'ı tier'dan geri alınıyor (tamamlayıcı
+  karışım griye düşmesin); değer karışımdan. Desen/gloss/pearl/sparkle/
+  aura katmanları aynen; Gökkuşağı IRIDESCENT deseni tier tonu etrafında
+  ±36° ince-film salınımı + %30 pastel gökkuşağı, kısmi kapsama (eski: %85
+  tam gökkuşağı gradyanı → 8 tier aynı).
+- **Veri:** `SkinData.tint_strength` (yeni alan; `make_skin_resources.py`
+  `TINT_BY_RARITY` 0.30/0.35/0.40/0.50, Gökkuşağı 0.40, Sade 0.0). Kakao
+  MARBLE 0.85→0.6, Safran SWIRL 0.85→0.7 (pastel gövdede aşırı baskındı).
+  `SkinData.is_baseline()` → `SkinVisual.apply` materyal takmaz (Sade =
+  varsayılan; test "Sade: materyal yok"). 152 materyal (19×8).
+- **QA:** `skin_gallery.gd` iki yeni sayfa (varsayılan + 9 temsilci skin,
+  8 tier yan yana, gameplay ×0.6), hücre yerleşimi JSON;
+  `skin_tier_contrast.py` yüz/aksesuar dışı üç yamadan CIE Lab ΔE76:
+  komşu tier min ΔE — varsayılan 25.5, Havuçlu 21.9, Ispanak 24.1,
+  K.Biber 29.0, D.Tuzu 20.2, Kakao 15.9, Safran 19.7, Altın 22.9,
+  Gökkuşağı 18.3 (eşik 12; aynı aile 1/6, 2/7, 4/8 tasarım gereği aynı
+  renk, sayılmıyor). Gameplay kareleri artık ≥12 parçalı yığında.
+- **Android (ilk kez):** `import_etc2_astc=true` (Godot 4.6.3
+  `has_valid_project_configuration` bu kapalıyken export'u BOŞ hata
+  mesajıyla reddediyor — not düşüldü), yerel `export_presets.cfg`
+  (prebuilt template, arm64-v8a, VIBRATE, adaptive ikonlar, exclude
+  `tools/* _visual_source/* docs/* *.md *.py`, paket
+  `com.example.squishymerge` GEÇİCİ). Debug APK 44.7 MB, Samsung SM-A366B
+  (Android 16, Adreno 710, Vulkan Forward Mobile): kurulum/başlatma temiz,
+  logcat'te Godot hatası yok. Cihazda 5 skin ile 60 parçalık sonsuz mod
+  yığını: tier'lar ayrışıyor, yüz/aksesuar korunuyor, merge/squash normal.
+  Kareler `build/qa_m8.5-17/` (gitignore'lu). Gözlenen ama bu işin dışı:
+  9:19.5 ekranda güç butonları "Sıradaki: …" satırını örtüyor (§7 #9),
+  sonsuz mod kabı ekran kenarını aşıyor.
+- **Değişmeyen:** fizik, collider, CONTACT_FIT, bag, merge, skor, revive,
+  güçler, ekonomi, kayıt formatı, önizleme sanatı, maskeler.
+
 ## 5. Dosya/klasör yapısı ve script envanteri
 
 ```

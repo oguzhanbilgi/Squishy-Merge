@@ -37,6 +37,12 @@ enum Pattern { NONE, SPECKLE, FLECK, RING, MARBLE, SWIRL, CRYSTAL, STREAK, WAVE,
 @export var shade_color: Color = Color(0.72, 0.62, 0.50)
 ## Spekuler parlama tonu.
 @export var highlight_color: Color = Color.WHITE
+## Skin renginin tier'ın kendi gövde rengine karışma oranı (M8.5-17).
+## 0 = tier olduğu gibi (Sade), 1 = eski tam recolor. Tier rengi her zaman
+## birincil çapa; rarity varsayılanları Common 0.30 / Rare 0.35 / Epic 0.40 /
+## Legendary 0.50 (tools/make_skin_resources.py). Sekiz tier her skinde
+## ayırt edilebilir kalmalı.
+@export_range(0.0, 1.0) var tint_strength: float = 0.35
 @export var pattern: Pattern = Pattern.NONE
 @export var pattern_color: Color = Color(0.3, 0.2, 0.1)
 @export var pattern_color2: Color = Color.WHITE
@@ -52,6 +58,13 @@ enum Pattern { NONE, SPECKLE, FLECK, RING, MARBLE, SWIRL, CRYSTAL, STREAK, WAVE,
 ## Legendary aura rengi; alfa 0 = aura yok.
 @export var aura_color: Color = Color(1, 1, 1, 0)
 @export_range(0.0, 3.0) var anim_speed: float = 1.0
+
+
+## Gameplay'de hiçbir şey değiştirmeyen profil (Sade): tint 0, desen yok,
+## malzeme yok. SkinVisual bu durumda materyal takmaz — tier sprite'ı
+## orijinal renkleriyle çizilir, "varsayılan" ile birebir aynı görünür.
+func is_baseline() -> bool:
+	return tint_strength <= 0.0 and pattern == Pattern.NONE 		and gloss <= 0.0 and pearl <= 0.0 and sparkle <= 0.0
 
 
 static func rarity_name(value: Rarity) -> String:
