@@ -406,17 +406,15 @@ func _scenario_power_bar() -> void:
 	add_child(board)
 	await get_tree().process_frame
 
-	var text: String = _collect_text(board._power_bar)
+	# M8.6-02: slot rozeti "×N" (isim yok); PowerBar.displayed_count okur.
 	_check("power bar satin alinan stogu gosteriyor (x5)",
-		text.contains("%s ×%d" % [
-			PowerUp.display_name(PowerUp.Type.CLEAR_SMALL), expected]))
+		board._power_bar.displayed_count(int(PowerUp.Type.CLEAR_SMALL)) == expected)
 	# Kullanildiginda stok dusuyor ve cubuk guncelleniyor.
 	board._powerups.consume(PowerUp.Type.CLEAR_SMALL)
 	board._power_bar.refresh()
 	await get_tree().process_frame
 	_check("kullanim sonrasi power bar x4 gosteriyor",
-		_collect_text(board._power_bar).contains("%s ×4"
-			% PowerUp.display_name(PowerUp.Type.CLEAR_SMALL)))
+		board._power_bar.displayed_count(int(PowerUp.Type.CLEAR_SMALL)) == 4)
 	_check_eq("kayitta da 4", SaveManager.powerup_count(PowerUp.Type.CLEAR_SMALL), 4)
 
 	board.queue_free()

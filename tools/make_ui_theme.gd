@@ -37,6 +37,9 @@ const GENERATED: Array[StringName] = [
 	&"LabelDisplayOnDark", &"LabelTitleOnDark", &"LabelSectionOnDark", &"LabelBodyOnDark",
 	&"LabelCaptionOnDark", &"LabelStatOnDark", &"LabelSectionOnAccent",
 	&"LabelBadge", &"LabelBadgeOnDark",
+	# Gameplay shell (M8.6-02)
+	&"LabelHudScore", &"LabelHudCaption", &"PowerSlot", &"PowerSlotArmed", &"PowerSlotEmpty",
+	&"PanelStrip", &"PanelHud",
 	# Oyun bilesenleri
 	&"ResourcePill", &"HeaderRibbon", &"SectionTag", &"ProgressBarMint", &"ProgressBarGold",
 	&"Badge", &"LockBadge", &"EquippedBadge", &"NewBadge", &"CountBadge",
@@ -139,6 +142,11 @@ func _build_panels() -> void:
 	# (0.94 alfa koyu zemin ustunde griye kayiyordu); kartlardan bir kademe
 	# geri, ama ayni paket.
 	_panel(&"PanelListRow", "list_row", UiTokens.CREAM_DEEP, Vector4(14, 8, 16, 14))
+	# HUD skor/hedef plakasi (M8.6-02): PanelPurple govdesi, dar dikey pay —
+	# 64-92 px satirlara sigsin.
+	_panel(&"PanelHud", "panel_bevel", Color(UiTokens.PLUM, 0.96), Vector4(14, 4, 16, 10))
+	# Evrim seridi tepsisi (M8.6-02): koyu yuvarlak plaka, dar iceri pay.
+	_panel(&"PanelStrip", "panel_bevel", Color(UiTokens.PLUM, 0.94), Vector4(14, 4, 14, 8))
 
 
 # --- Butonlar ----------------------------------------------------------------
@@ -172,6 +180,16 @@ func _build_buttons() -> void:
 	# Kahraman CTA (88): pencere/ana sayfa birincil eylemi. Pill 0..83.
 	_button(&"ButtonCTA", "btn_cta", UiTokens.CYAN, Vector4(28, 14, 28, 16),
 		FONT_DISPLAY, 28, UiTokens.TEXT_ON_ACCENT, UiTokens.TEXT_DISABLED, 34)
+	# Guc slotu (M8.6-02 polish): madalyon — `btn_circle` (3B basilabilir
+	# daire), uc durum ayri variation: normal krem, silahli cyan, stok 0
+	# pasif lavanta-gri. Ikon/rozet/parilti UiKit.power_slot cocuklari.
+	var slot := Vector4(6, 6, 6, 12)
+	_button(&"PowerSlot", "btn_circle", UiTokens.CREAM, slot,
+		FONT_TITLE, 16, UiTokens.TEXT_PRIMARY, UiTokens.TEXT_DISABLED)
+	_button(&"PowerSlotArmed", "btn_circle", UiTokens.CYAN, slot,
+		FONT_TITLE, 16, UiTokens.TEXT_ON_ACCENT, UiTokens.TEXT_DISABLED)
+	_button(&"PowerSlotEmpty", "btn_circle", UiTokens.DISABLED, slot,
+		FONT_TITLE, 16, UiTokens.TEXT_DISABLED, UiTokens.TEXT_DISABLED)
 	# Kaynak pill'inin nane "+" butonu.
 	_button(&"ButtonResourceAdd", "resource_btn", UiTokens.MINT, Vector4(8, 6, 8, 10),
 		FONT_TITLE, 18, UiTokens.TEXT_ON_ACCENT, UiTokens.TEXT_DISABLED, 20)
@@ -202,6 +220,10 @@ func _build_labels() -> void:
 	_label(&"LabelSectionOnAccent", FONT_TITLE, 20, UiTokens.TEXT_ON_ACCENT)
 	_label(&"LabelBadge", FONT_TITLE, 16, UiTokens.TEXT_ON_ACCENT)
 	_label(&"LabelBadgeOnDark", FONT_TITLE, 14, UiTokens.TEXT_ON_DARK)
+	# Gameplay HUD (M8.6-02): skor rakami buyuk Nunito (veri), plaka
+	# basligi kucuk buyuk-harf Nunito (SKOR / SIRADAKI).
+	_label(&"LabelHudScore", FONT_NUM, 30, UiTokens.TEXT_ON_DARK, true)
+	_label(&"LabelHudCaption", FONT_NUM, 13, UiTokens.TEXT_ON_DARK_MUTED)
 
 
 # --- Oyun bilesenleri --------------------------------------------------------

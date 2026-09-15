@@ -98,6 +98,7 @@ func _ready() -> void:
 	add_child(_refill)
 
 	_settings = SETTINGS_SCENE.instantiate()
+	_settings.closed.connect(_on_settings_closed)
 	add_child(_settings)
 
 	_show_tab(0)
@@ -134,6 +135,19 @@ func open_settings() -> void:
 
 func close_settings() -> void:
 	_settings.close_panel()
+
+
+## Oyun içi HUD'daki ayarlar butonu (M8.6-02): pencere açılırken board
+## donar (fail/refill dondurmasıyla aynı makine), kapanınca çözülür.
+func _on_board_settings_requested() -> void:
+	if _board != null and is_instance_valid(_board):
+		_board.set_menu_paused(true)
+	open_settings()
+
+
+func _on_settings_closed() -> void:
+	if _board != null and is_instance_valid(_board):
+		_board.set_menu_paused(false)
 
 
 ## Android geri tuşu (M8.5-10 UX). Sıra: açık pencere kapanır → sekme
@@ -201,6 +215,7 @@ func _start_level(level: LevelData) -> void:
 	_board.round_finished.connect(_on_round_finished)
 	_board.revive_offered.connect(_on_revive_offered)
 	_board.power_refill_offered.connect(_on_power_refill_offered)
+	_board.settings_requested.connect(_on_board_settings_requested)
 	add_child(_board)
 
 

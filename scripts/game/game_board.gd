@@ -13,6 +13,9 @@ signal revive_granted(used: int, remaining: int)
 ## (M8.5-06). `refill_requested` yalnızca olayı haber veriyordu; bu sinyal
 ## board'un fiilen donduğunu da bildiriyor.
 signal power_refill_offered(type: int)
+## HUD'daki ayarlar butonu (M8.6-02). Board pencereyi AÇMAZ; Main açar ve
+## `set_menu_paused(true)` ile board'u dondurur.
+signal settings_requested
 
 const DUMPLING_SCENE: PackedScene = preload("res://scenes/game/dumpling.tscn")
 const POP_EFFECT_SCENE: PackedScene = preload("res://scenes/game/pop_effect.tscn")
@@ -53,8 +56,13 @@ const DANGER_TICK_INTERVAL: float = 0.5
 ## alarm veriyordu ve şerit board'un en parlak öğesiydi; oysa şerit sakin
 ## hâlde yalnızca "sınır burası" demeli. MEKANİK DEĞİŞMEDİ — grace süresi,
 ## taşma alanı ve `_danger_pulse`ın hesabı aynı; değişen yalnız çizim.
-const DANGER_STRIPE_ALPHA_IDLE: float = 0.34
+## M8.6-02 polish: 0.34 → 0.20 ve şerit yüksekliği yarıya (STRIPE_HEIGHT_SCALE):
+## sakin hâlde köprü/platform gibi okunuyordu; şimdi ince bir eşik + tam
+## çizgide 2 px açık hat. Tehlikede eski gibi tam opak + rim glow.
+const DANGER_STRIPE_ALPHA_IDLE: float = 0.20
 const DANGER_STRIPE_ALPHA_MAX: float = 1.0
+const DANGER_STRIPE_HEIGHT_SCALE: float = 0.5
+const DANGER_LINE_COLOR: Color = Color(1.0, 0.72, 0.82, 0.55)
 ## Sakin hâldeki renk yumuşatması. Opaklığı daha da düşürmek şeridi
 ## kaybediyordu; bunun yerine renk soğutuluyor, tehlikede tam beyaza
 ## (yani asset'in kendi kırmızısına) dönüyor.
@@ -145,7 +153,25 @@ const FLOOR_TEXTURE: Texture2D = preload("res://assets/visual/ui/board_floor_bam
 ## GİRMİYOR: FLOOR_Y 1180, viewport 1280, altta 100 px boş yer var.
 const FLOOR_APRON: float = 54.0
 ## Kabın iç zemini — arka plan sahnesinin üstünde oyun alanını ayırıyor.
-const WELL_COLOR: Color = Color(0.09, 0.07, 0.13, 0.34)
+const WELL_COLOR: Color = Color(0.10, 0.08, 0.26, 0.24)
+## M8.6-02 kap kabuğu: görsel duvar fizik duvarından (20) daha kalın çizilir
+## (dışa doğru, oyun alanına GİRMEZ); kabın çevresinde yumuşak gölge, iç
+## kenarlarda derinlik gradyanı, tabanda ışık çizgisi. Hiçbiri collider
+## değildir.
+const WALL_VISUAL: float = 30.0
+const WELL_BOTTOM_COLOR: Color = Color(0.06, 0.04, 0.18, 0.34)
+const WELL_EDGE_COLOR: Color = Color(0.03, 0.02, 0.08, 0.30)
+const WELL_EDGE_WIDTH: float = 26.0
+const SHELL_SHADOW_COLOR: Color = Color(0.02, 0.01, 0.06, 0.20)
+const SHELL_SHADOW_STEPS: int = 5
+const SHELL_SHADOW_SPREAD: float = 22.0
+const FLOOR_LIP_COLOR: Color = Color(1.0, 0.94, 0.86, 0.55)
+const WALL_CAP_COLOR: Color = Color(1.0, 0.95, 0.88, 0.75)
+## Kamera ile ekrana sığdırılan referans pencere: düşürme çizgisinin bu
+## kadar üstünden (önizleme + nefes) taban eteğinin altına.
+const FRAME_ABOVE_DROP: float = 60.0
+const FRAME_BELOW_APRON: float = 6.0
+const FRAME_SIDE: float = 12.0
 
 ## Duvar/taban da sekmeli olmalı, yoksa yalnızca dumpling-dumpling
 ## çarpışmaları zıpluyor ve kap ölü hissettiriyor.
@@ -219,21 +245,28 @@ var _score_pop_home: Vector2 = Vector2.ZERO
 ## Drop sırası: bağımsız rastgele değil, karılmış torbadan (bkz. drop_bag.gd).
 ## Round başına yeni torba — önceki round'un kalanı sızmasın.
 var _drop_bag: RefCounted = DROP_BAG.new()
+## Bu round'da ulaşılan en yüksek tier (evrim şeridi + hedef ilerlemesi).
+var _max_tier_reached: int = 0
+## Ayarlar penceresi açıkken board donuk (M8.6-02). Fail/refill ile aynı
+## dondurma makinesi; round bitmez, kapanınca kaldığı yerden sürer.
+var _is_menu_paused: bool = false
+## Kamera sığdırma sonucu (GameplayLayout.fit_board) — girdi dönüşümü için.
+var _camera_zoom: float = 1.0
+var _camera_center: Vector2 = Vector2.ZERO
+var _view_size: Vector2 = Vector2(720.0, 1280.0)
 
 @onready var _walls: StaticBody2D = $Walls
 @onready var _dumpling_layer: Node2D = $DumplingLayer
 @onready var _overflow_area: Area2D = $OverflowArea
 @onready var _overflow_shape: CollisionShape2D = $OverflowArea/OverflowShape
 @onready var _preview: Node2D = $Preview
-@onready var _score_label: Label = $HUD/ScoreLabel
-@onready var _next_label: Label = $HUD/NextLabel
-@onready var _objective_label: RichTextLabel = $HUD/ObjectiveLabel
-@onready var _status_label: Label = $HUD/StatusLabel
-@onready var _combo_label: Label = $HUD/ComboLabel
-@onready var _score_pop: Label = $HUD/ScorePop
-@onready var _tutorial: VBoxContainer = $HUD/Tutorial
-@onready var _combo_badge: TextureRect = $HUD/ComboLabel/Badge
-@onready var _power_bar: Control = $HUD/PowerBar
+@onready var _hud: GameplayHud = $HUD
+@onready var _status_label: Label = _hud.status_label
+@onready var _combo_label: Label = _hud.combo_label
+@onready var _score_pop: Label = _hud.score_pop
+@onready var _tutorial: VBoxContainer = _hud.tutorial
+@onready var _combo_badge: TextureRect = _hud.combo_badge
+@onready var _power_bar: PowerBar = _hud.power_bar
 @onready var _camera: Camera2D = $Camera2D
 @onready var _bokeh: CPUParticles2D = $Bokeh
 
@@ -253,8 +286,11 @@ func _ready() -> void:
 	GameState.score_changed.connect(_on_score_changed)
 
 	# Sarsıntı kamerayı kaydırarak yapılıyor; gövdeleri/duvarları oynatmak
-	# fizikle çakışırdı. Kamera varsayılan görüntünün tam merkezine oturuyor.
-	_camera.position = get_viewport_rect().size * 0.5
+	# fizikle çakışırdı. Kamera referans (fizik) penceresini GameplayLayout'un
+	# BOARD bölgesine sığdırır (M8.6-02); fizik koordinatları değişmez.
+	_apply_layout(get_viewport_rect().size)
+	get_viewport().size_changed.connect(_on_viewport_resized)
+	_hud.settings_pressed.connect(func() -> void: settings_requested.emit())
 	_setup_bokeh()
 	_build_walls()
 	_setup_overflow_area()
@@ -263,27 +299,118 @@ func _ready() -> void:
 	_pending_tier = _drop_bag.next_tier()
 	_next_tier = _drop_bag.next_tier()
 	_refresh_preview()
+	_hud.set_level(level, SaveManager.endless_high_score())
+	_prev_score = GameState.score
 	_on_score_changed(GameState.score)
-	# Taç level göstergesinde, bayrak hedefte (owner ikon seti). Sonsuz modda
-	# "Level N" yok — objective_text() zaten "Hedef yok ..." diyor, oraya
-	# bayrak koymak yanlış olurdu.
-	if level.is_endless:
-		_objective_label.text = "%s — %s" % [
-			UiIcons.labelled(UiIcons.CROWN, level.display_name()),
-			level.objective_text()]
-	else:
-		_objective_label.text = "%s — %s" % [
-			UiIcons.labelled(UiIcons.CROWN, level.display_name()),
-			UiIcons.labelled(UiIcons.FLAG, level.objective_text())]
-	_status_label.text = ""
+	_update_goal_progress()
+	_hud.set_status("")
 	_set_combo_text("")
 	_score_pop.text = ""
 	_score_pop.modulate.a = 0.0
-	_score_pop_home = _score_pop.position
-	_prev_score = GameState.score
-	_score_label.pivot_offset = Vector2(0.0, _score_label.size.y * 0.5)
 	_setup_tutorial()
 	_setup_powerups()
+
+
+# --- Yerleşim / kamera (M8.6-02) ---
+
+## Fizik dünyasında ekrana sığdırılacak referans pencere.
+func reference_frame() -> Rect2:
+	var top: float = drop_line_y() - FRAME_ABOVE_DROP
+	var bottom: float = FLOOR_Y + FLOOR_APRON + FRAME_BELOW_APRON
+	var left: float = _left_x() - WALL_VISUAL - FRAME_SIDE
+	var right: float = _right_x() + WALL_VISUAL + FRAME_SIDE
+	return Rect2(left, top, right - left, bottom - top)
+
+
+## HUD bölgelerini yerleştirir ve kamerayı BOARD bölgesine sığdırır.
+## Testler ve çekim araçları `view` vererek farklı ekranları sürebilir.
+func _apply_layout(view: Vector2, safe_top: float = -1.0) -> void:
+	_view_size = view
+	if safe_top < 0.0:
+		safe_top = _detect_safe_top(view)
+	var rects: Dictionary = GameplayLayout.compute(view, GameplayLayout.banner_height(), safe_top)
+	_hud.apply_layout(rects)
+	var fit: Dictionary = GameplayLayout.fit_board(reference_frame(), rects["board"], view)
+	_camera_zoom = fit["zoom"]
+	_camera_center = fit["position"]
+	_camera.zoom = Vector2.ONE * _camera_zoom
+	_camera.position = _camera_center
+	if _tutorial.visible:
+		_place_tutorial()
+	queue_redraw()
+
+
+func _on_viewport_resized() -> void:
+	_apply_layout(get_viewport_rect().size)
+
+
+## Cihazın üst güvenli alan payı, tuval piksel cinsinden (centik /
+## punch-hole). Pencere yoksa (headless) ya da pay yoksa 0.
+func _detect_safe_top(view: Vector2) -> float:
+	var window: Vector2 = Vector2(DisplayServer.window_get_size())
+	if window.x <= 0.0 or window.y <= 0.0:
+		return 0.0
+	var safe: Rect2i = DisplayServer.get_display_safe_area()
+	var inset_px: float = maxf(0.0, float(safe.position.y))
+	return inset_px * (view.x / window.x)
+
+
+## Ekran (viewport) noktası -> fizik dünyası. Camera2D DRAG_CENTER:
+##   screen = (world - center) * zoom + view / 2
+func screen_to_world(p: Vector2) -> Vector2:
+	return (p - _view_size * 0.5) / _camera_zoom + _camera_center
+
+
+func world_to_screen(p: Vector2) -> Vector2:
+	return (p - _camera_center) * _camera_zoom + _view_size * 0.5
+
+
+func layout() -> Dictionary:
+	return _hud.layout()
+
+
+## Kabın ekrandaki dikdörtgeni (dış duvar dahil) — çakışma testleri için.
+func board_screen_rect() -> Rect2:
+	var frame: Rect2 = reference_frame()
+	return Rect2(world_to_screen(frame.position), frame.size * _camera_zoom)
+
+
+## Ayarlar penceresi açık/kapalı (Main çağırır). Fail/refill dondurmasıyla
+## aynı makine; hiçbir sayaç, stok, hak değişmez.
+func set_menu_paused(paused: bool) -> void:
+	if paused == _is_menu_paused or _is_finished:
+		return
+	if paused and (_is_fail_pending or _is_refill_pending):
+		# Zaten donuk: ayrı bir dondurma katmanı açma, pencere kapanınca
+		# mevcut durum neyse o sürer.
+		return
+	_is_menu_paused = paused
+	_preview.visible = not paused and not _powerups.is_armed()
+	_power_bar.set_enabled(not paused)
+	_set_board_frozen(paused)
+
+
+## Hedef ilerlemesi: ulaşılan en yüksek tier'ın hedefe oranı; skor hedefi
+## varsa ikisinin ortalaması. Sonsuz modda skorun rekora oranı.
+func _update_goal_progress() -> void:
+	if level.is_endless:
+		var record: int = maxi(1, SaveManager.endless_high_score())
+		_hud.set_goal_progress(float(GameState.score) / float(record))
+		return
+	var tier_span: float = maxf(1.0, float(level.target_tier - 1))
+	var ratio: float = clampf(float(_max_tier_reached - 1) / tier_span, 0.0, 1.0)
+	if level.has_score_target():
+		var score_ratio: float = clampf(float(GameState.score) / float(level.target_score), 0.0, 1.0)
+		ratio = (ratio + score_ratio) * 0.5
+	_hud.set_goal_progress(ratio)
+
+
+func _note_tier(tier: int) -> void:
+	if tier <= _max_tier_reached:
+		return
+	_max_tier_reached = tier
+	_hud.set_reached_tier(tier)
+	_update_goal_progress()
 
 
 ## Sürükle-bırak ipucu: yalnızca level 1'de, ilk bırakışa kadar
@@ -292,13 +419,7 @@ func _setup_tutorial() -> void:
 	if level.is_endless or level.level_number != TUTORIAL_LEVEL:
 		_tutorial.visible = false
 		return
-	# Kabın ağzı ile taşma çizgisi arasına: round başında burası boş, ve ilk
-	# parça düşmeden ipucu zaten kayboluyor.
-	var span: float = overflow_line_y() - container_top_y()
-	var mid_y: float = container_top_y() + span * TUTORIAL_Y_RATIO
-	_tutorial.size = TUTORIAL_SIZE
-	_tutorial.position = Vector2(_center_x() - TUTORIAL_SIZE.x * 0.5,
-		mid_y - TUTORIAL_SIZE.y * 0.5)
+	_place_tutorial()
 	_tutorial.visible = true
 
 	# Hafif bir salınım — hareketsiz bir ipucu gözden kaçıyor.
@@ -307,6 +428,17 @@ func _setup_tutorial() -> void:
 	bob.tween_property(_tutorial, "position", home + Vector2(0.0, 10.0), 0.9) \
 		.set_trans(Tween.TRANS_SINE)
 	bob.tween_property(_tutorial, "position", home, 0.9).set_trans(Tween.TRANS_SINE)
+
+
+## İpucu HUD katmanında (ekran koordinatı); kabın ağzı ile taşma çizgisi
+## arasındaki dünya noktası kameradan ekrana çevrilir. Round başında burası
+## boş, ilk parça düşmeden ipucu zaten kayboluyor.
+func _place_tutorial() -> void:
+	var span: float = overflow_line_y() - container_top_y()
+	var mid_y: float = container_top_y() + span * TUTORIAL_Y_RATIO
+	var at: Vector2 = world_to_screen(Vector2(_center_x(), mid_y))
+	_tutorial.size = TUTORIAL_SIZE
+	_tutorial.position = at - TUTORIAL_SIZE * 0.5
 
 
 ## İlk bırakışta sönerek kaybolur — oyuncu mekaniği anladı.
@@ -387,14 +519,31 @@ func _setup_overflow_area() -> void:
 ## Görsel duvar ile fizik duvarı bilerek ayrı — biri değişirken diğeri
 ## kazara kaymasın.
 ##
-## Çizim sırası: kabın iç zemini → duvarlar → taşma şeridi → tehlike parlaması.
+## Çizim sırası: dış gölge → kabın iç zemini → taşma şeridi → duvarlar/taban
+## → tehlike parlaması. (M8.6-02: şerit duvarların ALTINA alındı ki kabın
+## içinde kalsın; duvar kapakları ve taban dudağı eklendi.)
 func _draw() -> void:
 	if level == null:
 		return
+	_draw_shell_shadow()
 	_draw_container_well()
-	_draw_walls()
 	_draw_overflow_stripe()
+	_draw_walls()
 	_draw_danger()
+
+
+## Kabın çevresindeki yumuşak gölge: kabı zeminden ayırır, "masaya konmuş
+## kutu" hissi. Birkaç genişleyen, solan dikdörtgen — doku yok.
+func _draw_shell_shadow() -> void:
+	var top: float = container_top_y()
+	var outer := Rect2(_left_x() - WALL_VISUAL, top,
+		level.container_width + WALL_VISUAL * 2.0, FLOOR_Y + FLOOR_APRON - top)
+	for i in SHELL_SHADOW_STEPS:
+		var t: float = float(i + 1) / float(SHELL_SHADOW_STEPS)
+		var grow: float = SHELL_SHADOW_SPREAD * t
+		var alpha: float = SHELL_SHADOW_COLOR.a * (1.0 - t) * (1.0 - t)
+		draw_rect(outer.grow_individual(grow, grow * 0.35, grow, grow * 1.4),
+			Color(SHELL_SHADOW_COLOR, alpha))
 
 
 ## Kabın içi. Arka plan sahnesi (Backdrop katmanı) tüm ekranı kapladığı için
@@ -403,8 +552,31 @@ func _draw() -> void:
 ## okunur tutuyor. Düz renk — sahte doku DEĞİL.
 func _draw_container_well() -> void:
 	var top: float = container_top_y()
-	draw_rect(Rect2(_left_x(), top, level.container_width, FLOOR_Y - top),
-		WELL_COLOR)
+	var left: float = _left_x()
+	var right: float = _right_x()
+	# Düz dolgu + tabana doğru koyulaşan dikey gradyan (derinlik).
+	draw_rect(Rect2(left, top, level.container_width, FLOOR_Y - top), WELL_COLOR)
+	var clear := Color(WELL_BOTTOM_COLOR, 0.0)
+	var depth_top: float = lerpf(top, FLOOR_Y, 0.45)
+	draw_polygon(PackedVector2Array([
+		Vector2(left, depth_top), Vector2(right, depth_top),
+		Vector2(right, FLOOR_Y), Vector2(left, FLOOR_Y)]),
+		PackedColorArray([clear, clear, WELL_BOTTOM_COLOR, WELL_BOTTOM_COLOR]))
+	# İç kenar gölgeleri: duvarın hemen içinde solan bant — kap "içi" okunur.
+	var edge_clear := Color(WELL_EDGE_COLOR, 0.0)
+	draw_polygon(PackedVector2Array([
+		Vector2(left, top), Vector2(left + WELL_EDGE_WIDTH, top),
+		Vector2(left + WELL_EDGE_WIDTH, FLOOR_Y), Vector2(left, FLOOR_Y)]),
+		PackedColorArray([WELL_EDGE_COLOR, edge_clear, edge_clear, WELL_EDGE_COLOR]))
+	draw_polygon(PackedVector2Array([
+		Vector2(right - WELL_EDGE_WIDTH, top), Vector2(right, top),
+		Vector2(right, FLOOR_Y), Vector2(right - WELL_EDGE_WIDTH, FLOOR_Y)]),
+		PackedColorArray([edge_clear, WELL_EDGE_COLOR, WELL_EDGE_COLOR, edge_clear]))
+	# Taban gölgesi: zeminle buluşan yerde kısa koyu bant.
+	draw_polygon(PackedVector2Array([
+		Vector2(left, FLOOR_Y - WELL_EDGE_WIDTH), Vector2(right, FLOOR_Y - WELL_EDGE_WIDTH),
+		Vector2(right, FLOOR_Y), Vector2(left, FLOOR_Y)]),
+		PackedColorArray([edge_clear, edge_clear, WELL_EDGE_COLOR, WELL_EDGE_COLOR]))
 
 
 ## Görsel duvarlar ve taban — owner'ın bambu asset'leri (M8.5-08).
@@ -427,16 +599,31 @@ func _draw_walls() -> void:
 	if _shake_flash > 0.0:
 		tint = Color.WHITE.lerp(PowerUp.accent(PowerUp.Type.SHAKE),
 			_shake_flash * 0.55)
+	# M8.6-02: görsel duvar WALL_VISUAL (30) genişliğinde, dışa doğru;
+	# fizik duvarı (20) bunun içinde kalıyor, oyun alanı değişmiyor.
 	draw_texture_rect(WALL_TEXTURE,
-		Rect2(_left_x() - WALL_THICKNESS, top, WALL_THICKNESS, height),
+		Rect2(_left_x() - WALL_VISUAL, top, WALL_VISUAL, height),
 		false, tint)
 	draw_texture_rect(WALL_TEXTURE,
-		Rect2(_right_x(), top, WALL_THICKNESS, height), false, tint)
+		Rect2(_right_x(), top, WALL_VISUAL, height), false, tint)
+	# Duvar kapakları: açık bir ışık şeridi — kabın ağzı okunur.
+	draw_rect(Rect2(_left_x() - WALL_VISUAL, top - 3.0, WALL_VISUAL, 6.0), WALL_CAP_COLOR)
+	draw_rect(Rect2(_right_x(), top - 3.0, WALL_VISUAL, 6.0), WALL_CAP_COLOR)
 	# Yatay bambu ray: fizik tabanının hizasından başlayıp aşağı iniyor.
 	draw_texture_rect(FLOOR_TEXTURE,
-		Rect2(_left_x() - WALL_THICKNESS, FLOOR_Y,
-			level.container_width + WALL_THICKNESS * 2.0, FLOOR_APRON),
+		Rect2(_left_x() - WALL_VISUAL, FLOOR_Y,
+			level.container_width + WALL_VISUAL * 2.0, FLOOR_APRON),
 		false, tint)
+	# Taban dudağı: rayın üst kenarında ince ışık, altında kısa gölge.
+	draw_rect(Rect2(_left_x() - WALL_VISUAL, FLOOR_Y - 2.0,
+		level.container_width + WALL_VISUAL * 2.0, 3.0), FLOOR_LIP_COLOR)
+	var lip_shadow := Color(SHELL_SHADOW_COLOR, 0.35)
+	var lip_clear := Color(SHELL_SHADOW_COLOR, 0.0)
+	var lip_y: float = FLOOR_Y + FLOOR_APRON
+	draw_polygon(PackedVector2Array([
+		Vector2(_left_x() - WALL_VISUAL, lip_y), Vector2(_right_x() + WALL_VISUAL, lip_y),
+		Vector2(_right_x() + WALL_VISUAL, lip_y + 14.0), Vector2(_left_x() - WALL_VISUAL, lip_y + 14.0)]),
+		PackedColorArray([lip_shadow, lip_shadow, lip_clear, lip_clear]))
 
 
 ## Taşma çizgisinin görsel katmanı (owner asset'i). Eskiden kesikli kırmızı
@@ -453,7 +640,7 @@ func _draw_walls() -> void:
 func _draw_overflow_stripe() -> void:
 	var tex_size: Vector2 = DANGER_STRIPE_TEXTURE.get_size()
 	var width: float = level.container_width
-	var height: float = width * (tex_size.y / tex_size.x)
+	var height: float = width * (tex_size.y / tex_size.x) * DANGER_STRIPE_HEIGHT_SCALE
 	var alpha: float = lerpf(DANGER_STRIPE_ALPHA_IDLE, DANGER_STRIPE_ALPHA_MAX,
 		_danger_pulse)
 	var tint: Color = DANGER_STRIPE_IDLE_TINT.lerp(Color.WHITE, _danger_pulse)
@@ -462,6 +649,9 @@ func _draw_overflow_stripe() -> void:
 	draw_texture_rect(DANGER_STRIPE_TEXTURE,
 		Rect2(_left_x(), overflow_line_y() - height * 0.5, width, height),
 		false, Color(tint.r, tint.g, tint.b, alpha))
+	# Eşiğin kendisi: ince açık hat (tehlikede beyaza gider).
+	var line: Color = DANGER_LINE_COLOR.lerp(Color(1, 1, 1, 0.95), _danger_pulse)
+	draw_rect(Rect2(_left_x(), overflow_line_y() - 1.0, width, 2.0), line)
 
 
 ## Taşma tehlikesindeyken kap kenarında kırmızı titreşen highlight
@@ -498,12 +688,12 @@ func _draw_danger() -> void:
 	var wall_h: float = (line_y + band * 0.5) - top
 	var wall_glow := Color(1.0, 0.30, 0.42, peak * 0.8)
 	draw_polygon(PackedVector2Array([
-		Vector2(left - WALL_THICKNESS, top), Vector2(left, top),
-		Vector2(left, top + wall_h), Vector2(left - WALL_THICKNESS, top + wall_h)]),
+		Vector2(left - WALL_VISUAL, top), Vector2(left, top),
+		Vector2(left, top + wall_h), Vector2(left - WALL_VISUAL, top + wall_h)]),
 		PackedColorArray([wall_glow, wall_glow, clear, clear]))
 	draw_polygon(PackedVector2Array([
-		Vector2(right, top), Vector2(right + WALL_THICKNESS, top),
-		Vector2(right + WALL_THICKNESS, top + wall_h), Vector2(right, top + wall_h)]),
+		Vector2(right, top), Vector2(right + WALL_VISUAL, top),
+		Vector2(right + WALL_VISUAL, top + wall_h), Vector2(right, top + wall_h)]),
 		PackedColorArray([wall_glow, wall_glow, clear, clear]))
 
 
@@ -524,14 +714,14 @@ func _unhandled_input(event: InputEvent) -> void:
 
 	var drag := event as InputEventScreenDrag
 	if drag != null:
-		_set_aim(drag.position.x)
+		_set_aim(screen_to_world(drag.position).x)
 		return
 
 	var touch := event as InputEventScreenTouch
 	if touch == null:
 		return
 	if touch.pressed:
-		_set_aim(touch.position.x)
+		_set_aim(screen_to_world(touch.position).x)
 	else:
 		_drop()
 
@@ -543,16 +733,17 @@ func _handle_targeting_input(event: InputEvent) -> void:
 	var touch := event as InputEventScreenTouch
 	if touch == null or not touch.pressed:
 		return
-	var target: Dumpling = _dumpling_at(touch.position)
+	var target: Dumpling = _dumpling_at(screen_to_world(touch.position))
 	if target == null:
 		_powerups.cancel()
 		return
 	_use_targeted_power(target)
 
 
-## Ekran noktasının altındaki dumpling. Yarıçap testi kullanılıyor: fizik
+## Dünya noktasının altındaki dumpling. Yarıçap testi kullanılıyor: fizik
 ## sorgusu yerine basit mesafe, çünkü parçalar daire ve sayıları az.
-## En ÜSTTEKİ (sona eklenen) parça önce kontrol ediliyor.
+## En ÜSTTEKİ (sona eklenen) parça önce kontrol ediliyor. Çağıran ekran
+## noktasını `screen_to_world` ile çevirir (M8.6-02 kamera sığdırma).
 func _dumpling_at(screen_point: Vector2) -> Dumpling:
 	var children: Array = _dumpling_layer.get_children()
 	for i in range(children.size() - 1, -1, -1):
@@ -1034,7 +1225,7 @@ func _refresh_preview() -> void:
 	_preview.position = Vector2(_aim_x, drop_line_y())
 	_preview.setup(_pending_tier)
 	_preview.modulate.a = 1.0 if _drop_cooldown <= 0.0 else 0.4
-	_next_label.text = "Sıradaki: %s" % TierConfig.tier_name(_next_tier)
+	_hud.set_next_tier(_next_tier)
 
 
 func _drop() -> void:
@@ -1061,6 +1252,7 @@ func _spawn_dumpling(tier: int, at: Vector2) -> Dumpling:
 	dumpling.merge_requested.connect(_on_merge_requested)
 	dumpling.impact_landed.connect(_on_impact_landed)
 	_dumpling_layer.add_child(dumpling)
+	_note_tier(tier)
 	# Fail teklifi açıldığı KARE'de uçuşta olan bir merge hâlâ çözülebilir
 	# (_resolve_merge deferred çağrılıyor). Doğan parça da donmuş board'a
 	# katılmalı, yoksa reklam beklerken tek başına düşerdi.
@@ -1230,13 +1422,15 @@ func _add_shake(tier: int) -> void:
 ## moodboard'daki bokeh hissinin ucuz versiyonu (GAME_DESIGN.md §7).
 ## z_index negatif: kabın ve parçaların ARKASINDA kalmalı.
 func _setup_bokeh() -> void:
-	var view: Vector2 = get_viewport_rect().size
+	# Referans pencere + taşma payı: kamera zoom'undan bağımsız, ekranın
+	# tamamına yayılsın.
+	var frame: Rect2 = reference_frame().grow(200.0)
 	_bokeh.texture = BOKEH_TEXTURE
 	_bokeh.z_index = -10
-	_bokeh.position = view * 0.5
+	_bokeh.position = frame.get_center()
 	_bokeh.emission_shape = CPUParticles2D.EMISSION_SHAPE_RECTANGLE
 	# Yükseklik payı: parçacıklar ekranın altından girip üstünden çıksın.
-	_bokeh.emission_rect_extents = Vector2(view.x * 0.5, view.y * 0.6)
+	_bokeh.emission_rect_extents = Vector2(frame.size.x * 0.5, frame.size.y * 0.6)
 	_bokeh.amount = 26
 	_bokeh.lifetime = 9.0
 	_bokeh.explosiveness = 0.0
@@ -1255,10 +1449,10 @@ func _setup_bokeh() -> void:
 
 
 func _flash_status(text: String) -> void:
-	_status_label.text = text
+	_hud.set_status(text)
 	await get_tree().create_timer(2.0).timeout
 	if not _is_finished and _status_label.text == text:
-		_status_label.text = ""
+		_hud.set_status("")
 
 
 # --- Merge / inis / hedef sunumu (M8.5-11) ---
@@ -1381,12 +1575,13 @@ func _on_impact_landed(dumpling: Dumpling, speed: float) -> void:
 ## RESULT_DELAY (0.8 sn) sonra aciliyor; bu pencere okunabilir bir basari ani.
 ## Durum degismiyor: _is_finished zaten set, girdi zaten kapali.
 func _play_goal_celebration() -> void:
-	_status_label.pivot_offset = _status_label.size * 0.5
-	_status_label.scale = Vector2(0.6, 0.6)
+	var plate: Control = _hud.status_plate
+	plate.pivot_offset = plate.size * 0.5
+	plate.scale = Vector2(0.6, 0.6)
 	var tween := create_tween()
-	tween.tween_property(_status_label, "scale", Vector2(1.15, 1.15), 0.16) \
+	tween.tween_property(plate, "scale", Vector2(1.15, 1.15), 0.16) \
 		.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
-	tween.tween_property(_status_label, "scale", Vector2.ONE, 0.14)
+	tween.tween_property(plate, "scale", Vector2.ONE, 0.14)
 	var at := Vector2(_center_x(), container_top_y() + 40.0)
 	_spawn_burst(at, SPARKLE_TEXTURE, Color(1.0, 0.92, 0.6, 0.95), 22, 420.0, 0.85, 0.9)
 	_spawn_burst(at, BOKEH_TEXTURE, Color(1.0, 0.75, 0.9, 0.7), 14, 300.0, 0.7, 0.7)
@@ -1501,7 +1696,7 @@ func _is_overflowing() -> bool:
 
 ## Oyun herhangi bir overlay yüzünden durmuş mu?
 func _is_paused() -> bool:
-	return _is_fail_pending or _is_refill_pending
+	return _is_fail_pending or _is_refill_pending or _is_menu_paused
 
 
 func is_refill_pending() -> bool:
@@ -1604,7 +1799,7 @@ func _enter_fail_pending() -> void:
 	# Yumuşak inen ton + tek kontrollü darbe; sert buzzer yok.
 	AudioManager.play(&"fail")
 	Haptics.medium()
-	_status_label.text = "Taştı!"
+	_hud.set_status("Taştı!")
 	revive_offered.emit(revives_remaining())
 
 
@@ -1715,7 +1910,7 @@ func _finish(won: bool) -> void:
 	_clear_target_highlights()
 	_power_bar.set_enabled(false)
 	_set_combo_text("")
-	_status_label.text = "Hedef tamam!" if won else "Bitti"
+	_hud.set_status("Hedef tamam!" if won else "Bitti")
 	AudioManager.play(&"round_win" if won else &"round_lose")
 	if won:
 		_play_goal_celebration()
@@ -1725,14 +1920,16 @@ func _finish(won: bool) -> void:
 ## Skor sadece değişmesin, kazanılan miktar "+N" olarak yukarı doğru büyüyüp
 ## sönerek pop etsin (GAME_DESIGN.md §6'daki combo "xN" deseninin aynısı).
 func _on_score_changed(new_score: int) -> void:
-	_score_label.text = "Skor: %d" % new_score
+	_hud.set_score(new_score)
+	_update_goal_progress()
 	var delta: int = new_score - _prev_score
 	_prev_score = new_score
 	if delta <= 0:
 		return
 
 	_score_pop.text = "+%d" % delta
-	_score_pop.pivot_offset = _score_pop.size * 0.5
+	_score_pop.pivot_offset = Vector2(0.0, _score_pop.size.y * 0.5)
+	_score_pop_home = _hud.score_pop_home()
 	_score_pop.position = _score_pop_home
 	_score_pop.modulate.a = 1.0
 	_score_pop.scale = Vector2(0.6, 0.6)
@@ -1740,11 +1937,9 @@ func _on_score_changed(new_score: int) -> void:
 	tween.set_parallel(true)
 	tween.tween_property(_score_pop, "scale", Vector2(1.25, 1.25), 0.14).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 	tween.tween_property(_score_pop, "position",
-		_score_pop_home - Vector2(0.0, 34.0), 0.55).set_ease(Tween.EASE_OUT)
+		_score_pop_home - Vector2(0.0, 16.0), 0.55).set_ease(Tween.EASE_OUT)
 	tween.tween_property(_score_pop, "modulate:a", 0.0, 0.55).set_delay(0.15)
 
-	# Skorun kendisi de hafifçe zıplasın — sayının değiştiği fark edilsin.
-	var bump := create_tween()
-	bump.tween_property(_score_label, "scale", Vector2(1.12, 1.12), 0.09).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
-	bump.tween_property(_score_label, "scale", Vector2.ONE, 0.12)
+	# Skor plakası da hafifçe zıplasın — sayının değiştiği fark edilsin.
+	UiMotion.pop(_hud.score_plate, 1.08)
 

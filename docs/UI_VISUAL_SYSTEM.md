@@ -6,7 +6,7 @@
 **Asset kaynağı:** `tools/make_ui_core.py` → `assets/visual/ui/core/**` +
 `scripts/ui/ui_core_assets.gd` (üretilir, elle düzenlenmez).
 **Galeri:** `tools/ui_system_gallery.tscn` (dev-only, 5 sayfa).
-**Test:** `tools/ui_foundation_test.tscn` (135 kontrol).
+**Test:** `tools/ui_foundation_test.tscn` (135 kontrol), `tools/gameplay_shell_test.tscn` (124, §13).
 
 Çakışma kuralı: owner'ın son talimatı > GAME_DESIGN.md > bu doküman > kod.
 Bir sayı burada ve `ui_tokens.gd`'de farklıysa **doküman güncellenir, token
@@ -77,6 +77,7 @@ Legendary ödül).
 | Positive / Warning | Nunito Bold | 18 | `LabelPositive` / `LabelWarning` |
 | Disabled | Nunito SemiBold | 18 | `LabelDisabled` |
 | Badge | Baloo 2 Bold | 16 / 14 | `LabelBadge` / `LabelBadgeOnDark` |
+| HUD skor / HUD başlık | Nunito Bold | 30 / 13 | `LabelHudScore` (gölgeli) / `LabelHudCaption` (beyaz %62) — M8.6-02 |
 | Buton | Baloo 2 Bold | 22 | ButtonPrimary/Secondary/Purchase/Danger |
 | Kahraman CTA | Baloo 2 ExtraBold | 28 | ButtonCTA |
 
@@ -114,6 +115,8 @@ için önceden ölçeklendi (§8).
 | `PanelCard` | `card_large` | krem | mağaza/koleksiyon kartı |
 | `PanelElevated` | `card_bevel` | krem | küçük yükseltilmiş kart ("Sıradaki") |
 | `PanelListRow` | `list_row` | `CREAM_DEEP` opak | sahip olunan skin satırı, ayar satırı — kartla aynı vanilya ailesi, bir ton geri (alfa ile gri kaçmaz) |
+| `PanelHud` | `panel_bevel` (+ `UiKit.plate` üst ışığı) | erik, dar dikey pay (4/10) | gameplay skor / hedef plakası (M8.6-02) |
+| `PanelStrip` | `panel_bevel` (+ üst ışık) | erik α .94 | evrim şeridi rafı (M8.6-02) |
 
 Owner'ın candy paneli (`panel_candy` + kanatlı-kalp tepelik) kimlik katmanıdır:
 pencerelerde `modal_frame` iskeletinin **üstüne** tepelik olarak eklenir ya da
@@ -133,6 +136,7 @@ iskeletin yerine kullanılır — kitin düz krem gövdesi tek başına kimlik t
 | `ButtonIcon` | `btn_square` | lavanta / beyaz picto | ayarlar, geri, ses |
 | `ButtonRoundIcon` | `btn_circle` | pembe / beyaz picto | pencere kapat |
 | `ButtonResourceAdd` | `resource_btn` | nane | pill'deki "+" (mağaza kısayolu) |
+| `PowerSlot` / `PowerSlotArmed` / `PowerSlotEmpty` | `btn_circle` (84×88 madalyon) | krem / cyan / pasif gri | gameplay güç slotu — `UiKit.power_slot`, §13.4 |
 
 Durumlar (hepsi temada): **normal**, **hover** (%6 açık), **pressed** (%12
 koyu + içerik 3 px aşağı), **disabled** (açık lavanta-gri gövde `#a19dba` +
@@ -249,9 +253,9 @@ production'a taşınmadı; asset yollarında "spike" kelimesi yok.
 - **Candy CTA dokusu:** owner'ın `cta_button_normal` pill'i yalnız M8.5
   ekranlarında; M8.6'da `ButtonCTA` tek CTA'dır. Owner yeni CTA sanatı verirse
   `btn_cta` ile aynı 9-slice geometrisine türetilir, variation adı değişmez.
-- **Güç butonu (HUD):** `btn_bevel` + `btn_bevel_light` + owner güç ikonu +
-  `Badge` stok rozeti + seçili slotta cyan `item_focus` (spike'ta doğrulandı;
-  M8.6-02'de `UiKit`'e `power_slot` olarak eklenecek).
+- **Güç butonu (HUD):** `UiKit.power_slot` — `btn_bevel` + `btn_bevel_light` +
+  owner güç ikonu + `Badge` stok rozeti + seçili slotta cyan `item_focus`
+  (M8.6-02, bkz. §13.4).
 - **Ödül/VFX:** `GLOW_PREMIUM` yalnız Legendary; sandık açılışı owner sanatı.
 
 ---
@@ -285,3 +289,114 @@ Galeri cihazda **geçici** `run/main_scene` değişimiyle açılır; export sonr
 dokunma hedefi, keskinlik, 9-slice bütünlüğü, font, buton kontrastı, kaynak
 pill'i, modal/kart görünümü. Fiziksel kurulum + başlatma olmadan "cihazda
 doğrulandı" denmez.
+
+---
+
+## 13. Gameplay Shell (M8.6-02)
+
+**Kod:** `scripts/ui/gameplay_layout.gd` (bölge sözleşmesi + kamera sığdırma),
+`scripts/ui/gameplay_hud.gd` (HUD katmanı), `scripts/ui/power_bar.gd`
+(`UiKit.power_slot` x4), `scripts/ui/evolution_strip.gd`, `game_board.gd`
+`_draw*` (kap kabuğu). **Test:** `tools/gameplay_shell_test.tscn` (124 kontrol).
+**Çekim:** `tools/shell_shots.tscn -- <dir> [GxY]` (10 durum × 4 boyut).
+
+### 13.1 Bölge sözleşmesi (responsive)
+
+720 px tuval, yükseklik serbest (16:9 → 1280, 19.5:9 → 1560; 540×960 aynı
+kompozisyonun 0.75'i, 1080×2340 1560'ın 1.5'i). Dikeyde dört bölge:
+
+| Bölge | Yükseklik | İçerik |
+|---|---|---|
+| **HUD** | sabit: `max(SAFE_TOP 10, cihaz üst güvenli pay + 4) + ROW1 68 + 8 + ROW2 92` = 178 (A36 punch-hole: 92 px fiziksel = 61 tuval px → 233) | satır 1: Ayarlar · Skor · Sıradaki; satır 2: 2 güç · Hedef · 2 güç |
+| **BOARD** | esnek: kalan alanın tamamı | fizik penceresi (kamera ile sığdırılır) |
+| **STRIP** | sabit 64 (+8 üst, +10 alt pay) | evrim şeridi |
+| **BANNER** | `GameplayLayout.banner_height()` — v1'de **0** | gelecek AdMob banner seam'i |
+
+Üst güvenli pay `GameBoard._detect_safe_top` (`DisplayServer.get_display_safe_area`,
+pencere → tuval ölçeği) ile okunur; A36'da punch-hole skor plakasının tam
+üstüne düşüyordu (cihaz kapısında yakalandı), HUD payın altına iner, BOARD
+küçülür, geri kalan hiçbir şey oynamaz.
+
+Kurallar: kontroller yalnız HUD'da, BOARD ve BANNER'a hiçbir kontrol girmez;
+HUD/strip/slot **ölçeklenmez**; fazla dikey alan BOARD'a gider. Banner
+geldiğinde `set_banner_height(h)` çağrılır → STRIP ve BOARD yukarı kayar, HUD
+yerinde kalır, gameplay yeniden yazılmaz (test: banner 0 ve 100 için çakışma
+yok, seam'e kontrol/board girmiyor).
+
+### 13.2 FLOOR_Y / kamera sığdırma
+
+Fizik referans koordinatında kalır (`FLOOR_Y 1180`, `RIM_ABOVE_LINE 420`,
+`playable_height 400`, duvar 20, kap genişlikleri — **hiçbiri değişmedi**).
+`GameBoard.reference_frame()` = düşürme çizgisinin 60 üstünden taban eteğinin
+6 altına, duvar (30) + 12 yan pay. `GameplayLayout.fit_board(frame, board,
+view)` zoom = min(en, boy), tavan **1.2**; fazla dikey alanın %55'i kabın
+üstüne (düşürme bölgesi), kalanı altına. Girdi `screen_to_world`, HUD'daki
+dünya-bağlı öğeler (ipucu) `world_to_screen` ile çevrilir. Sonuç: 720×1280'de
+w600 kap zoom ≈ 0.99, 720×1560'ta 1.05 (genişlik sınırı), dar kaplar 1.2;
+sonsuz (720) 0.90 — duvarlar ilk kez sonsuz modda da görünür. Alt ölü alan
+yok; 1280'de kap tabanı şeridin hemen üstünde.
+
+### 13.3 HUD hiyerarşisi
+
+1. **Skor** — `PanelHud` (erik bevel, dar pay) + owner yıldızı + `LabelHudCaption`
+   "SKOR" + `LabelHudScore` (Nunito Bold 30, binlik boşluklu). Ortada, en
+   üstte. "+N" pop'u plakanın sağ kenarından çıkar (`score_pop_home`), 16 px
+   yükselip söner (altın, rozetsiz; Sıradaki'ye değmez).
+2. **Hedef** — `PanelHud`: `Badge` (taç + level no; sonsuzda "SONSUZ") + hedef
+   tier'ın **gerçek dokusu** + adı (`LabelBodyOnDark`, taşarsa …) +
+   `ProgressBarMint` 18 px; skor hedefi çubuğun sağ ucunda `LabelHudCaption`.
+   İlerleme = ulaşılan tier / hedef tier (skor hedefi varsa ikisinin ort.);
+   sonsuzda skor / rekor.
+3. **Sıradaki** — `PanelElevated` (krem) + "SIRADAKI" `LabelCaption` + tier
+   dokusu 44 px. Sağ üst.
+4. **Ayarlar** — `ButtonIcon` 56. Sol üst. Açılınca board `set_menu_paused`
+   ile donar (fail/refill makinesi), kapanınca çözülür.
+5. Üst karartma: 178+56 px yumuşak gradyan (`GameplayHud.scrim`) — opak plaka
+   değil.
+
+### 13.4 Güç slotu anatomisi (`UiKit.power_slot`)
+
+84×88 `Button` **madalyon**: gövde `btn_circle` (3B basılabilir daire),
+variation `PowerSlot` (krem) / `PowerSlotArmed` (cyan) / `PowerSlotEmpty`
+(pasif lavanta-gri); üst yarıda `item_circle_inner` gloss (%30); **owner güç
+sanatı** 60 px (picto yok); sağ üstte `Badge` altın "×N"; silahlıyken arkada
+yumuşak krem `btn_circle_flat` hale (+9 px, α .55 — neon değil); stok 0'da
+sanat rengini korur (gri-mavi örtü, α .72), rozet **nane "+"** (dokununca
+refill penceresi — davranış aynı);
+`set_enabled(false)` → `disabled` + %55. Basış `UiMotion.attach_press`.
+Konum: sol ikili hedefli güçler (Bomba, Büyütücü), sağ ikili anında güçler
+(Sarsıntı, Temizleyici) — üst oyun alanının iki yanında, hedef plakasının
+çevresinde (seçenek B; dört slotluk alt satır (A) kap tabanı + şerit + banner
+ile aynı bölgede yarışıyor ve 16:9'da board'u küçültüyordu).
+
+### 13.5 Kap kabuğu (board)
+
+Yalnız çizim, collider yok: dış yumuşak gölge (5 kademe) → çivit iç dolgu α .24 +
+tabana koyulaşan gradyan + iç kenar/taban bantları (derinlik) → taşma şeridi
+(duvarların **altında**) → bambu duvar 30 px (fizik 20'nin dışına, alana
+girmez) + açık kapak şeridi → bambu taban eteği 54 + üst dudak ışığı + alt
+gölge. Candy-night zemin kabın içinden görünmeye devam eder.
+
+### 13.6 Evrim şeridi (`EvolutionStrip`)
+
+`PanelStrip` (erik bevel raf + üst ışık) + 8 hücre, tier sanatı 34→50 px
+büyüyerek; ulaşılmamış α .72 (görünür kalır), ulaşılan tam; bu round'un en
+yüksek tier'ı yumuşak krem `btn_circle_flat` hale + %15 büyütme (pop ile),
+level hedefi altın `alert_dot_ring`. Neon seçim çerçevesi yok, metin yok,
+envanter değil. `GameBoard._note_tier` her spawn'da besler.
+
+### 13.7 Tehlike sınırı
+
+Mekanik aynı. Sakin: şerit yarı yükseklikte (`DANGER_STRIPE_HEIGHT_SCALE .5`),
+α .20 + eşikte 2 px açık pembe hat — platform değil eşik. Tehlike: nabızla
+α 1.0, hat beyaza, duvarların üst yarısı ve çizgi çevresi pembe rim glow
+(`_draw_danger`, `WALL_VISUAL` genişliğinde). "Taştı!" / "Hedef tamam!" durum
+metni pembe `title_oval` candy plakasında pop'lanır (`GameplayHud.set_status`).
+Ek alarm UI yok.
+
+### 13.8 Gelecek banner seam'i
+
+`GameplayHud.banner_seam` (görünmez Control) = `layout["banner"]`; yüksekliği
+`GameplayLayout.banner_height()`. v1: 0. AdMob bağlandığında sağlayıcı
+`GameplayLayout.set_banner_height(px)` çağırır ve board `_apply_layout`
+yeniden koşar; kontroller seam'e giremez (test kilitli).

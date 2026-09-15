@@ -425,3 +425,116 @@ static func price_row(icon_tex: Texture2D, price: int,
 
 static func _rarity_variation(prefix: String, rarity: int) -> StringName:
 	return StringName(prefix + SkinData.rarity_name(rarity))
+
+
+# --- Gameplay shell (M8.6-02) ------------------------------------------------
+
+## Guc slotu (madalyon): `btn_circle` govde (PowerSlot krem / PowerSlotArmed
+## cyan / PowerSlotEmpty pasif) + ic parlama + OWNER guc sanati (asla picto
+## degil) + sag ustte stok rozeti + silahliyken arkada yumusak krem halka
+## (neon degil). Durum `set_power_slot_state` ile guncellenir; buton stok
+## 0'da da basilabilir (refill akisi), o zaman rozet nane "+" olur ve sanat
+## rengini kaybetmeden solar.
+static func power_slot(art_tex: Texture2D, count: int,
+		size: Vector2 = Vector2(84.0, 88.0)) -> Button:
+	var node := Button.new()
+	node.theme_type_variation = &"PowerSlot"
+	node.focus_mode = Control.FOCUS_NONE
+	node.custom_minimum_size = size
+	node.set_meta(&"power_slot", true)
+	# Silahli halka: govdenin ARKASINDA (show_behind_parent), yumusak krem
+	# daire, slot kenarindan 9 px tasar — neon cerceve degil, "kaldirilmis
+	# madalyon" hissi.
+	var glow := patch("btn_circle_flat", Color(UiTokens.CREAM, 0.55))
+	glow.show_behind_parent = true
+	glow.offset_left = -9.0
+	glow.offset_top = -9.0
+	glow.offset_right = 9.0
+	glow.offset_bottom = -3.0
+	glow.visible = false
+	node.add_child(glow)
+	# Ic parlama: ust yarida beyaz ic daire (candy gloss).
+	var light := patch("item_circle_inner", Color(1, 1, 1, 0.30))
+	light.offset_left = size.x * 0.12
+	light.offset_right = -size.x * 0.12
+	light.offset_top = size.y * 0.06
+	light.offset_bottom = -size.y * 0.30
+	node.add_child(light)
+	var art_size: float = size.x * 0.72
+	var picture := art(art_tex, art_size)
+	picture.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
+	picture.offset_left = -art_size * 0.5
+	picture.offset_right = art_size * 0.5
+	# Alt bevel golgesi ~10 px: sanat gorsel merkeze (hafif yukari) oturur.
+	picture.offset_top = -art_size * 0.5 - 6.0
+	picture.offset_bottom = art_size * 0.5 - 6.0
+	node.add_child(picture)
+	# Stok rozeti: sag ust kose, altin; sola dogru buyur.
+	var count_badge := panel(&"Badge")
+	count_badge.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	count_badge.set_anchors_preset(Control.PRESET_TOP_RIGHT)
+	count_badge.grow_horizontal = Control.GROW_DIRECTION_BEGIN
+	count_badge.grow_vertical = Control.GROW_DIRECTION_END
+	count_badge.offset_right = 8.0
+	count_badge.offset_top = -8.0
+	count_badge.offset_left = 8.0
+	count_badge.offset_bottom = -8.0
+	var badge_row := HBoxContainer.new()
+	badge_row.alignment = BoxContainer.ALIGNMENT_CENTER
+	badge_row.add_theme_constant_override("separation", 0)
+	badge_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	count_badge.add_child(badge_row)
+	var plus := icon("plus", 16, UiTokens.TEXT_ON_ACCENT)
+	plus.visible = false
+	badge_row.add_child(plus)
+	var count_label := label("×%d" % count, &"LabelBadge")
+	badge_row.add_child(count_label)
+	node.add_child(count_badge)
+	node.set_meta(&"glow", glow)
+	node.set_meta(&"art", picture)
+	node.set_meta(&"badge", count_badge)
+	node.set_meta(&"badge_label", count_label)
+	node.set_meta(&"badge_plus", plus)
+	node.set_meta(&"count", count)
+	UiMotion.attach_press(node)
+	set_power_slot_state(node, count, false, true)
+	return node
+
+
+## Slot durumu: stok, silahli, etkin. Stok 0 -> pasif govde + soluk sanat +
+## nane "+" rozeti (dokununca refill). Etkin degil -> `disabled` + %55.
+static func set_power_slot_state(slot: Button, count: int, armed: bool,
+		enabled: bool) -> void:
+	if slot == null or not slot.has_meta(&"power_slot"):
+		return
+	var empty: bool = count <= 0
+	slot.set_meta(&"count", count)
+	slot.theme_type_variation = &"PowerSlotArmed" if armed 		else (&"PowerSlotEmpty" if empty else &"PowerSlot")
+	slot.disabled = not enabled
+	slot.modulate.a = 1.0 if enabled else 0.55
+	(slot.get_meta(&"glow") as Control).visible = armed and enabled
+	# Stok 0: sanat kimligini korur (renk kalir), yalnizca soluk ve hafif
+	# gri-mavi ortu — tamamen gri generic buton olmaz.
+	(slot.get_meta(&"art") as Control).self_modulate = \
+		Color(0.78, 0.78, 0.86, 0.72) if empty else Color.WHITE
+	var count_badge: PanelContainer = slot.get_meta(&"badge")
+	var count_label: Label = slot.get_meta(&"badge_label")
+	var plus: Control = slot.get_meta(&"badge_plus")
+	count_label.text = "" if empty else "×%d" % count
+	count_label.visible = not empty
+	plus.visible = empty
+	if empty:
+		count_badge.add_theme_stylebox_override("panel",
+			style("badge_round", UiTokens.MINT, Vector4(7, 3, 7, 6)))
+	else:
+		count_badge.remove_theme_stylebox_override("panel")
+
+
+## Slotun gosterdigi stok (testler icin; rozet metninden degil meta'dan).
+static func power_slot_count(slot: Button) -> int:
+	return int(slot.get_meta(&"count", 0)) if slot != null else 0
+
+
+## HUD plakasi icin kucuk buyuk-harf baslik + deger sutunu (SKOR / 1 240).
+static func hud_caption(text: String) -> Label:
+	return label(text.to_upper(), &"LabelHudCaption", HORIZONTAL_ALIGNMENT_CENTER)

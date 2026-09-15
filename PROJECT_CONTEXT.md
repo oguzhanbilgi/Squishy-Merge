@@ -202,14 +202,33 @@ alınacak — şimdi tahmin/vaat yok.
     sayfa), `tools/ui_foundation_test` 126/126, masaüstü 4 boyut + A36
     cihaz çekimleri. **Production ekranlar henüz sisteme geçmedi** — sırada
     M8.6-02 Gameplay Shell. Kaynak doküman: `docs/UI_VISUAL_SYSTEM.md`.
+  - `M8.6-02` ✅ production gameplay shell: `GameplayLayout` bölge
+    sözleşmesi (HUD 178 / BOARD esnek / STRIP 64 / BANNER seam v1'de 0) +
+    fizik referans penceresinin Camera2D ile BOARD'a sığdırılması (zoom ≤
+    1.2, **FLOOR_Y/fizik/kap ölçüleri DEĞİŞMEDİ**, girdi `screen_to_world`);
+    tek parça HUD (`GameplayHud`: skor plakası, taç-level rozeti + hedef
+    tier dokusu + nane ilerleme, krem Sıradaki plakası, ayarlar → board
+    donar), `UiKit.power_slot` (bevel + owner güç sanatı + altın stok
+    rozeti + cyan silahlı parıltı + stok 0'da nane "+"), iki sol + iki sağ
+    slot, evrim şeridi (8 gerçek tier dokusu, ulaşılan/hedef işaretli),
+    kap kabuğu (dış gölge, iç derinlik, 30 px görsel duvar, taban dudağı),
+    danger rim aynı mekanikle kabuğa entegre; güç slotları `btn_circle`
+    madalyon, evrim şeridi erik raf, sakin danger eşiği ince hat, "Taştı!"
+    pembe candy plaka; cihaz üst güvenli payı (punch-hole) HUD'u aşağı
+    iter. Eski serbest metin HUD /
+    candy pill güç butonları gameplay'den kalktı (`CandyButton` diğer
+    ekranlarda duruyor). `tools/gameplay_shell_test` 124/124,
+    `tools/shell_shots` 10 durum × 4 boyut (build/qa_m8.6-02/). §7 #9
+    (uzun ekran ölü alan / A36 örtüşmesi) kapandı. Samsung A36 cihaz
+    kapısı geçti (build/qa_m8.6-02/device, logcat temiz). **Mekanik,
+    ekonomi, fizik, skin render, ses DEĞİŞMEDİ.** Ayrıntı: UI_VISUAL_SYSTEM §13.
 - **Sırada: M8.6 — Visual Cohesion Rebuild** (ekranlar `UiKit`/`UiTokens`
-  sistemine geçirilecek: gameplay shell → home → shop → collection → map →
-  result/reward/revive), ardından **M9 — Android export.** Ortam hazır (export template'leri, SDK,
+  sistemine geçirilecek: ~~gameplay shell~~ ✅ → home → shop → collection →
+  map → result/reward/revive), ardından **M9 — Android export.** Ortam hazır (export template'leri, SDK,
   NDK, JDK 17, debug keystore mevcut, ETC2/ASTC import açık, iş
   makinesinde debug `export_presets.cfg` var — gitignore'lu, her makinede
-  ayrı); eksik olan kalıcı paket adı, release/upload keystore ve uzun
-  ekranda HUD düzeni (A36'da güç butonları "Sıradaki" satırını örtüyor,
-  §7 #9). Paralel owner işi: `tools/audio_qa.tscn` ile sesleri dinleyip
+  ayrı); eksik olan kalıcı paket adı ve release/upload keystore (uzun
+  ekran HUD düzeni M8.6-02'de çözüldü). Paralel owner işi: `tools/audio_qa.tscn` ile sesleri dinleyip
   final örnekleri sağlamak.
 - **Sonra: M10 — Play Store submission / kapalı test.**
 

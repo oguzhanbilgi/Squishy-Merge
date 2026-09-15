@@ -285,7 +285,7 @@ func _scenario_dough_refill() -> void:
 	_check_eq("hedefleme dogru guc icin",
 		_board()._powerups.armed_type(), int(t))
 	_check("power bar guncellendi",
-		_bar_text().contains("%s ×1" % PowerUp.display_name(t)))
+		_board()._power_bar.displayed_count(int(t)) == 1)
 	await _capture("f03_hamur_refill_sonrasi.png")
 	_board()._powerups.cancel()
 
@@ -300,23 +300,6 @@ func _scenario_dough_refill() -> void:
 	_check("aninda guc: OTOMATIK HARCANMADI (stok duruyor)",
 		SaveManager.powerup_count(inst) == 1)
 	_check("aninda guc: hedefleme acilmadi", not _board()._powerups.is_armed())
-
-
-func _bar_text() -> String:
-	return _collect_text(_board()._power_bar)
-
-
-func _collect_text(node: Node) -> String:
-	var parts: PackedStringArray = []
-	for child in node.get_children():
-		var label := child as Label
-		if label != null:
-			parts.append(label.text)
-		var button := child as Button
-		if button != null:
-			parts.append(button.text)
-		parts.append(_collect_text(child))
-	return "\n".join(parts)
 
 
 # --- 4) Yetersiz Hamur ---
@@ -417,7 +400,7 @@ func _scenario_valid_reward() -> void:
 	_check("modal kapandi", not _refill().visible)
 	_check("board devam ediyor", not _board().is_refill_pending())
 	_check("power bar guncellendi",
-		_bar_text().contains("%s ×1" % PowerUp.display_name(t)))
+		_board()._power_bar.displayed_count(int(t)) == 1)
 	_check_eq("Hamur DEGISMEDI (reklam bedava)", SaveManager.dough(), 0)
 
 
