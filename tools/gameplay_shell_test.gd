@@ -15,6 +15,7 @@ extends Node
 ## referansı yok.
 
 const GAME_BOARD_SCENE: PackedScene = preload("res://scenes/game/game_board.tscn")
+const MAIN_SCENE: PackedScene = preload("res://scenes/main.tscn")
 const DUMPLING_VISUAL: GDScript = preload("res://scripts/game/dumpling_visual.gd")
 ## Mantıksal tuval kompozisyonları. 540x960 → 720x1280, 1080x2340 → 720x1560
 ## (canvas_items + expand: genişlik 720'ye sabit, yükseklik oranla).
@@ -50,11 +51,17 @@ func _ready() -> void:
 	var board: Node2D = await _make_board("res://resources/levels/level_04.tres")
 	var hud: GameplayHud = board.get_node("HUD")
 	_c("HUD katmanı GameplayHud", hud != null)
-	_c("skor plakası PanelHud", hud.score_plate != null and hud.score_plate.theme_type_variation == &"PanelHud")
+	_c("skor plakası PanelHudScore (glossy lavanta)", hud.score_plate != null and hud.score_plate.theme_type_variation == &"PanelHudScore")
 	_c("skor etiketi LabelHudScore", hud.score_label.theme_type_variation == &"LabelHudScore")
-	_c("Sıradaki production plaka (PanelElevated)", hud.next_plate.theme_type_variation == &"PanelElevated")
+	_c("Sıradaki production kart (PanelHudFrame + PanelHudCard)", hud.next_plate.theme_type_variation == &"PanelHudFrame"
+		and (hud.next_plate.get_meta(&"card") as PanelContainer).theme_type_variation == &"PanelHudCard")
 	_c("Sıradaki gerçek tier dokusu", hud.next_art.texture == DUMPLING_VISUAL.TEXTURES[board._next_tier - 1])
-	_c("Hedef production plaka (PanelHud)", hud.goal_plate.theme_type_variation == &"PanelHud")
+	_c("Hedef production kart (PanelHudFrame + PanelHudCard)", hud.goal_plate.theme_type_variation == &"PanelHudFrame"
+		and (hud.goal_plate.get_meta(&"card") as PanelContainer).theme_type_variation == &"PanelHudCard")
+	_c("geri / çıkış butonları ButtonIcon", hud.back_button.theme_type_variation == &"ButtonIcon"
+		and hud.exit_button.theme_type_variation == &"ButtonIcon")
+	_c("güç tepsileri PanelTray", hud.tray_left.theme_type_variation == &"PanelTray"
+		and hud.tray_right.theme_type_variation == &"PanelTray")
 	_c("level rozeti Badge", hud.level_badge.theme_type_variation == &"Badge" and hud.level_label.text == "4")
 	_c("hedef tier dokusu gerçek", hud.goal_art.texture == DUMPLING_VISUAL.TEXTURES[5])
 	_c("hedef adı", hud.goal_label.text == TierConfig.tier_name(6) and hud.goal_caption.text == "HEDEF")
@@ -147,11 +154,16 @@ func _ready() -> void:
 	board.settings_requested.connect(func() -> void: got_signal.append(true))
 	hud.settings_button.pressed.emit()
 	_c("ayarlar butonu settings_requested yayıyor", got_signal.size() == 1)
+	var got_pause: Array = []
+	board.pause_requested.connect(func() -> void: got_pause.append(true))
+	hud.back_button.pressed.emit()
+	hud.exit_button.pressed.emit()
+	_c("geri ve çıkış butonları pause_requested yayıyor (2)", got_pause.size() == 2)
 
 	print("-- skor / Sıradaki / durum")
 	GameState.add_score(1234)
 	_c("skor 1 234 formatı", hud.score_label.text == "1 234")
-	_c("skor pop'u plakanın sağ kenarında", absf(hud.score_pop_home().x - hud.score_plate.get_global_rect().end.x - 4.0) < 0.5)
+	_c("skor pop'u plakanın sol kenarında", absf(hud.score_pop_home().x + hud.score_pop.size.x + 4.0 - hud.score_plate.get_global_rect().position.x) < 0.5)
 	hud.set_status("Taştı!")
 	await get_tree().process_frame
 	_c("durum plakası görünür ve board ortasında", hud.status_plate.visible
@@ -175,6 +187,48 @@ func _ready() -> void:
 	await get_tree().process_frame
 	await _check_composition(endless, ehud, Vector2(720, 1280), 0.0)
 	endless.queue_free()
+	await get_tree().process_frame
+
+	print("-- mola / çıkış akışı (Main)")
+	var main: Node2D = MAIN_SCENE.instantiate()
+	add_child(main)
+	await get_tree().process_frame
+	await get_tree().process_frame
+	if main._daily != null:
+		main._daily.visible = false
+	main._start_level(load("res://resources/levels/level_02.tres"))
+	await get_tree().process_frame
+	await get_tree().process_frame
+	_c("board açıldı", main._board != null and is_instance_valid(main._board))
+	main._notification(Node.NOTIFICATION_WM_GO_BACK_REQUEST)
+	await get_tree().process_frame
+	_c("Android geri: mola açıldı, board donuk, uygulama kapanmadı",
+		main.is_pause_open() and main._board._is_paused())
+	main._notification(Node.NOTIFICATION_WM_GO_BACK_REQUEST)
+	await get_tree().process_frame
+	_c("Android geri (ikinci): mola kapandı, oyun sürüyor",
+		not main.is_pause_open() and not main._board._is_paused())
+	main._board.get_node("HUD").back_button.pressed.emit()
+	await get_tree().process_frame
+	_c("HUD Geri: mola açıldı", main.is_pause_open())
+	main._pause.resume_pressed.emit()
+	await get_tree().process_frame
+	_c("Devam Et: kapandı, board çözüldü", not main.is_pause_open() and not main._board._is_paused())
+	main._board.get_node("HUD").exit_button.pressed.emit()
+	await get_tree().process_frame
+	var old_board: Node2D = main._board
+	main._pause.restart_pressed.emit()
+	await get_tree().process_frame
+	await get_tree().process_frame
+	_c("Yeniden Başlat: yeni board", main._board != null and main._board != old_board and not main.is_pause_open())
+	main.open_pause_menu()
+	await get_tree().process_frame
+	main._pause.exit_pressed.emit()
+	await get_tree().process_frame
+	await get_tree().process_frame
+	_c("Ana Menüye Dön: board silindi, harita sekmesi, sonuç yok",
+		main._board == null and main._active_tab == 1 and not main._result.visible)
+	main.queue_free()
 	await get_tree().process_frame
 
 	print("-- runtime referans taraması")
@@ -210,10 +264,18 @@ func _rect(control: Control) -> Rect2:
 func _check_composition(board: Node2D, hud: GameplayHud, view: Vector2, banner: float) -> void:
 	var tag: String = "%dx%d banner %d" % [int(view.x), int(view.y), int(banner)]
 	var controls: Dictionary = {
-		"ayarlar": _rect(hud.settings_button), "skor": _rect(hud.score_plate),
+		"geri": _rect(hud.back_button), "ayarlar": _rect(hud.settings_button),
+		"cikis": _rect(hud.exit_button), "skor": _rect(hud.score_plate),
 		"siradaki": _rect(hud.next_plate), "hedef": _rect(hud.goal_plate),
 		"serit": _rect(hud.strip),
 	}
+	# Tepsiler slotlarin arkasindaki gorsel yuva: slotlarla cakisir, digerleriyle degil.
+	var trays: Array[Rect2] = [_rect(hud.tray_left), _rect(hud.tray_right)]
+	var tray_ok: bool = true
+	for name in ["skor", "siradaki", "hedef", "serit"]:
+		for t in trays:
+			tray_ok = tray_ok and not GameplayLayout.overlaps(t, controls[name])
+	_c("%s: tepsiler kart/plakalarla çakışmıyor" % tag, tray_ok)
 	for type in PowerUp.all():
 		controls["slot_" + PowerUp.SAVE_KEYS[type]] = _rect(hud.power_bar.slot(int(type)))
 	var names: Array = controls.keys()
@@ -243,7 +305,7 @@ func _check_composition(board: Node2D, hud: GameplayHud, view: Vector2, banner: 
 	for type in PowerUp.all():
 		var r: Rect2 = controls["slot_" + PowerUp.SAVE_KEYS[type]]
 		touch_ok = touch_ok and r.size.x >= UiTokens.TOUCH_MIN and r.size.y >= UiTokens.TOUCH_MIN
-	touch_ok = touch_ok and controls["ayarlar"].size.x >= UiTokens.TOUCH_MIN
+	touch_ok = touch_ok and controls["ayarlar"].size.x >= UiTokens.TOUCH_MIN 		and controls["geri"].size.x >= UiTokens.TOUCH_MIN and controls["cikis"].size.x >= UiTokens.TOUCH_MIN
 	_c("%s: dokunma hedefleri >= 48" % tag, touch_ok)
 	var seam: Rect2 = _rect(hud.banner_seam)
 	_c("%s: banner seam var (y %d, h %d)" % [tag, int(seam.position.y), int(seam.size.y)],

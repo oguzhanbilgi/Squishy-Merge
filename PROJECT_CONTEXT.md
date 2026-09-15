@@ -217,7 +217,7 @@ alınacak — şimdi tahmin/vaat yok.
     pembe candy plaka; cihaz üst güvenli payı (punch-hole) HUD'u aşağı
     iter. Eski serbest metin HUD /
     candy pill güç butonları gameplay'den kalktı (`CandyButton` diğer
-    ekranlarda duruyor). `tools/gameplay_shell_test` 125/125,
+    ekranlarda duruyor). `tools/gameplay_shell_test` 145/145,
     `tools/shell_shots` 10 durum × 4 boyut (build/qa_m8.6-02/). §7 #9
     (uzun ekran ölü alan / A36 örtüşmesi) kapandı. Samsung A36 cihaz
     kapısı geçti (build/qa_m8.6-02/device, logcat temiz). **Mekanik,

@@ -39,7 +39,8 @@ const GENERATED: Array[StringName] = [
 	&"LabelBadge", &"LabelBadgeOnDark",
 	# Gameplay shell (M8.6-02)
 	&"LabelHudScore", &"LabelHudCaption", &"PowerSlot", &"PowerSlotArmed", &"PowerSlotEmpty",
-	&"PanelStrip", &"PanelHud",
+	&"PanelStrip", &"PanelHud", &"PanelHudScore", &"PanelTray", &"PanelHudFrame", &"PanelHudCard",
+	&"LabelHudCaptionDark",
 	# Oyun bilesenleri
 	&"ResourcePill", &"HeaderRibbon", &"SectionTag", &"ProgressBarMint", &"ProgressBarGold",
 	&"Badge", &"LockBadge", &"EquippedBadge", &"NewBadge", &"CountBadge",
@@ -145,6 +146,12 @@ func _build_panels() -> void:
 	# HUD skor/hedef plakasi (M8.6-02): PanelPurple govdesi, dar dikey pay —
 	# 64-92 px satirlara sigsin.
 	_panel(&"PanelHud", "panel_bevel", Color(UiTokens.PLUM, 0.96), Vector4(14, 5, 16, 11))
+	# Gameplay ust HUD (M8.6-02 HUD v2): glossy lavanta skor plakasi, erik guc
+	# tepsisi (2 madalyon), lavanta cerceve + krem kart (hedef / Siradaki).
+	_panel(&"PanelHudScore", "panel_bevel", UiTokens.LAVENDER, Vector4(18, 4, 20, 10))
+	_panel(&"PanelTray", "panel_bevel", Color(UiTokens.PLUM, 0.94), Vector4(6, 6, 6, 10))
+	_panel(&"PanelHudFrame", "panel_bevel", UiTokens.LAVENDER, Vector4(5, 5, 5, 9))
+	_panel(&"PanelHudCard", "card_bevel", UiTokens.CREAM, Vector4(12, 4, 12, 8))
 	# Evrim seridi tepsisi (M8.6-02): koyu yuvarlak plaka, dar iceri pay.
 	_panel(&"PanelStrip", "panel_bevel", Color(UiTokens.PLUM, 0.94), Vector4(14, 4, 14, 8))
 
@@ -224,6 +231,8 @@ func _build_labels() -> void:
 	# basligi kucuk buyuk-harf Nunito (SKOR / SIRADAKI).
 	_label(&"LabelHudScore", FONT_NUM, 30, UiTokens.TEXT_ON_DARK, true)
 	_label(&"LabelHudCaption", FONT_NUM, 13, UiTokens.TEXT_ON_DARK_MUTED)
+	# Krem/lavanta ustunde kucuk buyuk-harf baslik (HEDEF / SKOR / SIRADAKI).
+	_label(&"LabelHudCaptionDark", FONT_NUM, 13, UiTokens.TEXT_SECONDARY)
 
 
 # --- Oyun bilesenleri --------------------------------------------------------

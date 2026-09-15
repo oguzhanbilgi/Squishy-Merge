@@ -6,7 +6,7 @@
 **Asset kaynağı:** `tools/make_ui_core.py` → `assets/visual/ui/core/**` +
 `scripts/ui/ui_core_assets.gd` (üretilir, elle düzenlenmez).
 **Galeri:** `tools/ui_system_gallery.tscn` (dev-only, 5 sayfa).
-**Test:** `tools/ui_foundation_test.tscn` (135 kontrol), `tools/gameplay_shell_test.tscn` (125, §13).
+**Test:** `tools/ui_foundation_test.tscn` (135 kontrol), `tools/gameplay_shell_test.tscn` (145, §13).
 
 Çakışma kuralı: owner'ın son talimatı > GAME_DESIGN.md > bu doküman > kod.
 Bir sayı burada ve `ui_tokens.gd`'de farklıysa **doküman güncellenir, token
@@ -77,7 +77,7 @@ Legendary ödül).
 | Positive / Warning | Nunito Bold | 18 | `LabelPositive` / `LabelWarning` |
 | Disabled | Nunito SemiBold | 18 | `LabelDisabled` |
 | Badge | Baloo 2 Bold | 16 / 14 | `LabelBadge` / `LabelBadgeOnDark` |
-| HUD skor / HUD başlık | Nunito Bold | 30 / 13 | `LabelHudScore` (gölgeli) / `LabelHudCaption` (beyaz %62) — M8.6-02 |
+| HUD skor / HUD başlık | Nunito Bold | 30 / 13 / 13 | `LabelHudScore` (gölgeli) / `LabelHudCaption` (beyaz %62) / `LabelHudCaptionDark` (krem üstü ikincil erik) — M8.6-02 |
 | Buton | Baloo 2 Bold | 22 | ButtonPrimary/Secondary/Purchase/Danger |
 | Kahraman CTA | Baloo 2 ExtraBold | 28 | ButtonCTA |
 
@@ -117,6 +117,7 @@ için önceden ölçeklendi (§8).
 | `PanelListRow` | `list_row` | `CREAM_DEEP` opak | sahip olunan skin satırı, ayar satırı — kartla aynı vanilya ailesi, bir ton geri (alfa ile gri kaçmaz) |
 | `PanelHud` | `panel_bevel` (+ `UiKit.plate` üst ışığı) | erik, dar dikey pay (4/10) | gameplay skor / hedef plakası (M8.6-02) |
 | `PanelStrip` | `panel_bevel` (+ üst ışık) | erik α .94 | evrim şeridi rafı (M8.6-02) |
+| `PanelHudScore` / `PanelTray` / `PanelHudFrame` / `PanelHudCard` | `panel_bevel` ×3 / `card_bevel` | lavanta / erik α .94 / lavanta / krem | HUD v2: skor plakası, güç tepsisi, kart çerçevesi, kart gövdesi (§13.3) |
 
 Owner'ın candy paneli (`panel_candy` + kanatlı-kalp tepelik) kimlik katmanıdır:
 pencerelerde `modal_frame` iskeletinin **üstüne** tepelik olarak eklenir ya da
@@ -297,7 +298,7 @@ doğrulandı" denmez.
 **Kod:** `scripts/ui/gameplay_layout.gd` (bölge sözleşmesi + kamera sığdırma),
 `scripts/ui/gameplay_hud.gd` (HUD katmanı), `scripts/ui/power_bar.gd`
 (`UiKit.power_slot` x4), `scripts/ui/evolution_strip.gd`, `game_board.gd`
-`_draw*` (kap kabuğu). **Test:** `tools/gameplay_shell_test.tscn` (125 kontrol).
+`_draw*` (kap kabuğu). **Test:** `tools/gameplay_shell_test.tscn` (145 kontrol).
 **Çekim:** `tools/shell_shots.tscn -- <dir> [GxY]` (10 durum × 4 boyut).
 
 ### 13.1 Bölge sözleşmesi (responsive)
@@ -307,7 +308,7 @@ kompozisyonun 0.75'i, 1080×2340 1560'ın 1.5'i). Dikeyde dört bölge:
 
 | Bölge | Yükseklik | İçerik |
 |---|---|---|
-| **HUD** | sabit: `max(SAFE_TOP 10, cihaz üst güvenli pay + 4) + ROW1 62 + 8 + ROW2 92` = 172 (A36 punch-hole: 92 px fiziksel = 61 tuval px → 227) | satır 1: Ayarlar · Skor · Sıradaki; satır 2: 2 güç · Hedef · 2 güç |
+| **HUD** | sabit: `max(SAFE_TOP 10, cihaz üst güvenli pay + 4) + ROW1 62 + 8 + ROW2 96` = 176 (A36 punch-hole: 92 px fiziksel = 61 tuval px → 231) | satır 1: Geri+Ayarlar · Skor · Sıradaki+Çıkış; satır 2: tepsi(2 güç) · Hedef kartı · tepsi(2 güç) |
 | **BOARD** | esnek: kalan alanın tamamı | fizik penceresi (kamera ile sığdırılır) |
 | **STRIP** | sabit 64 (+8 üst, +10 alt pay); kap BOARD'u doldurmuyorsa kabın tabanına yaklaşır (`hug_strip`) | evrim şeridi |
 | **BANNER** | `GameplayLayout.banner_height()` — v1'de **0** | gelecek AdMob banner seam'i |
@@ -337,28 +338,36 @@ w600 kap zoom ≈ 0.99, 720×1560'ta 1.05 (genişlik sınırı), dar kaplar 1.2;
 sonsuz (720) 0.90 — duvarlar ilk kez sonsuz modda da görünür. Alt ölü alan
 yok; 1280'de kap tabanı şeridin hemen üstünde.
 
-### 13.3 HUD hiyerarşisi
+### 13.3 HUD hiyerarşisi (HUD v2 — premium candy)
 
-1. **Skor** — `PanelHud` (erik bevel, dar pay) + owner yıldızı + `LabelHudCaption`
-   "SKOR" + `LabelHudScore` (Nunito Bold 30, binlik boşluklu). Ortada, en
-   üstte. "+N" pop'u plakanın sağ kenarından çıkar (`score_pop_home`), 16 px
-   yükselip söner (altın, rozetsiz; Sıradaki'ye değmez).
-2. **Hedef** — `PanelHud`: `Badge` (taç + level no; sonsuzda "SONSUZ") +
-   sütun: `LabelHudCaption` "HEDEF" (sonsuzda "REKOR") → hedef tier'ın
-   **gerçek dokusu** + adı (`LabelBodyOnDark`, taşarsa …) → `ProgressBarMint`
-   16 px; skor hedefi çubuğun sağ ucunda `LabelHudCaption`.
+Logo YOK. Sol küme / merkez / sağ küme:
+
+1. **Skor** — `PanelHudScore` (glossy lavanta bevel + `frame_round20` lacivert
+   halka + üst ışık) + iki owner yıldızı + `LabelHudCaptionDark` "SKOR" +
+   `LabelHudScore` 32 koyu erik (açık gölge). Ekran merkezinde. "+N" pop'u
+   plakanın **sol** kenarından çıkar (`score_pop_home`, sağa hizalı, altın),
+   16 px yükselip söner — Sıradaki kartına değmez.
+2. **Hedef kartı** — `UiKit.hud_card()` = `PanelHudFrame` (lavanta bevel +
+   ışık) içinde `PanelHudCard` (krem `card_bevel`): `Badge` (taç + level no;
+   sonsuzda "SONSUZ") + sütun: `LabelHudCaptionDark` "HEDEF" / "REKOR" →
+   hedef tier'ın **gerçek dokusu** + adı (`LabelSection` Baloo 21, taşarsa …)
+   → `ProgressBarMint` 14 px; skor hedefi çubuğun sağ ucunda 12 px.
    İlerleme = ulaşılan tier / hedef tier (skor hedefi varsa ikisinin ort.);
    sonsuzda skor / rekor.
-3. **Sıradaki** — `PanelElevated` (krem, 138×58) + "SIRADAKI" `LabelCaption` +
-   tier dokusu 40 px. Sağ üst; Ayarlar ile aynı yükseklik (satır 1 dengesi).
-4. **Ayarlar** — `ButtonIcon` 58. Sol üst. Açılınca board `set_menu_paused`
-   ile donar (fail/refill makinesi), kapanınca çözülür.
-5. Üst karartma: 178+56 px yumuşak gradyan (`GameplayHud.scrim`) — opak plaka
+3. **Sıradaki** — aynı `hud_card` (150×60): "SIRADAKI" `LabelHudCaptionDark` +
+   tier dokusu 34 px. Sağ küme, Çıkış'ın solunda.
+4. **Geri / Ayarlar / Çıkış** — `UiKit.hud_icon_button` (`ButtonIcon` 56 +
+   lacivert halka + üst gloss): sol küme geri+ayarlar, sağ küme çıkış (home
+   pictosu). Ayarlar açılınca board `set_menu_paused` ile donar; Geri ve
+   Çıkış "Mola" penceresini açar (§13.9).
+5. **Güç tepsileri** — `PanelTray` (erik bevel + ışık) içinde ikişer madalyon
+   (§13.4, 80×84); hedef kartını iki yandan çevreler.
+6. Üst karartma: HUD+56 px yumuşak gradyan (`GameplayHud.scrim`) — opak plaka
    değil.
 
 ### 13.4 Güç slotu anatomisi (`UiKit.power_slot`)
 
-84×88 `Button` **madalyon**: gövde `btn_circle` (3B basılabilir daire),
+80×84 `Button` **madalyon** (erik `PanelTray` içinde ikişer): gövde `btn_circle` (3B basılabilir daire),
 variation `PowerSlot` (krem) / `PowerSlotArmed` (cyan) / `PowerSlotEmpty`
 (pasif lavanta-gri); arkada 3 px taşan çerçeve halkası (`btn_circle_flat`
 lacivert / silahlı cyan-derin / boş pasif-koyu); alt yarıda erik gölge dairesi
@@ -407,6 +416,16 @@ Mekanik aynı. Sakin: şerit yarı yükseklikte (`DANGER_STRIPE_HEIGHT_SCALE .5`
 (`_draw_danger`, `WALL_VISUAL` genişliğinde). "Taştı!" / "Hedef tamam!" durum
 metni pembe `title_oval` candy plakasında pop'lanır (`GameplayHud.set_status`).
 Ek alarm UI yok.
+
+### 13.9 Mola / çıkış akışı
+
+`scenes/ui/pause_menu.tscn` (`PauseMenu`, `UiKit.modal_frame("Mola")`):
+**DEVAM ET** (`ButtonCTA`) · **Yeniden Başlat** (`ButtonSecondary`) · **Ana
+Menüye Dön** (`ButtonDanger`). Açılış yolları: HUD Geri, HUD Çıkış, Android
+geri tuşu (oyun sırasında uygulama ASLA doğrudan kapanmaz; mola açıkken geri
+tuşu = Devam Et). Açıkken board `set_menu_paused(true)`. Devam/refill
+penceresi açıkken mola açılmaz. "Ana Menüye Dön" round'u terk eder: sonuç
+ekranı, ödül ve kayıt akışı çalışmaz, harita sekmesine dönülür.
 
 ### 13.8 Gelecek banner seam'i
 

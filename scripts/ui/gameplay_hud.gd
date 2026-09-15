@@ -2,8 +2,8 @@ class_name GameplayHud
 extends CanvasLayer
 ## Production oyun HUD'u (M8.6-02). Tek tasarlanmış üst bölge:
 ##
-##   Satır 1:  [Ayarlar]        [SKOR  1 240]            [SIRADAKI ●]
-##   Satır 2:  [Bomba][Büyüt.]  [4 | Hedef ▮▮▮▯▯ ]  [Sarsıntı][Temiz.]
+##   Satır 1:  [Geri][Ayarlar]    [★ SKOR 1 240]     [SIRADAKI ●][Çıkış]
+##   Satır 2:  [tepsi: Bomba Büyüt.] [4 | HEDEF ad ▮▮▮▯▯] [tepsi: Sarsıntı Temiz.]
 ##   ...  BOARD (kamera ile sığdırılmış fizik penceresi)  ...
 ##   Alt:      [ T1 T2 T3 T4 T5 T6 T7 T8 ]   evrim şeridi
 ##   Alt seam: gelecek banner (v1'de 0 px)
@@ -17,6 +17,9 @@ extends CanvasLayer
 ## güç basışları `power_bar.power_pressed` ile board'a döner.
 
 signal settings_pressed
+## Geri / Çıkış: ikisi de Main'de aynı "Mola" penceresini açar.
+signal back_pressed
+signal exit_pressed
 
 const POWER_BAR_SCENE: PackedScene = preload("res://scenes/ui/power_bar.tscn")
 const STAR_ART: Texture2D = preload("res://assets/visual/ui/icon_star_filled.png")
@@ -35,6 +38,10 @@ const SCRIM_TAIL: float = 56.0
 var power_bar: PowerBar
 var strip: EvolutionStrip
 var settings_button: Button
+var back_button: Button
+var exit_button: Button
+var tray_left: PanelContainer
+var tray_right: PanelContainer
 var score_plate: PanelContainer
 var score_label: Label
 var next_plate: PanelContainer
@@ -92,23 +99,41 @@ func _build_scrim() -> void:
 
 
 func _build_row1() -> void:
-	settings_button = UiKit.icon_button("settings", &"ButtonIcon", GameplayLayout.SETTINGS_SIZE)
+	# Sol küme: geri + ayarlar (glossy kare candy butonlar).
+	back_button = UiKit.hud_icon_button("back", GameplayLayout.SETTINGS_SIZE)
+	back_button.name = "Back"
+	back_button.pressed.connect(func() -> void: back_pressed.emit())
+	add_child(back_button)
+	settings_button = UiKit.hud_icon_button("settings", GameplayLayout.SETTINGS_SIZE)
 	settings_button.name = "Settings"
 	settings_button.pressed.connect(func() -> void: settings_pressed.emit())
 	add_child(settings_button)
 
+	# Skor: glossy lavanta plaka, iki yanda yıldız, koyu erik başlık, beyaz
+	# gölgeli rakam (candy premium).
 	_score_center = CenterContainer.new()
 	_score_center.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(_score_center)
-	score_plate = UiKit.plate(&"PanelHud")
+	score_plate = UiKit.panel(&"PanelHudScore")
 	score_plate.name = "ScorePlate"
 	score_plate.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var rim := UiKit.patch("frame_round20", UiTokens.NAVY_PURPLE)
+	rim.show_behind_parent = true
+	rim.offset_left = -3.0
+	rim.offset_top = -3.0
+	rim.offset_right = 3.0
+	rim.offset_bottom = -6.0
+	score_plate.add_child(rim)
+	var gloss := UiKit.patch("panel_bevel_light", Color(1, 1, 1, 0.36))
+	gloss.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE)
+	gloss.offset_bottom = 26.0
+	score_plate.add_child(gloss)
 	_score_center.add_child(score_plate)
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", UiTokens.SPACE_SM)
 	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	score_plate.add_child(row)
-	var star := UiKit.art(STAR_ART, 32)
+	var star := UiKit.art(STAR_ART, 34)
 	star.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	row.add_child(star)
 	var column := VBoxContainer.new()
@@ -116,41 +141,70 @@ func _build_row1() -> void:
 	column.add_theme_constant_override("separation", -10)
 	column.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	row.add_child(column)
-	column.add_child(UiKit.hud_caption("Skor"))
+	var score_caption := UiKit.hud_caption("Skor")
+	score_caption.theme_type_variation = &"LabelHudCaptionDark"
+	score_caption.add_theme_color_override("font_color", UiTokens.TEXT_PRIMARY)
+	column.add_child(score_caption)
 	score_label = UiKit.label("0", &"LabelHudScore", HORIZONTAL_ALIGNMENT_CENTER)
-	score_label.custom_minimum_size.x = 120.0
+	score_label.custom_minimum_size.x = 124.0
+	# Lavanta üstünde beyaz düşük kontrastlı: rakam koyu erik, açık gölge.
+	score_label.add_theme_color_override("font_color", UiTokens.TEXT_PRIMARY)
+	score_label.add_theme_color_override("font_shadow_color", Color(1, 1, 1, 0.45))
+	score_label.add_theme_font_size_override("font_size", 32)
 	column.add_child(score_label)
+	var star2 := UiKit.art(STAR_ART, 22, Color(1, 1, 1, 0.9))
+	star2.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	row.add_child(star2)
 
-	next_plate = UiKit.panel(&"PanelElevated")
+	# Sağ küme: Sıradaki kartı (lavanta çerçeve + krem) + çıkış.
+	next_plate = UiKit.hud_card()
 	next_plate.name = "NextPlate"
-	next_plate.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(next_plate)
+	var next_card: PanelContainer = next_plate.get_meta(&"card")
 	var next_row := HBoxContainer.new()
 	next_row.alignment = BoxContainer.ALIGNMENT_CENTER
-	next_row.add_theme_constant_override("separation", UiTokens.SPACE_SM)
+	next_row.add_theme_constant_override("separation", UiTokens.SPACE_XS + 2)
 	next_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	next_plate.add_child(next_row)
-	var caption := UiKit.label("SIRADAKI", &"LabelCaption", HORIZONTAL_ALIGNMENT_CENTER)
-	caption.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	next_row.add_child(caption)
-	next_art = UiKit.art(DUMPLING_VISUAL.TEXTURES[0], 40)
+	next_card.add_child(next_row)
+	var next_col := VBoxContainer.new()
+	next_col.alignment = BoxContainer.ALIGNMENT_CENTER
+	next_col.add_theme_constant_override("separation", -2)
+	next_col.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	next_row.add_child(next_col)
+	next_col.add_child(UiKit.label("SIRADAKI", &"LabelHudCaptionDark", HORIZONTAL_ALIGNMENT_CENTER))
+	next_art = UiKit.art(DUMPLING_VISUAL.TEXTURES[0], 34)
 	next_art.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	next_row.add_child(next_art)
+	exit_button = UiKit.hud_icon_button("home", GameplayLayout.SETTINGS_SIZE)
+	exit_button.name = "Exit"
+	exit_button.pressed.connect(func() -> void: exit_pressed.emit())
+	add_child(exit_button)
 
 
 func _build_row2() -> void:
+	# Güç tepsileri: erik bevel, içinde ikişer madalyon (PowerBar slotları
+	# tepsinin üstüne yerleşir; tepsi yalnız görsel).
+	tray_left = UiKit.plate(&"PanelTray")
+	tray_left.name = "TrayLeft"
+	tray_left.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(tray_left)
+	tray_right = UiKit.plate(&"PanelTray")
+	tray_right.name = "TrayRight"
+	tray_right.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(tray_right)
 	power_bar = POWER_BAR_SCENE.instantiate()
 	power_bar.name = "PowerBar"
 	add_child(power_bar)
 
-	goal_plate = UiKit.plate(&"PanelHud")
+	# Hedef kartı: lavanta çerçeve + krem kart — ana bilgi modülü.
+	goal_plate = UiKit.hud_card()
 	goal_plate.name = "GoalPlate"
-	goal_plate.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(goal_plate)
+	var goal_card: PanelContainer = goal_plate.get_meta(&"card")
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", UiTokens.SPACE_SM + 2)
 	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	goal_plate.add_child(row)
+	goal_card.add_child(row)
 	# Level rozeti: altın yuvarlak etiket, içinde owner tacı + numara.
 	level_badge = UiKit.panel(&"Badge")
 	level_badge.size_flags_vertical = Control.SIZE_SHRINK_CENTER
@@ -173,6 +227,7 @@ func _build_row2() -> void:
 	row.add_child(column)
 	# Hiyerarşi: küçük başlık (HEDEF / REKOR) → hedef adı → ilerleme.
 	goal_caption = UiKit.hud_caption("Hedef")
+	goal_caption.theme_type_variation = &"LabelHudCaptionDark"
 	goal_caption.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
 	column.add_child(goal_caption)
 	var goal_row := HBoxContainer.new()
@@ -182,17 +237,19 @@ func _build_row2() -> void:
 	goal_art = UiKit.art(DUMPLING_VISUAL.TEXTURES[3], 26)
 	goal_art.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	goal_row.add_child(goal_art)
-	goal_label = UiKit.label("Hedef", &"LabelBodyOnDark")
+	goal_label = UiKit.label("Hedef", &"LabelSection")
+	goal_label.add_theme_font_size_override("font_size", 21)
 	goal_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	goal_label.clip_text = true
 	goal_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	goal_row.add_child(goal_label)
-	goal_bar = UiKit.progress_bar(0.0, &"ProgressBarMint", 16.0)
+	goal_bar = UiKit.progress_bar(0.0, &"ProgressBarMint", 14.0)
 	column.add_child(goal_bar)
 	# Skor hedefi ("+5 000 skor") çubuğun sağ ucunda küçük yazı — hedef adı
 	# ile yer için yarışmaz.
 	goal_extra = UiKit.label("", &"LabelHudCaption", HORIZONTAL_ALIGNMENT_RIGHT)
 	goal_extra.add_theme_color_override("font_color", UiTokens.TEXT_ON_DARK)
+	goal_extra.add_theme_font_size_override("font_size", 12)
 	goal_extra.set_anchors_and_offsets_preset(Control.PRESET_RIGHT_WIDE)
 	goal_extra.offset_left = -160.0
 	goal_extra.offset_right = -8.0
@@ -240,7 +297,7 @@ func _build_overlays() -> void:
 	# Skor pop'u: plakanın sağ kenarından çıkıp hafif yükselen küçük altın
 	# "+N" (dünyadaki birleşme noktası "+N"si ayrı; yıldız rozeti yok).
 	# Konumu `score_pop_home()` her seferinde plakanın gerçek kenarından okur.
-	score_pop = UiKit.label("", &"LabelStatOnDark", HORIZONTAL_ALIGNMENT_LEFT)
+	score_pop = UiKit.label("", &"LabelStatOnDark", HORIZONTAL_ALIGNMENT_RIGHT)
 	score_pop.name = "ScorePop"
 	score_pop.size = Vector2(90.0, 32.0)
 	score_pop.add_theme_color_override("font_color", UiTokens.GOLD_BRIGHT)
@@ -282,22 +339,20 @@ func apply_layout(rects: Dictionary) -> void:
 	scrim.position = Vector2.ZERO
 	scrim.size = Vector2(view.size.x, hud.end.y + SCRIM_TAIL)
 
-	var settings: Rect2 = rects["settings"]
-	settings_button.position = settings.position
-	settings_button.size = settings.size
-	settings_button.pivot_offset = settings.size * 0.5
+	for pair in [[back_button, rects["back"]], [settings_button, rects["settings"]],
+			[exit_button, rects["exit"]], [next_plate, rects["next"]],
+			[tray_left, rects["tray_left"]], [tray_right, rects["tray_right"]],
+			[goal_plate, rects["goal"]]]:
+		var control: Control = pair[0]
+		var rect: Rect2 = pair[1]
+		control.position = rect.position
+		control.size = rect.size
+		control.pivot_offset = rect.size * 0.5
 	var span: Rect2 = rects["score_span"]
 	_score_center.position = span.position
 	_score_center.size = span.size
-	var next: Rect2 = rects["next"]
-	next_plate.position = next.position
-	next_plate.size = next.size
-	next_plate.pivot_offset = next.size * 0.5
 
 	power_bar.apply_layout(rects["slots"])
-	var goal: Rect2 = rects["goal"]
-	goal_plate.position = goal.position
-	goal_plate.size = goal.size
 
 	var strip_rect: Rect2 = rects["strip"]
 	strip.position = strip_rect.position
@@ -321,8 +376,10 @@ func layout() -> Dictionary:
 
 ## Skor pop'unun başlangıç noktası: plakanın sağ kenarı, dikey orta.
 func score_pop_home() -> Vector2:
+	# Plakanın SOL kenarından (sağda Sıradaki kartı var), sağa hizalı metin.
 	var plate: Rect2 = score_plate.get_global_rect()
-	return Vector2(plate.end.x + 4.0, plate.get_center().y - score_pop.size.y * 0.5 + 4.0)
+	return Vector2(plate.position.x - score_pop.size.x - 4.0,
+		plate.get_center().y - score_pop.size.y * 0.5 + 4.0)
 
 
 ## Durum plakası: metin boşsa gizlenir, doluysa ortalanıp pop'lanır.

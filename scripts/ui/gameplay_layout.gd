@@ -38,20 +38,23 @@ const CANVAS_WIDTH: float = 720.0
 ## Ust guvenli pay ve yan kenar payi.
 const SAFE_TOP: float = 10.0
 const SIDE: float = 14.0
-## HUD satirlari: 1) ayarlar | skor | siradaki  2) guc x2 | hedef | guc x2
+## HUD satirlari: 1) geri+ayarlar | skor | siradaki+cikis  2) tepsi(2 guc) | hedef | tepsi(2 guc)
 const ROW1_HEIGHT: float = 62.0
-const ROW2_HEIGHT: float = 92.0
+const ROW2_HEIGHT: float = 96.0
 const ROW_GAP: float = 8.0
 ## HUD ile board arasi nefes payi.
 const HUD_BOARD_GAP: float = 8.0
-## Guc slotu olcusu ve ikili aralik (dokunma hedefi >= 48 — 84 px).
-const SLOT_SIZE: Vector2 = Vector2(84.0, 88.0)
-const SLOT_GAP: float = 8.0
+## Guc slotu olcusu ve ikili aralik (dokunma hedefi >= 48 — 80 px); iki
+## slot bir TEPSI (PanelTray) icinde durur, tepsi ic payi TRAY_PAD.
+const SLOT_SIZE: Vector2 = Vector2(80.0, 84.0)
+const SLOT_GAP: float = 6.0
+const TRAY_PAD: float = 6.0
 ## Ikili slot grubu ile ortadaki hedef plakasi arasi.
 const GOAL_GAP: float = 12.0
-## Ayarlar butonu ve Sıradaki plakasi.
-const SETTINGS_SIZE: float = 58.0
-const NEXT_SIZE: Vector2 = Vector2(138.0, 58.0)
+## Kose butonlari (geri, ayarlar, cikis) ve Sıradaki plakasi.
+const SETTINGS_SIZE: float = 56.0
+const CORNER_GAP: float = 6.0
+const NEXT_SIZE: Vector2 = Vector2(150.0, 60.0)
 ## Evrim seridi.
 const STRIP_HEIGHT: float = 64.0
 const STRIP_GAP: float = 8.0
@@ -95,30 +98,38 @@ static func compute(view: Vector2, banner_height: float = 0.0,
 	var board := Rect2(0.0, hud.end.y + HUD_BOARD_GAP, w,
 		strip.position.y - STRIP_GAP - (hud.end.y + HUD_BOARD_GAP))
 
-	# Satir 1: ayarlar sol, skor orta, siradaki sag.
-	var settings := Rect2(row1.position.x, row1.position.y + (ROW1_HEIGHT - SETTINGS_SIZE) * 0.5,
-		SETTINGS_SIZE, SETTINGS_SIZE)
-	var next := Rect2(row1.end.x - NEXT_SIZE.x, row1.position.y + (ROW1_HEIGHT - NEXT_SIZE.y) * 0.5,
-		NEXT_SIZE.x, NEXT_SIZE.y)
-	# Skor plakasi: iki kenar arasinda ortalanir; genisligi icerige gore
-	# (HUD `score_max_width` ile sinirlar).
-	var score_span := Rect2(settings.end.x + GOAL_GAP, row1.position.y,
-		next.position.x - GOAL_GAP - (settings.end.x + GOAL_GAP), ROW1_HEIGHT)
+	# Satir 1: [geri][ayarlar] ... skor (ekran ortasi) ... [siradaki][cikis]
+	var corner_y: float = row1.position.y + (ROW1_HEIGHT - SETTINGS_SIZE) * 0.5
+	var back := Rect2(row1.position.x, corner_y, SETTINGS_SIZE, SETTINGS_SIZE)
+	var settings := Rect2(back.end.x + CORNER_GAP, corner_y, SETTINGS_SIZE, SETTINGS_SIZE)
+	var exit := Rect2(row1.end.x - SETTINGS_SIZE, corner_y, SETTINGS_SIZE, SETTINGS_SIZE)
+	var next := Rect2(exit.position.x - CORNER_GAP - NEXT_SIZE.x,
+		row1.position.y + (ROW1_HEIGHT - NEXT_SIZE.y) * 0.5, NEXT_SIZE.x, NEXT_SIZE.y)
+	# Skor plakasi ekran merkezinde; iki kumeye esit uzaklikta olacak
+	# kadar genis bir span (icerik plakayi ortalar).
+	var half: float = minf(w * 0.5 - settings.end.x, next.position.x - w * 0.5) - GOAL_GAP
+	var score_span := Rect2(w * 0.5 - half, row1.position.y, half * 2.0, ROW1_HEIGHT)
 
-	# Satir 2: 2 slot | hedef | 2 slot.
-	var slot_y: float = row2.position.y + (ROW2_HEIGHT - SLOT_SIZE.y) * 0.5
+	# Satir 2: tepsi(2 slot) | hedef karti | tepsi(2 slot).
+	var tray_size := Vector2(SLOT_SIZE.x * 2.0 + SLOT_GAP + TRAY_PAD * 2.0,
+		SLOT_SIZE.y + TRAY_PAD * 2.0 + 4.0)
+	var tray_y: float = row2.position.y + (ROW2_HEIGHT - tray_size.y) * 0.5
+	var tray_left := Rect2(Vector2(row2.position.x, tray_y), tray_size)
+	var tray_right := Rect2(Vector2(row2.end.x - tray_size.x, tray_y), tray_size)
+	var slot_y: float = tray_y + TRAY_PAD
 	var slots: Array[Rect2] = []
-	slots.append(Rect2(Vector2(row2.position.x, slot_y), SLOT_SIZE))
-	slots.append(Rect2(Vector2(row2.position.x + SLOT_SIZE.x + SLOT_GAP, slot_y), SLOT_SIZE))
-	slots.append(Rect2(Vector2(row2.end.x - SLOT_SIZE.x * 2.0 - SLOT_GAP, slot_y), SLOT_SIZE))
-	slots.append(Rect2(Vector2(row2.end.x - SLOT_SIZE.x, slot_y), SLOT_SIZE))
-	var goal := Rect2(slots[1].end.x + GOAL_GAP, row2.position.y,
-		slots[2].position.x - GOAL_GAP - (slots[1].end.x + GOAL_GAP), ROW2_HEIGHT)
+	slots.append(Rect2(Vector2(tray_left.position.x + TRAY_PAD, slot_y), SLOT_SIZE))
+	slots.append(Rect2(Vector2(slots[0].end.x + SLOT_GAP, slot_y), SLOT_SIZE))
+	slots.append(Rect2(Vector2(tray_right.position.x + TRAY_PAD, slot_y), SLOT_SIZE))
+	slots.append(Rect2(Vector2(slots[2].end.x + SLOT_GAP, slot_y), SLOT_SIZE))
+	var goal := Rect2(tray_left.end.x + GOAL_GAP, row2.position.y,
+		tray_right.position.x - GOAL_GAP - (tray_left.end.x + GOAL_GAP), ROW2_HEIGHT)
 
 	return {
 		"view": Rect2(Vector2.ZERO, view), "safe_top": top,
 		"hud": hud, "row1": row1, "row2": row2,
-		"settings": settings, "score_span": score_span, "next": next,
+		"back": back, "settings": settings, "score_span": score_span, "next": next, "exit": exit,
+		"tray_left": tray_left, "tray_right": tray_right,
 		"slots": slots, "goal": goal,
 		"board": board, "strip": strip, "banner": banner,
 	}

@@ -556,6 +556,43 @@ static func power_slot_count(slot: Button) -> int:
 	return int(slot.get_meta(&"count", 0)) if slot != null else 0
 
 
+## Gameplay HUD kose butonu: ButtonIcon + ust gloss (candy) + arkada 3 px
+## koyu erik halka — kalin, basilabilir, madalyonlarla ayni aile.
+static func hud_icon_button(role: String, size: float) -> Button:
+	var node := icon_button(role, &"ButtonIcon", size)
+	var rim := patch("frame_round20", UiTokens.NAVY_PURPLE)
+	rim.show_behind_parent = true
+	rim.offset_left = -3.0
+	rim.offset_top = -3.0
+	rim.offset_right = 3.0
+	rim.offset_bottom = -6.0
+	node.add_child(rim)
+	var light := patch("btn_bevel_light", Color(1, 1, 1, 0.40))
+	light.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE)
+	light.offset_left = 4.0
+	light.offset_right = -4.0
+	light.offset_top = 3.0
+	light.offset_bottom = size * 0.45
+	node.add_child(light)
+	return node
+
+
+## Lavanta cerceve + krem kart (hedef karti, Siradaki plakasi). Icerik
+## meta "card" PanelContainer'ina eklenir.
+static func hud_card() -> PanelContainer:
+	var frame := panel(&"PanelHudFrame")
+	frame.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var light := patch("panel_bevel_light", Color(1, 1, 1, 0.30))
+	light.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE)
+	light.offset_bottom = 22.0
+	frame.add_child(light)
+	var card := panel(&"PanelHudCard")
+	card.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	frame.add_child(card)
+	frame.set_meta(&"card", card)
+	return frame
+
+
 ## HUD plakasi icin kucuk buyuk-harf baslik + deger sutunu (SKOR / 1 240).
 static func hud_caption(text: String) -> Label:
 	return label(text.to_upper(), &"LabelHudCaption", HORIZONTAL_ALIGNMENT_CENTER)

@@ -15,6 +15,7 @@ const DAILY_POPUP_SCENE: PackedScene = preload("res://scenes/ui/daily_reward_pop
 const REVIVE_OFFER_SCENE: PackedScene = preload("res://scenes/ui/revive_offer.tscn")
 const POWER_REFILL_SCENE: PackedScene = preload("res://scenes/ui/power_refill.tscn")
 const SETTINGS_SCENE: PackedScene = preload("res://scenes/ui/settings_panel.tscn")
+const PAUSE_MENU_SCENE: PackedScene = preload("res://scenes/ui/pause_menu.tscn")
 
 ## Round bitip sonuç ekranı açılmadan önceki kısa nefes payı — son merge'in
 ## efekti ekranda kalsın diye.
@@ -26,6 +27,7 @@ var _daily: CanvasLayer
 var _revive: CanvasLayer
 var _refill: CanvasLayer
 var _settings: CanvasLayer
+var _pause: CanvasLayer
 var _board: Node2D
 ## Ödüllü reklam sağlayıcısı (M9+ AdMob). null = sağlayıcı yok.
 ##
@@ -101,6 +103,12 @@ func _ready() -> void:
 	_settings.closed.connect(_on_settings_closed)
 	add_child(_settings)
 
+	_pause = PAUSE_MENU_SCENE.instantiate()
+	_pause.resume_pressed.connect(resume_game)
+	_pause.restart_pressed.connect(_on_pause_restart)
+	_pause.exit_pressed.connect(abandon_run)
+	add_child(_pause)
+
 	_show_tab(0)
 	_check_daily_reward()
 
@@ -146,8 +154,50 @@ func _on_board_settings_requested() -> void:
 
 
 func _on_settings_closed() -> void:
-	if _board != null and is_instance_valid(_board):
+	# Mola penceresi hâlâ açıksa board donuk kalır.
+	if _board != null and is_instance_valid(_board) and not _pause.visible:
 		_board.set_menu_paused(false)
+
+
+# --- Mola / çıkış (M8.6-02 HUD v2) ---
+#
+# Oyun içi Geri, Çıkış ve Android geri tuşu aynı pencereyi açar. Round
+# YALNIZCA "Ana Menüye Dön" ile terk edilir: sonuç ekranı, ödül ve kayıt
+# akışı ÇALIŞMAZ (terk edilen round tamamlanmış sayılmaz).
+
+func open_pause_menu() -> void:
+	if _board == null or not is_instance_valid(_board):
+		return
+	if _board.is_fail_pending() or _board.is_refill_pending():
+		# Devam/refill penceresi açıkken mola açılmaz — o pencere karar bekliyor.
+		return
+	_board.set_menu_paused(true)
+	_pause.open_menu()
+
+
+func resume_game() -> void:
+	_pause.close_menu()
+	if _board != null and is_instance_valid(_board) and not _settings.visible:
+		_board.set_menu_paused(false)
+
+
+func _on_pause_restart() -> void:
+	_pause.close_menu()
+	if _current_level != null:
+		_start_level(_current_level)
+
+
+## Round'u terk et: board silinir, harita sekmesine dönülür.
+func abandon_run() -> void:
+	_pause.close_menu()
+	_result.hide_result()
+	_clear_board()
+	_show_tab(1)
+	_tabs.set_active(1)
+
+
+func is_pause_open() -> bool:
+	return _pause != null and _pause.visible
 
 
 ## Android geri tuşu (M8.5-10 UX). Sıra: açık pencere kapanır → sekme
@@ -160,7 +210,12 @@ func _notification(what: int) -> void:
 	if _settings != null and _settings.visible:
 		close_settings()
 		return
+	# Oyun sırasında: uygulama KAPANMAZ, mola penceresi açılır/kapanır.
 	if _board != null and is_instance_valid(_board):
+		if _pause.visible:
+			resume_game()
+		else:
+			open_pause_menu()
 		return
 	var active: CanvasLayer = _screens[_active_tab] if _active_tab < _screens.size() else null
 	if active != null and active.has_method("handle_back") and active.handle_back():
@@ -205,6 +260,8 @@ func _start_level(level: LevelData) -> void:
 	_hide_shell()
 	_result.hide_result()
 	_clear_board()
+	if _pause != null:
+		_pause.close_menu()
 
 	_revive.hide_offer()
 	_refill.hide_refill()
@@ -216,6 +273,7 @@ func _start_level(level: LevelData) -> void:
 	_board.revive_offered.connect(_on_revive_offered)
 	_board.power_refill_offered.connect(_on_power_refill_offered)
 	_board.settings_requested.connect(_on_board_settings_requested)
+	_board.pause_requested.connect(open_pause_menu)
 	add_child(_board)
 
 

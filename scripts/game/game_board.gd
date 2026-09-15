@@ -16,6 +16,9 @@ signal power_refill_offered(type: int)
 ## HUD'daki ayarlar butonu (M8.6-02). Board pencereyi AÇMAZ; Main açar ve
 ## `set_menu_paused(true)` ile board'u dondurur.
 signal settings_requested
+## HUD'daki Geri / Çıkış butonu: Main "Mola" penceresini açar ve board'u
+## `set_menu_paused(true)` ile dondurur. Board kendi başına round bitirmez.
+signal pause_requested
 
 const DUMPLING_SCENE: PackedScene = preload("res://scenes/game/dumpling.tscn")
 const POP_EFFECT_SCENE: PackedScene = preload("res://scenes/game/pop_effect.tscn")
@@ -303,6 +306,8 @@ func _ready() -> void:
 	_apply_layout(get_viewport_rect().size)
 	get_viewport().size_changed.connect(_on_viewport_resized)
 	_hud.settings_pressed.connect(func() -> void: settings_requested.emit())
+	_hud.back_pressed.connect(func() -> void: pause_requested.emit())
+	_hud.exit_pressed.connect(func() -> void: pause_requested.emit())
 	_setup_bokeh()
 	_build_walls()
 	_setup_overflow_area()
