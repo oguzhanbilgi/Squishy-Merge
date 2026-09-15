@@ -40,7 +40,7 @@ const GENERATED: Array[StringName] = [
 	# Gameplay shell (M8.6-02)
 	&"LabelHudScore", &"LabelHudCaption", &"PowerSlot", &"PowerSlotArmed", &"PowerSlotEmpty",
 	&"PanelStrip", &"PanelHud", &"PanelHudScore", &"PanelTray", &"PanelHudFrame", &"PanelHudCard",
-	&"LabelHudCaptionDark",
+	&"LabelHudCaptionDark", &"ButtonHud", &"ButtonHudExit", &"ProgressBarHud",
 	# Oyun bilesenleri
 	&"ResourcePill", &"HeaderRibbon", &"SectionTag", &"ProgressBarMint", &"ProgressBarGold",
 	&"Badge", &"LockBadge", &"EquippedBadge", &"NewBadge", &"CountBadge",
@@ -148,10 +148,12 @@ func _build_panels() -> void:
 	_panel(&"PanelHud", "panel_bevel", Color(UiTokens.PLUM, 0.96), Vector4(14, 5, 16, 11))
 	# Gameplay ust HUD (M8.6-02 HUD v2): glossy lavanta skor plakasi, erik guc
 	# tepsisi (2 madalyon), lavanta cerceve + krem kart (hedef / Siradaki).
-	_panel(&"PanelHudScore", "panel_bevel", UiTokens.LAVENDER, Vector4(18, 4, 20, 10))
-	_panel(&"PanelTray", "panel_bevel", Color(UiTokens.PLUM, 0.94), Vector4(6, 6, 6, 10))
-	_panel(&"PanelHudFrame", "panel_bevel", UiTokens.LAVENDER, Vector4(5, 5, 5, 9))
-	_panel(&"PanelHudCard", "card_bevel", UiTokens.CREAM, Vector4(12, 4, 12, 8))
+	# HUD v3 (hud_target.png): mor kapsul skor, acik lavanta-krem tepsi, kalin
+	# koyu-lavanta cerceve + krem kart (label_round: yumusak kose, cizgi yok).
+	_panel(&"PanelHudScore", "label_round", UiTokens.LAVENDER_DEEP, Vector4(18, 3, 18, 7))
+	_panel(&"PanelTray", "label_round", UiTokens.TRAY_CREAM, Vector4(6, 6, 6, 8))
+	_panel(&"PanelHudFrame", "label_round", UiTokens.LAVENDER_DEEP, Vector4(6, 6, 6, 8))
+	_panel(&"PanelHudCard", "label_round", UiTokens.CREAM, Vector4(12, 2, 12, 4))
 	# Evrim seridi tepsisi (M8.6-02): koyu yuvarlak plaka, dar iceri pay.
 	_panel(&"PanelStrip", "panel_bevel", Color(UiTokens.PLUM, 0.94), Vector4(14, 4, 14, 8))
 
@@ -195,8 +197,15 @@ func _build_buttons() -> void:
 		FONT_TITLE, 16, UiTokens.TEXT_PRIMARY, UiTokens.TEXT_DISABLED)
 	_button(&"PowerSlotArmed", "btn_circle", UiTokens.CYAN, slot,
 		FONT_TITLE, 16, UiTokens.TEXT_ON_ACCENT, UiTokens.TEXT_DISABLED)
-	_button(&"PowerSlotEmpty", "btn_circle", UiTokens.DISABLED, slot,
+	# Stok 0: ayni candy ailesi — acik lavanta govde (gri placeholder degil).
+	_button(&"PowerSlotEmpty", "btn_circle", UiTokens.LAVENDER_SURFACE, slot,
 		FONT_TITLE, 16, UiTokens.TEXT_DISABLED, UiTokens.TEXT_DISABLED)
+	# Gameplay HUD kose butonlari (HUD v3): koyu lavanta-mor kare, buyuk beyaz
+	# picto; cikis pembe. Halka/gloss/golge UiKit.hud_icon_button ekler.
+	_button(&"ButtonHud", "btn_square", UiTokens.LAVENDER_DEEP, Vector4(10, 8, 10, 16),
+		FONT_TITLE, 22, UiTokens.TEXT_ON_DARK, UiTokens.TEXT_DISABLED, 34)
+	_button(&"ButtonHudExit", "btn_square", UiTokens.PINK, Vector4(10, 8, 10, 16),
+		FONT_TITLE, 22, UiTokens.TEXT_ON_DARK, UiTokens.TEXT_DISABLED, 34)
 	# Kaynak pill'inin nane "+" butonu.
 	_button(&"ButtonResourceAdd", "resource_btn", UiTokens.MINT, Vector4(8, 6, 8, 10),
 		FONT_TITLE, 18, UiTokens.TEXT_ON_ACCENT, UiTokens.TEXT_DISABLED, 20)
@@ -254,6 +263,11 @@ func _build_components() -> void:
 		_theme.set_stylebox("background", type,
 			UiKit.style("slider_thin_bg", Color(UiTokens.NAVY_PURPLE_DEEP, 0.9), Vector4(2, 2, 2, 3)))
 		_theme.set_stylebox("fill", type, UiKit.style("slider_fill_sm", entry[1]))
+	# HUD hedef cubugu (v3): koyu mor cizgili ray + parlak nane dolgu.
+	_theme.set_type_variation(&"ProgressBarHud", &"ProgressBar")
+	_theme.set_stylebox("background", &"ProgressBarHud",
+		UiKit.style("slider_thin_bg", UiTokens.NAVY_PURPLE_DEEP, Vector4(3, 2, 3, 3)))
+	_theme.set_stylebox("fill", &"ProgressBarHud", UiKit.style("slider_fill_sm", UiTokens.MINT))
 	# Anahtar rayi: acik nane, kapali lavanta-gri.
 	_panel(&"SwitchOn", "switch_track", UiTokens.MINT, Vector4(0, 0, 0, 0))
 	_panel(&"SwitchOff", "switch_track", Color("b9b0c9"), Vector4(0, 0, 0, 0))

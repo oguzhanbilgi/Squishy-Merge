@@ -463,6 +463,13 @@ static func power_slot(art_tex: Texture2D, count: int,
 	rim.offset_right = 3.0
 	rim.offset_bottom = -9.0
 	node.add_child(rim)
+	# Cam ic disk (hud_target: acik gok mavisi), sanatin arkasinda.
+	var glass := patch("item_circle_inner", UiTokens.GLASS_BLUE)
+	glass.offset_left = size.x * 0.11
+	glass.offset_right = -size.x * 0.11
+	glass.offset_top = size.y * 0.09
+	glass.offset_bottom = -size.y * 0.21
+	node.add_child(glass)
 	# Ic parlama: ust yarida beyaz ic daire (candy gloss), altta hafif
 	# golge dairesi (yumusak derinlik).
 	var shade := patch("item_circle_inner", Color(0.35, 0.25, 0.5, 0.16))
@@ -510,6 +517,7 @@ static func power_slot(art_tex: Texture2D, count: int,
 	node.add_child(count_badge)
 	node.set_meta(&"glow", glow)
 	node.set_meta(&"rim", rim)
+	node.set_meta(&"glass", glass)
 	node.set_meta(&"art", picture)
 	node.set_meta(&"badge", count_badge)
 	node.set_meta(&"badge_label", count_label)
@@ -533,11 +541,13 @@ static func set_power_slot_state(slot: Button, count: int, armed: bool,
 	slot.modulate.a = 1.0 if enabled else 0.55
 	(slot.get_meta(&"glow") as Control).visible = armed and enabled
 	(slot.get_meta(&"rim") as Control).self_modulate = UiTokens.CYAN_DEEP if armed \
-		else (UiTokens.DISABLED_DEEP if empty else UiTokens.NAVY_PURPLE)
+		else (UiTokens.LAVENDER if empty else UiTokens.GOLD)
+	(slot.get_meta(&"glass") as Control).self_modulate = UiTokens.CYAN if armed \
+		else (UiTokens.GLASS_MUTED if empty else UiTokens.GLASS_BLUE)
 	# Stok 0: sanat kimligini korur (renk kalir), yalnizca soluk ve hafif
 	# gri-mavi ortu — tamamen gri generic buton olmaz.
 	(slot.get_meta(&"art") as Control).self_modulate = \
-		Color(0.82, 0.80, 0.90, 0.66) if empty else Color.WHITE
+		Color(0.86, 0.84, 0.94, 0.72) if empty else Color.WHITE
 	var count_badge: PanelContainer = slot.get_meta(&"badge")
 	var count_label: Label = slot.get_meta(&"badge_label")
 	var plus: Control = slot.get_meta(&"badge_plus")
@@ -545,10 +555,21 @@ static func set_power_slot_state(slot: Button, count: int, armed: bool,
 	count_label.visible = not empty
 	plus.visible = empty
 	if empty:
+		# Nane "+" rozeti sag ALT kosede (hud_target), stok rozeti sag ustte.
 		count_badge.add_theme_stylebox_override("panel",
 			style("badge_round", UiTokens.MINT, Vector4(9, 3, 9, 6)))
+		count_badge.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
+		count_badge.grow_vertical = Control.GROW_DIRECTION_BEGIN
+		count_badge.offset_top = -4.0
+		count_badge.offset_bottom = -4.0
 	else:
 		count_badge.remove_theme_stylebox_override("panel")
+		count_badge.set_anchors_preset(Control.PRESET_TOP_RIGHT)
+		count_badge.grow_vertical = Control.GROW_DIRECTION_END
+		count_badge.offset_top = -6.0
+		count_badge.offset_bottom = -6.0
+	count_badge.offset_right = 6.0
+	count_badge.offset_left = 6.0
 
 
 ## Slotun gosterdigi stok (testler icin; rozet metninden degil meta'dan).
@@ -556,39 +577,129 @@ static func power_slot_count(slot: Button) -> int:
 	return int(slot.get_meta(&"count", 0)) if slot != null else 0
 
 
-## Gameplay HUD kose butonu: ButtonIcon + ust gloss (candy) + arkada 3 px
-## koyu erik halka — kalin, basilabilir, madalyonlarla ayni aile.
-static func hud_icon_button(role: String, size: float) -> Button:
-	var node := icon_button(role, &"ButtonIcon", size)
-	var rim := patch("frame_round20", UiTokens.NAVY_PURPLE)
+## Dekor katmani baglama (HUD v3). PanelContainer cocuklarini icerik
+## dikdortgenine yerlestirir ve minimum boyuta katar; bu yuzden golge /
+## halka / gloss gibi dis dekorlar plakanin ICINE degil, HUD'un ayri dekor
+## kontrolune (`host`) eklenir ve plakanin dikdortgenini `item_rect_changed`
+## ile izler. `margins` = (sol, ust, sag, alt) tasma; negatif = iceri.
+static func hud_attach(target: Control, deco: Control, host: Control,
+		margins: Vector4) -> Control:
+	deco.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	deco.set_anchors_preset(Control.PRESET_TOP_LEFT)
+	host.add_child(deco)
+	var sync := func() -> void:
+		if not is_instance_valid(deco) or not is_instance_valid(target):
+			return
+		deco.global_position = target.global_position - Vector2(margins.x, margins.y)
+		deco.size = target.size + Vector2(margins.x + margins.z, margins.y + margins.w)
+		deco.visible = target.is_visible_in_tree()
+	target.item_rect_changed.connect(sync)
+	target.visibility_changed.connect(sync)
+	if target.is_inside_tree():
+		sync.call()
+	else:
+		target.tree_entered.connect(sync, CONNECT_ONE_SHOT)
+	return deco
+
+
+## Yumusak dis golge: plakanin arkasina `drop` px asagi kaymis koyu
+## yuvarlak plaka. Buton (Control) icin dogrudan cocuk; PanelContainer
+## icin `host` ver.
+static func hud_shadow(target: Control, drop: float = 5.0, alpha: float = 0.30,
+		host: Control = null) -> NinePatchRect:
+	var shadow := patch("label_round", Color(0.05, 0.02, 0.12, alpha))
+	if host != null:
+		hud_attach(target, shadow, host, Vector4(0.0, -drop, 0.0, drop))
+		return shadow
+	shadow.show_behind_parent = true
+	shadow.offset_top = drop
+	shadow.offset_bottom = drop
+	target.add_child(shadow)
+	return shadow
+
+
+## Acik kenar halkasi: govdeden `width` px tasan yuvarlak plaka
+## (hud_target: mor govdelerin acik dis kenari).
+static func hud_rim(target: Control, tint: Color = UiTokens.LAVENDER_LIGHT,
+		width: float = 3.0, host: Control = null) -> NinePatchRect:
+	var rim := patch("label_round", tint)
+	if host != null:
+		hud_attach(target, rim, host, Vector4(width, width, width, width))
+		return rim
 	rim.show_behind_parent = true
-	rim.offset_left = -3.0
-	rim.offset_top = -3.0
-	rim.offset_right = 3.0
-	rim.offset_bottom = -6.0
-	node.add_child(rim)
-	var light := patch("btn_bevel_light", Color(1, 1, 1, 0.40))
+	rim.offset_left = -width
+	rim.offset_top = -width
+	rim.offset_right = width
+	rim.offset_bottom = width
+	target.add_child(rim)
+	return rim
+
+
+## Ust ic parlama seridi (gloss). `host` verilirse plakanin ustune, on
+## dekor katmanina biner (yalniz ust `height` px).
+static func hud_gloss(target: Control, height: float, alpha: float = 0.34,
+		inset: float = 5.0, host: Control = null) -> NinePatchRect:
+	var light := patch("btn_bevel_light", Color(1, 1, 1, alpha))
+	if host != null:
+		var strip := Control.new()
+		strip.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		light.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE)
+		light.offset_left = inset
+		light.offset_right = -inset
+		light.offset_top = inset * 0.6
+		light.offset_bottom = height
+		strip.add_child(light)
+		hud_attach(target, strip, host, Vector4.ZERO)
+		return light
 	light.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE)
-	light.offset_left = 4.0
-	light.offset_right = -4.0
-	light.offset_top = 3.0
-	light.offset_bottom = size * 0.45
-	node.add_child(light)
+	light.offset_left = inset
+	light.offset_right = -inset
+	light.offset_top = inset * 0.6
+	light.offset_bottom = height
+	target.add_child(light)
+	return light
+
+
+## Gameplay HUD kose butonu (v3): koyu lavanta-mor kare govde (ButtonHud /
+## ButtonHudExit pembe), acik lavanta dis halka, ust gloss, dis golge,
+## buyuk beyaz picto — hud_target'taki kalin candy kontrol.
+static func hud_icon_button(role: String, size: float,
+		variation: StringName = &"ButtonHud") -> Button:
+	var node := icon_button(role, variation, size)
+	hud_shadow(node, 5.0, 0.32)
+	hud_rim(node, UiTokens.LAVENDER_LIGHT if variation == &"ButtonHud" else Color("fbd6e6"), 3.0)
+	hud_gloss(node, size * 0.42, 0.30, 6.0)
 	return node
 
 
-## Lavanta cerceve + krem kart (hedef karti, Siradaki plakasi). Icerik
-## meta "card" PanelContainer'ina eklenir.
-static func hud_card() -> PanelContainer:
+## Kalin koyu-lavanta cerceve + krem kart + dis golge + acik halka (hedef
+## karti, Siradaki plakasi). Dekorlar `back`/`front` dekor katmanlarina
+## baglanir. Icerik meta "card" PanelContainer'ina eklenir.
+static func hud_card(back: Control, front: Control, with_stars: bool = false) -> PanelContainer:
 	var frame := panel(&"PanelHudFrame")
 	frame.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var light := patch("panel_bevel_light", Color(1, 1, 1, 0.30))
-	light.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE)
-	light.offset_bottom = 22.0
-	frame.add_child(light)
+	hud_shadow(frame, 6.0, 0.34, back)
+	hud_rim(frame, UiTokens.LAVENDER_LIGHT, 2.0, back)
 	var card := panel(&"PanelHudCard")
 	card.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	frame.add_child(card)
+	hud_gloss(frame, 26.0, 0.30, 14.0, front)
+	if with_stars:
+		# Cerceve kenarlarinda altin yildiz aksani (sol/sag orta), on katman.
+		var stars := Control.new()
+		stars.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		for side in [0.0, 1.0]:
+			var star := art(preload("res://assets/visual/ui/icon_star_filled.png"), 26)
+			star.anchor_left = side
+			star.anchor_right = side
+			star.anchor_top = 0.5
+			star.anchor_bottom = 0.5
+			star.offset_left = -13.0
+			star.offset_right = 13.0
+			star.offset_top = -13.0
+			star.offset_bottom = 13.0
+			stars.add_child(star)
+		hud_attach(frame, stars, front, Vector4.ZERO)
 	frame.set_meta(&"card", card)
 	return frame
 

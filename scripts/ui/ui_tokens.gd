@@ -33,6 +33,14 @@ const PLUM: Color = Color("453885")
 ## Ikincil buton / lavanta yuzey (krem ustunde "Bitir", "Kapat").
 const LAVENDER: Color = Color("c694fa")
 const LAVENDER_SURFACE: Color = Color("dccbe8")
+## Gameplay HUD (M8.6-02 HUD v3, hud_target.png'den olculdu): govde koyu
+## lavanta-mor, kenar/tepsi acik lavanta-krem.
+const LAVENDER_DEEP: Color = Color("8b72dc")
+const LAVENDER_LIGHT: Color = Color("ece3fb")
+const TRAY_CREAM: Color = Color("f3e9f9")
+## Madalyon cam ic diski (acik gok mavisi) ve pasif hali.
+const GLASS_BLUE: Color = Color("bfe6ff")
+const GLASS_MUTED: Color = Color("d9d4e8")
 
 # --- Candy vurgular ----------------------------------------------------------
 const CYAN: Color = Color("5eddf9")

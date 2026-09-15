@@ -52,6 +52,8 @@ var level_label: Label
 var goal_art: TextureRect
 var goal_label: Label
 var goal_caption: Label
+var goal_portrait: PanelContainer
+var goal_percent: Label
 var goal_extra: Label
 var goal_bar: ProgressBar
 var status_label: Label
@@ -64,14 +66,29 @@ var scrim: TextureRect
 var banner_seam: Control
 
 var _score_center: CenterContainer
+## Dekor katmanlari: plakalarin arkasindaki golge/halka (`_deco_back`) ve
+## ustundeki gloss/yildiz (`_deco_front`) — PanelContainer'lar dis dekor
+## cocuklarini iceriye alip minimum boyuta kattigi icin ayri.
+var _deco_back: Control
+var _deco_front: Control
 var _layout: Dictionary = {}
 var _status_anchor: Vector2 = Vector2.ZERO
 
 
 func _ready() -> void:
 	_build_scrim()
+	_deco_back = Control.new()
+	_deco_back.name = "DecoBack"
+	_deco_back.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(_deco_back)
+	_deco_front = Control.new()
+	_deco_front.name = "DecoFront"
+	_deco_front.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(_deco_front)
 	_build_row1()
 	_build_row2()
+	# On dekor katmani plakalarin USTUNE (siralama: sonra eklenen ustte).
+	move_child(_deco_front, get_child_count() - 1)
 	_build_strip()
 	_build_overlays()
 	_build_banner_seam()
@@ -114,26 +131,21 @@ func _build_row1() -> void:
 	_score_center = CenterContainer.new()
 	_score_center.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(_score_center)
+	# hud_target: mor kapsül, açık lavanta dış kenar, dış gölge, üst gloss,
+	# solda büyük altın yıldız, beyaz "SKOR" + büyük beyaz rakam, uçlarda
+	# minik yıldız aksanları.
 	score_plate = UiKit.panel(&"PanelHudScore")
 	score_plate.name = "ScorePlate"
 	score_plate.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var rim := UiKit.patch("frame_round20", UiTokens.NAVY_PURPLE)
-	rim.show_behind_parent = true
-	rim.offset_left = -3.0
-	rim.offset_top = -3.0
-	rim.offset_right = 3.0
-	rim.offset_bottom = -6.0
-	score_plate.add_child(rim)
-	var gloss := UiKit.patch("panel_bevel_light", Color(1, 1, 1, 0.36))
-	gloss.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE)
-	gloss.offset_bottom = 26.0
-	score_plate.add_child(gloss)
 	_score_center.add_child(score_plate)
+	UiKit.hud_shadow(score_plate, 6.0, 0.34, _deco_back)
+	UiKit.hud_rim(score_plate, UiTokens.LAVENDER_LIGHT, 3.0, _deco_back)
+	UiKit.hud_gloss(score_plate, 22.0, 0.28, 10.0, _deco_front)
 	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", UiTokens.SPACE_SM)
+	row.add_theme_constant_override("separation", 6)
 	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	score_plate.add_child(row)
-	var star := UiKit.art(STAR_ART, 34)
+	var star := UiKit.art(STAR_ART, 38)
 	star.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	row.add_child(star)
 	var column := VBoxContainer.new()
@@ -142,22 +154,18 @@ func _build_row1() -> void:
 	column.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	row.add_child(column)
 	var score_caption := UiKit.hud_caption("Skor")
-	score_caption.theme_type_variation = &"LabelHudCaptionDark"
-	score_caption.add_theme_color_override("font_color", UiTokens.TEXT_PRIMARY)
+	score_caption.add_theme_color_override("font_color", Color(1, 1, 1, 0.92))
 	column.add_child(score_caption)
 	score_label = UiKit.label("0", &"LabelHudScore", HORIZONTAL_ALIGNMENT_CENTER)
-	score_label.custom_minimum_size.x = 124.0
-	# Lavanta üstünde beyaz düşük kontrastlı: rakam koyu erik, açık gölge.
-	score_label.add_theme_color_override("font_color", UiTokens.TEXT_PRIMARY)
-	score_label.add_theme_color_override("font_shadow_color", Color(1, 1, 1, 0.45))
-	score_label.add_theme_font_size_override("font_size", 32)
+	score_label.custom_minimum_size.x = 108.0
+	score_label.add_theme_font_size_override("font_size", 34)
 	column.add_child(score_label)
-	var star2 := UiKit.art(STAR_ART, 22, Color(1, 1, 1, 0.9))
-	star2.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	row.add_child(star2)
+	var accent_r := UiKit.art(STAR_ART, 12)
+	accent_r.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	row.add_child(accent_r)
 
 	# Sağ küme: Sıradaki kartı (lavanta çerçeve + krem) + çıkış.
-	next_plate = UiKit.hud_card()
+	next_plate = UiKit.hud_card(_deco_back, _deco_front)
 	next_plate.name = "NextPlate"
 	add_child(next_plate)
 	var next_card: PanelContainer = next_plate.get_meta(&"card")
@@ -171,11 +179,13 @@ func _build_row1() -> void:
 	next_col.add_theme_constant_override("separation", -2)
 	next_col.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	next_row.add_child(next_col)
-	next_col.add_child(UiKit.label("SIRADAKI", &"LabelHudCaptionDark", HORIZONTAL_ALIGNMENT_CENTER))
-	next_art = UiKit.art(DUMPLING_VISUAL.TEXTURES[0], 34)
+	var next_caption := UiKit.label("SIRADAKI", &"LabelHudCaptionDark", HORIZONTAL_ALIGNMENT_CENTER)
+	next_caption.add_theme_color_override("font_color", UiTokens.LAVENDER_DEEP.darkened(0.25))
+	next_col.add_child(next_caption)
+	next_art = UiKit.art(DUMPLING_VISUAL.TEXTURES[0], 38)
 	next_art.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	next_row.add_child(next_art)
-	exit_button = UiKit.hud_icon_button("home", GameplayLayout.SETTINGS_SIZE)
+	exit_button = UiKit.hud_icon_button("home", GameplayLayout.SETTINGS_SIZE, &"ButtonHudExit")
 	exit_button.name = "Exit"
 	exit_button.pressed.connect(func() -> void: exit_pressed.emit())
 	add_child(exit_button)
@@ -184,20 +194,26 @@ func _build_row1() -> void:
 func _build_row2() -> void:
 	# Güç tepsileri: erik bevel, içinde ikişer madalyon (PowerBar slotları
 	# tepsinin üstüne yerleşir; tepsi yalnız görsel).
-	tray_left = UiKit.plate(&"PanelTray")
+	# hud_target: iki madalyonu birleştiren sığ krem tepsi, koyu lavanta dış
+	# halka, dış gölge, üst gloss.
+	tray_left = UiKit.panel(&"PanelTray")
 	tray_left.name = "TrayLeft"
 	tray_left.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(tray_left)
-	tray_right = UiKit.plate(&"PanelTray")
+	UiKit.hud_shadow(tray_left, 6.0, 0.34, _deco_back)
+	UiKit.hud_rim(tray_left, UiTokens.LAVENDER_DEEP, 3.0, _deco_back)
+	tray_right = UiKit.panel(&"PanelTray")
 	tray_right.name = "TrayRight"
 	tray_right.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(tray_right)
+	UiKit.hud_shadow(tray_right, 6.0, 0.34, _deco_back)
+	UiKit.hud_rim(tray_right, UiTokens.LAVENDER_DEEP, 3.0, _deco_back)
 	power_bar = POWER_BAR_SCENE.instantiate()
 	power_bar.name = "PowerBar"
 	add_child(power_bar)
 
 	# Hedef kartı: lavanta çerçeve + krem kart — ana bilgi modülü.
-	goal_plate = UiKit.hud_card()
+	goal_plate = UiKit.hud_card(_deco_back, _deco_front, true)
 	goal_plate.name = "GoalPlate"
 	add_child(goal_plate)
 	var goal_card: PanelContainer = goal_plate.get_meta(&"card")
@@ -205,19 +221,26 @@ func _build_row2() -> void:
 	row.add_theme_constant_override("separation", UiTokens.SPACE_SM + 2)
 	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	goal_card.add_child(row)
-	# Level rozeti: altın yuvarlak etiket, içinde owner tacı + numara.
+	# Level rozeti (hud_target): büyük altın yuvarlak plaka, owner tacı üstte,
+	# altında büyük Baloo numara.
 	level_badge = UiKit.panel(&"Badge")
+	level_badge.add_theme_stylebox_override("panel",
+		UiKit.style("label_round", UiTokens.GOLD, Vector4(8, 2, 8, 4)))
+	level_badge.custom_minimum_size = Vector2(66.0, 0.0)
 	level_badge.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	level_badge.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	row.add_child(level_badge)
-	var badge_row := HBoxContainer.new()
-	badge_row.add_theme_constant_override("separation", UiTokens.SPACE_XS)
-	badge_row.alignment = BoxContainer.ALIGNMENT_CENTER
-	badge_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	level_badge.add_child(badge_row)
-	badge_row.add_child(UiKit.art(CROWN_ART, 22))
-	level_label = UiKit.label("1", &"LabelBadge")
-	badge_row.add_child(level_label)
+	var badge_col := VBoxContainer.new()
+	badge_col.add_theme_constant_override("separation", -8)
+	badge_col.alignment = BoxContainer.ALIGNMENT_CENTER
+	badge_col.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	level_badge.add_child(badge_col)
+	var crown := UiKit.art(CROWN_ART, 30)
+	crown.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	badge_col.add_child(crown)
+	level_label = UiKit.label("1", &"LabelSectionOnAccent", HORIZONTAL_ALIGNMENT_CENTER)
+	level_label.add_theme_font_size_override("font_size", 24)
+	badge_col.add_child(level_label)
 
 	var column := VBoxContainer.new()
 	column.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -228,33 +251,44 @@ func _build_row2() -> void:
 	# Hiyerarşi: küçük başlık (HEDEF / REKOR) → hedef adı → ilerleme.
 	goal_caption = UiKit.hud_caption("Hedef")
 	goal_caption.theme_type_variation = &"LabelHudCaptionDark"
+	goal_caption.add_theme_color_override("font_color", UiTokens.LAVENDER_DEEP.darkened(0.15))
 	goal_caption.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
 	column.add_child(goal_caption)
 	var goal_row := HBoxContainer.new()
 	goal_row.add_theme_constant_override("separation", UiTokens.SPACE_XS + 2)
 	goal_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	column.add_child(goal_row)
-	goal_art = UiKit.art(DUMPLING_VISUAL.TEXTURES[3], 26)
-	goal_art.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	goal_row.add_child(goal_art)
+	# Hedef portresi: küçük krem-derin pill içinde (hud_target).
+	goal_portrait = UiKit.panel(&"PanelBase")
+	goal_portrait.add_theme_stylebox_override("panel",
+		UiKit.style("label_round", UiTokens.CREAM_DEEP, Vector4(8, 1, 8, 2)))
+	goal_portrait.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	goal_portrait.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	goal_row.add_child(goal_portrait)
+	goal_art = UiKit.art(DUMPLING_VISUAL.TEXTURES[3], 30)
+	goal_portrait.add_child(goal_art)
 	goal_label = UiKit.label("Hedef", &"LabelSection")
-	goal_label.add_theme_font_size_override("font_size", 21)
+	goal_label.add_theme_font_size_override("font_size", 22)
+	goal_label.add_theme_color_override("font_color", UiTokens.LAVENDER_DEEP.darkened(0.35))
 	goal_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	goal_label.clip_text = true
 	goal_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	goal_row.add_child(goal_label)
-	goal_bar = UiKit.progress_bar(0.0, &"ProgressBarMint", 14.0)
+	goal_bar = UiKit.progress_bar(0.0, &"ProgressBarHud", 18.0)
 	column.add_child(goal_bar)
+	# Yüzde yazısı çubuğun sağ ucunda (hud_target "80%").
+	goal_percent = UiKit.label("0%", &"LabelBadgeOnDark", HORIZONTAL_ALIGNMENT_RIGHT)
+	goal_percent.set_anchors_and_offsets_preset(Control.PRESET_RIGHT_WIDE)
+	goal_percent.offset_left = -70.0
+	goal_percent.offset_right = -10.0
+	goal_percent.grow_horizontal = Control.GROW_DIRECTION_BEGIN
+	goal_bar.add_child(goal_percent)
 	# Skor hedefi ("+5 000 skor") çubuğun sağ ucunda küçük yazı — hedef adı
 	# ile yer için yarışmaz.
-	goal_extra = UiKit.label("", &"LabelHudCaption", HORIZONTAL_ALIGNMENT_RIGHT)
-	goal_extra.add_theme_color_override("font_color", UiTokens.TEXT_ON_DARK)
+	goal_extra = UiKit.label("", &"LabelHudCaptionDark", HORIZONTAL_ALIGNMENT_RIGHT)
 	goal_extra.add_theme_font_size_override("font_size", 12)
-	goal_extra.set_anchors_and_offsets_preset(Control.PRESET_RIGHT_WIDE)
-	goal_extra.offset_left = -160.0
-	goal_extra.offset_right = -8.0
-	goal_extra.grow_horizontal = Control.GROW_DIRECTION_BEGIN
-	goal_bar.add_child(goal_extra)
+	goal_extra.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	goal_row.add_child(goal_extra)
 
 
 func _build_strip() -> void:
@@ -416,15 +450,17 @@ func set_next_tier(tier: int) -> void:
 func set_level(level: LevelData, record: int = 0) -> void:
 	if level.is_endless:
 		level_label.text = "SONSUZ"
-		goal_art.visible = false
+		level_label.add_theme_font_size_override("font_size", 15)
+		goal_portrait.visible = false
 		goal_caption.text = "REKOR"
 		goal_label.text = _thousands(record)
 		goal_extra.text = ""
 		strip.set_target(0)
 	else:
 		level_label.text = str(level.level_number)
+		level_label.add_theme_font_size_override("font_size", 24)
 		goal_caption.text = "HEDEF"
-		goal_art.visible = true
+		goal_portrait.visible = true
 		goal_art.texture = DUMPLING_VISUAL.TEXTURES[clampi(level.target_tier, 1, TierConfig.MAX_TIER) - 1]
 		goal_label.text = TierConfig.tier_name(level.target_tier)
 		goal_extra.text = "+%s skor" % _thousands(level.target_score) \
@@ -434,6 +470,7 @@ func set_level(level: LevelData, record: int = 0) -> void:
 
 func set_goal_progress(ratio: float) -> void:
 	goal_bar.value = clampf(ratio, 0.0, 1.0)
+	goal_percent.text = "%d%%" % int(round(goal_bar.value * 100.0))
 
 
 func set_reached_tier(tier: int) -> void:

@@ -6,7 +6,7 @@
 **Asset kaynağı:** `tools/make_ui_core.py` → `assets/visual/ui/core/**` +
 `scripts/ui/ui_core_assets.gd` (üretilir, elle düzenlenmez).
 **Galeri:** `tools/ui_system_gallery.tscn` (dev-only, 5 sayfa).
-**Test:** `tools/ui_foundation_test.tscn` (135 kontrol), `tools/gameplay_shell_test.tscn` (145, §13).
+**Test:** `tools/ui_foundation_test.tscn` (135 kontrol), `tools/gameplay_shell_test.tscn` (146, §13).
 
 Çakışma kuralı: owner'ın son talimatı > GAME_DESIGN.md > bu doküman > kod.
 Bir sayı burada ve `ui_tokens.gd`'de farklıysa **doküman güncellenir, token
@@ -41,6 +41,7 @@ Tonlar owner asset'lerinden ölçüldü; `UiPalette` (M8.5 kabuğu) ile aynı sa
 | İkincil yüzey | `PLUM` | `#453885` | PanelPurple (HUD plakaları) |
 | İçerik yüzeyi | `CREAM` / `CREAM_DEEP` | `#fcf7ec` / `#f1e9dc` | kart, modal, liste satırı |
 | Lavanta | `LAVENDER` / `LAVENDER_SURFACE` | `#c694fa` / `#dccbe8` | ikon butonu, ikon kuyusu / ikincil buton |
+| Gameplay HUD | `LAVENDER_DEEP` / `LAVENDER_LIGHT` / `TRAY_CREAM` / `GLASS_BLUE` / `GLASS_MUTED` | `#8b72dc` / `#ece3fb` / `#f3e9f9` / `#bfe6ff` / `#d9d4e8` | HUD v3 gövde / açık halka / güç tepsisi / madalyon cam disk / pasif disk (hud_target'tan ölçüldü) |
 | Birincil CTA | `CYAN` / `CYAN_DEEP` | `#5eddf9` / `#2f8fd0` | ButtonPrimary, ButtonCTA, SectionTag |
 | Satın alma / pozitif | `MINT` / `MINT_DEEP` | `#6ddc8b` / `#2f9e57` | ButtonPurchase, EquippedBadge, ilerleme dolgusu, anahtar açık |
 | Vurgu | `PINK` / `PINK_DEEP` | `#f06aa8` / `#c94a86` | HeaderRibbon, ButtonRoundIcon (kapat), NewBadge, ButtonDanger |
@@ -117,7 +118,7 @@ için önceden ölçeklendi (§8).
 | `PanelListRow` | `list_row` | `CREAM_DEEP` opak | sahip olunan skin satırı, ayar satırı — kartla aynı vanilya ailesi, bir ton geri (alfa ile gri kaçmaz) |
 | `PanelHud` | `panel_bevel` (+ `UiKit.plate` üst ışığı) | erik, dar dikey pay (4/10) | gameplay skor / hedef plakası (M8.6-02) |
 | `PanelStrip` | `panel_bevel` (+ üst ışık) | erik α .94 | evrim şeridi rafı (M8.6-02) |
-| `PanelHudScore` / `PanelTray` / `PanelHudFrame` / `PanelHudCard` | `panel_bevel` ×3 / `card_bevel` | lavanta / erik α .94 / lavanta / krem | HUD v2: skor plakası, güç tepsisi, kart çerçevesi, kart gövdesi (§13.3) |
+| `PanelHudScore` / `PanelTray` / `PanelHudFrame` / `PanelHudCard` | `label_round` ×4 | `LAVENDER_DEEP` / `TRAY_CREAM` / `LAVENDER_DEEP` / krem | HUD v3: skor kapsülü, güç tepsisi, kart çerçevesi, kart gövdesi (§13.3) |
 
 Owner'ın candy paneli (`panel_candy` + kanatlı-kalp tepelik) kimlik katmanıdır:
 pencerelerde `modal_frame` iskeletinin **üstüne** tepelik olarak eklenir ya da
@@ -137,7 +138,8 @@ iskeletin yerine kullanılır — kitin düz krem gövdesi tek başına kimlik t
 | `ButtonIcon` | `btn_square` | lavanta / beyaz picto | ayarlar, geri, ses |
 | `ButtonRoundIcon` | `btn_circle` | pembe / beyaz picto | pencere kapat |
 | `ButtonResourceAdd` | `resource_btn` | nane | pill'deki "+" (mağaza kısayolu) |
-| `PowerSlot` / `PowerSlotArmed` / `PowerSlotEmpty` | `btn_circle` (84×88 madalyon) | krem / cyan / pasif gri | gameplay güç slotu — `UiKit.power_slot`, §13.4 |
+| `PowerSlot` / `PowerSlotArmed` / `PowerSlotEmpty` | `btn_circle` (80×84 madalyon) | krem / cyan / açık lavanta | gameplay güç slotu — `UiKit.power_slot`, §13.4 |
+| `ButtonHud` / `ButtonHudExit` | `btn_square` (56) | `LAVENDER_DEEP` / pembe, picto 34 | gameplay köşe butonları — `UiKit.hud_icon_button`, §13.3 |
 
 Durumlar (hepsi temada): **normal**, **hover** (%6 açık), **pressed** (%12
 koyu + içerik 3 px aşağı), **disabled** (açık lavanta-gri gövde `#a19dba` +
@@ -298,7 +300,7 @@ doğrulandı" denmez.
 **Kod:** `scripts/ui/gameplay_layout.gd` (bölge sözleşmesi + kamera sığdırma),
 `scripts/ui/gameplay_hud.gd` (HUD katmanı), `scripts/ui/power_bar.gd`
 (`UiKit.power_slot` x4), `scripts/ui/evolution_strip.gd`, `game_board.gd`
-`_draw*` (kap kabuğu). **Test:** `tools/gameplay_shell_test.tscn` (145 kontrol).
+`_draw*` (kap kabuğu). **Test:** `tools/gameplay_shell_test.tscn` (146 kontrol).
 **Çekim:** `tools/shell_shots.tscn -- <dir> [GxY]` (10 durum × 4 boyut).
 
 ### 13.1 Bölge sözleşmesi (responsive)
@@ -338,32 +340,40 @@ w600 kap zoom ≈ 0.99, 720×1560'ta 1.05 (genişlik sınırı), dar kaplar 1.2;
 sonsuz (720) 0.90 — duvarlar ilk kez sonsuz modda da görünür. Alt ölü alan
 yok; 1280'de kap tabanı şeridin hemen üstünde.
 
-### 13.3 HUD hiyerarşisi (HUD v2 — premium candy)
+### 13.3 HUD hiyerarşisi (HUD v3 — `_visual_source/references/gameplay_hud_target/hud_target.png`)
 
-Logo YOK. Sol küme / merkez / sağ küme:
+Görsel hedef owner'ın onayladığı mockup; **logo yok** (tek bilinçli fark).
+Dekor katmanı kuralı: `PanelContainer` dış dekoru içine alıp minimuma kattığı
+için gölge/halka `GameplayHud._deco_back`, gloss/yıldız `_deco_front`
+kontrollerine `UiKit.hud_attach` ile bağlanır ve plakanın dikdörtgenini izler.
 
-1. **Skor** — `PanelHudScore` (glossy lavanta bevel + `frame_round20` lacivert
-   halka + üst ışık) + iki owner yıldızı + `LabelHudCaptionDark` "SKOR" +
-   `LabelHudScore` 32 koyu erik (açık gölge). Ekran merkezinde. "+N" pop'u
-   plakanın **sol** kenarından çıkar (`score_pop_home`, sağa hizalı, altın),
-   16 px yükselip söner — Sıradaki kartına değmez.
-2. **Hedef kartı** — `UiKit.hud_card()` = `PanelHudFrame` (lavanta bevel +
-   ışık) içinde `PanelHudCard` (krem `card_bevel`): `Badge` (taç + level no;
-   sonsuzda "SONSUZ") + sütun: `LabelHudCaptionDark` "HEDEF" / "REKOR" →
-   hedef tier'ın **gerçek dokusu** + adı (`LabelSection` Baloo 21, taşarsa …)
-   → `ProgressBarMint` 14 px; skor hedefi çubuğun sağ ucunda 12 px.
-   İlerleme = ulaşılan tier / hedef tier (skor hedefi varsa ikisinin ort.);
-   sonsuzda skor / rekor.
-3. **Sıradaki** — aynı `hud_card` (150×60): "SIRADAKI" `LabelHudCaptionDark` +
-   tier dokusu 34 px. Sağ küme, Çıkış'ın solunda.
-4. **Geri / Ayarlar / Çıkış** — `UiKit.hud_icon_button` (`ButtonIcon` 56 +
-   lacivert halka + üst gloss): sol küme geri+ayarlar, sağ küme çıkış (home
-   pictosu). Ayarlar açılınca board `set_menu_paused` ile donar; Geri ve
-   Çıkış "Mola" penceresini açar (§13.9).
-5. **Güç tepsileri** — `PanelTray` (erik bevel + ışık) içinde ikişer madalyon
-   (§13.4, 80×84); hedef kartını iki yandan çevreler.
-6. Üst karartma: HUD+56 px yumuşak gradyan (`GameplayHud.scrim`) — opak plaka
-   değil.
+1. **Skor** — `PanelHudScore` (`label_round` koyu lavanta-mor `LAVENDER_DEEP`)
+   + `hud_shadow` (6 px, α .34) + `hud_rim` (`LAVENDER_LIGHT` 3 px) + üst
+   `hud_gloss`; solda owner yıldızı 38, beyaz "SKOR" + beyaz `LabelHudScore`
+   34, sağ uçta 12 px yıldız aksanı. Ekran merkezinde. "+N" pop'u plakanın
+   **sol** kenarından (altın, sağa hizalı).
+2. **Hedef kartı** — `UiKit.hud_card(back, front, with_stars=true)`:
+   `PanelHudFrame` (`label_round` `LAVENDER_DEEP`, 6/6/6/8) içinde `PanelHudCard`
+   (`label_round` krem) + gölge + açık halka + gloss + çerçeve kenarlarında
+   altın yıldız. İçerik: altın `label_round` level rozeti (taç 30 üstte, Baloo
+   24 numara; sonsuzda "SONSUZ" 15) · sütun: "HEDEF"/"REKOR"
+   (`LabelHudCaptionDark`, lavanta-mor) → krem-derin pill içinde hedef
+   portresi 30 + ad (`LabelSection` Baloo 22, mor) → `ProgressBarHud`
+   (`slider_thin_bg` koyu mor ray + `slider_fill_sm` nane, 18 px) sağ ucunda
+   "%N" `LabelBadgeOnDark`. Skor hedefi ad satırının sağında 12 px.
+3. **Sıradaki** — aynı `hud_card` (150×62): "SIRADAKI" + tier dokusu 38.
+   (Mockup'taki konuşma balonu kuyruğu bilinçli olarak yok — kuyruk sağ
+   tepsinin üstüne taşıyordu.)
+4. **Geri / Ayarlar / Çıkış** — `UiKit.hud_icon_button`: `ButtonHud`
+   (`btn_square` `LAVENDER_DEEP`, picto 34) / `ButtonHudExit` (pembe) + gölge
+   + açık halka + gloss; 56 px. Çıkış'ta "ÇIKIŞ" yazısı yok (56 px'te
+   okunmuyor). Geri/Çıkış → Mola (§13.9), Ayarlar → ayarlar (board donar).
+5. **Güç tepsileri** — `PanelTray` (`label_round` `TRAY_CREAM`) + gölge +
+   `LAVENDER_DEEP` halka; içinde ikişer madalyon (80×84): `btn_circle` krem
+   gövde, altın halka, cam-mavi iç disk (`GLASS_BLUE`; silahlı cyan; stok 0
+   `GLASS_MUTED` + açık lavanta gövde, sanat renkli-soluk), sağ üst altın ×N,
+   stok 0'da sağ ALT nane "+".
+6. Üst karartma: HUD+56 px yumuşak gradyan (`GameplayHud.scrim`).
 
 ### 13.4 Güç slotu anatomisi (`UiKit.power_slot`)
 

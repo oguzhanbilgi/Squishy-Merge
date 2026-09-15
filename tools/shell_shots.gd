@@ -13,6 +13,7 @@ extends Node
 ##   godot --path . res://tools/shell_shots.tscn -- <çıktı_klasörü> [GxY]
 
 const GAME_BOARD_SCENE: PackedScene = preload("res://scenes/game/game_board.tscn")
+const MAIN_SCENE: PackedScene = preload("res://scenes/main.tscn")
 const SHOT_SIZE := Vector2i(720, 1280)
 
 var _out_dir: String = ""
@@ -41,6 +42,7 @@ func _ready() -> void:
 	await _shot_skin("skin_sade", "")
 	await _shot_skin("skin_rare", "rare_02")
 	await _shot_skin("skin_legendary", "legendary_02")
+	await _shot_pause_menu()
 
 	SaveManager.data = _saved_data
 	print("bitti -> ", _out_dir)
@@ -194,6 +196,30 @@ func _shot_endless() -> void:
 	GameState.add_score(9860)
 	await get_tree().process_frame
 	await _capture("07_endless")
+
+
+## Mola penceresi: gerçek Main akışı (HUD Geri → PauseMenu), board donuk.
+func _shot_pause_menu() -> void:
+	await _teardown()
+	var main: Node2D = MAIN_SCENE.instantiate()
+	add_child(main)
+	await get_tree().process_frame
+	await get_tree().process_frame
+	if main._daily != null:
+		main._daily.visible = false
+	main._start_level(load("res://resources/levels/level_04.tres"))
+	await get_tree().process_frame
+	await get_tree().process_frame
+	main._board._dismiss_tutorial()
+	_board = main._board
+	await _pile([[4, 3, 4, 3], [3, 2, 2, 3]])
+	main._board.get_node("HUD").back_button.pressed.emit()
+	await get_tree().process_frame
+	await get_tree().create_timer(0.35).timeout
+	await _capture("09_pause_menu")
+	_board = null
+	main.queue_free()
+	await get_tree().process_frame
 
 
 func _shot_skin(name: String, skin_id: String) -> void:

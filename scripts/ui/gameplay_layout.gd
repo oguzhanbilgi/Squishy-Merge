@@ -39,8 +39,8 @@ const CANVAS_WIDTH: float = 720.0
 const SAFE_TOP: float = 10.0
 const SIDE: float = 14.0
 ## HUD satirlari: 1) geri+ayarlar | skor | siradaki+cikis  2) tepsi(2 guc) | hedef | tepsi(2 guc)
-const ROW1_HEIGHT: float = 62.0
-const ROW2_HEIGHT: float = 96.0
+const ROW1_HEIGHT: float = 64.0
+const ROW2_HEIGHT: float = 100.0
 const ROW_GAP: float = 8.0
 ## HUD ile board arasi nefes payi.
 const HUD_BOARD_GAP: float = 8.0
@@ -54,7 +54,7 @@ const GOAL_GAP: float = 12.0
 ## Kose butonlari (geri, ayarlar, cikis) ve Sıradaki plakasi.
 const SETTINGS_SIZE: float = 56.0
 const CORNER_GAP: float = 6.0
-const NEXT_SIZE: Vector2 = Vector2(150.0, 60.0)
+const NEXT_SIZE: Vector2 = Vector2(150.0, 62.0)
 ## Evrim seridi.
 const STRIP_HEIGHT: float = 64.0
 const STRIP_GAP: float = 8.0

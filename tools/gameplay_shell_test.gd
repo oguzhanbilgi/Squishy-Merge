@@ -58,8 +58,11 @@ func _ready() -> void:
 	_c("Sıradaki gerçek tier dokusu", hud.next_art.texture == DUMPLING_VISUAL.TEXTURES[board._next_tier - 1])
 	_c("Hedef production kart (PanelHudFrame + PanelHudCard)", hud.goal_plate.theme_type_variation == &"PanelHudFrame"
 		and (hud.goal_plate.get_meta(&"card") as PanelContainer).theme_type_variation == &"PanelHudCard")
-	_c("geri / çıkış butonları ButtonIcon", hud.back_button.theme_type_variation == &"ButtonIcon"
-		and hud.exit_button.theme_type_variation == &"ButtonIcon")
+	_c("geri / ayarlar ButtonHud, çıkış ButtonHudExit (pembe)", hud.back_button.theme_type_variation == &"ButtonHud"
+		and hud.settings_button.theme_type_variation == &"ButtonHud"
+		and hud.exit_button.theme_type_variation == &"ButtonHudExit")
+	_c("hedef çubuğu ProgressBarHud + yüzde", hud.goal_bar.theme_type_variation == &"ProgressBarHud"
+		and hud.goal_percent != null)
 	_c("güç tepsileri PanelTray", hud.tray_left.theme_type_variation == &"PanelTray"
 		and hud.tray_right.theme_type_variation == &"PanelTray")
 	_c("level rozeti Badge", hud.level_badge.theme_type_variation == &"Badge" and hud.level_label.text == "4")
@@ -67,8 +70,8 @@ func _ready() -> void:
 	_c("hedef adı", hud.goal_label.text == TierConfig.tier_name(6) and hud.goal_caption.text == "HEDEF")
 	_c("taban dokusu görünür bölgeden çiziliyor (saydam üst pay yok)",
 		board.FLOOR_TEXTURE_REGION.position.y >= 108.0 and board.FLOOR_TEXTURE_REGION.end.y <= 235.0)
-	_c("ilerleme ProgressBarMint", hud.goal_bar.theme_type_variation == &"ProgressBarMint")
-	_c("ayarlar ButtonIcon", hud.settings_button.theme_type_variation == &"ButtonIcon")
+	_c("ilerleme çubuğu var", hud.goal_bar != null)
+	_c("ayarlar butonu var", hud.settings_button != null)
 	_c("eski serbest metin yok (ScoreLabel/NextLabel/ObjectiveLabel)",
 		hud.get_node_or_null("ScoreLabel") == null and hud.get_node_or_null("NextLabel") == null
 		and hud.get_node_or_null("ObjectiveLabel") == null and hud.get_node_or_null("TopPlate") == null)
