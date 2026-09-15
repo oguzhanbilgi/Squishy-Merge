@@ -44,6 +44,7 @@ var level_badge: PanelContainer
 var level_label: Label
 var goal_art: TextureRect
 var goal_label: Label
+var goal_caption: Label
 var goal_extra: Label
 var goal_bar: ProgressBar
 var status_label: Label
@@ -107,7 +108,7 @@ func _build_row1() -> void:
 	row.add_theme_constant_override("separation", UiTokens.SPACE_SM)
 	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	score_plate.add_child(row)
-	var star := UiKit.art(STAR_ART, 34)
+	var star := UiKit.art(STAR_ART, 32)
 	star.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	row.add_child(star)
 	var column := VBoxContainer.new()
@@ -132,7 +133,7 @@ func _build_row1() -> void:
 	var caption := UiKit.label("SIRADAKI", &"LabelCaption", HORIZONTAL_ALIGNMENT_CENTER)
 	caption.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	next_row.add_child(caption)
-	next_art = UiKit.art(DUMPLING_VISUAL.TEXTURES[0], 44)
+	next_art = UiKit.art(DUMPLING_VISUAL.TEXTURES[0], 40)
 	next_art.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	next_row.add_child(next_art)
 
@@ -167,14 +168,18 @@ func _build_row2() -> void:
 	var column := VBoxContainer.new()
 	column.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	column.alignment = BoxContainer.ALIGNMENT_CENTER
-	column.add_theme_constant_override("separation", UiTokens.SPACE_XS)
+	column.add_theme_constant_override("separation", 2)
 	column.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	row.add_child(column)
+	# Hiyerarşi: küçük başlık (HEDEF / REKOR) → hedef adı → ilerleme.
+	goal_caption = UiKit.hud_caption("Hedef")
+	goal_caption.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+	column.add_child(goal_caption)
 	var goal_row := HBoxContainer.new()
 	goal_row.add_theme_constant_override("separation", UiTokens.SPACE_XS + 2)
 	goal_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	column.add_child(goal_row)
-	goal_art = UiKit.art(DUMPLING_VISUAL.TEXTURES[3], 28)
+	goal_art = UiKit.art(DUMPLING_VISUAL.TEXTURES[3], 26)
 	goal_art.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	goal_row.add_child(goal_art)
 	goal_label = UiKit.label("Hedef", &"LabelBodyOnDark")
@@ -182,7 +187,7 @@ func _build_row2() -> void:
 	goal_label.clip_text = true
 	goal_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	goal_row.add_child(goal_label)
-	goal_bar = UiKit.progress_bar(0.0, &"ProgressBarMint", 18.0)
+	goal_bar = UiKit.progress_bar(0.0, &"ProgressBarMint", 16.0)
 	column.add_child(goal_bar)
 	# Skor hedefi ("+5 000 skor") çubuğun sağ ucunda küçük yazı — hedef adı
 	# ile yer için yarışmaz.
@@ -355,11 +360,13 @@ func set_level(level: LevelData, record: int = 0) -> void:
 	if level.is_endless:
 		level_label.text = "SONSUZ"
 		goal_art.visible = false
-		goal_label.text = "Rekor: %s" % _thousands(record)
+		goal_caption.text = "REKOR"
+		goal_label.text = _thousands(record)
 		goal_extra.text = ""
 		strip.set_target(0)
 	else:
 		level_label.text = str(level.level_number)
+		goal_caption.text = "HEDEF"
 		goal_art.visible = true
 		goal_art.texture = DUMPLING_VISUAL.TEXTURES[clampi(level.target_tier, 1, TierConfig.MAX_TIER) - 1]
 		goal_label.text = TierConfig.tier_name(level.target_tier)

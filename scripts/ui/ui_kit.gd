@@ -447,18 +447,35 @@ static func power_slot(art_tex: Texture2D, count: int,
 	# madalyon" hissi.
 	var glow := patch("btn_circle_flat", Color(UiTokens.CREAM, 0.55))
 	glow.show_behind_parent = true
-	glow.offset_left = -9.0
-	glow.offset_top = -9.0
-	glow.offset_right = 9.0
-	glow.offset_bottom = -3.0
+	glow.offset_left = -10.0
+	glow.offset_top = -10.0
+	glow.offset_right = 10.0
+	glow.offset_bottom = -2.0
 	glow.visible = false
 	node.add_child(glow)
-	# Ic parlama: ust yarida beyaz ic daire (candy gloss).
-	var light := patch("item_circle_inner", Color(1, 1, 1, 0.30))
-	light.offset_left = size.x * 0.12
-	light.offset_right = -size.x * 0.12
-	light.offset_top = size.y * 0.06
-	light.offset_bottom = -size.y * 0.30
+	# Cerceve halkasi: govdenin arkasinda 3 px tasan koyu erik daire —
+	# madalyon kenari zeminden ayrilir (candy coin). Silahli: cyan-derin,
+	# stok 0: pasif koyu.
+	var rim := patch("btn_circle_flat", UiTokens.NAVY_PURPLE)
+	rim.show_behind_parent = true
+	rim.offset_left = -3.0
+	rim.offset_top = -3.0
+	rim.offset_right = 3.0
+	rim.offset_bottom = -9.0
+	node.add_child(rim)
+	# Ic parlama: ust yarida beyaz ic daire (candy gloss), altta hafif
+	# golge dairesi (yumusak derinlik).
+	var shade := patch("item_circle_inner", Color(0.35, 0.25, 0.5, 0.16))
+	shade.offset_left = size.x * 0.10
+	shade.offset_right = -size.x * 0.10
+	shade.offset_top = size.y * 0.30
+	shade.offset_bottom = -size.y * 0.10
+	node.add_child(shade)
+	var light := patch("item_circle_inner", Color(1, 1, 1, 0.42))
+	light.offset_left = size.x * 0.14
+	light.offset_right = -size.x * 0.14
+	light.offset_top = size.y * 0.05
+	light.offset_bottom = -size.y * 0.42
 	node.add_child(light)
 	var art_size: float = size.x * 0.72
 	var picture := art(art_tex, art_size)
@@ -472,13 +489,14 @@ static func power_slot(art_tex: Texture2D, count: int,
 	# Stok rozeti: sag ust kose, altin; sola dogru buyur.
 	var count_badge := panel(&"Badge")
 	count_badge.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	count_badge.custom_minimum_size = Vector2(34.0, 26.0)
 	count_badge.set_anchors_preset(Control.PRESET_TOP_RIGHT)
 	count_badge.grow_horizontal = Control.GROW_DIRECTION_BEGIN
 	count_badge.grow_vertical = Control.GROW_DIRECTION_END
-	count_badge.offset_right = 8.0
-	count_badge.offset_top = -8.0
-	count_badge.offset_left = 8.0
-	count_badge.offset_bottom = -8.0
+	count_badge.offset_right = 6.0
+	count_badge.offset_top = -6.0
+	count_badge.offset_left = 6.0
+	count_badge.offset_bottom = -6.0
 	var badge_row := HBoxContainer.new()
 	badge_row.alignment = BoxContainer.ALIGNMENT_CENTER
 	badge_row.add_theme_constant_override("separation", 0)
@@ -491,6 +509,7 @@ static func power_slot(art_tex: Texture2D, count: int,
 	badge_row.add_child(count_label)
 	node.add_child(count_badge)
 	node.set_meta(&"glow", glow)
+	node.set_meta(&"rim", rim)
 	node.set_meta(&"art", picture)
 	node.set_meta(&"badge", count_badge)
 	node.set_meta(&"badge_label", count_label)
@@ -513,10 +532,12 @@ static func set_power_slot_state(slot: Button, count: int, armed: bool,
 	slot.disabled = not enabled
 	slot.modulate.a = 1.0 if enabled else 0.55
 	(slot.get_meta(&"glow") as Control).visible = armed and enabled
+	(slot.get_meta(&"rim") as Control).self_modulate = UiTokens.CYAN_DEEP if armed \
+		else (UiTokens.DISABLED_DEEP if empty else UiTokens.NAVY_PURPLE)
 	# Stok 0: sanat kimligini korur (renk kalir), yalnizca soluk ve hafif
 	# gri-mavi ortu — tamamen gri generic buton olmaz.
 	(slot.get_meta(&"art") as Control).self_modulate = \
-		Color(0.78, 0.78, 0.86, 0.72) if empty else Color.WHITE
+		Color(0.82, 0.80, 0.90, 0.66) if empty else Color.WHITE
 	var count_badge: PanelContainer = slot.get_meta(&"badge")
 	var count_label: Label = slot.get_meta(&"badge_label")
 	var plus: Control = slot.get_meta(&"badge_plus")
@@ -525,7 +546,7 @@ static func set_power_slot_state(slot: Button, count: int, armed: bool,
 	plus.visible = empty
 	if empty:
 		count_badge.add_theme_stylebox_override("panel",
-			style("badge_round", UiTokens.MINT, Vector4(7, 3, 7, 6)))
+			style("badge_round", UiTokens.MINT, Vector4(9, 3, 9, 6)))
 	else:
 		count_badge.remove_theme_stylebox_override("panel")
 

@@ -57,7 +57,9 @@ func _ready() -> void:
 	_c("Hedef production plaka (PanelHud)", hud.goal_plate.theme_type_variation == &"PanelHud")
 	_c("level rozeti Badge", hud.level_badge.theme_type_variation == &"Badge" and hud.level_label.text == "4")
 	_c("hedef tier dokusu gerçek", hud.goal_art.texture == DUMPLING_VISUAL.TEXTURES[5])
-	_c("hedef adı", hud.goal_label.text == TierConfig.tier_name(6))
+	_c("hedef adı", hud.goal_label.text == TierConfig.tier_name(6) and hud.goal_caption.text == "HEDEF")
+	_c("taban dokusu görünür bölgeden çiziliyor (saydam üst pay yok)",
+		board.FLOOR_TEXTURE_REGION.position.y >= 108.0 and board.FLOOR_TEXTURE_REGION.end.y <= 235.0)
 	_c("ilerleme ProgressBarMint", hud.goal_bar.theme_type_variation == &"ProgressBarMint")
 	_c("ayarlar ButtonIcon", hud.settings_button.theme_type_variation == &"ButtonIcon")
 	_c("eski serbest metin yok (ScoreLabel/NextLabel/ObjectiveLabel)",
@@ -166,7 +168,7 @@ func _ready() -> void:
 	await get_tree().process_frame
 	var endless: Node2D = await _make_board("res://resources/levels/endless.tres")
 	var ehud: GameplayHud = endless.get_node("HUD")
-	_c("sonsuz: rozet SONSUZ, hedef satırı rekor", ehud.level_label.text == "SONSUZ" and ehud.goal_label.text.begins_with("Rekor"))
+	_c("sonsuz: rozet SONSUZ, başlık REKOR", ehud.level_label.text == "SONSUZ" and ehud.goal_caption.text == "REKOR")
 	_c("sonsuz: hedef işareti yok", not ehud.strip._targets.any(func(m: Control) -> bool: return m.visible))
 	endless._apply_layout(Vector2(720, 1280))
 	await get_tree().process_frame

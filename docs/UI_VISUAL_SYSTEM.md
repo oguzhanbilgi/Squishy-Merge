@@ -6,7 +6,7 @@
 **Asset kaynağı:** `tools/make_ui_core.py` → `assets/visual/ui/core/**` +
 `scripts/ui/ui_core_assets.gd` (üretilir, elle düzenlenmez).
 **Galeri:** `tools/ui_system_gallery.tscn` (dev-only, 5 sayfa).
-**Test:** `tools/ui_foundation_test.tscn` (135 kontrol), `tools/gameplay_shell_test.tscn` (124, §13).
+**Test:** `tools/ui_foundation_test.tscn` (135 kontrol), `tools/gameplay_shell_test.tscn` (125, §13).
 
 Çakışma kuralı: owner'ın son talimatı > GAME_DESIGN.md > bu doküman > kod.
 Bir sayı burada ve `ui_tokens.gd`'de farklıysa **doküman güncellenir, token
@@ -297,7 +297,7 @@ doğrulandı" denmez.
 **Kod:** `scripts/ui/gameplay_layout.gd` (bölge sözleşmesi + kamera sığdırma),
 `scripts/ui/gameplay_hud.gd` (HUD katmanı), `scripts/ui/power_bar.gd`
 (`UiKit.power_slot` x4), `scripts/ui/evolution_strip.gd`, `game_board.gd`
-`_draw*` (kap kabuğu). **Test:** `tools/gameplay_shell_test.tscn` (124 kontrol).
+`_draw*` (kap kabuğu). **Test:** `tools/gameplay_shell_test.tscn` (125 kontrol).
 **Çekim:** `tools/shell_shots.tscn -- <dir> [GxY]` (10 durum × 4 boyut).
 
 ### 13.1 Bölge sözleşmesi (responsive)
@@ -307,9 +307,9 @@ kompozisyonun 0.75'i, 1080×2340 1560'ın 1.5'i). Dikeyde dört bölge:
 
 | Bölge | Yükseklik | İçerik |
 |---|---|---|
-| **HUD** | sabit: `max(SAFE_TOP 10, cihaz üst güvenli pay + 4) + ROW1 68 + 8 + ROW2 92` = 178 (A36 punch-hole: 92 px fiziksel = 61 tuval px → 233) | satır 1: Ayarlar · Skor · Sıradaki; satır 2: 2 güç · Hedef · 2 güç |
+| **HUD** | sabit: `max(SAFE_TOP 10, cihaz üst güvenli pay + 4) + ROW1 62 + 8 + ROW2 92` = 172 (A36 punch-hole: 92 px fiziksel = 61 tuval px → 227) | satır 1: Ayarlar · Skor · Sıradaki; satır 2: 2 güç · Hedef · 2 güç |
 | **BOARD** | esnek: kalan alanın tamamı | fizik penceresi (kamera ile sığdırılır) |
-| **STRIP** | sabit 64 (+8 üst, +10 alt pay) | evrim şeridi |
+| **STRIP** | sabit 64 (+8 üst, +10 alt pay); kap BOARD'u doldurmuyorsa kabın tabanına yaklaşır (`hug_strip`) | evrim şeridi |
 | **BANNER** | `GameplayLayout.banner_height()` — v1'de **0** | gelecek AdMob banner seam'i |
 
 Üst güvenli pay `GameBoard._detect_safe_top` (`DisplayServer.get_display_safe_area`,
@@ -329,8 +329,9 @@ Fizik referans koordinatında kalır (`FLOOR_Y 1180`, `RIM_ABOVE_LINE 420`,
 `playable_height 400`, duvar 20, kap genişlikleri — **hiçbiri değişmedi**).
 `GameBoard.reference_frame()` = düşürme çizgisinin 60 üstünden taban eteğinin
 6 altına, duvar (30) + 12 yan pay. `GameplayLayout.fit_board(frame, board,
-view)` zoom = min(en, boy), tavan **1.2**; fazla dikey alanın %55'i kabın
-üstüne (düşürme bölgesi), kalanı altına. Girdi `screen_to_world`, HUD'daki
+view)` zoom = min(en, boy), tavan **1.2**; fazla dikey alanın yarısı kabın
+üstüne (düşürme bölgesi), yarısı altına — şerit kabın tabanına yaklaştığı
+için alttaki pay en alta (gelecek banner üstüne) toplanır. Girdi `screen_to_world`, HUD'daki
 dünya-bağlı öğeler (ipucu) `world_to_screen` ile çevrilir. Sonuç: 720×1280'de
 w600 kap zoom ≈ 0.99, 720×1560'ta 1.05 (genişlik sınırı), dar kaplar 1.2;
 sonsuz (720) 0.90 — duvarlar ilk kez sonsuz modda da görünür. Alt ölü alan
@@ -342,14 +343,15 @@ yok; 1280'de kap tabanı şeridin hemen üstünde.
    "SKOR" + `LabelHudScore` (Nunito Bold 30, binlik boşluklu). Ortada, en
    üstte. "+N" pop'u plakanın sağ kenarından çıkar (`score_pop_home`), 16 px
    yükselip söner (altın, rozetsiz; Sıradaki'ye değmez).
-2. **Hedef** — `PanelHud`: `Badge` (taç + level no; sonsuzda "SONSUZ") + hedef
-   tier'ın **gerçek dokusu** + adı (`LabelBodyOnDark`, taşarsa …) +
-   `ProgressBarMint` 18 px; skor hedefi çubuğun sağ ucunda `LabelHudCaption`.
+2. **Hedef** — `PanelHud`: `Badge` (taç + level no; sonsuzda "SONSUZ") +
+   sütun: `LabelHudCaption` "HEDEF" (sonsuzda "REKOR") → hedef tier'ın
+   **gerçek dokusu** + adı (`LabelBodyOnDark`, taşarsa …) → `ProgressBarMint`
+   16 px; skor hedefi çubuğun sağ ucunda `LabelHudCaption`.
    İlerleme = ulaşılan tier / hedef tier (skor hedefi varsa ikisinin ort.);
    sonsuzda skor / rekor.
-3. **Sıradaki** — `PanelElevated` (krem) + "SIRADAKI" `LabelCaption` + tier
-   dokusu 44 px. Sağ üst.
-4. **Ayarlar** — `ButtonIcon` 56. Sol üst. Açılınca board `set_menu_paused`
+3. **Sıradaki** — `PanelElevated` (krem, 138×58) + "SIRADAKI" `LabelCaption` +
+   tier dokusu 40 px. Sağ üst; Ayarlar ile aynı yükseklik (satır 1 dengesi).
+4. **Ayarlar** — `ButtonIcon` 58. Sol üst. Açılınca board `set_menu_paused`
    ile donar (fail/refill makinesi), kapanınca çözülür.
 5. Üst karartma: 178+56 px yumuşak gradyan (`GameplayHud.scrim`) — opak plaka
    değil.
@@ -358,7 +360,9 @@ yok; 1280'de kap tabanı şeridin hemen üstünde.
 
 84×88 `Button` **madalyon**: gövde `btn_circle` (3B basılabilir daire),
 variation `PowerSlot` (krem) / `PowerSlotArmed` (cyan) / `PowerSlotEmpty`
-(pasif lavanta-gri); üst yarıda `item_circle_inner` gloss (%30); **owner güç
+(pasif lavanta-gri); arkada 3 px taşan çerçeve halkası (`btn_circle_flat`
+lacivert / silahlı cyan-derin / boş pasif-koyu); alt yarıda erik gölge dairesi
+(α .16), üst yarıda `item_circle_inner` gloss (α .42); rozet 34×26 sağ üstte; **owner güç
 sanatı** 60 px (picto yok); sağ üstte `Badge` altın "×N"; silahlıyken arkada
 yumuşak krem `btn_circle_flat` hale (+9 px, α .55 — neon değil); stok 0'da
 sanat rengini korur (gri-mavi örtü, α .72), rozet **nane "+"** (dokununca
@@ -374,8 +378,18 @@ ile aynı bölgede yarışıyor ve 16:9'da board'u küçültüyordu).
 Yalnız çizim, collider yok: dış yumuşak gölge (5 kademe) → çivit iç dolgu α .24 +
 tabana koyulaşan gradyan + iç kenar/taban bantları (derinlik) → taşma şeridi
 (duvarların **altında**) → bambu duvar 30 px (fizik 20'nin dışına, alana
-girmez) + açık kapak şeridi → bambu taban eteği 54 + üst dudak ışığı + alt
-gölge. Candy-night zemin kabın içinden görünmeye devam eder.
+girmez) + açık kapak şeridi → bambu taban rayı + üst dudak ışığı → **temas
+gölgeleri** (tabana oturan her parçanın altında rayın üstüne çizilen yumuşak
+elips, `_draw_contact_shadows`, her kare) → tehlike. Candy-night zemin kabın
+içinden görünmeye devam eder.
+
+**"Havada duruyor" düzeltmesi (polish):** `board_floor_bamboo.png` 1024×269'un
+üst %40'ı ve alt %13'ü saydamdır; doku `FLOOR_Y`'den gerildiğinde görünür ray
+~22 px aşağıda başlıyor, parçalar fizik tabanında dururken altlarında koyu
+boşluk kalıyordu. Artık yalnız görünür bölge (`FLOOR_TEXTURE_REGION` y 108–235)
+`draw_texture_rect_region` ile çizilir ve rayın üst kenarı `FLOOR_Y − 3`
+(`FLOOR_OVERLAP`) hizasına oturur: parça silueti rayın dudağına gömülü okunur,
+fizik tabanı ve collider değişmez.
 
 ### 13.6 Evrim şeridi (`EvolutionStrip`)
 

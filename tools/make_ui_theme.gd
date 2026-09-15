@@ -144,7 +144,7 @@ func _build_panels() -> void:
 	_panel(&"PanelListRow", "list_row", UiTokens.CREAM_DEEP, Vector4(14, 8, 16, 14))
 	# HUD skor/hedef plakasi (M8.6-02): PanelPurple govdesi, dar dikey pay —
 	# 64-92 px satirlara sigsin.
-	_panel(&"PanelHud", "panel_bevel", Color(UiTokens.PLUM, 0.96), Vector4(14, 4, 16, 10))
+	_panel(&"PanelHud", "panel_bevel", Color(UiTokens.PLUM, 0.96), Vector4(14, 5, 16, 11))
 	# Evrim seridi tepsisi (M8.6-02): koyu yuvarlak plaka, dar iceri pay.
 	_panel(&"PanelStrip", "panel_bevel", Color(UiTokens.PLUM, 0.94), Vector4(14, 4, 14, 8))
 

@@ -779,9 +779,9 @@ modulate_color = Color(0.9882353, 0.96862745, 0.9254902, 1)
 
 [sub_resource type="StyleBoxTexture" id="StyleBoxTexture_5gl2w"]
 content_margin_left = 14.0
-content_margin_top = 4.0
+content_margin_top = 5.0
 content_margin_right = 16.0
-content_margin_bottom = 10.0
+content_margin_bottom = 11.0
 texture = ExtResource("16_k2lgb")
 texture_margin_left = 33.0
 texture_margin_top = 33.0

@@ -151,7 +151,19 @@ const FLOOR_TEXTURE: Texture2D = preload("res://assets/visual/ui/board_floor_bam
 ## collider olarak yerinde duruyor; yatay bambu rayı 20 px'e sıkıştırılsa
 ## boğum ve kalp süsleri okunmazdı. Aşağı doğru büyüyor, oyun alanına
 ## GİRMİYOR: FLOOR_Y 1180, viewport 1280, altta 100 px boş yer var.
-const FLOOR_APRON: float = 54.0
+const FLOOR_APRON: float = 58.0
+## M8.6-02 polish — "havada duruyor" kök sebebi: taban dokusu (1024×269)
+## üst %40'ı (0..107) ve alt %13'ü (235..268) SAYDAM; doku FLOOR_Y'den
+## itibaren gerilince görünür ray ~22 px aşağıda başlıyordu ve parçalar
+## fizik tabanında (FLOOR_Y) dururken altlarında koyu bir boşluk kalıyordu.
+## Artık yalnızca görünür bölge (`FLOOR_TEXTURE_REGION`) çizilir ve rayın
+## üst kenarı tam FLOOR_Y'ye oturur (`FLOOR_OVERLAP` kadar üstüne biner —
+## parça siluetinin tabanı rayın dudağına gömülü okunur, fizik değişmez).
+const FLOOR_TEXTURE_REGION: Rect2 = Rect2(0.0, 108.0, 1024.0, 127.0)
+const FLOOR_OVERLAP: float = 3.0
+## Tabana oturan parçaların altındaki temas gölgesi (yalnız görsel).
+const CONTACT_SHADOW_COLOR: Color = Color(0.03, 0.02, 0.08, 0.30)
+const CONTACT_SHADOW_TOLERANCE: float = 3.0
 ## Kabın iç zemini — arka plan sahnesinin üstünde oyun alanını ayırıyor.
 const WELL_COLOR: Color = Color(0.10, 0.08, 0.26, 0.24)
 ## M8.6-02 kap kabuğu: görsel duvar fizik duvarından (20) daha kalın çizilir
@@ -171,7 +183,7 @@ const WALL_CAP_COLOR: Color = Color(1.0, 0.95, 0.88, 0.75)
 ## kadar üstünden (önizleme + nefes) taban eteğinin altına.
 const FRAME_ABOVE_DROP: float = 60.0
 const FRAME_BELOW_APRON: float = 6.0
-const FRAME_SIDE: float = 12.0
+const FRAME_SIDE: float = 8.0
 
 ## Duvar/taban da sekmeli olmalı, yoksa yalnızca dumpling-dumpling
 ## çarpışmaları zıpluyor ve kap ölü hissettiriyor.
@@ -329,10 +341,12 @@ func _apply_layout(view: Vector2, safe_top: float = -1.0) -> void:
 	if safe_top < 0.0:
 		safe_top = _detect_safe_top(view)
 	var rects: Dictionary = GameplayLayout.compute(view, GameplayLayout.banner_height(), safe_top)
-	_hud.apply_layout(rects)
 	var fit: Dictionary = GameplayLayout.fit_board(reference_frame(), rects["board"], view)
 	_camera_zoom = fit["zoom"]
 	_camera_center = fit["position"]
+	# Serit kabin tabanina yaklasir (uzun ekranda bos alan alta toplanir).
+	rects = GameplayLayout.hug_strip(rects, (fit["screen_rect"] as Rect2).end.y)
+	_hud.apply_layout(rects)
 	_camera.zoom = Vector2.ONE * _camera_zoom
 	_camera.position = _camera_center
 	if _tutorial.visible:
@@ -529,7 +543,34 @@ func _draw() -> void:
 	_draw_container_well()
 	_draw_overflow_stripe()
 	_draw_walls()
+	_draw_contact_shadows()
 	_draw_danger()
+
+
+## Tabana oturan parçaların altında yumuşak elips gölge: "yere basıyor"
+## okunur. Yalnızca inmiş ve tabanı FLOOR_Y'ye değen parçalar; sadece
+## görsel, fiziğe dokunmaz. Her kare `_process` yeniden çizdirir.
+func _draw_contact_shadows() -> void:
+	for node in _dumpling_layer.get_children():
+		var d := node as Dumpling
+		if d == null or not is_instance_valid(d) or not d.has_landed:
+			continue
+		var r: float = TierConfig.radius(d.tier)
+		var bottom: float = d.global_position.y + r
+		if absf(bottom - FLOOR_Y) > CONTACT_SHADOW_TOLERANCE:
+			continue
+		# Rayın ÜSTÜNE çizilir (duvar/taban çiziminden sonra): üst yarısı
+		# parçanın altında kalır, alt yarısı rayın dudağına düşen gölge olur.
+		_draw_ellipse(Vector2(d.global_position.x, FLOOR_Y - FLOOR_OVERLAP + 1.0),
+			Vector2(r * 0.72, maxf(4.0, r * 0.15)), CONTACT_SHADOW_COLOR)
+
+
+func _draw_ellipse(center: Vector2, radii: Vector2, color: Color) -> void:
+	var points := PackedVector2Array()
+	for i in 18:
+		var a: float = TAU * float(i) / 18.0
+		points.append(center + Vector2(cos(a) * radii.x, sin(a) * radii.y))
+	draw_colored_polygon(points, color)
 
 
 ## Kabın çevresindeki yumuşak gölge: kabı zeminden ayırır, "masaya konmuş
@@ -609,14 +650,15 @@ func _draw_walls() -> void:
 	# Duvar kapakları: açık bir ışık şeridi — kabın ağzı okunur.
 	draw_rect(Rect2(_left_x() - WALL_VISUAL, top - 3.0, WALL_VISUAL, 6.0), WALL_CAP_COLOR)
 	draw_rect(Rect2(_right_x(), top - 3.0, WALL_VISUAL, 6.0), WALL_CAP_COLOR)
-	# Yatay bambu ray: fizik tabanının hizasından başlayıp aşağı iniyor.
-	draw_texture_rect(FLOOR_TEXTURE,
-		Rect2(_left_x() - WALL_VISUAL, FLOOR_Y,
-			level.container_width + WALL_VISUAL * 2.0, FLOOR_APRON),
-		false, tint)
-	# Taban dudağı: rayın üst kenarında ince ışık, altında kısa gölge.
-	draw_rect(Rect2(_left_x() - WALL_VISUAL, FLOOR_Y - 2.0,
-		level.container_width + WALL_VISUAL * 2.0, 3.0), FLOOR_LIP_COLOR)
+	# Yatay bambu ray: dokunun GÖRÜNÜR bölgesi, üst kenarı fizik tabanına
+	# oturur (FLOOR_OVERLAP kadar üstüne biner) — bkz. FLOOR_TEXTURE_REGION.
+	draw_texture_rect_region(FLOOR_TEXTURE,
+		Rect2(_left_x() - WALL_VISUAL, FLOOR_Y - FLOOR_OVERLAP,
+			level.container_width + WALL_VISUAL * 2.0, FLOOR_APRON + FLOOR_OVERLAP),
+		FLOOR_TEXTURE_REGION, tint)
+	# Taban dudağı: rayın üst kenarında ince ışık.
+	draw_rect(Rect2(_left_x() - WALL_VISUAL, FLOOR_Y - FLOOR_OVERLAP - 1.0,
+		level.container_width + WALL_VISUAL * 2.0, 2.0), FLOOR_LIP_COLOR)
 	var lip_shadow := Color(SHELL_SHADOW_COLOR, 0.35)
 	var lip_clear := Color(SHELL_SHADOW_COLOR, 0.0)
 	var lip_y: float = FLOOR_Y + FLOOR_APRON
@@ -1618,6 +1660,9 @@ func _process(delta: float) -> void:
 
 	if _shake_flash > 0.0:
 		_shake_flash = maxf(0.0, _shake_flash - SHAKE_FLASH_DECAY * delta)
+		queue_redraw()
+	# Temas gölgeleri parçalarla birlikte hareket eder: parça varken her kare.
+	if _dumpling_layer.get_child_count() > 0:
 		queue_redraw()
 
 	if _overflow_elapsed > 0.0 and not _is_finished:

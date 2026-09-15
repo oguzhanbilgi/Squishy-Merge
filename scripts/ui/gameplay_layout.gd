@@ -39,7 +39,7 @@ const CANVAS_WIDTH: float = 720.0
 const SAFE_TOP: float = 10.0
 const SIDE: float = 14.0
 ## HUD satirlari: 1) ayarlar | skor | siradaki  2) guc x2 | hedef | guc x2
-const ROW1_HEIGHT: float = 68.0
+const ROW1_HEIGHT: float = 62.0
 const ROW2_HEIGHT: float = 92.0
 const ROW_GAP: float = 8.0
 ## HUD ile board arasi nefes payi.
@@ -50,8 +50,8 @@ const SLOT_GAP: float = 8.0
 ## Ikili slot grubu ile ortadaki hedef plakasi arasi.
 const GOAL_GAP: float = 12.0
 ## Ayarlar butonu ve Sıradaki plakasi.
-const SETTINGS_SIZE: float = 56.0
-const NEXT_SIZE: Vector2 = Vector2(150.0, 66.0)
+const SETTINGS_SIZE: float = 58.0
+const NEXT_SIZE: Vector2 = Vector2(138.0, 58.0)
 ## Evrim seridi.
 const STRIP_HEIGHT: float = 64.0
 const STRIP_GAP: float = 8.0
@@ -60,7 +60,7 @@ const STRIP_BOTTOM_GAP: float = 10.0
 ## hala keskin; daha fazlasi kabi ekrana tasirdi.
 const ZOOM_MAX: float = 1.2
 ## Fazla dikey alanin kabin USTUNE giden orani (kalan alta: tezgah payi).
-const EXTRA_ABOVE: float = 0.55
+const EXTRA_ABOVE: float = 0.5
 
 
 ## Gelecek banner'in ayirdigi alt pay (v1: 0). AdMob geldiginde
@@ -98,7 +98,8 @@ static func compute(view: Vector2, banner_height: float = 0.0,
 	# Satir 1: ayarlar sol, skor orta, siradaki sag.
 	var settings := Rect2(row1.position.x, row1.position.y + (ROW1_HEIGHT - SETTINGS_SIZE) * 0.5,
 		SETTINGS_SIZE, SETTINGS_SIZE)
-	var next := Rect2(row1.end.x - NEXT_SIZE.x, row1.position.y, NEXT_SIZE.x, NEXT_SIZE.y)
+	var next := Rect2(row1.end.x - NEXT_SIZE.x, row1.position.y + (ROW1_HEIGHT - NEXT_SIZE.y) * 0.5,
+		NEXT_SIZE.x, NEXT_SIZE.y)
 	# Skor plakasi: iki kenar arasinda ortalanir; genisligi icerige gore
 	# (HUD `score_max_width` ile sinirlar).
 	var score_span := Rect2(settings.end.x + GOAL_GAP, row1.position.y,
@@ -137,6 +138,19 @@ static func fit_board(frame: Rect2, region: Rect2, view: Vector2) -> Dictionary:
 	var position: Vector2 = frame.get_center() - (screen_center - view * 0.5) / zoom
 	return {"zoom": zoom, "position": position,
 		"screen_rect": Rect2(screen_top_left, shown)}
+
+
+## Uzun ekranda kap BOARD bolgesini doldurmuyorsa (genislik sinirli zoom)
+## evrim seridi ekranin dibinde kalmayip kabin tabanina yaklasir: kap +
+## raf tek parca okunur, bos alan en alta (gelecek banner bolgesinin
+## ustune) toplanir. BOARD/BANNER dikdortgenleri degismez.
+static func hug_strip(rects: Dictionary, board_bottom_screen: float) -> Dictionary:
+	var strip: Rect2 = rects["strip"]
+	var hugged_y: float = board_bottom_screen + STRIP_GAP
+	if hugged_y < strip.position.y:
+		strip.position.y = hugged_y
+		rects["strip"] = strip
+	return rects
 
 
 ## Iki dikdortgen olculebilir sekilde cakisiyor mu (kenar temasi sayilmaz).
