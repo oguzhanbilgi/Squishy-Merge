@@ -1978,17 +1978,18 @@ func _on_score_changed(new_score: int) -> void:
 		return
 
 	_score_pop.text = "+%d" % delta
-	_score_pop.pivot_offset = Vector2(0.0, _score_pop.size.y * 0.5)
+	_score_pop.pivot_offset = Vector2(_score_pop.size.x, _score_pop.size.y)
 	_score_pop_home = _hud.score_pop_home()
 	_score_pop.position = _score_pop_home
 	_score_pop.modulate.a = 1.0
-	_score_pop.scale = Vector2(0.6, 0.6)
+	_score_pop.scale = Vector2(0.5, 0.5)
+	# Kisa premium pop: yayla buyu, 14 px yuksel, temiz son.
 	var tween := create_tween()
 	tween.set_parallel(true)
-	tween.tween_property(_score_pop, "scale", Vector2(1.25, 1.25), 0.14).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	tween.tween_property(_score_pop, "scale", Vector2.ONE, 0.18).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 	tween.tween_property(_score_pop, "position",
-		_score_pop_home - Vector2(0.0, 16.0), 0.55).set_ease(Tween.EASE_OUT)
-	tween.tween_property(_score_pop, "modulate:a", 0.0, 0.55).set_delay(0.15)
+		_score_pop_home - Vector2(0.0, 14.0), 0.5).set_ease(Tween.EASE_OUT)
+	tween.tween_property(_score_pop, "modulate:a", 0.0, 0.3).set_delay(0.3)
 
 	# Skor plakası da hafifçe zıplasın — sayının değiştiği fark edilsin.
 	UiMotion.pop(_hud.score_plate, 1.08)

@@ -445,24 +445,33 @@ static func power_slot(art_tex: Texture2D, count: int,
 	# Silahli halka: govdenin ARKASINDA (show_behind_parent), yumusak krem
 	# daire, slot kenarindan 9 px tasar — neon cerceve degil, "kaldirilmis
 	# madalyon" hissi.
-	var glow := patch("btn_circle_flat", Color(UiTokens.CREAM, 0.55))
+	var glow := patch("popup_glow", Color(UiTokens.CYAN, 0.75))
 	glow.show_behind_parent = true
-	glow.offset_left = -10.0
-	glow.offset_top = -10.0
-	glow.offset_right = 10.0
-	glow.offset_bottom = -2.0
+	glow.offset_left = -22.0
+	glow.offset_top = -22.0
+	glow.offset_right = 22.0
+	glow.offset_bottom = 14.0
 	glow.visible = false
 	node.add_child(glow)
 	# Cerceve halkasi: govdenin arkasinda 3 px tasan koyu erik daire —
 	# madalyon kenari zeminden ayrilir (candy coin). Silahli: cyan-derin,
 	# stok 0: pasif koyu.
-	var rim := patch("btn_circle_flat", UiTokens.NAVY_PURPLE)
+	# Kalin krem/altin halka: en diste krem (7 px), icinde altin (4 px).
+	var outer_ring := patch("btn_circle_flat", UiTokens.CREAM)
+	outer_ring.show_behind_parent = true
+	outer_ring.offset_left = -7.0
+	outer_ring.offset_top = -7.0
+	outer_ring.offset_right = 7.0
+	outer_ring.offset_bottom = -5.0
+	node.add_child(outer_ring)
+	var rim := patch("btn_circle_flat", UiTokens.GOLD)
 	rim.show_behind_parent = true
-	rim.offset_left = -3.0
-	rim.offset_top = -3.0
-	rim.offset_right = 3.0
-	rim.offset_bottom = -9.0
+	rim.offset_left = -4.0
+	rim.offset_top = -4.0
+	rim.offset_right = 4.0
+	rim.offset_bottom = -8.0
 	node.add_child(rim)
+	node.set_meta(&"outer_ring", outer_ring)
 	# Cam ic disk (hud_target: acik gok mavisi), sanatin arkasinda.
 	var glass := patch("item_circle_inner", UiTokens.GLASS_BLUE)
 	glass.offset_left = size.x * 0.11
@@ -542,6 +551,8 @@ static func set_power_slot_state(slot: Button, count: int, armed: bool,
 	(slot.get_meta(&"glow") as Control).visible = armed and enabled
 	(slot.get_meta(&"rim") as Control).self_modulate = UiTokens.CYAN_DEEP if armed \
 		else (UiTokens.LAVENDER if empty else UiTokens.GOLD)
+	(slot.get_meta(&"outer_ring") as Control).self_modulate = Color(UiTokens.CYAN, 0.9) if armed \
+		else (UiTokens.LAVENDER_SURFACE if empty else UiTokens.CREAM)
 	(slot.get_meta(&"glass") as Control).self_modulate = UiTokens.CYAN if armed \
 		else (UiTokens.GLASS_MUTED if empty else UiTokens.GLASS_BLUE)
 	# Stok 0: sanat kimligini korur (renk kalir), yalnizca soluk ve hafif
@@ -607,13 +618,17 @@ static func hud_attach(target: Control, deco: Control, host: Control,
 ## icin `host` ver.
 static func hud_shadow(target: Control, drop: float = 5.0, alpha: float = 0.30,
 		host: Control = null) -> NinePatchRect:
-	var shadow := patch("label_round", Color(0.05, 0.02, 0.12, alpha))
+	# popup_glow: yumusak kenarli radyal blob -> bulanik, dogal golge.
+	var shadow := patch("popup_glow", Color(0.05, 0.02, 0.14, alpha))
+	var spread: float = 10.0
 	if host != null:
-		hud_attach(target, shadow, host, Vector4(0.0, -drop, 0.0, drop))
+		hud_attach(target, shadow, host, Vector4(spread, spread - drop, spread, spread + drop))
 		return shadow
 	shadow.show_behind_parent = true
-	shadow.offset_top = drop
-	shadow.offset_bottom = drop
+	shadow.offset_left = -spread
+	shadow.offset_right = spread
+	shadow.offset_top = -spread + drop
+	shadow.offset_bottom = spread + drop
 	target.add_child(shadow)
 	return shadow
 
@@ -621,8 +636,8 @@ static func hud_shadow(target: Control, drop: float = 5.0, alpha: float = 0.30,
 ## Acik kenar halkasi: govdeden `width` px tasan yuvarlak plaka
 ## (hud_target: mor govdelerin acik dis kenari).
 static func hud_rim(target: Control, tint: Color = UiTokens.LAVENDER_LIGHT,
-		width: float = 3.0, host: Control = null) -> NinePatchRect:
-	var rim := patch("label_round", tint)
+		width: float = 3.0, host: Control = null, sprite: String = "card_bevel") -> NinePatchRect:
+	var rim := patch(sprite, tint)
 	if host != null:
 		hud_attach(target, rim, host, Vector4(width, width, width, width))
 		return rim
@@ -666,24 +681,40 @@ static func hud_gloss(target: Control, height: float, alpha: float = 0.34,
 static func hud_icon_button(role: String, size: float,
 		variation: StringName = &"ButtonHud") -> Button:
 	var node := icon_button(role, variation, size)
-	hud_shadow(node, 5.0, 0.32)
-	hud_rim(node, UiTokens.LAVENDER_LIGHT if variation == &"ButtonHud" else Color("fbd6e6"), 3.0)
-	hud_gloss(node, size * 0.42, 0.30, 6.0)
+	hud_shadow(node, 5.0, 0.26)
+	hud_rim(node, UiTokens.LAVENDER_LIGHT if variation == &"ButtonHud" else Color("fbd6e6"), 4.0)
+	hud_gloss(node, size * 0.40, 0.40, 7.0)
+	# Ic parlama: hafif acik ic kenar (toy buton).
+	var inner := patch("border_round_thin", Color(1, 1, 1, 0.22))
+	inner.offset_left = 3.0
+	inner.offset_top = 3.0
+	inner.offset_right = -3.0
+	inner.offset_bottom = -10.0
+	node.add_child(inner)
 	return node
+
+
+## Tepsi yuvasi: madalyonun oturdugu koyu-krem cukur (tepsi ile madalyon
+## arasindaki `mid` dekor katmanina; madalyon dikdortgenini izler).
+static func hud_socket(slot: Control, mid: Control) -> Control:
+	var socket := patch("item_circle", Color(0.62, 0.52, 0.80, 0.55))
+	hud_attach(slot, socket, mid, Vector4(9.0, 9.0, 9.0, 3.0))
+	return socket
 
 
 ## Kalin koyu-lavanta cerceve + krem kart + dis golge + acik halka (hedef
 ## karti, Siradaki plakasi). Dekorlar `back`/`front` dekor katmanlarina
 ## baglanir. Icerik meta "card" PanelContainer'ina eklenir.
-static func hud_card(back: Control, front: Control, with_stars: bool = false) -> PanelContainer:
+static func hud_card(back: Control, front: Control, with_stars: bool = false,
+		inner: StringName = &"PanelHudCard") -> PanelContainer:
 	var frame := panel(&"PanelHudFrame")
 	frame.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	hud_shadow(frame, 6.0, 0.34, back)
-	hud_rim(frame, UiTokens.LAVENDER_LIGHT, 2.0, back)
-	var card := panel(&"PanelHudCard")
+	hud_shadow(frame, 8.0, 0.42, back)
+	hud_rim(frame, UiTokens.LAVENDER_LIGHT, 4.0, back)
+	var card := panel(inner)
 	card.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	frame.add_child(card)
-	hud_gloss(frame, 26.0, 0.30, 14.0, front)
+	hud_gloss(frame, 24.0, 0.34, 16.0, front)
 	if with_stars:
 		# Cerceve kenarlarinda altin yildiz aksani (sol/sag orta), on katman.
 		var stars := Control.new()

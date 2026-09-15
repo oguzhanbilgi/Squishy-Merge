@@ -41,6 +41,7 @@ const GENERATED: Array[StringName] = [
 	&"LabelHudScore", &"LabelHudCaption", &"PowerSlot", &"PowerSlotArmed", &"PowerSlotEmpty",
 	&"PanelStrip", &"PanelHud", &"PanelHudScore", &"PanelTray", &"PanelHudFrame", &"PanelHudCard",
 	&"LabelHudCaptionDark", &"ButtonHud", &"ButtonHudExit", &"ProgressBarHud",
+	&"PanelHudPercent", &"PanelHudPill", &"PanelHudBadge", &"PanelHudPortrait",
 	# Oyun bilesenleri
 	&"ResourcePill", &"HeaderRibbon", &"SectionTag", &"ProgressBarMint", &"ProgressBarGold",
 	&"Badge", &"LockBadge", &"EquippedBadge", &"NewBadge", &"CountBadge",
@@ -150,10 +151,17 @@ func _build_panels() -> void:
 	# tepsisi (2 madalyon), lavanta cerceve + krem kart (hedef / Siradaki).
 	# HUD v3 (hud_target.png): mor kapsul skor, acik lavanta-krem tepsi, kalin
 	# koyu-lavanta cerceve + krem kart (label_round: yumusak kose, cizgi yok).
-	_panel(&"PanelHudScore", "label_round", UiTokens.LAVENDER_DEEP, Vector4(18, 3, 18, 7))
-	_panel(&"PanelTray", "label_round", UiTokens.TRAY_CREAM, Vector4(6, 6, 6, 8))
-	_panel(&"PanelHudFrame", "label_round", UiTokens.LAVENDER_DEEP, Vector4(6, 6, 6, 8))
-	_panel(&"PanelHudCard", "label_round", UiTokens.CREAM, Vector4(12, 2, 12, 4))
+	# HUD v4: govdeler pismis bevel/dudakli sprite'lardan (btn_bevel: cizgi +
+	# bevel; card_bevel: yumusak alt dudak) — duz label_round kutu hissi
+	# veriyordu. Dis halka/golge/gloss UiKit.hud_* dekor katmaninda.
+	_panel(&"PanelHudScore", "btn_bevel", UiTokens.LAVENDER_DEEP, Vector4(20, 4, 20, 12))
+	_panel(&"PanelTray", "card_bevel", UiTokens.TRAY_CREAM, Vector4(6, 6, 6, 12))
+	_panel(&"PanelHudFrame", "btn_bevel", UiTokens.LAVENDER_DEEP, Vector4(7, 5, 7, 10))
+	_panel(&"PanelHudCard", "card_bevel", UiTokens.CREAM, Vector4(12, 2, 12, 6))
+	_panel(&"PanelHudPill", "title_oval", UiTokens.CREAM, Vector4(14, 2, 14, 6))
+	_panel(&"PanelHudPercent", "label_trapezoid", UiTokens.NAVY_PURPLE_DEEP, Vector4(12, 1, 14, 3))
+	_panel(&"PanelHudBadge", "btn_bevel", UiTokens.GOLD, Vector4(8, 2, 8, 8))
+	_panel(&"PanelHudPortrait", "frame_round12", UiTokens.CREAM_DEEP, Vector4(5, 1, 5, 3))
 	# Evrim seridi tepsisi (M8.6-02): koyu yuvarlak plaka, dar iceri pay.
 	_panel(&"PanelStrip", "panel_bevel", Color(UiTokens.PLUM, 0.94), Vector4(14, 4, 14, 8))
 
@@ -202,9 +210,9 @@ func _build_buttons() -> void:
 		FONT_TITLE, 16, UiTokens.TEXT_DISABLED, UiTokens.TEXT_DISABLED)
 	# Gameplay HUD kose butonlari (HUD v3): koyu lavanta-mor kare, buyuk beyaz
 	# picto; cikis pembe. Halka/gloss/golge UiKit.hud_icon_button ekler.
-	_button(&"ButtonHud", "btn_square", UiTokens.LAVENDER_DEEP, Vector4(10, 8, 10, 16),
+	_button(&"ButtonHud", "btn_bevel", UiTokens.LAVENDER_DEEP, Vector4(8, 6, 8, 14),
 		FONT_TITLE, 22, UiTokens.TEXT_ON_DARK, UiTokens.TEXT_DISABLED, 34)
-	_button(&"ButtonHudExit", "btn_square", UiTokens.PINK, Vector4(10, 8, 10, 16),
+	_button(&"ButtonHudExit", "btn_bevel", UiTokens.PINK, Vector4(8, 6, 8, 14),
 		FONT_TITLE, 22, UiTokens.TEXT_ON_DARK, UiTokens.TEXT_DISABLED, 34)
 	# Kaynak pill'inin nane "+" butonu.
 	_button(&"ButtonResourceAdd", "resource_btn", UiTokens.MINT, Vector4(8, 6, 8, 10),

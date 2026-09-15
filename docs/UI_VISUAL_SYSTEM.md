@@ -340,18 +340,30 @@ w600 kap zoom ≈ 0.99, 720×1560'ta 1.05 (genişlik sınırı), dar kaplar 1.2;
 sonsuz (720) 0.90 — duvarlar ilk kez sonsuz modda da görünür. Alt ölü alan
 yok; 1280'de kap tabanı şeridin hemen üstünde.
 
-### 13.3 HUD hiyerarşisi (HUD v3 — `_visual_source/references/gameplay_hud_target/hud_target.png`)
+### 13.3 HUD hiyerarşisi (HUD v4 — `_visual_source/references/gameplay_hud_target/hud_target.png`)
 
 Görsel hedef owner'ın onayladığı mockup; **logo yok** (tek bilinçli fark).
 Dekor katmanı kuralı: `PanelContainer` dış dekoru içine alıp minimuma kattığı
-için gölge/halka `GameplayHud._deco_back`, gloss/yıldız `_deco_front`
+için gölge/halka `GameplayHud._deco_back`, tepsi gloss'u + madalyon yuvaları
+`_deco_mid` (tepsi üstü / madalyon altı), gloss/yıldız `_deco_front`
 kontrollerine `UiKit.hud_attach` ile bağlanır ve plakanın dikdörtgenini izler.
 
-1. **Skor** — `PanelHudScore` (`label_round` koyu lavanta-mor `LAVENDER_DEEP`)
-   + `hud_shadow` (6 px, α .34) + `hud_rim` (`LAVENDER_LIGHT` 3 px) + üst
-   `hud_gloss`; solda owner yıldızı 38, beyaz "SKOR" + beyaz `LabelHudScore`
-   34, sağ uçta 12 px yıldız aksanı. Ekran merkezinde. "+N" pop'u plakanın
-   **sol** kenarından (altın, sağa hizalı).
+**v4 "candy plate" reçetesi (düz label_round kutu hissi kaldırıldı):** gövde
+pişmiş dudaklı sprite (`btn_bevel` çizgi+bevel: skor, kart çerçevesi, köşe
+butonları, level rozeti; `card_bevel` yumuşak alt dudak: krem kart, tepsi;
+`title_oval` pill: Sıradaki; `frame_round12`: portre; `label_trapezoid`: yüzde
+pili) → `hud_shadow` (`popup_glow` bulanık blob, 8 px aşağı) → `hud_rim`
+(`card_bevel`/`btn_bevel` 4–5 px açık lavanta / koyu lavanta) → `hud_gloss`
+(`btn_bevel_light` üst şerit) → köşe butonlarında `border_round_thin` iç
+parlama. Madalyon: dış krem halka 7 px + altın halka 4 px + cam-mavi disk +
+tepside `item_circle` yuva; silahlıda `popup_glow` cyan hale.
+
+1. **Skor** — `PanelHudScore` (`btn_bevel` koyu lavanta-mor `LAVENDER_DEEP`)
+   + `hud_shadow` (8 px, α .42) + `hud_rim` (`LAVENDER_LIGHT` 5 px) + üst
+   `hud_gloss`; solda owner yıldızı 40, beyaz "SKOR" + beyaz `LabelHudScore`
+   34, sağ uçta 12 px yıldız aksanı. Ekran merkezinde. "+N" pop'u kartın sağ
+   omzundan (`score_pop_home`: üst kenarın 12 px üstü) yayla büyüyüp 14 px
+   yükselerek 0.6 s'de söner (altın, `LabelSectionOnDark`).
 2. **Hedef kartı** — `UiKit.hud_card(back, front, with_stars=true)`:
    `PanelHudFrame` (`label_round` `LAVENDER_DEEP`, 6/6/6/8) içinde `PanelHudCard`
    (`label_round` krem) + gölge + açık halka + gloss + çerçeve kenarlarında

@@ -53,8 +53,8 @@ func _ready() -> void:
 	_c("HUD katmanı GameplayHud", hud != null)
 	_c("skor plakası PanelHudScore (glossy lavanta)", hud.score_plate != null and hud.score_plate.theme_type_variation == &"PanelHudScore")
 	_c("skor etiketi LabelHudScore", hud.score_label.theme_type_variation == &"LabelHudScore")
-	_c("Sıradaki production kart (PanelHudFrame + PanelHudCard)", hud.next_plate.theme_type_variation == &"PanelHudFrame"
-		and (hud.next_plate.get_meta(&"card") as PanelContainer).theme_type_variation == &"PanelHudCard")
+	_c("Sıradaki production kart (PanelHudFrame + PanelHudPill)", hud.next_plate.theme_type_variation == &"PanelHudFrame"
+		and (hud.next_plate.get_meta(&"card") as PanelContainer).theme_type_variation == &"PanelHudPill")
 	_c("Sıradaki gerçek tier dokusu", hud.next_art.texture == DUMPLING_VISUAL.TEXTURES[board._next_tier - 1])
 	_c("Hedef production kart (PanelHudFrame + PanelHudCard)", hud.goal_plate.theme_type_variation == &"PanelHudFrame"
 		and (hud.goal_plate.get_meta(&"card") as PanelContainer).theme_type_variation == &"PanelHudCard")
@@ -65,7 +65,7 @@ func _ready() -> void:
 		and hud.goal_percent != null)
 	_c("güç tepsileri PanelTray", hud.tray_left.theme_type_variation == &"PanelTray"
 		and hud.tray_right.theme_type_variation == &"PanelTray")
-	_c("level rozeti Badge", hud.level_badge.theme_type_variation == &"Badge" and hud.level_label.text == "4")
+	_c("level rozeti PanelHudBadge (altın bevel)", hud.level_badge.theme_type_variation == &"PanelHudBadge" and hud.level_label.text == "4")
 	_c("hedef tier dokusu gerçek", hud.goal_art.texture == DUMPLING_VISUAL.TEXTURES[5])
 	_c("hedef adı", hud.goal_label.text == TierConfig.tier_name(6) and hud.goal_caption.text == "HEDEF")
 	_c("taban dokusu görünür bölgeden çiziliyor (saydam üst pay yok)",
@@ -166,7 +166,8 @@ func _ready() -> void:
 	print("-- skor / Sıradaki / durum")
 	GameState.add_score(1234)
 	_c("skor 1 234 formatı", hud.score_label.text == "1 234")
-	_c("skor pop'u plakanın sol kenarında", absf(hud.score_pop_home().x + hud.score_pop.size.x + 4.0 - hud.score_plate.get_global_rect().position.x) < 0.5)
+	_c("skor pop'u kartın sağ omzunda", absf(hud.score_pop_home().x + hud.score_pop.size.x + 6.0 - hud.score_plate.get_global_rect().end.x) < 0.5
+		and hud.score_pop_home().y < hud.score_plate.get_global_rect().position.y)
 	hud.set_status("Taştı!")
 	await get_tree().process_frame
 	_c("durum plakası görünür ve board ortasında", hud.status_plate.visible

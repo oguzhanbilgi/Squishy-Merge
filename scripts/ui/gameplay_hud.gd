@@ -70,6 +70,7 @@ var _score_center: CenterContainer
 ## ustundeki gloss/yildiz (`_deco_front`) — PanelContainer'lar dis dekor
 ## cocuklarini iceriye alip minimum boyuta kattigi icin ayri.
 var _deco_back: Control
+var _deco_mid: Control
 var _deco_front: Control
 var _layout: Dictionary = {}
 var _status_anchor: Vector2 = Vector2.ZERO
@@ -89,6 +90,8 @@ func _ready() -> void:
 	_build_row2()
 	# On dekor katmani plakalarin USTUNE (siralama: sonra eklenen ustte).
 	move_child(_deco_front, get_child_count() - 1)
+	for type in PowerBar.SLOT_ORDER:
+		UiKit.hud_socket(power_bar.slot(int(type)), _deco_mid)
 	_build_strip()
 	_build_overlays()
 	_build_banner_seam()
@@ -138,14 +141,14 @@ func _build_row1() -> void:
 	score_plate.name = "ScorePlate"
 	score_plate.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_score_center.add_child(score_plate)
-	UiKit.hud_shadow(score_plate, 6.0, 0.34, _deco_back)
-	UiKit.hud_rim(score_plate, UiTokens.LAVENDER_LIGHT, 3.0, _deco_back)
-	UiKit.hud_gloss(score_plate, 22.0, 0.28, 10.0, _deco_front)
+	UiKit.hud_shadow(score_plate, 8.0, 0.42, _deco_back)
+	UiKit.hud_rim(score_plate, UiTokens.LAVENDER_LIGHT, 5.0, _deco_back)
+	UiKit.hud_gloss(score_plate, 24.0, 0.36, 12.0, _deco_front)
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 6)
 	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	score_plate.add_child(row)
-	var star := UiKit.art(STAR_ART, 38)
+	var star := UiKit.art(STAR_ART, 40)
 	star.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	row.add_child(star)
 	var column := VBoxContainer.new()
@@ -165,7 +168,7 @@ func _build_row1() -> void:
 	row.add_child(accent_r)
 
 	# Sağ küme: Sıradaki kartı (lavanta çerçeve + krem) + çıkış.
-	next_plate = UiKit.hud_card(_deco_back, _deco_front)
+	next_plate = UiKit.hud_card(_deco_back, _deco_front, false, &"PanelHudPill")
 	next_plate.name = "NextPlate"
 	add_child(next_plate)
 	var next_card: PanelContainer = next_plate.get_meta(&"card")
@@ -182,7 +185,7 @@ func _build_row1() -> void:
 	var next_caption := UiKit.label("SIRADAKI", &"LabelHudCaptionDark", HORIZONTAL_ALIGNMENT_CENTER)
 	next_caption.add_theme_color_override("font_color", UiTokens.LAVENDER_DEEP.darkened(0.25))
 	next_col.add_child(next_caption)
-	next_art = UiKit.art(DUMPLING_VISUAL.TEXTURES[0], 38)
+	next_art = UiKit.art(DUMPLING_VISUAL.TEXTURES[0], 42)
 	next_art.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	next_row.add_child(next_art)
 	exit_button = UiKit.hud_icon_button("home", GameplayLayout.SETTINGS_SIZE, &"ButtonHudExit")
@@ -200,14 +203,22 @@ func _build_row2() -> void:
 	tray_left.name = "TrayLeft"
 	tray_left.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(tray_left)
-	UiKit.hud_shadow(tray_left, 6.0, 0.34, _deco_back)
-	UiKit.hud_rim(tray_left, UiTokens.LAVENDER_DEEP, 3.0, _deco_back)
+	UiKit.hud_shadow(tray_left, 8.0, 0.42, _deco_back)
+	UiKit.hud_rim(tray_left, UiTokens.LAVENDER_DEEP, 5.0, _deco_back, "btn_bevel")
 	tray_right = UiKit.panel(&"PanelTray")
 	tray_right.name = "TrayRight"
 	tray_right.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(tray_right)
-	UiKit.hud_shadow(tray_right, 6.0, 0.34, _deco_back)
-	UiKit.hud_rim(tray_right, UiTokens.LAVENDER_DEEP, 3.0, _deco_back)
+	UiKit.hud_shadow(tray_right, 8.0, 0.42, _deco_back)
+	UiKit.hud_rim(tray_right, UiTokens.LAVENDER_DEEP, 5.0, _deco_back, "btn_bevel")
+	# Orta dekor katmani: tepsilerin USTUNDE, madalyonlarin ALTINDA (tepsi
+	# gloss'u + madalyon yuvalari).
+	_deco_mid = Control.new()
+	_deco_mid.name = "DecoMid"
+	_deco_mid.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(_deco_mid)
+	UiKit.hud_gloss(tray_left, 18.0, 0.5, 10.0, _deco_mid)
+	UiKit.hud_gloss(tray_right, 18.0, 0.5, 10.0, _deco_mid)
 	power_bar = POWER_BAR_SCENE.instantiate()
 	power_bar.name = "PowerBar"
 	add_child(power_bar)
@@ -223,10 +234,8 @@ func _build_row2() -> void:
 	goal_card.add_child(row)
 	# Level rozeti (hud_target): büyük altın yuvarlak plaka, owner tacı üstte,
 	# altında büyük Baloo numara.
-	level_badge = UiKit.panel(&"Badge")
-	level_badge.add_theme_stylebox_override("panel",
-		UiKit.style("label_round", UiTokens.GOLD, Vector4(8, 2, 8, 4)))
-	level_badge.custom_minimum_size = Vector2(66.0, 0.0)
+	level_badge = UiKit.panel(&"PanelHudBadge")
+	level_badge.custom_minimum_size = Vector2(60.0, 0.0)
 	level_badge.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	level_badge.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	row.add_child(level_badge)
@@ -259,30 +268,35 @@ func _build_row2() -> void:
 	goal_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	column.add_child(goal_row)
 	# Hedef portresi: küçük krem-derin pill içinde (hud_target).
-	goal_portrait = UiKit.panel(&"PanelBase")
-	goal_portrait.add_theme_stylebox_override("panel",
-		UiKit.style("label_round", UiTokens.CREAM_DEEP, Vector4(8, 1, 8, 2)))
+	goal_portrait = UiKit.panel(&"PanelHudPortrait")
 	goal_portrait.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	goal_portrait.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	goal_row.add_child(goal_portrait)
-	goal_art = UiKit.art(DUMPLING_VISUAL.TEXTURES[3], 30)
+	goal_art = UiKit.art(DUMPLING_VISUAL.TEXTURES[3], 28)
 	goal_portrait.add_child(goal_art)
 	goal_label = UiKit.label("Hedef", &"LabelSection")
-	goal_label.add_theme_font_size_override("font_size", 22)
+	goal_label.add_theme_font_size_override("font_size", 20)
 	goal_label.add_theme_color_override("font_color", UiTokens.LAVENDER_DEEP.darkened(0.35))
 	goal_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	goal_label.clip_text = true
 	goal_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	goal_row.add_child(goal_label)
-	goal_bar = UiKit.progress_bar(0.0, &"ProgressBarHud", 18.0)
-	column.add_child(goal_bar)
-	# Yüzde yazısı çubuğun sağ ucunda (hud_target "80%").
-	goal_percent = UiKit.label("0%", &"LabelBadgeOnDark", HORIZONTAL_ALIGNMENT_RIGHT)
-	goal_percent.set_anchors_and_offsets_preset(Control.PRESET_RIGHT_WIDE)
-	goal_percent.offset_left = -70.0
-	goal_percent.offset_right = -10.0
-	goal_percent.grow_horizontal = Control.GROW_DIRECTION_BEGIN
-	goal_bar.add_child(goal_percent)
+	# Kalın nane çubuk + sağında kendi koyu-mor yüzde pili (çubuğun içine
+	# sıkışmış beyaz yazı yok).
+	var bar_row := HBoxContainer.new()
+	bar_row.add_theme_constant_override("separation", UiTokens.SPACE_SM)
+	bar_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	column.add_child(bar_row)
+	goal_bar = UiKit.progress_bar(0.0, &"ProgressBarHud", 22.0)
+	bar_row.add_child(goal_bar)
+	var percent_pill := UiKit.panel(&"PanelHudPercent")
+	percent_pill.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	percent_pill.custom_minimum_size = Vector2(56.0, 0.0)
+	percent_pill.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	bar_row.add_child(percent_pill)
+	goal_percent = UiKit.label("0%", &"LabelBadgeOnDark", HORIZONTAL_ALIGNMENT_CENTER)
+	percent_pill.add_child(goal_percent)
+	UiKit.hud_gloss(goal_bar, 9.0, 0.32, 6.0, _deco_front)
 	# Skor hedefi ("+5 000 skor") çubuğun sağ ucunda küçük yazı — hedef adı
 	# ile yer için yarışmaz.
 	goal_extra = UiKit.label("", &"LabelHudCaptionDark", HORIZONTAL_ALIGNMENT_RIGHT)
@@ -331,10 +345,11 @@ func _build_overlays() -> void:
 	# Skor pop'u: plakanın sağ kenarından çıkıp hafif yükselen küçük altın
 	# "+N" (dünyadaki birleşme noktası "+N"si ayrı; yıldız rozeti yok).
 	# Konumu `score_pop_home()` her seferinde plakanın gerçek kenarından okur.
-	score_pop = UiKit.label("", &"LabelStatOnDark", HORIZONTAL_ALIGNMENT_RIGHT)
+	score_pop = UiKit.label("", &"LabelSectionOnDark", HORIZONTAL_ALIGNMENT_RIGHT)
 	score_pop.name = "ScorePop"
-	score_pop.size = Vector2(90.0, 32.0)
+	score_pop.size = Vector2(96.0, 32.0)
 	score_pop.add_theme_color_override("font_color", UiTokens.GOLD_BRIGHT)
+	score_pop.add_theme_color_override("font_shadow_color", Color(0.25, 0.1, 0.35, 0.9))
 	score_pop.modulate.a = 0.0
 	add_child(score_pop)
 
@@ -410,10 +425,10 @@ func layout() -> Dictionary:
 
 ## Skor pop'unun başlangıç noktası: plakanın sağ kenarı, dikey orta.
 func score_pop_home() -> Vector2:
-	# Plakanın SOL kenarından (sağda Sıradaki kartı var), sağa hizalı metin.
+	# Skor kartının sağ omzu: kartın üst kenarına yakın, sağ uç hizası —
+	# karta bağlı okunur, Sıradaki'ye değmez.
 	var plate: Rect2 = score_plate.get_global_rect()
-	return Vector2(plate.position.x - score_pop.size.x - 4.0,
-		plate.get_center().y - score_pop.size.y * 0.5 + 4.0)
+	return Vector2(plate.end.x - score_pop.size.x - 6.0, plate.position.y - 12.0)
 
 
 ## Durum plakası: metin boşsa gizlenir, doluysa ortalanıp pop'lanır.
