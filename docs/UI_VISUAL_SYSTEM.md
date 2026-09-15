@@ -220,10 +220,12 @@ değil**, `.gdignore`'lu). Production **hiçbir zaman** `_visual_source/`'a ya d
 
 **USE (promote edildi → `assets/visual/ui/core/`):**
 `panels/` popup_body/light/topline/glow, panel_round, panel_bevel(+light),
-card_large (CardFrame08), card_bevel (CardFrame03), card_flat/border
+card_large (CardFrame08), card_bevel (CardFrame03; `card_bevel_soft` = SOFTEN
+türevi, HUD v5), card_flat/border
 (CardFrame01), list_row, item_frame(+inner), item_circle(+inner), item_focus,
 border_round(+thin), frame_round12/20 ·
-`buttons/` btn_cta/large/normal/compact (Button01 175/145), btn_bevel(+light),
+`buttons/` btn_cta/large/normal/compact (Button01 175/145), btn_bevel(+light,
++soft: SOFTEN türevi — siyah çizgi tint×0.44),
 btn_square/sm/flat, btn_circle/flat ·
 `labels/` label_round, badge_round, label_trapezoid, label_bubble,
 label_ribbon(+light), title_oval ·
@@ -340,7 +342,7 @@ w600 kap zoom ≈ 0.99, 720×1560'ta 1.05 (genişlik sınırı), dar kaplar 1.2;
 sonsuz (720) 0.90 — duvarlar ilk kez sonsuz modda da görünür. Alt ölü alan
 yok; 1280'de kap tabanı şeridin hemen üstünde.
 
-### 13.3 HUD hiyerarşisi (HUD v4 — `_visual_source/references/gameplay_hud_target/hud_target.png`)
+### 13.3 HUD hiyerarşisi (HUD v5 — `_visual_source/references/gameplay_hud_target/hud_target.png`)
 
 Görsel hedef owner'ın onayladığı mockup; **logo yok** (tek bilinçli fark).
 Dekor katmanı kuralı: `PanelContainer` dış dekoru içine alıp minimuma kattığı
@@ -358,9 +360,26 @@ pili) → `hud_shadow` (`popup_glow` bulanık blob, 8 px aşağı) → `hud_rim`
 parlama. Madalyon: dış krem halka 7 px + altın halka 4 px + cam-mavi disk +
 tepside `item_circle` yuva; silahlıda `popup_glow` cyan hale.
 
-1. **Skor** — `PanelHudScore` (`btn_bevel` koyu lavanta-mor `LAVENDER_DEEP`)
-   + `hud_shadow` (8 px, α .42) + `hud_rim` (`LAVENDER_LIGHT` 5 px) + üst
-   `hud_gloss`; solda owner yıldızı 40, beyaz "SKOR" + beyaz `LabelHudScore`
+**v5 yumuşatma (siyah çizgi/sert gölge → candy/plastik):** LayerLab
+`btn_bevel`/`card_bevel` sprite'larının pişmiş SİYAH çizgisi modulate ile
+boyanmıyordu (çarpan → siyah kalır); `tools/make_ui_core.py SOFTEN` ile
+`btn_bevel_soft` / `card_bevel_soft` türetildi: çizgi 0.44 griye kaldırıldı
+(tint × 0.44 → erik / koyu altın / koyu gül), dış gölge pikselleri yarı alfa.
+HUD gövdeleri bu sürümleri kullanır. `hud_shadow` erik `(0.22, 0.09, 0.36)`,
+α .20–.26, yayılım 14 px (siyah .42/10 px değil). `hud_rim` varsayılanı
+`frame_round20` (düz beyaz yuvarlak plaka — pişmiş çizgisi yok → temiz açık
+lavanta kenar). Tepsi `title_oval` pill: krem üst yüzey, altında 9 px aşağı
+taşan `LAVENDER_DEEP` pill (alt derinlik) + 3 px `LAVENDER_LIGHT` kenar —
+tek parça organik taban. Skor kapsülünün arkasında geniş, düşük alfa
+`LAVENDER_DEEP` `popup_glow` backing + sol üst 14 px / sağ alt 10 px altın
+pırıltı. Hedef çerçevesi `LAVENDER_DEEP`→`LAVENDER_LIGHT` %14 (pastel),
+çubuk rayı `NAVY_PURPLE` (near-black `NAVY_PURPLE_DEEP` yalnız yüzde pilinde).
+Köşe butonu iç parlama α .16, gölge 4 px/α .20. Yerleşim, davranış, board,
+şerit, danger, mola akışı DEĞİŞMEDİ.
+
+1. **Skor** — `PanelHudScore` (`btn_bevel_soft` koyu lavanta-mor `LAVENDER_DEEP`)
+   + mor backing + `hud_shadow` (6 px, α .26) + `hud_rim` (`LAVENDER_LIGHT` 5 px)
+   + üst `hud_gloss` + 2 pırıltı; solda owner yıldızı 40, beyaz "SKOR" + beyaz `LabelHudScore`
    34, sağ uçta 12 px yıldız aksanı. Ekran merkezinde. "+N" pop'u kartın sağ
    omzundan (`score_pop_home`: üst kenarın 12 px üstü) yayla büyüyüp 14 px
    yükselerek 0.6 s'de söner (altın, `LabelSectionOnDark`).

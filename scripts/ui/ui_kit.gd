@@ -617,10 +617,10 @@ static func hud_attach(target: Control, deco: Control, host: Control,
 ## yuvarlak plaka. Buton (Control) icin dogrudan cocuk; PanelContainer
 ## icin `host` ver.
 static func hud_shadow(target: Control, drop: float = 5.0, alpha: float = 0.30,
-		host: Control = null) -> NinePatchRect:
+		host: Control = null, spread: float = 14.0) -> NinePatchRect:
 	# popup_glow: yumusak kenarli radyal blob -> bulanik, dogal golge.
-	var shadow := patch("popup_glow", Color(0.05, 0.02, 0.14, alpha))
-	var spread: float = 10.0
+	# HUD v5: siyah degil erik (candy zeminle karisir), genis yayilim.
+	var shadow := patch("popup_glow", Color(0.22, 0.09, 0.36, alpha))
 	if host != null:
 		hud_attach(target, shadow, host, Vector4(spread, spread - drop, spread, spread + drop))
 		return shadow
@@ -636,7 +636,9 @@ static func hud_shadow(target: Control, drop: float = 5.0, alpha: float = 0.30,
 ## Acik kenar halkasi: govdeden `width` px tasan yuvarlak plaka
 ## (hud_target: mor govdelerin acik dis kenari).
 static func hud_rim(target: Control, tint: Color = UiTokens.LAVENDER_LIGHT,
-		width: float = 3.0, host: Control = null, sprite: String = "card_bevel") -> NinePatchRect:
+		width: float = 3.0, host: Control = null, sprite: String = "frame_round20") -> NinePatchRect:
+	# HUD v5: varsayilan halka `frame_round20` — duz beyaz yuvarlak plaka
+	# (pismis cizgi yok), tint ile temiz acik lavanta kenar.
 	var rim := patch(sprite, tint)
 	if host != null:
 		hud_attach(target, rim, host, Vector4(width, width, width, width))
@@ -681,11 +683,11 @@ static func hud_gloss(target: Control, height: float, alpha: float = 0.34,
 static func hud_icon_button(role: String, size: float,
 		variation: StringName = &"ButtonHud") -> Button:
 	var node := icon_button(role, variation, size)
-	hud_shadow(node, 5.0, 0.26)
+	hud_shadow(node, 4.0, 0.20)
 	hud_rim(node, UiTokens.LAVENDER_LIGHT if variation == &"ButtonHud" else Color("fbd6e6"), 4.0)
 	hud_gloss(node, size * 0.40, 0.40, 7.0)
 	# Ic parlama: hafif acik ic kenar (toy buton).
-	var inner := patch("border_round_thin", Color(1, 1, 1, 0.22))
+	var inner := patch("border_round_thin", Color(1, 1, 1, 0.16))
 	inner.offset_left = 3.0
 	inner.offset_top = 3.0
 	inner.offset_right = -3.0
@@ -709,7 +711,7 @@ static func hud_card(back: Control, front: Control, with_stars: bool = false,
 		inner: StringName = &"PanelHudCard") -> PanelContainer:
 	var frame := panel(&"PanelHudFrame")
 	frame.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	hud_shadow(frame, 8.0, 0.42, back)
+	hud_shadow(frame, 6.0, 0.26, back)
 	hud_rim(frame, UiTokens.LAVENDER_LIGHT, 4.0, back)
 	var card := panel(inner)
 	card.mouse_filter = Control.MOUSE_FILTER_IGNORE

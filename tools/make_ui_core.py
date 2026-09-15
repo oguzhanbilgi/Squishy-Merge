@@ -49,6 +49,7 @@ SPRITES: dict[str, dict[str, tuple[str, float]]] = {
         # Kartlar
         "card_large": ("Frame/CardFrame08_White.png", 0.5),
         "card_bevel": ("Frame/CardFrame03_White.png", 1.0),
+        "card_bevel_soft": ("Frame/CardFrame03_White.png", 1.0),
         "card_flat": ("Frame/CardFrame01_Bg.png", 1.0),
         "card_border": ("Frame/CardFrame01_Border.png", 1.0),
         "list_row": ("Frame/ListFrame01_Bg.png", 1.0),
@@ -73,6 +74,9 @@ SPRITES: dict[str, dict[str, tuple[str, float]]] = {
         "btn_compact": ("Button/Button01_145_White.Png", 0.3),
         "btn_bevel": ("Button/Button03_White_Bg.png", 1.0),
         "btn_bevel_light": ("Button/Button03_White_Light.png", 1.0),
+        # HUD v5 yumusak govde: ayni bevel, siyah cizgi tint*0.44 koyuluga
+        # kaldirilmis, dis golge yari saydam (SOFTEN) — candy/plastik his.
+        "btn_bevel_soft": ("Button/Button03_White_Bg.png", 1.0),
         "btn_square": ("Button/Button_Square01_White.png", 1.0),
         "btn_square_sm": ("Button/Button_Square03_White.png", 1.0),
         "btn_square_flat": ("Button/Button_Square04.png", 0.5),
@@ -123,6 +127,13 @@ SPRITES: dict[str, dict[str, tuple[str, float]]] = {
 # gamma ile ayrilir ki modulate sonrasi kurdelenin kivrimi okunsun.
 WHITEN: set[str] = {"header_ribbon"}
 WHITEN_GAMMA = 3.0
+
+# Yumusatma (HUD v5): pismis siyah cizgi/bevel griye kaldirilir — modulate
+# carpani oldugundan cizgi tint'in koyu tonu olur (siyah degil, erik/koyu
+# lavanta); tam saydam olmayan dis golge pikselleri yari alfa.
+SOFTEN: set[str] = {"btn_bevel_soft", "card_bevel_soft"}
+SOFTEN_FLOOR = 0.44
+SOFTEN_SHADOW_ALPHA = 0.5
 
 # Beyaz picto ikon ailesi: rol -> paket adi. Squishy Merge'in kendi sanati
 # olan kavramlar (Hamur, guc, skin, sandik, tac/yildiz/bayrak HUD rozetleri)
@@ -196,6 +207,21 @@ def whiten(im: Image.Image, gamma: float) -> Image.Image:
     return out
 
 
+def soften(im: Image.Image, floor: float, shadow_alpha: float) -> Image.Image:
+    px = im.load()
+    out = Image.new("RGBA", im.size)
+    op = out.load()
+    lo = int(round(255 * floor))
+    for yy in range(im.height):
+        for xx in range(im.width):
+            r, g, b, a = px[xx, yy]
+            if a < 250 and max(r, g, b) < 40:
+                a = int(round(a * shadow_alpha))
+            v = max(r, g, b, lo) if a > 0 else 0
+            op[xx, yy] = (v, v, v, a)
+    return out
+
+
 def find_picto(name: str) -> str:
     folder = os.path.join(SRC, PICTO)
     for entry in os.listdir(folder):
@@ -241,6 +267,8 @@ def main() -> None:
         os.makedirs(folder, exist_ok=True)
         for name, (rel, scale) in entries.items():
             im, (l, t, r, b) = derive(os.path.join(SRC, rel), scale, name in WHITEN)
+            if name in SOFTEN:
+                im = soften(im, SOFTEN_FLOOR, SOFTEN_SHADOW_ALPHA)
             im.save(os.path.join(folder, name + ".png"))
             lines.append("\t\"%s\": [\"%s/%s.png\", %d, %d, %d, %d, %d, %d]," % (
                 name, family, name, im.width, im.height, l, t, r, b))

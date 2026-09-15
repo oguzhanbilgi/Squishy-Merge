@@ -154,13 +154,16 @@ func _build_panels() -> void:
 	# HUD v4: govdeler pismis bevel/dudakli sprite'lardan (btn_bevel: cizgi +
 	# bevel; card_bevel: yumusak alt dudak) — duz label_round kutu hissi
 	# veriyordu. Dis halka/golge/gloss UiKit.hud_* dekor katmaninda.
-	_panel(&"PanelHudScore", "btn_bevel", UiTokens.LAVENDER_DEEP, Vector4(20, 4, 20, 12))
-	_panel(&"PanelTray", "card_bevel", UiTokens.TRAY_CREAM, Vector4(6, 6, 6, 12))
-	_panel(&"PanelHudFrame", "btn_bevel", UiTokens.LAVENDER_DEEP, Vector4(7, 5, 7, 10))
-	_panel(&"PanelHudCard", "card_bevel", UiTokens.CREAM, Vector4(12, 2, 12, 6))
+	# HUD v5 (yumusatma): govdeler `*_soft` surumlerinden — siyah cizgi
+	# tint'in koyu tonuna (erik/koyu lavanta) kaldirildi, dis golge yari
+	# alfa; tepsi `title_oval` pill (kose yok, organik candy taban).
+	_panel(&"PanelHudScore", "btn_bevel_soft", UiTokens.LAVENDER_DEEP, Vector4(20, 4, 20, 12))
+	_panel(&"PanelTray", "title_oval", UiTokens.TRAY_CREAM, Vector4(6, 6, 6, 12))
+	_panel(&"PanelHudFrame", "btn_bevel_soft", UiTokens.LAVENDER_DEEP.lerp(UiTokens.LAVENDER_LIGHT, 0.14), Vector4(7, 5, 7, 10))
+	_panel(&"PanelHudCard", "card_bevel_soft", UiTokens.CREAM, Vector4(12, 2, 12, 6))
 	_panel(&"PanelHudPill", "title_oval", UiTokens.CREAM, Vector4(14, 2, 14, 6))
 	_panel(&"PanelHudPercent", "label_trapezoid", UiTokens.NAVY_PURPLE_DEEP, Vector4(12, 1, 14, 3))
-	_panel(&"PanelHudBadge", "btn_bevel", UiTokens.GOLD, Vector4(8, 2, 8, 8))
+	_panel(&"PanelHudBadge", "btn_bevel_soft", UiTokens.GOLD, Vector4(8, 2, 8, 8))
 	_panel(&"PanelHudPortrait", "frame_round12", UiTokens.CREAM_DEEP, Vector4(5, 1, 5, 3))
 	# Evrim seridi tepsisi (M8.6-02): koyu yuvarlak plaka, dar iceri pay.
 	_panel(&"PanelStrip", "panel_bevel", Color(UiTokens.PLUM, 0.94), Vector4(14, 4, 14, 8))
@@ -210,9 +213,9 @@ func _build_buttons() -> void:
 		FONT_TITLE, 16, UiTokens.TEXT_DISABLED, UiTokens.TEXT_DISABLED)
 	# Gameplay HUD kose butonlari (HUD v3): koyu lavanta-mor kare, buyuk beyaz
 	# picto; cikis pembe. Halka/gloss/golge UiKit.hud_icon_button ekler.
-	_button(&"ButtonHud", "btn_bevel", UiTokens.LAVENDER_DEEP, Vector4(8, 6, 8, 14),
+	_button(&"ButtonHud", "btn_bevel_soft", UiTokens.LAVENDER_DEEP, Vector4(8, 6, 8, 14),
 		FONT_TITLE, 22, UiTokens.TEXT_ON_DARK, UiTokens.TEXT_DISABLED, 34)
-	_button(&"ButtonHudExit", "btn_bevel", UiTokens.PINK, Vector4(8, 6, 8, 14),
+	_button(&"ButtonHudExit", "btn_bevel_soft", UiTokens.PINK, Vector4(8, 6, 8, 14),
 		FONT_TITLE, 22, UiTokens.TEXT_ON_DARK, UiTokens.TEXT_DISABLED, 34)
 	# Kaynak pill'inin nane "+" butonu.
 	_button(&"ButtonResourceAdd", "resource_btn", UiTokens.MINT, Vector4(8, 6, 8, 10),
@@ -274,7 +277,7 @@ func _build_components() -> void:
 	# HUD hedef cubugu (v3): koyu mor cizgili ray + parlak nane dolgu.
 	_theme.set_type_variation(&"ProgressBarHud", &"ProgressBar")
 	_theme.set_stylebox("background", &"ProgressBarHud",
-		UiKit.style("slider_thin_bg", UiTokens.NAVY_PURPLE_DEEP, Vector4(3, 2, 3, 3)))
+		UiKit.style("slider_thin_bg", UiTokens.NAVY_PURPLE, Vector4(3, 2, 3, 3)))
 	_theme.set_stylebox("fill", &"ProgressBarHud", UiKit.style("slider_fill_sm", UiTokens.MINT))
 	# Anahtar rayi: acik nane, kapali lavanta-gri.
 	_panel(&"SwitchOn", "switch_track", UiTokens.MINT, Vector4(0, 0, 0, 0))

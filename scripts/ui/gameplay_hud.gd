@@ -141,9 +141,28 @@ func _build_row1() -> void:
 	score_plate.name = "ScorePlate"
 	score_plate.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_score_center.add_child(score_plate)
-	UiKit.hud_shadow(score_plate, 8.0, 0.42, _deco_back)
+	# HUD v5: cok yumusak mor arka parilti (kapsulun etrafinda genis, dusuk
+	# alfa) + erik golge + acik halka; iki minik altin pirilti aksani onde.
+	var backing := UiKit.patch("popup_glow", Color(UiTokens.LAVENDER_DEEP, 0.30))
+	UiKit.hud_attach(score_plate, backing, _deco_back, Vector4(30.0, 22.0, 30.0, 26.0))
+	UiKit.hud_shadow(score_plate, 6.0, 0.26, _deco_back)
 	UiKit.hud_rim(score_plate, UiTokens.LAVENDER_LIGHT, 5.0, _deco_back)
 	UiKit.hud_gloss(score_plate, 24.0, 0.36, 12.0, _deco_front)
+	var sparkles := Control.new()
+	sparkles.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	for spec in [[0.0, 0.0, -6.0, -8.0, 14.0], [1.0, 1.0, 2.0, -2.0, 10.0]]:
+		var spark := UiKit.art(STAR_ART, int(spec[4]))
+		spark.anchor_left = spec[0]
+		spark.anchor_right = spec[0]
+		spark.anchor_top = spec[1]
+		spark.anchor_bottom = spec[1]
+		spark.offset_left = spec[2]
+		spark.offset_top = spec[3]
+		spark.offset_right = spec[2] + spec[4]
+		spark.offset_bottom = spec[3] + spec[4]
+		spark.modulate = Color(1, 1, 1, 0.9)
+		sparkles.add_child(spark)
+	UiKit.hud_attach(score_plate, sparkles, _deco_front, Vector4.ZERO)
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 6)
 	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -199,26 +218,31 @@ func _build_row2() -> void:
 	# tepsinin üstüne yerleşir; tepsi yalnız görsel).
 	# hud_target: iki madalyonu birleştiren sığ krem tepsi, koyu lavanta dış
 	# halka, dış gölge, üst gloss.
+	# HUD v5: tepsi = krem `title_oval` pill (kose/cizgi yok); altinda ayni
+	# pill'in lavanta-mor surumu asagi kaydirilmis (tek parca candy taban:
+	# ust yuzey krem, alt derinlik mor) + erik yumusak golge.
 	tray_left = UiKit.panel(&"PanelTray")
 	tray_left.name = "TrayLeft"
 	tray_left.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(tray_left)
-	UiKit.hud_shadow(tray_left, 8.0, 0.42, _deco_back)
-	UiKit.hud_rim(tray_left, UiTokens.LAVENDER_DEEP, 5.0, _deco_back, "btn_bevel")
 	tray_right = UiKit.panel(&"PanelTray")
 	tray_right.name = "TrayRight"
 	tray_right.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(tray_right)
-	UiKit.hud_shadow(tray_right, 8.0, 0.42, _deco_back)
-	UiKit.hud_rim(tray_right, UiTokens.LAVENDER_DEEP, 5.0, _deco_back, "btn_bevel")
+	for tray in [tray_left, tray_right]:
+		UiKit.hud_shadow(tray, 7.0, 0.26, _deco_back)
+		var base := UiKit.patch("title_oval", UiTokens.LAVENDER_DEEP)
+		UiKit.hud_attach(tray, base, _deco_back, Vector4(4.0, 2.0, 4.0, 9.0))
+		var base_light := UiKit.patch("title_oval", UiTokens.LAVENDER_LIGHT)
+		UiKit.hud_attach(tray, base_light, _deco_back, Vector4(4.0, 3.0, 4.0, 3.0))
 	# Orta dekor katmani: tepsilerin USTUNDE, madalyonlarin ALTINDA (tepsi
 	# gloss'u + madalyon yuvalari).
 	_deco_mid = Control.new()
 	_deco_mid.name = "DecoMid"
 	_deco_mid.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(_deco_mid)
-	UiKit.hud_gloss(tray_left, 18.0, 0.5, 10.0, _deco_mid)
-	UiKit.hud_gloss(tray_right, 18.0, 0.5, 10.0, _deco_mid)
+	UiKit.hud_gloss(tray_left, 18.0, 0.45, 12.0, _deco_mid)
+	UiKit.hud_gloss(tray_right, 18.0, 0.45, 12.0, _deco_mid)
 	power_bar = POWER_BAR_SCENE.instantiate()
 	power_bar.name = "PowerBar"
 	add_child(power_bar)
