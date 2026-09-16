@@ -204,13 +204,19 @@ func _ready() -> void:
 	await get_tree().process_frame
 	await get_tree().process_frame
 	_c("board açıldı", main._board != null and is_instance_valid(main._board))
+	_c("Android geri: motor quit_on_go_back kapalı (aksi halde mola açılsa da uygulama kapanır)",
+		get_tree().quit_on_go_back == false)
+	main._notification(Node.NOTIFICATION_WM_GO_BACK_REQUEST)
+	# Godot 4.6 Android ayni basisi iki kez iletir: kopya yok sayilmali.
 	main._notification(Node.NOTIFICATION_WM_GO_BACK_REQUEST)
 	await get_tree().process_frame
-	_c("Android geri: mola açıldı, board donuk, uygulama kapanmadı",
+	_c("Android geri (cift iletim): mola açıldı, board donuk, uygulama kapanmadı",
 		main.is_pause_open() and main._board._is_paused())
+	await get_tree().create_timer(0.3).timeout
+	main._notification(Node.NOTIFICATION_WM_GO_BACK_REQUEST)
 	main._notification(Node.NOTIFICATION_WM_GO_BACK_REQUEST)
 	await get_tree().process_frame
-	_c("Android geri (ikinci): mola kapandı, oyun sürüyor",
+	_c("Android geri (ikinci basis, cift iletim): mola kapandı, oyun sürüyor",
 		not main.is_pause_open() and not main._board._is_paused())
 	main._board.get_node("HUD").back_button.pressed.emit()
 	await get_tree().process_frame

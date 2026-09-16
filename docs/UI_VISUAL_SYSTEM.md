@@ -468,6 +468,15 @@ tuşu = Devam Et). Açıkken board `set_menu_paused(true)`. Devam/refill
 penceresi açıkken mola açılmaz. "Ana Menüye Dön" round'u terk eder: sonuç
 ekranı, ödül ve kayıt akışı çalışmaz, harita sekmesine dönülür.
 
+**Android geri tuşu — motor tuzakları (A36 cihaz kapısı, 2026-09-16):**
+`SceneTree.quit_on_go_back` varsayılanı true'dur ve GO_BACK bildirimi
+dağıtıldıktan sonra oyunu KAPATIR — bu yüzden `Main._ready` onu kapatır ve
+çıkış yalnızca ana sekmede, kapatılacak pencere yokken `get_tree().quit()`
+ile yapılır. Ayrıca Godot 4.6 Android tek geri basışında bildirimi iki kez
+iletebilir (`android_input_handler.cpp` AKEYCODE_BACK + OnBackPressedDispatcher
+→ `GodotLib.back`); `Main._notification` 250 ms debounce ile kopyayı yok
+sayar. Sonuç ekranı açıkken geri tuşu yok sayılır (karar bekler).
+
 ### 13.8 Gelecek banner seam'i
 
 `GameplayHud.banner_seam` (görünmez Control) = `layout["banner"]`; yüksekliği

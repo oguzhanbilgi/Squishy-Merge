@@ -84,6 +84,8 @@ func _ready() -> void:
 	_c("satin alma Hamur -120", SaveManager.dough() == before_dough - 120)
 	_c("bakiye cipi guncel", shop._dough_chip.get_meta("value_label").text == "%d Hamur" % SaveManager.dough())
 	_c("onay kapandi", not shop._confirm.visible)
+	# Main geri tusunu 250 ms debounce'lar (Godot 4.6 Android cift iletim).
+	await get_tree().create_timer(0.3).timeout
 	main._notification(Node.NOTIFICATION_WM_GO_BACK_REQUEST)
 	_c("geri tusu ana sayfaya dondu", main._active_tab == 0)
 	# Koleksiyon equip

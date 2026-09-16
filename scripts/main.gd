@@ -28,6 +28,9 @@ var _revive: CanvasLayer
 var _refill: CanvasLayer
 var _settings: CanvasLayer
 var _pause: CanvasLayer
+## Android geri tusu debounce (bkz. _notification).
+const BACK_DEBOUNCE_MSEC: int = 250
+var _last_back_msec: int = -1000
 var _board: Node2D
 ## Ödüllü reklam sağlayıcısı (M9+ AdMob). null = sağlayıcı yok.
 ##
@@ -58,6 +61,11 @@ var _active_tab: int = 0
 
 
 func _ready() -> void:
+	# Android geri tusu: motor varsayilani (quit_on_go_back) GO_BACK bildirimini
+	# gonderdikten sonra uygulamayi KAPATIR — mola/sekme mantigi calissa bile.
+	# Cihaz kapisinda (A36, HUD v5) yakalandi: mola acikken geri = uygulama
+	# kapandi. Kapanis yalniz asagidaki _notification'da, ana sekmede.
+	get_tree().quit_on_go_back = false
 	_result = ROUND_RESULT_SCENE.instantiate()
 	_result.retry_pressed.connect(_on_retry_pressed)
 	_result.exit_pressed.connect(_on_exit_pressed)
@@ -207,8 +215,19 @@ func is_pause_open() -> bool:
 func _notification(what: int) -> void:
 	if what != NOTIFICATION_WM_GO_BACK_REQUEST:
 		return
+	# Godot 4.6 Android tek geri basisinda GO_BACK'i IKI kez gonderebiliyor
+	# (AKEYCODE_BACK tus yolu + OnBackPressedDispatcher): mola acilip aninda
+	# kapaniyordu (A36 cihaz kapisi, 3 tuslu gezinme / adb keyevent). Ayni
+	# basisin ikinci kopyasi yok sayilir.
+	var now: int = Time.get_ticks_msec()
+	if now - _last_back_msec < BACK_DEBOUNCE_MSEC:
+		return
+	_last_back_msec = now
 	if _settings != null and _settings.visible:
 		close_settings()
+		return
+	# Sonuç ekranı karar bekler: geri tuşu yok sayılır (mola açılmaz, çıkılmaz).
+	if _result != null and _result.visible:
 		return
 	# Oyun sırasında: uygulama KAPANMAZ, mola penceresi açılır/kapanır.
 	if _board != null and is_instance_valid(_board):
@@ -222,6 +241,9 @@ func _notification(what: int) -> void:
 		return
 	if _active_tab != 0:
 		_show_tab(0)
+		return
+	# Ana sayfada, kapatacak pencere yok: uygulamadan cik (Android beklentisi).
+	get_tree().quit()
 
 
 ## Oyun sırasında ve sonuç ekranında hiçbir sekme ekranı görünmemeli.
