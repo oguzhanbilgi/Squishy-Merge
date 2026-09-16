@@ -273,8 +273,11 @@ alınacak — şimdi tahmin/vaat yok.
     gizli), ui_smoke 72, shell 147, skin 30, audio 45, economy 100, refill 119,
     revive 120, bot L3 2/2 (build/qa_m8.6-04/). **Level verisi, unlock/yıldız
     kuralı, Sonsuz şartı, level başlatma yolu, ekonomi, kayıt şeması, fizik,
-    Home, gameplay DEĞİŞMEDİ.** Cihaz kapısı owner görsel onayından sonra.
-    Ayrıntı: UI_VISUAL_SYSTEM §15.
+    Home, gameplay DEĞİŞMEDİ.** **A36 cihaz kapısı geçti (75f0e49):** tek
+    kusur — punch-hole bandı dikişi — `flip_v` ile kapatıldı; rotalar,
+    kilitli/sıradaki/tamamlanmış/Sonsuz durumları, açılış animasyonu ve
+    logcat cihazda temiz (build/qa_m8.6-04/device/). Owner manuel onayı +
+    merge izni bekliyor. Ayrıntı: UI_VISUAL_SYSTEM §15.
 - **Sırada: M8.6 — Visual Cohesion Rebuild** (ekranlar `UiKit`/`UiTokens`
   sistemine geçirilecek: ~~gameplay shell~~ ✅ → ~~home~~ ✅ → ~~map~~ 🔶
   (owner görsel onayı + cihaz kapısı bekliyor) → shop → collection →
