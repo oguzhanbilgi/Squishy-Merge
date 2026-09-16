@@ -1,125 +1,164 @@
 extends CanvasLayer
-## Mağaza (GAME_DESIGN.md §5.6 skinler, §5.7 güçler). İki bölüm:
+## Mağaza — production casual-game dükkânı (M8.6-05; GAME_DESIGN §5.6 skinler,
+## §5.7 güçler). Dikey bir oyun mağazası, ayar listesi DEĞİL:
 ##
-##   GÜÇLER  — tüketilebilir, tekrar tekrar alınır (Hamur sink'i)
-##   SKINLER — kalıcı koleksiyon
+##   ÜST     `ScreenTopBar` (sabit): oturmuş geri (→ Ana Sayfa) · pembe
+##           "MAĞAZA" kurdelesi · Hamur pill'i — "+" YOK (Mağaza zaten "+"in
+##           hedefi; kendine giden ölü rota olmasın), yalnız bakiye.
+##   İÇERİK  gerçek ScrollContainer (üst satırın ALTINDAN kayar, üstte koyu
+##           haze ile solar): GÜÇLER bölüm plakası + 2×2 `ShopPowerCard` ·
+##           SKİNLER bölüm plakası + 2×10 `ShopSkinCard`; altta rahat pay
+##           (+ cihaz alt güvenli alanı). Alt sekme çubuğu YOK.
+##   ZEMİN   candy-night dünya (ShellBackdrop) Home ayarında + kenar vignette;
+##           kartlar dünyanın üstünde oturan krem candy nesneler.
 ##
-## Tek para birimi Hamur. Gerçek para Power Pack'ler PLANLANDI ama HENÜZ
-## YOK (billing kurulmadı, bkz. GAME_DESIGN §5.7.4).
+## Tek para birimi Hamur. Gerçek para Güç Paketi / reklam ürünü YOK
+## (billing/AdMob kurulmadı — GAME_DESIGN §5.7.4). Fiyatlar burada hardcode
+## DEĞİL: güçler `PowerUpEconomy.DOUGH_PRICES`, skinler `Shop.PRICES`.
 ##
-## Fiyatlar burada hardcode DEĞİL: güçler `PowerUpEconomy.DOUGH_PRICES`,
-## skinler `Shop.PRICES` üzerinden geliyor.
-##
-## M8.5-10 görsel pası: liste/veritabanı görünümünden kart tabanlı casual
-## mağazaya. Kartta bilgi önceliği: ikon (renkli kuyu) → ad → fiyat
-## (Hamur ikonu, altın) → stok (sakin) → CTA (candy pill). Onay diyaloğu
-## ve toast candy penceresi/cipi; satın alma başarısında kart pop + bakiye
-## cipi pop. Ekonomi/transaction kodu DEĞİŞMEDİ (Shop / PowerUpEconomy).
+## Satın alma: kart → onay penceresi (`UiKit.modal_frame`, ürün sunumu +
+## fiyat + SATIN AL / Vazgeç) → KANONİK tek transaction
+## (`PowerUpEconomy.purchase` / `Shop.purchase` → SaveManager). Bu dosya
+## Hamur'a doğrudan DOKUNMAZ; skin TAKMAZ (Koleksiyon takar). Hamur
+## yetmiyorsa onay açılmaz: kart sallanır + pembe geri bildirim plakası
+## (sessiz başarısızlık yok, bedava para yok). Başarıda kart pop + stok /
+## bakiye anında kanonik modelden.
 
-const SWATCH_SIZE: Vector2 = Vector2(72.0, 72.0)
-## Güç kartındaki ikon kuyusu (yuvarlak, gücün vurgu renginde) ve içindeki
-## ikon. M8.5-09'a kadar burada `PowerUp.GLYPHS` metin işareti duruyordu;
-## gerçek ikonlar `PowerUp.ICON_PATHS`.
-const ICON_WELL: float = 84.0
-const POWER_ICON_SIZE: float = 68.0
-const BUY_SIZE: Vector2 = Vector2(150.0, 62.0)
-const BUY_FONT_SIZE: int = 22
+## Üst satırdaki geri butonu (→ Ana Sayfa, main._on_home_requested).
+signal home_requested
 
+const TITLE: String = "MAĞAZA"
+const SIDE_MARGIN: float = 24.0
+const COLUMN_GAP: float = 16.0
+const ROW_GAP: float = 20.0
+## Üst haze: satır boyunca düz koyu bant (kartlar satırın altında OKUNMAZ),
+## sonra bu kadar px'te sıfıra solar.
+const HAZE_FADE: float = 36.0
+## Üst satır ile ilk bölüm plakası arası = solma boyu: ilk plaka dinlenme
+## konumunda haze'in dışında (boyanmaz).
+const CONTENT_TOP_GAP: float = HAZE_FADE
+const SECTION_GAP: float = 12.0
+const SECTION_SPACER: float = 22.0
+const BOTTOM_PADDING: float = 64.0
+const ENTRY_TIME: float = 0.18
+## Geri bildirim plakası: kartı varsa kartın hemen altında (12 px), yoksa alt
+## kenardan bu kadar yukarıda belirir.
+const TOAST_BOTTOM: float = 150.0
+const TOAST_CARD_GAP: float = 12.0
+
+var _bar: ScreenTopBar
+var _power_cards: Array[ShopPowerCard] = []
+var _skin_cards: Array[ShopSkinCard] = []
+## Kart kimliği -> kart: "power_<tip>" ve skin id (String). Testler ve
+## satın alma sonrası pop için.
+var _cards: Dictionary = {}
 var _pending_skin: SkinData = null
 ## Onay bekleyen güç tipi, ya da -1.
 var _pending_power: int = -1
-var _dough_chip: PanelContainer
-## Son satın alınan öğenin kartı (pop için): kart kimliği -> kart.
-var _cards: Dictionary = {}
+var _frame: Control
+var _confirm_art: Control
+var _confirm_title: Label
+var _confirm_detail: Label
+var _confirm_price: Label
+var _confirm_balance: Label
+var _confirm_yes: Button
+var _confirm_no: Button
+var _toast: Control
+var _toast_plate: PanelContainer
+var _toast_rim: PanelContainer
+var _toast_label: Label
+var _time: float = 0.0
+var _entry_tween: Tween
+## Test kancası: cihaz üst güvenli payı (A36 punch-hole) masaüstünde
+## okunamaz; negatif = gerçek değeri kullan.
+var _safe_top_override: float = -1.0
 
-@onready var _chip_slot: HBoxContainer = $Margin/VBox/Header/ChipSlot
-@onready var _list: VBoxContainer = $Margin/VBox/Scroll/List
-@onready var _toast: PanelContainer = $Toast
-@onready var _toast_label: Label = $Toast/Label
+@onready var _root: Control = $Root
+@onready var _backdrop: Control = $Root/Backdrop
+@onready var _vignette: TextureRect = $Root/Vignette
+@onready var _scroll: ScrollContainer = $Root/Scroll
+@onready var _margin: MarginContainer = $Root/Scroll/Margin
+@onready var _content: VBoxContainer = $Root/Scroll/Margin/Content
+@onready var _haze: TextureRect = $Root/Haze
 @onready var _confirm: Control = $Confirm
 @onready var _confirm_dim: ColorRect = $Confirm/Dim
-@onready var _confirm_modal: Control = $Confirm/Modal
-@onready var _confirm_title: Label = $Confirm/Modal/Panel/VBox/Title
-@onready var _confirm_detail: Label = $Confirm/Modal/Panel/VBox/Detail
-@onready var _confirm_price: RichTextLabel = $Confirm/Modal/Panel/VBox/Price
-@onready var _confirm_yes: Button = $Confirm/Modal/Panel/VBox/Yes
-@onready var _confirm_no: Button = $Confirm/Modal/Panel/VBox/No
+@onready var _confirm_anchor: CenterContainer = $Confirm/Anchor
 
 
 func _ready() -> void:
-	_dough_chip = UiPalette.chip(UiIcons.DOUGH, "")
-	_chip_slot.add_child(_dough_chip)
-
-	CandyButton.style_cta(_confirm_yes)
-	UiMotion.attach_press(_confirm_yes)
-	UiMotion.attach_press(_confirm_no)
-	UiPalette.style_ghost_on_cream(_confirm_no)
-	_confirm_no.custom_minimum_size.y = 60.0
-	_confirm_yes.pressed.connect(_on_confirm_yes)
-	_confirm_no.pressed.connect(_close_confirm)
-	_confirm_dim.gui_input.connect(_on_dim_input)
-	_confirm.visible = false
-	_toast.modulate.a = 0.0
+	_tune_backdrop()
+	_vignette.texture = _radial_vignette()
+	_haze.texture = _band_gradient(Color(UiTokens.WORLD_INDIGO, 0.94), Color(UiTokens.WORLD_INDIGO, 0.0))
+	_bar = ScreenTopBar.new(TITLE, false)
+	_bar.back_pressed.connect(func() -> void: home_requested.emit())
+	_root.add_child(_bar)
+	_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_SHOW_NEVER
+	_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	_build_content()
+	_build_confirm()
+	_build_toast()
+	_root.resized.connect(_layout)
+	visibility_changed.connect(func() -> void:
+		set_process(visible)
+		if visible:
+			_layout()
+			_play_entry.call_deferred())
+	set_process(visible)
+	_layout()
 	refresh()
 
 
-func refresh() -> void:
-	for child in _list.get_children():
-		child.queue_free()
-	_cards.clear()
+# --- Kurulum ------------------------------------------------------------------
 
-	# Güçler önce: tekrar alınabilen bölüm üstte olsun, skin listesi uzun.
-	_list.add_child(_make_section_header(UiPalette.ICON_SPARKLE, "GÜÇLER",
-		"Tüketilir · her round'da kullanabilirsin", UiPalette.CYAN))
+## Kabuk zemini Mağaza'da Home ayarında: gece kasabası görünür, karartma
+## azalır (krem kartlar zaten okunur), alt solma kalır.
+func _tune_backdrop() -> void:
+	var night: CanvasItem = _backdrop.get_node_or_null("Night")
+	if night != null:
+		night.modulate = Color(0.80, 0.78, 0.94, 1.0)
+	var scrim: ColorRect = _backdrop.get_node_or_null("Scrim")
+	if scrim != null:
+		scrim.color = Color(0.07, 0.05, 0.18, 0.30)
+	var fade: CanvasItem = _backdrop.get_node_or_null("BottomFade")
+	if fade != null:
+		fade.modulate = Color(1, 1, 1, 0.70)
+
+
+func _build_content() -> void:
+	_content.add_theme_constant_override("separation", SECTION_GAP)
+	var powers_header := UiKit.section_header("GÜÇLER")
+	powers_header.name = "PowersHeader"
+	_content.add_child(powers_header)
+	var power_grid := _make_grid("PowerGrid")
+	_content.add_child(power_grid)
 	for type in PowerUp.all():
-		_list.add_child(_make_power_row(type))
+		var card := ShopPowerCard.create(type)
+		card.buy_requested.connect(_on_power_buy_requested)
+		power_grid.add_child(card)
+		_power_cards.append(card)
+		_cards["power_%d" % int(type)] = card
+	_content.add_child(_make_spacer(SECTION_SPACER))
+	var skins_header := UiKit.section_header("SKİNLER")
+	skins_header.name = "SkinsHeader"
+	_content.add_child(skins_header)
+	var skin_grid := _make_grid("SkinGrid")
+	_content.add_child(skin_grid)
+	for entry in SkinEntry.all(false):
+		var card := ShopSkinCard.create(entry)
+		card.buy_requested.connect(_on_skin_buy_requested)
+		skin_grid.add_child(card)
+		_skin_cards.append(card)
+		_cards[String(entry.id)] = card
 
-	_list.add_child(_make_spacer(10))
-	_list.add_child(_make_section_header(UiPalette.ICON_GIFT, "SKİNLER",
-		"Kalıcı · bir kez alınır", UiPalette.PINK))
-	var shown_rarity: int = -1
-	for skin in SkinLibrary.all():
-		if int(skin.rarity) != shown_rarity:
-			shown_rarity = int(skin.rarity)
-			_list.add_child(_make_rarity_header(skin.rarity))
-		_list.add_child(_make_row(skin))
-	_list.add_child(_make_spacer(8))
 
-	_refresh_dough(false)
-
-
-func _refresh_dough(pop: bool) -> void:
-	UiPalette.set_chip_value(_dough_chip, "%d Hamur" % SaveManager.dough(), pop)
-
-
-# --- Bölüm başlıkları ---
-
-## İkon + başlık + kısa not, tek satırda. Başlık Baloo, not Nunito.
-func _make_section_header(icon: Texture2D, title: String, note: String,
-		accent: Color) -> Control:
-	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 10)
-	row.custom_minimum_size = Vector2(0, 46)
-	var rect := UiPalette.icon_rect(icon, 28.0, accent)
-	rect.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	row.add_child(rect)
-	var label := Label.new()
-	UiType.apply(label, UiType.SECTION_TITLE)
-	label.text = title
-	label.add_theme_color_override("font_color", accent)
-	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	row.add_child(label)
-	var caption := Label.new()
-	UiType.apply(caption, UiType.CAPTION)
-	caption.text = note
-	caption.add_theme_color_override("font_color", UiPalette.TEXT_MUTED)
-	caption.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	caption.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	caption.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	caption.clip_text = true
-	caption.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
-	row.add_child(caption)
-	return row
+func _make_grid(grid_name: String) -> GridContainer:
+	var grid := GridContainer.new()
+	grid.name = grid_name
+	grid.columns = 2
+	grid.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	grid.add_theme_constant_override("h_separation", int(COLUMN_GAP))
+	grid.add_theme_constant_override("v_separation", int(ROW_GAP))
+	return grid
 
 
 func _make_spacer(height: float) -> Control:
@@ -129,222 +168,249 @@ func _make_spacer(height: float) -> Control:
 	return spacer
 
 
-# --- Güç satırı ---
-
-func _make_power_row(type: PowerUp.Type) -> Control:
-	var card := PanelContainer.new()
-	card.theme_type_variation = &"CardPanel"
-	card.custom_minimum_size = Vector2(0, 108)
-	_cards["power_%d" % int(type)] = card
-
-	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 16)
-	card.add_child(row)
-
-	row.add_child(_make_icon_well(PowerUp.accent(type), PowerUp.icon(type)))
-
-	var text := VBoxContainer.new()
-	text.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	text.alignment = BoxContainer.ALIGNMENT_CENTER
-	text.add_theme_constant_override("separation", 0)
-	row.add_child(text)
-
-	var name_label := Label.new()
-	UiType.apply(name_label, UiType.CARD_TITLE)
-	name_label.text = PowerUp.display_name(type)
-	text.add_child(name_label)
-
-	text.add_child(_make_price_line(PowerUpEconomy.price(type)))
-
-	# Stok sakin (Caption): karar bilgisi fiyat, stok bağlam.
-	var stock_label := Label.new()
-	UiType.apply(stock_label, UiType.CAPTION)
-	stock_label.text = "Stok ×%d" % SaveManager.powerup_count(type)
-	stock_label.add_theme_color_override("font_color", UiPalette.TEXT_MUTED)
-	text.add_child(stock_label)
-
-	var buy := _make_buy_button(PowerUpEconomy.can_afford(type))
-	buy.pressed.connect(_open_power_confirm.bind(type))
-	row.add_child(buy)
-
-	return card
-
-
-## Gücün vurgu renginde yuvarlak kuyu; ikon değerli görünsün, düz listede
-## kaybolmasın.
-func _make_icon_well(accent: Color, icon: Texture2D) -> Control:
-	var well := PanelContainer.new()
-	well.custom_minimum_size = Vector2(ICON_WELL, ICON_WELL)
-	well.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	var box := StyleBoxFlat.new()
-	box.bg_color = Color(accent.r, accent.g, accent.b, 0.22)
-	box.set_border_width_all(2)
-	box.border_color = Color(accent.r, accent.g, accent.b, 0.55)
-	box.set_corner_radius_all(int(ICON_WELL * 0.5))
-	well.add_theme_stylebox_override("panel", box)
-	var rect := TextureRect.new()
-	rect.texture = icon
-	rect.custom_minimum_size = Vector2(POWER_ICON_SIZE, POWER_ICON_SIZE)
-	rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	well.add_child(rect)
-	return well
+## Onay penceresi: production iskelet (`UiKit.modal_frame`: pembe kurdele +
+## krem gövde + kapat) — ürün sunumu (candy kuyu / skin önizlemesi), ad,
+## açıklama, fiyat, SATIN AL (kahraman CTA) ve Vazgeç.
+func _build_confirm() -> void:
+	_frame = UiKit.modal_frame("Satın Al", 560.0)
+	_confirm_anchor.add_child(_frame)
+	var body: VBoxContainer = _frame.get_meta(&"body")
+	body.add_theme_constant_override("separation", UiTokens.SPACE_SM)
+	_confirm_art = Control.new()
+	_confirm_art.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_confirm_art.custom_minimum_size = Vector2(0, 172.0)
+	body.add_child(_confirm_art)
+	_confirm_title = UiKit.label("-", &"LabelTitle", HORIZONTAL_ALIGNMENT_CENTER)
+	_confirm_title.add_theme_font_size_override("font_size", 30)
+	body.add_child(_confirm_title)
+	_confirm_detail = UiKit.label("-", &"LabelBody", HORIZONTAL_ALIGNMENT_CENTER)
+	_confirm_detail.add_theme_color_override("font_color", UiTokens.TEXT_SECONDARY)
+	_confirm_detail.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	body.add_child(_confirm_detail)
+	var price_row := HBoxContainer.new()
+	price_row.alignment = BoxContainer.ALIGNMENT_CENTER
+	price_row.add_theme_constant_override("separation", UiTokens.SPACE_SM)
+	price_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	body.add_child(price_row)
+	var dough := UiKit.art(ScreenTopBar.DOUGH_ART, 36)
+	dough.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
+	dough.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	price_row.add_child(dough)
+	_confirm_price = UiKit.label("", &"LabelPrice")
+	_confirm_price.add_theme_font_size_override("font_size", 28)
+	price_row.add_child(_confirm_price)
+	# İşlem şeffaf: bakiye önce → sonra (kanonik modelden; onay yalnız Hamur
+	# yetiyorken açılır).
+	_confirm_balance = UiKit.label("", &"LabelCaption", HORIZONTAL_ALIGNMENT_CENTER)
+	_confirm_balance.add_theme_font_size_override("font_size", 17)
+	body.add_child(_confirm_balance)
+	body.add_child(_make_spacer(2.0))
+	_confirm_yes = UiKit.cta("SATIN AL", "", &"ButtonCTA")
+	_confirm_yes.name = "Yes"
+	_confirm_yes.pressed.connect(_on_confirm_yes)
+	body.add_child(_confirm_yes)
+	_confirm_no = UiKit.button("Vazgeç", &"ButtonSecondary")
+	_confirm_no.name = "No"
+	_confirm_no.pressed.connect(_close_confirm)
+	body.add_child(_confirm_no)
+	(_frame.get_meta(&"close_button") as Button).pressed.connect(_close_confirm)
+	_confirm_dim.gui_input.connect(_on_dim_input)
+	_confirm.visible = false
 
 
-## "120 Hamur" — Hamur ikonu + altın rakam. Kartın en güçlü veri satırı.
-func _make_price_line(price: int) -> RichTextLabel:
-	var label := RichTextLabel.new()
-	label.bbcode_enabled = true
-	label.fit_content = true
-	label.scroll_active = false
-	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	label.custom_minimum_size = Vector2(0, 30)
-	label.add_theme_color_override("default_color", UiPalette.GOLD)
-	label.text = UiIcons.labelled(UiIcons.DOUGH, "%d Hamur" % price, 24)
-	return label
+## Geri bildirim plakası: pembe `title_oval` candy plaka (gameplay "Taştı!"
+## durum plakasıyla aynı dil) + açık halka + erik gölge; başarıda nane.
+func _build_toast() -> void:
+	_toast = Control.new()
+	_toast.name = "Toast"
+	_toast.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_toast.modulate.a = 0.0
+	var shadow := UiKit.patch("popup_glow", Color(0.22, 0.09, 0.36, 0.30))
+	UiKit.inset(shadow, -14.0, -8.0, -14.0, -18.0)
+	_toast.add_child(shadow)
+	_toast_rim = UiKit.flat_plate("title_oval", UiTokens.LAVENDER_LIGHT)
+	UiKit.inset(_toast_rim, -3.0, -3.0, -3.0, -3.0)
+	_toast.add_child(_toast_rim)
+	_toast_plate = UiKit.panel(&"PanelShopToast")
+	_toast_plate.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_toast_plate.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_toast.add_child(_toast_plate)
+	_toast_label = UiKit.label("", &"LabelSectionOnDark", HORIZONTAL_ALIGNMENT_CENTER)
+	_toast_label.add_theme_font_size_override("font_size", 21)
+	_toast_plate.add_child(_toast_label)
+	var gloss := UiKit.patch("btn_bevel_light", Color(1, 1, 1, 0.30))
+	gloss.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE)
+	gloss.offset_left = 10.0
+	gloss.offset_right = -10.0
+	gloss.offset_top = 3.0
+	gloss.offset_bottom = 20.0
+	_toast.add_child(gloss)
+	add_child(_toast)
 
 
-func _make_buy_button(affordable: bool) -> Button:
-	var buy := Button.new()
-	buy.text = "Satın Al"
-	buy.custom_minimum_size = BUY_SIZE
-	buy.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	buy.focus_mode = Control.FOCUS_NONE
-	buy.add_theme_font_size_override("font_size", BUY_FONT_SIZE)
-	# Parası yetmiyorsa pasif — basılabilir görünüp reddetmek kötü his.
-	buy.disabled = not affordable
-	UiMotion.attach_press(buy)
-	return buy
+# --- Yerleşim -----------------------------------------------------------------
+
+func _safe_top() -> float:
+	if _safe_top_override >= 0.0:
+		return _safe_top_override
+	return UiKit.safe_top(_root.size)
 
 
-# --- Skin satırı ---
-
-func _make_rarity_header(rarity: SkinData.Rarity) -> Control:
-	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 10)
-	row.custom_minimum_size = Vector2(0, 34)
-	var dot := PanelContainer.new()
-	dot.custom_minimum_size = Vector2(12, 12)
-	dot.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	var box := StyleBoxFlat.new()
-	box.bg_color = SkinData.rarity_color(rarity)
-	box.set_corner_radius_all(6)
-	dot.add_theme_stylebox_override("panel", box)
-	row.add_child(dot)
-	var label := Label.new()
-	UiType.apply(label, UiType.STAT)
-	label.text = SkinData.rarity_name(rarity)
-	label.add_theme_color_override("font_color", SkinData.rarity_color(rarity))
-	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	row.add_child(label)
-	var price := Label.new()
-	UiType.apply(price, UiType.CAPTION)
-	price.text = "%d Hamur" % Shop.price(rarity)
-	price.add_theme_color_override("font_color", UiPalette.TEXT_MUTED)
-	price.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	row.add_child(price)
-	return row
+func _layout() -> void:
+	if _root == null or _bar == null:
+		return
+	var view: Vector2 = _root.size
+	if view.x <= 0.0 or view.y <= 0.0:
+		return
+	var safe_top: float = _safe_top()
+	_bar.layout(view.x, safe_top)
+	_vignette.position = Vector2.ZERO
+	_vignette.size = view
+	_haze.position = Vector2.ZERO
+	_haze.size = Vector2(view.x, _bar.height() + HAZE_FADE)
+	var band: GradientTexture2D = _haze.texture as GradientTexture2D
+	if band != null and band.gradient != null:
+		# Düz bant satırın altına kadar; solma HAZE_FADE boyunca.
+		band.gradient.offsets = PackedFloat32Array([0.0, _bar.height() / _haze.size.y, 1.0])
+	# İçerik tam ekran kayar; üst pay = sabit satır + boşluk. Kartlar satırın
+	# altına girince haze ile solar.
+	_scroll.position = Vector2.ZERO
+	_scroll.size = view
+	_margin.add_theme_constant_override("margin_left", int(SIDE_MARGIN))
+	_margin.add_theme_constant_override("margin_right", int(SIDE_MARGIN))
+	_margin.add_theme_constant_override("margin_top", int(_bar.height() + CONTENT_TOP_GAP))
+	_margin.add_theme_constant_override("margin_bottom", int(BOTTOM_PADDING + UiKit.safe_bottom(view)))
 
 
-func _make_row(skin: SkinData) -> Control:
-	# Durum tek kaynaktan (SkinEntry): koleksiyonla aynı sahip/takılı bilgisi,
-	# ayrı türetme yok (M8.5-13).
+# --- Tazeleme -----------------------------------------------------------------
+
+## Sekmeye her girişte (main._show_tab) ve satın almada: kartlar ve bakiye
+## kanonik modelden. Kartlar yeniden KURULMAZ (durum güncellenir); giriş
+## kaydırmayı en üste alır.
+func refresh() -> void:
+	_refresh_states(false)
+	_scroll.scroll_vertical = 0
+
+
+func _refresh_states(pop_balance: bool) -> void:
+	for card in _power_cards:
+		card.refresh()
+	for card in _skin_cards:
+		card.refresh()
+	_bar.set_value(str(SaveManager.dough()), pop_balance)
+
+
+func _play_entry() -> void:
+	if not is_inside_tree() or not visible:
+		return
+	if _entry_tween != null and _entry_tween.is_valid():
+		_entry_tween.kill()
+	_scroll.modulate.a = 0.0
+	_entry_tween = create_tween()
+	_entry_tween.tween_property(_scroll, "modulate:a", 1.0, ENTRY_TIME)
+
+
+func _process(delta: float) -> void:
+	_time += delta
+	for card in _skin_cards:
+		card.tick_sparkles(_time)
+
+
+# --- Satın alma akışı ---------------------------------------------------------
+
+func _on_power_buy_requested(type: PowerUp.Type) -> void:
+	if not PowerUpEconomy.can_afford(type):
+		_reject(_cards.get("power_%d" % int(type)))
+		return
+	_open_power_confirm(type)
+
+
+func _on_skin_buy_requested(skin: SkinData) -> void:
 	var entry: SkinEntry = SkinEntry.for_skin(skin)
-	var owned: bool = entry.owned
-	var rarity_color: Color = entry.rarity_color()
-
-	var card := PanelContainer.new()
-	card.theme_type_variation = &"QuietCardPanel" if owned else &"CardPanel"
-	card.custom_minimum_size = Vector2(0, 92)
-	if not owned:
-		# Rarity kartın kenar rengi — her kart aynı kalıp, tek fark ince çizgi.
-		var box := (card.get_theme_stylebox("panel", &"CardPanel") as StyleBoxFlat).duplicate()
-		box.border_color = UiPalette.rarity_border(rarity_color)
-		card.add_theme_stylebox_override("panel", box)
-	elif entry.equipped:
-		# Takılı skin mağazada da nane kenarla işaretli — koleksiyonla aynı dil.
-		var box := (card.get_theme_stylebox("panel", &"QuietCardPanel") as StyleBoxFlat).duplicate()
-		box.border_color = UiPalette.SELECTED
-		card.add_theme_stylebox_override("panel", box)
-	_cards[String(skin.id)] = card
-
-	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 16)
-	card.add_child(row)
-
-	# Önizleme: koleksiyondaki kartla aynı bileşen — sahip olunan skin
-	# gameplay materyaliyle, kilitli skin silüetle.
-	var swatch := SkinSwatch.new()
-	swatch.custom_minimum_size = SWATCH_SIZE
-	swatch.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	# Kilitli skin de gerçek sanatıyla gösterilir: oyuncu ne aldığını görsün
-	# (kilit rozeti + fiyat durumu aynen kalır).
-	swatch.setup(entry, true)
-	if owned and not entry.equipped:
-		swatch.modulate = Color(1, 1, 1, 0.8)
-	row.add_child(swatch)
-
-	var text := VBoxContainer.new()
-	text.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	text.alignment = BoxContainer.ALIGNMENT_CENTER
-	text.add_theme_constant_override("separation", 0)
-	row.add_child(text)
-
-	var name_label := Label.new()
-	UiType.apply(name_label, UiType.CARD_TITLE)
-	name_label.text = entry.display_name
-	if owned and not entry.equipped:
-		name_label.add_theme_color_override("font_color", UiPalette.TEXT_MUTED)
-	text.add_child(name_label)
-
-	if owned:
-		# Sahip olunan: tik + "Sahipsin" (takılıysa "Sahipsin · Takılı"), nane.
-		# Kart sakin yüzeyde, CTA yok.
-		var state := HBoxContainer.new()
-		state.add_theme_constant_override("separation", 6)
-		var check := UiPalette.icon_rect(UiPalette.ICON_CHECK, 18.0, UiPalette.MINT)
-		check.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-		state.add_child(check)
-		var detail := Label.new()
-		UiType.apply(detail, UiType.STAT)
-		detail.text = "Sahipsin · Takılı" if entry.equipped else "Sahipsin"
-		detail.add_theme_color_override("font_color", UiPalette.MINT)
-		state.add_child(detail)
-		text.add_child(state)
-	else:
-		text.add_child(_make_price_line(entry.price))
-		var buy := _make_buy_button(entry.can_afford())
-		buy.pressed.connect(_open_confirm.bind(skin))
-		row.add_child(buy)
-
-	return card
+	if not entry.is_purchasable():
+		return
+	if not entry.can_afford():
+		_reject(_cards.get(String(skin.id)))
+		return
+	_open_confirm(skin)
 
 
-# --- Onay diyaloğu (iki bölüm de aynı diyaloğu kullanıyor) ---
+## Hamur yetmedi: kart sallanır, `ui_invalid`, pembe plaka. Hiçbir state
+## değişmez; bedava Hamur / reklam rotası YOK.
+func _reject(card: Control) -> void:
+	if card != null and is_instance_valid(card) and card.has_method("reject"):
+		card.reject()
+	AudioManager.play(&"ui_invalid")
+	Haptics.light()
+	_show_toast("Hamur yetmiyor · %d Hamur'un var" % SaveManager.dough(), UiTokens.PINK,
+		UiTokens.TEXT_ON_DARK, card)
+
 
 func _open_confirm(skin: SkinData) -> void:
 	_pending_skin = skin
 	_pending_power = -1
+	_set_confirm_art_skin(skin)
 	_confirm_title.text = skin.display_name
-	_confirm_detail.text = "%s skin · kalıcı" % SkinData.rarity_name(skin.rarity)
+	_confirm_detail.text = "%s skin · kalıcı, bir kez alınır" % SkinData.rarity_name(skin.rarity)
 	_show_confirm(Shop.price_of(skin))
 
 
 func _open_power_confirm(type: PowerUp.Type) -> void:
 	_pending_skin = null
 	_pending_power = int(type)
+	_set_confirm_art_power(type)
 	_confirm_title.text = "%s ×1" % PowerUp.display_name(type)
 	_confirm_detail.text = "Stok ×%d → ×%d" % [
 		SaveManager.powerup_count(type), SaveManager.powerup_count(type) + 1]
 	_show_confirm(PowerUpEconomy.price(type))
 
 
+func _set_confirm_art_power(type: PowerUp.Type) -> void:
+	_clear_confirm_art()
+	var well := UiKit.candy_well(PowerUp.icon(type), PowerUp.accent(type), 148.0, 106.0)
+	well.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
+	well.offset_left = -74.0
+	well.offset_right = 74.0
+	well.offset_top = -77.0
+	well.offset_bottom = 77.0
+	_confirm_art.add_child(well)
+
+
+func _set_confirm_art_skin(skin: SkinData) -> void:
+	_clear_confirm_art()
+	var entry: SkinEntry = SkinEntry.for_skin(skin)
+	var well := UiKit.patch("item_circle_inner", UiTokens.TRAY_CREAM)
+	well.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
+	well.offset_left = -76.0
+	well.offset_right = 76.0
+	well.offset_top = -74.0
+	well.offset_bottom = 78.0
+	_confirm_art.add_child(well)
+	var swatch := SkinSwatch.new()
+	swatch.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
+	swatch.offset_left = -82.0
+	swatch.offset_right = 82.0
+	swatch.offset_top = -82.0
+	swatch.offset_bottom = 82.0
+	swatch.setup(entry, true)
+	_confirm_art.add_child(swatch)
+	var tag := UiKit.rarity_tag(int(skin.rarity))
+	tag.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	tag.set_anchors_preset(Control.PRESET_TOP_LEFT)
+	tag.position = Vector2(0.0, 4.0)
+	_confirm_art.add_child(tag)
+
+
+func _clear_confirm_art() -> void:
+	for child in _confirm_art.get_children():
+		child.queue_free()
+
+
 func _show_confirm(price: int) -> void:
-	_confirm_price.text = "[center]%s[/center]" % UiIcons.labelled(
-		UiIcons.DOUGH, "%d Hamur" % price, 30)
+	_confirm_price.text = "%d Hamur" % price
+	_confirm_balance.text = "Bakiye %d → %d" % [SaveManager.dough(), SaveManager.dough() - price]
 	_confirm.visible = true
-	UiMotion.modal_open(_confirm_modal, _confirm_dim)
+	UiMotion.modal_open(_frame, _confirm_dim)
 	AudioManager.play(&"ui_modal_open")
 
 
@@ -356,8 +422,8 @@ func _close_confirm() -> void:
 	_confirm.visible = false
 
 
-## Geri tuşu: onay diyaloğu açıksa onu kapatır (true), değilse main.gd
-## sekmeye döner (false).
+## Geri tuşu: onay penceresi açıksa onu kapatır (true), değilse main.gd
+## Ana Sayfa'ya döner (false).
 func handle_back() -> bool:
 	if _confirm.visible:
 		_close_confirm()
@@ -368,7 +434,7 @@ func handle_back() -> bool:
 ## Karartmaya dokunmak "Vazgeç" ile aynı.
 func _on_dim_input(event: InputEvent) -> void:
 	var touch := event as InputEventScreenTouch
-	if touch != null and touch.pressed:
+	if touch != null and not touch.pressed:
 		_close_confirm()
 		return
 	var click := event as InputEventMouseButton
@@ -380,7 +446,6 @@ func _on_confirm_yes() -> void:
 	var skin: SkinData = _pending_skin
 	var power: int = _pending_power
 	_close_confirm()
-
 	var bought_key: String = ""
 	if power >= 0:
 		if _buy_power(power as PowerUp.Type):
@@ -388,16 +453,13 @@ func _on_confirm_yes() -> void:
 	elif skin != null:
 		if _buy_skin(skin):
 			bought_key = String(skin.id)
-	# Başarılı da olsa başarısız da olsa listeyi tazele: stok, Hamur ve
-	# "parası yetmiyor" pasiflikleri anında doğru görünsün.
-	refresh()
-	_refresh_dough(true)
+	# Başarılı da olsa başarısız da olsa tazele: stok, bakiye ve "yetmiyor"
+	# durumları anında doğru görünsün (bakiye pop'u yalnız değişince).
+	_refresh_states(true)
 	if not bought_key.is_empty():
-		# refresh() kartları yeniden kurdu; yeni kart bir kare sonra yerleşir.
-		await get_tree().process_frame
 		var card: Control = _cards.get(bought_key)
-		if card != null and is_instance_valid(card):
-			UiMotion.pop(card, 1.04)
+		if card != null and is_instance_valid(card) and card.has_method("celebrate"):
+			card.celebrate()
 
 
 func _buy_power(type: PowerUp.Type) -> bool:
@@ -405,11 +467,12 @@ func _buy_power(type: PowerUp.Type) -> bool:
 		AudioManager.play(&"ui_purchase")
 		Haptics.medium()
 		_show_toast("%s ×1 alındı · Stok ×%d" % [
-			PowerUp.display_name(type), SaveManager.powerup_count(type)])
+			PowerUp.display_name(type), SaveManager.powerup_count(type)],
+			UiTokens.MINT, UiTokens.TEXT_ON_ACCENT, _cards.get("power_%d" % int(type)))
 		return true
 	# Araya başka bir harcama girdiyse (teorik) sessizce düşmesin.
 	AudioManager.play(&"ui_invalid")
-	_show_toast("Hamur yetmedi.")
+	_show_toast("Hamur yetmedi.", UiTokens.PINK)
 	return false
 
 
@@ -417,14 +480,135 @@ func _buy_skin(skin: SkinData) -> bool:
 	if Shop.purchase(skin):
 		AudioManager.play(&"ui_purchase")
 		Haptics.medium()
-		_show_toast("%s alındı!" % skin.display_name)
+		_show_toast("%s alındı · Koleksiyon'da tak" % skin.display_name,
+			UiTokens.MINT, UiTokens.TEXT_ON_ACCENT, _cards.get(String(skin.id)))
 		return true
 	AudioManager.play(&"ui_invalid")
-	_show_toast("Hamur yetmedi.")
+	_show_toast("Hamur yetmedi.", UiTokens.PINK)
 	return false
 
 
-## Başarı geri bildirimi: alt kenardan yükselip sönen cip.
-func _show_toast(message: String) -> void:
+## Geri bildirim: yükselip sönen candy plaka. `card` verilirse plaka o kartın
+## hemen altında belirir (göz ve parmak oradadır); ekrana sığmazsa kartın
+## üstüne alınır; kart yoksa alt kenara yakın.
+func _show_toast(message: String, tint: Color, text_color: Color = UiTokens.TEXT_ON_DARK,
+		card: Control = null) -> void:
 	_toast_label.text = message
+	_toast_label.add_theme_color_override("font_color", text_color)
+	_toast_plate.add_theme_stylebox_override("panel",
+		UiKit.style("title_oval", tint, Vector4(26, 6, 26, 12)))
+	var min: Vector2 = _toast_plate.get_combined_minimum_size()
+	var w: float = maxf(min.x, 240.0)
+	var h: float = maxf(min.y, 56.0)
+	var view: Vector2 = _root.size
+	_toast.size = Vector2(w, h)
+	var y: float = view.y - TOAST_BOTTOM - UiKit.safe_bottom(view) - h
+	if card != null and is_instance_valid(card):
+		var rect: Rect2 = card.get_global_rect()
+		y = rect.end.y + TOAST_CARD_GAP
+		if y + h > view.y - UiKit.safe_bottom(view) - 24.0:
+			y = rect.position.y - h - TOAST_CARD_GAP
+		y = clampf(y, _bar.height() + 8.0, view.y - h - 24.0)
+	_toast.set_meta(&"toast_home", Vector2((view.x - w) * 0.5, y))
 	UiMotion.toast(_toast)
+
+
+# --- Dokular (programatik, asset yok) ----------------------------------------
+
+## Üst haze: düz bant + solma (offset'ler `_layout`'ta satır yüksekliğine
+## göre güncellenir).
+static func _band_gradient(top: Color, bottom: Color) -> GradientTexture2D:
+	var gradient := Gradient.new()
+	gradient.offsets = PackedFloat32Array([0.0, 0.66, 1.0])
+	gradient.colors = PackedColorArray([top, top, bottom])
+	var tex := GradientTexture2D.new()
+	tex.gradient = gradient
+	tex.fill = GradientTexture2D.FILL_LINEAR
+	tex.fill_from = Vector2(0.0, 0.0)
+	tex.fill_to = Vector2(0.0, 1.0)
+	tex.width = 8
+	tex.height = 128
+	return tex
+
+
+## Yumuşak erik vignette (Harita ile aynı): merkez temiz, kenarlar hafif koyu.
+static func _radial_vignette() -> GradientTexture2D:
+	var gradient := Gradient.new()
+	gradient.offsets = PackedFloat32Array([0.0, 0.62, 1.0])
+	gradient.colors = PackedColorArray([Color(0.2, 0.08, 0.32, 0.0),
+		Color(0.2, 0.08, 0.32, 0.0), Color(0.2, 0.08, 0.32, 0.30)])
+	var tex := GradientTexture2D.new()
+	tex.gradient = gradient
+	tex.fill = GradientTexture2D.FILL_RADIAL
+	tex.fill_from = Vector2(0.5, 0.5)
+	tex.fill_to = Vector2(0.5, 1.0)
+	tex.width = 128
+	tex.height = 128
+	return tex
+
+
+# --- Testler / çekim aracı ----------------------------------------------------
+
+func _layout_with_safe_top(safe_top: float) -> void:
+	_safe_top_override = safe_top
+	_layout()
+
+
+func top_bar() -> ScreenTopBar:
+	return _bar
+
+
+func scroll() -> ScrollContainer:
+	return _scroll
+
+
+func power_cards() -> Array[ShopPowerCard]:
+	return _power_cards
+
+
+func skin_cards() -> Array[ShopSkinCard]:
+	return _skin_cards
+
+
+func power_card(type: PowerUp.Type) -> ShopPowerCard:
+	return _cards.get("power_%d" % int(type))
+
+
+func skin_card(id: StringName) -> ShopSkinCard:
+	return _cards.get(String(id))
+
+
+func section_headers() -> Array[Control]:
+	var out: Array[Control] = []
+	for child in _content.get_children():
+		if child.has_meta(&"title_label"):
+			out.append(child)
+	return out
+
+
+func confirm_frame() -> Control:
+	return _frame
+
+
+func is_confirm_open() -> bool:
+	return _confirm.visible
+
+
+func toast_plate() -> Control:
+	return _toast
+
+
+func haze() -> TextureRect:
+	return _haze
+
+
+func confirm_balance_text() -> String:
+	return _confirm_balance.text
+
+
+func toast_text() -> String:
+	return _toast_label.text
+
+
+func is_toast_visible() -> bool:
+	return _toast.modulate.a > 0.05

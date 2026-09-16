@@ -95,6 +95,8 @@ func _ready() -> void:
 	var album: CanvasLayer = COLLECTION_SCENE.instantiate()
 	album.shop_requested.connect(_on_shop_requested)
 	var shop: CanvasLayer = SHOP_SCENE.instantiate()
+	# Magaza (M8.6-05): kendi ust satiri — geri -> Ana Sayfa; sekme cubugu yok.
+	shop.home_requested.connect(_on_home_requested)
 	_screens = [home, select, album, shop]
 	for screen in _screens:
 		add_child(screen)
@@ -151,11 +153,11 @@ func _show_tab(tab: int) -> void:
 		if i == tab and screen.has_method("refresh"):
 			screen.refresh()
 	# Ana Sayfa bir hub (M8.6-03B): sekme cubugu orada YOK — gezinme yuzen
-	# madalyonlar, OYNA, ayarlar ile. Harita (M8.6-04) kendi ust satiriyla
-	# (geri -> Ana Sayfa) doner: cubuk orada da YOK, dunya tabana kadar.
-	# Koleksiyon/Magaza'da M8.5-10 cubugu kendi isleri gelene kadar duruyor
+	# madalyonlar, OYNA, ayarlar ile. Harita (M8.6-04) ve Magaza (M8.6-05)
+	# kendi ust satiriyla (geri -> Ana Sayfa) doner: cubuk orada da YOK.
+	# Yalniz Koleksiyon'da M8.5-10 cubugu kendi isi gelene kadar duruyor
 	# (UI_VISUAL_SYSTEM §14.4).
-	_tabs.visible = tab >= 2
+	_tabs.visible = tab == 2
 	_tabs.set_active(tab)
 	# Kısa giriş geçişi (0.16 sn, solma + hafif kayma). Aynı sekme yeniden
 	# istenirse (günlük ödül kapanışı gibi) oynatılmıyor.
@@ -284,7 +286,7 @@ func _on_play_pressed() -> void:
 	_tabs.set_active(1)
 
 
-## Harita ust satirindaki geri butonu (M8.6-04): Ana Sayfa.
+## Harita (M8.6-04) ve Magaza (M8.6-05) ust satirindaki geri butonu: Ana Sayfa.
 func _on_home_requested() -> void:
 	_show_tab(0)
 	_tabs.set_active(0)

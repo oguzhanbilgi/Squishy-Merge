@@ -18,20 +18,25 @@ const PANELS: Array[StringName] = [&"PanelBase", &"PanelCream", &"PanelPurple", 
 	# Home hub (M8.6-03B / 03B.1)
 	&"PanelFeaturePlaque", &"PanelHomePill",
 	# Harita (M8.6-04): dugum plakasi (OYNA / Rekor / sart)
-	&"PanelMapPlaque"]
+	&"PanelMapPlaque",
+	# Magaza (M8.6-05): urun karti (krem / sahip olunan lavanta-krem), bolum
+	# plakasi, geri bildirim plakasi
+	&"PanelShopCard", &"PanelShopCardPower", &"PanelShopCardOwned", &"PanelShopSection", &"PanelShopToast"]
 const BUTTONS: Array[StringName] = [&"ButtonPrimary", &"ButtonSecondary", &"ButtonPurchase",
 	&"ButtonDanger", &"ButtonIcon", &"ButtonRoundIcon", &"ButtonCTA", &"ButtonResourceAdd",
 	# Home hub (M8.6-03B / 03B.1): madalyon govdesi (krem / kilitli lavanta), oturmus
 	# ikon butonu, level pill'i, nane "+"
 	&"ButtonFeature", &"ButtonFeatureLocked", &"ButtonHomeIcon", &"ButtonHomePill", &"ButtonHomeAdd",
 	# Harita (M8.6-04): yolculuk dugumu (cyan / kilitli lavanta / Sonsuz altin)
-	&"ButtonMapNode", &"ButtonMapNodeLocked", &"ButtonMapEndless"]
+	&"ButtonMapNode", &"ButtonMapNodeLocked", &"ButtonMapEndless",
+	# Magaza (M8.6-05): Hamur yetmeyen urunun SATIN AL'i (soluk cyan CYAN_MUTED, dokunulabilir)
+	&"ButtonBuyLocked"]
 const LABELS: Array[StringName] = [&"LabelDisplay", &"LabelTitle", &"LabelSection", &"LabelBody",
 	&"LabelCaption", &"LabelPrice", &"LabelPositive", &"LabelWarning", &"LabelDisabled", &"LabelStat",
 	&"LabelDisplayOnDark", &"LabelTitleOnDark", &"LabelSectionOnDark", &"LabelBodyOnDark",
 	&"LabelCaptionOnDark", &"LabelStatOnDark", &"LabelSectionOnAccent", &"LabelBadge", &"LabelBadgeOnDark"]
 const COMPONENTS: Array[StringName] = [&"ResourcePill", &"HeaderRibbon", &"SectionTag",
-	&"Badge", &"LockBadge", &"EquippedBadge", &"NewBadge", &"CountBadge", &"SwitchOn", &"SwitchOff",
+	&"Badge", &"LockBadge", &"EquippedBadge", &"OwnedBadge", &"NewBadge", &"CountBadge", &"SwitchOn", &"SwitchOff",
 	&"RarityCommon", &"RarityRare", &"RarityEpic", &"RarityLegendary",
 	&"RarityFrameCommon", &"RarityFrameRare", &"RarityFrameEpic", &"RarityFrameLegendary"]
 const PROGRESS: Array[StringName] = [&"ProgressBarMint", &"ProgressBarGold"]

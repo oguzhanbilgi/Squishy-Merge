@@ -6,7 +6,7 @@
 **Asset kaynağı:** `tools/make_ui_core.py` → `assets/visual/ui/core/**` +
 `scripts/ui/ui_core_assets.gd` (üretilir, elle düzenlenmez).
 **Galeri:** `tools/ui_system_gallery.tscn` (dev-only, 5 sayfa).
-**Test:** `tools/ui_foundation_test.tscn` (154 kontrol), `tools/gameplay_shell_test.tscn` (147, §13), `tools/home_ui_test.tscn` (207, §14), `tools/map_ui_test.tscn` (127, §15).
+**Test:** `tools/ui_foundation_test.tscn` (162 kontrol), `tools/gameplay_shell_test.tscn` (147, §13), `tools/home_ui_test.tscn` (207, §14), `tools/map_ui_test.tscn` (127, §15), `tools/shop_ui_test.tscn` (174, §16).
 
 Çakışma kuralı: owner'ın son talimatı > GAME_DESIGN.md > bu doküman > kod.
 Bir sayı burada ve `ui_tokens.gd`'de farklıysa **doküman güncellenir, token
@@ -42,7 +42,7 @@ Tonlar owner asset'lerinden ölçüldü; `UiPalette` (M8.5 kabuğu) ile aynı sa
 | İçerik yüzeyi | `CREAM` / `CREAM_DEEP` | `#fcf7ec` / `#f1e9dc` | kart, modal, liste satırı |
 | Lavanta | `LAVENDER` / `LAVENDER_SURFACE` | `#c694fa` / `#dccbe8` | ikon butonu, ikon kuyusu / ikincil buton |
 | Gameplay HUD | `LAVENDER_DEEP` / `LAVENDER_LIGHT` / `TRAY_CREAM` / `GLASS_BLUE` / `GLASS_MUTED` | `#8b72dc` / `#ece3fb` / `#f3e9f9` / `#bfe6ff` / `#d9d4e8` | HUD v3 gövde / açık halka / güç tepsisi / madalyon cam disk / pasif disk (hud_target'tan ölçüldü) |
-| Birincil CTA | `CYAN` / `CYAN_DEEP` | `#5eddf9` / `#2f8fd0` | ButtonPrimary, ButtonCTA, SectionTag |
+| Birincil CTA | `CYAN` / `CYAN_DEEP` / `CYAN_MUTED` | `#5eddf9` / `#2f8fd0` / `#8fbfd2` | ButtonPrimary, ButtonCTA, SectionTag; `CYAN_MUTED` = Mağaza "Hamur yetmiyor" SATIN AL'i (ButtonBuyLocked — dokunulabilir, pasif DISABLED'dan ayrık) |
 | Satın alma / pozitif | `MINT` / `MINT_DEEP` | `#6ddc8b` / `#2f9e57` | ButtonPurchase, EquippedBadge, ilerleme dolgusu, anahtar açık |
 | Vurgu | `PINK` / `PINK_DEEP` | `#f06aa8` / `#c94a86` | HeaderRibbon, ButtonRoundIcon (kapat), NewBadge, ButtonDanger |
 | Premium | `GOLD` / `GOLD_BRIGHT` / `GOLD_DEEP` | `#ffd166` / `#fee85f` / `#b8731f` | **yalnız** Legendary, ödül anları, Badge (stok/level), fiyat metni (deep) |
@@ -120,6 +120,9 @@ için önceden ölçeklendi (§8).
 | `PanelStrip` | `panel_bevel` (+ üst ışık) | erik α .94 | evrim şeridi rafı (M8.6-02) |
 | `PanelHudScore` / `PanelTray` / `PanelHudFrame` / `PanelHudCard` | `label_round` ×4 | `LAVENDER_DEEP` / `TRAY_CREAM` / `LAVENDER_DEEP` / krem | HUD v3: skor kapsülü, güç tepsisi, kart çerçevesi, kart gövdesi (§13.3) |
 | `PanelMapPlaque` | `badge_round` | krem | Harita düğüm plakası (OYNA / Rekor N / Level 10'u bitir) — §15.2 |
+| `PanelShopCard` / `PanelShopCardPower` / `PanelShopCardOwned` | `card_bevel_soft` | krem / `TRAY_CREAM` / `CREAM_DEEP` | Mağaza ürün kartı gövdesi (satılık skin / güç — gameplay güç tepsisinin tonu / sahip olunan skin, bir ton geri) — §16.2, §16.3 |
+| `PanelShopSection` | `title_oval` | `LAVENDER_DEEP` | Mağaza bölüm plakası (GÜÇLER / SKİNLER) — `UiKit.section_header`, §16.1 |
+| `PanelShopToast` | `title_oval` | pembe (başarıda `MINT` + lacivert yazı override) | Mağaza geri bildirim plakası — §16.4 |
 
 Owner'ın candy paneli (`panel_candy` + kanatlı-kalp tepelik) kimlik katmanıdır:
 pencerelerde `modal_frame` iskeletinin **üstüne** tepelik olarak eklenir ya da
@@ -146,6 +149,7 @@ iskeletin yerine kullanılır — kitin düz krem gövdesi tek başına kimlik t
 | `ButtonHomePill` | `label_round` | `LAVENDER_DEEP` | Home level pill'i (altın taç rozeti + SIRADAKİ / Level N) — §14.1 |
 | `ButtonHomeAdd` | `btn_circle_flat` (48) | nane | Home pill'inin yuvarlak "+" (koyu nane taban + gloss + picto) — `UiKit.home_pill` |
 | `ButtonMapNode` / `ButtonMapNodeLocked` / `ButtonMapEndless` | `btn_circle` (72–116 madalyon) | cyan / açık lavanta / altın | Harita yolculuk düğümü — `MapLevelNode`, §15.2 |
+| `ButtonBuyLocked` | `btn_normal` (58; mağazada 64'e gerilir) | soluk cyan `CYAN_MUTED` / lacivert-mor `NAVY_PURPLE` yazı | Mağaza "Hamur yetmiyor" SATIN AL'i — hâlâ satın alma butonu okunur, `disabled` DEĞİL, dokununca geri bildirim (`UiKit.candy_button` + `set_candy_button_variation`), §16.4 |
 
 Durumlar (hepsi temada): **normal**, **hover** (%6 açık), **pressed** (%12
 koyu + içerik 3 px aşağı), **disabled** (açık lavanta-gri gövde `#a19dba` +
@@ -200,6 +204,7 @@ koyu lacivert gövde + oyun ikonu 40 px + `LabelStatOnDark` + isteğe bağlı na
 | `NewBadge` | `badge_round` | pembe | YENİ |
 | `LockBadge` | `badge_round` | koyu gri | kilit + "Kilitli" |
 | `EquippedBadge` | `frame_round20` | nane | tik + TAKILI |
+| `OwnedBadge` | `frame_round20` | açık nane (`MINT`→beyaz %55) | nane tik + SAHİPSİN (mağaza, sahip olunan ama takılı olmayan skin; nane ailesi = "senin") — §16.3 |
 
 **Etiketler:** `HeaderRibbon` (`header_ribbon`, pembe; lavanta/altın `tint`
 ile — beyaza indirgenmiş LayerLab kurdelesi), `SectionTag` (`label_trapezoid`,
@@ -523,7 +528,7 @@ payı simülasyonu, kayıt byte'ı geri konur).
 | **YAN** | sol sütun: **Günlük** (pembe candy kubbe + gift picto; alınabilirse pembe bildirim noktası, nabız) · **Koleksiyon** (takılı skin önizlemesi, altın `6/20` rozeti, nane ilerleme halkası) — sağ sütun: **Mağaza** (cyan candy kubbe + shop picto) · **Sandık** (owner sandığı, altın `49/75` rozeti, altın halka; ±3 px süzülme). Sütunlar logonun altından başlar, 28 px kenar payı, adım 146 (uzun ekranda büyür — hero'nun yanına yayılır). Etiket plakası `badge_round` (30 px'te tam yuvarlak uç). |
 | **HERO** | `hero_mascot` (≤ 600 px, uzun ekranda ≤ 632; tuval genişliğine sığar; üst %22'si sütunların arasına sokulur — dar tepe, alfa duyarlı testle) + lavanta hale + krem sahne ışığı + erik yer gölgesi + tier 3 / tier 6 dumpling (ayak hizasında) + 6 pırıltı + alt bantta 4 pırıltı (bant ≥ 120 px ise). Zemin: `ShellBackdrop` Home'da daha az karartılır (`_tune_backdrop`) — gece kasabası görünür. |
 | **OYNA grubu** (alt, 28 + `safe_bottom`; 03B.2) | dikey hiyerarşi, ikisi de **tuval ortasında**: üstte **level pill'i** `ButtonHomePill` 236..284×60 (genişlik içeriğe göre; koyu lavanta pill + açık halka + erik gölge + gloss; sol uçtan 10 px taşan 56 px **altın taç madalyonu**; iki satır: "SIRADAKİ" / "Level 4 ★ 8/30"; sonsuzda yalnız büyük taç, "SONSUZ MOD" / "Rekor 12 480 ★ 30/30") → Harita · 12 px altında `hero_cta` **OYNA 480×96** (tek `ButtonCTA`, Baloo EB 40; halka btn_cta'nın 4 gölge satırına oturur) → Harita. Testle: OYNA merkezi 360 ± 2, pill merkezi ± 3, aralık 8–16, pill OYNA'dan ≥ 100 px dar. |
-| **Sekme çubuğu** | Home'da **GİZLİ** (`main._show_tab`: `_tabs.visible = tab != 0`); Harita/Koleksiyon/Mağaza'da M8.5-10 çubuğu duruyor (bkz. 14.4) |
+| **Sekme çubuğu** | Home'da **GİZLİ**; Harita (M8.6-04) ve Mağaza (M8.6-05) da kendi `ScreenTopBar`'ıyla döner — `main._show_tab`: `_tabs.visible = tab == 2`, yalnız Koleksiyon'da M8.5-10 çubuğu duruyor (bkz. 14.4) |
 
 Uzun ekran (tuval > 1280, `extra`; 03B.1 dağılımı): gök payı +%22, sütun
 adımı +%36 (ikinci sıra hero'nun yanına iner, maskot onunla birlikte iner),
@@ -590,12 +595,12 @@ boş PanelContainer (NinePatchRect patch kenarlarının altına küçülemez).
 
 ### 14.4 Sekme çubuğu göçü (açık iş)
 
-Home artık hub; çubuk Home'da gizli. **Harita M8.6-04'te göçtü** (§15:
-`ScreenTopBar` geri → Home, çubuk Harita'da da gizli — `main._show_tab`:
-`_tabs.visible = tab >= 2`). Koleksiyon/Mağaza'da M8.5-10 çubuğu (dört
+Home artık hub; çubuk Home'da gizli. **Harita M8.6-04'te, Mağaza M8.6-05'te
+göçtü** (§15, §16: `ScreenTopBar` geri → Home; `main._show_tab`:
+`_tabs.visible = tab == 2`). Yalnız **Koleksiyon**'da M8.5-10 çubuğu (dört
 sekme, "Ana Sayfa" sekmesi geri dönüş) geçici olarak duruyor — kendi
-işlerinde aynı `ScreenTopBar`'ı alınca çubuk tamamen kalkar;
-`TabBar.bottom_inset()` payı o ekranlarda sıfırlanır.
+işinde aynı `ScreenTopBar`'ı alınca çubuk (`tab_bar.tscn`) tamamen kalkar;
+`TabBar.bottom_inset()` payı o ekranda sıfırlanır.
 
 ---
 
@@ -684,3 +689,114 @@ Harita kaydı yalnız OKUR (`highest_level_unlocked`, `stars_for_level`,
 `is_endless_unlocked`, `endless_high_score`, `dough`); `save_game` /
 `complete_level` / `record_stars` çağrısı yok (testle). Ekonomi, level
 verisi, unlock/yıldız kuralı, fizik, skin, reklam politikası DEĞİŞMEDİ.
+
+
+---
+
+## 16. Production Mağaza (M8.6-05) — PRE-DEVICE VISUAL REVIEW
+
+**Karar:** eski M8.5-10 mağazası (tam genişlik koyu satırlar, 72 px ikon,
+sağda neon pill, alt sekme çubuğu) "ayar listesi / dashboard" okunuyordu.
+Yeni yön: **dikey casual-game dükkânı** — ürün sanatı odak, krem candy
+kartlar, 2 sütun grid, candy SATIN AL, pembe MAĞAZA kurdelesi. Sahte
+monetizasyon YOK (gerçek para, gem, reklamsız, indirim, paket — billing/AdMob
+kurulmadı, GAME_DESIGN §5.7.4); yalnız 4 güç + 20 skin, tek para Hamur.
+
+**Kod:** `scripts/ui/shop_screen.gd` (ekran), `scripts/ui/shop_power_card.gd`
+(`ShopPowerCard`), `scripts/ui/shop_skin_card.gd` (`ShopSkinCard`),
+`ScreenTopBar` (`with_add = false`), `UiKit.candy_button` /
+`set_candy_button_variation` / `candy_well` / `section_header` / `inset`.
+**Tema:** `PanelShopCard`, `PanelShopCardPower`, `PanelShopCardOwned`,
+`PanelShopSection`, `PanelShopToast`, `OwnedBadge`, `ButtonBuyLocked`
+(GENERATED); token `CYAN_MUTED`. **Test:** `tools/shop_ui_test.tscn` (174
+kontrol; 4 pencere + A36 payı, kayıt byte'ı geri konur; bekçi + `_exit_tree`
+kayıt güvenlik ağı). **Çekim:** `tools/shop_shots.tscn -- <dir> [GxY] [safe=61]`
+(17 durum × 4 boyut + A36 simülasyonu; 05 için gerçek satın alma yolu
+koşar, kayıt sonda AYNEN geri yazılır). Sanat üretilmedi; yeni asset yok.
+
+### 16.1 Kompozisyon (720 tuval, yükseklik serbest)
+
+| Bölge | İçerik |
+|---|---|
+| **ÜST** (`ScreenTopBar`, sabit: `safe_top` + 14, 56 px satır, 24 px kenar) | sol `home_icon_button("back")` → Ana Sayfa · ortada pembe `HeaderRibbon` "MAĞAZA" · sağ Hamur `home_pill` **"+" YOK** (`with_add = false`: Mağaza zaten Home/Harita "+"ının hedefi; kendine giden ölü rota olmasın). Altında koyu çivit haze: satır boyunca **düz bant** (`WORLD_INDIGO` α .94 — kayan kart satırın altında OKUNMAZ) + 36 px solma (`HAZE_FADE`; offset `_layout`'ta satır yüksekliğine göre). İlk plaka solmanın dışında başlar (`CONTENT_TOP_GAP = HAZE_FADE`). |
+| **İÇERİK** (`ScrollContainer`, tam ekran, çubuk gizli, yatay kapalı; `MarginContainer` 24 / üst `bar.height() + 36` / alt `64 + safe_bottom`) | `UiKit.section_header("GÜÇLER")` (44 px: iki yanda 4 px açık lavanta çizgi, ortada `PanelShopSection` koyu lavanta `title_oval` + açık halka + erik gölge + gloss, Baloo 22 beyaz; MAĞAZA kurdelesinin altında ikincil) → `GridContainer` 2 sütun (h 16 / v 20): 4 × `ShopPowerCard` → 22 px → `section_header("SKİNLER")` → 2 sütun: 20 × `ShopSkinCard` (katalog sırası: rarity + id). Kart 328×372; 24 + 328 + 16 + 328 + 24 = 720. Sekmeye her girişte kaydırma en üste. |
+| **ZEMİN** | `ShellBackdrop` Home ayarında (gece modulate `(0.80, 0.78, 0.94)`, karartma α .30, alt solma .70) + Harita'nın radyal erik vignette'i (α .30). Kartlar dünyanın üstünde oturan krem candy nesneler. |
+| **ALT** | sekme çubuğu YOK. |
+
+Dikey ritim 720×1280 (VBox ayrımı 12 her öğe arasında): bar 70 → GÜÇLER
+106–150 → güçler 162–534 / 554–926 → 22 px boşluk → SKİNLER 972–1016 → ilk skin
+sırası 1028'de başlar (ilk ekranda ~250 px'i görünür, kaydırmaya davet). 720×1560 (ve 1080×2340) aynı kompozisyon, bir skin sırası fazla; 540×960
+0.75 ölçek. A36: satır 61 px payın altına iner, haze bandı payı kapatır.
+
+### 16.2 `ShopPowerCard` anatomisi (328×372)
+
+Arkadan öne: erik `popup_glow` gölge (16/6/16/26 taşma, α .34) → açık lavanta
+`frame_round20` halka (+5) → 2 px erik kontur (`LAVENDER_DEEP` α .5 — krem
+gövde açık halkanın içinde yüzmesin) → lavanta-krem `card_bevel_soft` gövde
+(`PanelShopCardPower` `TRAY_CREAM`: gameplay güç tepsisinin tonu, kozmetik
+kartlardan ayrık; 16/14/16/20 iç pay) → sütun: **candy kuyu** (`UiKit.
+candy_well`, 122 px: gücün vurgu renginde geniş düşük-alfa hale (α .30) →
+erik temas gölgesi → vurgu renginin koyusu 6 px alt oturak → açık lavanta
+halka 6 px → renkli yüzey (`PowerUp.ACCENTS`: pembe/altın/gök/yeşil) → alt
+gölge + üst gloss → **owner güç sanatı 88 px**, picto YOK) → Baloo 24 ad
+(`LabelSection`) → 2 satır Nunito 17 amaç (gerçek mekanik: "Seçtiğin
+dumpling'i yok eder" / "bir üst seviyeye çıkarır" / "Tahtayı sarsar, parçalar
+karışır" / "Küçük dumpling'leri (1–2. boy) temizler") → fiyat satırı (Hamur
+26 + `LabelPrice` "120 Hamur") → **SATIN AL** `UiKit.candy_button` (296×64:
+`ButtonPrimary` cyan `btn_normal` (orta satır gerilir) + erik gölge +
+`title_oval` açık halka + üst gloss; yazı çocuk Label — Button kendi yazısını çocuklardan önce çizer, gloss
+soldururdu; basınca yazı 3 px iner + UiMotion 0.94) → üst kart gloss (22 px)
+→ sağ üst **altın `Badge` "Stok ×N"** (72×30, Baloo 16, krem halkalı — halka ve
+rozet düz bir sarmalayıcı Control içinde kardeş; PanelContainer içine konan
+dekor içerik dikdörtgenine ezilir; gameplay madalyonunun ×N rozetiyle aynı dil). Stok 0 bir mağaza durumu DEĞİL: ürün Hamur yettiği
+sürece satılık. Fiyat `PowerUpEconomy.price`, stok `SaveManager.powerup_count`.
+
+### 16.3 `ShopSkinCard` anatomisi (328×372)
+
+Aynı gövde reçetesi (krem `PanelShopCard`); farklar: **rarity halkası**
+(Common `LAVENDER_LIGHT`, Rare `RARITY_RARE`→beyaz %42, Epic
+`RARITY_EPIC`→beyaz %38 + lavanta hale α .34, Legendary `GOLD` + geniş
+`GOLD_BRIGHT` hale α .65 + satılıkken hafif altın-krem gövde (`CREAM`→
+`GOLD_BRIGHT` %12) + 4 köşe-simetrik sinüs pırıltısı yalnız önizleme
+alanında — RNG yok, ekran `_process`'i `tick_sparkles` ile besler); sol üstte `rarity_tag`
+(trapez); ortada `TRAY_CREAM` `item_circle_inner` kuyu + **`SkinSwatch`
+140 px** (`setup(entry, true)`: kilitli skin de FINAL önizleme + kilit rozeti —
+canlı önizleme yolu, yeni sanat YOK); Baloo 24 ad; **fiyat yuvası 32 px**
+(kilitlide "150 Hamur"; sahip olunanda Nunito 16 ipucu **"Koleksiyon'da
+tak"** / takılıda **"Şu an takılı"** — kart çıkmaz sokak değil, yuva boş
+kalmaz, durum plakası komşu SATIN AL hizasında); eylem yuvası 64 px: LOCKED →
+SATIN AL / OWNED → `OwnedBadge` açık nane "✓ SAHİPSİN" (nane tik, erik yazı,
+min 184×50) / EQUIPPED → `EquippedBadge` dolu nane "✓ TAKILI" (nane ailesi =
+"senin"; lavanta-gri "pasif" ailesinden ayrık). Sahip olunan gövde
+`PanelShopCardOwned` (`CREAM_DEEP`, bir ton geri vanilya). Durum `SkinEntry` tek kaynak; **Mağaza skin TAKMAZ**
+(Koleksiyon takar), satın alınan skin SAHİPSİN'e döner, takılı değişmez.
+
+### 16.4 Satın alma durumları ve geri bildirim
+
+| Durum | Sunum |
+|---|---|
+| NORMAL | cyan SATIN AL (296×64), fiyat koyu altın |
+| BASILI | buton koyu gövde + yazı 3 px aşağı + 0.94 squash (`UiMotion.attach_press`) |
+| HAMUR YETMİYOR | `ButtonBuyLocked` soluk cyan (`CYAN_MUTED`) gövde + lacivert-mor yazı — hâlâ satın alma butonu okunur; fiyat **`PINK_DEEP`** (koyu altınla karışmaz), Hamur ikonu α .6; buton `disabled` DEĞİL — dokununca **onay AÇILMAZ**, kart 220 ms sallanır (±2.2°), `ui_invalid` + hafif titreşim, pembe `PanelShopToast` "Hamur yetmiyor · N Hamur'un var" **kartın hemen altında** (ekrana sığmazsa üstünde). Bedava Hamur / reklam rotası YOK. |
+| ONAY | `UiKit.modal_frame("Satın Al", 560)`: ürün sunumu (172 px alan; güç: `candy_well` 148 / skin: kuyu + `SkinSwatch` 164 + rarity etiketi) → Baloo 30 ad ("Bomba ×1") → açıklama ("Stok ×3 → ×4" / "Rare skin · kalıcı, bir kez alınır") → Hamur 36 + Nunito 28 fiyat → Nunito 17 **"Bakiye 335 → 215"** (işlem şeffaf) → **SATIN AL** `ButtonCTA` (88) → Vazgeç `ButtonSecondary`; kapat / karartma / Android geri = Vazgeç, hiçbir şey harcanmaz. Onay yalnız Hamur yetiyorken açılır. |
+| BAŞARI | kanonik tek transaction (`PowerUpEconomy.purchase` / `Shop.purchase` → `SaveManager.purchase_*_with_dough`, tek `save_game`) → `ui_purchase` + orta titreşim → kart `celebrate()`: 1.04 pop + stok rozeti 1.25 pop + 5 sabit açılı yıldız pırıltısı (güç) / önizleme 1.12 pop (skin) → bakiye pill'i pop → nane plaka (lacivert yazı, `EquippedBadge` dili) kartın altında: "Bomba ×1 alındı · Stok ×4" / "İspanak alındı · Koleksiyon'da tak". Bütün kartlar `refresh()` (yetmiyor durumları anında). |
+
+Geri bildirim plakası (`PanelShopToast` `title_oval` + açık halka + erik
+gölge + gloss, Baloo 21) ilgili kartın 12 px altında belirir (sığmazsa
+üstünde; kart yoksa alt kenardan 150 + `safe_bottom` yukarıda), 34 px
+yükselip söner (`UiMotion.toast`).
+
+### 16.5 Rotalar
+
+| Kontrol | Rota |
+|---|---|
+| Home MAĞAZA madalyonu / Home Hamur "+" / Harita Hamur "+" / Koleksiyon "Mağazaya Git" | `_show_tab(3)` — tek Mağaza örneği, çubuk yok |
+| Geri | `home_requested` → `main._on_home_requested` → Ana Sayfa |
+| Android geri | `handle_back()`: onay açıksa kapanır; değilse `main._notification` → Ana Sayfa (ayarlar açıksa önce ayarlar; gameplay politikası aynen; çıkış yok) |
+
+Mağaza Hamur'a doğrudan DOKUNMAZ (`add_dough` / `spend_dough` /
+`data["dough"]` / `grant_*` / `equip_skin` / `save_game` yok — testle);
+fiyat hardcode yok. **Gelecek Billing seam'i:** gerçek para Güç Paketi
+(GAME_DESIGN §5.7.4, ×3/×6/×12 taslağı) gelirse GÜÇLER bölümünün altına
+üçüncü bir `section_header` + aynı kart ailesinden bir "paket kartı" girer;
+ekran yapısı ve `ShopPowerCard` değişmez. Şimdi YERLEŞTİRİLMEDİ.

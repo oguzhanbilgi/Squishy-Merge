@@ -7,7 +7,9 @@ extends Control
 ##   SOL    `UiKit.home_icon_button("back")` → `back_pressed` (Ana Sayfa)
 ##   ORTA   pembe başlık kurdelesi (`HeaderRibbon`, pencere başlıklarıyla
 ##          aynı kimlik parçası; dashboard başlığı değil) — ekran adı
-##   SAĞ    `UiKit.home_pill(Hamur, değer, "+")` → `add_pressed` (Mağaza)
+##   SAĞ    `UiKit.home_pill(Hamur, değer, "+")` → `add_pressed` (Mağaza);
+##          Mağaza'nın kendisinde "+" YOK (`with_add = false`, M8.6-05): pill
+##          yalnız bakiye gösterir — kendine giden ölü bir rota olmasın.
 ##
 ## Sekme çubuğu göçü (UI_VISUAL_SYSTEM §14.4): her ikincil ekran bu satırı
 ## alınca alt çubuk o ekranda kalkar. Mağaza/Koleksiyon kendi işlerinde.
@@ -33,16 +35,17 @@ var _pill: Control
 var _safe_top: float = 0.0
 
 
-func _init(title: String = "") -> void:
+func _init(title: String = "", with_add: bool = true) -> void:
 	name = "TopBar"
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_back = UiKit.home_icon_button("back", ROW_HEIGHT)
 	_back.name = "Back"
 	_back.pressed.connect(func() -> void: back_pressed.emit())
 	add_child(_back)
-	_pill = UiKit.home_pill(DOUGH_ART, "0", true, ROW_HEIGHT)
+	_pill = UiKit.home_pill(DOUGH_ART, "0", with_add, ROW_HEIGHT)
 	_pill.name = "DoughPill"
-	(_pill.get_meta(&"add_button") as Button).pressed.connect(func() -> void: add_pressed.emit())
+	if with_add:
+		(_pill.get_meta(&"add_button") as Button).pressed.connect(func() -> void: add_pressed.emit())
 	_pill.minimum_size_changed.connect(_relayout)
 	add_child(_pill)
 	_ribbon = UiKit.header_ribbon(title)
@@ -106,8 +109,9 @@ func back_button() -> Button:
 	return _back
 
 
+## Nane "+" (Mağaza kısayolu); `with_add = false` kurulduysa null.
 func add_button() -> Button:
-	return _pill.get_meta(&"add_button")
+	return _pill.get_meta(&"add_button") if _pill.has_meta(&"add_button") else null
 
 
 func pill() -> Control:

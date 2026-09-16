@@ -254,8 +254,8 @@ alınacak — şimdi tahmin/vaat yok.
     kayıt şeması, gameplay HUD v5 yerleşimi DEĞİŞMEDİ** (HUD'da yalnız
     "SIRADAKİ" yazımı). **A36 cihaz kapısı geçti, owner onayladı, main'e
     alındı (6f9db44).** Ayrıntı: UI_VISUAL_SYSTEM §14.
-  - `M8.6-04` 🔶 production **journey map** (PRE-DEVICE VISUAL REVIEW, dal
-    `task/022-map-production-ui`): Home'daki OYNA'nın ilk durağı, owner'ın
+  - `M8.6-04` ✅ production **journey map** (dal `task/022-map-production-ui`,
+    A36 cihaz kapısı geçti, owner onayladı, main'e alındı af3af5c): Home'daki OYNA'nın ilk durağı, owner'ın
     candy dünyası kahraman. Üst satır `ScreenTopBar` (yeniden kullanılabilir:
     oturmuş geri → Ana Sayfa · pembe "HARİTA" kurdelesi · Hamur pill'i + nane
     "+" → Mağaza); sekme çubuğu Harita'da da GİZLİ (`_tabs.visible = tab >= 2`),
@@ -276,11 +276,37 @@ alınacak — şimdi tahmin/vaat yok.
     Home, gameplay DEĞİŞMEDİ.** **A36 cihaz kapısı geçti (75f0e49):** tek
     kusur — punch-hole bandı dikişi — `flip_v` ile kapatıldı; rotalar,
     kilitli/sıradaki/tamamlanmış/Sonsuz durumları, açılış animasyonu ve
-    logcat cihazda temiz (build/qa_m8.6-04/device/). Owner manuel onayı +
-    merge izni bekliyor. Ayrıntı: UI_VISUAL_SYSTEM §15.
+    logcat cihazda temiz (build/qa_m8.6-04/device/). Ayrıntı: UI_VISUAL_SYSTEM §15.
+  - `M8.6-05` 🔶 production **Mağaza** (PRE-DEVICE VISUAL REVIEW, dal
+    `task/023-shop-production-ui`, main af3af5c üzerine): eski koyu satır
+    listesi / neon pill / alt sekme çubuğu kalktı; dikey casual-game dükkânı:
+    `ScreenTopBar` (geri → Ana Sayfa · pembe "MAĞAZA" · Hamur pill'i **"+"
+    YOK** — Mağaza zaten "+"ın hedefi), gerçek ScrollContainer (üst satırın
+    altından kayar, düz koyu bant + solma), `UiKit.section_header` plakaları
+    (GÜÇLER / SKİNLER), 2 sütun grid (kart 328×372): 4 × `ShopPowerCard`
+    (lavanta-krem gövde = HUD güç tepsisi tonu; candy kuyu + vurgu halesi
+    içinde owner güç sanatı 88 px, ad, gerçek mekanik amaç, Hamur fiyatı,
+    cyan candy SATIN AL 64 px, altın "Stok ×N" rozeti) + 20 × `ShopSkinCard`
+    (krem gövde; canlı `SkinSwatch` önizleme, rarity halkası/hale/pırıltı —
+    Common/Rare/Epic/Legendary, Legendary sıcak altın-krem —, rarity etiketi,
+    fiyat veya "Koleksiyon'da tak" ipucu + SAHİPSİN (açık nane) / TAKILI
+    (nane) plakası). Durumlar: normal / basılı / **Hamur yetmiyor** (soluk
+    cyan `CYAN_MUTED` buton, koyu pembe fiyat, dokununca sallanma + kartın
+    altında pembe plaka — sessiz değil, bedava para yok) / başarı (pop +
+    pırıltı + nane plaka + bakiye). Onay penceresi `UiKit.modal_frame`
+    (ürün sunumu + "Bakiye 335 → 215").
+    Satın alma yalnız kanonik tek transaction (`PowerUpEconomy.purchase` /
+    `Shop.purchase`); Mağaza skin TAKMAZ. Sekme çubuğu artık yalnız
+    Koleksiyon'da (`_tabs.visible = tab == 2`). `tools/shop_ui_test` 174/174
+    (4 pencere + A36), ui_foundation 162/162 (+7 variation), ui_smoke 72,
+    economy 100 (mağaza kontrolleri yeni karta uyarlandı); `tools/shop_shots`
+    17 durum × 4 boyut + A36 (build/qa_m8.6-05/). **Fiyatlar (100/120/160/180,
+    50/150/400/900), ödüller, kayıt şeması, skin equip kuralı, gameplay, Home,
+    Harita DEĞİŞMEDİ.** Sahte monetizasyon YOK. **Telefon/ADB kullanılmadı;
+    owner görsel onayı + cihaz kapısı bekliyor.** Ayrıntı: UI_VISUAL_SYSTEM §16.
 - **Sırada: M8.6 — Visual Cohesion Rebuild** (ekranlar `UiKit`/`UiTokens`
-  sistemine geçirilecek: ~~gameplay shell~~ ✅ → ~~home~~ ✅ → ~~map~~ 🔶
-  (owner görsel onayı + cihaz kapısı bekliyor) → shop → collection →
+  sistemine geçirilecek: ~~gameplay shell~~ ✅ → ~~home~~ ✅ → ~~map~~ ✅ →
+  ~~shop~~ 🔶 (owner görsel onayı + cihaz kapısı bekliyor) → collection →
   result/reward/revive), ardından **M9 — Android export.** Ortam hazır (export template'leri, SDK,
   NDK, JDK 17, debug keystore mevcut, ETC2/ASTC import açık, iş
   makinesinde debug `export_presets.cfg` var — gitignore'lu, her makinede

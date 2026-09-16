@@ -656,25 +656,26 @@ static func hud_rim(target: Control, tint: Color = UiTokens.LAVENDER_LIGHT,
 
 
 ## Ust ic parlama seridi (gloss). `host` verilirse plakanin ustune, on
-## dekor katmanina biner (yalniz ust `height` px).
+## dekor katmanina biner (yalniz ust `height` px). (`gloss_inset`: yan/ust
+## pay — `UiKit.inset` fonksiyonuyla ad cakismasin.)
 static func hud_gloss(target: Control, height: float, alpha: float = 0.34,
-		inset: float = 5.0, host: Control = null) -> NinePatchRect:
+		gloss_inset: float = 5.0, host: Control = null) -> NinePatchRect:
 	var light := patch("btn_bevel_light", Color(1, 1, 1, alpha))
 	if host != null:
 		var strip := Control.new()
 		strip.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		light.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE)
-		light.offset_left = inset
-		light.offset_right = -inset
-		light.offset_top = inset * 0.6
+		light.offset_left = gloss_inset
+		light.offset_right = -gloss_inset
+		light.offset_top = gloss_inset * 0.6
 		light.offset_bottom = height
 		strip.add_child(light)
 		hud_attach(target, strip, host, Vector4.ZERO)
 		return light
 	light.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE)
-	light.offset_left = inset
-	light.offset_right = -inset
-	light.offset_top = inset * 0.6
+	light.offset_left = gloss_inset
+	light.offset_right = -gloss_inset
+	light.offset_top = gloss_inset * 0.6
 	light.offset_bottom = height
 	target.add_child(light)
 	return light
@@ -795,6 +796,12 @@ static func _inset(node: Control, left: float, top: float, right: float, bottom:
 	node.offset_top = top
 	node.offset_right = -right
 	node.offset_bottom = -bottom
+
+
+## `_inset`'in bilesen dosyalarindan (ShopPowerCard / ShopSkinCard) kullanilan
+## acik adi: negatif deger disari tasma.
+static func inset(node: Control, left: float, top: float, right: float, bottom: float) -> void:
+	_inset(node, left, top, right, bottom)
 
 
 ## Home "oturmus" ikon butonu (03B.1): HUD v5 kose butonuyla ayni malzeme
@@ -979,3 +986,189 @@ static func hero_cta(title: String, subtitle: String = "") -> Button:
 	var row: Control = (node.get_meta(&"title_label") as Label).get_parent().get_parent()
 	node.move_child(row, node.get_child_count() - 1)
 	return node
+
+
+# --- Magaza (M8.6-05) --------------------------------------------------------
+
+## Candy yazi butonu (magaza SATIN AL): `btn_normal` govdesi (ButtonPrimary
+## cyan / ButtonBuyLocked lavanta-gri) + erik golge + acik pill halkasi + ust
+## gloss. Yazi cocuk Label olarak EN USTTE: Button kendi yazisini cocuklardan
+## once cizer, gloss onu soldururdu (hero_cta ile ayni cozum). Basinca yazi
+## 3 px dudaga iner (temanin pressed content margin'i cocuklara islemez) ve
+## UiMotion squash. Variation `set_candy_button_variation` ile degisir.
+static func candy_button(text: String, variation: StringName = &"ButtonPrimary",
+		height: float = 58.0) -> Button:
+	var node := Button.new()
+	node.theme_type_variation = variation
+	node.focus_mode = Control.FOCUS_NONE
+	# btn_normal 58 px sabit govde; daha yuksek istenirse orta satir gerilir
+	# (duz pill, gloss/halka ayri) — magaza SATIN AL 64 (rahat dokunma).
+	node.custom_minimum_size = Vector2(0, maxf(height, 58.0))
+	hud_shadow(node, 4.0, 0.22, null, 12.0)
+	# Halka: pill (title_oval) — frame_round20'nin koseleri yuvarlak uclardan
+	# disari tasardi. btn_normal'in son 5 satiri pismis golge: halka altta
+	# govdeye oturur (+3 - 5 = -2).
+	var rim := flat_plate("title_oval", UiTokens.LAVENDER_LIGHT)
+	rim.show_behind_parent = true
+	_inset(rim, -3.0, -3.0, -3.0, 2.0)
+	node.add_child(rim)
+	var gloss := patch("btn_bevel_light", Color(1, 1, 1, 0.34))
+	gloss.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE)
+	gloss.offset_left = 10.0
+	gloss.offset_right = -10.0
+	gloss.offset_top = 3.0
+	gloss.offset_bottom = 24.0
+	node.add_child(gloss)
+	var title_label := Label.new()
+	title_label.text = text
+	title_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	title_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	title_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	title_label.set_anchors_preset(Control.PRESET_FULL_RECT)
+	node.add_child(title_label)
+	node.set_meta(&"title_label", title_label)
+	node.set_meta(&"rim", rim)
+	node.set_meta(&"gloss", gloss)
+	set_candy_button_variation(node, variation)
+	node.button_down.connect(func() -> void:
+		title_label.offset_top = 3.0
+		title_label.offset_bottom = 3.0 - 5.0)
+	var release := func() -> void:
+		title_label.offset_top = 0.0
+		title_label.offset_bottom = -5.0
+	release.call()
+	node.button_up.connect(release)
+	node.mouse_exited.connect(release)
+	UiMotion.attach_press(node)
+	return node
+
+
+## Candy butonun govde/yazi rolunu degistirir (SATIN AL: cyan <-> Hamur
+## yetmiyor lavanta-gri). Yazi rengi/fontu temadaki variation'dan.
+static func set_candy_button_variation(button: Button, variation: StringName) -> void:
+	button.theme_type_variation = variation
+	var title_label: Label = button.get_meta(&"title_label")
+	title_label.add_theme_font_override("font", theme().get_font("font", variation))
+	title_label.add_theme_font_size_override("font_size", theme().get_font_size("font_size", variation))
+	title_label.add_theme_color_override("font_color", theme().get_color("font_color", variation))
+	var gloss: Control = button.get_meta(&"gloss")
+	gloss.self_modulate = Color(1, 1, 1, 0.34 if variation == &"ButtonPrimary" else 0.22)
+
+
+## Kuyu oturaginin koyulastirma orani (candy_well / set_candy_well_accent).
+const WELL_SEAT_DARKEN: float = 0.46
+const WELL_GLOW_ALPHA: float = 0.30
+
+## Candy kuyu (magaza guc karti / onay penceresi): owner sanatini tasiyan
+## yuvarlak premium sunum — erik temas golgesi -> koyu alt oturak (gucun
+## vurgu renginin koyusu, 6 px asagi tasar) -> acik lavanta halka -> renkli
+## ic yuzey -> alt golge + ust gloss -> owner sanati. Gameplay madalyonu / Home kuyusuyla ayni aile.
+## `size` govde capi; kontrolun dikdortgeni `size x (size + 6)`.
+static func candy_well(art_tex: Texture2D, accent: Color, size: float,
+		art_size: float) -> Control:
+	var well := Control.new()
+	well.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	well.custom_minimum_size = Vector2(size, size + 6.0)
+	# Vurgu halesi: kuyunun arkasinda genis, dusuk alfa renk (urun sanati
+	# kartin odak noktasi; kart tek duz krem slab okunmasin).
+	var glow := patch("popup_glow", Color(accent, WELL_GLOW_ALPHA))
+	_inset(glow, -size * 0.34, -size * 0.30, -size * 0.34, -size * 0.36)
+	well.add_child(glow)
+	# Erik temas golgesi: kuyu karta OTURUR (harita dugumuyle ayni dil).
+	var shadow := patch("popup_glow", Color(0.22, 0.09, 0.36, 0.22))
+	_inset(shadow, -size * 0.18, -size * 0.06, -size * 0.18, -size * 0.22)
+	well.add_child(shadow)
+	var seat := patch("btn_circle_flat", accent.darkened(WELL_SEAT_DARKEN))
+	_inset(seat, -6.0, 6.0, -6.0, -1.0)
+	well.add_child(seat)
+	# Halka acik lavanta: kuyu krem kartin ustunde oturur, krem halka kremde
+	# kaybolurdu (kart halkasiyla ayni ton).
+	var rim := patch("btn_circle_flat", UiTokens.LAVENDER_LIGHT)
+	_inset(rim, -6.0, -6.0, -6.0, 6.0 + 2.0)
+	well.add_child(rim)
+	var body := patch("btn_circle_flat", accent)
+	_inset(body, 0.0, 0.0, 0.0, 6.0)
+	well.add_child(body)
+	var shade := patch("item_circle_inner", Color(0.35, 0.25, 0.5, 0.18))
+	_inset(shade, size * 0.10, size * 0.32, size * 0.10, 6.0 + size * 0.06)
+	well.add_child(shade)
+	var light := patch("item_circle_inner", Color(1, 1, 1, 0.42))
+	_inset(light, size * 0.14, size * 0.06, size * 0.14, 6.0 + size * 0.44)
+	well.add_child(light)
+	var picture := art(art_tex, art_size)
+	picture.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
+	picture.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
+	picture.offset_left = -art_size * 0.5
+	picture.offset_right = art_size * 0.5
+	picture.offset_top = -art_size * 0.5 - 3.0
+	picture.offset_bottom = art_size * 0.5 - 3.0
+	well.add_child(picture)
+	well.set_meta(&"art", picture)
+	well.set_meta(&"body", body)
+	well.set_meta(&"seat", seat)
+	well.set_meta(&"glow", glow)
+	return well
+
+
+## Kuyunun vurgu rengini degistirir: hale + oturak + yuzey birlikte
+## (`setup()` sonradan cagirdiginda uc katman da yeni renge gecer).
+static func set_candy_well_accent(well: Control, accent: Color) -> void:
+	(well.get_meta(&"body") as CanvasItem).self_modulate = accent
+	(well.get_meta(&"seat") as CanvasItem).self_modulate = accent.darkened(WELL_SEAT_DARKEN)
+	(well.get_meta(&"glow") as CanvasItem).self_modulate = Color(accent, WELL_GLOW_ALPHA)
+
+
+## Bolum basligi (magaza GUCLER / SKINLER): iki yanda ince acik lavanta
+## cizgi, ortada koyu lavanta `title_oval` plakasi (PanelShopSection) + acik
+## halka + erik golge + gloss + beyaz Baloo baslik. MAGAZA kurdelesinin
+## altinda ikincil: 44 px, dikey alan yemez. Buyuk harf CAGIRANDAN gelir
+## (Godot to_upper Turkce I'yi bilmez). Meta: "title_label", "plate".
+static func section_header(title: String, tint: Color = UiTokens.LAVENDER_DEEP) -> HBoxContainer:
+	var row := HBoxContainer.new()
+	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	row.alignment = BoxContainer.ALIGNMENT_CENTER
+	row.add_theme_constant_override("separation", 14)
+	row.custom_minimum_size = Vector2(0, 44.0)
+	for side in 2:
+		var line := flat_plate("badge_round", Color(UiTokens.LAVENDER_LIGHT, 0.78))
+		line.set_anchors_preset(Control.PRESET_TOP_LEFT)
+		line.custom_minimum_size = Vector2(24.0, 4.0)
+		line.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		line.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		row.add_child(line)
+	var wrap := Control.new()
+	wrap.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var shadow := patch("popup_glow", Color(0.22, 0.09, 0.36, 0.24))
+	_inset(shadow, -12.0, -8.0, -12.0, -16.0)
+	wrap.add_child(shadow)
+	var rim := flat_plate("title_oval", UiTokens.LAVENDER_LIGHT)
+	_inset(rim, -3.0, -3.0, -3.0, -3.0)
+	wrap.add_child(rim)
+	var plate := panel(&"PanelShopSection")
+	plate.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	plate.set_anchors_preset(Control.PRESET_FULL_RECT)
+	if tint != UiTokens.LAVENDER_DEEP:
+		plate.add_theme_stylebox_override("panel",
+			style("title_oval", tint, Vector4(22, 2, 22, 8)))
+	wrap.add_child(plate)
+	var text := label(title, &"LabelSectionOnDark", HORIZONTAL_ALIGNMENT_CENTER)
+	text.add_theme_font_size_override("font_size", 22)
+	plate.add_child(text)
+	var gloss := patch("btn_bevel_light", Color(1, 1, 1, 0.30))
+	gloss.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE)
+	gloss.offset_left = 8.0
+	gloss.offset_right = -8.0
+	gloss.offset_top = 2.0
+	gloss.offset_bottom = 18.0
+	wrap.add_child(gloss)
+	var sync := func() -> void:
+		var min: Vector2 = plate.get_combined_minimum_size()
+		wrap.custom_minimum_size = Vector2(maxf(min.x, 180.0), maxf(min.y, 44.0))
+	plate.minimum_size_changed.connect(sync)
+	sync.call()
+	row.add_child(wrap)
+	# Plaka ikinci cocuk: sol cizgi, plaka, sag cizgi.
+	row.move_child(wrap, 1)
+	row.set_meta(&"title_label", text)
+	row.set_meta(&"plate", plate)
+	return row

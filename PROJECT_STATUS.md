@@ -1457,7 +1457,9 @@ squishy-merge/
 | `ui/level_select.gd` | Harita: patika üstünde 10 düğüm + durumlar + açılış animasyonu + Sonsuz Mod kapısı (M8.5-12). |
 | `ui/map_trail.gd` | Düğümleri bağlayan programatik candy patika (Catmull-Rom + noktalar, tamamlanmış/gelecek). |
 | `ui/collection_album.gd` | Koleksiyon albümü. |
-| `ui/shop_screen.gd` | Mağaza listesi + onay diyaloğu + toast. |
+| `ui/shop_screen.gd` | Mağaza (M8.6-05): `ScreenTopBar` + kaydırılan 2 sütun kart gridi + onay penceresi (`UiKit.modal_frame`) + candy geri bildirim plakası. Satın alma yalnız kanonik yoldan. |
+| `ui/shop_power_card.gd` | `ShopPowerCard` — güç ürün kartı (candy kuyu + owner sanatı, amaç, fiyat, SATIN AL, stok rozeti; yetmiyor/başarı durumları). |
+| `ui/shop_skin_card.gd` | `ShopSkinCard` — skin ürün kartı (SkinSwatch önizleme, rarity halkası/hale/pırıltı, fiyat veya SAHİPSİN/TAKILI). |
 | `ui/round_result.gd` | Round sonu: yıldız reveal → sandık reveal. |
 | `ui/reward_gem.gd` | Sandık ödül görseli: kapalı → açılış → rarity katmanları. |
 | `ui/skin_swatch.gd` | Skin önizlemesi (M8.5-13): sahip olunan = gameplay materyaliyle dumpling + rarity parıltısı, kilitli = silüet + kilit, varsayılan = nötr. |

@@ -45,6 +45,10 @@ const GLASS_MUTED: Color = Color("d9d4e8")
 # --- Candy vurgular ----------------------------------------------------------
 const CYAN: Color = Color("5eddf9")
 const CYAN_DEEP: Color = Color("2f8fd0")
+## "Hamur yetmiyor" satin alma butonu (M8.6-05): cyan ailesinin doygunlugu
+## alinmis hali — hala "satin alma butonu" okunur (dokunulabilir, geri
+## bildirim verir), gercek pasif DISABLED lavanta-grisinden ayrik.
+const CYAN_MUTED: Color = Color("8fbfd2")
 const PINK: Color = Color("f06aa8")
 const PINK_DEEP: Color = Color("c94a86")
 const MINT: Color = Color("6ddc8b")

@@ -47,6 +47,9 @@ const GENERATED: Array[StringName] = [
 	&"ButtonHomeIcon", &"PanelHomePill", &"ButtonHomePill", &"ButtonHomeAdd",
 	# Harita (M8.6-04)
 	&"ButtonMapNode", &"ButtonMapNodeLocked", &"ButtonMapEndless", &"PanelMapPlaque",
+	# Magaza (M8.6-05)
+	&"PanelShopCard", &"PanelShopCardPower", &"PanelShopCardOwned", &"PanelShopSection",
+	&"PanelShopToast", &"OwnedBadge", &"ButtonBuyLocked",
 	# Oyun bilesenleri
 	&"ResourcePill", &"HeaderRibbon", &"SectionTag", &"ProgressBarMint", &"ProgressBarGold",
 	&"Badge", &"LockBadge", &"EquippedBadge", &"NewBadge", &"CountBadge",
@@ -184,6 +187,19 @@ func _build_panels() -> void:
 	# Harita dugum plakasi (M8.6-04): dugumun altina binen krem `badge_round`
 	# (OYNA / Rekor N / Level 10'u bitir); kenar/golge MapLevelNode dekoru.
 	_panel(&"PanelMapPlaque", "badge_round", UiTokens.CREAM, Vector4(10, 1, 10, 4))
+	# Magaza (M8.6-05): urun karti = HUD v5 krem kart govdesi (`card_bevel_soft`,
+	# yumusak alt dudak). Skin karti krem; guc karti gameplay guc tepsisinin
+	# lavanta-kremi (TRAY_CREAM — tuketilebilir "guc" ailesi, kozmetikten
+	# ayrik); sahip olunan skin karti bir ton geri vanilya (CREAM_DEEP,
+	# PanelListRow mantigi). Halka/golge/gloss ShopPowerCard / ShopSkinCard
+	# dekoru. Bolum plakasi (GUCLER / SKINLER): koyu lavanta `title_oval` pill,
+	# MAGAZA kurdelesinin altinda ikincil. Geri bildirim plakasi: pembe
+	# `title_oval` (gameplay "Tasti!" durum plakasiyla ayni dil).
+	_panel(&"PanelShopCard", "card_bevel_soft", UiTokens.CREAM, Vector4(16, 14, 16, 20))
+	_panel(&"PanelShopCardPower", "card_bevel_soft", UiTokens.TRAY_CREAM, Vector4(16, 14, 16, 20))
+	_panel(&"PanelShopCardOwned", "card_bevel_soft", UiTokens.CREAM_DEEP, Vector4(16, 14, 16, 20))
+	_panel(&"PanelShopSection", "title_oval", UiTokens.LAVENDER_DEEP, Vector4(22, 2, 22, 8))
+	_panel(&"PanelShopToast", "title_oval", UiTokens.PINK, Vector4(26, 6, 26, 12))
 
 
 # --- Butonlar ----------------------------------------------------------------
@@ -265,6 +281,13 @@ func _build_buttons() -> void:
 	# nane; taban/gloss/picto UiKit.home_pill ekler. 48 px dokunma hedefi.
 	_button(&"ButtonHomeAdd", "btn_circle_flat", UiTokens.MINT, Vector4(0, 0, 0, 0),
 		FONT_TITLE, 18, UiTokens.TEXT_ON_ACCENT, UiTokens.TEXT_DISABLED, 24)
+	# Magaza (M8.6-05): Hamur yetmeyen urunun SATIN AL'i — doygunlugu alinmis
+	# cyan (CYAN_MUTED: hala "satin alma butonu" okunur) ama `disabled` DEGIL:
+	# dokununca "Hamur yetmiyor" geri bildirimi verir (sessiz basarisizlik
+	# yok). Gercek pasif lavanta-gri DISABLED yalniz disabled durumunda. Yazi
+	# koyu lacivert-mor (NAVY_PURPLE, ~5.5:1); pasif yazi TEXT_DISABLED.
+	_button(&"ButtonBuyLocked", "btn_normal", UiTokens.CYAN_MUTED, normal,
+		FONT_TITLE, 22, UiTokens.NAVY_PURPLE, UiTokens.TEXT_DISABLED)
 	# Kaynak pill'inin nane "+" butonu.
 	_button(&"ButtonResourceAdd", "resource_btn", UiTokens.MINT, Vector4(8, 6, 8, 10),
 		FONT_TITLE, 18, UiTokens.TEXT_ON_ACCENT, UiTokens.TEXT_DISABLED, 20)
@@ -312,6 +335,10 @@ func _build_components() -> void:
 	_panel(&"Badge", "badge_round", UiTokens.GOLD, Vector4(10, 2, 10, 5))
 	_panel(&"LockBadge", "badge_round", UiTokens.DISABLED_DEEP, Vector4(10, 2, 10, 5))
 	_panel(&"EquippedBadge", "frame_round20", UiTokens.MINT, Vector4(16, 4, 16, 6))
+	# Magaza (M8.6-05): sahip olunan (takili olmayan) skin plakasi — acik nane
+	# (nane ailesi = "senin": TAKILI dolu nane, SAHIPSIN acik nane), erik yazi;
+	# EquippedBadge ile ayni geometri. Lavanta-gri "pasif" ailesinden ayrik.
+	_panel(&"OwnedBadge", "frame_round20", UiTokens.MINT.lerp(Color.WHITE, 0.55), Vector4(16, 4, 16, 6))
 	_panel(&"NewBadge", "badge_round", UiTokens.PINK, Vector4(10, 2, 10, 5))
 	_panel(&"CountBadge", "badge_round", UiTokens.GOLD, Vector4(8, 1, 8, 4))
 	# Ilerleme: koyu ray + nane dolgu; altin dolgu yalniz premium (Legendary,

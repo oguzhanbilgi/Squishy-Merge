@@ -336,10 +336,11 @@ func _scenario_shop_ui() -> void:
 			text.contains(PowerUp.display_name(type)))
 		_check("%s fiyati gorunuyor" % PowerUp.display_name(type),
 			text.contains("%d Hamur" % PowerUpEconomy.price(type)))
-	# Metin kaliplari M8.5-10 magaza kartiyla ayni: "Stok ×N", "N Hamur"
-	# (bakiye cipi). Kalip degisirse burasi da degismeli.
+	# Metin kaliplari M8.6-05 magaza kartiyla ayni: stok rozeti "Stok ×N",
+	# bakiye ust satir pill'inde yalin sayi (Home/Harita ile ayni). Kalip
+	# degisirse burasi da degismeli.
 	_check("stok x1 gorunuyor", text.contains("Stok ×1"))
-	_check("Hamur bakiyesi gorunuyor", text.contains("5000 Hamur"))
+	_check("Hamur bakiyesi gorunuyor", shop.top_bar().pill().get_meta("value_label").text == "5000")
 
 	# Satin alma sonrasi refresh stogu ve bakiyeyi guncelliyor mu?
 	PowerUpEconomy.purchase(PowerUp.Type.BOMB, 2)
@@ -348,14 +349,16 @@ func _scenario_shop_ui() -> void:
 	var after: String = _collect_text(shop)
 	_check("satin alma sonrasi stok x3 gorunuyor", after.contains("Stok ×3"))
 	_check("satin alma sonrasi bakiye guncellendi",
-		after.contains("%d Hamur" % SaveManager.dough()))
+		shop.top_bar().pill().get_meta("value_label").text == str(SaveManager.dough()))
 
-	# Parasi yetmeyince buton pasif olmali.
+	# Parasi yetmeyince kart "yetmiyor" durumunda olmali (M8.6-05: buton
+	# soluk cyan ButtonBuyLocked, `disabled` DEGIL — dokununca geri bildirim;
+	# satin alma yine kanonik yolda reddedilir).
 	_reset_save(0)
 	shop.refresh()
 	await get_tree().process_frame
-	_check("Hamur 0 iken tum Satin Al butonlari pasif",
-		_all_buy_buttons_disabled(shop))
+	_check("Hamur 0 iken tum Satin Al butonlari 'yetmiyor' durumunda",
+		_all_buy_buttons_locked(shop))
 
 	shop.queue_free()
 	await get_tree().process_frame
@@ -382,12 +385,13 @@ func _collect_text(node: Node) -> String:
 	return "\n".join(parts)
 
 
-func _all_buy_buttons_disabled(node: Node) -> bool:
-	for child in node.get_children():
-		var button := child as Button
-		if button != null and button.text == "Satın Al" and not button.disabled:
+func _all_buy_buttons_locked(shop: CanvasLayer) -> bool:
+	for card in shop.power_cards():
+		if card.is_affordable() or card.buy_button().theme_type_variation != &"ButtonBuyLocked":
 			return false
-		if not _all_buy_buttons_disabled(child):
+	for card in shop.skin_cards():
+		if not card.is_owned() and (card.is_affordable()
+				or card.buy_button().theme_type_variation != &"ButtonBuyLocked"):
 			return false
 	return true
 

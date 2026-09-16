@@ -25,14 +25,7 @@ func _c(name: String, ok: bool) -> void:
 	print(("  [OK]   " if ok else "  [FAIL] ") + name)
 	if not ok: _fails += 1
 
-## Bir kartin altindaki tum Label metinlerini birlestirir (durum satiri kontrolu).
-func _row_text(card: Control) -> String:
-	var out: String = ""
-	for label in card.find_children("*", "Label", true, false):
-		out += (label as Label).text + "|"
-	return out
-
-
+## Kartin altindaki ilk SkinSwatch (onizleme kontrolu).
 func _first_swatch(card: Control) -> SkinSwatch:
 	return card.find_children("*", "SkinSwatch", true, false)[0] as SkinSwatch
 
@@ -82,7 +75,7 @@ func _ready() -> void:
 	await get_tree().process_frame
 	_c("satin alma stok +1", SaveManager.powerup_count(PowerUp.Type.BOMB) == before_stock + 1)
 	_c("satin alma Hamur -120", SaveManager.dough() == before_dough - 120)
-	_c("bakiye cipi guncel", shop._dough_chip.get_meta("value_label").text == "%d Hamur" % SaveManager.dough())
+	_c("bakiye pill'i guncel", shop.top_bar().pill().get_meta("value_label").text == str(SaveManager.dough()))
 	_c("onay kapandi", not shop._confirm.visible)
 	# Main geri tusunu 250 ms debounce'lar (Godot 4.6 Android cift iletim).
 	await get_tree().create_timer(0.3).timeout
@@ -143,10 +136,11 @@ func _ready() -> void:
 	# Magazadan skin satin al (koleksiyon gorunmezken) -> tek transaction
 	SaveManager.data["dough"] = 500
 	shop.refresh(); await get_tree().process_frame
-	_c("magaza: kilitli satirda Satin Al", shop._cards.has("rare_02"))
-	_c("magaza: kilitli satir FINAL onizleme + kilit", _first_swatch(shop._cards["rare_02"])._image.texture == SkinLibrary.find(&"rare_02").preview_texture and _first_swatch(shop._cards["rare_02"])._lock.visible)
+	# M8.6-05: kart tabanli magaza (ShopSkinCard); kilitli kartta SATIN AL gorunur.
+	_c("magaza: kilitli kartta Satin Al", shop._cards.has("rare_02") and shop.skin_card(&"rare_02").buy_button().visible)
+	_c("magaza: kilitli kart FINAL onizleme + kilit", _first_swatch(shop._cards["rare_02"])._image.texture == SkinLibrary.find(&"rare_02").preview_texture and _first_swatch(shop._cards["rare_02"])._lock.visible)
 	_c("magaza: kilitli Legendary gercek sanat", _first_swatch(shop._cards["legendary_01"])._image.texture == SkinLibrary.find(&"legendary_01").preview_texture)
-	_c("magaza: kilitli satir fiyat metni", (shop._cards["rare_02"].find_children("*", "RichTextLabel", true, false)[0] as RichTextLabel).text.contains("150 Hamur"))
+	_c("magaza: kilitli kart fiyat metni", shop.skin_card(&"rare_02").price_text() == "150 Hamur")
 	shop._open_confirm(SkinLibrary.find(&"rare_02")); await get_tree().process_frame
 	shop._confirm_yes.pressed.emit()
 	await get_tree().process_frame
@@ -155,7 +149,7 @@ func _ready() -> void:
 	_c("skin Hamur -150", SaveManager.dough() == 350)
 	_c("satin alinan takili DEGIL", SaveManager.equipped_skin_id() == &"")
 	_c("entry: sahip, takili degil", SkinEntry.find(&"rare_02").owned and not SkinEntry.find(&"rare_02").equipped)
-	_c("magaza satiri Sahipsin", _row_text(shop._cards["rare_02"]).contains("Sahipsin") and not _row_text(shop._cards["rare_02"]).contains("Takılı"))
+	_c("magaza karti SAHIPSIN (TAKILI degil)", shop.skin_card(&"rare_02").state_text() == "SAHİPSİN" and not shop.skin_card(&"rare_02").is_equipped())
 	# Koleksiyona don -> yeni skin vitrinde, YENI + Tak
 	main._show_tab(2); await get_tree().process_frame
 	_c("koleksiyon: yeni skin vitrinde", album._showcase_name.text == locked_entry.display_name)
@@ -168,7 +162,7 @@ func _ready() -> void:
 	_c("equipped_entry dogru", SkinEntry.equipped_entry().id == &"rare_02")
 	# Magaza takili durumu gosteriyor
 	main._show_tab(3); await get_tree().process_frame
-	_c("magaza satiri Sahipsin · Takili", _row_text(shop._cards["rare_02"]).contains("Takılı"))
+	_c("magaza karti TAKILI", shop.skin_card(&"rare_02").state_text() == "TAKILI" and shop.skin_card(&"rare_02").is_equipped())
 	# Gameplay: yeni dogan parca takili skin materyalini tasiyor
 	var visual: Node2D = preload("res://scripts/game/dumpling_visual.gd").new()
 	add_child(visual); visual.setup(3); await get_tree().process_frame
