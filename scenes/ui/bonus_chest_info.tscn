@@ -1,0 +1,23 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/ui/bonus_chest_info.gd" id="1_chest"]
+[ext_resource type="Theme" path="res://assets/visual/ui_theme.tres" id="2_theme"]
+
+[node name="BonusChestInfo" type="CanvasLayer"]
+layer = 12
+script = ExtResource("1_chest")
+
+[node name="Center" type="Control" parent="."]
+theme = ExtResource("2_theme")
+anchor_right = 1.0
+anchor_bottom = 1.0
+
+[node name="Dim" type="ColorRect" parent="Center"]
+anchor_right = 1.0
+anchor_bottom = 1.0
+color = Color(0.05, 0, 0.06, 0.62)
+
+[node name="Anchor" type="CenterContainer" parent="Center"]
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 2

@@ -16,6 +16,7 @@ const REVIVE_OFFER_SCENE: PackedScene = preload("res://scenes/ui/revive_offer.ts
 const POWER_REFILL_SCENE: PackedScene = preload("res://scenes/ui/power_refill.tscn")
 const SETTINGS_SCENE: PackedScene = preload("res://scenes/ui/settings_panel.tscn")
 const PAUSE_MENU_SCENE: PackedScene = preload("res://scenes/ui/pause_menu.tscn")
+const CHEST_INFO_SCENE: PackedScene = preload("res://scenes/ui/bonus_chest_info.tscn")
 
 ## Round bitip sonuç ekranı açılmadan önceki kısa nefes payı — son merge'in
 ## efekti ekranda kalsın diye.
@@ -28,6 +29,7 @@ var _revive: CanvasLayer
 var _refill: CanvasLayer
 var _settings: CanvasLayer
 var _pause: CanvasLayer
+var _chest_info: CanvasLayer
 ## Android geri tusu debounce (bkz. _notification).
 const BACK_DEBOUNCE_MSEC: int = 250
 var _last_back_msec: int = -1000
@@ -79,6 +81,12 @@ func _ready() -> void:
 	var home: CanvasLayer = HOME_SCENE.instantiate()
 	home.play_pressed.connect(_on_play_pressed)
 	home.settings_pressed.connect(open_settings)
+	# Home hub (M8.6-03B): yuzen ozellik madalyonlari ve level plakasi.
+	home.map_requested.connect(_on_play_pressed)
+	home.shop_requested.connect(_on_shop_requested)
+	home.collection_requested.connect(_on_collection_requested)
+	home.daily_requested.connect(_on_daily_requested)
+	home.chest_requested.connect(_on_chest_requested)
 	var select: CanvasLayer = LEVEL_SELECT_SCENE.instantiate()
 	select.level_chosen.connect(_start_level)
 	var album: CanvasLayer = COLLECTION_SCENE.instantiate()
@@ -117,6 +125,10 @@ func _ready() -> void:
 	_pause.exit_pressed.connect(abandon_run)
 	add_child(_pause)
 
+	_chest_info = CHEST_INFO_SCENE.instantiate()
+	_chest_info.play_pressed.connect(_on_play_pressed)
+	add_child(_chest_info)
+
 	_show_tab(0)
 	_check_daily_reward()
 
@@ -135,7 +147,10 @@ func _show_tab(tab: int) -> void:
 		screen.visible = i == tab
 		if i == tab and screen.has_method("refresh"):
 			screen.refresh()
-	_tabs.visible = true
+	# Ana Sayfa bir hub (M8.6-03B): sekme cubugu orada YOK — gezinme yuzen
+	# madalyonlar, OYNA, ayarlar ile. Ikincil ekranlarda cubuk (ve "Ana Sayfa"
+	# sekmesi) simdilik duruyor; kaldirilmasi ayri is (UI_VISUAL_SYSTEM §14.4).
+	_tabs.visible = tab != 0
 	_tabs.set_active(tab)
 	# Kısa giriş geçişi (0.16 sn, solma + hafif kayma). Aynı sekme yeniden
 	# istenirse (günlük ödül kapanışı gibi) oynatılmıyor.
@@ -226,6 +241,12 @@ func _notification(what: int) -> void:
 	if _settings != null and _settings.visible:
 		close_settings()
 		return
+	if _chest_info != null and _chest_info.visible:
+		_chest_info.close_info()
+		return
+	if _daily != null and _daily.visible:
+		_daily.close_popup()
+		return
 	# Sonuç ekranı karar bekler: geri tuşu yok sayılır (mola açılmaz, çıkılmaz).
 	if _result != null and _result.visible:
 		return
@@ -258,10 +279,37 @@ func _on_play_pressed() -> void:
 	_tabs.set_active(1)
 
 
-## Koleksiyon vitrinindeki kilitli skin'in "Mağazaya Git" kısayolu.
+## Koleksiyon vitrinindeki kilitli skin'in "Mağazaya Git" kısayolu, Ana
+## Sayfa'daki Hamur pill'inin "+" butonu ve Mağaza madalyonu.
 func _on_shop_requested() -> void:
 	_show_tab(3)
 	_tabs.set_active(3)
+
+
+## Ana Sayfa'daki Koleksiyon madalyonu.
+func _on_collection_requested() -> void:
+	_show_tab(2)
+	_tabs.set_active(2)
+
+
+## Ana Sayfa'daki Günlük madalyonu: bugünkü ödül henüz alınmadıysa (nadir —
+## açılışta zaten alınır; cihaz tarihi ilerlemişse) AYNI claim yolu; alınmışsa
+## durum penceresi. Ödül mantığı DailyReward'da, burada değil.
+func _on_daily_requested() -> void:
+	if DailyReward.is_claimable():
+		_check_daily_reward()
+		if _screens[0].has_method("refresh"):
+			_screens[0].refresh()
+		if not _daily.visible:
+			_daily.show_status(SaveManager.daily_streak())
+		return
+	_daily.show_status(SaveManager.daily_streak())
+
+
+## Ana Sayfa'daki Bonus sandık madalyonu: kural + ilerleme penceresi
+## (GAME_DESIGN §5.2), OYNA → harita.
+func _on_chest_requested() -> void:
+	_chest_info.open_info()
 
 
 ## Günlük giriş ödülü (GAME_DESIGN.md §5.4). Günde bir kez, açılışta.

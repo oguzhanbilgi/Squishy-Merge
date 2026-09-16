@@ -35,10 +35,16 @@ func _ready() -> void:
 	visible = false
 	CandyButton.style_cta(_close)
 	UiMotion.attach_press(_close)
-	_close.pressed.connect(func() -> void:
-		visible = false
-		AudioManager.play(&"ui_modal_close")
-		closed.emit())
+	_close.pressed.connect(close_popup)
+
+
+## Kapat: "AL" butonu ve Android geri tuşu (main.gd) aynı yol.
+func close_popup() -> void:
+	if not visible:
+		return
+	visible = false
+	AudioManager.play(&"ui_modal_close")
+	closed.emit()
 
 
 func show_reward(result: Dictionary) -> void:
@@ -50,10 +56,26 @@ func show_reward(result: Dictionary) -> void:
 		streak, _streak_dots(streak)]
 	# Seri kırıldıysa oyuncuya sebebini söyle, sessizce sıfırlama.
 	_note.text = "Serin kırılmıştı, sayaç sıfırlandı." if result["streak_broken"] else ""
+	_close.text = "AL"
 	visible = true
 	UiMotion.modal_open(_modal, _dim)
 	# Neşeli ödül cue'su pencerenin açılış sesi yerine geçiyor.
 	AudioManager.play(&"daily_reward")
+
+
+## Bugünkü ödül zaten alınmışsa (Ana Sayfa'daki Günlük madalyonundan
+## açılınca, M8.6-03B): aynı pencere, ödül satırı "alındı" der, seri
+## noktaları aynen. Kayda dokunmaz, ödül VERMEZ — yalnızca durum.
+func show_status(streak: int) -> void:
+	_title.text = "Günlük ödül"
+	_reward.text = "[center]Bugünkü ödülünü aldın[/center]"
+	_streak.text = "[center]%d günlük seri\n%s[/center]" % [
+		streak, _streak_dots(streak)]
+	_note.text = "Yarın tekrar gel, seri devam etsin."
+	_close.text = "TAMAM"
+	visible = true
+	UiMotion.modal_open(_modal, _dim)
+	AudioManager.play(&"ui_modal_open")
 
 
 ## Noktalar BBCode döner — `_streak` bir RichTextLabel.

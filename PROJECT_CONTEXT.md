@@ -222,8 +222,31 @@ alınacak — şimdi tahmin/vaat yok.
     (uzun ekran ölü alan / A36 örtüşmesi) kapandı. Samsung A36 cihaz
     kapısı geçti (build/qa_m8.6-02/device, logcat temiz). **Mekanik,
     ekonomi, fizik, skin render, ses DEĞİŞMEDİ.** Ayrıntı: UI_VISUAL_SYSTEM §13.
+  - `M8.6-03` ✗ (dal `task/m8.6-03-home`, 7fbbb7b — **birleştirilmedi**):
+    kart yığını + oyun-tarzı sekme çubuğu; owner "cilalı uygulama/dashboard,
+    oyun hub'ı değil" dedi. Test/çekim altyapısı ve `hero_cta`/`card_button`/
+    `safe_top` parçaları 03B'ye taşındı; görsel yön değişti.
+  - `M8.6-03B` 🔶 production Home **hub** (PRE-DEVICE VISUAL REVIEW, dal
+    `task/021-home-hub-redesign`): rakip referansın hub mimarisi, Squishy
+    Merge'in kendi dünyası/karakterleri — **Home'da harita YOK**, sekme
+    çubuğu Home'da GİZLİ. Üst: glossy ayarlar + seri pill'i · Hamur pill'i +
+    nane "+". Logo. Sol/sağ yüzen candy madalyonlar (`HomeFeatureButton`,
+    tek bileşen): Günlük (bildirim noktası → günlük penceresi; alınmışsa
+    durum), Koleksiyon (takılı skin + 6/20 rozet + nane halka), Mağaza,
+    Bonus sandık (owner sandığı + 49/75 rozet + altın halka → kural/ilerleme
+    penceresi → OYNA). Büyük yüksek çözünürlüklü maskot (`hero_mascot.png`
+    türevi) + hale/sahne ışığı/yer gölgesi + iki tier dumpling + pırıltılar;
+    zemin Home'da daha az karartılır. Alt: kompakt level plakası (taç rozeti,
+    Level N / 8/30 ★; sonsuzda rekor) + tek cyan OYNA → Harita. Uzun ekran:
+    gök payı / sütun aralığı / maskot büyür. Para/reklam ürünü YOK (billing
+    yok). `tools/home_ui_test` 129/129, ui_foundation 142/142, ui_smoke 72,
+    shell 146; `tools/home_shots` 10 durum × 4 boyut (build/qa_m8.6-03b/).
+    **Ekonomi, ilerleme, günlük ödül kuralı, kayıt şeması, gameplay HUD v5
+    DEĞİŞMEDİ.** Cihaz kapısı (A36) owner görsel onayından sonra. Ayrıntı:
+    UI_VISUAL_SYSTEM §14.
 - **Sırada: M8.6 — Visual Cohesion Rebuild** (ekranlar `UiKit`/`UiTokens`
-  sistemine geçirilecek: ~~gameplay shell~~ ✅ → home → shop → collection →
+  sistemine geçirilecek: ~~gameplay shell~~ ✅ → ~~home~~ 🔶 (owner görsel
+  onayı + cihaz kapısı bekliyor) → shop → collection →
   map → result/reward/revive), ardından **M9 — Android export.** Ortam hazır (export template'leri, SDK,
   NDK, JDK 17, debug keystore mevcut, ETC2/ASTC import açık, iş
   makinesinde debug `export_presets.cfg` var — gitignore'lu, her makinede

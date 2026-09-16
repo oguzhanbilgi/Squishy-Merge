@@ -37,6 +37,19 @@ static func claim_if_new_day() -> Dictionary:
 	return _result(true, streak, DAILY_DOUGH, broken)
 
 
+## Bugün ödül alınabilir mi? YALNIZCA okur — `claim_if_new_day` ile aynı
+## kapılar (aynı gün → hayır; saat geri alınmış → hayır). Ana Sayfa'daki
+## Günlük madalyonunun bildirim noktası bunu gösterir (M8.6-03B).
+static func is_claimable() -> bool:
+	var today: String = Time.get_date_string_from_system()
+	var last: String = SaveManager.last_login_date()
+	if last == today:
+		return false
+	if last == "":
+		return true
+	return days_between(last, today) >= 1
+
+
 ## İki "YYYY-MM-DD" tarihi arasındaki gün farkı.
 static func days_between(from_date: String, to_date: String) -> int:
 	var from_unix: int = Time.get_unix_time_from_datetime_string(from_date + "T00:00:00")

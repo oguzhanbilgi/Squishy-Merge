@@ -42,6 +42,8 @@ const GENERATED: Array[StringName] = [
 	&"PanelStrip", &"PanelHud", &"PanelHudScore", &"PanelTray", &"PanelHudFrame", &"PanelHudCard",
 	&"LabelHudCaptionDark", &"ButtonHud", &"ButtonHudExit", &"ProgressBarHud",
 	&"PanelHudPercent", &"PanelHudPill", &"PanelHudBadge", &"PanelHudPortrait",
+	# Home hub (M8.6-03B)
+	&"ButtonFeature", &"ButtonFeatureLocked", &"PanelFeaturePlaque", &"ButtonCard",
 	# Oyun bilesenleri
 	&"ResourcePill", &"HeaderRibbon", &"SectionTag", &"ProgressBarMint", &"ProgressBarGold",
 	&"Badge", &"LockBadge", &"EquippedBadge", &"NewBadge", &"CountBadge",
@@ -167,6 +169,9 @@ func _build_panels() -> void:
 	_panel(&"PanelHudPortrait", "frame_round12", UiTokens.CREAM_DEEP, Vector4(5, 1, 5, 3))
 	# Evrim seridi tepsisi (M8.6-02): koyu yuvarlak plaka, dar iceri pay.
 	_panel(&"PanelStrip", "panel_bevel", Color(UiTokens.PLUM, 0.94), Vector4(14, 4, 14, 8))
+	# Home hub (M8.6-03B): madalyonun altindaki kucuk etiket plakasi — koyu
+	# lavanta pill, beyaz Baloo etiket (GUNLUK / MAGAZA ...).
+	_panel(&"PanelFeaturePlaque", "title_oval", UiTokens.LAVENDER_DEEP, Vector4(10, 0, 10, 5))
 
 
 # --- Butonlar ----------------------------------------------------------------
@@ -217,6 +222,18 @@ func _build_buttons() -> void:
 		FONT_TITLE, 22, UiTokens.TEXT_ON_DARK, UiTokens.TEXT_DISABLED, 34)
 	_button(&"ButtonHudExit", "btn_bevel_soft", UiTokens.PINK, Vector4(8, 6, 8, 14),
 		FONT_TITLE, 22, UiTokens.TEXT_ON_DARK, UiTokens.TEXT_DISABLED, 34)
+	# Home hub madalyonu (M8.6-03B): guc slotuyla ayni `btn_circle` govde
+	# ailesi — krem; kilitli/pasif surum acik lavanta. Halka/cam/sanat/rozet
+	# HomeFeatureButton cocuklari.
+	_button(&"ButtonFeature", "btn_circle", UiTokens.CREAM, slot,
+		FONT_TITLE, 16, UiTokens.TEXT_PRIMARY, UiTokens.TEXT_DISABLED)
+	_button(&"ButtonFeatureLocked", "btn_circle", UiTokens.LAVENDER_SURFACE, slot,
+		FONT_TITLE, 16, UiTokens.TEXT_PRIMARY, UiTokens.TEXT_DISABLED)
+	# Basilabilir kompakt plaka (M8.6-03B level plakasi): hud_card cercevesiyle
+	# AYNI govde/renk ama Button — basis/pressed durumu var. Icerik
+	# UiKit.card_button ic PanelHudCard'ina girer.
+	_button(&"ButtonCard", "btn_bevel_soft", UiTokens.LAVENDER_DEEP.lerp(UiTokens.LAVENDER_LIGHT, 0.14),
+		Vector4(7, 5, 7, 10), FONT_TITLE, 22, UiTokens.TEXT_PRIMARY, UiTokens.TEXT_DISABLED)
 	# Kaynak pill'inin nane "+" butonu.
 	_button(&"ButtonResourceAdd", "resource_btn", UiTokens.MINT, Vector4(8, 6, 8, 10),
 		FONT_TITLE, 18, UiTokens.TEXT_ON_ACCENT, UiTokens.TEXT_DISABLED, 20)

@@ -134,3 +134,7 @@ static func _pill_style() -> StyleBoxFlat:
 	box.content_margin_top = 2.0
 	box.content_margin_bottom = 2.0
 	return box
+
+
+func active_tab() -> int:
+	return _active

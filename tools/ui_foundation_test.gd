@@ -14,9 +14,13 @@ const THEME_PATH: String = "res://assets/visual/ui_theme.tres"
 const GALLERY_SCENE: PackedScene = preload("res://tools/ui_system_gallery.tscn")
 
 const PANELS: Array[StringName] = [&"PanelBase", &"PanelCream", &"PanelPurple", &"PanelDark",
-	&"PanelCard", &"PanelModal", &"PanelElevated", &"PanelListRow"]
+	&"PanelCard", &"PanelModal", &"PanelElevated", &"PanelListRow",
+	# Home hub (M8.6-03B)
+	&"PanelFeaturePlaque"]
 const BUTTONS: Array[StringName] = [&"ButtonPrimary", &"ButtonSecondary", &"ButtonPurchase",
-	&"ButtonDanger", &"ButtonIcon", &"ButtonRoundIcon", &"ButtonCTA", &"ButtonResourceAdd"]
+	&"ButtonDanger", &"ButtonIcon", &"ButtonRoundIcon", &"ButtonCTA", &"ButtonResourceAdd",
+	# Home hub (M8.6-03B): madalyon govdesi (krem / kilitli lavanta) + kompakt plaka
+	&"ButtonFeature", &"ButtonFeatureLocked", &"ButtonCard"]
 const LABELS: Array[StringName] = [&"LabelDisplay", &"LabelTitle", &"LabelSection", &"LabelBody",
 	&"LabelCaption", &"LabelPrice", &"LabelPositive", &"LabelWarning", &"LabelDisabled", &"LabelStat",
 	&"LabelDisplayOnDark", &"LabelTitleOnDark", &"LabelSectionOnDark", &"LabelBodyOnDark",

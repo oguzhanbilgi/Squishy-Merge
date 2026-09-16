@@ -6,7 +6,7 @@
 **Asset kaynağı:** `tools/make_ui_core.py` → `assets/visual/ui/core/**` +
 `scripts/ui/ui_core_assets.gd` (üretilir, elle düzenlenmez).
 **Galeri:** `tools/ui_system_gallery.tscn` (dev-only, 5 sayfa).
-**Test:** `tools/ui_foundation_test.tscn` (135 kontrol), `tools/gameplay_shell_test.tscn` (146, §13).
+**Test:** `tools/ui_foundation_test.tscn` (142 kontrol), `tools/gameplay_shell_test.tscn` (146, §13), `tools/home_ui_test.tscn` (129, §14).
 
 Çakışma kuralı: owner'ın son talimatı > GAME_DESIGN.md > bu doküman > kod.
 Bir sayı burada ve `ui_tokens.gd`'de farklıysa **doküman güncellenir, token
@@ -140,6 +140,8 @@ iskeletin yerine kullanılır — kitin düz krem gövdesi tek başına kimlik t
 | `ButtonResourceAdd` | `resource_btn` | nane | pill'deki "+" (mağaza kısayolu) |
 | `PowerSlot` / `PowerSlotArmed` / `PowerSlotEmpty` | `btn_circle` (80×84 madalyon) | krem / cyan / açık lavanta | gameplay güç slotu — `UiKit.power_slot`, §13.4 |
 | `ButtonHud` / `ButtonHudExit` | `btn_square` (56) | `LAVENDER_DEEP` / pembe, picto 34 | gameplay köşe butonları — `UiKit.hud_icon_button`, §13.3 |
+| `ButtonFeature` / `ButtonFeatureLocked` | `btn_circle` (96×100 madalyon) | krem / açık lavanta | Ana Sayfa hub madalyonu — `HomeFeatureButton`, §14.2 |
+| `ButtonCard` | `btn_bevel_soft` | `LAVENDER_DEEP`→light %14 | basılabilir kompakt candy plaka (Home level plakası) — `UiKit.card_button`, §14.1 |
 
 Durumlar (hepsi temada): **normal**, **hover** (%6 açık), **pressed** (%12
 koyu + içerik 3 px aşağı), **disabled** (açık lavanta-gri gövde `#a19dba` +
@@ -483,3 +485,86 @@ sayar. Sonuç ekranı açıkken geri tuşu yok sayılır (karar bekler).
 `GameplayLayout.banner_height()`. v1: 0. AdMob bağlandığında sağlayıcı
 `GameplayLayout.set_banner_height(px)` çağırır ve board `_apply_layout`
 yeniden koşar; kontroller seam'e giremez (test kilitli).
+
+---
+
+## 14. Production Home hub (M8.6-03B)
+
+**Karar (owner, 2026-09-16):** M8.6-03 Home (kart yığını + sekme çubuğu)
+görsel olarak reddedildi — "cilalı uygulama/dashboard" okunuyordu. Yeni
+yön: **casual mobil oyun lobisi** — rakip referansın (`_visual_source/
+references/competitor_quality_target/`) bilgi mimarisi ve hub hissi; sanat,
+harita, karakter ve marka KOPYALANMAZ. **Home'da harita YOK.**
+
+**Kod:** `scripts/ui/home_screen.gd` (ekran; sahne yalnız zemin + Root),
+`scripts/ui/home_feature_button.gd` (`HomeFeatureButton`, tek madalyon
+bileşeni), `scripts/ui/bonus_chest_info.gd` (+ `scenes/ui/bonus_chest_info.tscn`),
+`UiKit` `safe_top` / `safe_bottom` / `card_button` / `hero_cta`,
+`DailyReward.is_claimable()` (yalnız okur), `DailyRewardPopup.show_status`
+/ `close_popup`, `tab_bar.active_tab()`. **Tema:** `ButtonFeature`,
+`ButtonFeatureLocked`, `PanelFeaturePlaque`, `ButtonCard` (GENERATED).
+**Sanat:** `assets/visual/ui/hero_mascot.png` (800×778, `tools/make_home_art.py`
+— `tutorial_pose.png` 350 px'ti, hero'da bulanıyordu; ipucu dosyası aynı).
+**Test:** `tools/home_ui_test.tscn` (129 kontrol). **Çekim:**
+`tools/home_shots.tscn -- <dir> [GxY]` (10 durum × 4 boyut, kayıt byte'ı
+geri konur).
+
+### 14.1 Kompozisyon (bölgeler; 720 tuval, yükseklik serbest)
+
+| Bölge | İçerik |
+|---|---|
+| **ÜST** (`safe_top` + 14) | sol: `hud_icon_button` ayarlar (56) + `resource_pill` seri (owner alev + sayı) · sağ: `resource_pill` Hamur + nane "+" (48, → Mağaza). Gelecek premium para birimi için mimari yer var, **şimdi icat edilmedi**. |
+| **LOGO** | `logo_lockup` 560 px, üst satırın altında ortada |
+| **YAN** | sol sütun: **Günlük** (pembe kuyu + gift picto; alınabilirse pembe bildirim noktası, nabız) · **Koleksiyon** (takılı skin önizlemesi, altın `6/20` rozeti, nane ilerleme halkası) — sağ sütun: **Mağaza** (cyan kuyu + shop picto) · **Sandık** (owner sandığı, altın `49/75` rozeti, altın halka; ±3 px süzülme). Sütunlar logonun altından başlar, 28 px kenar payı, adım 146. |
+| **HERO** | `hero_mascot` (≤ 600 px, tuval genişliğine sığar; üst %22'si sütunların arasına sokulur — dar tepe, alfa duyarlı testle) + lavanta hale + krem sahne ışığı + erik yer gölgesi + tier 3 / tier 6 dumpling (ayak hizasında) + 6 pırıltı. Zemin: `ShellBackdrop` Home'da daha az karartılır (`_tune_backdrop`) — gece kasabası görünür. |
+| **OYNA satırı** (alt, 30 + `safe_bottom`) | sol: `card_button` **level plakası** 232×84 (altın taç rozeti + "SIRADAKİ / Level 4 / ★ 8/30"; sonsuzda "SONSUZ / SONSUZ MOD / Rekor 12 480 / 30/30") → Harita · sağ: `hero_cta` **OYNA** 410×92 (tek `ButtonCTA`) → Harita |
+| **Sekme çubuğu** | Home'da **GİZLİ** (`main._show_tab`: `_tabs.visible = tab != 0`); Harita/Koleksiyon/Mağaza'da M8.5-10 çubuğu duruyor (bkz. 14.4) |
+
+Uzun ekran (tuval > 1280, `extra`): gök payı +%22, sütun adımı +%30, alt pay
++%12, yan dumpling'ler +%34 aşağı, maskot +%12 büyür (≤ 632). Kısa ekran
+(1280 / 540×960): maskot 600, alt bant ~200 px dünya. Test: 4 tuval + A36
+payı (61 px) — butonlar ekranda, ≥ 48×48, çakışma yok (madalyon plakaları
+dahil), madalyonlar maskotun **opak pikselleriyle** kesişmiyor, OYNA satırına
+girmiyor, maskot ≥ 480 px, maskot–OYNA bandı ≤ 420 px.
+
+### 14.2 `HomeFeatureButton` anatomisi
+
+96×100 `Button` (`ButtonFeature`, `btn_circle` krem 3B daire): erik
+`hud_shadow` (6 px, α .28) → açık lavanta dış halka (8 px, `btn_circle_flat`)
+→ koyu lavanta halka (4 px) → gövde → cam-mavi iç yuva (`item_circle_inner`
+`GLASS_BLUE`) + alt derinlik + üst gloss → **owner sanatı** 58 px
+(`set_art`) YA DA renkli candy kuyu + beyaz picto (`set_icon(role, tint)`;
+owner sanatı olmayan sistemler: Günlük pembe, Mağaza cyan) → sağ üst altın
+`Badge` (`set_badge`) → pembe bildirim noktası (`set_notification`; rozet
+varsa sol üste kayar) → dış halka üstünde ilerleme yayı (`set_progress(ratio,
+tint)`, 6 px, ray `LAVENDER_DEEP` α .55) → altta etiket plakası
+(`PanelFeaturePlaque` `title_oval` koyu lavanta + açık kenar, Baloo 14 beyaz,
+gövdeden 10 px içeri biner; plaka dokunma almaz). `set_locked(true)`:
+`ButtonFeatureLocked`, cam soluk, sanat soluk, kilit rozeti, `disabled`.
+Basış `UiMotion.attach_press` (0.94 + yay). Etiket metni büyük harf
+ÇAĞIRANDAN gelir (Godot `to_upper` Türkçe İ'yi bilmez: "KOLEKSİYON").
+
+### 14.3 Rotalar ve pencereler
+
+| Kontrol | Rota |
+|---|---|
+| Ayarlar | `open_settings` (aynı pencere) |
+| Günlük | alınabilirse `main._check_daily_reward()` (AYNI claim yolu, `DailyReward`) → ödül penceresi; alınmışsa `show_status(seri)` ("Bugünkü ödülünü aldın", TAMAM). Ekonomi değişmedi. |
+| Koleksiyon / Mağaza / Hamur "+" | sekme 2 / 3 / 3 |
+| Sandık | `BonusChestInfo` (kural §5.2 75 merge + altın ilerleme + kalan; OYNA → Harita). Sandık VERMEZ, kayda yazmaz. |
+| OYNA / level plakası | Harita (mevcut level akışı; doğrudan level başlatma owner kararına açık) |
+| Android geri | ayarlar → sandık bilgisi → günlük penceresi kapanır → diğer sekmede Ana Sayfa → Ana Sayfa'da pencere yokken çıkış (M8.6 politikası aynen) |
+
+Home kaydı yalnız OKUR (`home_ui_test`: çizim/yenileme kayıt byte'ını
+değiştirmez; `home_screen` / `bonus_chest_info` `save_game`/`add_dough`/
+`grant_*` çağırmaz). Sahte buton yok: para/reklam ürünleri (Başlangıç Paketi,
+Reklamsız) **yerleştirilmedi** — Play Billing/AdMob yok (GAME_DESIGN §5.7).
+
+### 14.4 Sekme çubuğu göçü (açık iş)
+
+Home artık hub; çubuk Home'da gizli. Harita/Koleksiyon/Mağaza'da M8.5-10
+çubuğu (dört sekme, "Ana Sayfa" sekmesi geri dönüş) geçici olarak duruyor —
+M8.6 ekran işlerinde (shop → collection → map) her ekran kendi başlığına
+**Geri** (`hud_icon_button "back"` → Home) alınca çubuk tamamen kalkar;
+`TabBar.bottom_inset()` payı o ekranlarda sıfırlanır. Bu turda dokunulmadı
+("navigasyonu bozma").

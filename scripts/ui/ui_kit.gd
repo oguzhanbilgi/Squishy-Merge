@@ -308,7 +308,8 @@ static func resource_pill(icon_tex: Texture2D, value: String,
 		var add := Button.new()
 		add.theme_type_variation = &"ButtonResourceAdd"
 		add.focus_mode = Control.FOCUS_NONE
-		add.custom_minimum_size = Vector2(40, 42)
+		# Dokunma hedefi >= 48 (M8.6-03B): pill'in "+"si tek basina da vurulabilsin.
+		add.custom_minimum_size = Vector2(48, 48)
 		add.icon = texture("resource_add")
 		add.expand_icon = true
 		add.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -740,3 +741,111 @@ static func hud_card(back: Control, front: Control, with_stars: bool = false,
 ## HUD plakasi icin kucuk buyuk-harf baslik + deger sutunu (SKOR / 1 240).
 static func hud_caption(text: String) -> Label:
 	return label(text.to_upper(), &"LabelHudCaption", HORIZONTAL_ALIGNMENT_CENTER)
+
+
+# --- Home hub (M8.6-03B) -----------------------------------------------------
+
+## Cihazin ust guvenli alan payi (centik / punch-hole), tuval piksel
+## cinsinden. Pencere yoksa (headless) ya da pay yoksa 0. GameBoard'daki
+## `_detect_safe_top` ile ayni hesap — kabuk ekranlari (home) ust satiri bu
+## kadar asagi iter.
+static func safe_top(view: Vector2) -> float:
+	var window: Vector2 = Vector2(DisplayServer.window_get_size())
+	if window.x <= 0.0 or window.y <= 0.0 or view.x <= 0.0:
+		return 0.0
+	var safe: Rect2i = DisplayServer.get_display_safe_area()
+	var inset_px: float = maxf(0.0, float(safe.position.y))
+	return inset_px * (view.x / window.x)
+
+
+## Cihazin alt guvenli alan payi (gesture bar) — tuval piksel. Yalniz
+## mobilde: masaustunde get_display_safe_area EKRANIN (gorev cubugu haric)
+## dikdortgenini verir, pencereyle ilgisi yoktur (1280 px pencerede 240 px
+## sahte pay cikiyordu).
+static func safe_bottom(view: Vector2) -> float:
+	if not OS.has_feature("mobile"):
+		return 0.0
+	var window: Vector2 = Vector2(DisplayServer.window_get_size())
+	if window.x <= 0.0 or window.y <= 0.0 or view.x <= 0.0:
+		return 0.0
+	var safe: Rect2i = DisplayServer.get_display_safe_area()
+	var inset_px: float = maxf(0.0, window.y - float(safe.end.y))
+	return inset_px * (view.x / window.x)
+
+
+## Basilabilir candy plaka: `hud_card` ile AYNI anatomi (koyu-lavanta cerceve
+## + krem kart + dis golge + acik halka + ust gloss) ama cerceve bir Button
+## (`ButtonCard`) — basis animasyonu, pressed govdesi ve `pressed` sinyali
+## var. Button container olmadigi icin dekorlar dogrudan cocuk (basisla
+## birlikte olceklenir) ve kartin minimumu butona elle tasinir. Icerik meta
+## "card" PanelContainer'ina eklenir. Home'da level plakasi (kompakt).
+static func card_button(inner: StringName = &"PanelHudCard") -> Button:
+	var node := Button.new()
+	node.theme_type_variation = &"ButtonCard"
+	node.focus_mode = Control.FOCUS_NONE
+	hud_shadow(node, 6.0, 0.26)
+	hud_rim(node, UiTokens.LAVENDER_LIGHT, 4.0)
+	var card := panel(inner)
+	card.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var box: StyleBox = theme().get_stylebox("normal", &"ButtonCard")
+	card.set_anchors_preset(Control.PRESET_FULL_RECT)
+	card.offset_left = box.content_margin_left
+	card.offset_top = box.content_margin_top
+	card.offset_right = -box.content_margin_right
+	card.offset_bottom = -box.content_margin_bottom
+	node.add_child(card)
+	var sync := func() -> void:
+		var min: Vector2 = card.get_combined_minimum_size()
+		node.custom_minimum_size = min + Vector2(
+			box.content_margin_left + box.content_margin_right,
+			box.content_margin_top + box.content_margin_bottom)
+	card.minimum_size_changed.connect(sync)
+	# Fontlar/tema agaca girince cozulur: ilk olcum agac disinda kucuk kalir,
+	# hazir olunca bir kez daha olc.
+	node.ready.connect(func() -> void: sync.call_deferred())
+	sync.call()
+	hud_gloss(node, 22.0, 0.34, 14.0)
+	node.set_meta(&"card", card)
+	UiMotion.attach_press(node)
+	return node
+
+
+## Kahraman OYNA (home): `cta` + cyan hale + erik golge + acik halka + kalin
+## gloss + ince ic kenar + iki ucta owner yildizi. Basis `cta` icinde; bosta
+## nefes ekranin kendi wrapper'inda (buton scale'i basisa kalir).
+static func hero_cta(title: String, subtitle: String = "") -> Button:
+	var node := cta(title, subtitle)
+	(node.get_meta(&"title_label") as Label).add_theme_font_size_override("font_size", 38)
+	var halo := patch("popup_glow", Color(UiTokens.CYAN, 0.42))
+	halo.show_behind_parent = true
+	halo.offset_left = -34.0
+	halo.offset_right = 34.0
+	halo.offset_top = -26.0
+	halo.offset_bottom = 34.0
+	node.add_child(halo)
+	node.set_meta(&"halo", halo)
+	hud_shadow(node, 8.0, 0.34, null, 18.0)
+	hud_rim(node, Color("f4f0ff"), 4.0)
+	hud_gloss(node, 36.0, 0.42, 10.0)
+	var inner := patch("border_round_thin", Color(1, 1, 1, 0.22))
+	inner.offset_left = 4.0
+	inner.offset_top = 4.0
+	inner.offset_right = -4.0
+	inner.offset_bottom = -12.0
+	node.add_child(inner)
+	var star_tex: Texture2D = preload("res://assets/visual/ui/icon_star_filled.png")
+	for side in [0.0, 1.0]:
+		var star := art(star_tex, 34)
+		star.anchor_left = side
+		star.anchor_right = side
+		star.anchor_top = 0.5
+		star.anchor_bottom = 0.5
+		star.offset_left = -17.0 + (6.0 if side == 0.0 else -6.0)
+		star.offset_right = 17.0 + (6.0 if side == 0.0 else -6.0)
+		star.offset_top = -17.0 - 2.0
+		star.offset_bottom = 17.0 - 2.0
+		node.add_child(star)
+	# Yazi satiri en uste: gloss/ic kenar yaziyi soldurmasin.
+	var row: Control = (node.get_meta(&"title_label") as Label).get_parent().get_parent()
+	node.move_child(row, node.get_child_count() - 1)
+	return node
