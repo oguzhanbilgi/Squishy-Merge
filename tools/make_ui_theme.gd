@@ -45,6 +45,8 @@ const GENERATED: Array[StringName] = [
 	# Home hub (M8.6-03B / 03B.1)
 	&"ButtonFeature", &"ButtonFeatureLocked", &"PanelFeaturePlaque",
 	&"ButtonHomeIcon", &"PanelHomePill", &"ButtonHomePill", &"ButtonHomeAdd",
+	# Harita (M8.6-04)
+	&"ButtonMapNode", &"ButtonMapNodeLocked", &"ButtonMapEndless", &"PanelMapPlaque",
 	# Oyun bilesenleri
 	&"ResourcePill", &"HeaderRibbon", &"SectionTag", &"ProgressBarMint", &"ProgressBarGold",
 	&"Badge", &"LockBadge", &"EquippedBadge", &"NewBadge", &"CountBadge",
@@ -179,6 +181,9 @@ func _build_panels() -> void:
 	# (`label_round`: pismis cizgi/golge YOK, boyali alan = dikdortgen);
 	# halka/golge/gloss UiKit.home_pill dekoru. Icerik: ikon 40 / "+" 48.
 	_panel(&"PanelHomePill", "label_round", UiTokens.LAVENDER_DEEP, Vector4(10, 3, 6, 5))
+	# Harita dugum plakasi (M8.6-04): dugumun altina binen krem `badge_round`
+	# (OYNA / Rekor N / Level 10'u bitir); kenar/golge MapLevelNode dekoru.
+	_panel(&"PanelMapPlaque", "badge_round", UiTokens.CREAM, Vector4(10, 1, 10, 4))
 
 
 # --- Butonlar ----------------------------------------------------------------
@@ -246,6 +251,16 @@ func _build_buttons() -> void:
 	# SIRADAKI / Level N); icerik margin'i soldaki tasan rozete yer birakir.
 	_button(&"ButtonHomePill", "label_round", UiTokens.LAVENDER_DEEP, Vector4(74, 4, 14, 8),
 		FONT_TITLE, 20, UiTokens.TEXT_ON_DARK, UiTokens.TEXT_DISABLED, 30)
+	# Harita yolculuk dugumu (M8.6-04): guc slotu / Home madalyonuyla ayni
+	# `btn_circle` govde ailesi — acik/tamamlanmis cyan, kilitli acik lavanta,
+	# Sonsuz Mod altin (tek altin madalyon: hedef). Halka/cam/numara/yildiz/
+	# kilit/plaka MapLevelNode cocuklari.
+	_button(&"ButtonMapNode", "btn_circle", UiTokens.CYAN, slot,
+		FONT_TITLE, 16, UiTokens.TEXT_ON_ACCENT, UiTokens.TEXT_DISABLED)
+	_button(&"ButtonMapNodeLocked", "btn_circle", UiTokens.LAVENDER_SURFACE, slot,
+		FONT_TITLE, 16, UiTokens.TEXT_PRIMARY, UiTokens.TEXT_DISABLED)
+	_button(&"ButtonMapEndless", "btn_circle", UiTokens.GOLD, slot,
+		FONT_TITLE, 16, UiTokens.TEXT_ON_ACCENT, UiTokens.TEXT_DISABLED)
 	# Pill'in nane "+" (03B.1): duz beyaz daire (`btn_circle_flat`, cizgi yok)
 	# nane; taban/gloss/picto UiKit.home_pill ekler. 48 px dokunma hedefi.
 	_button(&"ButtonHomeAdd", "btn_circle_flat", UiTokens.MINT, Vector4(0, 0, 0, 0),

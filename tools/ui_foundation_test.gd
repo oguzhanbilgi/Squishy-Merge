@@ -16,12 +16,16 @@ const GALLERY_SCENE: PackedScene = preload("res://tools/ui_system_gallery.tscn")
 const PANELS: Array[StringName] = [&"PanelBase", &"PanelCream", &"PanelPurple", &"PanelDark",
 	&"PanelCard", &"PanelModal", &"PanelElevated", &"PanelListRow",
 	# Home hub (M8.6-03B / 03B.1)
-	&"PanelFeaturePlaque", &"PanelHomePill"]
+	&"PanelFeaturePlaque", &"PanelHomePill",
+	# Harita (M8.6-04): dugum plakasi (OYNA / Rekor / sart)
+	&"PanelMapPlaque"]
 const BUTTONS: Array[StringName] = [&"ButtonPrimary", &"ButtonSecondary", &"ButtonPurchase",
 	&"ButtonDanger", &"ButtonIcon", &"ButtonRoundIcon", &"ButtonCTA", &"ButtonResourceAdd",
 	# Home hub (M8.6-03B / 03B.1): madalyon govdesi (krem / kilitli lavanta), oturmus
 	# ikon butonu, level pill'i, nane "+"
-	&"ButtonFeature", &"ButtonFeatureLocked", &"ButtonHomeIcon", &"ButtonHomePill", &"ButtonHomeAdd"]
+	&"ButtonFeature", &"ButtonFeatureLocked", &"ButtonHomeIcon", &"ButtonHomePill", &"ButtonHomeAdd",
+	# Harita (M8.6-04): yolculuk dugumu (cyan / kilitli lavanta / Sonsuz altin)
+	&"ButtonMapNode", &"ButtonMapNodeLocked", &"ButtonMapEndless"]
 const LABELS: Array[StringName] = [&"LabelDisplay", &"LabelTitle", &"LabelSection", &"LabelBody",
 	&"LabelCaption", &"LabelPrice", &"LabelPositive", &"LabelWarning", &"LabelDisabled", &"LabelStat",
 	&"LabelDisplayOnDark", &"LabelTitleOnDark", &"LabelSectionOnDark", &"LabelBodyOnDark",

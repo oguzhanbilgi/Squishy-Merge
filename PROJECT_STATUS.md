@@ -1122,6 +1122,13 @@ oran gürültü bandında.
 
 ### 4.15 Level haritası: patika yerleşimi (M8.5-12)
 
+> **M8.6-04 notu:** aşağıdaki sunum (düz cipli başlık, StyleBoxFlat kare
+> düğümler, dört durum, tam ekran karartma, alt sekme çubuğu) production
+> yolculuk haritasıyla DEĞİŞTİRİLDİ — düğüm konumları düzeltildi (2/4/5
+> yola, 8/9/10 aralığı), `MapLevelNode` beş durum, `ScreenTopBar`, çubuk
+> Harita'da gizli. Güncel kaynak: `docs/UI_VISUAL_SYSTEM.md` §15. Patika
+> (Catmull-Rom), açılış animasyonu ve unlock/yıldız kuralı aynen.
+
 Düz 5×2 grid kalktı; on düğüm owner'ın harita art'ındaki pembe kaldırım
 taşı yolun orta hattını takip ediyor. **Level verisi, hedefler, yıldızlar,
 unlock kuralı (`SaveManager.highest_level_unlocked`) DEĞİŞMEDİ** — yalnızca

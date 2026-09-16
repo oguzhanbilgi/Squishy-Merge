@@ -226,8 +226,8 @@ alınacak — şimdi tahmin/vaat yok.
     kart yığını + oyun-tarzı sekme çubuğu; owner "cilalı uygulama/dashboard,
     oyun hub'ı değil" dedi. Test/çekim altyapısı ve `hero_cta`/`card_button`/
     `safe_top` parçaları 03B'ye taşındı; görsel yön değişti.
-  - `M8.6-03B` 🔶 production Home **hub** (PRE-DEVICE VISUAL REVIEW, dal
-    `task/021-home-hub-redesign`): rakip referansın hub mimarisi, Squishy
+  - `M8.6-03B` ✅ production Home **hub** (dal `task/021-home-hub-redesign`,
+    A36 cihaz kapısı geçti, main 6f9db44): rakip referansın hub mimarisi, Squishy
     Merge'in kendi dünyası/karakterleri — **Home'da harita YOK**, sekme
     çubuğu Home'da GİZLİ. Üst: glossy ayarlar + seri pill'i · Hamur pill'i +
     nane "+". Logo. Sol/sağ yüzen candy madalyonlar (`HomeFeatureButton`,
@@ -252,12 +252,33 @@ alınacak — şimdi tahmin/vaat yok.
     ui_smoke 72, shell 147; `tools/home_shots` 10 durum × 4 boyut + A36
     simülasyonu (build/qa_m8.6-03b-final/, play_cta/). **Ekonomi, ilerleme, günlük ödül kuralı,
     kayıt şeması, gameplay HUD v5 yerleşimi DEĞİŞMEDİ** (HUD'da yalnız
-    "SIRADAKİ" yazımı). Cihaz kapısı (A36) owner görsel onayından sonra.
-    Ayrıntı: UI_VISUAL_SYSTEM §14.
+    "SIRADAKİ" yazımı). **A36 cihaz kapısı geçti, owner onayladı, main'e
+    alındı (6f9db44).** Ayrıntı: UI_VISUAL_SYSTEM §14.
+  - `M8.6-04` 🔶 production **journey map** (PRE-DEVICE VISUAL REVIEW, dal
+    `task/022-map-production-ui`): Home'daki OYNA'nın ilk durağı, owner'ın
+    candy dünyası kahraman. Üst satır `ScreenTopBar` (yeniden kullanılabilir:
+    oturmuş geri → Ana Sayfa · pembe "HARİTA" kurdelesi · Hamur pill'i + nane
+    "+" → Mağaza); sekme çubuğu Harita'da da GİZLİ (`_tabs.visible = tab >= 2`),
+    dünya tabana kadar. Eski tam ekran karartma yerine kenar vignette + üst
+    haze; punch-hole'da dünya güvenli payın altından başlar (bant = zeminin
+    üst satırları). On level + Sonsuz tek bileşenden (`MapLevelNode`, 5 durum:
+    tamamlanmış cyan + yıldız / sıradaki ×1.14 altın halka + nefes alan hale +
+    "OYNA" plakası / kilitli lavanta + owner kilit, dokununca sallanır ve
+    ASLA başlamaz / Sonsuz açık altın taç madalyonu + "Rekor N" / Sonsuz
+    kilitli + "Level 10'u bitir"); perspektif çap 84→72, uzun ekranda büyür;
+    patika 10 px candy + erik gölge + inci noktalar (tamamlanmış şeftali-altın).
+    Konumlar 2/4/5 yola alındı, 8/9/10 aralığı açıldı. `tools/map_ui_test`
+    127/127 (4 pencere + A36), `tools/map_shots` 10 durum × 4 boyut + A36;
+    ui_foundation 154/154 (+4 variation), home_ui 207/207 (çubuk Harita'da
+    gizli), ui_smoke 72, shell 147, skin 30, audio 45, economy 100, refill 119,
+    revive 120, bot L3 2/2 (build/qa_m8.6-04/). **Level verisi, unlock/yıldız
+    kuralı, Sonsuz şartı, level başlatma yolu, ekonomi, kayıt şeması, fizik,
+    Home, gameplay DEĞİŞMEDİ.** Cihaz kapısı owner görsel onayından sonra.
+    Ayrıntı: UI_VISUAL_SYSTEM §15.
 - **Sırada: M8.6 — Visual Cohesion Rebuild** (ekranlar `UiKit`/`UiTokens`
-  sistemine geçirilecek: ~~gameplay shell~~ ✅ → ~~home~~ 🔶 (owner görsel
-  onayı + cihaz kapısı bekliyor) → shop → collection →
-  map → result/reward/revive), ardından **M9 — Android export.** Ortam hazır (export template'leri, SDK,
+  sistemine geçirilecek: ~~gameplay shell~~ ✅ → ~~home~~ ✅ → ~~map~~ 🔶
+  (owner görsel onayı + cihaz kapısı bekliyor) → shop → collection →
+  result/reward/revive), ardından **M9 — Android export.** Ortam hazır (export template'leri, SDK,
   NDK, JDK 17, debug keystore mevcut, ETC2/ASTC import açık, iş
   makinesinde debug `export_presets.cfg` var — gitignore'lu, her makinede
   ayrı); eksik olan kalıcı paket adı ve release/upload keystore (uzun

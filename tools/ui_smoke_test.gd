@@ -197,26 +197,29 @@ func _ready() -> void:
 	SaveManager.data["level_stars"] = {"1": 2, "2": 3, "3": 3}
 	map_screen.refresh()
 	await get_tree().process_frame
-	_c("harita 10 dugum", map_screen._nodes.size() == 10)
-	_c("level 1-3 tamamlandi (acik)", not map_screen._nodes[0].disabled and not map_screen._nodes[2].disabled)
-	_c("level 4 siradaki (acik, hale bagli)", not map_screen._nodes[3].disabled and map_screen._halo.get_meta("node") == map_screen._nodes[3])
-	_c("level 5-10 kilitli", map_screen._nodes[4].disabled and map_screen._nodes[9].disabled)
-	_c("sonsuz kapisi kilitli", map_screen._portal.disabled)
-	_c("dugumler grid degil (x farkli)", map_screen._nodes[0].position.x != map_screen._nodes[1].position.x)
+	_c("harita 10 dugum", map_screen.nodes().size() == 10)
+	_c("level 1-3 tamamlandi (acik)", not map_screen.nodes()[0].is_locked() and not map_screen.nodes()[2].is_locked())
+	_c("level 4 siradaki (acik, odak/hale)", not map_screen.nodes()[3].is_locked() and map_screen.focus_node() == map_screen.nodes()[3])
+	_c("level 5-10 kilitli", map_screen.nodes()[4].is_locked() and map_screen.nodes()[9].is_locked())
+	_c("sonsuz kapisi kilitli", map_screen.endless_node().is_locked())
+	_c("dugumler grid degil (x farkli)", map_screen.nodes()[0].position.x != map_screen.nodes()[1].position.x)
 	var chosen: Array = []
 	map_screen.level_chosen.connect(func(l: LevelData) -> void: chosen.append(l.level_number))
-	map_screen._nodes[3].pressed.emit()
+	map_screen.nodes()[3].pressed.emit()
 	_c("dugum basisi level_chosen(4) yaydi", chosen == [4])
+	# level_chosen main._start_level'i tetikledi (kanonik yol): board'u terk et.
+	main.abandon_run()
+	await get_tree().process_frame
 	# Acilis: level 4 bitti -> 5 acildi, animasyon kaydi degistirmez
 	SaveManager.data["highest_level_unlocked"] = 5
 	SaveManager.data["level_stars"] = {"1": 2, "2": 3, "3": 3, "4": 3}
 	map_screen.refresh()
 	await get_tree().process_frame
-	_c("acilis sonrasi level 5 siradaki", map_screen._halo.get_meta("node") == map_screen._nodes[4])
+	_c("acilis sonrasi level 5 siradaki", map_screen.focus_node() == map_screen.nodes()[4])
 	SaveManager.data["highest_level_unlocked"] = 11
 	map_screen.refresh()
 	await get_tree().process_frame
-	_c("sonsuz kapisi acik", not map_screen._portal.disabled)
+	_c("sonsuz kapisi acik", not map_screen.endless_node().is_locked())
 	SaveManager.data["highest_level_unlocked"] = saved_high
 	SaveManager.data["level_stars"] = saved_stars
 	map_screen.refresh()

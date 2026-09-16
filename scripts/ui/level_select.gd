@@ -1,146 +1,226 @@
 extends CanvasLayer
-## Harita sekmesi: level seçim ekranı (GAME_DESIGN.md §5.5).
+## Harita — production yolculuk ekranı (M8.6-04; GAME_DESIGN §5.5).
 ##
-## M8.5-12: düz 5×2 grid KALKTI. On level düğümü owner'ın harita art'ındaki
-## pembe patikayı takip ediyor (aşağıdan yukarı, hafif zig-zag), aralarında
-## programatik candy patika (MapTrail), sonda Sonsuz Mod "kapısı" (kale).
-## Unlock kuralları, level verisi, yıldızlar DEĞİŞMEDİ — yalnızca yerleşim
-## ve sunum.
+## Home'daki büyük OYNA'nın ilk durağı: owner'ın candy dünyası KAHRAMAN,
+## üstünde aşağıdan yukarı on level düğümü + kaledeki Sonsuz Mod madalyonu,
+## aralarında candy patika (MapTrail). Dashboard/kart/grid DEĞİL.
 ##
-## Düğüm durumları:
-##   LOCKED     kilitli — lavanta, soluk, kilit rozeti
-##   AVAILABLE  açık ama henüz oynanmamış ve sıradaki değil (teorik; unlock
-##              sıralı olduğu için pratikte yalnızca sıradaki olur)
-##   NEXT       sıradaki — altın halka + arkasında nabız atan altın hale
-##   COMPLETED  yıldızlı candy düğüm
+##   ÜST     `ScreenTopBar`: geri (→ Ana Sayfa) · pembe "HARİTA" kurdelesi ·
+##           Hamur pill'i + nane "+" (→ Mağaza). Home ile aynı satır geometrisi.
+##   DÜNYA   `map_background.png` KEEP_ASPECT_COVERED — cihaz üst güvenli payı
+##           (punch-hole) kadar aşağıdan başlar, üstteki bant gök rengi + haze;
+##           kenarlarda yumuşak erik vignette; eski tam ekran karartma YOK.
+##   DÜĞÜM   `MapLevelNode` (tek bileşen, beş durum). Perspektif: altta 84 px,
+##           kalede 72 px; sıradaki ×1.14 + altın halka + nefes alan hale +
+##           "OYNA" plakası. Kilitli dokunuş: kilit sallanır, level başlamaz.
+##   SONSUZ  kalede 116 px altın madalyon (taç + SONSUZ); kilitliyse lavanta +
+##           "Level 10'u bitir". Her şey bitmişse odak (hale) Sonsuz'dadır.
+##   ALT     sekme çubuğu YOK (main.gd Harita'da gizler) — dünya tabana kadar.
 ##
-## Koordinatlar DOKU uzayında (720×1280 harita zemini). Zemin
-## KEEP_ASPECT_COVERED ile çizildiği için uzun ekranda büyüyüp kırpılıyor;
-## düğümler aynı dönüşümle taşınıyor (_map_to_screen), böylece patika ile
-## hizaları her oranda korunuyor.
+## Koordinatlar DOKU uzayında (720×1280 harita zemini). Zemin cover ile
+## ölçeklenip kırpıldığı için düğümler aynı dönüşümle taşınır
+## (`_map_to_screen`); patika hizası her oranda korunur.
+##
+## Level verisi, unlock kuralı (`SaveManager.highest_level_unlocked`), yıldız
+## verisi, Sonsuz şartı (`is_endless_unlocked`) ve level başlatma yolu
+## (`level_chosen` → main._start_level) DEĞİŞMEDİ. Kayıt yalnızca OKUNUR.
 
 signal level_chosen(level: LevelData)
-
-enum NodeState { LOCKED, AVAILABLE, NEXT, COMPLETED }
+signal home_requested
+signal shop_requested
 
 ## Harita zemini doku boyutu (map_background.png).
 const MAP_SIZE: Vector2 = Vector2(720.0, 1280.0)
-## Level 1..10 düğüm merkezleri, doku uzayı. Pembe kaldırım taşı yolun
-## orta hattı üstünde: alt geniş bölümde zig-zag, y≈750'de yolun sola
-## kıvrımı, y≈560'ta sağa dönüş, tepede kapı kemeri (level 10). Dekoratif
-## karakterlerin (sol alt sarı, sağ alt pembe) ve köprülerin üstüne
-## binmiyor; kenara 48 px'ten fazla yaklaşmıyor.
+## Level 1..10 düğüm merkezleri, doku uzayı: pembe kaldırım taşı yolun
+## ÜSTÜNDE (M8.6-04: 2/4/5 kaldırımdan yola alındı, 8/9/10 aralığı ≥ 104 px
+## açıldı). Alt geniş bölümde zig-zag, y≈740'ta sola kıvrım, y≈556'da sağa
+## dönüş, tepede kapı kemeri (level 10). Dekoratif karakterlere binmiyor.
 const NODE_POSITIONS: Array[Vector2] = [
 	Vector2(420.0, 1120.0),
-	Vector2(300.0, 1030.0),
+	Vector2(322.0, 1030.0),
 	Vector2(440.0, 940.0),
-	Vector2(310.0, 850.0),
-	Vector2(300.0, 740.0),
-	Vector2(395.0, 645.0),
-	Vector2(470.0, 555.0),
-	Vector2(410.0, 465.0),
-	Vector2(475.0, 385.0),
-	Vector2(440.0, 296.0),
+	Vector2(332.0, 850.0),
+	Vector2(322.0, 742.0),
+	Vector2(398.0, 648.0),
+	Vector2(468.0, 556.0),
+	Vector2(408.0, 470.0),
+	Vector2(480.0, 388.0),
+	Vector2(440.0, 292.0),
 ]
-## Sonsuz Mod kapısı: patikanın sonundaki kale (yolun devamı). Başlık
-## satırı (y 30-110) sol ve sağda; kapı ortada (x 387-503) olduğu için
-## çakışmıyor.
+## Sonsuz Mod: patikanın sonundaki kale.
 const ENDLESS_POSITION: Vector2 = Vector2(445.0, 150.0)
-
-## Düğüm 88 px: 96'da on düğüm + kapı 1000 px'lik yola sığmıyor, patika
-## görünmüyordu. 88 hâlâ 48 px dokunma hedefinin çok üstünde.
-const NODE_SIZE: Vector2 = Vector2(88.0, 88.0)
-const PORTAL_SIZE: Vector2 = Vector2(116.0, 116.0)
-
-## Kilitli level düğümündeki kilit rozeti.
-const LOCK_BADGE_SIZE: Vector2 = Vector2(30.0, 37.0)
-const LOCK_BADGE_INSET: float = 5.0
-
-## Düğümdeki yıldız sırası (asset, Unicode değil — M8.5-09).
-const NODE_STAR_SIZE: Vector2 = Vector2(20.0, 19.0)
-const NODE_STAR_SEPARATION: int = 2
-## Level numarası — Baloo 2 Bold (CARD_TITLE rolü, boyutu ezilerek).
-const NODE_NUMBER_FONT_SIZE: int = 26
-## İçeriğin düğümün dikey olarak neresine oturduğu (tema content margin'leri).
-const NODE_TOP_INSET: float = 10.0
-const NODE_BOTTOM_INSET: float = 16.0
-const NODE_STAR_EMPTY_ALPHA: float = 0.5
-
-## Sıradaki level: altın halka + arkasında nabız atan hale.
-const NEXT_RING_COLOR: Color = UiPalette.GOLD
-const NEXT_PULSE_SCALE: float = 1.05
-const NEXT_PULSE_TIME: float = 0.9
-const HALO_TEXTURE: Texture2D = preload("res://assets/visual/fx/fx_dot.png")
+## Perspektif: düğüm çapı en alttaki düğümde 1.0, en üsttekinde DEPTH_MIN.
+const DEPTH_MIN: float = 0.86
+## Sonsuz şartı — kanonik metin (M8.5-12).
+const ENDLESS_REQUIREMENT: String = "Level %d'u bitir"
+## Punch-hole bandı: zeminin en üst satırları (gök + bulut tepeleri) dikeyde
+## gerilerek bandı doldurur — düz renkte görünen dikiş yok; üstüne haze biner.
+const SKY_STRIP_ROWS: int = 6
+const HAZE_HEIGHT: float = 150.0
+## Uzun ekranda (dünya ölçeği > 1) düğümler de yarı oranda büyür: 720×1560'ta
+## dünya 1.22×, düğüm 1.11× — oran 16:9 ile aynı okunur; dokunma yalnız büyür.
+const NODE_WORLD_SCALE_SHARE: float = 0.5
+## Atmosfer pırıltıları: doku uzayı konum, kutu, faz — odaktaki düğümün
+## çevresinde değil, dünyada (şelale/balon çevresi); sessiz.
+const SPARKLES: Array = [
+	[Vector2(118.0, 470.0), 16.0, 0.0],
+	[Vector2(612.0, 596.0), 13.0, 1.7],
+	[Vector2(196.0, 258.0), 12.0, 3.1],
+	[Vector2(548.0, 214.0), 14.0, 4.4],
+	[Vector2(96.0, 1052.0), 12.0, 2.3],
+	[Vector2(652.0, 1004.0), 11.0, 5.2],
+]
+const STAR_ART: Texture2D = preload("res://assets/visual/ui/icon_star_filled.png")
 const SPARKLE_TEXTURE: Texture2D = preload("res://assets/visual/fx/fx_sparkle.png")
-const HALO_SIZE: float = 210.0
 
-## Kilitli düğümün soluklaştırılması (pasif tema stili zaten lavanta).
-const LOCKED_ALPHA: float = 0.78
-
-## Açılış animasyonu (M8.5-12): düğüm pop + parıltı + patika yanması.
+## Açılış animasyonu (M8.5-12): patika yanar → düğüm pop → parıltı. ~0.7 s.
 const UNLOCK_POP_TIME: float = 0.32
 const UNLOCK_TRAIL_TIME: float = 0.4
+## Ekran girişi: düğüm katmanı 0.18 s'de belirir, odak düğümü küçük pop.
+const ENTRY_TIME: float = 0.18
 
 var _levels: Array[LevelData] = []
-var _dough_chip: PanelContainer
-var _streak_chip: PanelContainer
-var _record_chip: PanelContainer
-var _pulse: Tween
-var _halo: TextureRect
-var _portal: Button
-var _portal_caption: Label
 ## Düğüm butonları, level sırasıyla (index 0 = level 1).
-var _nodes: Array[Button] = []
+var _nodes: Array[MapLevelNode] = []
+var _endless: MapLevelNode
+var _focus: MapLevelNode
+var _sparkles: Array[TextureRect] = []
 ## Son tazelemede görülen en yüksek açık level. -1 = henüz görülmedi
 ## (ilk tazeleme animasyon oynatmaz). Kayda YAZILMIYOR — bellek içi.
 var _last_unlocked: int = -1
+var _time: float = 0.0
+## Açılış animasyonu oynuyor: giriş pop'u ve nefes ölçeğe dokunmaz.
+var _unlock_playing: bool = false
+## Canlı tween'ler: tazeleme düğümleri yeniden kurduğunda öldürülür (serbest
+## bırakılmış düğüme bağlı callback kalmasın).
+var _entry_tween: Tween
+var _unlock_tweens: Array[Tween] = []
+## Test kancası: cihaz üst güvenli payı (A36 punch-hole) masaüstünde
+## okunamaz; negatif = gerçek değeri kullan.
+var _safe_top_override: float = -1.0
+## Dünya dikdörtgeni (cover): son yerleşimde hesaplandı.
+var _world: Rect2 = Rect2(Vector2.ZERO, MAP_SIZE)
+var _world_scale: float = 1.0
 
-@onready var _map: Control = $Map
-@onready var _trail: MapTrail = $Map/Trail
-@onready var _node_layer: Control = $Map/Nodes
-@onready var _chip_slot: HBoxContainer = $Header/Row/ChipSlot
+@onready var _root: Control = $Root
+@onready var _art: TextureRect = $Root/MapBackground
+@onready var _sky: TextureRect = $Root/Sky
+@onready var _haze: TextureRect = $Root/Haze
+@onready var _vignette: TextureRect = $Root/Vignette
+@onready var _map: Control = $Root/Map
+@onready var _trail: MapTrail = $Root/Map/Trail
+@onready var _node_layer: Control = $Root/Map/Nodes
+@onready var _fx_layer: Control = $Root/Map/Fx
+@onready var _bar: ScreenTopBar = $Root/TopBar
 
 
 func _ready() -> void:
 	_levels = LevelLibrary.load_levels()
-	_dough_chip = UiPalette.chip(UiIcons.DOUGH, "")
-	_streak_chip = UiPalette.chip(UiIcons.FLAME, "")
-	_chip_slot.add_child(_streak_chip)
-	_chip_slot.add_child(_dough_chip)
-	_map.resized.connect(_layout)
+	var strip := AtlasTexture.new()
+	strip.atlas = _art.texture
+	strip.region = Rect2(0.0, 0.0, MAP_SIZE.x, float(SKY_STRIP_ROWS))
+	_sky.texture = strip
+	_haze.texture = _vertical_gradient(Color(0.96, 0.97, 1.0, 0.72), Color(0.96, 0.97, 1.0, 0.0))
+	_vignette.texture = _radial_vignette()
+	_bar.set_title("HARİTA")
+	_bar.back_pressed.connect(func() -> void: home_requested.emit())
+	_bar.add_pressed.connect(func() -> void: shop_requested.emit())
+	for spec in SPARKLES:
+		var spark := UiKit.art(STAR_ART, float(spec[1]))
+		_fx_layer.add_child(spark)
+		_sparkles.append(spark)
+	_root.resized.connect(_layout)
+	visibility_changed.connect(func() -> void:
+		set_process(visible)
+		if visible:
+			_layout()
+			# main._show_tab görünürlükten SONRA refresh() çağırır: giriş
+			# animasyonu yeni düğümleri görsün diye ertelenir.
+			_play_entry.call_deferred())
+	set_process(visible)
 	refresh()
 
 
 # --- Doku uzayı -> ekran ---
 
-## MapBackground KEEP_ASPECT_COVERED: ölçek = max(vw/720, vh/1280),
-## çizim merkezlenir. Aynı dönüşüm düğümlere uygulanıyor.
+## Dünya: zemin `Rect2(0, safe_top, vw, vh − safe_top)` alanını KEEP_ASPECT_
+## COVERED doldurur (ölçek = max(w/720, h/1280), merkezlenir). Aynı dönüşüm
+## düğümlere uygulanır. Punch-hole yokken eski (tam ekran) dönüşümle birebir.
 func _map_to_screen(map_point: Vector2) -> Vector2:
-	var view: Vector2 = _map.size
-	if view.x <= 0.0 or view.y <= 0.0:
-		view = MAP_SIZE
-	var s: float = maxf(view.x / MAP_SIZE.x, view.y / MAP_SIZE.y)
-	return (map_point - MAP_SIZE * 0.5) * s + view * 0.5
+	return (map_point - MAP_SIZE * 0.5) * _world_scale + _world.get_center()
+
+
+func _safe_top() -> float:
+	if _safe_top_override >= 0.0:
+		return _safe_top_override
+	return UiKit.safe_top(_root.size)
 
 
 func _layout() -> void:
+	if _root == null or _bar == null:
+		return
+	var view: Vector2 = _root.size
+	if view.x <= 0.0 or view.y <= 0.0:
+		return
+	var safe_top: float = _safe_top()
+	_bar.layout(view.x, safe_top)
+	_world = Rect2(0.0, safe_top, view.x, maxf(view.y - safe_top, 1.0))
+	_world_scale = maxf(_world.size.x / MAP_SIZE.x, _world.size.y / MAP_SIZE.y)
+	_art.position = _world.position
+	_art.size = _world.size
+	_sky.position = Vector2.ZERO
+	_sky.size = Vector2(view.x, safe_top + 2.0)
+	# Bant, zeminin GÖRÜNEN yatay aralığının en üst satırlarını gerer (uzun
+	# ekranda zemin yanlardan kırpılır; bulutlar dikişte hizalı kalsın).
+	var art_left: float = _world.position.x + (_world.size.x - MAP_SIZE.x * _world_scale) * 0.5
+	var strip: AtlasTexture = _sky.texture as AtlasTexture
+	if strip != null:
+		strip.region = Rect2((0.0 - art_left) / _world_scale, 0.0, view.x / _world_scale, float(SKY_STRIP_ROWS))
+	_haze.position = Vector2.ZERO
+	_haze.size = Vector2(view.x, safe_top + HAZE_HEIGHT)
+	_vignette.position = Vector2.ZERO
+	_vignette.size = view
+
 	var trail_points := PackedVector2Array()
+	var radii := PackedFloat32Array()
 	for i in _nodes.size():
+		var node: MapLevelNode = _nodes[i]
 		var center: Vector2 = _map_to_screen(NODE_POSITIONS[i])
-		_nodes[i].position = center - NODE_SIZE * 0.5
+		var d: float = _node_diameter(i, node.state() == MapLevelNode.State.CURRENT)
+		node.set_diameter(d)
+		node.position = center - Vector2(d, d) * 0.5
 		trail_points.append(center)
-	if _portal != null:
+		radii.append(d * 0.5)
+	if _endless != null:
 		var center: Vector2 = _map_to_screen(ENDLESS_POSITION)
-		_portal.position = center - PORTAL_SIZE * 0.5
-		_record_chip.reset_size()
-		_record_chip.position = center + Vector2(-_record_chip.get_combined_minimum_size().x * 0.5,
-			PORTAL_SIZE.y * 0.5 + 6.0)
+		_endless.set_diameter(MapLevelNode.ENDLESS_DIAMETER * _node_world_scale())
+		var d: float = _endless.diameter()
+		_endless.position = center - Vector2(d, d) * 0.5
 		trail_points.append(center)
-	if _halo != null and _halo.has_meta("node"):
-		var node: Button = _halo.get_meta("node")
-		_halo.position = node.position + NODE_SIZE * 0.5 - Vector2.ONE * HALO_SIZE * 0.5
-	var done: int = _done_segments()
-	_trail.set_trail(trail_points, done, _trail.lit)
+		radii.append(d * 0.5)
+	_trail.set_trail(trail_points, _done_segments(), _trail.lit, radii)
+	for i in _sparkles.size():
+		var spec: Array = SPARKLES[i]
+		var box: float = float(spec[1])
+		var at: Vector2 = _map_to_screen(spec[0] as Vector2)
+		_sparkles[i].position = at - Vector2(box, box) * 0.5
+		_sparkles[i].size = Vector2(box, box)
+		_sparkles[i].pivot_offset = Vector2(box, box) * 0.5
+
+
+## Perspektif çapı: doku y'sine göre 84 → 72; sıradaki ×1.14.
+func _node_diameter(index: int, current: bool) -> float:
+	var y: float = NODE_POSITIONS[index].y
+	var t: float = clampf((y - NODE_POSITIONS[NODE_POSITIONS.size() - 1].y)
+		/ maxf(NODE_POSITIONS[0].y - NODE_POSITIONS[NODE_POSITIONS.size() - 1].y, 1.0), 0.0, 1.0)
+	var d: float = MapLevelNode.LEVEL_DIAMETER * lerpf(DEPTH_MIN, 1.0, t) * _node_world_scale()
+	if current:
+		d *= MapLevelNode.CURRENT_SCALE
+	return d
+
+
+func _node_world_scale() -> float:
+	return 1.0 + maxf(_world_scale - 1.0, 0.0) * NODE_WORLD_SCALE_SHARE
 
 
 ## Tamamlanmış segment sayısı: level k tamamlandıysa k→k+1 segmenti sıcak.
@@ -152,13 +232,12 @@ func _done_segments() -> int:
 # --- Tazeleme ---
 
 func refresh() -> void:
+	_kill_animations()
 	for child in _node_layer.get_children():
 		child.queue_free()
 	_nodes.clear()
-	_halo = null
-	_portal = null
-	if _pulse != null and _pulse.is_valid():
-		_pulse.kill()
+	_endless = null
+	_focus = null
 
 	var highest: int = SaveManager.highest_level_unlocked()
 	var newly_unlocked: int = -1
@@ -166,32 +245,29 @@ func refresh() -> void:
 		newly_unlocked = highest
 	_last_unlocked = highest
 
-	# Hale düğümlerin ARKASINDA: önce ekleniyor.
-	_halo = TextureRect.new()
-	_halo.texture = HALO_TEXTURE
-	_halo.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	_halo.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	_halo.size = Vector2.ONE * HALO_SIZE
-	_halo.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_halo.modulate = Color(UiPalette.GOLD.r, UiPalette.GOLD.g, UiPalette.GOLD.b, 0.0)
-	_node_layer.add_child(_halo)
-
 	for level in _levels:
-		var state: NodeState = _state_for(level.level_number, highest)
-		var button: Button = _make_node(level, state)
-		_node_layer.add_child(button)
-		_nodes.append(button)
-		if state == NodeState.NEXT:
-			_mark_next(button)
+		var state: MapLevelNode.State = _state_for(level.level_number, highest)
+		var node := MapLevelNode.new()
+		node.setup_level(level.level_number, state, SaveManager.stars_for_level(level.level_number))
+		node.pressed.connect(_on_node_pressed.bind(node, level))
+		_node_layer.add_child(node)
+		_nodes.append(node)
+		if state == MapLevelNode.State.CURRENT and level.level_number == highest:
+			_focus = node
 
-	_make_portal(SaveManager.is_endless_unlocked(_levels.size()))
+	var endless_open: bool = SaveManager.is_endless_unlocked(_levels.size())
+	_endless = MapLevelNode.new()
+	_endless.setup_endless(endless_open, SaveManager.endless_high_score(),
+		ENDLESS_REQUIREMENT % _levels.size())
+	_endless.pressed.connect(_on_endless_pressed)
+	_node_layer.add_child(_endless)
+	# Her şey bitmişse yolculuğun hedefi Sonsuz: hale oraya.
+	if _focus == null and endless_open:
+		_focus = _endless
+	if _focus != null:
+		_focus.set_focused(true)
 
-	UiPalette.set_chip_value(_dough_chip, "%d Hamur" % SaveManager.dough(), false)
-	var streak: int = SaveManager.daily_streak()
-	UiPalette.set_chip_value(_streak_chip,
-		"%d günlük seri" % streak if streak > 0 else "Seri başlasın", false)
-	if SaveManager.is_endless_unlocked(_levels.size()):
-		UiPalette.set_chip_value(_record_chip, "Rekor %d" % SaveManager.endless_high_score(), false)
+	_bar.set_value(str(SaveManager.dough()), false)
 	_trail.lit = 0.0
 	_layout()
 
@@ -199,205 +275,81 @@ func refresh() -> void:
 		_play_unlock(newly_unlocked)
 
 
-func _state_for(level_number: int, highest: int) -> NodeState:
+func _state_for(level_number: int, highest: int) -> MapLevelNode.State:
 	if level_number > highest:
-		return NodeState.LOCKED
+		return MapLevelNode.State.LOCKED
 	if SaveManager.stars_for_level(level_number) > 0:
-		return NodeState.COMPLETED
-	if level_number == highest:
-		return NodeState.NEXT
-	return NodeState.AVAILABLE
+		return MapLevelNode.State.COMPLETED
+	return MapLevelNode.State.CURRENT
 
 
-# --- Düğümler ---
+# --- Etkileşim ---
 
-func _make_node(level: LevelData, state: NodeState) -> Button:
-	var button := Button.new()
-	button.size = NODE_SIZE
-	button.custom_minimum_size = NODE_SIZE
-	button.focus_mode = Control.FOCUS_NONE
-	button.disabled = state == NodeState.LOCKED
-	button.pivot_offset = NODE_SIZE * 0.5
-	button.pressed.connect(_on_level_pressed.bind(level))
-	UiMotion.attach_press(button)
-	# Kilitli düğümde yıldız sırası YOK: numara + kilit yeter, boş yıldızlar
-	# on düğümde tekrarlanınca gürültü oluyordu.
-	_add_node_content(button, level.level_number,
-		SaveManager.stars_for_level(level.level_number), state != NodeState.LOCKED)
-	if state == NodeState.LOCKED:
-		_add_lock_badge(button)
-		button.modulate.a = LOCKED_ALPHA
-	elif state == NodeState.AVAILABLE:
-		# CTA gibi okunur ama sıradaki kadar parlamaz: ince krem kenar.
-		for style_name in ["normal", "hover"]:
-			var box := (button.get_theme_stylebox(style_name) as StyleBoxFlat).duplicate()
-			box.set_border_width_all(2)
-			box.border_width_bottom = 6
-			box.border_color = UiPalette.CREAM
-			button.add_theme_stylebox_override(style_name, box)
-	return button
-
-
-## Sıradaki level: altın halka + nabız + arkada yumuşak altın hale.
-func _mark_next(button: Button) -> void:
-	for style_name in ["normal", "hover"]:
-		var box := (button.get_theme_stylebox(style_name) as StyleBoxFlat).duplicate()
-		box.set_border_width_all(3)
-		box.border_width_bottom = 6
-		box.border_color = NEXT_RING_COLOR
-		button.add_theme_stylebox_override(style_name, box)
-	_halo.set_meta("node", button)
-	_halo.modulate.a = 0.7
-	# Basınca nabız durur; basma animasyonu (UiMotion) scale'i devralır.
-	button.button_down.connect(func() -> void:
-		if _pulse != null and _pulse.is_valid():
-			_pulse.kill())
-	_pulse = button.create_tween().set_loops()
-	_pulse.set_parallel(true)
-	_pulse.tween_property(button, "scale", Vector2.ONE * NEXT_PULSE_SCALE, NEXT_PULSE_TIME) \
-		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
-	_pulse.tween_property(_halo, "modulate:a", 1.0, NEXT_PULSE_TIME) \
-		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
-	_pulse.chain().set_parallel(true)
-	_pulse.tween_property(button, "scale", Vector2.ONE, NEXT_PULSE_TIME) \
-		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
-	_pulse.tween_property(_halo, "modulate:a", 0.7, NEXT_PULSE_TIME) \
-		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
-
-
-## Düğümün içeriği: numara üstte, yıldız sırası altta. `button.text`
-## KULLANILMIYOR: yıldızlar Texture2D, Button ikonu yazının soluna koyar.
-func _add_node_content(button: Button, level_number: int, earned: int,
-		show_stars: bool = true) -> void:
-	var box := VBoxContainer.new()
-	box.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	box.set_anchors_preset(Control.PRESET_FULL_RECT)
-	box.offset_top = NODE_TOP_INSET
-	box.offset_bottom = -NODE_BOTTOM_INSET
-	box.alignment = BoxContainer.ALIGNMENT_CENTER
-	box.add_theme_constant_override("separation", 2)
-	button.add_child(box)
-
-	var number := Label.new()
-	UiType.apply(number, UiType.CARD_TITLE)
-	number.add_theme_font_size_override("font_size", NODE_NUMBER_FONT_SIZE)
-	number.text = str(level_number)
-	number.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	number.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	box.add_child(number)
-
-	if not show_stars:
+## Açık düğüm → level (kanonik `level_chosen`, main._start_level). Kilitli →
+## yalnız geri bildirim; level başlamaz.
+func _on_node_pressed(node: MapLevelNode, level: LevelData) -> void:
+	if node.is_locked():
+		node.reject()
 		return
-	var stars := HBoxContainer.new()
-	stars.alignment = BoxContainer.ALIGNMENT_CENTER
-	stars.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	stars.add_theme_constant_override("separation", NODE_STAR_SEPARATION)
-	box.add_child(stars)
-
-	for i in 3:
-		var star := TextureRect.new()
-		star.texture = UiIcons.STAR_FILLED if i < earned else UiIcons.STAR_EMPTY
-		star.custom_minimum_size = NODE_STAR_SIZE
-		star.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-		star.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-		star.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		star.modulate = Color(1, 1, 1, 1) if i < earned \
-			else Color(1, 1, 1, NODE_STAR_EMPTY_ALPHA)
-		stars.add_child(star)
+	level_chosen.emit(level)
 
 
-## Kilitli düğümün sağ-üst köşesine küçük kilit rozeti (koleksiyonla aynı dil).
-func _add_lock_badge(button: Button) -> void:
-	var badge := TextureRect.new()
-	badge.texture = UiIcons.LOCK
-	badge.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	badge.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	badge.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	badge.set_anchors_preset(Control.PRESET_TOP_RIGHT)
-	badge.offset_left = -LOCK_BADGE_SIZE.x - LOCK_BADGE_INSET
-	badge.offset_top = LOCK_BADGE_INSET
-	badge.offset_right = -LOCK_BADGE_INSET
-	badge.offset_bottom = LOCK_BADGE_SIZE.y + LOCK_BADGE_INSET
-	button.add_child(badge)
+func _on_endless_pressed() -> void:
+	if _endless.is_locked():
+		_endless.reject()
+		return
+	var endless := LevelLibrary.load_endless()
+	if endless != null:
+		level_chosen.emit(endless)
 
 
-# --- Sonsuz Mod kapısı ---
+# --- Hareket ---
 
-## Normal düğüm gibi değil: kalenin önünde yuvarlak altın "kapı", kupa
-## ikonu, altında etiket ve rekor cipi. Kilitliyse gri + kilit + "Level
-## 10'u bitir". Unlock kuralı SaveManager.is_endless_unlocked — değişmedi.
-func _make_portal(unlocked: bool) -> void:
-	_portal = Button.new()
-	_portal.size = PORTAL_SIZE
-	_portal.custom_minimum_size = PORTAL_SIZE
-	_portal.focus_mode = Control.FOCUS_NONE
-	_portal.disabled = not unlocked
-	_portal.pivot_offset = PORTAL_SIZE * 0.5
-	_portal.pressed.connect(_on_endless_pressed)
-	UiMotion.attach_press(_portal)
-	_portal.add_theme_stylebox_override("normal", _portal_style(UiPalette.GOLD, Color(1, 1, 1, 0.9)))
-	_portal.add_theme_stylebox_override("hover", _portal_style(UiPalette.GOLD_BRIGHT, Color.WHITE))
-	_portal.add_theme_stylebox_override("pressed", _portal_style(Color(0.9, 0.7, 0.3), Color(1, 1, 1, 0.8)))
-	_portal.add_theme_stylebox_override("hover_pressed", _portal_style(Color(0.9, 0.7, 0.3), Color(1, 1, 1, 0.8)))
-	_portal.add_theme_stylebox_override("disabled", _portal_style(UiPalette.DISABLED_FACE, Color(1, 1, 1, 0.3)))
-	var ink: Color = Color(0.45, 0.22, 0.32) if unlocked else Color(1, 1, 1, 0.5)
-	# Kapının içi: kupa + "Sonsuz" etiketi (dış etiket level 10 düğümüyle
-	# çakışıyordu; kapı zaten 116 px, ikisi içeri sığıyor).
-	var column := VBoxContainer.new()
-	column.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	column.set_anchors_preset(Control.PRESET_FULL_RECT)
-	column.offset_top = 14.0
-	column.offset_bottom = -14.0
-	column.alignment = BoxContainer.ALIGNMENT_CENTER
-	column.add_theme_constant_override("separation", 0)
-	_portal.add_child(column)
-	var icon := UiPalette.icon_rect(UiPalette.ICON_TROPHY, 44.0, ink)
-	icon.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-	column.add_child(icon)
-	_portal_caption = Label.new()
-	UiType.apply(_portal_caption, UiType.CARD_TITLE)
-	_portal_caption.text = "Sonsuz"
-	_portal_caption.add_theme_font_size_override("font_size", 18)
-	_portal_caption.add_theme_color_override("font_color", ink)
-	_portal_caption.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_portal_caption.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	column.add_child(_portal_caption)
-	if not unlocked:
-		_add_lock_badge(_portal)
-		_portal.modulate.a = LOCKED_ALPHA
-	_node_layer.add_child(_portal)
+func _kill_animations() -> void:
+	if _entry_tween != null and _entry_tween.is_valid():
+		_entry_tween.kill()
+	for tween in _unlock_tweens:
+		if tween != null and tween.is_valid():
+			tween.kill()
+	_unlock_tweens.clear()
+	_unlock_playing = false
+	_node_layer.modulate.a = 1.0
 
-	# Kapının altındaki tek cip: açıksa rekor, kilitliyse şart.
-	if unlocked:
-		_record_chip = UiPalette.chip(UiPalette.ICON_TROPHY, "Rekor 0", 20, UiPalette.GOLD)
-	else:
-		_record_chip = UiPalette.chip(UiIcons.LOCK, "Level %d'u bitir" % _levels.size(), 20)
-	_node_layer.add_child(_record_chip)
+## Ekran girişi (sekme geçişinin üstüne): düğüm katmanı kısa solmayla
+## gelir, odak düğümü küçük pop. Düğüm konumları oynamaz.
+func _play_entry() -> void:
+	if not is_inside_tree():
+		return
+	if _entry_tween != null and _entry_tween.is_valid():
+		_entry_tween.kill()
+	_node_layer.modulate.a = 0.0
+	_entry_tween = create_tween()
+	_entry_tween.tween_property(_node_layer, "modulate:a", 1.0, ENTRY_TIME)
+	if _focus != null and not _unlock_playing:
+		_entry_tween.tween_callback(UiMotion.pop.bind(_focus, 1.06))
 
 
-static func _portal_style(face: Color, ring: Color) -> StyleBoxFlat:
-	var box := StyleBoxFlat.new()
-	box.bg_color = face
-	box.set_border_width_all(4)
-	box.border_color = ring
-	box.set_corner_radius_all(int(PORTAL_SIZE.x * 0.5))
-	box.shadow_color = Color(1.0, 0.85, 0.4, 0.35)
-	box.shadow_size = 14
-	return box
+## Atmosfer pırıltıları sönümlenir (sinüs, RNG yok). Düğümlerin kendi
+## nefesi MapLevelNode içinde.
+func _process(delta: float) -> void:
+	_time += delta
+	for i in _sparkles.size():
+		var spec: Array = SPARKLES[i]
+		var twinkle: float = 0.35 + 0.5 * (0.5 + 0.5 * sin(TAU * _time / 2.3 + float(spec[2])))
+		_sparkles[i].modulate.a = twinkle
+		_sparkles[i].scale = Vector2.ONE * (0.8 + 0.3 * twinkle)
 
-
-# --- Açılış animasyonu ---
 
 ## Level `level_number` ilk kez açıldı: patikanın son segmenti yanar,
-## düğüm pop'lar, birkaç parıltı. ~0.5 sn, kesilebilir; kayıt değişmez.
+## düğüm pop'lar, birkaç parıltı, `level_unlock`. ~0.7 s, kesilebilir;
+## kayıt değişmez.
 func _play_unlock(level_number: int) -> void:
 	var index: int = level_number - 1
-	# Yeni yanan segment: bir onceki dugumden yeni acilan dugume. Once done'i
-	# bir geri alip o segmenti 0'dan 1'e yak, bitince gercek done'a don.
 	var done: int = _done_segments()
 	_trail.set_done(maxi(done - 1, 0))
 	_trail.lit = 0.0
 	var trail_tween := create_tween()
+	_unlock_tweens.append(trail_tween)
 	trail_tween.tween_property(_trail, "lit", 1.0, UNLOCK_TRAIL_TIME) \
 		.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
 	trail_tween.tween_callback(func() -> void:
@@ -406,18 +358,26 @@ func _play_unlock(level_number: int) -> void:
 	var target: Control = null
 	if index < _nodes.size():
 		target = _nodes[index]
-	elif _portal != null:
-		target = _portal
+	elif _endless != null:
+		target = _endless
 	if target == null:
 		return
+	_unlock_playing = true
+	if target is MapLevelNode:
+		(target as MapLevelNode).hold_breath = true
 	target.scale = Vector2(0.4, 0.4)
 	var pop := create_tween()
+	_unlock_tweens.append(pop)
 	pop.tween_interval(UNLOCK_TRAIL_TIME * 0.6)
 	pop.tween_property(target, "scale", Vector2(1.15, 1.15), UNLOCK_POP_TIME * 0.55) \
 		.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 	pop.tween_property(target, "scale", Vector2.ONE, UNLOCK_POP_TIME * 0.45)
 	pop.tween_callback(_spawn_unlock_sparkles.bind(target))
 	pop.tween_callback(AudioManager.play.bind(&"level_unlock"))
+	pop.tween_callback(func() -> void:
+		_unlock_playing = false
+		if is_instance_valid(target) and target is MapLevelNode:
+			(target as MapLevelNode).hold_breath = false)
 
 
 func _spawn_unlock_sparkles(target: Control) -> void:
@@ -443,11 +403,69 @@ func _spawn_unlock_sparkles(target: Control) -> void:
 	get_tree().create_timer(fx.lifetime + 0.2).timeout.connect(fx.queue_free)
 
 
-func _on_level_pressed(level: LevelData) -> void:
-	level_chosen.emit(level)
+# --- Dokular (programatik, asset yok) ---
+
+static func _vertical_gradient(top: Color, bottom: Color) -> GradientTexture2D:
+	var gradient := Gradient.new()
+	gradient.offsets = PackedFloat32Array([0.0, 0.55, 1.0])
+	gradient.colors = PackedColorArray([top, Color(top, top.a * 0.45), bottom])
+	var tex := GradientTexture2D.new()
+	tex.gradient = gradient
+	tex.fill = GradientTexture2D.FILL_LINEAR
+	tex.fill_from = Vector2(0.0, 0.0)
+	tex.fill_to = Vector2(0.0, 1.0)
+	tex.width = 8
+	tex.height = 128
+	return tex
 
 
-func _on_endless_pressed() -> void:
-	var endless := LevelLibrary.load_endless()
-	if endless != null:
-		level_chosen.emit(endless)
+## Yumuşak erik vignette: merkez temiz, kenarlar hafif koyu — dünya
+## karartılmaz, yalnız kenar çerçevelenir (eski tam ekran α .40 karartma yok).
+static func _radial_vignette() -> GradientTexture2D:
+	var gradient := Gradient.new()
+	gradient.offsets = PackedFloat32Array([0.0, 0.62, 1.0])
+	gradient.colors = PackedColorArray([Color(0.2, 0.08, 0.32, 0.0),
+		Color(0.2, 0.08, 0.32, 0.0), Color(0.2, 0.08, 0.32, 0.30)])
+	var tex := GradientTexture2D.new()
+	tex.gradient = gradient
+	tex.fill = GradientTexture2D.FILL_RADIAL
+	tex.fill_from = Vector2(0.5, 0.5)
+	tex.fill_to = Vector2(0.5, 1.0)
+	tex.width = 128
+	tex.height = 128
+	return tex
+
+
+# --- Testler / çekim aracı ---
+
+func _layout_with_safe_top(safe_top: float) -> void:
+	_safe_top_override = safe_top
+	_layout()
+
+
+func nodes() -> Array[MapLevelNode]:
+	return _nodes
+
+
+func endless_node() -> MapLevelNode:
+	return _endless
+
+
+func focus_node() -> MapLevelNode:
+	return _focus
+
+
+func top_bar() -> ScreenTopBar:
+	return _bar
+
+
+func trail() -> MapTrail:
+	return _trail
+
+
+func world_rect() -> Rect2:
+	return _world
+
+
+func map_art() -> TextureRect:
+	return _art

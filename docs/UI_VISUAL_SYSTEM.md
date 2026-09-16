@@ -6,7 +6,7 @@
 **Asset kaynağı:** `tools/make_ui_core.py` → `assets/visual/ui/core/**` +
 `scripts/ui/ui_core_assets.gd` (üretilir, elle düzenlenmez).
 **Galeri:** `tools/ui_system_gallery.tscn` (dev-only, 5 sayfa).
-**Test:** `tools/ui_foundation_test.tscn` (147 kontrol), `tools/gameplay_shell_test.tscn` (147, §13), `tools/home_ui_test.tscn` (207, §14).
+**Test:** `tools/ui_foundation_test.tscn` (154 kontrol), `tools/gameplay_shell_test.tscn` (147, §13), `tools/home_ui_test.tscn` (207, §14), `tools/map_ui_test.tscn` (127, §15).
 
 Çakışma kuralı: owner'ın son talimatı > GAME_DESIGN.md > bu doküman > kod.
 Bir sayı burada ve `ui_tokens.gd`'de farklıysa **doküman güncellenir, token
@@ -119,6 +119,7 @@ için önceden ölçeklendi (§8).
 | `PanelHud` | `panel_bevel` (+ `UiKit.plate` üst ışığı) | erik, dar dikey pay (4/10) | gameplay skor / hedef plakası (M8.6-02) |
 | `PanelStrip` | `panel_bevel` (+ üst ışık) | erik α .94 | evrim şeridi rafı (M8.6-02) |
 | `PanelHudScore` / `PanelTray` / `PanelHudFrame` / `PanelHudCard` | `label_round` ×4 | `LAVENDER_DEEP` / `TRAY_CREAM` / `LAVENDER_DEEP` / krem | HUD v3: skor kapsülü, güç tepsisi, kart çerçevesi, kart gövdesi (§13.3) |
+| `PanelMapPlaque` | `badge_round` | krem | Harita düğüm plakası (OYNA / Rekor N / Level 10'u bitir) — §15.2 |
 
 Owner'ın candy paneli (`panel_candy` + kanatlı-kalp tepelik) kimlik katmanıdır:
 pencerelerde `modal_frame` iskeletinin **üstüne** tepelik olarak eklenir ya da
@@ -144,6 +145,7 @@ iskeletin yerine kullanılır — kitin düz krem gövdesi tek başına kimlik t
 | `ButtonHomeIcon` | `frame_round20` (56, düz plaka = alt dudak) | koyu lavanta | Home "oturmuş" ikon butonu — `UiKit.home_icon_button`, §14.5 |
 | `ButtonHomePill` | `label_round` | `LAVENDER_DEEP` | Home level pill'i (altın taç rozeti + SIRADAKİ / Level N) — §14.1 |
 | `ButtonHomeAdd` | `btn_circle_flat` (48) | nane | Home pill'inin yuvarlak "+" (koyu nane taban + gloss + picto) — `UiKit.home_pill` |
+| `ButtonMapNode` / `ButtonMapNodeLocked` / `ButtonMapEndless` | `btn_circle` (72–116 madalyon) | cyan / açık lavanta / altın | Harita yolculuk düğümü — `MapLevelNode`, §15.2 |
 
 Durumlar (hepsi temada): **normal**, **hover** (%6 açık), **pressed** (%12
 koyu + içerik 3 px aşağı), **disabled** (açık lavanta-gri gövde `#a19dba` +
@@ -588,9 +590,97 @@ boş PanelContainer (NinePatchRect patch kenarlarının altına küçülemez).
 
 ### 14.4 Sekme çubuğu göçü (açık iş)
 
-Home artık hub; çubuk Home'da gizli. Harita/Koleksiyon/Mağaza'da M8.5-10
-çubuğu (dört sekme, "Ana Sayfa" sekmesi geri dönüş) geçici olarak duruyor —
-M8.6 ekran işlerinde (shop → collection → map) her ekran kendi başlığına
-**Geri** (`hud_icon_button "back"` → Home) alınca çubuk tamamen kalkar;
-`TabBar.bottom_inset()` payı o ekranlarda sıfırlanır. Bu turda dokunulmadı
-("navigasyonu bozma").
+Home artık hub; çubuk Home'da gizli. **Harita M8.6-04'te göçtü** (§15:
+`ScreenTopBar` geri → Home, çubuk Harita'da da gizli — `main._show_tab`:
+`_tabs.visible = tab >= 2`). Koleksiyon/Mağaza'da M8.5-10 çubuğu (dört
+sekme, "Ana Sayfa" sekmesi geri dönüş) geçici olarak duruyor — kendi
+işlerinde aynı `ScreenTopBar`'ı alınca çubuk tamamen kalkar;
+`TabBar.bottom_inset()` payı o ekranlarda sıfırlanır.
+
+---
+
+## 15. Production journey map — Harita (M8.6-04)
+
+**Karar:** Home'daki büyük OYNA'nın ilk durağı; owner'ın candy dünyası
+(`map_background.png`) KAHRAMAN, üstünde aşağıdan yukarı on level düğümü +
+kaledeki Sonsuz Mod madalyonu, aralarında candy patika. Dashboard/kart/grid
+DEĞİL. Eski (M8.5-12) düz cipli üst şerit, StyleBoxFlat kare düğümler, gri
+kilitli bloblar, tam ekran α .40 karartma ve alt sekme çubuğu KALKTI.
+
+**Kod:** `scripts/ui/level_select.gd` (ekran), `scripts/ui/map_level_node.gd`
+(`MapLevelNode`, tek düğüm bileşeni, 5 durum), `scripts/ui/screen_top_bar.gd`
+(`ScreenTopBar`, ikincil ekran üst satırı — Mağaza/Koleksiyon de alacak),
+`scripts/ui/map_trail.gd` (`MapTrail`, görünüm pası). **Tema:** `ButtonMapNode`,
+`ButtonMapNodeLocked`, `ButtonMapEndless`, `PanelMapPlaque` (GENERATED).
+**Test:** `tools/map_ui_test.tscn` (127 kontrol; 4 pencere + A36 payı).
+**Çekim:** `tools/map_shots.tscn -- <dir> [GxY] [safe=61]` (10 durum × 4 boyut
++ A36 simülasyonu, kayıt byte'ı geri konur). Sanat üretilmedi; yeni asset yok.
+
+### 15.1 Kompozisyon (720 tuval, yükseklik serbest)
+
+| Bölge | İçerik |
+|---|---|
+| **ÜST** (`ScreenTopBar`: `safe_top` + 14, 56 px satır, 24 px kenar) | sol `home_icon_button("back")` → Ana Sayfa · ortada pembe `HeaderRibbon` "HARİTA" (62 px, Baloo EB 26, erik gölge — pencere kurdelesiyle aynı kimlik) · sağ `home_pill` Hamur + nane "+" (48) → Mağaza. Kurdele ekranda ortalanır; pill büyürse sola kayar (test: kesişme yok). Seri pill'i BİLEREK yok (Home'da var, haritada karar değeri yok). |
+| **DÜNYA** | zemin `Rect2(0, safe_top, vw, vh − safe_top)` alanını KEEP_ASPECT_COVERED kaplar (ölçek = max(w/720, h/1280), merkez). Punch-hole yokken eski tam ekran dönüşümle birebir; A36'da dünya 61 px aşağıdan başlar, üstteki bant zeminin en üst 6 satırının dikey gerilmesi (`AtlasTexture`, görünen yatay aralığa hizalı — dikiş yok) + haze. Kenarlarda radyal erik vignette (α .30, merkez temiz), üstte 150 px krem-lavanta haze (α .72 → 0). Karartma YOK. 6 atmosfer pırıltısı (owner yıldızı, sinüs sönüm). |
+| **DÜĞÜMLER** | doku uzayı konumları (aşağıda), aynı cover dönüşümü. Perspektif: çap altta 84 → kalede 72 (`DEPTH_MIN` .86); uzun ekranda dünya ölçeğinin yarısı kadar büyür (1560'ta ×1.11). Sıradaki ×1.14. |
+| **SONSUZ** | kalede (445,150) 116 px madalyon; altındaki plaka "Rekor N" / "Rekor bekliyor" / "Level 10'u bitir" (kanonik şart metni). |
+| **ALT** | sekme çubuğu YOK; dünya (iki maskot, çiçek yatağı) tabana kadar görünür. |
+
+Doku uzayı konumları (M8.5-12'den düzeltildi — 2/4/5 kaldırımdan yolun
+üstüne, 8/9/10 aralığı ≥ 104 px): 1 (420,1120) · 2 (322,1030) · 3 (440,940) ·
+4 (332,850) · 5 (322,742) · 6 (398,648) · 7 (468,556) · 8 (408,470) ·
+9 (480,388) · 10 (440,292) · Sonsuz (445,150). Kaydırma yok: dünya her
+oranda sığar, sıradaki düğüm her zaman ekranda.
+
+### 15.2 `MapLevelNode` anatomisi
+
+`Button` (çap d × (d + 4 dudak); `btn_circle` gövde). Arkadan öne: yassı erik
+temas gölgesi (`popup_glow` 1.9d × 0.8d, gövdenin %86'sında — düğüm dünyaya
+OTURUR) → hale (yalnız odak; krem-cyan / Sonsuz'da altın, nefes) → 2 px erik
+kontur (`LAVENDER_DEEP` α .55 — krem halka açık zeminde kaybolmasın) → 6 px
+krem halka → 3 px durum halkası (sıradaki/Sonsuz 4 px) → gövde → cam yuva
+(`item_circle_inner` %74 çap) → alt gölge + üst gloss → içerik → yıldız sırası
+→ owner kilit → plaka (`PanelMapPlaque` krem `badge_round` + `LAVENDER_DEEP`
+kenar, gövdeye 8 px biner, dokunma almaz).
+
+| Durum | Gövde | Halka | İçerik | Plaka |
+|---|---|---|---|---|
+| COMPLETED | cyan | `CYAN_DEEP` | Baloo numara (0.31d, lacivert) + 3 owner yıldızı (0.22d; boş α .55) | — |
+| CURRENT | cyan, ×1.14 | **altın** (Home level rozetiyle aynı altın) | numara | "OYNA" |
+| LOCKED | `LAVENDER_SURFACE` | `DISABLED` | numara erik α .72, cam `#ebe6f4`, owner pembe kilit sağ üst | — |
+| ENDLESS_OPEN | altın (116) | `GOLD_DEEP`, krem cam | owner taç 0.38d + "SONSUZ" (0.13d) + 3 pırıltı | "Rekor 12 480" / "Rekor bekliyor" |
+| ENDLESS_LOCKED | lavanta (116) | `DISABLED` | soluk taç + kilit | kilit + "Level 10'u bitir" |
+
+Odak (`set_focused`): sıradaki level; her şey bitmişse açık Sonsuz. Hale
+α .58–.88 + %7 ölçek nefes (1.9 s), gövde ≤ %1.5 — yalnız basış/açılış
+tween'i çalışmıyorken (`hold_breath`, UiMotion meta tween'i kontrol edilir).
+Kilitli dokunuş: `reject()` — kilit 220 ms sallanır + `ui_invalid`; buton
+`disabled` DEĞİL ama `level_chosen` yaymaz (testle). Basış `UiMotion.attach_press`
+(ses açık düğümde `ui_tap`). Tüm dokunma hedefleri ≥ 72 px.
+
+### 15.3 Patika (`MapTrail`)
+
+Catmull-Rom aynen; 10 px çizgi + 16 px erik gölge (α .40), 24 px aralıklı
+5.4 px candy noktalar + beyaz tepe ışığı; tamamlanmış segment şeftali-altın
+`(1, .87, .54)` + altın nokta, gelecek beyaz α .86 + lavanta-beyaz nokta.
+Düğüm altında kalan uçlar düğüm yarıçapı + 10 px atlanır. Açılış: `lit` 0→1
+(0.4 s) → düğüm 0.4→1.15→1.0 pop (0.32 s) → 12 parıltı + `level_unlock`
+(~0.7 s, M8.5-12 ile aynı). Tazeleme canlı tween'leri öldürür (serbest
+düğüme bağlı callback kalmaz). Ekran girişi: düğüm katmanı 0.18 s solma +
+odak düğümü 1.06 pop (`_play_entry`, `call_deferred` — main refresh'ten sonra).
+
+### 15.4 Rotalar
+
+| Kontrol | Rota |
+|---|---|
+| Geri | `home_requested` → `main._on_home_requested` → Ana Sayfa |
+| Android geri | `main._notification`: Harita → Ana Sayfa (açık pencere önce kapanır; gameplay politikası aynen) |
+| Hamur "+" | `shop_requested` → Mağaza |
+| Sıradaki / tamamlanmış düğüm | `level_chosen(level)` → `main._start_level` (kanonik; tekrar oynama korunur) |
+| Kilitli düğüm / kilitli Sonsuz | yalnız geri bildirim, başlamaz |
+| Açık Sonsuz | `LevelLibrary.load_endless()` → `level_chosen` (kanonik) |
+
+Harita kaydı yalnız OKUR (`highest_level_unlocked`, `stars_for_level`,
+`is_endless_unlocked`, `endless_high_score`, `dough`); `save_game` /
+`complete_level` / `record_stars` çağrısı yok (testle). Ekonomi, level
+verisi, unlock/yıldız kuralı, fizik, skin, reklam politikası DEĞİŞMEDİ.
