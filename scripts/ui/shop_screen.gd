@@ -45,6 +45,13 @@ const ENTRY_TIME: float = 0.18
 ## kenardan bu kadar yukarıda belirir.
 const TOAST_BOTTOM: float = 150.0
 const TOAST_CARD_GAP: float = 12.0
+## Onay penceresi ürün sunumu (05.1: %12 büyüdü — 172/148·106/152·164'ten):
+## sunum alanı, güç kuyusu çapı / sanatı, skin kuyusu / önizlemesi.
+const CONFIRM_ART_HEIGHT: float = 190.0
+const CONFIRM_POWER_WELL: float = 164.0
+const CONFIRM_POWER_ART: float = 118.0
+const CONFIRM_SKIN_WELL: float = 168.0
+const CONFIRM_SKIN_PREVIEW: float = 184.0
 
 var _bar: ScreenTopBar
 var _power_cards: Array[ShopPowerCard] = []
@@ -170,15 +177,19 @@ func _make_spacer(height: float) -> Control:
 
 ## Onay penceresi: production iskelet (`UiKit.modal_frame`: pembe kurdele +
 ## krem gövde + kapat) — ürün sunumu (candy kuyu / skin önizlemesi), ad,
-## açıklama, fiyat, SATIN AL (kahraman CTA) ve Vazgeç.
+## açıklama, fiyat, SATIN AL (kahraman CTA) ve Vazgeç. 05.1: kurdele iki
+## yandan içeri çekilir ve kapat X'i krem halkayla köşeye oturur
+## (`UiKit.seat_modal_close` — X kurdelenin sağ kuyruğuna binmez; paylaşılan
+## modal_frame reçetesi değişmez), ürün sunumu %12 büyür (CONFIRM_ART_HEIGHT).
 func _build_confirm() -> void:
 	_frame = UiKit.modal_frame("Satın Al", 560.0)
+	UiKit.seat_modal_close(_frame)
 	_confirm_anchor.add_child(_frame)
 	var body: VBoxContainer = _frame.get_meta(&"body")
 	body.add_theme_constant_override("separation", UiTokens.SPACE_SM)
 	_confirm_art = Control.new()
 	_confirm_art.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_confirm_art.custom_minimum_size = Vector2(0, 172.0)
+	_confirm_art.custom_minimum_size = Vector2(0, CONFIRM_ART_HEIGHT)
 	body.add_child(_confirm_art)
 	_confirm_title = UiKit.label("-", &"LabelTitle", HORIZONTAL_ALIGNMENT_CENTER)
 	_confirm_title.add_theme_font_size_override("font_size", 30)
@@ -367,31 +378,41 @@ func _open_power_confirm(type: PowerUp.Type) -> void:
 
 func _set_confirm_art_power(type: PowerUp.Type) -> void:
 	_clear_confirm_art()
-	var well := UiKit.candy_well(PowerUp.icon(type), PowerUp.accent(type), 148.0, 106.0)
+	var well := UiKit.candy_well(PowerUp.icon(type), PowerUp.accent(type),
+		CONFIRM_POWER_WELL, CONFIRM_POWER_ART)
 	well.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
-	well.offset_left = -74.0
-	well.offset_right = 74.0
-	well.offset_top = -77.0
-	well.offset_bottom = 77.0
+	well.offset_left = -CONFIRM_POWER_WELL * 0.5
+	well.offset_right = CONFIRM_POWER_WELL * 0.5
+	well.offset_top = -(CONFIRM_POWER_WELL + 6.0) * 0.5
+	well.offset_bottom = (CONFIRM_POWER_WELL + 6.0) * 0.5
 	_confirm_art.add_child(well)
 
 
 func _set_confirm_art_skin(skin: SkinData) -> void:
 	_clear_confirm_art()
 	var entry: SkinEntry = SkinEntry.for_skin(skin)
+	# Kartla aynı sahne: rarity renginde düşük alfa hale → krem kuyu → swatch.
+	var glow := UiKit.patch("popup_glow", Color(UiTokens.rarity_color(int(skin.rarity))
+		if skin.rarity != SkinData.Rarity.COMMON else UiTokens.LAVENDER, 0.16))
+	glow.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
+	glow.offset_left = -CONFIRM_SKIN_PREVIEW * 0.72
+	glow.offset_right = CONFIRM_SKIN_PREVIEW * 0.72
+	glow.offset_top = -CONFIRM_SKIN_PREVIEW * 0.72 + 2.0
+	glow.offset_bottom = CONFIRM_SKIN_PREVIEW * 0.72 + 2.0
+	_confirm_art.add_child(glow)
 	var well := UiKit.patch("item_circle_inner", UiTokens.TRAY_CREAM)
 	well.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
-	well.offset_left = -76.0
-	well.offset_right = 76.0
-	well.offset_top = -74.0
-	well.offset_bottom = 78.0
+	well.offset_left = -CONFIRM_SKIN_WELL * 0.5
+	well.offset_right = CONFIRM_SKIN_WELL * 0.5
+	well.offset_top = -CONFIRM_SKIN_WELL * 0.5 + 2.0
+	well.offset_bottom = CONFIRM_SKIN_WELL * 0.5 + 2.0
 	_confirm_art.add_child(well)
 	var swatch := SkinSwatch.new()
 	swatch.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
-	swatch.offset_left = -82.0
-	swatch.offset_right = 82.0
-	swatch.offset_top = -82.0
-	swatch.offset_bottom = 82.0
+	swatch.offset_left = -CONFIRM_SKIN_PREVIEW * 0.5
+	swatch.offset_right = CONFIRM_SKIN_PREVIEW * 0.5
+	swatch.offset_top = -CONFIRM_SKIN_PREVIEW * 0.5
+	swatch.offset_bottom = CONFIRM_SKIN_PREVIEW * 0.5
 	swatch.setup(entry, true)
 	_confirm_art.add_child(swatch)
 	var tag := UiKit.rarity_tag(int(skin.rarity))

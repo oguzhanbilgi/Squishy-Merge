@@ -109,9 +109,11 @@ func _restore_save_file() -> void:
 		file.close()
 
 
+## Yerel takvimde "dün" (DailyReward yerel günü okur; UTC türevi gece
+## 00:00–03:00 arasında bir gün fazla geriye kayıyordu).
 func _yesterday() -> String:
-	var unix: int = int(Time.get_unix_time_from_system()) - 86400
-	return Time.get_date_string_from_unix_time(unix)
+	var local_unix: int = Time.get_unix_time_from_datetime_dict(Time.get_datetime_dict_from_system())
+	return Time.get_date_string_from_unix_time(local_unix - 86400)
 
 
 func _shot_size(args: PackedStringArray) -> Vector2i:

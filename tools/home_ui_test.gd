@@ -330,8 +330,12 @@ func _restore_save_file() -> void:
 		file.close()
 
 
+## Yerel takvimde "dün": DailyReward günü `Time.get_date_string_from_system()`
+## (YEREL) ile okur; UTC unix zamanından türetmek yerel 00:00–03:00 arasında
+## (UTC+3) iki gün geriye kayıyordu → seri kopuk, kontrol yanlış FAIL.
 func _yesterday() -> String:
-	return Time.get_date_string_from_unix_time(int(Time.get_unix_time_from_system()) - 86400)
+	var local_unix: int = Time.get_unix_time_from_datetime_dict(Time.get_datetime_dict_from_system())
+	return Time.get_date_string_from_unix_time(local_unix - 86400)
 
 
 func _resize(view: Vector2i) -> void:

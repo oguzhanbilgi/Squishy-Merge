@@ -7,7 +7,10 @@ extends Node
 ## Kontroller: yapı (ScreenTopBar + "MAĞAZA", "+" yok, sekme çubuğu yok,
 ## gerçek ScrollContainer, iki bölüm plakası, tam 4 güç kartı / 20 skin
 ## kartı, eski liste/çip/neon parçası yok); güç verisi (kanonik fiyatlar
-## 120/180/100/160, stok, amaç metni gerçek mekanik); satın alma (yeter →
+## 120/180/100/160, stok, amaç metni gerçek mekanik); 05.1 cila (kart
+## 328×384, skin önizleme 164 / güç sanatı 96, stok rozeti kuyuya bağlı,
+## rarity halesi/halkası, kart yüzü içeriğin altında, bölüm plakası dudağı,
+## onay X'i kurdeleye binmez, sunum 190); satın alma (yeter →
 ## onay → tek transaction: Hamur −fiyat, stok +1, tek save; yetmez → hiçbir
 ## şey değişmez + geri bildirim; onay kapatmak harcamaz); skinler (50/150/
 ## 400/900, sahip ≠ satılık, takılı ayrık, kanonik satın alma, auto-equip
@@ -175,6 +178,101 @@ func _ready() -> void:
 		and shop.power_card(PowerUp.Type.SHAKE).purpose_text().contains("sarsar")
 		and shop.power_card(PowerUp.Type.CLEAR_SMALL).purpose_text().contains("Küçük"))
 	_c("Hamur pill'i kayıttaki değeri gösteriyor (335)", (bar.pill().get_meta(&"value_label") as Label).text == "335")
+
+	print("-- 05.1 görsel cila (ölçüler ve katman sırası)")
+	var bomb_card: ShopPowerCard = shop.power_card(PowerUp.Type.BOMB)
+	var common_card: ShopSkinCard = shop.skin_card(&"common_03")
+	var rare_card: ShopSkinCard = shop.skin_card(&"rare_03")
+	var epic_card: ShopSkinCard = shop.skin_card(&"epic_02")
+	var legendary_card: ShopSkinCard = shop.skin_card(&"legendary_01")
+	_c("kart 328×384 (güç ve skin aynı ölçü), SATIN AL 60 px (≥ 48)", ShopPowerCard.CARD_SIZE == Vector2(328.0, 384.0)
+		and ShopSkinCard.CARD_SIZE == ShopPowerCard.CARD_SIZE and ShopPowerCard.BUY_HEIGHT == 60.0
+		and ShopPowerCard.BUY_HEIGHT >= float(UiTokens.TOUCH_MIN))
+	var power_art: TextureRect = bomb_card.well().get_meta(&"art")
+	_c("güç sanatı 96 px (88'den +%9), kuyu 130", is_equal_approx(power_art.size.x, 96.0)
+		and is_equal_approx(power_art.size.y, 96.0) and ShopPowerCard.WELL_SIZE == 130.0
+		and is_equal_approx(bomb_card.well().size.x, 130.0))
+	_c("skin önizlemesi 164 px (140'tan +%17), kuyu 152, ad Baloo 26", is_equal_approx(common_card.swatch().size.x, 164.0)
+		and is_equal_approx(common_card.swatch().size.y, 164.0) and ShopSkinCard.WELL_SIZE == 152.0
+		and common_card._name_label.get_theme_font_size("font_size") == 26)
+	_c("skin önizlemesi kartın ÜST yarısında ve gövdenin içinde (kırpma yok)",
+		common_card.swatch().get_global_rect().position.y >= common_card.get_global_rect().position.y
+		and common_card.swatch().get_global_rect().get_center().y < common_card.get_global_rect().get_center().y
+		and common_card.get_global_rect().encloses(common_card.swatch().get_global_rect()))
+	_c("rarity etiketi önizleme SANATIYLA kesişmiyor (etiket sol üst, sanat %6 iç paylı)",
+		not common_card.rarity_tag().get_global_rect().intersects(common_card.swatch()._image.get_global_rect())
+		and not legendary_card.rarity_tag().get_global_rect().intersects(legendary_card.swatch()._image.get_global_rect()))
+	_c("güç amaç metni satır aralığı 3, min 54 (iki satır sakin)", bomb_card._purpose_label.get_theme_constant("line_spacing") == 3
+		and bomb_card._purpose_label.custom_minimum_size.y >= 54.0)
+	var badge: Control = bomb_card.stock_badge()
+	var badge_rect: Rect2 = badge.get_global_rect()
+	var well_rect: Rect2 = bomb_card.well().get_global_rect()
+	_c("stok rozeti KUYUNUN çocuğu, kuyunun sağ üst omzuna biner (kesişir), kartın içinde kalır",
+		badge.get_parent() == bomb_card.well() and badge_rect.intersects(well_rect)
+		and badge_rect.position.x > well_rect.get_center().x and badge_rect.position.y < well_rect.position.y + 20.0
+		and bomb_card.get_global_rect().encloses(badge_rect))
+	_c("stok rozeti kartın sağ üst köşesinde DEĞİL (köşede yüzen etiket kalktı)",
+		badge_rect.end.x < bomb_card.get_global_rect().end.x - 40.0)
+	_c("kart yüzü (Face) gövdenin İLK çocuğu — içeriğin altında; sheen + gloss katmanları",
+		bomb_card._body.get_child(0).name == "Face" and bomb_card._body.get_child(0).has_meta(&"sheen")
+		and bomb_card._body.get_child(0).has_meta(&"gloss") and common_card._body.get_child(0).name == "Face"
+		and (bomb_card._body.get_child(0).get_child(0) as Control).clip_contents)
+	_c("kart yüzü katmanları beyaz düşük alfa (gövde tonu korunur; sheen ≤ .4, gloss ≤ .65)",
+		(bomb_card._body.get_child(0).get_meta(&"sheen") as CanvasItem).self_modulate.a <= 0.4
+		and (bomb_card._body.get_child(0).get_meta(&"gloss") as CanvasItem).self_modulate.a <= 0.65
+		and (bomb_card._body.get_child(0).get_meta(&"sheen") as CanvasItem).self_modulate.r == 1.0)
+	_c("skin halesi rarity renginde, düşük alfa (Common lavanta .14 / Rare mavi / Epic mor / Legendary altın .24 ≤ .25)",
+		common_card.glow().self_modulate.is_equal_approx(Color(UiTokens.LAVENDER, 0.14))
+		and rare_card.glow().self_modulate.is_equal_approx(Color(UiTokens.RARITY_RARE, 0.17))
+		and epic_card.glow().self_modulate.is_equal_approx(Color(UiTokens.RARITY_EPIC, 0.18))
+		and legendary_card.glow().self_modulate.is_equal_approx(Color(UiTokens.GOLD, 0.24))
+		and legendary_card.glow().self_modulate.a <= 0.25 and common_card.glow().visible)
+	_c("skin halesi kartın içinde (236 < 296), önizlemenin arkasında (ağaçta önce)",
+		common_card.get_global_rect().encloses(common_card.glow().get_global_rect().grow(-1.0))
+		and common_card.glow().get_index() < common_card.swatch().get_index())
+	_c("Rare halkası okunur mavi (beyaza %25 — eski %42'den doygun), Epic zengin mor (%22)",
+		rare_card._rim.self_modulate.is_equal_approx(UiTokens.RARITY_RARE.lerp(Color.WHITE, 0.25))
+		and epic_card._rim.self_modulate.is_equal_approx(UiTokens.RARITY_EPIC.lerp(Color.WHITE, 0.22)))
+	var header: HBoxContainer = headers[0]
+	var lip_rect: Rect2 = (header.get_meta(&"lip") as Control).get_global_rect()
+	var plate_rect: Rect2 = (header.get_meta(&"plate") as Control).get_global_rect()
+	_c("bölüm plakası dudaklı: dudak plakanın altından 4 px görünür, üstte plakanın altında; plaka çizgilerin arasında",
+		header.has_meta(&"lip") and UiKit.SECTION_LIP == 4.0
+		and lip_rect.end.y >= plate_rect.end.y + 3.5 and lip_rect.position.y >= plate_rect.position.y
+		and is_equal_approx(lip_rect.end.x, plate_rect.end.x) and header.get_child_count() == 3
+		and header.get_global_rect().encloses(plate_rect))
+	_c("bölüm plakası kartların üstüne binmiyor (dudak + halka ilk kart halkasının üstünde)",
+		header.get_global_rect().end.y + 3.0 <= shop.power_cards()[0].get_global_rect().position.y - 5.0)
+	var ribbon: Control = shop.confirm_frame().get_meta(&"ribbon")
+	var close: Button = shop.confirm_frame().get_meta(&"close_button")
+	shop._open_power_confirm(PowerUp.Type.BOMB)
+	await get_tree().process_frame
+	await get_tree().process_frame
+	_c("onay: kapat X'i kurdeleyle KESİŞMİYOR (kurdele 60 px içeri), krem oturak halkası var, X ≥ 48",
+		not close.get_global_rect().intersects(ribbon.get_global_rect()) and close.has_meta(&"seat_ring")
+		and is_equal_approx(ribbon.offset_left, 60.0) and close.size.x >= 48.0 and close.size.y >= 48.0)
+	_c("onay: kapat X'i ekranın içinde ve gövde köşesine oturmuş (X merkezi gövde sağ kenarına ±20)",
+		close.get_global_rect().end.x <= 720.0 and close.get_global_rect().position.y >= 0.0
+		and absf(close.get_global_rect().get_center().x - shop.confirm_frame().get_global_rect().end.x) <= 20.0)
+	_c("onay: ürün sunumu 190 px, güç kuyusu 164 (148'den +%11)", is_equal_approx(shop._confirm_art.size.y, 190.0)
+		and shop._confirm_art.get_child_count() == 1 and is_equal_approx((shop._confirm_art.get_child(0) as Control).size.x, 164.0))
+	shop._close_confirm()
+	shop._open_confirm(SkinLibrary.find(&"rare_03"))
+	await get_tree().process_frame
+	await get_tree().process_frame
+	var confirm_swatch: SkinSwatch = null
+	for child in shop._confirm_art.get_children():
+		if child is SkinSwatch:
+			confirm_swatch = child
+	_c("onay: skin önizlemesi 184 (164'ten +%12), sunum alanının içinde, rarity etiketiyle kesişmiyor",
+		confirm_swatch != null and is_equal_approx(confirm_swatch.size.x, 184.0)
+		and shop._confirm_art.get_global_rect().grow(2.0).encloses(confirm_swatch.get_global_rect())
+		and not confirm_swatch._image.get_global_rect().intersects(
+			(shop._confirm_art.get_child(shop._confirm_art.get_child_count() - 1) as Control).get_global_rect()))
+	_c("onay: paylaşılan modal_frame reçetesi değişmedi (Mola/Bonus Sandık kurdelesi 24 px)",
+		is_equal_approx((UiKit.modal_frame("x").get_meta(&"ribbon") as Control).offset_left, 24.0))
+	shop._close_confirm()
+	await get_tree().process_frame
 
 	print("-- satın alma (kanonik tek transaction)")
 	_apply_mid()
@@ -619,8 +717,14 @@ func _check_layout(shop: CanvasLayer, view: Vector2, safe_top: float, window_tag
 		and is_equal_approx(cards[0].get_global_rect().position.x, 24.0)
 		and is_equal_approx(cards[1].get_global_rect().end.x, 696.0))
 	_c("%s kartlar birbiriyle kesişmiyor" % tag, not overlap)
-	_c("%s SATIN AL butonları ≥ 48 px (aslında 296×58)" % tag, touch
-		and shop.power_cards()[0].buy_button().size.x >= 200.0)
+	_c("%s SATIN AL butonları ≥ 48 px (aslında 296×60)" % tag, touch
+		and shop.power_cards()[0].buy_button().size.x >= 200.0
+		and is_equal_approx(shop.power_cards()[0].buy_button().size.y, 60.0))
+	var badge_ok: bool = true
+	for card in shop.power_cards():
+		if not card.get_global_rect().encloses(card.stock_badge().get_global_rect()):
+			badge_ok = false
+	_c("%s stok rozetleri kartların içinde (komşu karta / kenara taşmıyor)" % tag, badge_ok)
 	var first: Rect2 = cards[0].get_global_rect()
 	var header: Rect2 = shop.section_headers()[0].get_global_rect()
 	_c("%s ilk bölüm plakası haze solmasının dışında, ilk kart plakanın altında (plaka y %d ≥ bar %d + %d)" % [tag, int(header.position.y), int(bar_bottom), int(shop.HAZE_FADE)],

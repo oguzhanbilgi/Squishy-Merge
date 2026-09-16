@@ -2,16 +2,24 @@ class_name ShopSkinCard
 extends Control
 ## Mağaza skin ürün kartı (M8.6-05). Yirmi skin bu TEK bileşenden; güç
 ## kartıyla aynı gövde/halka/gölge reçetesi, aynı ölçü (`ShopPowerCard.
-## CARD_SIZE`, 328×360 — grid ritmi).
+## CARD_SIZE`, 328×384 — grid ritmi).
 ##
 ## Anatomi (arkadan öne):
 ##   rarity halesi (yalnız Epic lavanta / Legendary altın) → erik gölge →
-##   rarity renginde halka → krem gövde (PanelShopCard; sahip olunan
-##   TRAY_CREAM PanelShopCardOwned) → içerik: sol üstte rarity etiketi ·
-##   lavanta-krem yuvarlak kuyu içinde GERÇEK önizleme (`SkinSwatch`,
-##   kilitlide final sanat + kilit rozeti — canlı önizleme yolu, yeni sanat
-##   YOK) · Baloo ad · fiyat satırı YA DA durum plakası · SATIN AL →
-##   üst gloss → Legendary'de 3 sessiz pırıltı (sinüs, RNG yok).
+##   rarity renginde halka → 2 px erik kontur → krem gövde (PanelShopCard;
+##   sahip olunan CREAM_DEEP PanelShopCardOwned) → kart yüzü (`UiKit.
+##   card_face`: yumuşak radyal ışık + kavisli üst gloss bandı — 05.1) → içerik: sahne
+##   (rarity renginde çok düşük alfa radyal candy hale → lavanta-krem
+##   yuvarlak kuyu → GERÇEK önizleme `SkinSwatch` 164 px — kartın üst
+##   yarısını karakter doldurur; kilitlide final sanat + kilit rozeti, canlı
+##   önizleme yolu, yeni sanat YOK; sol üstte rarity etiketi) · Baloo 26 ad ·
+##   fiyat satırı YA DA ipucu · SATIN AL ya da durum plakası → Legendary'de
+##   4 sessiz pırıltı (sinüs, RNG yok).
+##
+## Hiyerarşi (05.1): rarity etiketi → büyük karakter → ad → fiyat/durum →
+## CTA. Rarity bir bakışta: Common lavanta-nötr halka (sessiz), Rare okunur
+## soğuk mavi halka, Epic zengin lavanta-mor halka + hafif aura, Legendary
+## altın halka + geniş hale + pırıltı + sıcak altın-krem gövde.
 ##
 ## Durumlar (`SkinEntry` tek kaynak): LOCKED (fiyat + cyan SATIN AL;
 ## Hamur yetmiyorsa soluk cyan `ButtonBuyLocked` (CYAN_MUTED) + koyu pembe
@@ -26,8 +34,21 @@ enum State { LOCKED, OWNED, EQUIPPED }
 
 const CARD_SIZE: Vector2 = ShopPowerCard.CARD_SIZE
 const BUY_HEIGHT: float = ShopPowerCard.BUY_HEIGHT
-const PREVIEW_SIZE: float = 140.0
-const WELL_SIZE: float = 132.0
+## 164 (05.1, 140'tan +%17): karakter kartın üst yarısına hâkim; sanat
+## kırpılmaz (SkinSwatch %6 iç pay, saç/fiyonk/yıldız/taç kutunun içinde).
+const PREVIEW_SIZE: float = 164.0
+const WELL_SIZE: float = 152.0
+## Sahne yüksekliği: önizleme + rarity etiketi / ad için nefes payı.
+const STAGE_HEIGHT: float = PREVIEW_SIZE + 20.0
+## Karakterin arkasındaki radyal candy hale (kart düz krem okunmasın):
+## rarity renginden, çok düşük alfa; Common nötr lavanta.
+const GLOW_SIZE: float = 236.0
+const GLOW_ALPHA: Dictionary = {
+	SkinData.Rarity.COMMON: 0.14, SkinData.Rarity.RARE: 0.17,
+	SkinData.Rarity.EPIC: 0.18, SkinData.Rarity.LEGENDARY: 0.24,
+}
+## Ad: sanatın altında ama diğer metinlerden güçlü (LabelSection 24 → 26).
+const NAME_FONT_SIZE: int = 26
 const BUY_TEXT: String = "SATIN AL"
 const OWNED_TEXT: String = "SAHİPSİN"
 const EQUIPPED_TEXT: String = "TAKILI"
@@ -52,6 +73,7 @@ var _state: State = State.LOCKED
 var _affordable: bool = true
 var _rarity: int = 0
 var _halo: NinePatchRect
+var _glow: NinePatchRect
 var _rim: PanelContainer
 var _body: PanelContainer
 var _tag_slot: Control
@@ -98,47 +120,60 @@ func _init() -> void:
 	_body.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_body.set_anchors_preset(Control.PRESET_FULL_RECT)
 	add_child(_body)
+	# Kart yüzü (yumuşak radyal ışık + üst gloss bandı) içeriğin ALTINDA.
+	UiKit.card_face(_body)
 	var column := VBoxContainer.new()
 	column.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	column.add_theme_constant_override("separation", 4)
-	# Skin içeriği (339) güç kartından kısa: dikeyde ortalanır, boşluk alta
-	# yığılmaz.
+	# Skin içeriği (338: sahne 184 + ad 42 + fiyat 32 + 4 + eylem 60 + 4×4)
+	# güç kartından kısa: dikeyde ortalanır, boşluk alta yığılmaz.
 	column.alignment = BoxContainer.ALIGNMENT_CENTER
 	_body.add_child(column)
-	# Önizleme alanı: sabit yükseklik; kuyu + swatch ortada, rarity etiketi
-	# sol üstte (sabit konumlar, container değil).
+	# Önizleme sahnesi: sabit yükseklik; hale + kuyu + swatch ortada (8 px
+	# aşağı: rarity etiketi sanatın %6 iç paylı kutusuna değmez — testle),
+	# rarity etiketi sol üstte (sabit konumlar, container değil).
 	var stage := Control.new()
 	stage.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	stage.custom_minimum_size = Vector2(0, PREVIEW_SIZE + 10.0)
+	stage.custom_minimum_size = Vector2(0, STAGE_HEIGHT)
 	column.add_child(stage)
+	# Radyal candy hale: kuyunun merkezinde, rarity renginde, çok düşük alfa
+	# (`setup()` boyar). Kartın içinde kalır (236 < 296 iç genişlik).
+	_glow = UiKit.patch("popup_glow", Color(UiTokens.LAVENDER, 0.0))
+	_glow.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
+	_glow.offset_left = -GLOW_SIZE * 0.5
+	_glow.offset_right = GLOW_SIZE * 0.5
+	_glow.offset_top = -GLOW_SIZE * 0.5 + 10.0
+	_glow.offset_bottom = GLOW_SIZE * 0.5 + 10.0
+	stage.add_child(_glow)
 	_well = UiKit.patch("item_circle_inner", UiTokens.TRAY_CREAM)
 	_well.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
 	_well.offset_left = -WELL_SIZE * 0.5
 	_well.offset_right = WELL_SIZE * 0.5
-	_well.offset_top = -WELL_SIZE * 0.5 + 4.0
-	_well.offset_bottom = WELL_SIZE * 0.5 + 4.0
+	_well.offset_top = -WELL_SIZE * 0.5 + 10.0
+	_well.offset_bottom = WELL_SIZE * 0.5 + 10.0
 	stage.add_child(_well)
 	var well_shade := UiKit.patch("item_circle_inner", Color(0.35, 0.25, 0.5, 0.10))
 	well_shade.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
 	well_shade.offset_left = -WELL_SIZE * 0.5 + 4.0
 	well_shade.offset_right = WELL_SIZE * 0.5 - 4.0
-	well_shade.offset_top = -WELL_SIZE * 0.5 + 12.0
-	well_shade.offset_bottom = WELL_SIZE * 0.5 + 8.0
+	well_shade.offset_top = -WELL_SIZE * 0.5 + 18.0
+	well_shade.offset_bottom = WELL_SIZE * 0.5 + 14.0
 	stage.add_child(well_shade)
 	_swatch = SkinSwatch.new()
 	_swatch.name = "Preview"
 	_swatch.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
 	_swatch.offset_left = -PREVIEW_SIZE * 0.5
 	_swatch.offset_right = PREVIEW_SIZE * 0.5
-	_swatch.offset_top = -PREVIEW_SIZE * 0.5 + 2.0
-	_swatch.offset_bottom = PREVIEW_SIZE * 0.5 + 2.0
+	_swatch.offset_top = -PREVIEW_SIZE * 0.5 + 8.0
+	_swatch.offset_bottom = PREVIEW_SIZE * 0.5 + 8.0
 	stage.add_child(_swatch)
 	_tag_slot = Control.new()
 	_tag_slot.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_tag_slot.position = Vector2(-4.0, -2.0)
 	stage.add_child(_tag_slot)
 	_name_label = UiKit.label("", &"LabelSection", HORIZONTAL_ALIGNMENT_CENTER)
-	_name_label.custom_minimum_size = Vector2(0, 32.0)
+	_name_label.add_theme_font_size_override("font_size", NAME_FONT_SIZE)
+	_name_label.custom_minimum_size = Vector2(0, 36.0)
 	_name_label.clip_text = true
 	_name_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	column.add_child(_name_label)
@@ -196,13 +231,6 @@ func _init() -> void:
 	_owned_plate.visible = false
 	action.add_child(_owned_plate)
 	_owned_plate.minimum_size_changed.connect(_layout_state_plate)
-	var gloss := UiKit.patch("btn_bevel_light", Color(1, 1, 1, 0.28))
-	gloss.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE)
-	gloss.offset_left = 10.0
-	gloss.offset_right = -10.0
-	gloss.offset_top = 3.0
-	gloss.offset_bottom = 22.0
-	add_child(gloss)
 	for spec in LEGENDARY_SPARKLES:
 		var spark := UiKit.art(SPARKLE_ART, float(spec[1]))
 		spark.position = (spec[0] as Vector2) - Vector2(float(spec[1]), float(spec[1])) * 0.5
@@ -236,25 +264,32 @@ func setup(entry: SkinEntry) -> void:
 	_tag.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_tag.position = Vector2.ZERO
 	_tag_slot.add_child(_tag)
-	# Rarity dili: Common nötr lavanta-krem, Rare yumuşak mavi halka, Epic
-	# lavanta-mor halka + hale, Legendary altın halka + geniş altın hale +
-	# pırıltı + hafif sıcak (altın-krem) gövde. Hale/halka dışında gövde aynı.
+	# Rarity dili (05.1 kalibrasyonu): Common nötr açık lavanta halka (sessiz),
+	# Rare okunur soğuk mavi halka (beyaza %25 — eskiden %42, soluk kalıyordu),
+	# Epic zengin lavanta-mor halka (%22) + hafif hale, Legendary altın halka +
+	# geniş altın hale + pırıltı + hafif sıcak (altın-krem) gövde. Karakterin
+	# arkasındaki radyal hale de rarity renginde (Common lavanta), düşük alfa.
+	# Hale/halka/parıltı dışında gövde aynı: kart bütünüyle doygunlaşmaz.
 	var rarity_color: Color = UiTokens.rarity_color(_rarity)
+	var glow_color: Color = rarity_color
 	match _rarity:
 		SkinData.Rarity.RARE:
-			_rim.self_modulate = rarity_color.lerp(Color.WHITE, 0.42)
+			_rim.self_modulate = rarity_color.lerp(Color.WHITE, 0.25)
 			_halo.visible = false
 		SkinData.Rarity.EPIC:
-			_rim.self_modulate = rarity_color.lerp(Color.WHITE, 0.38)
+			_rim.self_modulate = rarity_color.lerp(Color.WHITE, 0.22)
 			_halo.self_modulate = Color(rarity_color, 0.34)
 			_halo.visible = true
 		SkinData.Rarity.LEGENDARY:
 			_rim.self_modulate = UiTokens.GOLD
 			_halo.self_modulate = Color(UiTokens.GOLD_BRIGHT, 0.65)
 			_halo.visible = true
+			glow_color = UiTokens.GOLD
 		_:
 			_rim.self_modulate = UiTokens.LAVENDER_LIGHT
 			_halo.visible = false
+			glow_color = UiTokens.LAVENDER
+	_glow.self_modulate = Color(glow_color, float(GLOW_ALPHA.get(_rarity, 0.14)))
 	for spark in _sparkles:
 		spark.visible = _rarity == SkinData.Rarity.LEGENDARY
 	_apply_entry(entry)
@@ -409,6 +444,10 @@ func rarity_tag() -> PanelContainer:
 
 func halo() -> Control:
 	return _halo
+
+
+func glow() -> Control:
+	return _glow
 
 
 func hint_text() -> String:

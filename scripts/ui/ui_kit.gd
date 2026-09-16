@@ -1121,14 +1121,21 @@ static func set_candy_well_accent(well: Control, accent: Color) -> void:
 ## Bolum basligi (magaza GUCLER / SKINLER): iki yanda ince acik lavanta
 ## cizgi, ortada koyu lavanta `title_oval` plakasi (PanelShopSection) + acik
 ## halka + erik golge + gloss + beyaz Baloo baslik. MAGAZA kurdelesinin
-## altinda ikincil: 44 px, dikey alan yemez. Buyuk harf CAGIRANDAN gelir
-## (Godot to_upper Turkce I'yi bilmez). Meta: "title_label", "plate".
+## altinda ikincil: 44 px plaka, dikey alan yemez. 05.1 candy puff: plakanin
+## altinda SECTION_LIP px koyu lavanta dudak (home_icon_button dili — plaka
+## kabarik, yapistirilmis degil), acik halka dudagi da sarar, gloss biraz
+## daha belirgin + sol ustte kucuk beyaz parlama noktasi. Buyuk harf
+## CAGIRANDAN gelir (Godot to_upper Turkce I'yi bilmez). Meta: "title_label",
+## "plate", "lip".
+const SECTION_LIP: float = 4.0
+
 static func section_header(title: String, tint: Color = UiTokens.LAVENDER_DEEP) -> HBoxContainer:
 	var row := HBoxContainer.new()
 	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	row.alignment = BoxContainer.ALIGNMENT_CENTER
 	row.add_theme_constant_override("separation", 14)
-	row.custom_minimum_size = Vector2(0, 44.0)
+	# 44 px plaka + dudak payi: dudak ve halka satirin altina tasmaz.
+	row.custom_minimum_size = Vector2(0, 44.0 + SECTION_LIP)
 	for side in 2:
 		var line := flat_plate("badge_round", Color(UiTokens.LAVENDER_LIGHT, 0.78))
 		line.set_anchors_preset(Control.PRESET_TOP_LEFT)
@@ -1138,15 +1145,20 @@ static func section_header(title: String, tint: Color = UiTokens.LAVENDER_DEEP) 
 		row.add_child(line)
 	var wrap := Control.new()
 	wrap.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var shadow := patch("popup_glow", Color(0.22, 0.09, 0.36, 0.24))
-	_inset(shadow, -12.0, -8.0, -12.0, -16.0)
+	# Plaka sarmalayicinin ust 44 px'i; dudak altta SECTION_LIP px.
+	var shadow := patch("popup_glow", Color(0.22, 0.09, 0.36, 0.26))
+	_inset(shadow, -12.0, -8.0, -12.0, -18.0)
 	wrap.add_child(shadow)
 	var rim := flat_plate("title_oval", UiTokens.LAVENDER_LIGHT)
 	_inset(rim, -3.0, -3.0, -3.0, -3.0)
 	wrap.add_child(rim)
+	# Dudak: plakanin koyusu, plakanin altindan SECTION_LIP px gorunur.
+	var lip := flat_plate("title_oval", tint.darkened(0.32))
+	_inset(lip, 0.0, SECTION_LIP, 0.0, 0.0)
+	wrap.add_child(lip)
 	var plate := panel(&"PanelShopSection")
 	plate.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	plate.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_inset(plate, 0.0, 0.0, 0.0, SECTION_LIP)
 	if tint != UiTokens.LAVENDER_DEEP:
 		plate.add_theme_stylebox_override("panel",
 			style("title_oval", tint, Vector4(22, 2, 22, 8)))
@@ -1154,16 +1166,29 @@ static func section_header(title: String, tint: Color = UiTokens.LAVENDER_DEEP) 
 	var text := label(title, &"LabelSectionOnDark", HORIZONTAL_ALIGNMENT_CENTER)
 	text.add_theme_font_size_override("font_size", 22)
 	plate.add_child(text)
-	var gloss := patch("btn_bevel_light", Color(1, 1, 1, 0.30))
+	var gloss := patch("btn_bevel_light", Color(1, 1, 1, 0.38))
 	gloss.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE)
 	gloss.offset_left = 8.0
 	gloss.offset_right = -8.0
 	gloss.offset_top = 2.0
 	gloss.offset_bottom = 18.0
 	wrap.add_child(gloss)
+	# Kucuk parlama noktasi (sol ust): candy plastigin tek noktasal isigi.
+	var spot := TextureRect.new()
+	spot.texture = texture("item_circle_inner")
+	spot.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	spot.stretch_mode = TextureRect.STRETCH_SCALE
+	spot.self_modulate = Color(1, 1, 1, 0.55)
+	spot.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	spot.set_anchors_preset(Control.PRESET_TOP_LEFT)
+	spot.offset_left = 16.0
+	spot.offset_top = 6.0
+	spot.offset_right = 16.0 + 14.0
+	spot.offset_bottom = 6.0 + 7.0
+	wrap.add_child(spot)
 	var sync := func() -> void:
 		var min: Vector2 = plate.get_combined_minimum_size()
-		wrap.custom_minimum_size = Vector2(maxf(min.x, 180.0), maxf(min.y, 44.0))
+		wrap.custom_minimum_size = Vector2(maxf(min.x, 180.0), maxf(min.y, 44.0) + SECTION_LIP)
 	plate.minimum_size_changed.connect(sync)
 	sync.call()
 	row.add_child(wrap)
@@ -1171,4 +1196,80 @@ static func section_header(title: String, tint: Color = UiTokens.LAVENDER_DEEP) 
 	row.move_child(wrap, 1)
 	row.set_meta(&"title_label", text)
 	row.set_meta(&"plate", plate)
+	row.set_meta(&"lip", lip)
 	return row
+
+
+## Magaza kart yuzu (05.1): buyuk krem yuzeyin duz okunmamasi icin govdenin
+## ICINE (icerik sutununun altina) giren dekor katmani — `body`
+## PanelContainer'inin ilk cocugu olur, PanelContainer onu icerik
+## dikdortgenine oturtur; icindeki `Clip` kontrolu disari tasarak govde
+## dikdortgenini alir (icerik payi 16/14/16/20 geri acilir) ve
+## `clip_contents` ile katmanlari govdenin icinde tutar:
+##   yumusak beyaz radyal isik (`popup_glow`, kartin ust-ortasinda: urun
+##   sanatinin arkasi hafif aydinlik, alt yari sakin krem — sert kenar yok,
+##   kose disina sizmaz) → ust gloss bandi (`popup_light`: kavisli sise
+##   parlamasi, govde ust kenarini takip eder). Hepsi beyaz alfa: govde tonu
+##   (krem / TRAY_CREAM / CREAM_DEEP / altin-krem) korunur. Golge/halka/
+##   kontur kartin kendi dekoru; bu yalniz yuz. Meta: "sheen", "gloss".
+const CARD_SHEEN_ALPHA: float = 0.34
+const CARD_GLOSS_ALPHA: float = 0.58
+
+static func card_face(body: PanelContainer, body_margin: Vector4 = Vector4(16, 14, 16, 20)) -> Control:
+	var host := Control.new()
+	host.name = "Face"
+	host.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var clip := Control.new()
+	clip.name = "Clip"
+	clip.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	clip.clip_contents = true
+	_inset(clip, -body_margin.x, -body_margin.y, -body_margin.z, -body_margin.w)
+	host.add_child(clip)
+	# Radyal isik (328x384 magaza kartina gore ayarli px): merkez govde
+	# ust-ortasinda (y 90 ≈ %23 — urun sanatinin arkasi), genislik govde +
+	# 2x24 (kenarda alfa ~%2), yukseklik 312 (~%80). Clip disariya sizdirmaz.
+	var sheen := patch("popup_glow", Color(1, 1, 1, CARD_SHEEN_ALPHA))
+	sheen.set_anchors_preset(Control.PRESET_TOP_LEFT)
+	sheen.anchor_right = 1.0
+	sheen.anchor_bottom = 0.0
+	sheen.offset_left = -24.0
+	sheen.offset_right = 24.0
+	sheen.offset_top = -66.0
+	sheen.offset_bottom = 246.0
+	clip.add_child(sheen)
+	var gloss := patch("popup_light", Color(1, 1, 1, CARD_GLOSS_ALPHA))
+	gloss.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE)
+	gloss.offset_left = 7.0
+	gloss.offset_right = -7.0
+	gloss.offset_top = 5.0
+	gloss.offset_bottom = 5.0 + 28.0
+	clip.add_child(gloss)
+	body.add_child(host)
+	body.move_child(host, 0)
+	host.set_meta(&"sheen", sheen)
+	host.set_meta(&"gloss", gloss)
+	return host
+
+
+## Onay penceresinin kapat butonunu oturtur (05.1): `modal_frame` kurdelesi
+## varsayilan olarak govde kenarina 24 px kalir ve sag kuyruk kapat
+## dairesinin altina girer. Kurdele `ribbon_margin` px iceri cekilir (kuyruk
+## kapatin solunda biter), kapatin arkasina krem halka (+ring px) ve erik
+## temas golgesi gelir: X govdenin kosesine oturmus candy buton okunur.
+## PAYLASILAN modal_frame recetesi DEGISMEZ (Mola / Bonus Sandik ayni).
+static func seat_modal_close(frame: Control, ribbon_margin: float = 60.0,
+		ring: float = 4.0) -> void:
+	var ribbon: Control = frame.get_meta(&"ribbon")
+	ribbon.offset_left = ribbon_margin
+	ribbon.offset_right = -ribbon_margin
+	var close: Button = frame.get_meta(&"close_button")
+	var shadow := patch("popup_glow", Color(0.22, 0.09, 0.36, 0.30))
+	shadow.show_behind_parent = true
+	_inset(shadow, -10.0, -4.0, -10.0, -16.0)
+	close.add_child(shadow)
+	var halo := flat_plate("btn_circle_flat", UiTokens.CREAM)
+	halo.show_behind_parent = true
+	# btn_circle'in son ~8 satiri pismis golge: halka govde dairesine oturur.
+	_inset(halo, -ring, -ring, -ring, 8.0 - ring)
+	close.add_child(halo)
+	close.set_meta(&"seat_ring", halo)

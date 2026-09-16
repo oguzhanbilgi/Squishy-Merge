@@ -304,6 +304,16 @@ alınacak — şimdi tahmin/vaat yok.
     50/150/400/900), ödüller, kayıt şeması, skin equip kuralı, gameplay, Home,
     Harita DEĞİŞMEDİ.** Sahte monetizasyon YOK. **Telefon/ADB kullanılmadı;
     owner görsel onayı + cihaz kapısı bekliyor.** Ayrıntı: UI_VISUAL_SYSTEM §16.
+    **05.1 görsel cila (2026-09-17, aynı dal, PRE-DEVICE):** yeniden tasarım
+    değil, tek malzeme/odak pası — skin önizlemesi 164 (+%17), güç sanatı 96
+    (+%9), kart 328×384, SATIN AL 60; kart yüzü (`UiKit.card_face`: kırpılmış
+    beyaz radyal ışık + `popup_light` gloss bandı, gövde tonu korunur),
+    karakterin arkasında rarity renginde düşük-alfa hale, Rare/Epic halkası
+    daha okunur, Legendary aynen; stok rozeti kuyunun sağ üst omzuna (gameplay
+    madalyonuyla aynı yer); bölüm plakası dudak + parlama; onay sunumu 190,
+    X kurdele kuyruğundan ayrıldı ve krem halkayla oturdu (yalnız Mağaza).
+    Ekonomi/kayıt/equip/rotalar DEĞİŞMEDİ. `tools/shop_ui_test` 199/199;
+    QA `build/qa_m8.6-05.1/`.
 - **Sırada: M8.6 — Visual Cohesion Rebuild** (ekranlar `UiKit`/`UiTokens`
   sistemine geçirilecek: ~~gameplay shell~~ ✅ → ~~home~~ ✅ → ~~map~~ ✅ →
   ~~shop~~ 🔶 (owner görsel onayı + cihaz kapısı bekliyor) → collection →

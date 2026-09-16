@@ -4,11 +4,15 @@ extends Control
 ## Sarsıntı / Temizleyici) bu TEK bileşenden; ekran kodu halka/gloss kurmaz.
 ##
 ## Anatomi (arkadan öne):
-##   erik gölge → açık lavanta halka → krem `card_bevel_soft` gövde
-##   (PanelShopCard) → içerik sütunu: candy kuyu içinde OWNER güç sanatı
-##   (odak noktası) · Baloo ad · kısa amaç (gerçek mekanik) · Hamur fiyatı ·
-##   SATIN AL candy butonu → üst gloss → sağ üstte altın stok rozeti
-##   ("Stok ×N", gameplay madalyonunun ×N rozetiyle aynı dil).
+##   erik gölge → açık lavanta halka → 2 px erik kontur → lavanta-krem
+##   `card_bevel_soft` gövde (PanelShopCardPower) → kart yüzü (`UiKit.
+##   card_face`: yumuşak radyal ışık + kavisli üst gloss bandı — 05.1) →
+##   içerik sütunu: candy kuyu içinde OWNER güç sanatı (odak noktası; kuyu
+##   130 / sanat 96) · Baloo ad · kısa amaç (gerçek mekanik, rahat satır
+##   aralığı) · Hamur fiyatı · SATIN AL candy butonu (60) → kuyunun sağ
+##   üstüne oturan altın stok rozeti ("Stok ×N" — gameplay madalyonunun ×N
+##   rozetiyle aynı yer ve dil: rozet MADALYONA bağlı, kart köşesinde yüzen
+##   bir etiket değil).
 ##
 ## Durumlar: NORMAL (cyan SATIN AL) · BASILI (buton squash + koyu gövde) ·
 ## HAMUR YETMİYOR (soluk cyan ButtonBuyLocked / CYAN_MUTED, fiyat koyu pembe;
@@ -24,13 +28,19 @@ extends Control
 
 signal buy_requested(type: PowerUp.Type)
 
-## 372: gövde içeriğinin ÖLÇÜLEN minimumu (kuyu 128 + Baloo 24 ad 39 + iki
-## satır Nunito 17 amaç 51 + fiyat 32 + 2 + SATIN AL 64 + 5×4 ayrım + 34 iç
-## pay = 370) + 2 px pay; içerik kart dikdörtgenini aşmaz (testle).
-const CARD_SIZE: Vector2 = Vector2(328.0, 372.0)
-const BUY_HEIGHT: float = 64.0
-const WELL_SIZE: float = 122.0
-const WELL_ART_SIZE: float = 88.0
+## 384 (05.1): gövde içeriğinin ÖLÇÜLEN minimumu (kuyu 136 + Baloo 24 ad 39 +
+## iki satır Nunito 17 amaç, satır aralığı 3 → 54 + fiyat 32 + 6 + SATIN AL 60
+## + 5×4 ayrım + 34 iç pay = 381) + 3 px pay; içerik kart dikdörtgenini
+## aşmaz (testle). Skin kartı aynı ölçüyü paylaşır (grid ritmi).
+const CARD_SIZE: Vector2 = Vector2(328.0, 384.0)
+## 60: dokunma hedefi ≥ 48; 64'ten inince buton kartı daha az domine eder,
+## kazanılan yer ürün sanatına + amaç metnine gider (05.1).
+const BUY_HEIGHT: float = 60.0
+const WELL_SIZE: float = 130.0
+## 96 (05.1, 88'den +%9): güç ikonu kartın en güçlü öğesi.
+const WELL_ART_SIZE: float = 96.0
+## Amaç metni satır aralığı: iki satır nefes alsın, adın altında sakin dursun.
+const PURPOSE_LINE_SPACING: int = 3
 const BUY_TEXT: String = "SATIN AL"
 const DOUGH_ART: Texture2D = preload("res://assets/visual/ui/icon_dough.png")
 const SPARKLE_ART: Texture2D = preload("res://assets/visual/ui/icon_star_filled.png")
@@ -86,6 +96,9 @@ func _init() -> void:
 	_body.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_body.set_anchors_preset(Control.PRESET_FULL_RECT)
 	add_child(_body)
+	# Kart yüzü (yumuşak radyal ışık + üst gloss bandı) içeriğin ALTINDA:
+	# yazı/sanat soluklaşmaz, geniş krem yüzey düz okunmaz.
+	UiKit.card_face(_body)
 	var column := VBoxContainer.new()
 	column.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	column.alignment = BoxContainer.ALIGNMENT_BEGIN
@@ -101,7 +114,8 @@ func _init() -> void:
 	_purpose_label = UiKit.label("", &"LabelCaption", HORIZONTAL_ALIGNMENT_CENTER)
 	# 17 px: 540×960 telefonda ~13 px fiziksel — gücün ne yaptığı yalnız burada.
 	_purpose_label.add_theme_font_size_override("font_size", 17)
-	_purpose_label.custom_minimum_size = Vector2(0, 46.0)
+	_purpose_label.add_theme_constant_override("line_spacing", PURPOSE_LINE_SPACING)
+	_purpose_label.custom_minimum_size = Vector2(0, 54.0)
 	_purpose_label.vertical_alignment = VERTICAL_ALIGNMENT_TOP
 	column.add_child(_purpose_label)
 	_price_row = UiKit.price_row(DOUGH_ART, 0)
@@ -113,34 +127,31 @@ func _init() -> void:
 	column.add_child(_price_row)
 	var gap := Control.new()
 	gap.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	gap.custom_minimum_size = Vector2(0, 2.0)
+	gap.custom_minimum_size = Vector2(0, 6.0)
 	column.add_child(gap)
 	_buy = UiKit.candy_button(BUY_TEXT, &"ButtonPrimary", BUY_HEIGHT)
 	_buy.name = "Buy"
 	_buy.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_buy.pressed.connect(func() -> void: buy_requested.emit(_type))
 	column.add_child(_buy)
-	# Üst gloss: kartın üst şeridi (kuyunun tepesine hafif biner — candy plaka).
-	var gloss := UiKit.patch("btn_bevel_light", Color(1, 1, 1, 0.30))
-	gloss.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE)
-	gloss.offset_left = 10.0
-	gloss.offset_right = -10.0
-	gloss.offset_top = 3.0
-	gloss.offset_bottom = 22.0
-	add_child(gloss)
-	# Stok rozeti: sağ üst köşe, altın (HUD madalyonunun ×N rozeti). Krem
-	# halka rozetin İÇİNE konmaz (PanelContainer çocuklarını içerik
+	# Stok rozeti (05.1): KUYUNUN sağ üst omzuna oturur — gameplay
+	# madalyonundaki ×N rozetiyle aynı yer (UiKit.power_slot: sağ üst, 6 px
+	# taşma); kart köşesinde yüzen sarı etiket değil, madalyona bağlı sayaç.
+	# Krem halka rozetin İÇİNE konmaz (PanelContainer çocuklarını içerik
 	# dikdörtgenine yerleştirir, halka görünmezdi): sarmalayıcı düz Control
-	# içinde halka + rozet kardeş; sarmalayıcı rozetin minimumuna göre sola
-	# büyür ("Stok ×12" sığar).
+	# içinde erik temas gölgesi + krem halka + rozet kardeş; sarmalayıcı
+	# rozetin minimumuna göre sola büyür ("Stok ×12" sığar).
 	_stock_wrap = Control.new()
 	_stock_wrap.name = "Stock"
 	_stock_wrap.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_stock_wrap.set_anchors_preset(Control.PRESET_TOP_RIGHT)
 	_stock_wrap.grow_horizontal = Control.GROW_DIRECTION_BEGIN
 	_stock_wrap.grow_vertical = Control.GROW_DIRECTION_END
+	var badge_shadow := UiKit.flat_plate("badge_round", Color(0.22, 0.09, 0.36, 0.28))
+	UiKit.inset(badge_shadow, -2.0, 1.0, -2.0, -5.0)
+	_stock_wrap.add_child(badge_shadow)
 	var badge_rim := UiKit.flat_plate("badge_round", UiTokens.CREAM)
-	UiKit.inset(badge_rim, -2.0, -2.0, -2.0, -2.0)
+	UiKit.inset(badge_rim, -3.0, -3.0, -3.0, -3.0)
 	_stock_wrap.add_child(badge_rim)
 	_stock_badge = UiKit.panel(&"Badge")
 	_stock_badge.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -149,21 +160,22 @@ func _init() -> void:
 	_stock_label = UiKit.label("", &"LabelBadge", HORIZONTAL_ALIGNMENT_CENTER)
 	_stock_label.add_theme_font_size_override("font_size", 16)
 	_stock_badge.add_child(_stock_label)
-	add_child(_stock_wrap)
+	_well.add_child(_stock_wrap)
 	_stock_badge.minimum_size_changed.connect(_layout_stock_badge)
 	_layout_stock_badge()
 
 
-## Rozet sarmalayıcısı: sağ üst köşeden 6/8 px taşar, genişlik içeriğe göre
-## (min 72×30), sola doğru büyür.
+## Rozet sarmalayıcısı: kuyu dikdörtgeninin sağ üst köşesinden 14 px sağa,
+## 2 px yukarı taşar (halkanın omzuna oturur); genişlik içeriğe göre (min
+## 72×30), sola doğru büyür.
 func _layout_stock_badge() -> void:
 	var min: Vector2 = _stock_badge.get_combined_minimum_size()
 	var w: float = maxf(min.x, 72.0)
 	var h: float = maxf(min.y, 30.0)
-	_stock_wrap.offset_right = 6.0
-	_stock_wrap.offset_left = 6.0 - w
-	_stock_wrap.offset_top = -8.0
-	_stock_wrap.offset_bottom = -8.0 + h
+	_stock_wrap.offset_right = 14.0
+	_stock_wrap.offset_left = 14.0 - w
+	_stock_wrap.offset_top = -2.0
+	_stock_wrap.offset_bottom = -2.0 + h
 
 
 func setup(type: PowerUp.Type) -> void:
@@ -267,6 +279,10 @@ func name_text() -> String:
 
 func well() -> Control:
 	return _well
+
+
+func stock_badge() -> Control:
+	return _stock_wrap
 
 
 func price_row() -> HBoxContainer:
