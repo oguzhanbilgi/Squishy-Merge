@@ -27,6 +27,7 @@ color = Color(0.05, 0.04, 0.16, 1)
 [node name="Sky" type="TextureRect" parent="Root"]
 mouse_filter = 2
 expand_mode = 1
+flip_v = true
 
 [node name="MapBackground" type="TextureRect" parent="Root"]
 mouse_filter = 2

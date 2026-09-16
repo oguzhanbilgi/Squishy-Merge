@@ -54,7 +54,9 @@ const DEPTH_MIN: float = 0.86
 ## Sonsuz şartı — kanonik metin (M8.5-12).
 const ENDLESS_REQUIREMENT: String = "Level %d'u bitir"
 ## Punch-hole bandı: zeminin en üst satırları (gök + bulut tepeleri) dikeyde
-## gerilerek bandı doldurur — düz renkte görünen dikiş yok; üstüne haze biner.
+## gerilerek bandı doldurur; sahnede `flip_v` — bandın ALT kenarı doku satırı
+## 0 olur ve zeminin ilk satırıyla birleşir (A36 cihaz kapısı: mirror'suz
+## şeritte bulut kenarlarında ince yatay dikiş görünüyordu). Üstüne haze biner.
 const SKY_STRIP_ROWS: int = 6
 const HAZE_HEIGHT: float = 150.0
 ## Uzun ekranda (dünya ölçeği > 1) düğümler de yarı oranda büyür: 720×1560'ta
