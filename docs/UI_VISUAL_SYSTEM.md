@@ -6,7 +6,7 @@
 **Asset kaynağı:** `tools/make_ui_core.py` → `assets/visual/ui/core/**` +
 `scripts/ui/ui_core_assets.gd` (üretilir, elle düzenlenmez).
 **Galeri:** `tools/ui_system_gallery.tscn` (dev-only, 5 sayfa).
-**Test:** `tools/ui_foundation_test.tscn` (147 kontrol), `tools/gameplay_shell_test.tscn` (147, §13), `tools/home_ui_test.tscn` (152, §14).
+**Test:** `tools/ui_foundation_test.tscn` (147 kontrol), `tools/gameplay_shell_test.tscn` (147, §13), `tools/home_ui_test.tscn` (207, §14).
 
 Çakışma kuralı: owner'ın son talimatı > GAME_DESIGN.md > bu doküman > kod.
 Bir sayı burada ve `ui_tokens.gd`'de farklıysa **doküman güncellenir, token
@@ -508,7 +508,7 @@ bileşeni), `scripts/ui/bonus_chest_info.gd` (+ `scenes/ui/bonus_chest_info.tscn
 `ButtonHomeIcon`, `PanelHomePill`, `ButtonHomePill`, `ButtonHomeAdd` (GENERATED).
 **Sanat:** `assets/visual/ui/hero_mascot.png` (800×778, `tools/make_home_art.py`
 — `tutorial_pose.png` 350 px'ti, hero'da bulanıyordu; ipucu dosyası aynı).
-**Test:** `tools/home_ui_test.tscn` (152 kontrol). **Çekim:**
+**Test:** `tools/home_ui_test.tscn` (207 kontrol; 6 pencere boyutu + A36). **Çekim:**
 `tools/home_shots.tscn -- <dir> [GxY] [safe=61]` (10 durum × 4 boyut + A36
 payı simülasyonu, kayıt byte'ı geri konur).
 
@@ -520,7 +520,7 @@ payı simülasyonu, kayıt byte'ı geri konur).
 | **LOGO** | `logo_lockup` 560 px, üst satırın altında ortada |
 | **YAN** | sol sütun: **Günlük** (pembe candy kubbe + gift picto; alınabilirse pembe bildirim noktası, nabız) · **Koleksiyon** (takılı skin önizlemesi, altın `6/20` rozeti, nane ilerleme halkası) — sağ sütun: **Mağaza** (cyan candy kubbe + shop picto) · **Sandık** (owner sandığı, altın `49/75` rozeti, altın halka; ±3 px süzülme). Sütunlar logonun altından başlar, 28 px kenar payı, adım 146 (uzun ekranda büyür — hero'nun yanına yayılır). Etiket plakası `badge_round` (30 px'te tam yuvarlak uç). |
 | **HERO** | `hero_mascot` (≤ 600 px, uzun ekranda ≤ 632; tuval genişliğine sığar; üst %22'si sütunların arasına sokulur — dar tepe, alfa duyarlı testle) + lavanta hale + krem sahne ışığı + erik yer gölgesi + tier 3 / tier 6 dumpling (ayak hizasında) + 6 pırıltı + alt bantta 4 pırıltı (bant ≥ 120 px ise). Zemin: `ShellBackdrop` Home'da daha az karartılır (`_tune_backdrop`) — gece kasabası görünür. |
-| **OYNA satırı** (alt, 30 + `safe_bottom`) | sol: **level pill'i** `ButtonHomePill` 222×74 (koyu lavanta pill + açık halka + erik gölge + gloss; sol uçtan 12 px taşan **altın taç madalyonu** — `btn_circle` altın + krem/koyu altın halkalar + taç + Baloo numara; pill'de "SIRADAKİ" / "Level 4" / "★ 8/30"; sonsuzda rozette yalnız büyük taç, "SONSUZ MOD / Rekor 12 480 / ★ 30/30") → Harita · sağ: `hero_cta` **OYNA** ≈ 430×92 (tek `ButtonCTA`; halka altta gövdeye oturur — btn_cta'nın son 4 satırı pişmiş gölge) → Harita. Pill OYNA'dan küçük (testle). |
+| **OYNA grubu** (alt, 28 + `safe_bottom`; 03B.2) | dikey hiyerarşi, ikisi de **tuval ortasında**: üstte **level pill'i** `ButtonHomePill` 236..284×60 (genişlik içeriğe göre; koyu lavanta pill + açık halka + erik gölge + gloss; sol uçtan 10 px taşan 56 px **altın taç madalyonu**; iki satır: "SIRADAKİ" / "Level 4 ★ 8/30"; sonsuzda yalnız büyük taç, "SONSUZ MOD" / "Rekor 12 480 ★ 30/30") → Harita · 12 px altında `hero_cta` **OYNA 480×96** (tek `ButtonCTA`, Baloo EB 40; halka btn_cta'nın 4 gölge satırına oturur) → Harita. Testle: OYNA merkezi 360 ± 2, pill merkezi ± 3, aralık 8–16, pill OYNA'dan ≥ 100 px dar. |
 | **Sekme çubuğu** | Home'da **GİZLİ** (`main._show_tab`: `_tabs.visible = tab != 0`); Harita/Koleksiyon/Mağaza'da M8.5-10 çubuğu duruyor (bkz. 14.4) |
 
 Uzun ekran (tuval > 1280, `extra`; 03B.1 dağılımı): gök payı +%22, sütun

@@ -246,9 +246,11 @@ alınacak — şimdi tahmin/vaat yok.
     satır, ortak merkez); level plakası → OYNA'ya bağlı lavanta pill + altın
     taç madalyonu; uzun ekranda sütunlar hero yanına yayılır, OYNA yukarı,
     bantta pırıltılar; yeni oyuncuda "Seri başlasın"; HUD "SIRADAKİ".
-    `tools/home_ui_test` 152/152, ui_foundation 147/147, ui_smoke 72,
-    shell 147; `tools/home_shots` 10 durum × 4 boyut + A36 simülasyonu
-    (build/qa_m8.6-03b-final/). **Ekonomi, ilerleme, günlük ödül kuralı,
+    **03B.2:** OYNA altta ORTADA ve büyük (480×96), hemen üstünde ortalanmış
+    kompakt level pill'i (owner: yan yana düzen OYNA'yı ikincil gösteriyordu).
+    `tools/home_ui_test` 207/207 (6 pencere + A36), ui_foundation 147/147,
+    ui_smoke 72, shell 147; `tools/home_shots` 10 durum × 4 boyut + A36
+    simülasyonu (build/qa_m8.6-03b-final/, play_cta/). **Ekonomi, ilerleme, günlük ödül kuralı,
     kayıt şeması, gameplay HUD v5 yerleşimi DEĞİŞMEDİ** (HUD'da yalnız
     "SIRADAKİ" yazımı). Cihaz kapısı (A36) owner görsel onayından sonra.
     Ayrıntı: UI_VISUAL_SYSTEM §14.

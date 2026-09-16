@@ -21,7 +21,10 @@ extends Node
 ## runtime'da _visual_source / spike referansı yok.
 
 const MAIN_SCENE: PackedScene = preload("res://scenes/main.tscn")
-const VIEWS: Array[Vector2i] = [Vector2i(720, 1280), Vector2i(720, 1560), Vector2i(720, 1440), Vector2i(720, 1600)]
+## Pencere boyutları: 720 tuvali (1280/1560/1440/1600) + gerçek cihaz
+## pencereleri 540×960 (tuval 720×1280) ve 1080×2340 (tuval 720×1560).
+const VIEWS: Array[Vector2i] = [Vector2i(720, 1280), Vector2i(720, 1560), Vector2i(720, 1440), Vector2i(720, 1600),
+	Vector2i(540, 960), Vector2i(1080, 2340)]
 ## A36 punch-hole: 92 px fiziksel / 1.5 = 61 tuval px (M8.6-02 cihaz kapısı).
 const A36_SAFE_TOP: float = 61.0
 const RUNTIME_FILES: Array[String] = [
@@ -153,7 +156,7 @@ func _ready() -> void:
 	_apply_endless()
 	home.refresh()
 	_c("sonsuz: rozette yalnız büyük taç (yazı gizli), 'Rekor 12 480', SONSUZ MOD, 30/30", home._level_badge_label.text == "SONSUZ"
-		and not home._level_badge_label.visible and home._level_crown.custom_minimum_size.x >= 36.0
+		and not home._level_badge_label.visible and home._level_crown.custom_minimum_size.x >= 30.0
 		and home._level_title.text == "Rekor 12 480" and home._level_caption.text == "SONSUZ MOD" and home._level_stars.text == "30/30")
 	_c("koleksiyon 20/20 dolu", collection.badge_text() == "20/20" and is_equal_approx(collection.progress(), 1.0))
 	_c("Hamur 99999, seri '365 günlük seri'", _pill_text(home.dough_pill()) == "99999" and _pill_text(home.streak_pill()) == "365 günlük seri")
@@ -267,7 +270,7 @@ func _ready() -> void:
 		_main._show_tab(0)
 		await get_tree().process_frame
 		await get_tree().process_frame
-		_check_layout(home, Vector2(view), 0.0)
+		_check_layout(home, get_viewport().get_visible_rect().size, 0.0, "%dx%d" % [view.x, view.y])
 	# A36 punch-hole: üst pay satırı aşağı iter.
 	await _resize(VIEWS[1])
 	_check_layout_with_safe(home, Vector2(VIEWS[1]), A36_SAFE_TOP)
@@ -379,15 +382,15 @@ func _check_layout_with_safe(home: CanvasLayer, view: Vector2, safe_top: float) 
 	home._layout_with_safe_top(safe_top)
 	await get_tree().process_frame
 	await get_tree().process_frame
-	_check_layout(home, view, safe_top)
+	_check_layout(home, view, safe_top, "%dx%d" % [int(view.x), int(view.y)])
 	home._layout_with_safe_top(-1.0)
 
 
 ## Etkileşimli kontroller: hepsi görünür alanda, birbiriyle çakışmıyor,
 ## ≥ 48 px; madalyonlar (etiket plakası dahil) maskotun opak pikselleriyle,
 ## OYNA/plaka ile ve birbirleriyle kesişmiyor; logo üstte; OYNA altta.
-func _check_layout(home: CanvasLayer, view: Vector2, safe_top: float) -> void:
-	var tag: String = "%dx%d%s" % [int(view.x), int(view.y), " +A36" if safe_top > 0.0 else ""]
+func _check_layout(home: CanvasLayer, view: Vector2, safe_top: float, window_tag: String) -> void:
+	var tag: String = "%s (tuval %dx%d)%s" % [window_tag, int(view.x), int(view.y), " +A36" if safe_top > 0.0 else ""]
 	var visible: Rect2 = get_viewport().get_visible_rect()
 	_c("%s tuval genişliği 720" % tag, is_equal_approx(visible.size.x, 720.0) and is_equal_approx(visible.size.y, view.y))
 	var buttons: Array[BaseButton] = []
@@ -436,7 +439,7 @@ func _check_layout(home: CanvasLayer, view: Vector2, safe_top: float) -> void:
 		if vr.intersects(play_rect) or vr.intersects(level_rect):
 			clear_play = false
 	_c("%s madalyonlar OYNA/plaka satırına girmiyor" % tag, clear_play)
-	_c("%s maskot OYNA satırının üstünde, tuval içinde" % tag, mascot_rect.end.y <= play_rect.position.y + 1.0
+	_c("%s maskot level pill'inin üstünde, tuval içinde" % tag, mascot_rect.end.y <= level_rect.position.y + 1.0
 		and mascot_rect.position.x >= 0.0 and mascot_rect.end.x <= 720.0)
 	_c("%s maskot baskın (≥ 480 px yüksek)" % tag, mascot_rect.size.y >= 480.0)
 	var logo_rect: Rect2 = home.logo().get_global_rect()
@@ -461,16 +464,35 @@ func _check_layout(home: CanvasLayer, view: Vector2, safe_top: float) -> void:
 		if not screen.encloses(home.feature_button(key).visual_rect()):
 			medallions_safe = false
 	_c("%s madalyonlar (plaka dahil) güvenli alanda" % tag, medallions_safe)
-	_c("%s OYNA alt kenara yakın (≤ 60 px pay), ≥ 400 px geniş" % tag, view.y - play_rect.end.y <= 60.0 + (view.y - 1280.0) * home.EXTRA_BOTTOM_SHARE + 1.0
-		and play_rect.size.x >= 400.0)
-	_c("%s level pill'i OYNA'nın solunda, aynı satırda, OYNA'dan küçük, rozet ekranda" % tag, level_rect.end.x <= play_rect.position.x
-		and absf(level_rect.get_center().y - play_rect.get_center().y) < 4.0
-		and level_rect.size.x < play_rect.size.x and level_rect.size.y < play_rect.size.y
-		and home.level_badge().get_global_rect().position.x >= 0.0)
+	_c("%s OYNA alt kenara yakın (≤ 60 px pay), 480×96, ≥ 48 dokunma" % tag, view.y - play_rect.end.y <= 60.0 + (view.y - 1280.0) * home.EXTRA_BOTTOM_SHARE + 1.0
+		and absf(play_rect.size.x - home.PLAY_WIDTH) <= home.PLAY_WIDTH * 0.02
+		and absf(play_rect.size.y - home.PLAY_HEIGHT) <= home.PLAY_HEIGHT * 0.02
+		and play_rect.size.x >= 420.0 and play_rect.size.y >= 82.0)
+	_c("%s OYNA yatayda ORTALI (|merkez − 360| ≤ 2 px)" % tag, absf(play_rect.get_center().x - 360.0) <= 2.0)
+	# Level pill'i: OYNA'nın ÜSTÜNDE, rozet dahil görsel bütün ortalı, çakışmıyor.
+	var badge_rect: Rect2 = home.level_badge().get_global_rect()
+	var level_visual: Rect2 = level_rect.merge(badge_rect)
+	_c("%s level pill'i OYNA'nın hemen üstünde (8–16 px), ortalı (±3 px), çakışmıyor" % tag,
+		level_rect.end.y <= play_rect.position.y and play_rect.position.y - level_rect.end.y >= 8.0
+		and play_rect.position.y - level_rect.end.y <= 16.0
+		and absf(level_visual.get_center().x - 360.0) <= 3.0
+		and not level_visual.intersects(play_rect) and badge_rect.position.x >= 0.0)
+	_c("%s level pill'i OYNA'dan belirgin küçük (genişlik ≤ 284 < 480, yükseklik 60)" % tag,
+		level_rect.size.x < play_rect.size.x - 100.0 and level_rect.size.x <= home.LEVEL_WIDTH_MAX + 0.5
+		and level_rect.size.x >= home.LEVEL_WIDTH - 0.5 and is_equal_approx(level_rect.size.y, home.LEVEL_HEIGHT))
+	_c("%s level pill'i madalyonlarla / maskotla çakışmıyor" % tag, not _mascot_hits(mascot_rect, level_visual)
+		and _clear_of_features(home, level_visual))
 	# Uzun ekranda alt boşluk: maskot/dumpling ile OYNA arası 1280'e göre
 	# orantılı büyür ama 500 px'i geçmez (dünya bandı, ölü boşluk değil).
-	var band: float = play_rect.position.y - mascot_rect.end.y
-	_c("%s maskot ile OYNA arası ≤ 420 px" % tag, band <= 420.0)
+	var band: float = level_rect.position.y - mascot_rect.end.y
+	_c("%s maskot ile level pill'i arası ≤ 420 px" % tag, band <= 420.0)
+
+
+func _clear_of_features(home: CanvasLayer, rect: Rect2) -> bool:
+	for key in FEATURES:
+		if home.feature_button(key).visual_rect().intersects(rect):
+			return false
+	return true
 
 
 func _button_rect(button: BaseButton) -> Rect2:

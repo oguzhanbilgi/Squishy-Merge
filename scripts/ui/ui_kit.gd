@@ -942,7 +942,7 @@ static func home_pill(icon_tex: Texture2D, value: String,
 ## nefes ekranin kendi wrapper'inda (buton scale'i basisa kalir).
 static func hero_cta(title: String, subtitle: String = "") -> Button:
 	var node := cta(title, subtitle)
-	(node.get_meta(&"title_label") as Label).add_theme_font_size_override("font_size", 38)
+	(node.get_meta(&"title_label") as Label).add_theme_font_size_override("font_size", 40)
 	var halo := patch("popup_glow", Color(UiTokens.CYAN, 0.42))
 	halo.show_behind_parent = true
 	halo.offset_left = -34.0

@@ -12,9 +12,10 @@ extends CanvasLayer
 ##            (owner sandığı, N/75 rozeti + altın halka) — HomeFeatureButton
 ##   HERO     owner maskotu (yeni yüksek çözünürlüklü türev) + lavanta hale +
 ##            yer gölgesi + tier 3 / tier 6 dumpling + pırıltılar; nefes
-##   OYNA     tek kahraman CTA sağ altta (cyan candy), solunda OYNA'ya bağlı
-##            level pill'i (altın taç madalyonu + "SIRADAKİ / Level 4 / ★ 8/30";
-##            sonsuzda "SONSUZ / Rekor 12 480") → ikisi de Harita
+##   OYNA     tek kahraman CTA ALTTA ORTADA, büyük (480×96, cyan candy);
+##            hemen üstünde ortalanmış kompakt level pill'i (altın taç
+##            madalyonu + "SIRADAKİ / Level 4 ★ 8/30"; sonsuzda "SONSUZ MOD /
+##            Rekor 12 480 ★ 30/30") → ikisi de Harita (03B.2)
 ##
 ## Harita/harita düğümü Ana Sayfa'da YOK. Alt sekme çubuğu Ana Sayfa'da
 ## gizli (main.gd). Kayıt YALNIZCA okunur. Zemin candy-night (ShellBackdrop).
@@ -73,15 +74,20 @@ const FEATURE_MARGIN: float = 28.0
 const FEATURE_GAP: float = 14.0
 const FEATURE_STEP: float = HomeFeatureButton.SIZE.y + HomeFeatureButton.PLAQUE_HEIGHT \
 	- HomeFeatureButton.PLAQUE_OVERLAP + 26.0
-const PLAY_HEIGHT: float = 92.0
+## OYNA (03B.2): altta ortada, ekranın en büyük kontrolü — btn_cta 88 px
+## gövdesi 96'ya gerilir (orta bant düz), 480 geniş (tuvalin 2/3'ü).
+const PLAY_WIDTH: float = 480.0
+const PLAY_HEIGHT: float = 96.0
 const PLAY_GAP: float = 14.0
-## Level pill'i: OYNA'nın solunda, altın rozet sola taşar.
-const LEVEL_WIDTH: float = 222.0
-const LEVEL_HEIGHT: float = 74.0
-const LEVEL_BADGE: float = 66.0
-const LEVEL_BADGE_OVERHANG: float = 12.0
+## Level pill'i: OYNA'nın ÜSTÜNDE ortalanmış, ikincil (236×60 + sola taşan
+## 56 px altın rozet); OYNA ile arası LEVEL_PLAY_GAP.
+const LEVEL_WIDTH: float = 236.0
+const LEVEL_WIDTH_MAX: float = 284.0
+const LEVEL_HEIGHT: float = 60.0
+const LEVEL_BADGE: float = 56.0
+const LEVEL_BADGE_OVERHANG: float = 10.0
 const LEVEL_PLAY_GAP: float = 12.0
-const BOTTOM_MARGIN: float = 30.0
+const BOTTOM_MARGIN: float = 28.0
 const MASCOT_MIN: float = 320.0
 const MASCOT_MAX: float = 600.0
 const MASCOT_REF: float = 600.0
@@ -97,7 +103,7 @@ const GROUND_ROOM: float = 64.0
 ## birlikte iner), OYNA satırı ölçülü yukarı çıkar, alt bantta pırıltılar.
 const EXTRA_SKY_SHARE: float = 0.22
 const EXTRA_STEP_SHARE: float = 0.36
-const EXTRA_BOTTOM_SHARE: float = 0.18
+const EXTRA_BOTTOM_SHARE: float = 0.14
 const EXTRA_SIDE_DROP: float = 0.26
 const EXTRA_MASCOT_GROWTH: float = 0.12
 ## Hareket.
@@ -125,6 +131,7 @@ var _feature_homes: Dictionary = {}
 var _play_pulse: Control
 var _play: Button
 var _level: Button
+var _level_column: VBoxContainer
 var _level_badge: Control
 var _level_crown: TextureRect
 var _level_badge_label: Label
@@ -325,28 +332,37 @@ func _build_level_pill() -> void:
 	rim.offset_bottom = 3.0
 	_level.add_child(rim)
 	_root.add_child(_level)
+	# İki satır: "SIRADAKİ" başlığı · "Level 4" + sağında altın "★ 8/30".
 	var column := VBoxContainer.new()
 	column.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	column.alignment = BoxContainer.ALIGNMENT_CENTER
-	column.add_theme_constant_override("separation", -3)
+	column.add_theme_constant_override("separation", -4)
 	column.set_anchors_preset(Control.PRESET_FULL_RECT)
 	column.offset_left = LEVEL_BADGE - LEVEL_BADGE_OVERHANG + 10.0
-	column.offset_right = -12.0
-	column.offset_top = 2.0
+	column.offset_right = -10.0
+	column.offset_top = 1.0
 	column.offset_bottom = -6.0
 	_level.add_child(column)
+	_level_column = column
+	column.minimum_size_changed.connect(_layout)
 	_level_caption = UiKit.label("SIRADAKİ", &"LabelHudCaption")
 	_level_caption.add_theme_font_size_override("font_size", 12)
 	column.add_child(_level_caption)
+	var title_row := HBoxContainer.new()
+	title_row.add_theme_constant_override("separation", 8)
+	title_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	column.add_child(title_row)
 	_level_title = UiKit.label("Level 1", &"LabelSectionOnDark")
-	_level_title.add_theme_font_size_override("font_size", 22)
-	column.add_child(_level_title)
+	_level_title.add_theme_font_size_override("font_size", 21)
+	title_row.add_child(_level_title)
 	_play_hint = _level_title
 	var star_row := HBoxContainer.new()
-	star_row.add_theme_constant_override("separation", 4)
+	star_row.add_theme_constant_override("separation", 3)
+	star_row.alignment = BoxContainer.ALIGNMENT_CENTER
+	star_row.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	star_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	column.add_child(star_row)
-	var star := UiKit.art(STAR_ART, 15)
+	title_row.add_child(star_row)
+	var star := UiKit.art(STAR_ART, 14)
 	star.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	star_row.add_child(star)
 	_level_stars = UiKit.label("0/30", &"LabelBadgeOnDark")
@@ -394,24 +410,24 @@ func _build_level_pill() -> void:
 	badge_body.offset_bottom = 4.0
 	_level_badge.add_child(badge_body)
 	var badge_gloss := UiKit.patch("item_circle_inner", Color(1, 1, 1, 0.34))
-	badge_gloss.offset_left = 9.0
-	badge_gloss.offset_top = 4.0
-	badge_gloss.offset_right = -9.0
-	badge_gloss.offset_bottom = -34.0
+	badge_gloss.offset_left = 8.0
+	badge_gloss.offset_top = 3.0
+	badge_gloss.offset_right = -8.0
+	badge_gloss.offset_bottom = -29.0
 	_level_badge.add_child(badge_gloss)
 	var badge_col := VBoxContainer.new()
-	badge_col.add_theme_constant_override("separation", -9)
+	badge_col.add_theme_constant_override("separation", -8)
 	badge_col.alignment = BoxContainer.ALIGNMENT_CENTER
 	badge_col.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	badge_col.set_anchors_preset(Control.PRESET_FULL_RECT)
 	badge_col.offset_top = -2.0
 	badge_col.offset_bottom = -6.0
 	_level_badge.add_child(badge_col)
-	_level_crown = UiKit.art(CROWN_ART, 24)
+	_level_crown = UiKit.art(CROWN_ART, 20)
 	_level_crown.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	badge_col.add_child(_level_crown)
 	_level_badge_label = UiKit.label("1", &"LabelSectionOnAccent", HORIZONTAL_ALIGNMENT_CENTER)
-	_level_badge_label.add_theme_font_size_override("font_size", 22)
+	_level_badge_label.add_theme_font_size_override("font_size", 20)
 	badge_col.add_child(_level_badge_label)
 	UiMotion.attach_press(_level)
 
@@ -447,16 +463,21 @@ func _layout() -> void:
 	_logo.size = Vector2(LOGO_WIDTH, logo_h)
 	var logo_bottom: float = logo_top + logo_h
 
-	# OYNA satırı (alt).
+	# OYNA grubu (alt, 03B.2): büyük OYNA ortada, hemen üstünde ortalanmış
+	# kompakt level pill'i (rozet dahil optik merkez tuval ortasında).
 	var play_top: float = view.y - safe_bottom - BOTTOM_MARGIN - extra * EXTRA_BOTTOM_SHARE - PLAY_HEIGHT
-	# Level pill'i OYNA'ya bağlı: aynı satır, ortak dikey merkez, rozet sola taşar.
-	var level_left: float = SIDE_MARGIN + LEVEL_BADGE_OVERHANG + 4.0
-	_level.position = Vector2(level_left, play_top + (PLAY_HEIGHT - LEVEL_HEIGHT) * 0.5)
-	_level.size = Vector2(LEVEL_WIDTH, LEVEL_HEIGHT)
-	var play_left: float = level_left + LEVEL_WIDTH + LEVEL_PLAY_GAP
-	_play_pulse.position = Vector2(play_left, play_top)
-	_play_pulse.size = Vector2(view.x - SIDE_MARGIN - 6.0 - play_left, PLAY_HEIGHT)
+	_play_pulse.position = Vector2((view.x - PLAY_WIDTH) * 0.5, play_top)
+	_play_pulse.size = Vector2(PLAY_WIDTH, PLAY_HEIGHT)
 	_play_pulse.pivot_offset = _play_pulse.size * 0.5
+	var level_top: float = play_top - LEVEL_PLAY_GAP - LEVEL_HEIGHT
+	# Pill genişliği içeriğe göre (sonsuzda "Rekor 12 480 ★ 30/30" daha
+	# uzun), 236..284 arasında; görsel genişlik = pill + sola taşan rozet,
+	# bu bütün ortalanır.
+	var text_w: float = _level_column.get_combined_minimum_size().x + _level_column.offset_left - _level_column.offset_right + 4.0
+	var level_w: float = clampf(text_w, LEVEL_WIDTH, LEVEL_WIDTH_MAX)
+	var level_visual_w: float = level_w + LEVEL_BADGE_OVERHANG
+	_level.position = Vector2((view.x - level_visual_w) * 0.5 + LEVEL_BADGE_OVERHANG, level_top)
+	_level.size = Vector2(level_w, LEVEL_HEIGHT)
 
 	# YAN sütunlar: logonun altından başlar; uzun ekranda gök payı ve sütun
 	# aralığı büyür.
@@ -478,7 +499,7 @@ func _layout() -> void:
 	# HERO: hero bölgesi logo altı → OYNA üstü; maskot sütunların arasına
 	# yalnız dar tepesiyle sokulur, genişliği tuvale sığar.
 	var hero_top: float = logo_bottom + 4.0
-	var hero_bottom: float = play_top - PLAY_GAP
+	var hero_bottom: float = play_top - LEVEL_PLAY_GAP - LEVEL_HEIGHT - PLAY_GAP
 	_hero.position = Vector2(0.0, hero_top)
 	_hero.size = Vector2(view.x, maxf(hero_bottom - hero_top, 1.0))
 	var art_aspect: float = float(HERO_ART.get_width()) / float(HERO_ART.get_height())
@@ -598,14 +619,14 @@ func refresh() -> void:
 		# okunmuyordu); metin pill'de.
 		_level_badge_label.text = "SONSUZ"
 		_level_badge_label.visible = false
-		_level_crown.custom_minimum_size = Vector2(38, 38)
+		_level_crown.custom_minimum_size = Vector2(32, 32)
 		_level_caption.text = "SONSUZ MOD"
 		var record: int = SaveManager.endless_high_score()
 		_level_title.text = "Rekor %s" % GameplayHud._thousands(record) if record > 0 else "Rekor bekliyor"
 	else:
 		_level_badge_label.text = str(next_level)
 		_level_badge_label.visible = true
-		_level_crown.custom_minimum_size = Vector2(24, 24)
+		_level_crown.custom_minimum_size = Vector2(20, 20)
 		_level_caption.text = "SIRADAKİ"
 		_level_title.text = "Level %d" % next_level
 
