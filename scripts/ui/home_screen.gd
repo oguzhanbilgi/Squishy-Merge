@@ -2,17 +2,19 @@ extends CanvasLayer
 ## Ana Sayfa — oyun hub'ı (M8.6-03B). Casual mobil oyun lobisi: kart/sekme
 ## yığını DEĞİL, bölgeler (zone) ve yüzen özellik madalyonları.
 ##
-##   ÜST      ayarlar (candy kare) + seri pill'i (sol) · Hamur pill'i + nane
-##            "+" → Mağaza (sağ); cihaz üst güvenli payı satırı aşağı iter
+##   ÜST      "oturmuş" ayarlar (UiKit.home_icon_button) + seri pill'i (sol) ·
+##            Hamur pill'i + nane "+" → Mağaza (sağ) — HUD v5 dili lavanta
+##            glossy pill'ler (UiKit.home_pill), 56 px tek satır; cihaz üst
+##            güvenli payı satırı aşağı iter
 ##   LOGO     SQUISHY MERGE lockup, üst satırın altında ortada
 ##   YAN      sol sütun: Günlük (bildirim noktası) · Koleksiyon (takılı skin,
 ##            N/20 rozeti + nane halka); sağ sütun: Mağaza · Bonus sandık
 ##            (owner sandığı, N/75 rozeti + altın halka) — HomeFeatureButton
 ##   HERO     owner maskotu (yeni yüksek çözünürlüklü türev) + lavanta hale +
 ##            yer gölgesi + tier 3 / tier 6 dumpling + pırıltılar; nefes
-##   OYNA     tek kahraman CTA sağ altta (cyan candy), solunda kompakt level
-##            plakası (taç rozeti, "Level 4", 8/30 yıldız; sonsuzda rekor)
-##            → ikisi de Harita
+##   OYNA     tek kahraman CTA sağ altta (cyan candy), solunda OYNA'ya bağlı
+##            level pill'i (altın taç madalyonu + "SIRADAKİ / Level 4 / ★ 8/30";
+##            sonsuzda "SONSUZ / Rekor 12 480") → ikisi de Harita
 ##
 ## Harita/harita düğümü Ana Sayfa'da YOK. Alt sekme çubuğu Ana Sayfa'da
 ## gizli (main.gd). Kayıt YALNIZCA okunur. Zemin candy-night (ShellBackdrop).
@@ -52,6 +54,14 @@ const SPARKLES: Array = [
 	[Vector2(0.50, 0.58), 16.0, 2.6],
 	[Vector2(-0.20, 0.66), 12.0, 4.4],
 ]
+## Alt bant pırıltıları (uzun ekranda maskot ile OYNA arasındaki dünya
+## bandı): x tuval oranı, y = maskot altı ile OYNA üstü arasındaki oran, kutu, faz.
+const BAND_SPARKLES: Array = [
+	[0.22, 0.30, 16.0, 0.8],
+	[0.66, 0.42, 12.0, 2.9],
+	[0.82, 0.18, 18.0, 4.6],
+	[0.40, 0.72, 10.0, 1.4],
+]
 
 ## Ölçüler (tuval px).
 const TOP_MARGIN: float = 14.0
@@ -65,7 +75,12 @@ const FEATURE_STEP: float = HomeFeatureButton.SIZE.y + HomeFeatureButton.PLAQUE_
 	- HomeFeatureButton.PLAQUE_OVERLAP + 26.0
 const PLAY_HEIGHT: float = 92.0
 const PLAY_GAP: float = 14.0
-const PLAQUE_WIDTH: float = 232.0
+## Level pill'i: OYNA'nın solunda, altın rozet sola taşar.
+const LEVEL_WIDTH: float = 222.0
+const LEVEL_HEIGHT: float = 74.0
+const LEVEL_BADGE: float = 66.0
+const LEVEL_BADGE_OVERHANG: float = 12.0
+const LEVEL_PLAY_GAP: float = 12.0
 const BOTTOM_MARGIN: float = 30.0
 const MASCOT_MIN: float = 320.0
 const MASCOT_MAX: float = 600.0
@@ -78,10 +93,12 @@ const GROUND_ROOM: float = 64.0
 ## Uzun ekranda (tuval > 1280) fazla yükseklik: gök payı (logo ile sütunlar
 ## arası), sütun aralığı, alt nefes payı (OYNA altı) ve yan dumpling'lerin
 ## aşağı inişi paylaşır; kalan alt "sahne" bandında dünya görünür.
-const EXTRA_SKY_SHARE: float = 0.28
-const EXTRA_STEP_SHARE: float = 0.18
-const EXTRA_BOTTOM_SHARE: float = 0.12
-const EXTRA_SIDE_DROP: float = 0.36
+## 03B.1: sütunlar hero'nun yanında daha aşağı yayılır (maskot onlarla
+## birlikte iner), OYNA satırı ölçülü yukarı çıkar, alt bantta pırıltılar.
+const EXTRA_SKY_SHARE: float = 0.22
+const EXTRA_STEP_SHARE: float = 0.36
+const EXTRA_BOTTOM_SHARE: float = 0.18
+const EXTRA_SIDE_DROP: float = 0.26
 const EXTRA_MASCOT_GROWTH: float = 0.12
 ## Hareket.
 const BOB_PERIOD: float = 2.6
@@ -92,8 +109,8 @@ const CTA_PERIOD: float = 1.9
 const CHEST_FLOAT: float = 3.0
 
 var _settings_button: Button
-var _streak_pill: PanelContainer
-var _dough_pill: PanelContainer
+var _streak_pill: Control
+var _dough_pill: Control
 var _logo: TextureRect
 var _hero: Control
 var _glow: NinePatchRect
@@ -102,11 +119,14 @@ var _ground: NinePatchRect
 var _mascot: TextureRect
 var _sides: Array[TextureRect] = []
 var _sparkles: Array[TextureRect] = []
+var _band_sparkles: Array[TextureRect] = []
 var _features: Dictionary = {}
 var _feature_homes: Dictionary = {}
 var _play_pulse: Control
 var _play: Button
 var _level: Button
+var _level_badge: Control
+var _level_crown: TextureRect
 var _level_badge_label: Label
 var _level_caption: Label
 var _level_title: Label
@@ -161,15 +181,18 @@ func _tune_backdrop() -> void:
 
 
 func _build_top() -> void:
-	_settings_button = UiKit.hud_icon_button("settings", BAR_HEIGHT)
+	# Ayarlar: boyalı sınırı dikdörtgene oturan Home varyantı (HUD v5 köşe
+	# butonu btn_bevel_soft'un pişmiş gölgesi yüzünden halkanın içinde
+	# "yüzüyordu" — bkz. UiKit.home_icon_button).
+	_settings_button = UiKit.home_icon_button("settings", BAR_HEIGHT)
 	_settings_button.name = "Settings"
 	_settings_button.pressed.connect(func() -> void: settings_pressed.emit())
 	_root.add_child(_settings_button)
-	_streak_pill = UiKit.resource_pill(UiIcons.FLAME, "0")
+	_streak_pill = UiKit.home_pill(UiIcons.FLAME, "", false, BAR_HEIGHT)
 	_streak_pill.name = "StreakPill"
 	_streak_pill.minimum_size_changed.connect(_layout)
 	_root.add_child(_streak_pill)
-	_dough_pill = UiKit.resource_pill(UiIcons.DOUGH, "0", true)
+	_dough_pill = UiKit.home_pill(UiIcons.DOUGH, "", true, BAR_HEIGHT)
 	_dough_pill.name = "DoughPill"
 	_dough_pill.minimum_size_changed.connect(_layout)
 	(_dough_pill.get_meta(&"add_button") as Button).pressed.connect(
@@ -214,6 +237,11 @@ func _build_hero() -> void:
 		spark.set_anchors_preset(Control.PRESET_TOP_LEFT)
 		_hero.add_child(spark)
 		_sparkles.append(spark)
+	for spec in BAND_SPARKLES:
+		var spark := UiKit.art(STAR_ART, float(spec[2]))
+		spark.set_anchors_preset(Control.PRESET_TOP_LEFT)
+		_hero.add_child(spark)
+		_band_sparkles.append(spark)
 	# Logo maskotun üstünde (hero'nun önünde) — üst satırın altında ortada.
 	_logo = UiKit.art(LOGO_ART, 0)
 	_logo.name = "Logo"
@@ -262,60 +290,7 @@ func _add_feature(key: StringName, button: HomeFeatureButton) -> void:
 
 
 func _build_play_row() -> void:
-	# Level plakası: basılabilir kompakt candy kart (hud_card anatomisi) —
-	# dashboard kartı değil, OYNA'nın yanındaki "nereye gidiyorum" rozeti.
-	_level = UiKit.card_button()
-	_level.name = "Level"
-	_level.pressed.connect(func() -> void: map_requested.emit())
-	_root.add_child(_level)
-	var card: PanelContainer = _level.get_meta(&"card")
-	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", UiTokens.SPACE_SM + 2)
-	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	card.add_child(row)
-	var badge := UiKit.panel(&"PanelHudBadge")
-	badge.custom_minimum_size = Vector2(58.0, 0.0)
-	badge.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	badge.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	row.add_child(badge)
-	var badge_col := VBoxContainer.new()
-	badge_col.add_theme_constant_override("separation", -8)
-	badge_col.alignment = BoxContainer.ALIGNMENT_CENTER
-	badge_col.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	badge.add_child(badge_col)
-	var crown := UiKit.art(CROWN_ART, 26)
-	crown.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-	badge_col.add_child(crown)
-	_level_badge_label = UiKit.label("1", &"LabelSectionOnAccent", HORIZONTAL_ALIGNMENT_CENTER)
-	_level_badge_label.add_theme_font_size_override("font_size", 22)
-	badge_col.add_child(_level_badge_label)
-	var column := VBoxContainer.new()
-	column.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	column.alignment = BoxContainer.ALIGNMENT_CENTER
-	column.add_theme_constant_override("separation", -2)
-	column.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	row.add_child(column)
-	_level_caption = UiKit.label("SIRADAKİ", &"LabelHudCaptionDark")
-	_level_caption.add_theme_font_size_override("font_size", 13)
-	_level_caption.add_theme_color_override("font_color", UiTokens.LAVENDER_DEEP.darkened(0.30))
-	column.add_child(_level_caption)
-	_level_title = UiKit.label("Level 1", &"LabelSection")
-	_level_title.add_theme_font_size_override("font_size", 22)
-	_level_title.add_theme_color_override("font_color", UiTokens.LAVENDER_DEEP.darkened(0.38))
-	column.add_child(_level_title)
-	_play_hint = _level_title
-	var star_row := HBoxContainer.new()
-	star_row.add_theme_constant_override("separation", 4)
-	star_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	column.add_child(star_row)
-	var star := UiKit.art(STAR_ART, 16)
-	star.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	star_row.add_child(star)
-	_level_stars = UiKit.label("0/30", &"LabelStat")
-	_level_stars.add_theme_font_size_override("font_size", 15)
-	_level_stars.add_theme_color_override("font_color", UiTokens.TEXT_SECONDARY)
-	star_row.add_child(_level_stars)
-
+	_build_level_pill()
 	# OYNA: nefes wrapper'ı (butonun kendi scale'i basışa kalır).
 	_play_pulse = Control.new()
 	_play_pulse.name = "CtaPulse"
@@ -326,6 +301,119 @@ func _build_play_row() -> void:
 	_play.set_anchors_preset(Control.PRESET_FULL_RECT)
 	_play.pressed.connect(func() -> void: play_pressed.emit())
 	_play_pulse.add_child(_play)
+
+
+## Level pill'i (03B.1): OYNA bölgesine bağlı ikincil candy ilerleme nesnesi —
+## dashboard kartı değil. Basılabilir koyu lavanta pill (ButtonHomePill) +
+## erik gölge + açık halka + gloss; sol ucundan taşan altın taç madalyonu
+## (btn_circle altın gövde + krem halka + taç + level numarası); pill içinde
+## "SIRADAKİ" (küçük, beyaz %62) / "Level 4" (Baloo 22 beyaz) / "★ 8/30"
+## (altın). Sonsuz: rozet "SONSUZ", "SONSUZ MOD" / "Rekor 12 480" / "★ 30/30".
+## Rota: Harita (değişmedi).
+func _build_level_pill() -> void:
+	_level = Button.new()
+	_level.name = "Level"
+	_level.theme_type_variation = &"ButtonHomePill"
+	_level.focus_mode = Control.FOCUS_NONE
+	_level.pressed.connect(func() -> void: map_requested.emit())
+	UiKit.hud_shadow(_level, 6.0, 0.28, null, 16.0)
+	var rim := UiKit.flat_plate("label_round", UiTokens.LAVENDER_LIGHT)
+	rim.show_behind_parent = true
+	rim.offset_left = -3.0
+	rim.offset_top = -3.0
+	rim.offset_right = 3.0
+	rim.offset_bottom = 3.0
+	_level.add_child(rim)
+	_root.add_child(_level)
+	var column := VBoxContainer.new()
+	column.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	column.alignment = BoxContainer.ALIGNMENT_CENTER
+	column.add_theme_constant_override("separation", -3)
+	column.set_anchors_preset(Control.PRESET_FULL_RECT)
+	column.offset_left = LEVEL_BADGE - LEVEL_BADGE_OVERHANG + 10.0
+	column.offset_right = -12.0
+	column.offset_top = 2.0
+	column.offset_bottom = -6.0
+	_level.add_child(column)
+	_level_caption = UiKit.label("SIRADAKİ", &"LabelHudCaption")
+	_level_caption.add_theme_font_size_override("font_size", 12)
+	column.add_child(_level_caption)
+	_level_title = UiKit.label("Level 1", &"LabelSectionOnDark")
+	_level_title.add_theme_font_size_override("font_size", 22)
+	column.add_child(_level_title)
+	_play_hint = _level_title
+	var star_row := HBoxContainer.new()
+	star_row.add_theme_constant_override("separation", 4)
+	star_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	column.add_child(star_row)
+	var star := UiKit.art(STAR_ART, 15)
+	star.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	star_row.add_child(star)
+	_level_stars = UiKit.label("0/30", &"LabelBadgeOnDark")
+	_level_stars.add_theme_font_size_override("font_size", 14)
+	_level_stars.add_theme_color_override("font_color", UiTokens.GOLD)
+	star_row.add_child(_level_stars)
+	var gloss := UiKit.patch("btn_bevel_light", Color(1, 1, 1, 0.28))
+	gloss.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE)
+	gloss.offset_left = LEVEL_BADGE - LEVEL_BADGE_OVERHANG + 6.0
+	gloss.offset_right = -8.0
+	gloss.offset_top = 3.0
+	gloss.offset_bottom = LEVEL_HEIGHT * 0.40
+	_level.add_child(gloss)
+	# Altın taç madalyonu: sol uçtan taşar, pill'in önünde.
+	_level_badge = Control.new()
+	_level_badge.name = "LevelBadge"
+	_level_badge.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_level_badge.set_anchors_preset(Control.PRESET_CENTER_LEFT)
+	_level_badge.offset_left = -LEVEL_BADGE_OVERHANG
+	_level_badge.offset_right = -LEVEL_BADGE_OVERHANG + LEVEL_BADGE
+	_level_badge.offset_top = -LEVEL_BADGE * 0.5 - 2.0
+	_level_badge.offset_bottom = LEVEL_BADGE * 0.5 - 2.0
+	_level.add_child(_level_badge)
+	var badge_shadow := UiKit.patch("popup_glow", Color(0.22, 0.09, 0.36, 0.30))
+	badge_shadow.offset_left = -12.0
+	badge_shadow.offset_top = -8.0
+	badge_shadow.offset_right = 12.0
+	badge_shadow.offset_bottom = 16.0
+	_level_badge.add_child(badge_shadow)
+	# btn_circle'in boyali govdesi 70/74 (alt 4 satir golge): halkalar govdeye
+	# oturur, altta tasmaz.
+	var badge_rim := UiKit.patch("btn_circle_flat", UiTokens.CREAM)
+	badge_rim.offset_left = -4.0
+	badge_rim.offset_top = -4.0
+	badge_rim.offset_right = 4.0
+	badge_rim.offset_bottom = 0.0
+	_level_badge.add_child(badge_rim)
+	var badge_ring := UiKit.patch("btn_circle_flat", UiTokens.GOLD_DEEP)
+	badge_ring.offset_left = -1.0
+	badge_ring.offset_top = -1.0
+	badge_ring.offset_right = 1.0
+	badge_ring.offset_bottom = -3.0
+	_level_badge.add_child(badge_ring)
+	var badge_body := UiKit.patch("btn_circle", UiTokens.GOLD)
+	badge_body.offset_bottom = 4.0
+	_level_badge.add_child(badge_body)
+	var badge_gloss := UiKit.patch("item_circle_inner", Color(1, 1, 1, 0.34))
+	badge_gloss.offset_left = 9.0
+	badge_gloss.offset_top = 4.0
+	badge_gloss.offset_right = -9.0
+	badge_gloss.offset_bottom = -34.0
+	_level_badge.add_child(badge_gloss)
+	var badge_col := VBoxContainer.new()
+	badge_col.add_theme_constant_override("separation", -9)
+	badge_col.alignment = BoxContainer.ALIGNMENT_CENTER
+	badge_col.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	badge_col.set_anchors_preset(Control.PRESET_FULL_RECT)
+	badge_col.offset_top = -2.0
+	badge_col.offset_bottom = -6.0
+	_level_badge.add_child(badge_col)
+	_level_crown = UiKit.art(CROWN_ART, 24)
+	_level_crown.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	badge_col.add_child(_level_crown)
+	_level_badge_label = UiKit.label("1", &"LabelSectionOnAccent", HORIZONTAL_ALIGNMENT_CENTER)
+	_level_badge_label.add_theme_font_size_override("font_size", 22)
+	badge_col.add_child(_level_badge_label)
+	UiMotion.attach_press(_level)
 
 
 # --- Yerleşim -----------------------------------------------------------------
@@ -344,10 +432,11 @@ func _layout() -> void:
 	var top_y: float = safe_top + TOP_MARGIN
 	_settings_button.position = Vector2(SIDE_MARGIN, top_y)
 	_settings_button.size = Vector2(BAR_HEIGHT, BAR_HEIGHT)
-	var streak_size: Vector2 = _streak_pill.get_combined_minimum_size()
+	# Pill'ler ayarlarla aynı yükseklikte (56) tek satır: optik merkezler aynı.
+	var streak_size: Vector2 = _streak_pill.custom_minimum_size
 	_streak_pill.size = streak_size
-	_streak_pill.position = Vector2(SIDE_MARGIN + BAR_HEIGHT + 10.0, top_y + (BAR_HEIGHT - streak_size.y) * 0.5)
-	var dough_size: Vector2 = _dough_pill.get_combined_minimum_size()
+	_streak_pill.position = Vector2(SIDE_MARGIN + BAR_HEIGHT + 12.0, top_y + (BAR_HEIGHT - streak_size.y) * 0.5)
+	var dough_size: Vector2 = _dough_pill.custom_minimum_size
 	_dough_pill.size = dough_size
 	_dough_pill.position = Vector2(view.x - SIDE_MARGIN - dough_size.x, top_y + (BAR_HEIGHT - dough_size.y) * 0.5)
 
@@ -360,12 +449,13 @@ func _layout() -> void:
 
 	# OYNA satırı (alt).
 	var play_top: float = view.y - safe_bottom - BOTTOM_MARGIN - extra * EXTRA_BOTTOM_SHARE - PLAY_HEIGHT
-	var level_h: float = maxf(_level.get_combined_minimum_size().y, 84.0)
-	_level.position = Vector2(SIDE_MARGIN + 8.0, play_top + (PLAY_HEIGHT - level_h) * 0.5)
-	_level.size = Vector2(PLAQUE_WIDTH, level_h)
-	var play_left: float = SIDE_MARGIN + 8.0 + PLAQUE_WIDTH + PLAY_GAP
+	# Level pill'i OYNA'ya bağlı: aynı satır, ortak dikey merkez, rozet sola taşar.
+	var level_left: float = SIDE_MARGIN + LEVEL_BADGE_OVERHANG + 4.0
+	_level.position = Vector2(level_left, play_top + (PLAY_HEIGHT - LEVEL_HEIGHT) * 0.5)
+	_level.size = Vector2(LEVEL_WIDTH, LEVEL_HEIGHT)
+	var play_left: float = level_left + LEVEL_WIDTH + LEVEL_PLAY_GAP
 	_play_pulse.position = Vector2(play_left, play_top)
-	_play_pulse.size = Vector2(view.x - SIDE_MARGIN - 8.0 - play_left, PLAY_HEIGHT)
+	_play_pulse.size = Vector2(view.x - SIDE_MARGIN - 6.0 - play_left, PLAY_HEIGHT)
 	_play_pulse.pivot_offset = _play_pulse.size * 0.5
 
 	# YAN sütunlar: logonun altından başlar; uzun ekranda gök payı ve sütun
@@ -435,6 +525,17 @@ func _layout() -> void:
 		var at: Vector2 = center + (spec[0] as Vector2) * Vector2(mascot_w * 1.15, mascot_h)
 		_sparkles[i].position = at - Vector2(box, box) * 0.5
 		_sparkles[i].size = Vector2(box, box)
+	# Alt bant: maskot altı → hero altı arasında (hero koordinatı).
+	var band_top: float = center.y + mascot_h * 0.5
+	var band_h: float = maxf((hero_bottom - hero_top) - band_top, 40.0)
+	for i in _band_sparkles.size():
+		var spec: Array = BAND_SPARKLES[i]
+		var box: float = float(spec[2])
+		var at := Vector2(view.x * float(spec[0]), band_top + band_h * float(spec[1]))
+		_band_sparkles[i].position = at - Vector2(box, box) * 0.5
+		_band_sparkles[i].size = Vector2(box, box)
+		# Kısa ekranda bant dar: pırıltılar maskotun ayaklarına girmesin.
+		_band_sparkles[i].visible = band_h >= 120.0
 
 
 ## Boşta hareket: maskot nefes (ölçek %1.5 + ±5 px), yer gölgesi ters fazda,
@@ -461,6 +562,12 @@ func _process(delta: float) -> void:
 		_sparkles[i].modulate.a = twinkle
 		_sparkles[i].scale = Vector2.ONE * (0.8 + 0.3 * twinkle)
 		_sparkles[i].pivot_offset = _sparkles[i].size * 0.5
+	for i in _band_sparkles.size():
+		var spec: Array = BAND_SPARKLES[i]
+		var twinkle: float = 0.45 + 0.45 * sin(phase * 1.3 + float(spec[3]))
+		_band_sparkles[i].modulate.a = twinkle
+		_band_sparkles[i].scale = Vector2.ONE * (0.8 + 0.3 * twinkle)
+		_band_sparkles[i].pivot_offset = _band_sparkles[i].size * 0.5
 	var pulse: float = 1.0 + CTA_PULSE * (0.5 + 0.5 * sin(TAU * _time / CTA_PERIOD))
 	_play_pulse.scale = Vector2.ONE * pulse
 	var chest: HomeFeatureButton = _features[&"chest"]
@@ -473,7 +580,9 @@ func _process(delta: float) -> void:
 # --- Veri ---------------------------------------------------------------------
 
 func refresh() -> void:
-	UiKit.set_pill_value(_streak_pill, str(SaveManager.daily_streak()), false)
+	# Seri: yeni oyuncuda çıplak "0" yok — "Seri başlasın"; sonra "N günlük seri".
+	var streak: int = SaveManager.daily_streak()
+	UiKit.set_pill_value(_streak_pill, "%d günlük seri" % streak if streak > 0 else "Seri başlasın", false)
 	UiKit.set_pill_value(_dough_pill, str(SaveManager.dough()), false)
 
 	var levels: Array[LevelData] = LevelLibrary.load_levels()
@@ -485,14 +594,18 @@ func refresh() -> void:
 	var max_stars: int = maxi(total * 3, 1)
 	_level_stars.text = "%d/%d" % [stars, max_stars]
 	if next_level > total:
+		# Sonsuz: rozette yalnız büyük taç (66 px dairede "SONSUZ" yazısı
+		# okunmuyordu); metin pill'de.
 		_level_badge_label.text = "SONSUZ"
-		_level_badge_label.add_theme_font_size_override("font_size", 11)
+		_level_badge_label.visible = false
+		_level_crown.custom_minimum_size = Vector2(38, 38)
 		_level_caption.text = "SONSUZ MOD"
 		var record: int = SaveManager.endless_high_score()
 		_level_title.text = "Rekor %s" % GameplayHud._thousands(record) if record > 0 else "Rekor bekliyor"
 	else:
 		_level_badge_label.text = str(next_level)
-		_level_badge_label.add_theme_font_size_override("font_size", 22)
+		_level_badge_label.visible = true
+		_level_crown.custom_minimum_size = Vector2(24, 24)
 		_level_caption.text = "SIRADAKİ"
 		_level_title.text = "Level %d" % next_level
 
@@ -545,12 +658,16 @@ func feature_keys() -> Array:
 	return _features.keys()
 
 
-func dough_pill() -> PanelContainer:
+func dough_pill() -> Control:
 	return _dough_pill
 
 
-func streak_pill() -> PanelContainer:
+func streak_pill() -> Control:
 	return _streak_pill
+
+
+func level_badge() -> Control:
+	return _level_badge
 
 
 func hero() -> Control:

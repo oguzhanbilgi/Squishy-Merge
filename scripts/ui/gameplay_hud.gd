@@ -2,7 +2,7 @@ class_name GameplayHud
 extends CanvasLayer
 ## Production oyun HUD'u (M8.6-02). Tek tasarlanmış üst bölge:
 ##
-##   Satır 1:  [Geri][Ayarlar]    [★ SKOR 1 240]     [SIRADAKI ●][Çıkış]
+##   Satır 1:  [Geri][Ayarlar]    [★ SKOR 1 240]     [SIRADAKİ ●][Çıkış]
 ##   Satır 2:  [tepsi: Bomba Büyüt.] [4 | HEDEF ad ▮▮▮▯▯] [tepsi: Sarsıntı Temiz.]
 ##   ...  BOARD (kamera ile sığdırılmış fizik penceresi)  ...
 ##   Alt:      [ T1 T2 T3 T4 T5 T6 T7 T8 ]   evrim şeridi
@@ -201,7 +201,7 @@ func _build_row1() -> void:
 	next_col.add_theme_constant_override("separation", -2)
 	next_col.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	next_row.add_child(next_col)
-	var next_caption := UiKit.label("SIRADAKI", &"LabelHudCaptionDark", HORIZONTAL_ALIGNMENT_CENTER)
+	var next_caption := UiKit.label("SIRADAKİ", &"LabelHudCaptionDark", HORIZONTAL_ALIGNMENT_CENTER)
 	next_caption.add_theme_color_override("font_color", UiTokens.LAVENDER_DEEP.darkened(0.25))
 	next_col.add_child(next_caption)
 	next_art = UiKit.art(DUMPLING_VISUAL.TEXTURES[0], 42)

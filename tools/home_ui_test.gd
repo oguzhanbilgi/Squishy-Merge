@@ -3,9 +3,13 @@ extends Node
 ##
 ##   godot --headless --audio-driver Dummy --path . res://tools/home_ui_test.tscn
 ##
-## Kontroller: production bileşenler doğru variation'da (ButtonHud ayarlar,
-## ResourcePill seri/Hamur + ButtonResourceAdd, tek ButtonCTA OYNA,
-## ButtonCard level plakası, dört HomeFeatureButton/ButtonFeature); Ana
+## Kontroller: production bileşenler doğru variation'da (ButtonHomeIcon
+## "oturmuş" ayarlar, PanelHomePill seri/Hamur + ButtonHomeAdd, tek ButtonCTA
+## OYNA, ButtonHomePill level pill'i + altın rozet, dört
+## HomeFeatureButton/ButtonFeature); üst satır hizası (ayarlar / seri / Hamur
+## ortak optik merkez, ±3 px); yeni oyuncuda seri asla "0" değil; SIRADAKİ
+## yazımı (Home + gameplay HUD kaynağı); sandık bilgisi ödül durumunu
+## değiştirmez; Ana
 ## Sayfa'da sekme çubuğu GİZLİ, harita içeriği YOK; rotalar (OYNA/plaka →
 ## Harita, Koleksiyon → Koleksiyon, Mağaza ve Hamur "+" → Mağaza, Günlük →
 ## günlük penceresi, Sandık → sandık bilgisi → OYNA → Harita, ayarlar);
@@ -70,11 +74,14 @@ func _ready() -> void:
 	_mascot_img = (home.HERO_ART as Texture2D).get_image()
 
 	print("-- bileşenler")
-	_c("ayarlar butonu ButtonHud (glossy candy kare)", home.settings_button().theme_type_variation == &"ButtonHud")
-	_c("seri pill'i ResourcePill + owner alev ikonu", home.streak_pill().theme_type_variation == &"ResourcePill")
+	_c("ayarlar butonu ButtonHomeIcon (oturmuş Home varyantı, yüz + dudak)", home.settings_button().theme_type_variation == &"ButtonHomeIcon"
+		and home.settings_button().has_meta(&"face"))
+	_c("seri pill'i PanelHomePill (HUD v5 lavanta, koyu cip değil) + owner alev", (home.streak_pill().get_meta(&"pill") as PanelContainer).theme_type_variation == &"PanelHomePill")
 	var add: Button = home.dough_pill().get_meta(&"add_button")
-	_c("Hamur pill'i ResourcePill + nane '+' (ButtonResourceAdd, ≥ 48)", home.dough_pill().theme_type_variation == &"ResourcePill"
-		and add.theme_type_variation == &"ButtonResourceAdd" and add.custom_minimum_size.x >= 48.0)
+	_c("Hamur pill'i PanelHomePill + nane yuvarlak '+' (ButtonHomeAdd, 48)", (home.dough_pill().get_meta(&"pill") as PanelContainer).theme_type_variation == &"PanelHomePill"
+		and add.theme_type_variation == &"ButtonHomeAdd" and add.custom_minimum_size.x >= 48.0)
+	_c("Ana Sayfa'da koyu ResourcePill / ButtonHud yok", _count_variation(home, &"ResourcePill") == 0
+		and _count_variation(home, &"ButtonHud") == 0)
 	_c("OYNA ButtonCTA (tek kahraman CTA)", home.play_button().theme_type_variation == &"ButtonCTA")
 	_c("OYNA yazısı", (home.play_button().get_meta(&"title_label") as Label).text == "OYNA")
 	var ctas: int = 0
@@ -82,7 +89,9 @@ func _ready() -> void:
 		if node is Button and (node as Button).theme_type_variation == &"ButtonCTA":
 			ctas += 1
 	_c("ekranda tam bir ButtonCTA var", ctas == 1)
-	_c("level plakası ButtonCard (kompakt, basılabilir)", home.level_button().theme_type_variation == &"ButtonCard")
+	_c("level pill'i ButtonHomePill + altın taç rozeti (dashboard kartı değil)", home.level_button().theme_type_variation == &"ButtonHomePill"
+		and home.level_badge() != null and home.level_badge().get_parent() == home.level_button()
+		and _count_variation(home, &"ButtonCard") == 0 and _count_variation(home, &"PanelHudCard") == 0)
 	var features_ok: bool = home.feature_keys().size() == 4
 	for key in FEATURES:
 		var button: HomeFeatureButton = home.feature_button(key)
@@ -116,9 +125,10 @@ func _ready() -> void:
 
 	print("-- veri (orta oyuncu)")
 	home.refresh()
-	_c("Hamur 335, seri 2", _pill_text(home.dough_pill()) == "335" and _pill_text(home.streak_pill()) == "2")
-	_c("level plakası: rozet 4, 'Level 4', SIRADAKİ, 8/30", home._level_badge_label.text == "4"
-		and home._level_title.text == "Level 4" and home._level_caption.text == "SIRADAKİ" and home._level_stars.text == "8/30")
+	_c("Hamur 335, seri '2 günlük seri'", _pill_text(home.dough_pill()) == "335" and _pill_text(home.streak_pill()) == "2 günlük seri")
+	_c("level pill'i: rozet 4 (görünür), 'Level 4', SIRADAKİ (noktalı İ), 8/30", home._level_badge_label.text == "4"
+		and home._level_badge_label.visible and home._level_title.text == "Level 4"
+		and home._level_caption.text == "SIRADAKİ" and home._level_stars.text == "8/30")
 	var collection: HomeFeatureButton = home.feature_button(&"collection")
 	_c("koleksiyon rozeti 6/20, halka 0.30", collection.badge_text() == "6/20" and absf(collection.progress() - 0.3) < 0.011)
 	_c("koleksiyon sanatı takılı skin'in önizlemesi", collection._art.texture == SkinEntry.find(&"rare_02").preview_texture())
@@ -132,7 +142,8 @@ func _ready() -> void:
 	print("-- veri (yeni oyuncu)")
 	_apply_fresh()
 	home.refresh()
-	_c("Hamur 0, seri 0", _pill_text(home.dough_pill()) == "0" and _pill_text(home.streak_pill()) == "0")
+	_c("Hamur 0; seri ASLA çıplak '0' değil → 'Seri başlasın'", _pill_text(home.dough_pill()) == "0"
+		and _pill_text(home.streak_pill()) == "Seri başlasın" and not _pill_text(home.streak_pill()).begins_with("0"))
 	_c("Level 1, 0/30", home._level_title.text == "Level 1" and home._level_stars.text == "0/30" and home._level_badge_label.text == "1")
 	_c("koleksiyon 0/20, halka 0, varsayılan dumpling", collection.badge_text() == "0/20" and collection.progress() == 0.0
 		and collection._art.texture == home.DUMPLING_VISUAL.TEXTURES[0])
@@ -141,10 +152,11 @@ func _ready() -> void:
 	print("-- veri (sonsuz açık)")
 	_apply_endless()
 	home.refresh()
-	_c("rozet SONSUZ, 'Rekor 12 480', SONSUZ MOD, 30/30", home._level_badge_label.text == "SONSUZ"
+	_c("sonsuz: rozette yalnız büyük taç (yazı gizli), 'Rekor 12 480', SONSUZ MOD, 30/30", home._level_badge_label.text == "SONSUZ"
+		and not home._level_badge_label.visible and home._level_crown.custom_minimum_size.x >= 36.0
 		and home._level_title.text == "Rekor 12 480" and home._level_caption.text == "SONSUZ MOD" and home._level_stars.text == "30/30")
 	_c("koleksiyon 20/20 dolu", collection.badge_text() == "20/20" and is_equal_approx(collection.progress(), 1.0))
-	_c("Hamur 99999, seri 365", _pill_text(home.dough_pill()) == "99999" and _pill_text(home.streak_pill()) == "365")
+	_c("Hamur 99999, seri '365 günlük seri'", _pill_text(home.dough_pill()) == "99999" and _pill_text(home.streak_pill()) == "365 günlük seri")
 
 	print("-- günlük ödül durumu")
 	_apply_showcase()
@@ -210,10 +222,14 @@ func _ready() -> void:
 	add.pressed.emit()
 	_c("Hamur '+' → Mağaza", _main._active_tab == 3)
 	_main._show_tab(0)
+	var reward_state: Array = [SaveManager.dough(), int(SaveManager.data.get("merges_since_bonus_chest", 0)),
+		SaveManager.owned_skins().size()]
 	chest.pressed.emit()
 	await get_tree().process_frame
 	_c("Sandık madalyonu → bonus sandık bilgisi (49/75, kural metni)", _main._chest_info.visible
 		and _main._chest_info.count_text() == "49/75" and _main._active_tab == 0)
+	_c("sandık bilgisi ödül durumunu DEĞİŞTİRMEDİ (Hamur / merge sayacı / skin)", reward_state == [SaveManager.dough(),
+		int(SaveManager.data.get("merges_since_bonus_chest", 0)), SaveManager.owned_skins().size()])
 	_main._chest_info.play_button().pressed.emit()
 	_c("sandık penceresi OYNA → kapanır, Harita", not _main._chest_info.visible and _main._active_tab == 1)
 	_main._show_tab(0)
@@ -285,6 +301,10 @@ func _ready() -> void:
 				clean = false
 				print("    yasak referans: ", path, " -> ", word)
 	_c("runtime dosyalarında _visual_source / spike referansı yok", clean)
+	var hud_src: String = FileAccess.get_file_as_string("res://scripts/ui/gameplay_hud.gd")
+	_c("kullanıcıya görünen 'SIRADAKI' (noktasız) yok: Home + gameplay HUD 'SIRADAKİ'",
+		not home_src.contains("\"SIRADAKI\"") and not hud_src.contains("\"SIRADAKI\"")
+		and hud_src.contains("\"SIRADAKİ\""))
 
 	_main.queue_free()
 	await get_tree().process_frame
@@ -317,7 +337,7 @@ func _resize(view: Vector2i) -> void:
 	await get_tree().process_frame
 
 
-func _pill_text(pill: PanelContainer) -> String:
+func _pill_text(pill: Control) -> String:
 	return (pill.get_meta(&"value_label") as Label).text
 
 
@@ -425,10 +445,28 @@ func _check_layout(home: CanvasLayer, view: Vector2, safe_top: float) -> void:
 		and logo_rect.end.y <= home.feature_button(&"daily").get_global_rect().position.y + 1.0
 		and logo_rect.end.y <= mascot_rect.position.y + 1.0)
 	_c("%s üst satır güvenli payın altında" % tag, settings_rect.position.y >= safe_top + home.TOP_MARGIN - 1.0)
+	var streak_rect: Rect2 = home.streak_pill().get_global_rect()
+	var dough_rect: Rect2 = home.dough_pill().get_global_rect()
+	_c("%s ayarlar / seri / Hamur ortak optik merkez (±3 px), aynı satır" % tag,
+		absf(settings_rect.get_center().y - streak_rect.get_center().y) <= 3.0
+		and absf(settings_rect.get_center().y - dough_rect.get_center().y) <= 3.0
+		and absf(settings_rect.size.y - streak_rect.size.y) <= 2.0 and absf(settings_rect.size.y - dough_rect.size.y) <= 2.0)
+	_c("%s sol/sağ iç pay simetrik (ayarlar sol = Hamur sağ), seri ayarların sağında" % tag,
+		absf(settings_rect.position.x - (720.0 - dough_rect.end.x)) <= 1.0
+		and streak_rect.position.x >= settings_rect.end.x + 8.0 and streak_rect.end.x < dough_rect.position.x - 8.0)
+	_c("%s ayarlar butonu 56 px, boyalı yüz + dudak dikdörtgenin içinde" % tag, settings_rect.size == Vector2(56.0, 56.0)
+		and (home.settings_button().get_meta(&"face") as Control).get_global_rect().end.y <= settings_rect.end.y)
+	var medallions_safe: bool = true
+	for key in FEATURES:
+		if not screen.encloses(home.feature_button(key).visual_rect()):
+			medallions_safe = false
+	_c("%s madalyonlar (plaka dahil) güvenli alanda" % tag, medallions_safe)
 	_c("%s OYNA alt kenara yakın (≤ 60 px pay), ≥ 400 px geniş" % tag, view.y - play_rect.end.y <= 60.0 + (view.y - 1280.0) * home.EXTRA_BOTTOM_SHARE + 1.0
 		and play_rect.size.x >= 400.0)
-	_c("%s level plakası OYNA'nın solunda, aynı satırda" % tag, level_rect.end.x <= play_rect.position.x
-		and absf(level_rect.get_center().y - play_rect.get_center().y) < 4.0)
+	_c("%s level pill'i OYNA'nın solunda, aynı satırda, OYNA'dan küçük, rozet ekranda" % tag, level_rect.end.x <= play_rect.position.x
+		and absf(level_rect.get_center().y - play_rect.get_center().y) < 4.0
+		and level_rect.size.x < play_rect.size.x and level_rect.size.y < play_rect.size.y
+		and home.level_badge().get_global_rect().position.x >= 0.0)
 	# Uzun ekranda alt boşluk: maskot/dumpling ile OYNA arası 1280'e göre
 	# orantılı büyür ama 500 px'i geçmez (dünya bandı, ölü boşluk değil).
 	var band: float = play_rect.position.y - mascot_rect.end.y

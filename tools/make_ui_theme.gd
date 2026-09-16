@@ -42,8 +42,9 @@ const GENERATED: Array[StringName] = [
 	&"PanelStrip", &"PanelHud", &"PanelHudScore", &"PanelTray", &"PanelHudFrame", &"PanelHudCard",
 	&"LabelHudCaptionDark", &"ButtonHud", &"ButtonHudExit", &"ProgressBarHud",
 	&"PanelHudPercent", &"PanelHudPill", &"PanelHudBadge", &"PanelHudPortrait",
-	# Home hub (M8.6-03B)
-	&"ButtonFeature", &"ButtonFeatureLocked", &"PanelFeaturePlaque", &"ButtonCard",
+	# Home hub (M8.6-03B / 03B.1)
+	&"ButtonFeature", &"ButtonFeatureLocked", &"PanelFeaturePlaque",
+	&"ButtonHomeIcon", &"PanelHomePill", &"ButtonHomePill", &"ButtonHomeAdd",
 	# Oyun bilesenleri
 	&"ResourcePill", &"HeaderRibbon", &"SectionTag", &"ProgressBarMint", &"ProgressBarGold",
 	&"Badge", &"LockBadge", &"EquippedBadge", &"NewBadge", &"CountBadge",
@@ -171,7 +172,13 @@ func _build_panels() -> void:
 	_panel(&"PanelStrip", "panel_bevel", Color(UiTokens.PLUM, 0.94), Vector4(14, 4, 14, 8))
 	# Home hub (M8.6-03B): madalyonun altindaki kucuk etiket plakasi — koyu
 	# lavanta pill, beyaz Baloo etiket (GUNLUK / MAGAZA ...).
-	_panel(&"PanelFeaturePlaque", "title_oval", UiTokens.LAVENDER_DEEP, Vector4(10, 0, 10, 5))
+	# `badge_round` (yarim olcek etiket): 30 px plakada tam yuvarlak uclar —
+	# title_oval/label_round bu boyda dikey ezilip duz tabanli gorunuyordu.
+	_panel(&"PanelFeaturePlaque", "badge_round", UiTokens.LAVENDER_DEEP, Vector4(10, 1, 10, 4))
+	# Home ust satir pill'i (03B.1, HUD v5 dili): koyu lavanta duz plaka
+	# (`label_round`: pismis cizgi/golge YOK, boyali alan = dikdortgen);
+	# halka/golge/gloss UiKit.home_pill dekoru. Icerik: ikon 40 / "+" 48.
+	_panel(&"PanelHomePill", "label_round", UiTokens.LAVENDER_DEEP, Vector4(10, 3, 6, 5))
 
 
 # --- Butonlar ----------------------------------------------------------------
@@ -229,11 +236,20 @@ func _build_buttons() -> void:
 		FONT_TITLE, 16, UiTokens.TEXT_PRIMARY, UiTokens.TEXT_DISABLED)
 	_button(&"ButtonFeatureLocked", "btn_circle", UiTokens.LAVENDER_SURFACE, slot,
 		FONT_TITLE, 16, UiTokens.TEXT_PRIMARY, UiTokens.TEXT_DISABLED)
-	# Basilabilir kompakt plaka (M8.6-03B level plakasi): hud_card cercevesiyle
-	# AYNI govde/renk ama Button — basis/pressed durumu var. Icerik
-	# UiKit.card_button ic PanelHudCard'ina girer.
-	_button(&"ButtonCard", "btn_bevel_soft", UiTokens.LAVENDER_DEEP.lerp(UiTokens.LAVENDER_LIGHT, 0.14),
-		Vector4(7, 5, 7, 10), FONT_TITLE, 22, UiTokens.TEXT_PRIMARY, UiTokens.TEXT_DISABLED)
+	# Home "oturmus" ikon butonu (03B.1): govde duz `frame_round20` plakasi —
+	# pismis cizgi/golge yok, boyali alan = dikdortgen; bu stylebox ALT TABAN
+	# (koyu lavanta dudak), yuz plakasi/gloss/ikon UiKit.home_icon_button
+	# cocuklari (basinca yuz dudaga oturur). HUD v5 kose butonuna DOKUNULMADI.
+	_button(&"ButtonHomeIcon", "frame_round20", UiTokens.LAVENDER_DEEP.darkened(0.34), Vector4(0, 0, 0, 0),
+		FONT_TITLE, 22, UiTokens.TEXT_ON_DARK, UiTokens.TEXT_DISABLED, 34)
+	# Home level pill'i (03B.1): basilabilir koyu lavanta pill (altin rozet +
+	# SIRADAKI / Level N); icerik margin'i soldaki tasan rozete yer birakir.
+	_button(&"ButtonHomePill", "label_round", UiTokens.LAVENDER_DEEP, Vector4(74, 4, 14, 8),
+		FONT_TITLE, 20, UiTokens.TEXT_ON_DARK, UiTokens.TEXT_DISABLED, 30)
+	# Pill'in nane "+" (03B.1): duz beyaz daire (`btn_circle_flat`, cizgi yok)
+	# nane; taban/gloss/picto UiKit.home_pill ekler. 48 px dokunma hedefi.
+	_button(&"ButtonHomeAdd", "btn_circle_flat", UiTokens.MINT, Vector4(0, 0, 0, 0),
+		FONT_TITLE, 18, UiTokens.TEXT_ON_ACCENT, UiTokens.TEXT_DISABLED, 24)
 	# Kaynak pill'inin nane "+" butonu.
 	_button(&"ButtonResourceAdd", "resource_btn", UiTokens.MINT, Vector4(8, 6, 8, 10),
 		FONT_TITLE, 18, UiTokens.TEXT_ON_ACCENT, UiTokens.TEXT_DISABLED, 20)

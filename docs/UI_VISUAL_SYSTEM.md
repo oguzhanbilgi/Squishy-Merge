@@ -6,7 +6,7 @@
 **Asset kaynağı:** `tools/make_ui_core.py` → `assets/visual/ui/core/**` +
 `scripts/ui/ui_core_assets.gd` (üretilir, elle düzenlenmez).
 **Galeri:** `tools/ui_system_gallery.tscn` (dev-only, 5 sayfa).
-**Test:** `tools/ui_foundation_test.tscn` (142 kontrol), `tools/gameplay_shell_test.tscn` (146, §13), `tools/home_ui_test.tscn` (129, §14).
+**Test:** `tools/ui_foundation_test.tscn` (147 kontrol), `tools/gameplay_shell_test.tscn` (147, §13), `tools/home_ui_test.tscn` (152, §14).
 
 Çakışma kuralı: owner'ın son talimatı > GAME_DESIGN.md > bu doküman > kod.
 Bir sayı burada ve `ui_tokens.gd`'de farklıysa **doküman güncellenir, token
@@ -141,7 +141,9 @@ iskeletin yerine kullanılır — kitin düz krem gövdesi tek başına kimlik t
 | `PowerSlot` / `PowerSlotArmed` / `PowerSlotEmpty` | `btn_circle` (80×84 madalyon) | krem / cyan / açık lavanta | gameplay güç slotu — `UiKit.power_slot`, §13.4 |
 | `ButtonHud` / `ButtonHudExit` | `btn_square` (56) | `LAVENDER_DEEP` / pembe, picto 34 | gameplay köşe butonları — `UiKit.hud_icon_button`, §13.3 |
 | `ButtonFeature` / `ButtonFeatureLocked` | `btn_circle` (96×100 madalyon) | krem / açık lavanta | Ana Sayfa hub madalyonu — `HomeFeatureButton`, §14.2 |
-| `ButtonCard` | `btn_bevel_soft` | `LAVENDER_DEEP`→light %14 | basılabilir kompakt candy plaka (Home level plakası) — `UiKit.card_button`, §14.1 |
+| `ButtonHomeIcon` | `frame_round20` (56, düz plaka = alt dudak) | koyu lavanta | Home "oturmuş" ikon butonu — `UiKit.home_icon_button`, §14.5 |
+| `ButtonHomePill` | `label_round` | `LAVENDER_DEEP` | Home level pill'i (altın taç rozeti + SIRADAKİ / Level N) — §14.1 |
+| `ButtonHomeAdd` | `btn_circle_flat` (48) | nane | Home pill'inin yuvarlak "+" (koyu nane taban + gloss + picto) — `UiKit.home_pill` |
 
 Durumlar (hepsi temada): **normal**, **hover** (%6 açık), **pressed** (%12
 koyu + içerik 3 px aşağı), **disabled** (açık lavanta-gri gövde `#a19dba` +
@@ -499,33 +501,37 @@ harita, karakter ve marka KOPYALANMAZ. **Home'da harita YOK.**
 **Kod:** `scripts/ui/home_screen.gd` (ekran; sahne yalnız zemin + Root),
 `scripts/ui/home_feature_button.gd` (`HomeFeatureButton`, tek madalyon
 bileşeni), `scripts/ui/bonus_chest_info.gd` (+ `scenes/ui/bonus_chest_info.tscn`),
-`UiKit` `safe_top` / `safe_bottom` / `card_button` / `hero_cta`,
-`DailyReward.is_claimable()` (yalnız okur), `DailyRewardPopup.show_status`
-/ `close_popup`, `tab_bar.active_tab()`. **Tema:** `ButtonFeature`,
-`ButtonFeatureLocked`, `PanelFeaturePlaque`, `ButtonCard` (GENERATED).
+`UiKit` `safe_top` / `safe_bottom` / `flat_plate` / `home_icon_button` /
+`home_pill` / `hero_cta`, `DailyReward.is_claimable()` (yalnız okur),
+`DailyRewardPopup.show_status` / `close_popup`, `tab_bar.active_tab()`.
+**Tema:** `ButtonFeature`, `ButtonFeatureLocked`, `PanelFeaturePlaque`,
+`ButtonHomeIcon`, `PanelHomePill`, `ButtonHomePill`, `ButtonHomeAdd` (GENERATED).
 **Sanat:** `assets/visual/ui/hero_mascot.png` (800×778, `tools/make_home_art.py`
 — `tutorial_pose.png` 350 px'ti, hero'da bulanıyordu; ipucu dosyası aynı).
-**Test:** `tools/home_ui_test.tscn` (129 kontrol). **Çekim:**
-`tools/home_shots.tscn -- <dir> [GxY]` (10 durum × 4 boyut, kayıt byte'ı
-geri konur).
+**Test:** `tools/home_ui_test.tscn` (152 kontrol). **Çekim:**
+`tools/home_shots.tscn -- <dir> [GxY] [safe=61]` (10 durum × 4 boyut + A36
+payı simülasyonu, kayıt byte'ı geri konur).
 
 ### 14.1 Kompozisyon (bölgeler; 720 tuval, yükseklik serbest)
 
 | Bölge | İçerik |
 |---|---|
-| **ÜST** (`safe_top` + 14) | sol: `hud_icon_button` ayarlar (56) + `resource_pill` seri (owner alev + sayı) · sağ: `resource_pill` Hamur + nane "+" (48, → Mağaza). Gelecek premium para birimi için mimari yer var, **şimdi icat edilmedi**. |
+| **ÜST** (`safe_top` + 14) | tek 56 px satır, ortak optik merkez (test ±3 px): sol `home_icon_button` ayarlar (56, §14.5) + `home_pill` seri (owner alev + "N günlük seri"; **yeni oyuncuda "Seri başlasın"**, asla çıplak "0") · sağ `home_pill` Hamur + nane yuvarlak "+" (48, → Mağaza). Pill'ler HUD v5 dili (koyu lavanta `label_round` + açık halka + erik gölge + gloss) — **koyu düz cip değil**. Sol iç pay = sağ iç pay (24). Gelecek premium para birimi için mimari yer var, **şimdi icat edilmedi**. |
 | **LOGO** | `logo_lockup` 560 px, üst satırın altında ortada |
-| **YAN** | sol sütun: **Günlük** (pembe kuyu + gift picto; alınabilirse pembe bildirim noktası, nabız) · **Koleksiyon** (takılı skin önizlemesi, altın `6/20` rozeti, nane ilerleme halkası) — sağ sütun: **Mağaza** (cyan kuyu + shop picto) · **Sandık** (owner sandığı, altın `49/75` rozeti, altın halka; ±3 px süzülme). Sütunlar logonun altından başlar, 28 px kenar payı, adım 146. |
-| **HERO** | `hero_mascot` (≤ 600 px, tuval genişliğine sığar; üst %22'si sütunların arasına sokulur — dar tepe, alfa duyarlı testle) + lavanta hale + krem sahne ışığı + erik yer gölgesi + tier 3 / tier 6 dumpling (ayak hizasında) + 6 pırıltı. Zemin: `ShellBackdrop` Home'da daha az karartılır (`_tune_backdrop`) — gece kasabası görünür. |
-| **OYNA satırı** (alt, 30 + `safe_bottom`) | sol: `card_button` **level plakası** 232×84 (altın taç rozeti + "SIRADAKİ / Level 4 / ★ 8/30"; sonsuzda "SONSUZ / SONSUZ MOD / Rekor 12 480 / 30/30") → Harita · sağ: `hero_cta` **OYNA** 410×92 (tek `ButtonCTA`) → Harita |
+| **YAN** | sol sütun: **Günlük** (pembe candy kubbe + gift picto; alınabilirse pembe bildirim noktası, nabız) · **Koleksiyon** (takılı skin önizlemesi, altın `6/20` rozeti, nane ilerleme halkası) — sağ sütun: **Mağaza** (cyan candy kubbe + shop picto) · **Sandık** (owner sandığı, altın `49/75` rozeti, altın halka; ±3 px süzülme). Sütunlar logonun altından başlar, 28 px kenar payı, adım 146 (uzun ekranda büyür — hero'nun yanına yayılır). Etiket plakası `badge_round` (30 px'te tam yuvarlak uç). |
+| **HERO** | `hero_mascot` (≤ 600 px, uzun ekranda ≤ 632; tuval genişliğine sığar; üst %22'si sütunların arasına sokulur — dar tepe, alfa duyarlı testle) + lavanta hale + krem sahne ışığı + erik yer gölgesi + tier 3 / tier 6 dumpling (ayak hizasında) + 6 pırıltı + alt bantta 4 pırıltı (bant ≥ 120 px ise). Zemin: `ShellBackdrop` Home'da daha az karartılır (`_tune_backdrop`) — gece kasabası görünür. |
+| **OYNA satırı** (alt, 30 + `safe_bottom`) | sol: **level pill'i** `ButtonHomePill` 222×74 (koyu lavanta pill + açık halka + erik gölge + gloss; sol uçtan 12 px taşan **altın taç madalyonu** — `btn_circle` altın + krem/koyu altın halkalar + taç + Baloo numara; pill'de "SIRADAKİ" / "Level 4" / "★ 8/30"; sonsuzda rozette yalnız büyük taç, "SONSUZ MOD / Rekor 12 480 / ★ 30/30") → Harita · sağ: `hero_cta` **OYNA** ≈ 430×92 (tek `ButtonCTA`; halka altta gövdeye oturur — btn_cta'nın son 4 satırı pişmiş gölge) → Harita. Pill OYNA'dan küçük (testle). |
 | **Sekme çubuğu** | Home'da **GİZLİ** (`main._show_tab`: `_tabs.visible = tab != 0`); Harita/Koleksiyon/Mağaza'da M8.5-10 çubuğu duruyor (bkz. 14.4) |
 
-Uzun ekran (tuval > 1280, `extra`): gök payı +%22, sütun adımı +%30, alt pay
-+%12, yan dumpling'ler +%34 aşağı, maskot +%12 büyür (≤ 632). Kısa ekran
-(1280 / 540×960): maskot 600, alt bant ~200 px dünya. Test: 4 tuval + A36
-payı (61 px) — butonlar ekranda, ≥ 48×48, çakışma yok (madalyon plakaları
-dahil), madalyonlar maskotun **opak pikselleriyle** kesişmiyor, OYNA satırına
-girmiyor, maskot ≥ 480 px, maskot–OYNA bandı ≤ 420 px.
+Uzun ekran (tuval > 1280, `extra`; 03B.1 dağılımı): gök payı +%22, sütun
+adımı +%36 (ikinci sıra hero'nun yanına iner, maskot onunla birlikte iner),
+OYNA satırı +%18 yukarı, yan dumpling'ler +%26 aşağı (ayak hizasında kalır),
+maskot +%12 büyür (≤ 632), alt bantta pırıltılar. Kısa ekran (1280 /
+540×960): maskot 600, alt bant ~200 px dünya. Test: 4 tuval + A36 payı (61
+px) — butonlar ekranda, ≥ 48×48, çakışma yok (madalyon plakaları dahil),
+madalyonlar güvenli alanda, maskotun **opak pikselleriyle** kesişmiyor, OYNA
+satırına girmiyor, maskot ≥ 480 px, maskot–OYNA bandı ≤ 420 px, üst satır
+üç öğesi ortak merkez ±3 px, sol/sağ pay simetrik.
 
 ### 14.2 `HomeFeatureButton` anatomisi
 
@@ -559,6 +565,26 @@ Home kaydı yalnız OKUR (`home_ui_test`: çizim/yenileme kayıt byte'ını
 değiştirmez; `home_screen` / `bonus_chest_info` `save_game`/`add_dough`/
 `grant_*` çağırmaz). Sahte buton yok: para/reklam ürünleri (Başlangıç Paketi,
 Reklamsız) **yerleştirilmedi** — Play Billing/AdMob yok (GAME_DESIGN §5.7).
+
+### 14.5 "Oturmuş" ikon butonu — HUD v5 köşe butonunun kayıt hatası (03B.1)
+
+Owner: "ayarlar butonu tam oturmuyor". Kök neden (4× kırpma ile ölçüldü):
+`hud_icon_button` gövdesi `btn_bevel_soft` 62×77 — son 7 satırı pişmiş
+yarı saydam gölge (boyalı gövde 70/77 = %91) ve 9-slice kenarları
+(30/37/31/39) 56 px butondan büyük → sprite dikeyde ezilir; düz
+`frame_round20` halka dört yanda eşit taştığı için altta ~9 px, üstte 4 px
+görünür (buton halkanın içinde "yüzer"); `border_round_thin` iç ışığının ~30
+px köşe yarıçapı gövdenin ~14 px köşesiyle uyuşmaz (sağ üstte sapkın yay).
+Aynı reçete gameplay HUD v5 köşe butonlarında da var — **cihazda onaylı,
+DOKUNULMADI**; ileride owner onayıyla aynı düzeltme oraya taşınabilir.
+
+Home varyantı `UiKit.home_icon_button(role, size)` (`ButtonHomeIcon`):
+boyalı sınırı dikdörtgene birebir oturan düz plakalar — erik gölge → açık
+lavanta halka (+4) → koyu taban plakası (butonun stylebox'ı; alt 6 px dudak)
+→ yüz plakası `LAVENDER_DEEP` → `btn_bevel_light` gloss → beyaz picto (yüz
+merkezinde). Basınca yüz + ikon dudağa oturur (4 px) ve UiMotion squash.
+`UiKit.flat_plate(sprite, tint)`: NinePatchRect yerine StyleBoxTexture'lı
+boş PanelContainer (NinePatchRect patch kenarlarının altına küçülemez).
 
 ### 14.4 Sekme çubuğu göçü (açık iş)
 

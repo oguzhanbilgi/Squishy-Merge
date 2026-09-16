@@ -20,7 +20,8 @@ extends Node
 ## değerleri bellekte (SaveManager.data) ve çıkışta geri konur.
 ##
 ## Kullanım:
-##   godot --path . res://tools/home_shots.tscn -- <çıktı_klasörü> [GxY]
+##   godot --path . res://tools/home_shots.tscn -- <çıktı_klasörü> [GxY] [safe=61]
+## `safe=N`: A36 punch-hole payı simülasyonu (tuval px; dosya adına `_a36`).
 
 const MAIN_SCENE: PackedScene = preload("res://scenes/main.tscn")
 const SHOT_SIZE := Vector2i(720, 1280)
@@ -31,6 +32,7 @@ var _main: Node2D
 var _saved_data: Dictionary = {}
 var _save_bytes: PackedByteArray = PackedByteArray()
 var _had_save: bool = false
+var _safe_top: float = -1.0
 
 
 func _ready() -> void:
@@ -38,6 +40,9 @@ func _ready() -> void:
 	_out_dir = args[0] if args.size() >= 1 else ProjectSettings.globalize_path("user://home_shots")
 	DirAccess.make_dir_recursive_absolute(_out_dir)
 	_size = _shot_size(args)
+	for arg in args:
+		if String(arg).begins_with("safe="):
+			_safe_top = float(String(arg).trim_prefix("safe="))
 	DisplayServer.window_set_size(_size)
 	await get_tree().process_frame
 	await get_tree().process_frame
@@ -55,6 +60,8 @@ func _ready() -> void:
 	await get_tree().process_frame
 	if _main._daily != null:
 		_main._daily.visible = false
+	if _safe_top >= 0.0:
+		_home()._layout_with_safe_top(_safe_top)
 
 	_apply_showcase()
 	await _show_home()
@@ -117,7 +124,7 @@ func _shot_size(args: PackedStringArray) -> Vector2i:
 
 
 func _tag() -> String:
-	return "%dx%d" % [_size.x, _size.y]
+	return "%dx%d%s" % [_size.x, _size.y, "_a36" if _safe_top >= 0.0 else ""]
 
 
 func _capture(name: String) -> void:

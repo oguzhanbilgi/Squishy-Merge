@@ -239,11 +239,19 @@ alınacak — şimdi tahmin/vaat yok.
     zemin Home'da daha az karartılır. Alt: kompakt level plakası (taç rozeti,
     Level N / 8/30 ★; sonsuzda rekor) + tek cyan OYNA → Harita. Uzun ekran:
     gök payı / sütun aralığı / maskot büyür. Para/reklam ürünü YOK (billing
-    yok). `tools/home_ui_test` 129/129, ui_foundation 142/142, ui_smoke 72,
-    shell 146; `tools/home_shots` 10 durum × 4 boyut (build/qa_m8.6-03b/).
-    **Ekonomi, ilerleme, günlük ödül kuralı, kayıt şeması, gameplay HUD v5
-    DEĞİŞMEDİ.** Cihaz kapısı (A36) owner görsel onayından sonra. Ayrıntı:
-    UI_VISUAL_SYSTEM §14.
+    yok). **03B.1 final polish (2026-09-16):** ayarlar butonu "oturmadı"
+    → kök neden HUD v5 köşe reçetesinin pişmiş gölge/halka kayıt hatası
+    (UI_VISUAL_SYSTEM §14.5), Home'a düz plakalı `home_icon_button`; üst
+    pill'ler koyu cipten HUD v5 lavanta glossy `home_pill`'e (56 px tek
+    satır, ortak merkez); level plakası → OYNA'ya bağlı lavanta pill + altın
+    taç madalyonu; uzun ekranda sütunlar hero yanına yayılır, OYNA yukarı,
+    bantta pırıltılar; yeni oyuncuda "Seri başlasın"; HUD "SIRADAKİ".
+    `tools/home_ui_test` 152/152, ui_foundation 147/147, ui_smoke 72,
+    shell 147; `tools/home_shots` 10 durum × 4 boyut + A36 simülasyonu
+    (build/qa_m8.6-03b-final/). **Ekonomi, ilerleme, günlük ödül kuralı,
+    kayıt şeması, gameplay HUD v5 yerleşimi DEĞİŞMEDİ** (HUD'da yalnız
+    "SIRADAKİ" yazımı). Cihaz kapısı (A36) owner görsel onayından sonra.
+    Ayrıntı: UI_VISUAL_SYSTEM §14.
 - **Sırada: M8.6 — Visual Cohesion Rebuild** (ekranlar `UiKit`/`UiTokens`
   sistemine geçirilecek: ~~gameplay shell~~ ✅ → ~~home~~ 🔶 (owner görsel
   onayı + cihaz kapısı bekliyor) → shop → collection →

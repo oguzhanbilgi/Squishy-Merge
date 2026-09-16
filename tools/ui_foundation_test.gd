@@ -15,12 +15,13 @@ const GALLERY_SCENE: PackedScene = preload("res://tools/ui_system_gallery.tscn")
 
 const PANELS: Array[StringName] = [&"PanelBase", &"PanelCream", &"PanelPurple", &"PanelDark",
 	&"PanelCard", &"PanelModal", &"PanelElevated", &"PanelListRow",
-	# Home hub (M8.6-03B)
-	&"PanelFeaturePlaque"]
+	# Home hub (M8.6-03B / 03B.1)
+	&"PanelFeaturePlaque", &"PanelHomePill"]
 const BUTTONS: Array[StringName] = [&"ButtonPrimary", &"ButtonSecondary", &"ButtonPurchase",
 	&"ButtonDanger", &"ButtonIcon", &"ButtonRoundIcon", &"ButtonCTA", &"ButtonResourceAdd",
-	# Home hub (M8.6-03B): madalyon govdesi (krem / kilitli lavanta) + kompakt plaka
-	&"ButtonFeature", &"ButtonFeatureLocked", &"ButtonCard"]
+	# Home hub (M8.6-03B / 03B.1): madalyon govdesi (krem / kilitli lavanta), oturmus
+	# ikon butonu, level pill'i, nane "+"
+	&"ButtonFeature", &"ButtonFeatureLocked", &"ButtonHomeIcon", &"ButtonHomePill", &"ButtonHomeAdd"]
 const LABELS: Array[StringName] = [&"LabelDisplay", &"LabelTitle", &"LabelSection", &"LabelBody",
 	&"LabelCaption", &"LabelPrice", &"LabelPositive", &"LabelWarning", &"LabelDisabled", &"LabelStat",
 	&"LabelDisplayOnDark", &"LabelTitleOnDark", &"LabelSectionOnDark", &"LabelBodyOnDark",

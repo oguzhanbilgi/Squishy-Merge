@@ -319,7 +319,9 @@ static func resource_pill(icon_tex: Texture2D, value: String,
 	return pill
 
 
-static func set_pill_value(pill: PanelContainer, text: String, pop: bool = true) -> void:
+## `pill`: resource_pill (PanelContainer) ya da home_pill sarmalayicisi —
+## ikisi de meta "value_label" tasir.
+static func set_pill_value(pill: Control, text: String, pop: bool = true) -> void:
 	if pill == null or not pill.has_meta(&"value_label"):
 		return
 	var value_label: Label = pill.get_meta(&"value_label")
@@ -773,41 +775,166 @@ static func safe_bottom(view: Vector2) -> float:
 	return inset_px * (view.x / window.x)
 
 
-## Basilabilir candy plaka: `hud_card` ile AYNI anatomi (koyu-lavanta cerceve
-## + krem kart + dis golge + acik halka + ust gloss) ama cerceve bir Button
-## (`ButtonCard`) — basis animasyonu, pressed govdesi ve `pressed` sinyali
-## var. Button container olmadigi icin dekorlar dogrudan cocuk (basisla
-## birlikte olceklenir) ve kartin minimumu butona elle tasinir. Icerik meta
-## "card" PanelContainer'ina eklenir. Home'da level plakasi (kompakt).
-static func card_button(inner: StringName = &"PanelHudCard") -> Button:
+## Duz yuvarlak plaka (03B.1): `frame_round20` / `label_round` gibi PISMIS
+## cizgisi ve golgesi olmayan beyaz plakalari istenen boyutta cizer. NinePatchRect
+## DEGIL — patch kenarlari (51x50) kucuk plakadan buyuk olunca NinePatchRect
+## kendini kucultemez; StyleBoxTexture'li bos PanelContainer her olcude cizer.
+## Boyali alan = dikdortgen (dekor hizalamasi icin onemli).
+static func flat_plate(sprite: String, tint: Color) -> PanelContainer:
+	var node := PanelContainer.new()
+	node.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	node.add_theme_stylebox_override("panel", style(sprite, tint, Vector4.ZERO))
+	node.set_anchors_preset(Control.PRESET_FULL_RECT)
+	return node
+
+
+## Plakayi `target`'in dikdortgenine gore (sol, ust, sag, alt) tasmayla yerlestirir.
+static func _inset(node: Control, left: float, top: float, right: float, bottom: float) -> void:
+	node.set_anchors_preset(Control.PRESET_FULL_RECT)
+	node.offset_left = left
+	node.offset_top = top
+	node.offset_right = -right
+	node.offset_bottom = -bottom
+
+
+## Home "oturmus" ikon butonu (03B.1): HUD v5 kose butonuyla ayni malzeme
+## (koyu lavanta govde, acik lavanta halka, erik golge, ust gloss, beyaz
+## picto) ama boyali sinirlari dikdortgene birebir oturan duz plakalardan:
+##   erik golge (arkada, 5 px asagi) -> acik lavanta halka (+4) ->
+##   koyu taban plakasi (butonun kendi stylebox'i; alt LIP px dudak olarak
+##   gorunur) -> yuz plakasi (LAVENDER_DEEP, alt LIP px haric) -> gloss
+##   (yuzun ust %44'u) -> ince ic isik -> beyaz picto (yuz merkezinde).
+## Basinca yuz + gloss + ikon dudaga oturur (LIP-2 px) ve UiMotion 0.94 squash.
+## HUD v5'in `hud_icon_button`'i DEGISMEDI (cihazda onayli); bu Home varyanti.
+const HOME_ICON_LIP: float = 6.0
+
+static func home_icon_button(role: String, size: float) -> Button:
 	var node := Button.new()
-	node.theme_type_variation = &"ButtonCard"
+	node.theme_type_variation = &"ButtonHomeIcon"
 	node.focus_mode = Control.FOCUS_NONE
-	hud_shadow(node, 6.0, 0.26)
-	hud_rim(node, UiTokens.LAVENDER_LIGHT, 4.0)
-	var card := panel(inner)
-	card.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var box: StyleBox = theme().get_stylebox("normal", &"ButtonCard")
-	card.set_anchors_preset(Control.PRESET_FULL_RECT)
-	card.offset_left = box.content_margin_left
-	card.offset_top = box.content_margin_top
-	card.offset_right = -box.content_margin_right
-	card.offset_bottom = -box.content_margin_bottom
-	node.add_child(card)
-	var sync := func() -> void:
-		var min: Vector2 = card.get_combined_minimum_size()
-		node.custom_minimum_size = min + Vector2(
-			box.content_margin_left + box.content_margin_right,
-			box.content_margin_top + box.content_margin_bottom)
-	card.minimum_size_changed.connect(sync)
-	# Fontlar/tema agaca girince cozulur: ilk olcum agac disinda kucuk kalir,
-	# hazir olunca bir kez daha olc.
-	node.ready.connect(func() -> void: sync.call_deferred())
-	sync.call()
-	hud_gloss(node, 22.0, 0.34, 14.0)
-	node.set_meta(&"card", card)
+	node.custom_minimum_size = Vector2(size, size)
+	hud_shadow(node, 5.0, 0.26, null, 14.0)
+	var rim := flat_plate("frame_round20", UiTokens.LAVENDER_LIGHT)
+	rim.show_behind_parent = true
+	_inset(rim, -4.0, -4.0, -4.0, -4.0)
+	node.add_child(rim)
+	# Yuz: butonun uzerinde, alt dudak kadar kisa. Basista asagi kayar.
+	var face := Control.new()
+	face.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_inset(face, 0.0, 0.0, 0.0, HOME_ICON_LIP)
+	node.add_child(face)
+	var body := flat_plate("frame_round20", UiTokens.LAVENDER_DEEP)
+	face.add_child(body)
+	# Gloss: HUD v5 ile ayni yumusak uclu isik seridi (btn_bevel_light).
+	var gloss := patch("btn_bevel_light", Color(1, 1, 1, 0.38))
+	gloss.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE)
+	gloss.offset_left = 6.0
+	gloss.offset_right = -6.0
+	gloss.offset_top = 3.0
+	gloss.offset_bottom = size * 0.40
+	face.add_child(gloss)
+	var picto := icon(role, size * 0.60, UiTokens.TEXT_ON_DARK)
+	picto.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
+	picto.offset_left = -size * 0.30
+	picto.offset_right = size * 0.30
+	picto.offset_top = -size * 0.30
+	picto.offset_bottom = size * 0.30
+	face.add_child(picto)
+	node.set_meta(&"face", face)
+	node.set_meta(&"icon", picto)
+	node.button_down.connect(func() -> void:
+		face.offset_top = HOME_ICON_LIP - 2.0
+		face.offset_bottom = -2.0
+		body.self_modulate = Color(0.9, 0.9, 0.9))
+	var release := func() -> void:
+		face.offset_top = 0.0
+		face.offset_bottom = -HOME_ICON_LIP
+		body.self_modulate = Color.WHITE
+	node.button_up.connect(release)
+	node.mouse_exited.connect(release)
 	UiMotion.attach_press(node)
 	return node
+
+
+## Home ust satir kaynak pill'i (03B.1, HUD v5 dili — duz koyu cip DEGIL):
+## erik golge -> acik lavanta halka (+3) -> koyu lavanta `label_round` pill
+## (PanelHomePill) -> ust gloss; icinde owner ikonu 40 + beyaz Nunito deger +
+## istege bagli nane yuvarlak "+" (48, ButtonHomeAdd: koyu nane taban + gloss +
+## beyaz picto). Deger `set_pill_value` ile (meta "value_label"). Donen dugum
+## bir sarmalayici Control: boyutu pill icerigine gore (meta "pill").
+static func home_pill(icon_tex: Texture2D, value: String,
+		with_add: bool = false, min_height: float = 56.0) -> Control:
+	var wrap := Control.new()
+	wrap.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var shadow := patch("popup_glow", Color(0.22, 0.09, 0.36, 0.26))
+	_inset(shadow, -14.0, -9.0, -14.0, -19.0)
+	wrap.add_child(shadow)
+	var rim := flat_plate("label_round", UiTokens.LAVENDER_LIGHT)
+	_inset(rim, -3.0, -3.0, -3.0, -3.0)
+	wrap.add_child(rim)
+	var pill := panel(&"PanelHomePill")
+	pill.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	pill.set_anchors_preset(Control.PRESET_FULL_RECT)
+	wrap.add_child(pill)
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", UiTokens.SPACE_SM)
+	row.alignment = BoxContainer.ALIGNMENT_CENTER
+	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	pill.add_child(row)
+	var picture := art(icon_tex, 40)
+	picture.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
+	picture.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	row.add_child(picture)
+	var value_label := label(value, &"LabelStatOnDark")
+	value_label.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	row.add_child(value_label)
+	if with_add:
+		var add := Button.new()
+		add.theme_type_variation = &"ButtonHomeAdd"
+		add.focus_mode = Control.FOCUS_NONE
+		add.custom_minimum_size = Vector2(48, 48)
+		add.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		# Koyu nane taban (3 px asagi tasar: dudak) + ust gloss + beyaz "+".
+		var base := patch("btn_circle_flat", UiTokens.MINT_DEEP)
+		base.show_behind_parent = true
+		_inset(base, 0.0, 3.0, 0.0, -3.0)
+		add.add_child(base)
+		var add_gloss := patch("item_circle_inner", Color(1, 1, 1, 0.34))
+		_inset(add_gloss, 7.0, 4.0, 7.0, 24.0)
+		add.add_child(add_gloss)
+		var plus := icon("plus", 28, UiTokens.TEXT_ON_DARK)
+		plus.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
+		plus.offset_left = -14.0
+		plus.offset_right = 14.0
+		plus.offset_top = -14.0 - 1.0
+		plus.offset_bottom = 14.0 - 1.0
+		add.add_child(plus)
+		UiMotion.attach_press(add)
+		row.add_child(add)
+		wrap.set_meta(&"add_button", add)
+	else:
+		# Tek basina pill: sag pay simetrik.
+		var spacer := Control.new()
+		spacer.custom_minimum_size = Vector2(4, 0)
+		spacer.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		row.add_child(spacer)
+	var gloss := patch("btn_bevel_light", Color(1, 1, 1, 0.30))
+	gloss.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE)
+	gloss.offset_left = 8.0
+	gloss.offset_right = -8.0
+	gloss.offset_top = 3.0
+	gloss.offset_bottom = min_height * 0.40
+	wrap.add_child(gloss)
+	wrap.set_meta(&"value_label", value_label)
+	wrap.set_meta(&"pill", pill)
+	var sync := func() -> void:
+		var min: Vector2 = pill.get_combined_minimum_size()
+		wrap.custom_minimum_size = Vector2(min.x, maxf(min.y, min_height))
+		wrap.size = wrap.custom_minimum_size
+	pill.minimum_size_changed.connect(sync)
+	wrap.ready.connect(func() -> void: sync.call_deferred())
+	sync.call()
+	return wrap
 
 
 ## Kahraman OYNA (home): `cta` + cyan hale + erik golge + acik halka + kalin
@@ -825,7 +952,10 @@ static func hero_cta(title: String, subtitle: String = "") -> Button:
 	node.add_child(halo)
 	node.set_meta(&"halo", halo)
 	hud_shadow(node, 8.0, 0.34, null, 18.0)
-	hud_rim(node, Color("f4f0ff"), 4.0)
+	# btn_cta'nin son 4 satiri pismis golge (boyali govde 84/88): halka altta
+	# govdeye oturur, ustte/yanlarda 4 px gorunur (03B.1 kayit duzeltmesi).
+	var rim := hud_rim(node, Color("f4f0ff"), 4.0)
+	rim.offset_bottom = 0.0
 	hud_gloss(node, 36.0, 0.42, 10.0)
 	var inner := patch("border_round_thin", Color(1, 1, 1, 0.22))
 	inner.offset_left = 4.0

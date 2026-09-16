@@ -24,7 +24,7 @@ const PLAQUE_OVERLAP: float = 10.0
 const PLAQUE_HEIGHT: float = 30.0
 const ART_SIZE: float = 58.0
 ## Picto kuyusu (owner sanatı olmayan sistemler).
-const WELL_SIZE: float = 54.0
+const WELL_SIZE: float = 56.0
 ## İlerleme halkası: açık lavanta dış halkanın üstünde (gövde 48 + koyu
 ## halka 4 + açık halka 8 → 52..60 bandı).
 const RING_RADIUS: float = 56.0
@@ -47,6 +47,7 @@ var _plaque_label: Label
 var _ring: ProgressRing
 var _well: Control
 var _well_body: NinePatchRect
+var _well_base: NinePatchRect
 var _well_icon: TextureRect
 var _locked: bool = false
 var _notification: bool = false
@@ -184,15 +185,11 @@ func _init() -> void:
 	# `title_oval` patch kenarları (56×53) 30 px plakadan büyük olduğu için
 	# NinePatchRect kendini küçültemez; StyleBoxTexture'lı boş PanelContainer
 	# istenen ölçüde çizer.
-	var plaque_rim := PanelContainer.new()
-	plaque_rim.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	plaque_rim.add_theme_stylebox_override("panel",
-		UiKit.style("title_oval", UiTokens.LAVENDER_LIGHT, Vector4.ZERO))
-	plaque_rim.set_anchors_preset(Control.PRESET_FULL_RECT)
+	var plaque_rim := UiKit.flat_plate("badge_round", UiTokens.LAVENDER_LIGHT)
 	plaque_rim.offset_left = -2.0
 	plaque_rim.offset_top = -2.0
 	plaque_rim.offset_right = 2.0
-	plaque_rim.offset_bottom = 3.0
+	plaque_rim.offset_bottom = 2.0
 	_plaque.add_child(plaque_rim)
 	_plaque_body = UiKit.panel(&"PanelFeaturePlaque")
 	_plaque_body.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -251,13 +248,25 @@ func set_icon(role: String, tint: Color) -> void:
 		_well.offset_right = WELL_SIZE * 0.5
 		_well.offset_top = -WELL_SIZE * 0.5 - 6.0
 		_well.offset_bottom = WELL_SIZE * 0.5 - 6.0
+		# Candy kubbe: koyu taban (3 px aşağı, derinlik) + renkli gövde + ince
+		# krem kenar + üst gloss — cam yuvanın içinde "oturmuş" küçük buton.
+		_well_base = UiKit.patch("btn_circle_flat", tint.darkened(0.30))
+		_well_base.offset_top = 3.0
+		_well_base.offset_bottom = 3.0
+		_well.add_child(_well_base)
+		var edge := UiKit.patch("btn_circle_flat", Color(1, 1, 1, 0.55))
+		edge.offset_left = -2.0
+		edge.offset_top = -2.0
+		edge.offset_right = 2.0
+		edge.offset_bottom = 1.0
+		_well.add_child(edge)
 		_well_body = UiKit.patch("btn_circle_flat", tint)
 		_well.add_child(_well_body)
-		var light := UiKit.patch("item_circle_inner", Color(1, 1, 1, 0.32))
-		light.offset_left = WELL_SIZE * 0.12
-		light.offset_right = -WELL_SIZE * 0.12
-		light.offset_top = WELL_SIZE * 0.08
-		light.offset_bottom = -WELL_SIZE * 0.46
+		var light := UiKit.patch("item_circle_inner", Color(1, 1, 1, 0.36))
+		light.offset_left = WELL_SIZE * 0.14
+		light.offset_right = -WELL_SIZE * 0.14
+		light.offset_top = WELL_SIZE * 0.07
+		light.offset_bottom = -WELL_SIZE * 0.50
 		_well.add_child(light)
 		_well_icon = UiKit.icon(role, WELL_SIZE * 0.62, UiTokens.TEXT_ON_DARK)
 		_well_icon.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
@@ -269,6 +278,7 @@ func set_icon(role: String, tint: Color) -> void:
 		add_child(_well)
 		move_child(_well, _art.get_index() + 1)
 	_well_body.self_modulate = tint
+	_well_base.self_modulate = tint.darkened(0.30)
 	_well_icon.texture = UiKit.icon_texture(role)
 	_well.visible = true
 	_art.texture = null
