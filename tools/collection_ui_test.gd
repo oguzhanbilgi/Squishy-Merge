@@ -528,6 +528,28 @@ func _ready() -> void:
 	_c("Koleksiyon'a her girişte kaydırma en üstte (600'den), seçim takılıya döner", screen.scroll().scroll_vertical == 0
 		and screen.selected_id() == &"rare_02")
 	_c("Home Koleksiyon madalyonu aynı sayıyı gösteriyor (4/20)", home.feature_button(&"collection").badge_text() == "4/20")
+	# A36 cihaz kapısı (06.2): basış + bırakış AYNI karede (çok kısa dokunuş /
+	# adb tap) → geri butonu ekran gizlenirken 0.94'te asılı kalıyordu.
+	var back: Button = bar.back_button()
+	var back_center: Vector2 = back.get_global_rect().get_center()
+	_send_click(back_center, true)
+	_send_click(back_center, false)
+	await get_tree().process_frame
+	var went_home: bool = _main._active_tab == 0 and not screen.visible
+	await get_tree().create_timer(0.4).timeout
+	_main._show_tab(2)
+	await get_tree().create_timer(0.3).timeout
+	await get_tree().process_frame
+	_c("aynı karede basıp bırakılan geri butonu → Ana Sayfa; Koleksiyon yeniden açılınca buton ölçeği 1.0 (0.94'te asılı değil)",
+		went_home and back.scale.is_equal_approx(Vector2.ONE))
+	var first_card: CollectionSkinCard = screen.card(&"common_01")
+	var card_center: Vector2 = first_card.get_global_rect().get_center()
+	_send_click(card_center, true)
+	_send_click(card_center, false)
+	await get_tree().create_timer(0.4).timeout
+	await get_tree().process_frame
+	_c("aynı karede basıp bırakılan kart: seçildi, ölçeği pop/basıştan sonra 1.0", screen.selected_id() == &"common_01"
+		and first_card.scale.is_equal_approx(Vector2.ONE))
 
 	print("-- yerleşim")
 	_apply_mid()
@@ -638,6 +660,16 @@ func _collect_text(node: Node) -> String:
 		if n is Label and (n as Label).visible:
 			out += (n as Label).text + "|"
 	return out
+
+
+## Gerçek giriş olayı (BaseButton sırası: pressed → button_up), emit değil.
+func _send_click(pos: Vector2, pressed: bool) -> void:
+	var ev := InputEventMouseButton.new()
+	ev.button_index = MOUSE_BUTTON_LEFT
+	ev.pressed = pressed
+	ev.position = pos
+	ev.global_position = pos
+	Input.parse_input_event(ev)
 
 
 func _tap_same(screen: CanvasLayer, id: StringName) -> bool:

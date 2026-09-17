@@ -23,6 +23,8 @@ const SCREEN_TIME: float = 0.16
 const SCREEN_SLIDE: float = 14.0
 
 const _META_TWEEN: StringName = &"ui_motion_tween"
+## Basis basladi, birakis henuz gelmedi (bkz. _press_out'taki ayni-kare korumasi).
+const _META_PRESSED: StringName = &"ui_motion_pressed"
 
 
 ## Butona basinca 0.94'e cekilir, birakinca yayla (TRANS_BACK) geri gelir.
@@ -63,6 +65,7 @@ static func release(control: Control) -> void:
 
 
 static func _press_in(control: Control) -> void:
+	control.set_meta(_META_PRESSED, true)
 	_center_pivot(control)
 	var tween: Tween = _restart(control)
 	tween.tween_property(control, "scale", Vector2.ONE * PRESS_SCALE, PRESS_IN) \
@@ -70,7 +73,15 @@ static func _press_in(control: Control) -> void:
 
 
 static func _press_out(control: Control) -> void:
-	if control.scale.is_equal_approx(Vector2.ONE):
+	# Basis ve birakis AYNI karede islenirse (cok kisa dokunus, uzun kare,
+	# adb `input tap`) press-in tween'i henuz adim atmamistir: scale hala
+	# 1.0 ama tween canlidir. Yalniz scale'e bakip erken donersek o tween
+	# butonu 0.94'e indirir ve orada birakir — A36 cihaz kapisi (M8.6-06.2):
+	# ust satir geri butonu ilk basistan sonra kalici olarak kucuk kaldi.
+	# Basili isareti varken her zaman yeniden baslatilir.
+	var was_pressed: bool = control.get_meta(_META_PRESSED, false)
+	control.set_meta(_META_PRESSED, false)
+	if control.scale.is_equal_approx(Vector2.ONE) and not was_pressed:
 		return
 	_center_pivot(control)
 	var tween: Tween = _restart(control)
