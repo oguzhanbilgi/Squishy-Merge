@@ -999,3 +999,48 @@ Kartlarda `_process` YOK; yalnız ekran işler (görünürken): vitrin nefesi + 
 yıldız + 2 Legendary kartın 2'şer pırıltısı (10 sinüs güncellemesi/kare).
 Büyük yumuşak dokular (`popup_glow` 470/600) alfa-karışımlı NinePatch;
 cihaz ölçümü A36 kapısında.
+
+---
+
+## 18. İkincil UI denetimi — pencereler ve round sonu (M8.6-07, AUDIT)
+
+**Kapsam:** Home / Harita / Mağaza / Koleksiyon / gameplay HUD onaylı referans;
+kalan **yedi** runtime yüzeyi (hepsi `main.gd` `_ready`'de bir kez kurulan
+`CanvasLayer`) + Mağaza onayı (referans) denetlendi, yeniden tasarım YAPILMADI.
+Kanıt: `tools/secondary_ui_shots.tscn` (48 durum × 4 pencere + A36 simülasyonu,
+kayıt byte'ı geri konur) → `build/qa_m8.6-07/` (envanter, ekran ekran denetim,
+bağımlılık haritası, yol haritası, contact sheet'ler).
+
+**Üç pencere iskeleti var (kod gerçeği):**
+
+| İskelet | Kullanan | Karar |
+|---|---|---|
+| **A** `UiKit.modal_frame` (§5 `PanelModal` + kurdele + pembe kapat) | Mola, Bonus Sandık, Mağaza onayı (yalnız Mağaza'da `seat_modal_close`) | production; kapat halkası varsayılan olmalı, owner tepeliği (§10) seçenek |
+| **B** M8.5-08 candy panel (`panel_candy.png` 600×540/560/650/770'e gerilmiş + `panel_candy_crown` + boş `ModalPanel`) + `CandyButton` mavi yıldızlı pill CTA | Günlük, Ayarlar, Devam, Refill | emekli: doku 9-slice değil (Refill %34 dikey gerilme), CTA ailesi §6'da yasak, birincil/ikincil aynı buton |
+| **C** M8.5-10 koyu `PanelContainer` (`SB_surface`) + `CardPanel` + tema varsayılan neon `Button` | Round sonu | emekli: oyundaki son koyu M8.5 sayfası, HUD durum plakası içinden okunuyor |
+
+**Ölçülen kusurlar (özet; ayrıntı build/qa_m8.6-07/SECONDARY_UI_AUDIT.md):**
+Ayarlar'da Gizlilik → Göster metni sabit çerçeveden TAŞIYOR (sürüm satırı +
+Kapat panel dışında, her boyutta); Round sonu sandık başlıkları İngilizce
+(`ChestReward.title` → `rarity_name`), 80 px sandık kartı ödül anı vermiyor,
+panel yalnız aşağı büyüyor (3 sandıkta CTA'lar kap dudağında, 4+ ödülde
+ekran dışı, kaydırma yok), "Level listesi" etiketi eski (rota Harita); Devam:
+"Bitir" ile "DEVAM ET" aynı pill, talep durumunda hiyerarşi tersine dönüyor;
+Refill: üç aynı CTA; Mola/Bonus Sandık: kapat X kurdele kuyruğunda (05.1
+yalnız Mağaza'ya uygulandı). Tipografi ailesi her yerde Baloo/Nunito (sistem
+font yok); sorun rol/boyut/büyük-küçük harf. Android geri matrisi: tek boşluk
+Refill (yok sayılıyor; beklenen = Kapat).
+
+**Yol haritası (bağımlılığa göre, `build/qa_m8.6-07/SECONDARY_UI_ROADMAP.md`):**
+**M8.6-08** modal shell v2 (`modal_frame`: oturmuş kapat varsayılan, tepelik,
+kahraman sanat yuvası, taşmayan/kaydırılabilir gövde, tek açılış hareketi) +
+Ayarlar (`settings_row`, picto + `switch_toggle`) + Günlük (7 günlük seri
+şeridi, ödül çipi) + Mola/Bonus Sandık kapat oturması → A36 kapısı.
+**M8.6-09** Round sonu / level tamam / kayıp + sandık reveal (`RewardCard`
++ mevcut `RewardGem`, Türkçe rarity, HARİTA CTA'sı; reveal zamanlaması, ses,
+haptik, `Main` sözleşmesi aynen) → A36 kapısı. **M8.6-10** Devam + Refill
+(shell v2, `UiKit.cta` iki satır, birincil/`ButtonPurchase`/ikincil
+hiyerarşisi; 2 devam/round ve 1 refill/gün politikası, token, sağlayıcı
+seam'i DEĞİŞMEZ) + `CandyButton` CTA / candy panel sahneleri / M8.5 rollerinin
+emekliye ayrılması → A36 kapısı. Genel onay (`ConfirmationModal`) için kanıt
+yok; "Ana Menüye Dön" onayı owner kararı.

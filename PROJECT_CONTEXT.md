@@ -368,10 +368,26 @@ alınacak — şimdi tahmin/vaat yok.
     sürükleme kaydırmıyor → 06.3 `dbf9127` ile kapatıldı (Mağaza maddesi).
     Push edildi; **merge izni bekliyor** (`build/qa_m8.6-06/device/`).
     Ayrıntı: UI_VISUAL_SYSTEM §17.
+  - `M8.6-07` ✅ **ikincil UI denetimi** (dal `task/025-secondary-ui-audit`,
+    main 0d248f4 üzerine, yalnız araç + doküman; yeniden tasarım YOK, telefon/ADB
+    YOK): kalan yedi runtime yüzeyi (Günlük, Bonus Sandık, Ayarlar, Mola, Round
+    sonu, Devam, Refill) + Mağaza onayı (referans) envanterlendi;
+    `tools/secondary_ui_shots.tscn` 48 durum × 4 pencere + A36 simülasyonu
+    (`build/qa_m8.6-07/`: SECONDARY_UI_INVENTORY / AUDIT / DEPENDENCIES /
+    ROADMAP + contact sheet'ler). Bulgu: üç pencere iskeleti (A `modal_frame`
+    / B M8.5-08 candy panel + `CandyButton` / C koyu M8.5-10 panel); Ayarlar
+    Gizlilik metni sabit çerçeveden taşıyor (shipped kusur); Round sonu
+    İngilizce rarity + koyu panel + sınırsız aşağı büyüme; Devam/Refill'de
+    birincil-ikincil CTA aynı. Sonuç: 1 production (Mağaza onayı), 2 cila
+    (Mola, Bonus Sandık), 5 yeniden kurulum. Sıra: **M8.6-08** shell v2 +
+    Ayarlar + Günlük + kapat oturması → **M8.6-09** Round sonu + sandık reveal
+    → **M8.6-10** Devam + Refill + M8.5 kalıntılarının emekliliği (her biri
+    A36 kapılı). Ayrıntı: UI_VISUAL_SYSTEM §18. ui_foundation 164, ui_smoke 74.
 - **Sırada: M8.6 — Visual Cohesion Rebuild** (ekranlar `UiKit`/`UiTokens`
   sistemine geçirilecek: ~~gameplay shell~~ ✅ → ~~home~~ ✅ → ~~map~~ ✅ →
-  ~~shop~~ ✅ → ~~collection~~ ✅ cihazda doğrulandı, merge izni bekliyor →
-  result/reward/revive), ardından **M9 — Android export.** Ortam hazır (export template'leri, SDK,
+  ~~shop~~ ✅ → ~~collection~~ ✅ main'de → ~~ikincil UI denetimi~~ ✅ →
+  **M8.6-08 shell v2 + Ayarlar + Günlük** → M8.6-09 Round sonu → M8.6-10
+  Devam/Refill), ardından **M9 — Android export.** Ortam hazır (export template'leri, SDK,
   NDK, JDK 17, debug keystore mevcut, ETC2/ASTC import açık, iş
   makinesinde debug `export_presets.cfg` var — gitignore'lu, her makinede
   ayrı); eksik olan kalıcı paket adı ve release/upload keystore (uzun
