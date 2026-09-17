@@ -209,6 +209,9 @@ func _init() -> void:
 	_buy = UiKit.candy_button(BUY_TEXT, &"ButtonPrimary", BUY_HEIGHT)
 	_buy.name = "Buy"
 	_buy.set_anchors_preset(Control.PRESET_FULL_RECT)
+	# Butondan baslayan dikey surukleme Magaza'yi kaydirsin (06.3, A36: STOP
+	# ile 0 px); dokunus yine tek `pressed` -> buy_requested.
+	UiKit.make_candy_button_scrollable(_buy)
 	_buy.pressed.connect(func() -> void:
 		if _skin != null:
 			buy_requested.emit(_skin))
@@ -412,6 +415,14 @@ func is_affordable() -> bool:
 
 func rarity() -> int:
 	return _rarity
+
+
+## ScrollContainer kaydirmaya baslayinca (parmak SATIN AL ustunde basladi ve
+## surukledi) BaseButton basisi iptal eder ama button_up yaymaz: yazi dudagi
+## ve 0.94 olcek burada geri alinir, buton basili kalmaz (06.3).
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_SCROLL_BEGIN and _buy != null:
+		UiKit.release_candy_button(_buy)
 
 
 func buy_button() -> Button:

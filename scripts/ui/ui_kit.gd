@@ -1042,8 +1042,28 @@ static func candy_button(text: String, variation: StringName = &"ButtonPrimary",
 	release.call()
 	node.button_up.connect(release)
 	node.mouse_exited.connect(release)
+	node.set_meta(&"release", release)
 	UiMotion.attach_press(node)
 	return node
+
+
+## Kaydirilabilir icerikteki candy buton (Magaza SATIN AL, M8.6-06.3): Button'in
+## varsayilani MOUSE_FILTER_STOP — Viewport basis olayini butonda durdurur,
+## ScrollContainer basisi hic gormez ve parmak butonun ustundeyken kaydirma
+## baslamaz (A36'da olculdu: 0 px). PASS ile olay ust ScrollContainer'a da
+## ulasir (Koleksiyon karti ile ayni desen); dokunus yine tek `pressed`
+## uretir (BaseButton, kaydirma basladiginda NOTIFICATION_SCROLL_BEGIN ile
+## basisi iptal eder — birakista `pressed` YAYILMAZ). Basis gorseli icin
+## release_candy_button'i kart NOTIFICATION_SCROLL_BEGIN'de cagirir.
+static func make_candy_button_scrollable(button: Button) -> void:
+	button.mouse_filter = Control.MOUSE_FILTER_PASS
+
+
+## Candy butonun basis gorselini disaridan birakir (yazi dudagi + 0.94 olcek):
+## kaydirma basladiginda BaseButton basisi iptal eder ama button_up yaymaz.
+static func release_candy_button(button: Button) -> void:
+	(button.get_meta(&"release") as Callable).call()
+	UiMotion.release(button)
 
 
 ## Candy butonun govde/yazi rolunu degistirir (SATIN AL: cyan <-> Hamur

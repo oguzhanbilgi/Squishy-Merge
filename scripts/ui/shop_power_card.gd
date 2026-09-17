@@ -132,6 +132,9 @@ func _init() -> void:
 	_buy = UiKit.candy_button(BUY_TEXT, &"ButtonPrimary", BUY_HEIGHT)
 	_buy.name = "Buy"
 	_buy.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	# Butondan baslayan dikey surukleme Magaza'yi kaydirsin (06.3, A36: STOP
+	# ile 0 px); dokunus yine tek `pressed` -> buy_requested.
+	UiKit.make_candy_button_scrollable(_buy)
 	_buy.pressed.connect(func() -> void: buy_requested.emit(_type))
 	column.add_child(_buy)
 	# Stok rozeti (05.1): KUYUNUN sağ üst omzuna oturur — gameplay
@@ -255,6 +258,14 @@ func type() -> PowerUp.Type:
 
 func is_affordable() -> bool:
 	return _affordable
+
+
+## ScrollContainer kaydirmaya baslayinca (parmak SATIN AL ustunde basladi ve
+## surukledi) BaseButton basisi iptal eder ama button_up yaymaz: yazi dudagi
+## ve 0.94 olcek burada geri alinir, buton basili kalmaz (06.3).
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_SCROLL_BEGIN and _buy != null:
+		UiKit.release_candy_button(_buy)
 
 
 func buy_button() -> Button:

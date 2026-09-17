@@ -14,7 +14,10 @@ extends Node
 ## onay → tek transaction: Hamur −fiyat, stok +1, tek save; yetmez → hiçbir
 ## şey değişmez + geri bildirim; onay kapatmak harcamaz); skinler (50/150/
 ## 400/900, sahip ≠ satılık, takılı ayrık, kanonik satın alma, auto-equip
-## YOK); rotalar (geri → Ana Sayfa, Android geri → önce onay kapanır sonra
+## YOK); SATIN AL üzerinden sürükleme (06.3: gerçek basış → hareket →
+## bırakış dizisi Mağaza'yı kaydırır, onay açılmaz, kayıt/Hamur/stok değişmez,
+## buton basılı kalmaz; dokunuş tam bir onay; fling de kaydırır — güç ve skin
+## butonu); rotalar (geri → Ana Sayfa, Android geri → önce onay kapanır sonra
 ## Ana Sayfa, çıkış yok); dört pencere + A36 payı (kırpma/çakışma yok,
 ## dokunma ≥ 48, sabit üst satır, ilk kart satırın altında, en alt
 ## erişilebilir); kayıt dosyası değişmez; kaynak hijyeni + sahte ürün yok.
@@ -54,6 +57,9 @@ var _main: Node2D
 ## Test bitti mi: `_exit_tree` bundan önce gelirse (uygulama kapandı / betik
 ## hatası) kayıt yine de geri konur ve FAIL basılır.
 var _finished: bool = false
+## Onay penceresinin açılma sayısı (visibility_changed; lambda kopya tutar,
+## sayaç üye olmalı).
+var _confirm_opens: int = 0
 ## Beklenen tuval: pencere → tuval (720 geniş, yükseklik oranla).
 const EXPECTED_CANVAS: Dictionary = {
 	Vector2i(720, 1280): Vector2(720, 1280), Vector2i(720, 1560): Vector2(720, 1560),
@@ -431,6 +437,68 @@ func _ready() -> void:
 		and equipped_card.is_owned() and not equipped_card.is_equipped())
 	_c("sekmeye giriş kaydırmayı en üste alır (600 → 0)", shop.scroll().scroll_vertical == 0)
 
+	print("-- SATIN AL üzerinden sürükleme (06.3, A36: STOP ile 0 px)")
+	_apply_mid()
+	_main._show_tab(3)
+	shop.refresh()
+	await get_tree().process_frame
+	shop.scroll().scroll_vertical = 0
+	await get_tree().process_frame
+	shop._confirm.visibility_changed.connect(func() -> void:
+		if shop._confirm.visible:
+			_confirm_opens += 1)
+	_c("ön koşul: dokunmatik kaydırma yolu etkin (emulate_touch_from_mouse — cihazdaki ScrollContainer sürükleme yolu)",
+		DisplayServer.is_touchscreen_available())
+	var bomb_buy: Button = bomb.buy_button()
+	_c("güç SATIN AL: MOUSE_FILTER_PASS (basış ScrollContainer'a da ulaşır; STOP olsa parmak butondayken kaydırma hiç başlamazdı)",
+		bomb_buy.mouse_filter == Control.MOUSE_FILTER_PASS and bomb.is_affordable())
+	var drag: Dictionary = await _drag_from(bomb_buy, shop, 8, -30.0)
+	_c("güç SATIN AL üstünden yavaş dikey sürükleme → Mağaza kaydı (%d → %d px), onay AÇILMADI" % [drag["before"], drag["during"]],
+		drag["during"] >= drag["before"] + 200 and not drag["confirm"] and not shop.is_confirm_open())
+	_c("sürükleme hiçbir şeyi değiştirmedi: kayıt dosyası aynı, Hamur 335, stok bomb 3", drag["file_same"]
+		and SaveManager.dough() == 335 and SaveManager.powerup_count(PowerUp.Type.BOMB) == 3)
+	_c("bırakıştan sonra güç butonu basılı kalmadı (pressed yok, ölçek 1.0, yazı dudağı 0)", not bomb_buy.is_pressed()
+		and bomb_buy.scale.is_equal_approx(Vector2.ONE) and is_zero_approx((bomb_buy.get_meta(&"title_label") as Label).offset_top))
+	shop.scroll().scroll_vertical = 0
+	await _settle(0.3)
+	var opens_before: int = _confirm_opens
+	await _tap(bomb_buy)
+	_c("sürüklemeden sonra normal dokunuş: onay TAM BİR kez açıldı (Bomba ×1), satın alma yok", _confirm_opens == opens_before + 1
+		and shop.is_confirm_open() and shop._confirm_title.text == "Bomba ×1" and SaveManager.dough() == 335)
+	shop._confirm_no.pressed.emit()
+	await _settle(0.3)
+	drag = await _drag_from(bomb_buy, shop, 3, -120.0)
+	_c("güç SATIN AL üstünden hızlı fling → Mağaza kaydı (%d → %d px), onay yok" % [drag["before"], drag["during"]],
+		drag["during"] >= drag["before"] + 200 and not drag["confirm"] and not shop.is_confirm_open() and drag["file_same"])
+	# Skin butonu (kilitli, alınabilir: Karabiber 150)
+	shop.focus_skin(&"rare_01")
+	await _settle(0.5)
+	var drag_card: ShopSkinCard = shop._cards["rare_01"]
+	var rare_buy: Button = drag_card.buy_button()
+	var rare_center: Vector2 = rare_buy.get_global_rect().get_center()
+	_c("skin SATIN AL: MOUSE_FILTER_PASS, görünür ve tuvalin içinde (focus_skin)", rare_buy.mouse_filter == Control.MOUSE_FILTER_PASS
+		and rare_buy.is_visible_in_tree() and get_viewport().get_visible_rect().has_point(rare_center) and drag_card.is_affordable())
+	drag = await _drag_from(rare_buy, shop, 8, -30.0)
+	_c("skin SATIN AL üstünden yavaş dikey sürükleme → Mağaza kaydı (%d → %d px), onay AÇILMADI" % [drag["before"], drag["during"]],
+		drag["during"] >= drag["before"] + 200 and not drag["confirm"] and not shop.is_confirm_open())
+	_c("sürükleme hiçbir şeyi değiştirmedi: kayıt dosyası aynı, Hamur 335, skin verilmedi", drag["file_same"]
+		and SaveManager.dough() == 335 and not SaveManager.owns_skin(&"rare_01"))
+	_c("bırakıştan sonra skin butonu basılı kalmadı", not rare_buy.is_pressed()
+		and rare_buy.scale.is_equal_approx(Vector2.ONE) and is_zero_approx((rare_buy.get_meta(&"title_label") as Label).offset_top))
+	shop.focus_skin(&"rare_01")
+	await _settle(0.5)
+	opens_before = _confirm_opens
+	await _tap(rare_buy)
+	_c("sürüklemeden sonra skin SATIN AL dokunuşu: onay TAM BİR kez (Karabiber), satın alma yok", _confirm_opens == opens_before + 1
+		and shop.is_confirm_open() and shop._confirm_title.text == "Karabiber" and SaveManager.dough() == 335)
+	shop._confirm_no.pressed.emit()
+	await _settle(0.3)
+	shop.focus_skin(&"rare_01")
+	await _settle(0.5)
+	drag = await _drag_from(rare_buy, shop, 3, -120.0)
+	_c("skin SATIN AL üstünden hızlı fling → Mağaza kaydı (%d → %d px), onay yok" % [drag["before"], drag["during"]],
+		drag["during"] >= drag["before"] + 200 and not drag["confirm"] and not shop.is_confirm_open() and drag["file_same"])
+
 	print("-- rotalar")
 	_apply_mid()
 	_main._show_tab(3)
@@ -586,6 +654,61 @@ func _read_save_file() -> Dictionary:
 func _resize(view: Vector2i) -> void:
 	get_window().size = view
 	await get_tree().process_frame
+	await get_tree().process_frame
+
+
+## Gerçek işaretçi dizisi: basış → `steps` dikey hareket (`step_y` px/kare) →
+## bırakış. ScrollContainer'ın dokunmatik sürükleme yolu (cihazla aynı).
+func _drag_from(button: Button, shop: CanvasLayer, steps: int, step_y: float) -> Dictionary:
+	var scroll: ScrollContainer = shop.scroll()
+	var before: int = scroll.scroll_vertical
+	var file_before: PackedByteArray = FileAccess.get_file_as_bytes(SaveManager.SAVE_PATH)
+	var pos: Vector2 = button.get_global_rect().get_center()
+	_pointer(pos, true)
+	await get_tree().process_frame
+	for i in steps:
+		pos.y += step_y
+		_pointer_motion(pos, Vector2(0.0, step_y))
+		await get_tree().process_frame
+	var during: int = scroll.scroll_vertical
+	var confirm_during: bool = shop.is_confirm_open()
+	_pointer(pos, false)
+	await _settle(0.5)
+	return {"before": before, "during": during, "confirm": confirm_during or shop.is_confirm_open(),
+		"file_same": FileAccess.get_file_as_bytes(SaveManager.SAVE_PATH) == file_before}
+
+
+## Normal dokunuş: basış, bir kare, aynı noktada bırakış (hareket yok).
+func _tap(button: Button) -> void:
+	var pos: Vector2 = button.get_global_rect().get_center()
+	_pointer(pos, true)
+	await get_tree().process_frame
+	_pointer(pos, false)
+	await _settle(0.3)
+
+
+func _pointer(pos: Vector2, pressed: bool) -> void:
+	var ev := InputEventMouseButton.new()
+	ev.button_index = MOUSE_BUTTON_LEFT
+	ev.pressed = pressed
+	ev.position = pos
+	ev.global_position = pos
+	if pressed:
+		ev.button_mask = MOUSE_BUTTON_MASK_LEFT
+	Input.parse_input_event(ev)
+
+
+func _pointer_motion(pos: Vector2, rel: Vector2) -> void:
+	var ev := InputEventMouseMotion.new()
+	ev.position = pos
+	ev.global_position = pos
+	ev.relative = rel
+	ev.button_mask = MOUSE_BUTTON_MASK_LEFT
+	Input.parse_input_event(ev)
+
+
+func _settle(seconds: float) -> void:
+	await get_tree().create_timer(seconds).timeout
 	await get_tree().process_frame
 
 
