@@ -382,11 +382,14 @@ static func badge(text: String, variation: StringName = &"Badge",
 	return node
 
 
-## Rarity etiketi ("LEGENDARY"): trapez govde rarity renginde.
+## Rarity etiketi ("EFSANEVİ"): trapez govde rarity renginde. Yazi oyuncu
+## dili (M8.6-06 `SkinData.rarity_display_upper`); variation adi ic ad.
 static func rarity_tag(rarity: int) -> PanelContainer:
 	var tag := panel(_rarity_variation("Rarity", rarity))
 	tag.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
-	tag.add_child(label(SkinData.rarity_name(rarity).to_upper(), &"LabelBadgeOnDark"))
+	var text := label(SkinData.rarity_display_upper(rarity), &"LabelBadgeOnDark")
+	tag.add_child(text)
+	tag.set_meta(&"title_label", text)
 	return tag
 
 

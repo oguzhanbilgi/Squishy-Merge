@@ -95,7 +95,6 @@ func _ready() -> void:
 	await get_tree().process_frame
 	_main._daily.visible = false
 	var shop: CanvasLayer = _main._screens[3]
-	var tabs: CanvasLayer = _main._tabs
 	var theme: Theme = ThemeDB.get_project_theme()
 
 	print("-- tema")
@@ -124,9 +123,9 @@ func _ready() -> void:
 		and bar.title_plate().theme_type_variation == &"HeaderRibbon")
 	_c("Mağaza'da Hamur pill'inde '+' YOK (kendine giden rota yok)", bar.add_button() == null
 		and _count_variation(shop, &"ButtonHomeAdd") == 0 and _count_variation(shop, &"ButtonResourceAdd") == 0)
-	_c("Mağaza'da sekme çubuğu GİZLİ", not tabs.visible)
+	_c("Mağaza'da sekme çubuğu YOK (M8.6-06: TabBar düğümü main'de yok)", _main.get_node_or_null("TabBar") == null and not ("_tabs" in _main))
 	_main._show_tab(2)
-	_c("Koleksiyon'da çubuk hâlâ görünür (kendi işine kadar)", tabs.visible)
+	_c("Koleksiyon'da da çubuk yok (kendi ScreenTopBar'ı, M8.6-06)", _main.get_node_or_null("TabBar") == null and _main._screens[2].visible)
 	_main._show_tab(3)
 	await get_tree().process_frame
 	_c("gerçek ScrollContainer (yatay kapalı, dikey kaydırma açık, çubuk gizli)", shop.scroll() != null
@@ -394,9 +393,9 @@ func _ready() -> void:
 	SaveManager.skin_granted.connect(func(id: StringName) -> void: granted.append(id))
 	locked_card.buy_button().pressed.emit()
 	await get_tree().process_frame
-	_c("skin SATIN AL → onay (ad, 'Rare skin', 150 Hamur)", shop.is_confirm_open()
+	_c("skin SATIN AL → onay (ad, 'Nadir skin', 150 Hamur)", shop.is_confirm_open()
 		and shop._confirm_title.text == SkinLibrary.find(&"rare_03").display_name
-		and shop._confirm_detail.text.begins_with("Rare skin") and shop._confirm_price.text == "150 Hamur")
+		and shop._confirm_detail.text.begins_with("Nadir skin") and shop._confirm_price.text == "150 Hamur")
 	shop._confirm_yes.pressed.emit()
 	await get_tree().process_frame
 	await get_tree().process_frame
@@ -437,10 +436,10 @@ func _ready() -> void:
 	_main._show_tab(3)
 	await get_tree().process_frame
 	bar.back_button().pressed.emit()
-	_c("geri → Ana Sayfa (sekme çubuğu gizli)", _main._active_tab == 0 and _main._screens[0].visible and not tabs.visible)
+	_c("geri → Ana Sayfa", _main._active_tab == 0 and _main._screens[0].visible and not shop.visible)
 	_main._screens[0].feature_button(&"shop").pressed.emit()
 	_c("Home MAĞAZA madalyonu → Mağaza (tek örnek, çubuk yok)", _main._active_tab == 3 and shop.visible
-		and not tabs.visible and _count_class(_main, "ShopPowerCard") == 4)
+		and _main.get_node_or_null("TabBar") == null and _count_class(_main, "ShopPowerCard") == 4)
 	_main._show_tab(0)
 	(_main._screens[0]._dough_pill.get_meta(&"add_button") as Button).pressed.emit()
 	_c("Home Hamur '+' → Mağaza", _main._active_tab == 3 and shop.visible)
@@ -472,7 +471,8 @@ func _ready() -> void:
 	var main_src: String = FileAccess.get_file_as_string("res://scripts/main.gd")
 	_c("gameplay geri tuşu politikası aynen (debounce + quit_on_go_back=false)", main_src.contains("quit_on_go_back = false")
 		and main_src.contains("BACK_DEBOUNCE_MSEC"))
-	_c("sekme çubuğu yalnız Koleksiyon'da (main._show_tab: tab == 2)", main_src.contains("_tabs.visible = tab == 2"))
+	_c("alt sekme çubuğu main'den tamamen kalktı (M8.6-06: _tabs / tab_bar.tscn referansı yok)",
+		not main_src.contains("_tabs") and not main_src.contains("tab_bar.tscn"))
 
 	print("-- yerleşim")
 	_apply_mid()

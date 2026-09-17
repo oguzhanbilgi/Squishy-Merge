@@ -61,7 +61,6 @@ func _ready() -> void:
 	await get_tree().process_frame
 	_main._daily.visible = false
 	var map: CanvasLayer = _main._screens[1]
-	var tabs: CanvasLayer = _main._tabs
 	var theme: Theme = ThemeDB.get_project_theme()
 
 	print("-- tema")
@@ -95,9 +94,9 @@ func _ready() -> void:
 		and bar.add_button().theme_type_variation == &"ButtonHomeAdd")
 	_c("başlık 'HARİTA' (noktalı İ) pembe HeaderRibbon", bar.title_text() == "HARİTA"
 		and bar.title_plate().theme_type_variation == &"HeaderRibbon")
-	_c("Harita'da sekme çubuğu GİZLİ", not tabs.visible)
+	_c("Harita'da sekme çubuğu YOK (M8.6-06: TabBar düğümü main'de yok)", _main.get_node_or_null("TabBar") == null and not ("_tabs" in _main))
 	_main._show_tab(2)
-	_c("Koleksiyon'da çubuk hâlâ görünür (kendi işine kadar)", tabs.visible)
+	_c("Koleksiyon'da da çubuk yok (kendi ScreenTopBar'ı, M8.6-06)", _main.get_node_or_null("TabBar") == null and _main._screens[2].visible)
 	_main._show_tab(1)
 	await get_tree().process_frame
 
@@ -189,7 +188,7 @@ func _ready() -> void:
 	_refresh(map)
 	await get_tree().process_frame
 	bar.back_button().pressed.emit()
-	_c("geri → Ana Sayfa (sekme çubuğu gizli)", _main._active_tab == 0 and _main._screens[0].visible and not tabs.visible)
+	_c("geri → Ana Sayfa", _main._active_tab == 0 and _main._screens[0].visible and not map.visible)
 	_main._show_tab(1)
 	bar.add_button().pressed.emit()
 	_c("Hamur '+' → Mağaza", _main._active_tab == 3 and _main._screens[3].visible)
@@ -208,7 +207,7 @@ func _ready() -> void:
 	await get_tree().process_frame
 	_c("sıradaki level 4 → level_chosen(4) → kanonik başlangıç (board kuruldu, kabuk gizli)", chosen == [4]
 		and _main._board != null and is_instance_valid(_main._board) and _main._current_level.level_number == 4
-		and not map.visible and not tabs.visible)
+		and not map.visible and not _main._screens[0].visible)
 	_main.abandon_run()
 	await get_tree().process_frame
 	_c("round terk → Harita'ya dönüş, board yok", _main._board == null and _main._active_tab == 1 and map.visible)

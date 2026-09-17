@@ -1,0 +1,48 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/ui/collection_screen.gd" id="1_collection"]
+[ext_resource type="Theme" path="res://assets/visual/ui_theme.tres" id="2_theme"]
+[ext_resource type="PackedScene" path="res://scenes/ui/shell_backdrop.tscn" id="3_backdrop"]
+
+[node name="CollectionScreen" type="CanvasLayer"]
+layer = 5
+script = ExtResource("1_collection")
+
+[node name="Root" type="Control" parent="."]
+theme = ExtResource("2_theme")
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 2
+
+[node name="Backdrop" parent="Root" instance=ExtResource("3_backdrop")]
+
+[node name="Vignette" type="TextureRect" parent="Root"]
+mouse_filter = 2
+expand_mode = 1
+
+[node name="Gallery" type="ScrollContainer" parent="Root"]
+horizontal_scroll_mode = 0
+vertical_scroll_mode = 3
+
+[node name="Margin" type="MarginContainer" parent="Root/Gallery"]
+size_flags_horizontal = 3
+mouse_filter = 2
+
+[node name="Content" type="VBoxContainer" parent="Root/Gallery/Margin"]
+size_flags_horizontal = 3
+mouse_filter = 2
+
+[node name="GalleryHaze" type="TextureRect" parent="Root"]
+mouse_filter = 2
+expand_mode = 1
+
+[node name="Showcase" type="Control" parent="Root"]
+mouse_filter = 2
+
+[node name="Haze" type="TextureRect" parent="Root"]
+mouse_filter = 2
+expand_mode = 1
+
+[node name="Fx" type="Control" parent="Root"]
+mouse_filter = 2

@@ -77,7 +77,7 @@ inişle kesilebiliyordu), olay başına soğuma/tavan yok (yığın inişi = 10
 | olay | çağrı noktası | dosya(lar) | gain | pitch | soğuma / tavan | öncelik | titreşim |
 |---|---|---|---|---|---|---|---|
 | `ui_tap` | `UiMotion.attach_press/attach_tap` (bütün butonlar, `button_down`) | `ui/sfx_ui_tap_01.wav` | −13 | 1.0 | 40 ms / 1 kes | LOW | yok |
-| `ui_tab` | `TabBar.set_active` (değişince) | `ui/sfx_ui_tab_01.wav` | −15 | 1.0 | 60 / 1 kes | LOW | yok |
+| `ui_tab` | *(bağlı değil — M8.6-06'da alt sekme çubuğu kalktı; kayıt duruyor, gelecek sekmeli UI için)* | `ui/sfx_ui_tab_01.wav` | −15 | 1.0 | 60 / 1 kes | LOW | yok |
 | `ui_modal_open` | ayarlar, mağaza onayı, refill penceresi | `ui/sfx_ui_modal_open_01.wav` | −10 | 1.0 | 80 / 1 kes | NORMAL | yok |
 | `ui_modal_close` | aynı pencerelerin kapanışı, günlük ödül kapat | `ui/sfx_ui_modal_close_01.wav` | −12 | 1.0 | 80 / 1 kes | LOW | yok |
 | `ui_toggle_on` | Ayarlar → Ses Efektleri açılınca | `ui/kenney_pluck_01.ogg` | −12 | 1.2 | 80 / 1 | LOW | Titreşim anahtarı açılınca MEDIUM |

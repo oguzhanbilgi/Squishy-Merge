@@ -81,18 +81,21 @@ func _ready() -> void:
 	await get_tree().create_timer(0.3).timeout
 	main._notification(Node.NOTIFICATION_WM_GO_BACK_REQUEST)
 	_c("geri tusu ana sayfaya dondu", main._active_tab == 0)
-	# Koleksiyon equip
+	# Koleksiyon equip (M8.6-06: kart dokunusu SECER, vitrindeki TAK takar)
 	main._show_tab(2); await get_tree().process_frame
 	var album: CanvasLayer = main._screens[2]
 	if not SaveManager.owns_skin(&"common_01"):
 		SaveManager.data["unlocked_skins"] = ["common_01"]
 		album.refresh()
 		await get_tree().process_frame
-	album._try_equip(&"common_01")
-	_c("equip kayda yazildi", SaveManager.equipped_skin_id() == &"common_01")
-	var card: PanelContainer = album._cards[&"common_01"]
-	_c("takili kart rozeti gorunur", card.find_child("State", true, false).modulate.a > 0.9)
-	_c("takili kart nane cerceve", (card.get_theme_stylebox("panel") as StyleBoxFlat).border_color == UiPalette.SELECTED)
+	var raw_before: String = str(SaveManager.data.get("equipped_skin", ""))
+	album.select(&"common_01"); await get_tree().process_frame
+	_c("secim kayda YAZMADI", str(SaveManager.data.get("equipped_skin", "")) == raw_before and album.selected_id() == &"common_01")
+	album.cta().pressed.emit(); await get_tree().process_frame
+	_c("TAK kayda yazildi", SaveManager.equipped_skin_id() == &"common_01")
+	var card: CollectionSkinCard = album.card(&"common_01")
+	_c("takili kart TAKILI plakasi gorunur", card.is_equipped() and card.equipped_plate().visible)
+	_c("vitrin TAKILI, TAK gizli", album.showcase_state_text() == "TAKILI" and not album.cta().visible)
 	# Sahip OLUNMAYAN bir skin: kayda gore degisir, ilk kilitliyi bul.
 	var locked: StringName = &""
 	for skin in SkinLibrary.all():
@@ -100,11 +103,18 @@ func _ready() -> void:
 			locked = skin.id
 			break
 	if locked != &"":
-		album._try_equip(locked)
-		_c("kilitli skin takilmadi", SaveManager.equipped_skin_id() == &"common_01")
-	album._try_equip(&"")
+		album.select(locked); await get_tree().process_frame
+		var locked_bytes: PackedByteArray = FileAccess.get_file_as_bytes(SaveManager.SAVE_PATH)
+		_c("kilitli skin secili: MAGAZAYA GIT", album.cta_text() == "MAĞAZAYA GİT")
+		album.cta().pressed.emit(); await get_tree().process_frame
+		_c("kilitli CTA: Magaza'ya gitti, almadi/takmadi/yazmadi", main._active_tab == 3 and shop.visible
+			and not SaveManager.owns_skin(locked) and SaveManager.equipped_skin_id() == &"common_01"
+			and FileAccess.get_file_as_bytes(SaveManager.SAVE_PATH) == locked_bytes)
+		main._show_tab(2); await get_tree().process_frame
+	album.select(&""); await get_tree().process_frame
+	album.cta().pressed.emit(); await get_tree().process_frame
 	_c("varsayilan geri", SaveManager.equipped_skin_id() == &"")
-	_c("eski kart rozeti gizlendi", card.find_child("State", true, false).modulate.a < 0.1)
+	_c("eski kart plakasi gizlendi", not card.equipped_plate().visible and album.card(&"").is_equipped())
 	# --- Skin sistemi (M8.5-13): SkinEntry, vitrin, magaza -> koleksiyon senkronu ---
 	var saved_skins: Variant = (SaveManager.data.get("unlocked_skins", []) as Array).duplicate()
 	var saved_equipped: Variant = SaveManager.data.get("equipped_skin", "")
@@ -116,22 +126,22 @@ func _ready() -> void:
 	_c("fresh: takili id varsayilana duser", SaveManager.equipped_skin_id() == &"")
 	_c("fresh: varsayilan entry equipped", SkinEntry.default_entry().equipped)
 	_c("fresh: owned_count 0", SkinEntry.owned_count() == 0)
-	_c("fresh: 21 kart", album._cards.size() == SkinLibrary.total_count() + 1)
-	_c("fresh: vitrin Varsayilan", album._showcase_name.text == SkinEntry.DEFAULT_NAME)
-	_c("fresh: vitrin aksiyon gizli (takili)", not album._showcase_action.visible)
-	_c("fresh: ilerleme 0/20", album._count.text == "0/%d" % SkinLibrary.total_count())
+	_c("fresh: 21 kart", album.cards().size() == SkinLibrary.total_count() + 1)
+	_c("fresh: vitrin Varsayilan", album.showcase_name_text() == SkinEntry.DEFAULT_NAME)
+	_c("fresh: vitrin aksiyon gizli (takili)", not album.cta().visible and album.showcase_state_text() == "TAKILI")
+	_c("fresh: ilerleme 0/20", album.progress_text() == "0/%d" % SkinLibrary.total_count())
 	var locked_entry: SkinEntry = SkinEntry.find(&"rare_02")
 	_c("entry: kilitli/fiyat 150", locked_entry.is_locked() and locked_entry.price == 150 and not locked_entry.equipped)
 	# Kilitli karta dokun -> vitrin kilitli skin, Magazaya Git
-	album._on_card_tapped(&"rare_02"); await get_tree().process_frame
+	album.card(&"rare_02").pressed.emit(); await get_tree().process_frame
 	_c("kilitli dokunus takmadi", SaveManager.equipped_skin_id() == &"")
-	_c("vitrin kilitli skin adi", album._showcase_name.text == locked_entry.display_name)
-	_c("vitrin fiyat metni", album._showcase_detail.text.contains("150 Hamur"))
-	_c("vitrin Magazaya Git", album._showcase_action.visible and album._showcase_action.text == "Mağazaya Git")
-	_c("kilitli kart fiyat bandi", album._cards[&"rare_02"].find_child("Price", true, false) != null)
-	_c("kilitli grid karti siluet (kesif korunur)", _first_swatch(album._cards[&"rare_02"])._image.texture == SkinSwatch.LOCKED_TEXTURE)
-	_c("kilitli vitrin: FINAL onizleme + kilit", album._showcase_swatch._image.texture == SkinLibrary.find(&"rare_02").preview_texture and album._showcase_swatch._lock.visible)
-	album._showcase_action.pressed.emit(); await get_tree().process_frame
+	_c("vitrin kilitli skin adi", album.showcase_name_text() == locked_entry.display_name)
+	_c("vitrin fiyat metni", album.showcase_state_text() == "150 Hamur")
+	_c("vitrin Magazaya Git", album.cta().visible and album.cta_text() == "MAĞAZAYA GİT")
+	_c("kilitli kart fiyati vitrinde (kartta fiyat metni yok, M8.6-06)", album.card(&"rare_02").price() == 150)
+	_c("kilitli grid karti GERCEK final sanat + kilit (M8.6-06: siluet yok)", album.card(&"rare_02").swatch()._image.texture == SkinLibrary.find(&"rare_02").preview_texture and album.card(&"rare_02").swatch()._lock.visible)
+	_c("kilitli vitrin: FINAL onizleme + kilit", album.showcase_swatch()._image.texture == SkinLibrary.find(&"rare_02").preview_texture and album.showcase_swatch()._lock.visible)
+	album.cta().pressed.emit(); await get_tree().process_frame
 	_c("Magazaya Git -> magaza sekmesi", main._active_tab == 3 and shop.visible)
 	# Magazadan skin satin al (koleksiyon gorunmezken) -> tek transaction
 	SaveManager.data["dough"] = 500
@@ -150,15 +160,15 @@ func _ready() -> void:
 	_c("satin alinan takili DEGIL", SaveManager.equipped_skin_id() == &"")
 	_c("entry: sahip, takili degil", SkinEntry.find(&"rare_02").owned and not SkinEntry.find(&"rare_02").equipped)
 	_c("magaza karti SAHIPSIN (TAKILI degil)", shop.skin_card(&"rare_02").state_text() == "SAHİPSİN" and not shop.skin_card(&"rare_02").is_equipped())
-	# Koleksiyona don -> yeni skin vitrinde, YENI + Tak
+	# Koleksiyona don -> yeni skin vitrinde, SAHIPSIN + TAK
 	main._show_tab(2); await get_tree().process_frame
-	_c("koleksiyon: yeni skin vitrinde", album._showcase_name.text == locked_entry.display_name)
-	_c("koleksiyon: Tak aksiyonu", album._showcase_action.visible and album._showcase_action.text == "Tak")
-	_c("koleksiyon: ilerleme 1/20", album._count.text == "1/%d" % SkinLibrary.total_count())
-	album._showcase_action.pressed.emit(); await get_tree().process_frame
-	_c("Tak -> kayda yazildi", SaveManager.equipped_skin_id() == &"rare_02")
-	_c("Tak -> vitrin TAKILI, aksiyon gizli", not album._showcase_action.visible)
-	_c("Tak -> kart nane cerceve", (album._cards[&"rare_02"].get_theme_stylebox("panel") as StyleBoxFlat).border_color == UiPalette.SELECTED)
+	_c("koleksiyon: yeni skin vitrinde", album.showcase_name_text() == locked_entry.display_name)
+	_c("koleksiyon: TAK aksiyonu", album.cta().visible and album.cta_text() == "TAK" and album.showcase_state_text() == "SAHİPSİN")
+	_c("koleksiyon: ilerleme 1/20", album.progress_text() == "1/%d" % SkinLibrary.total_count())
+	album.cta().pressed.emit(); await get_tree().process_frame
+	_c("TAK -> kayda yazildi", SaveManager.equipped_skin_id() == &"rare_02")
+	_c("TAK -> vitrin TAKILI, aksiyon gizli", not album.cta().visible and album.showcase_state_text() == "TAKILI")
+	_c("TAK -> kart TAKILI plakasi", album.card(&"rare_02").is_equipped() and album.card(&"rare_02").equipped_plate().visible)
 	_c("equipped_entry dogru", SkinEntry.equipped_entry().id == &"rare_02")
 	# Magaza takili durumu gosteriyor
 	main._show_tab(3); await get_tree().process_frame

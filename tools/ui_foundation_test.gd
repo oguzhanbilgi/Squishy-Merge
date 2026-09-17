@@ -21,7 +21,9 @@ const PANELS: Array[StringName] = [&"PanelBase", &"PanelCream", &"PanelPurple", 
 	&"PanelMapPlaque",
 	# Magaza (M8.6-05): urun karti (krem / sahip olunan lavanta-krem), bolum
 	# plakasi, geri bildirim plakasi
-	&"PanelShopCard", &"PanelShopCardPower", &"PanelShopCardOwned", &"PanelShopSection", &"PanelShopToast"]
+	&"PanelShopCard", &"PanelShopCardPower", &"PanelShopCardOwned", &"PanelShopSection", &"PanelShopToast",
+	# Koleksiyon (M8.6-06): galeri karti (krem / kilitli buzlu lavanta-krem)
+	&"PanelCollectionCard", &"PanelCollectionCardLocked"]
 const BUTTONS: Array[StringName] = [&"ButtonPrimary", &"ButtonSecondary", &"ButtonPurchase",
 	&"ButtonDanger", &"ButtonIcon", &"ButtonRoundIcon", &"ButtonCTA", &"ButtonResourceAdd",
 	# Home hub (M8.6-03B / 03B.1): madalyon govdesi (krem / kilitli lavanta), oturmus

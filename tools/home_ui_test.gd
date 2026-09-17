@@ -73,7 +73,6 @@ func _ready() -> void:
 	await get_tree().process_frame
 	_main._daily.visible = false
 	var home: CanvasLayer = _main._screens[0]
-	var tabs: CanvasLayer = _main._tabs
 	_mascot_img = (home.HERO_ART as Texture2D).get_image()
 
 	print("-- bileşenler")
@@ -118,13 +117,15 @@ func _ready() -> void:
 		and _mascot_img != null and _mascot_img.get_width() >= 700)
 
 	print("-- sekme çubuğu")
-	_c("Ana Sayfa'da sekme çubuğu GİZLİ", not tabs.visible)
+	# M8.6-06: eski alt sekme çubuğu tamamen kalktı — main'de TabBar düğümü yok,
+	# hiçbir ekranda gizli bir çubuk dokunma almaz.
+	_c("Ana Sayfa'da sekme çubuğu YOK (main'de TabBar düğümü yok)", not ("_tabs" in _main) and _main.get_node_or_null("TabBar") == null)
 	_main._show_tab(1)
-	_c("Harita'da sekme çubuğu GİZLİ (M8.6-04: kendi üst satırı, geri → Ana Sayfa)", not tabs.visible and _main._screens[1].visible)
+	_c("Harita'da sekme çubuğu YOK (M8.6-04: kendi üst satırı, geri → Ana Sayfa)", _main.get_node_or_null("TabBar") == null and _main._screens[1].visible)
 	_main._show_tab(2)
-	_c("Koleksiyon'da sekme çubuğu görünür", tabs.visible)
+	_c("Koleksiyon'da sekme çubuğu YOK (M8.6-06: kendi ScreenTopBar'ı)", _main.get_node_or_null("TabBar") == null and _main._screens[2].visible)
 	_main._show_tab(0)
-	_c("Ana Sayfa'ya dönünce yine gizli", not tabs.visible and home.visible)
+	_c("Ana Sayfa'ya dönünce yalnız Home görünür", home.visible and not _main._screens[2].visible)
 
 	print("-- veri (orta oyuncu)")
 	home.refresh()
@@ -211,7 +212,7 @@ func _ready() -> void:
 	print("-- rotalar")
 	_main._show_tab(0)
 	home.play_button().pressed.emit()
-	_c("OYNA → Harita (sekme çubuğu Harita'da da gizli, M8.6-04)", _main._active_tab == 1 and tabs.active_tab() == 1 and not tabs.visible)
+	_c("OYNA → Harita (M8.6-04)", _main._active_tab == 1 and _main._screens[1].visible)
 	_main._show_tab(0)
 	home.level_button().pressed.emit()
 	_c("level plakası → Harita", _main._active_tab == 1)
@@ -248,7 +249,7 @@ func _ready() -> void:
 	print("-- Android geri")
 	_main._show_tab(2)
 	_main._notification(NOTIFICATION_WM_GO_BACK_REQUEST)
-	_c("Koleksiyon'da geri → Ana Sayfa (sekme çubuğu gizlenir)", _main._active_tab == 0 and not tabs.visible)
+	_c("Koleksiyon'da geri → Ana Sayfa", _main._active_tab == 0 and home.visible and not _main._screens[2].visible)
 	_main._last_back_msec = -1000
 	_main.open_settings()
 	_main._notification(NOTIFICATION_WM_GO_BACK_REQUEST)

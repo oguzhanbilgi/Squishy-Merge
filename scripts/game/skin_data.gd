@@ -67,12 +67,37 @@ func is_baseline() -> bool:
 	return tint_strength <= 0.0 and pattern == Pattern.NONE 		and gloss <= 0.0 and pearl <= 0.0 and sparkle <= 0.0
 
 
+## Rarity'nin İÇ adı (İngilizce): tema variation adları (`RarityCommon`…),
+## skin id önekleri ve test/araç metinleri buna bağlı — DEĞİŞMEZ. Oyuncuya
+## gösterilen ad `rarity_display_name` / `rarity_display_upper`.
 static func rarity_name(value: Rarity) -> String:
 	match value:
 		Rarity.COMMON: return "Common"
 		Rarity.RARE: return "Rare"
 		Rarity.EPIC: return "Epic"
 		Rarity.LEGENDARY: return "Legendary"
+	return "?"
+
+
+## Oyuncuya gösterilen Türkçe rarity adı (M8.6-06; Koleksiyon + Mağaza).
+## Kimlik/enum/id değişmedi: yalnızca görüntü eşlemesi.
+static func rarity_display_name(value: Rarity) -> String:
+	match value:
+		Rarity.COMMON: return "Yaygın"
+		Rarity.RARE: return "Nadir"
+		Rarity.EPIC: return "Epik"
+		Rarity.LEGENDARY: return "Efsanevi"
+	return "?"
+
+
+## Büyük harf sürümü etiketler için — Godot `to_upper` Türkçe İ'yi bilmez
+## ("Nadir" → "NADIR" olurdu), o yüzden elle.
+static func rarity_display_upper(value: Rarity) -> String:
+	match value:
+		Rarity.COMMON: return "YAYGIN"
+		Rarity.RARE: return "NADİR"
+		Rarity.EPIC: return "EPİK"
+		Rarity.LEGENDARY: return "EFSANEVİ"
 	return "?"
 
 

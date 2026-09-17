@@ -52,8 +52,9 @@ alınacak — şimdi tahmin/vaat yok.
 
 ## Current state
 - **M0–M8 tamamlandı.** Oyun uçtan uca oynanabilir: 10 level + sonsuz mod,
-  sandık/koleksiyon/mağaza, günlük ödül, 4 sekmeli navigasyon, owner'ın
-  görsel asset'leri entegre.
+  sandık/koleksiyon/mağaza, günlük ödül, Home hub + `ScreenTopBar` gezinmesi
+  (M8.5'in 4 sekmeli alt çubuğu M8.6-06'da kalktı), owner'ın görsel
+  asset'leri entegre.
 - **Şimdi: M8.5 — release/product stabilization.**
   - `M8.5-01` ✅ sandık ödül modeli %30 skin / %70 Hamur olarak kilitlendi,
     simulator production ile eşitlendi.
@@ -321,9 +322,35 @@ alınacak — şimdi tahmin/vaat yok.
     Hamur yetmiyor yolu doğrulandı; owner kaydı byte-identical geri kondu;
     logcat 0 SCRIPT ERROR / 0 E godot / 0 FATAL. Cihaza özel kusur YOK.
     Owner manuel onayı + merge izni bekliyor (`build/qa_m8.6-05.1/device/`).
+  - `M8.6-06` 🔶 production **Koleksiyon** (PRE-DEVICE VISUAL REVIEW, dal
+    `task/024-collection-production-ui`, main 589377b üzerine): eski M8.5-13
+    albüm (lacivert plakalar, gri "?" silüet kartlar, 4 sütun, alt sekme
+    çubuğu, ~141 px vitrin) kalktı; **premium karakter gardırobu**: sabit
+    `ScreenTopBar` (geri → Ana Sayfa · pembe "KOLEKSİYON" · Hamur pill'i +
+    nane "+" → Mağaza) → **sabit vitrin** (rarity halesi + candy kaide
+    üstünde 296–320 px GERÇEK skin sanatı, nefes alır; ad; Türkçe rarity
+    etiketi YAYGIN/NADİR/EPİK/EFSANEVİ + tek durum çipi; tek eylem yuvası:
+    cyan **TAK** / **MAĞAZAYA GİT** ya da nane **TAKILI** plakası; KOLEKSİYON
+    N/20 pill'i, 20/20 altın) → **kaydırılan galeri** (rarity bölüm plakaları,
+    3 sütun ortalı sıralar, `CollectionSkinCard` 216×220 = `MOUSE_FILTER_PASS`
+    Button: Varsayılan + 20 skin katalog sırasında, kilitli kart da final
+    sanat — buzlu gövde + kilit, fiyat kartta değil vitrinde; takılı kartta
+    nane TAKILI, seçili kartta cyan halka). Kart dokunuşu yalnız SEÇER (kayıt
+    değişmez); TAK → `SaveManager.equip_skin` (tek yazma); kilitli MAĞAZAYA
+    GİT → Mağaza hedef karta kaydırır (`ShopScreen.focus_skin`). Koleksiyon
+    satın ALMAZ. Alt sekme çubuğu (`tab_bar.*`) tamamen SİLİNDİ.
+    `SkinData.rarity_display_name/upper` (iç ad değişmedi; Mağaza etiketi ve
+    onay metni de Türkçe). Tema +2 variation. `tools/collection_ui_test`
+    155/155 (4 pencere + A36), ui_smoke 73, shop_ui 199, home_ui 207, map_ui
+    127, ui_foundation 164, shell 147, skin 30, audio 45, economy 100, refill
+    119, revive 120, bot L3 2/2; `tools/collection_shots` 20 durum × 4 boyut
+    + A36 (build/qa_m8.6-06/). **Ekonomi, fiyatlar, sandık, kayıt şeması,
+    gameplay, Home, Harita, Mağaza kompozisyonu DEĞİŞMEDİ.** **Telefon/ADB
+    kullanılmadı; push/merge yok; owner görsel onayı bekliyor.** Ayrıntı:
+    UI_VISUAL_SYSTEM §17.
 - **Sırada: M8.6 — Visual Cohesion Rebuild** (ekranlar `UiKit`/`UiTokens`
   sistemine geçirilecek: ~~gameplay shell~~ ✅ → ~~home~~ ✅ → ~~map~~ ✅ →
-  ~~shop~~ ✅ cihazda doğrulandı, merge izni bekliyor → collection →
+  ~~shop~~ ✅ → ~~collection~~ 🔶 owner görsel onayı + A36 kapısı bekliyor →
   result/reward/revive), ardından **M9 — Android export.** Ortam hazır (export template'leri, SDK,
   NDK, JDK 17, debug keystore mevcut, ETC2/ASTC import açık, iş
   makinesinde debug `export_presets.cfg` var — gitignore'lu, her makinede

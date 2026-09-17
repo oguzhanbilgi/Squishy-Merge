@@ -21,6 +21,9 @@ const LOCKED_TEXTURE: Texture2D = preload("res://assets/visual/ui/skin_locked_si
 ## kapatmıyor, "kilitli" bilgisi bir bakışta okunuyor.
 const LOCK_BADGE_RATIO: float = 0.34
 const LOCK_BADGE_INSET: float = 0.02
+## Kilit rozeti oranı (varsayılan LOCK_BADGE_RATIO). Büyük vitrinde (M8.6-06,
+## 264 px) %34 = 90 px karakterin gövdesini kapatıyordu; vitrin küçültür.
+var lock_badge_ratio: float = LOCK_BADGE_RATIO
 ## Görselin kutuya göre iç payı: parıltı kenarlarda nefes alsın.
 const IMAGE_INSET: float = 0.06
 const GLOW_ALPHA_OWNED: float = 0.8
@@ -105,7 +108,7 @@ func _layout() -> void:
 	_image.position = inset
 	_image.size = size - inset * 2.0
 	if _lock.visible and _lock.texture != null:
-		var badge_h: float = minf(size.x, size.y) * LOCK_BADGE_RATIO
+		var badge_h: float = minf(size.x, size.y) * lock_badge_ratio
 		var tex_size: Vector2 = _lock.texture.get_size()
 		var badge := Vector2(badge_h * tex_size.x / tex_size.y, badge_h)
 		var pad: float = minf(size.x, size.y) * LOCK_BADGE_INSET

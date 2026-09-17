@@ -83,7 +83,6 @@ func _boot_main() -> void:
 
 func _show_tab(tab: int) -> void:
 	_main._show_tab(tab)
-	_main._tabs.set_active(tab)
 	await _settle()
 
 

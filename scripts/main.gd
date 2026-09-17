@@ -1,13 +1,16 @@
 extends Node2D
-## Akış kontrolü: sekmeler (Ana Sayfa / Harita / Koleksiyon / Mağaza) ->
-## oyun -> sonuç -> sekmeler. Oyun kuralları GameBoard'da, ilerleme
+## Akış kontrolü: ekranlar (Ana Sayfa hub / Harita / Koleksiyon / Mağaza) ->
+## oyun -> sonuç -> ekranlar. Oyun kuralları GameBoard'da, ilerleme
 ## SaveManager'da, ödül kurası ChestSystem'de, fiyatlar Shop'ta; burada
 ## sadece bunlar birbirine bağlanıyor.
+##
+## Gezinme (M8.6): Ana Sayfa hub (madalyonlar + OYNA); Harita / Koleksiyon /
+## Mağaza kendi `ScreenTopBar`'ıyla (geri -> Ana Sayfa). Eski M8.5-10 alt
+## sekme çubuğu M8.6-06 ile tamamen kalktı (UI_VISUAL_SYSTEM §14.4).
 
-const TAB_BAR_SCENE: PackedScene = preload("res://scenes/ui/tab_bar.tscn")
 const HOME_SCENE: PackedScene = preload("res://scenes/ui/home_screen.tscn")
 const LEVEL_SELECT_SCENE: PackedScene = preload("res://scenes/ui/level_select.tscn")
-const COLLECTION_SCENE: PackedScene = preload("res://scenes/ui/collection_album.tscn")
+const COLLECTION_SCENE: PackedScene = preload("res://scenes/ui/collection_screen.tscn")
 const SHOP_SCENE: PackedScene = preload("res://scenes/ui/shop_screen.tscn")
 const GAME_BOARD_SCENE: PackedScene = preload("res://scenes/game/game_board.tscn")
 const ROUND_RESULT_SCENE: PackedScene = preload("res://scenes/ui/round_result.tscn")
@@ -22,7 +25,6 @@ const CHEST_INFO_SCENE: PackedScene = preload("res://scenes/ui/bonus_chest_info.
 ## efekti ekranda kalsın diye.
 const RESULT_DELAY: float = 0.8
 
-var _tabs: CanvasLayer
 var _result: CanvasLayer
 var _daily: CanvasLayer
 var _revive: CanvasLayer
@@ -57,7 +59,7 @@ var _refill_token: int = 0
 var _refill_pending_token: int = 0
 var _refill_pending_type: int = -1
 var _current_level: LevelData
-## Sekme indeksi -> ekran. Sıra tab_bar.gd'deki Tab enum'u ile aynı.
+## Ekran indeksi -> ekran: 0 Ana Sayfa, 1 Harita, 2 Koleksiyon, 3 Mağaza.
 var _screens: Array[CanvasLayer] = []
 var _active_tab: int = 0
 
@@ -93,17 +95,17 @@ func _ready() -> void:
 	select.home_requested.connect(_on_home_requested)
 	select.shop_requested.connect(_on_shop_requested)
 	var album: CanvasLayer = COLLECTION_SCENE.instantiate()
+	# Koleksiyon (M8.6-06): kendi ust satiri — geri -> Ana Sayfa, Hamur "+" ve
+	# kilitli skin'in MAGAZAYA GIT'i -> Magaza.
+	album.home_requested.connect(_on_home_requested)
 	album.shop_requested.connect(_on_shop_requested)
+	album.shop_skin_requested.connect(_on_shop_skin_requested)
 	var shop: CanvasLayer = SHOP_SCENE.instantiate()
 	# Magaza (M8.6-05): kendi ust satiri — geri -> Ana Sayfa; sekme cubugu yok.
 	shop.home_requested.connect(_on_home_requested)
 	_screens = [home, select, album, shop]
 	for screen in _screens:
 		add_child(screen)
-
-	_tabs = TAB_BAR_SCENE.instantiate()
-	_tabs.tab_selected.connect(_show_tab)
-	add_child(_tabs)
 
 	_daily = DAILY_POPUP_SCENE.instantiate()
 	_daily.closed.connect(_on_daily_closed)
@@ -138,10 +140,11 @@ func _ready() -> void:
 	_check_daily_reward()
 
 
-# --- Sekmeler ---
+# --- Ekranlar ---
 
 ## Tek bir ekran görünür kalır. Her geçişte refresh() çağrılıyor: Hamur ve
 ## koleksiyon sayacı dört ekranda da gösteriliyor, biri diğerini eskitmesin.
+## (Ad tarihsel: "sekme" = ekran indeksi; alt sekme çubuğu artık yok.)
 func _show_tab(tab: int) -> void:
 	if tab < 0 or tab >= _screens.size():
 		return
@@ -152,13 +155,6 @@ func _show_tab(tab: int) -> void:
 		screen.visible = i == tab
 		if i == tab and screen.has_method("refresh"):
 			screen.refresh()
-	# Ana Sayfa bir hub (M8.6-03B): sekme cubugu orada YOK — gezinme yuzen
-	# madalyonlar, OYNA, ayarlar ile. Harita (M8.6-04) ve Magaza (M8.6-05)
-	# kendi ust satiriyla (geri -> Ana Sayfa) doner: cubuk orada da YOK.
-	# Yalniz Koleksiyon'da M8.5-10 cubugu kendi isi gelene kadar duruyor
-	# (UI_VISUAL_SYSTEM §14.4).
-	_tabs.visible = tab == 2
-	_tabs.set_active(tab)
 	# Kısa giriş geçişi (0.16 sn, solma + hafif kayma). Aynı sekme yeniden
 	# istenirse (günlük ödül kapanışı gibi) oynatılmıyor.
 	if changed:
@@ -223,7 +219,6 @@ func abandon_run() -> void:
 	_result.hide_result()
 	_clear_board()
 	_show_tab(1)
-	_tabs.set_active(1)
 
 
 func is_pause_open() -> bool:
@@ -274,35 +269,38 @@ func _notification(what: int) -> void:
 	get_tree().quit()
 
 
-## Oyun sırasında ve sonuç ekranında hiçbir sekme ekranı görünmemeli.
+## Oyun sırasında ve sonuç ekranında hiçbir kabuk ekranı görünmemeli.
 func _hide_shell() -> void:
 	for screen in _screens:
 		screen.visible = false
-	_tabs.visible = false
 
 
 func _on_play_pressed() -> void:
 	_show_tab(1)
-	_tabs.set_active(1)
 
 
-## Harita (M8.6-04) ve Magaza (M8.6-05) ust satirindaki geri butonu: Ana Sayfa.
+## Harita (M8.6-04), Magaza (M8.6-05) ve Koleksiyon (M8.6-06) ust
+## satirindaki geri butonu: Ana Sayfa.
 func _on_home_requested() -> void:
 	_show_tab(0)
-	_tabs.set_active(0)
 
 
-## Koleksiyon vitrinindeki kilitli skin'in "Mağazaya Git" kısayolu, Ana
-## Sayfa'daki Hamur pill'inin "+" butonu ve Mağaza madalyonu.
+## Koleksiyon vitrinindeki kilitli skin'in "MAĞAZAYA GİT" kısayolu, Ana
+## Sayfa / Harita / Koleksiyon Hamur pill'inin "+" butonu ve Mağaza madalyonu.
 func _on_shop_requested() -> void:
 	_show_tab(3)
-	_tabs.set_active(3)
+
+
+## Koleksiyon'da kilitli skin'in MAĞAZAYA GİT'i: Mağaza açılır ve o skin'in
+## kartına kaydırılır (satın alma yine yalnız Mağaza'da).
+func _on_shop_skin_requested(skin_id: StringName) -> void:
+	_show_tab(3)
+	_screens[3].focus_skin(skin_id)
 
 
 ## Ana Sayfa'daki Koleksiyon madalyonu.
 func _on_collection_requested() -> void:
 	_show_tab(2)
-	_tabs.set_active(2)
 
 
 ## Ana Sayfa'daki Günlük madalyonu: bugünkü ödül henüz alınmadıysa (nadir —
@@ -612,4 +610,3 @@ func _on_exit_pressed() -> void:
 	_clear_board()
 	# Oyundan çıkınca haritaya dönülür — oynanan yerin yanına.
 	_show_tab(1)
-	_tabs.set_active(1)

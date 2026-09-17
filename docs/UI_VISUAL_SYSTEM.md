@@ -6,7 +6,7 @@
 **Asset kaynağı:** `tools/make_ui_core.py` → `assets/visual/ui/core/**` +
 `scripts/ui/ui_core_assets.gd` (üretilir, elle düzenlenmez).
 **Galeri:** `tools/ui_system_gallery.tscn` (dev-only, 5 sayfa).
-**Test:** `tools/ui_foundation_test.tscn` (162 kontrol), `tools/gameplay_shell_test.tscn` (147, §13), `tools/home_ui_test.tscn` (207, §14), `tools/map_ui_test.tscn` (127, §15), `tools/shop_ui_test.tscn` (199, §16).
+**Test:** `tools/ui_foundation_test.tscn` (164 kontrol), `tools/gameplay_shell_test.tscn` (147, §13), `tools/home_ui_test.tscn` (207, §14), `tools/map_ui_test.tscn` (127, §15), `tools/shop_ui_test.tscn` (199, §16), `tools/collection_ui_test.tscn` (155, §17).
 
 Çakışma kuralı: owner'ın son talimatı > GAME_DESIGN.md > bu doküman > kod.
 Bir sayı burada ve `ui_tokens.gd`'de farklıysa **doküman güncellenir, token
@@ -123,6 +123,7 @@ için önceden ölçeklendi (§8).
 | `PanelShopCard` / `PanelShopCardPower` / `PanelShopCardOwned` | `card_bevel_soft` | krem / `TRAY_CREAM` / `CREAM_DEEP` | Mağaza ürün kartı gövdesi (satılık skin / güç — gameplay güç tepsisinin tonu / sahip olunan skin, bir ton geri) — §16.2, §16.3 |
 | `PanelShopSection` | `title_oval` | `LAVENDER_DEEP` | Mağaza bölüm plakası (GÜÇLER / SKİNLER) — `UiKit.section_header`, §16.1 |
 | `PanelShopToast` | `title_oval` | pembe (başarıda `MINT` + lacivert yazı override) | Mağaza geri bildirim plakası — §16.4 |
+| `PanelCollectionCard` / `PanelCollectionCardLocked` | `card_bevel_soft` | krem / buzlu lavanta-krem (`CREAM_DEEP`→`LAVENDER_SURFACE` %38) | Koleksiyon galeri kartı gövdesi (sahip olunan / kilitli) — `CollectionSkinCard`, §17.3 |
 
 Owner'ın candy paneli (`panel_candy` + kanatlı-kalp tepelik) kimlik katmanıdır:
 pencerelerde `modal_frame` iskeletinin **üstüne** tepelik olarak eklenir ya da
@@ -150,6 +151,7 @@ iskeletin yerine kullanılır — kitin düz krem gövdesi tek başına kimlik t
 | `ButtonHomeAdd` | `btn_circle_flat` (48) | nane | Home pill'inin yuvarlak "+" (koyu nane taban + gloss + picto) — `UiKit.home_pill` |
 | `ButtonMapNode` / `ButtonMapNodeLocked` / `ButtonMapEndless` | `btn_circle` (72–116 madalyon) | cyan / açık lavanta / altın | Harita yolculuk düğümü — `MapLevelNode`, §15.2 |
 | `ButtonBuyLocked` | `btn_normal` (58; mağazada 64'e gerilir) | soluk cyan `CYAN_MUTED` / lacivert-mor `NAVY_PURPLE` yazı | Mağaza "Hamur yetmiyor" SATIN AL'i — hâlâ satın alma butonu okunur, `disabled` DEĞİL, dokununca geri bildirim (`UiKit.candy_button` + `set_candy_button_variation`), §16.4 |
+| *(Koleksiyon kartı)* | `CollectionSkinCard` = stilsiz `Button` (StyleBoxEmpty, **`MOUSE_FILTER_PASS`**) + çocuk katmanlar | — | galeri kartının tamamı dokunma hedefi; PASS: olay ScrollContainer'a da ulaşır (STOP olsa parmak kartın üstündeyken kaydırma hiç başlamazdı); kaydırma başlayınca BaseButton basışı iptal eder (`NOTIFICATION_SCROLL_BEGIN`) ve kart `UiMotion.release` ile 0.94'ten döner, §17.3 |
 
 Durumlar (hepsi temada): **normal**, **hover** (%6 açık), **pressed** (%12
 koyu + içerik 3 px aşağı), **disabled** (açık lavanta-gri gövde `#a19dba` +
@@ -214,6 +216,12 @@ cyan varsayılan; pembe/nane/altın).
 koyulaştırılır ki kremde okunsun), `RarityFrameCommon/…/Legendary` = `item_frame`
 rarity renginde skin önizleme çerçevesi. Legendary ödülde ek `GLOW_PREMIUM`
 (`item_focus`). Tonlar `SkinData.rarity_color` ile birebir (test).
+**Oyuncuya görünen rarity adı Türkçe (M8.6-06):** `SkinData.rarity_display_name`
+(Yaygın / Nadir / Epik / Efsanevi) ve `rarity_display_upper` (YAYGIN / NADİR /
+EPİK / EFSANEVİ — Godot `to_upper` Türkçe İ'yi bilmez, elle); `UiKit.rarity_tag`
+bunu yazar (Koleksiyon + Mağaza kartı + Mağaza onayı). İç ad `rarity_name`
+(Common…) variation kimliği ve id öneki olarak DEĞİŞMEDİ. Sonuç ekranı sandık
+başlığı (`ChestReward.title`) hâlâ İngilizce — result/reward işinde.
 
 **İlerleme:** `ProgressBarMint` (hedef, koleksiyon), `ProgressBarGold` (premium).
 **Anahtar:** `UiKit.switch_toggle(on)` → `UiToggle` + `SwitchOn/SwitchOff`
@@ -528,7 +536,7 @@ payı simülasyonu, kayıt byte'ı geri konur).
 | **YAN** | sol sütun: **Günlük** (pembe candy kubbe + gift picto; alınabilirse pembe bildirim noktası, nabız) · **Koleksiyon** (takılı skin önizlemesi, altın `6/20` rozeti, nane ilerleme halkası) — sağ sütun: **Mağaza** (cyan candy kubbe + shop picto) · **Sandık** (owner sandığı, altın `49/75` rozeti, altın halka; ±3 px süzülme). Sütunlar logonun altından başlar, 28 px kenar payı, adım 146 (uzun ekranda büyür — hero'nun yanına yayılır). Etiket plakası `badge_round` (30 px'te tam yuvarlak uç). |
 | **HERO** | `hero_mascot` (≤ 600 px, uzun ekranda ≤ 632; tuval genişliğine sığar; üst %22'si sütunların arasına sokulur — dar tepe, alfa duyarlı testle) + lavanta hale + krem sahne ışığı + erik yer gölgesi + tier 3 / tier 6 dumpling (ayak hizasında) + 6 pırıltı + alt bantta 4 pırıltı (bant ≥ 120 px ise). Zemin: `ShellBackdrop` Home'da daha az karartılır (`_tune_backdrop`) — gece kasabası görünür. |
 | **OYNA grubu** (alt, 28 + `safe_bottom`; 03B.2) | dikey hiyerarşi, ikisi de **tuval ortasında**: üstte **level pill'i** `ButtonHomePill` 236..284×60 (genişlik içeriğe göre; koyu lavanta pill + açık halka + erik gölge + gloss; sol uçtan 10 px taşan 56 px **altın taç madalyonu**; iki satır: "SIRADAKİ" / "Level 4 ★ 8/30"; sonsuzda yalnız büyük taç, "SONSUZ MOD" / "Rekor 12 480 ★ 30/30") → Harita · 12 px altında `hero_cta` **OYNA 480×96** (tek `ButtonCTA`, Baloo EB 40; halka btn_cta'nın 4 gölge satırına oturur) → Harita. Testle: OYNA merkezi 360 ± 2, pill merkezi ± 3, aralık 8–16, pill OYNA'dan ≥ 100 px dar. |
-| **Sekme çubuğu** | Home'da **GİZLİ**; Harita (M8.6-04) ve Mağaza (M8.6-05) da kendi `ScreenTopBar`'ıyla döner — `main._show_tab`: `_tabs.visible = tab == 2`, yalnız Koleksiyon'da M8.5-10 çubuğu duruyor (bkz. 14.4) |
+| **Sekme çubuğu** | YOK — M8.6-06 ile `tab_bar.tscn` tamamen kalktı; Harita / Mağaza / Koleksiyon kendi `ScreenTopBar`'ıyla (geri → Ana Sayfa) döner (bkz. 14.4) |
 
 Uzun ekran (tuval > 1280, `extra`; 03B.1 dağılımı): gök payı +%22, sütun
 adımı +%36 (ikinci sıra hero'nun yanına iner, maskot onunla birlikte iner),
@@ -593,14 +601,14 @@ merkezinde). Basınca yüz + ikon dudağa oturur (4 px) ve UiMotion squash.
 `UiKit.flat_plate(sprite, tint)`: NinePatchRect yerine StyleBoxTexture'lı
 boş PanelContainer (NinePatchRect patch kenarlarının altına küçülemez).
 
-### 14.4 Sekme çubuğu göçü (açık iş)
+### 14.4 Sekme çubuğu göçü (KAPANDI — M8.6-06)
 
-Home artık hub; çubuk Home'da gizli. **Harita M8.6-04'te, Mağaza M8.6-05'te
-göçtü** (§15, §16: `ScreenTopBar` geri → Home; `main._show_tab`:
-`_tabs.visible = tab == 2`). Yalnız **Koleksiyon**'da M8.5-10 çubuğu (dört
-sekme, "Ana Sayfa" sekmesi geri dönüş) geçici olarak duruyor — kendi
-işinde aynı `ScreenTopBar`'ı alınca çubuk (`tab_bar.tscn`) tamamen kalkar;
-`TabBar.bottom_inset()` payı o ekranda sıfırlanır.
+Home hub; Harita (M8.6-04), Mağaza (M8.6-05) ve Koleksiyon (M8.6-06, §17)
+kendi `ScreenTopBar`'ıyla döner (geri → Home). M8.5-10 alt sekme çubuğu
+(`scenes/ui/tab_bar.tscn` + `scripts/ui/tab_bar.gd`) ve `main.gd`'deki
+`_tabs` tamamen SİLİNDİ: hiçbir ekranda gizli çubuk yok, dokunma almaz
+(`collection_ui_test` main'de `TabBar` düğümü olmadığını ve kaynakta `_tabs`
+kalmadığını doğrular). `main._show_tab` adı tarihsel (ekran indeksi).
 
 ---
 
@@ -845,7 +853,8 @@ yükselip söner (`UiMotion.toast`).
 
 | Kontrol | Rota |
 |---|---|
-| Home MAĞAZA madalyonu / Home Hamur "+" / Harita Hamur "+" / Koleksiyon "Mağazaya Git" | `_show_tab(3)` — tek Mağaza örneği, çubuk yok |
+| Home MAĞAZA madalyonu / Home Hamur "+" / Harita Hamur "+" / Koleksiyon Hamur "+" | `_show_tab(3)` — tek Mağaza örneği, çubuk yok |
+| Koleksiyon kilitli skin "MAĞAZAYA GİT" (M8.6-06) | `_show_tab(3)` + `ShopScreen.focus_skin(id)`: hedef skin kartı üst satırın altına kaydırılır + 1.03 pop (son kartlarda içerik sonuna kadar); Mağaza kompozisyonu / satın alma akışı değişmedi |
 | Geri | `home_requested` → `main._on_home_requested` → Ana Sayfa |
 | Android geri | `handle_back()`: onay açıksa kapanır; değilse `main._notification` → Ana Sayfa (ayarlar açıksa önce ayarlar; gameplay politikası aynen; çıkış yok) |
 
@@ -855,3 +864,109 @@ fiyat hardcode yok. **Gelecek Billing seam'i:** gerçek para Güç Paketi
 (GAME_DESIGN §5.7.4, ×3/×6/×12 taslağı) gelirse GÜÇLER bölümünün altına
 üçüncü bir `section_header` + aynı kart ailesinden bir "paket kartı" girer;
 ekran yapısı ve `ShopPowerCard` değişmez. Şimdi YERLEŞTİRİLMEDİ.
+
+
+---
+
+## 17. Production Koleksiyon — skin galerisi (M8.6-06) — PRE-DEVICE VISUAL REVIEW
+
+**Karar:** eski M8.5-13 koleksiyonu (düz beyaz başlık + lacivert cip, üç
+üst üste lacivert plaka, 126 px kartlarda gri "?" silüetler + pembe kilit, 4
+sütun sola yaslı grid, alt sekme çubuğu; vitrin sanatı ~141 px — Mağaza
+kartındaki 164'ten küçük) "uygulama ayar sayfası / envanter tablosu"
+okunuyordu (audit: `build/qa_m8.6-06/QA_NOTES.md`). Yeni yön: **premium
+karakter gardırobu** — seçili skin candy kaide üstünde kahraman, galeri keşif;
+Mağaza kopyası DEĞİL (satın alma yok), dashboard DEĞİL (ekranı krem plaka
+kaplamaz — dünya görünür).
+
+**Kod:** `scripts/ui/collection_screen.gd` (ekran), `scripts/ui/
+collection_skin_card.gd` (`CollectionSkinCard`, tek kart bileşeni),
+`scenes/ui/collection_screen.tscn`; `ScreenTopBar` (`with_add = true`);
+`SkinSwatch.lock_badge_ratio` (vitrin kilit rozeti %26); `SkinData.
+rarity_display_name/upper` (§8); `UiMotion.release`; `ShopScreen.focus_skin`
+(MAĞAZAYA GİT hedef karta kaydırır). **Tema:** `PanelCollectionCard`,
+`PanelCollectionCardLocked` (GENERATED). **Test:** `tools/collection_ui_test.
+tscn` (155 kontrol; 4 pencere + A36 payı, üç vitrin durumu, kayıt
+byte-identical; bekçi + `_exit_tree` güvenlik ağı). **Çekim:** `tools/collection_shots.tscn -- <dir>
+[GxY] [safe=61]` (20 durum × 4 boyut + A36; 16 için gerçek equip yolu koşar,
+kayıt sonda AYNEN geri yazılır). Eski `collection_album.*` ve `tab_bar.*`
+SİLİNDİ. Sanat üretilmedi; yeni asset yok.
+
+### 17.1 Kompozisyon (720 tuval, yükseklik serbest) — üç bölge
+
+| Bölge | İçerik |
+|---|---|
+| **ÜST** (`ScreenTopBar`, sabit: `safe_top` + 14, 56 px satır, 24 px kenar) | sol `home_icon_button("back")` → Ana Sayfa · ortada pembe `HeaderRibbon` "KOLEKSİYON" · sağ Hamur `home_pill` + nane **"+"** → Mağaza (kilitli skinlerin satın alma yeri; Mağaza'nın kendisinde yok). Arkasında yumuşak çivit haze **yalnız satır bandında** (`WORLD_INDIGO` α .72, son 24 px'te 0): vitrin halesi satırın arkasında sönük, vitrin sanatına dokunmaz. |
+| **VİTRİN** (sabit, satırın hemen altında; yükseklik `showcase_height()` = 2 + sanat + 12 + 56 + 34 + 12 + 60 + 12 + 52 + 12 → 548 (1280) / 572 (1560)) | arkadan öne: rarity halesi (`popup_glow` 520, Common lavanta .42 / Rare mavi .58 / Epic mor .62 / Legendary altın .62) + Legendary sıcak altın bloom (640, `GOLD_BRIGHT` .26) → erik temas gölgesi (430×136) → **candy kaide**: rarity renginde halka (+10) → koyu lavanta alt kalınlık (8 px aşağı) → yassı elips 324×54 (`item_circle_inner` gerilir; `TRAY_CREAM`, Rare/Epic/Legendary'de rarity rengine %16 boyanır) + üst parlama; kaide merkezi karakterin ayaklarının (sanat kutusunun %87'si) 10 px üstünde — karakter kaideye OTURUR → 6 sabit owner yıldızı (sinüs, RNG yok) → **sanat kutusu 296 px** (uzun ekranda 320'ye büyür; ≥ %41 tuval genişliği; `SkinSwatch.setup(entry, true)`: kilitli skin de FİNAL sanat + %26 kilit rozeti; `Breath` sarmalayıcısı ±%1.2 ölçek / 3 px süzülme, pivot ayaklarda) → ad (Baloo EB 34 beyaz, 56 px kutu) → etiket satırı (rarity trapezi 18 px: YAYGIN / NADİR / EPİK / EFSANEVİ, Varsayılan'da "ORİJİNAL" `RarityCommon`; yanında TEK durum çipi: SAHİPSİN `OwnedBadge` **ya da** Hamur ikonu + "N Hamur" lacivert çip — kilit zaten sanatın üstünde, çift kilit yok; takılıyken çip yok) → **eylem yuvası** 320×60 (bir yuva, bir eylem, aynı ayak izi: cyan `candy_button` **TAK** / **MAĞAZAYA GİT** **ya da** nane `title_oval` **✓ TAKILI** plakası — sarmalayıcı Control'de erik gölge + açık halka + gloss (PanelContainer dekoru içerik dikdörtgenine oturturdu), buton değil, dokunulmaz) → **KOLEKSİYON N/20 pill'i** 264×52 (Home pill dili: `LAVENDER_DEEP` `label_round` + açık halka + erik gölge + gloss; "KOLEKSİYON" 15 beyaz + sayı 19 + `ProgressBarMint` 11 px; **20/20**: `ProgressBarGold` + owner yıldızı + altın sayı — ödül VERMEZ). |
+| **GALERİ** (`ScrollContainer`, vitrinin altından tabana; `MarginContainer` 24 / üst 14 / alt 64 + `safe_bottom`) | `UiKit.section_header` rarity plakaları — rarity sözlüğüyle aynı aile: YAYGIN gri-lavanta `#8a8aa8` / NADİR `#3f86d0` / EPİK `#8e4fc0` / EFSANEVİ altın `#d99a2b` — + 6 px boşluk + **3 sütunlu ortalı `HBoxContainer` sıraları** (h 12 / v 12; 24 + 216 + 12 + 216 + 12 + 216 + 24 = 720; eksik son sıra ORTADA: Safran tek, iki Legendary çift — sağda boş yuva yok; GridContainer bunu yapamaz) — 9 (Varsayılan + 8) / 6 / 4 / 2 kart, katalog sırası (GAME_DESIGN §5.3: ilk kart Varsayılan). Vitrin altı dikişi: vitrinin gölgesi galeriye düşer (18 px yukarıdan 0 → kesim çizgisinde `WORLD_INDIGO` .82 → 42 px'te 0) — kartlar bir yüzeyin ALTINA kayar, düz kesilmez. Sekmeye her girişte kaydırma en üstte. |
+| **ZEMİN** | `ShellBackdrop` Home ayarında + radyal erik vignette (Harita/Mağaza ile aynı). Alt sekme çubuğu YOK. |
+
+3 sütun kararı: 4 sütunda kart 159 / sanat ~100 px (eski ekranla aynı
+küçüklük); 3 sütunda 216 / 124 px karakter 540×960'ta 93 px fiziksel okunur.
+720×1280'de galeride ~2.6 sıra görünür; uzun ekranda fazla alan galeriye
+gider (sanat +24). Kartta **fiyat YOK** (gardırop fiyat listesi değil — dört
+bağımsız görsel kritik "Mağaza fiyat listesi okunuyor" dedi); fiyat seçilince
+vitrinde (çip + MAĞAZAYA GİT).
+
+### 17.2 Seçim ve durumlar (SkinEntry tek kaynak)
+
+| Durum | Vitrin | Kart |
+|---|---|---|
+| SAHİP, takılı değil | SAHİPSİN çipi + **TAK** | krem gövde, rarity halkası, durum satırı boş |
+| TAKILI | **✓ TAKILI** nane plakası (CTA yok; dokunuş mutasyon yapmaz) | nane `EquippedBadge` "✓ TAKILI" (kompakt, sanatı kapatmaz) — başka kart seçiliyken de görünür |
+| KİLİTLİ | Hamur + "N Hamur" çipi + **MAĞAZAYA GİT** (→ `shop_skin_requested(id)` → `main` Mağaza'yı açar ve `ShopScreen.focus_skin(id)` hedef kartı üst satırın altına kaydırır + 1.03 pop; son kartlarda içerik sonuna kadar; Koleksiyon SATIN ALMAZ) | buzlu gövde (`PanelCollectionCardLocked`) + sanat %14 soğuk buz (`LOCKED_FROST`) + owner kilit rozeti (sağ alt, gövdede); fiyat kartta YOK |
+| SEÇİLİ (herhangi biri) | vitrin bu girişi gösterir | cyan dış halka (+7) + cyan hale + 1.04 pop; seçim değişince eski kart sakinleşir |
+
+Açılış seçimi (`refresh`, her sekme girişi): görünmezken kazanılan skin
+(`skin_granted` → `_pending_focus`) → yoksa **takılı skin** (`SaveManager.
+equipped_skin_id()`, bozuk id güvenli biçimde Varsayılan'a düşer, kayda
+yazmaz). Kart dokunuşu (`CollectionSkinCard.selected`) yalnız `select()`:
+vitrin geçişi 0.2 s (sanat 0.94 → 1.0 + solma, hale retint tween), `ui_select`;
+**kayıt DEĞİŞMEZ**. **TAK** → `SaveManager.equip_skin(id)` (tek kanonik
+yazma; `skin_equipped` → kartlar `refresh()`, vitrin TAKILI, `ui_equip` +
+hafif titreşim, sanat/plaka pop + 8 altın yıldız patlaması `Fx` katmanında).
+Varsayılan kartı da seçilir ve takılır (`equip_skin("")`). Rarity görüntü adı
+Türkçe (§8); iç ad/enum/id değişmedi.
+
+### 17.3 `CollectionSkinCard` anatomisi (216×220)
+
+Stilsiz `Button` (`MOUSE_FILTER_PASS`, tüm kart dokunma hedefi,
+`UiMotion.attach_press`; kaydırma başlayınca `NOTIFICATION_SCROLL_BEGIN` →
+`UiMotion.release`); arkadan öne: seçim halesi (cyan `popup_glow`, yalnız
+seçili) → Legendary altın hale (`GOLD_BRIGHT` .55) / Epic mor hale (.30) →
+erik gölge → seçim halkası (cyan `frame_round20` +7, yalnız seçili) →
+rarity halkası (+4: Common `LAVENDER_LIGHT`, Rare `RARITY_RARE`→beyaz %25,
+Epic `RARITY_EPIC`→beyaz %22, Legendary `GOLD` — Mağaza 05.1 kalibrasyonu)
+→ 2 px erik kontur → gövde (`card_bevel_soft`; 10/8/10/**22** iç pay: alt
+dudak ~11 px + nefes, TAKILI plakası krem yüzün içinde kalır — testle;
+Legendary gövde her durumda altın-krem `CREAM`→`GOLD_BRIGHT` %12, Mağaza
+gibi) → `UiKit.card_face` → sahne 130: rarity renginde düşük alfa hale (176;
+.14/.18/.20/.26) → `TRAY_CREAM` kuyu 110 → **`SkinSwatch` 124 px** (gerçek
+final sanat; 20 farklı doku — testle) → Baloo 19 ad (kırpma + üç nokta;
+21 ad sığıyor — testle) → durum satırı 26 (TAKILI plakası | boş). Legendary
+kartta 4 köşe pırıltısı (Mağaza kartıyla aynı dil; sinüs, ekran
+`_process`'inden `tick_sparkles`). Kart kayda YAZMAZ, takmaz.
+
+### 17.4 Rotalar
+
+| Kontrol | Rota |
+|---|---|
+| Home KOLEKSİYON madalyonu | `_show_tab(2)` — tek örnek |
+| Geri | `home_requested` → `main._on_home_requested` → Ana Sayfa |
+| Android geri | `main._notification` → Ana Sayfa (pencere yok; gameplay politikası aynen; çıkış yok) |
+| Hamur "+" | `shop_requested` → `main._on_shop_requested` → Mağaza (tek örnek, en üst) |
+| Kilitli MAĞAZAYA GİT | `shop_skin_requested(id)` → `main._on_shop_skin_requested` → Mağaza + `focus_skin(id)` (hedef kart üst satırın altında; Mağaza kompozisyonu değişmedi) |
+
+Koleksiyon kaydı yalnız `equip_skin` ile yazar; `purchase` / `spend_dough` /
+`add_dough` / `grant_skin` / `save_game` / `data["dough"]` çağrısı yok
+(kaynak taramasıyla testli). Ekonomi, fiyatlar, sandık, kayıt şeması,
+gameplay, Home, Harita, Mağaza kompozisyonu DEĞİŞMEDİ (Mağaza yalnız Türkçe
+rarity etiketi aldı).
+
+### 17.5 Performans
+
+Ekran ~800 düğüm (21 kart × ~27 + vitrin ~50 + 4 plaka; eski ekran ~220).
+Kartlarda `_process` YOK; yalnız ekran işler (görünürken): vitrin nefesi + 6
+yıldız + 2 Legendary kartın 2'şer pırıltısı (10 sinüs güncellemesi/kare).
+Büyük yumuşak dokular (`popup_glow` 470/600) alfa-karışımlı NinePatch;
+cihaz ölçümü A36 kapısında.

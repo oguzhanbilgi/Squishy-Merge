@@ -50,6 +50,8 @@ const GENERATED: Array[StringName] = [
 	# Magaza (M8.6-05)
 	&"PanelShopCard", &"PanelShopCardPower", &"PanelShopCardOwned", &"PanelShopSection",
 	&"PanelShopToast", &"OwnedBadge", &"ButtonBuyLocked",
+	# Koleksiyon (M8.6-06)
+	&"PanelCollectionCard", &"PanelCollectionCardLocked",
 	# Oyun bilesenleri
 	&"ResourcePill", &"HeaderRibbon", &"SectionTag", &"ProgressBarMint", &"ProgressBarGold",
 	&"Badge", &"LockBadge", &"EquippedBadge", &"NewBadge", &"CountBadge",
@@ -200,6 +202,12 @@ func _build_panels() -> void:
 	_panel(&"PanelShopCardOwned", "card_bevel_soft", UiTokens.CREAM_DEEP, Vector4(16, 14, 16, 20))
 	_panel(&"PanelShopSection", "title_oval", UiTokens.LAVENDER_DEEP, Vector4(22, 2, 22, 8))
 	_panel(&"PanelShopToast", "title_oval", UiTokens.PINK, Vector4(26, 6, 26, 12))
+	# Koleksiyon (M8.6-06): galeri karti = Magaza kartiyla ayni krem
+	# `card_bevel_soft` govde, 3 sutun olcusune gore dar ic pay. Kilitli kart
+	# buzlu lavanta-krem (sanat gorunur, "henuz senin degil" govdeden okunur).
+	_panel(&"PanelCollectionCard", "card_bevel_soft", UiTokens.CREAM, Vector4(10, 8, 10, 12))
+	_panel(&"PanelCollectionCardLocked", "card_bevel_soft",
+		UiTokens.CREAM_DEEP.lerp(UiTokens.LAVENDER_SURFACE, 0.38), Vector4(10, 8, 10, 12))
 
 
 # --- Butonlar ----------------------------------------------------------------

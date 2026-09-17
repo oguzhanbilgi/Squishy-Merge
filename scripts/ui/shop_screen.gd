@@ -303,6 +303,28 @@ func refresh() -> void:
 	_scroll.scroll_vertical = 0
 
 
+## Koleksiyon'dan MAĞAZAYA GİT (M8.6-06): oyuncunun baktığı skin kartı üst
+## satırın hemen altına getirilir ve bir kez pop'lar (rota gözle tamamlanır;
+## GÜÇLER'in tepesine düşmez). Sekme girişinin `refresh()`'i kaydırmayı
+## sıfırladıktan ve container yerleşimi oturduktan SONRA çalışır (bir kare
+## bekler). Bilinmeyen id → hiçbir şey olmaz (Mağaza en üstte).
+func focus_skin(id: StringName) -> void:
+	var card: Control = _cards.get(String(id))
+	if card == null:
+		return
+	_focus_card(card)
+
+
+func _focus_card(card: Control) -> void:
+	await get_tree().process_frame
+	if not is_inside_tree() or not visible or not is_instance_valid(card):
+		return
+	var target: float = card.global_position.y + float(_scroll.scroll_vertical) \
+		- (_bar.height() + CONTENT_TOP_GAP)
+	_scroll.scroll_vertical = int(maxf(target, 0.0))
+	UiMotion.pop(card, 1.03)
+
+
 func _refresh_states(pop_balance: bool) -> void:
 	for card in _power_cards:
 		card.refresh()
@@ -362,7 +384,7 @@ func _open_confirm(skin: SkinData) -> void:
 	_pending_power = -1
 	_set_confirm_art_skin(skin)
 	_confirm_title.text = skin.display_name
-	_confirm_detail.text = "%s skin · kalıcı, bir kez alınır" % SkinData.rarity_name(skin.rarity)
+	_confirm_detail.text = "%s skin · kalıcı, bir kez alınır" % SkinData.rarity_display_name(skin.rarity)
 	_show_confirm(Shop.price_of(skin))
 
 

@@ -1404,8 +1404,8 @@ squishy-merge/
 ├── scenes/
 │   ├── main.tscn            # akış kontrolü (tek gerçek "sahne")
 │   ├── game/                # dumpling, game_board, pop_effect
-│   └── ui/                  # home_screen, level_select, collection_album,
-│                            #   shop_screen, round_result, daily_reward_popup, tab_bar,
+│   └── ui/                  # home_screen, level_select, collection_screen,
+│                            #   shop_screen, round_result, daily_reward_popup,
 │                            #   settings_panel, shell_backdrop (M8.5-10)
 ├── scripts/
 │   ├── autoload/            # GameState, AudioManager, SaveManager
@@ -1451,18 +1451,18 @@ squishy-merge/
 
 | script | işi |
 |---|---|
-| `main.gd` | Sekmeler ↔ oyun ↔ sonuç akışını bağlar. Kurallar burada DEĞİL. |
-| `ui/tab_bar.gd` | Alt sekme çubuğu (4 sekme). |
+| `main.gd` | Ekranlar (Ana Sayfa hub / Harita / Koleksiyon / Mağaza) ↔ oyun ↔ sonuç akışını bağlar. Kurallar burada DEĞİL. Alt sekme çubuğu M8.6-06'da kalktı. |
 | `ui/home_screen.gd` | Ana sayfa: logo, streak, Hamur, "Oyna". |
 | `ui/level_select.gd` | Harita: patika üstünde 10 düğüm + durumlar + açılış animasyonu + Sonsuz Mod kapısı (M8.5-12). |
 | `ui/map_trail.gd` | Düğümleri bağlayan programatik candy patika (Catmull-Rom + noktalar, tamamlanmış/gelecek). |
-| `ui/collection_album.gd` | Koleksiyon albümü. |
+| `ui/collection_screen.gd` | Koleksiyon (M8.6-06): `ScreenTopBar` + sabit vitrin (candy kaide üstünde büyük skin sanatı, tek eylem TAK / MAĞAZAYA GİT / TAKILI, N/20 pill'i) + kaydırılan 3 sütun galeri. Yalnız `SaveManager.equip_skin` yazar; satın alma yok. |
+| `ui/collection_skin_card.gd` | `CollectionSkinCard` — galeri kartı (Button; rarity halkası/hale, final sanat, TAKILI / fiyat, seçim halkası). |
 | `ui/shop_screen.gd` | Mağaza (M8.6-05): `ScreenTopBar` + kaydırılan 2 sütun kart gridi + onay penceresi (`UiKit.modal_frame`) + candy geri bildirim plakası. Satın alma yalnız kanonik yoldan. |
 | `ui/shop_power_card.gd` | `ShopPowerCard` — güç ürün kartı (candy kuyu + owner sanatı, amaç, fiyat, SATIN AL, stok rozeti; yetmiyor/başarı durumları). |
 | `ui/shop_skin_card.gd` | `ShopSkinCard` — skin ürün kartı (SkinSwatch önizleme, rarity halkası/hale/pırıltı, fiyat veya SAHİPSİN/TAKILI). |
 | `ui/round_result.gd` | Round sonu: yıldız reveal → sandık reveal. |
 | `ui/reward_gem.gd` | Sandık ödül görseli: kapalı → açılış → rarity katmanları. |
-| `ui/skin_swatch.gd` | Skin önizlemesi (M8.5-13): sahip olunan = gameplay materyaliyle dumpling + rarity parıltısı, kilitli = silüet + kilit, varsayılan = nötr. |
+| `ui/skin_swatch.gd` | Skin önizlemesi (M8.5-13): final önizleme sanatı + rarity parıltısı; kilitli = `reveal_locked` ile final sanat + kilit (Koleksiyon/Mağaza, M8.6-06) ya da silüet; varsayılan = orijinal dumpling. |
 | `ui/ui_icons.gd` | HUD ikonlarının tek tanımı, BBCode `[img]` üretir. |
 | `ui/ui_type.gd` | Tipografi rol adları (M8.5-09). |
 | `ui/ui_palette.gd` | Tasarım sistemi: renkler, katmanlar, cip/ikon buton fabrikaları (M8.5-10). |

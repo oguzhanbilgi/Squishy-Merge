@@ -389,6 +389,16 @@ tier'lara uygulanır.
 > skin'in GERÇEK önizlemesini gösterir (kilit rozetiyle) — grid silüet. Sahip olunan karta dokunmak yine
 > doğrudan takıyor. Önizleme oyundaki render'la aynı materyali kullanıyor;
 > skin başına hazır görsel için `SkinData.preview_texture` alanı var.
+>
+> **M8.6-06 (owner brief'i, ekran; kural değişmedi):** production
+> gardırop. Grid kartı da kilitli skin'in **gerçek final sanatını** gösterir
+> (buzlu gövde + kilit rozeti + fiyat; silüet yok — "arzu uyandırsın").
+> Karta dokunmak artık yalnız **seçer** (vitrin güncellenir, kayıt
+> değişmez); takma vitrindeki **TAK** ile (tek kanonik `equip_skin`).
+> Takılı kart nane **TAKILI** plakası; ilk kart yine Varsayılan ve
+> takılabilir; rarity adı oyuncuya Türkçe (YAYGIN / NADİR / EPİK /
+> EFSANEVİ). Kilitli skin Mağaza'ya yönlendirilir; Koleksiyon satın almaz.
+> Ayrıntı: `docs/UI_VISUAL_SYSTEM.md` §17.
 
 ### 5.4 Günlük döngü
 - Günlük giriş ödülü (küçük, sabit) + ardışık gün sayacı (streak)

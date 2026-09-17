@@ -187,7 +187,6 @@ func _shot_worst_case_tabs() -> void:
 		"t06_en_kotu_koleksiyon", "t07_en_kotu_magaza"]
 	for tab in names.size():
 		main._show_tab(tab)
-		main._tabs.set_active(tab)
 		# Sekme gecisi 0.16 sn solma (M8.5-10); bitmeden cekilirse yari saydam.
 		await get_tree().create_timer(0.3).timeout
 		await get_tree().process_frame

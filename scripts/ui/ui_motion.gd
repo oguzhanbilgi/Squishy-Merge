@@ -55,6 +55,13 @@ static func attach_tap(button: BaseButton) -> void:
 	button.button_down.connect(func() -> void: AudioManager.play(&"ui_tap"))
 
 
+## Basisi disaridan birak (ScrollContainer kaydirmaya baslayinca BaseButton
+## press'i iptal eder ama button_up yaymaz — M8.6-06 koleksiyon karti
+## NOTIFICATION_SCROLL_BEGIN'de cagirir, kart 0.94'te asili kalmaz).
+static func release(control: Control) -> void:
+	_press_out(control)
+
+
 static func _press_in(control: Control) -> void:
 	_center_pivot(control)
 	var tween: Tween = _restart(control)
