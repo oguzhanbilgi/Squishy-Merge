@@ -6,7 +6,7 @@
 **Asset kaynağı:** `tools/make_ui_core.py` → `assets/visual/ui/core/**` +
 `scripts/ui/ui_core_assets.gd` (üretilir, elle düzenlenmez).
 **Galeri:** `tools/ui_system_gallery.tscn` (dev-only, 5 sayfa).
-**Test:** `tools/ui_foundation_test.tscn` (164 kontrol), `tools/gameplay_shell_test.tscn` (147, §13), `tools/home_ui_test.tscn` (207, §14), `tools/map_ui_test.tscn` (127, §15), `tools/shop_ui_test.tscn` (199, §16), `tools/collection_ui_test.tscn` (164, §17).
+**Test:** `tools/ui_foundation_test.tscn` (164 kontrol), `tools/gameplay_shell_test.tscn` (147, §13), `tools/home_ui_test.tscn` (207, §14), `tools/map_ui_test.tscn` (127, §15), `tools/shop_ui_test.tscn` (212, §16), `tools/collection_ui_test.tscn` (164, §17).
 
 Çakışma kuralı: owner'ın son talimatı > GAME_DESIGN.md > bu doküman > kod.
 Bir sayı burada ve `ui_tokens.gd`'de farklıysa **doküman güncellenir, token
@@ -151,6 +151,7 @@ iskeletin yerine kullanılır — kitin düz krem gövdesi tek başına kimlik t
 | `ButtonHomeAdd` | `btn_circle_flat` (48) | nane | Home pill'inin yuvarlak "+" (koyu nane taban + gloss + picto) — `UiKit.home_pill` |
 | `ButtonMapNode` / `ButtonMapNodeLocked` / `ButtonMapEndless` | `btn_circle` (72–116 madalyon) | cyan / açık lavanta / altın | Harita yolculuk düğümü — `MapLevelNode`, §15.2 |
 | `ButtonBuyLocked` | `btn_normal` (58; mağazada 64'e gerilir) | soluk cyan `CYAN_MUTED` / lacivert-mor `NAVY_PURPLE` yazı | Mağaza "Hamur yetmiyor" SATIN AL'i — hâlâ satın alma butonu okunur, `disabled` DEĞİL, dokununca geri bildirim (`UiKit.candy_button` + `set_candy_button_variation`), §16.4 |
+| *(kaydırılabilir candy buton)* | `UiKit.candy_button` + `make_candy_button_scrollable` (**`MOUSE_FILTER_PASS`**) | — | Mağaza SATIN AL (06.3): basış ScrollContainer'a da ulaşır, butondan başlayan sürükleme kaydırır; kart `NOTIFICATION_SCROLL_BEGIN`'de `release_candy_button` (yazı dudağı + 0.94) — Koleksiyon kartı deseni, §16 |
 | *(Koleksiyon kartı)* | `CollectionSkinCard` = stilsiz `Button` (StyleBoxEmpty, **`MOUSE_FILTER_PASS`**) + çocuk katmanlar | — | galeri kartının tamamı dokunma hedefi; PASS: olay ScrollContainer'a da ulaşır (STOP olsa parmak kartın üstündeyken kaydırma hiç başlamazdı); kaydırma başlayınca BaseButton basışı iptal eder (`NOTIFICATION_SCROLL_BEGIN`) ve kart `UiMotion.release` ile 0.94'ten döner, §17.3 |
 
 Durumlar (hepsi temada): **normal**, **hover** (%6 açık), **pressed** (%12
@@ -723,9 +724,20 @@ kurulmadı, GAME_DESIGN §5.7.4); yalnız 4 güç + 20 skin, tek para Hamur.
 **`card_face`** / **`seat_modal_close`** (05.1).
 **Tema:** `PanelShopCard`, `PanelShopCardPower`, `PanelShopCardOwned`,
 `PanelShopSection`, `PanelShopToast`, `OwnedBadge`, `ButtonBuyLocked`
-(GENERATED); token `CYAN_MUTED`. **Test:** `tools/shop_ui_test.tscn` (199
-kontrol; 4 pencere + A36 payı, kayıt byte'ı geri konur; bekçi + `_exit_tree`
-kayıt güvenlik ağı). **Çekim:** `tools/shop_shots.tscn -- <dir> [GxY] [safe=61]`
+(GENERATED); token `CYAN_MUTED`. **Test:** `tools/shop_ui_test.tscn` (212
+kontrol; 4 pencere + A36 payı, SATIN AL üstünden gerçek sürükleme/fling/
+dokunuş dizileri, kayıt byte'ı geri konur; bekçi + `_exit_tree` kayıt
+güvenlik ağı). **SATIN AL kaydırma geçişi (06.3, dbf9127):** iki kartın SATIN AL
+butonu `UiKit.make_candy_button_scrollable` ile `MOUSE_FILTER_PASS` —
+Button'ın varsayılan STOP'u basışı butonda durduruyordu, ScrollContainer
+basışı hiç görmüyor ve parmak butonun üstündeyken kaydırma başlamıyordu
+(A36'da ölçüldü: 0 px). PASS ile olay ScrollContainer'a da ulaşır (Koleksiyon
+kartıyla aynı desen); kaydırma başlayınca BaseButton basışı iptal eder
+(`pressed` yayılmaz — sürükleme onay açamaz), kart `NOTIFICATION_SCROLL_
+BEGIN`'de `UiKit.release_candy_button` ile yazı dudağı + 0.94 ölçeği bırakır.
+Temiz dokunuş yine tam bir `pressed` → onay. Cihazda yeniden doğrulandı
+(güç/skin SATIN AL: yavaş sürükleme ≈640 / ≈748 px, fling içeriğin sonuna kadar, dokunuş tek
+onay). **Çekim:** `tools/shop_shots.tscn -- <dir> [GxY] [safe=61]`
 (17 durum × 4 boyut + A36 simülasyonu; 05 için gerçek satın alma yolu
 koşar, kayıt sonda AYNEN geri yazılır). Sanat üretilmedi; yeni asset yok.
 
@@ -902,7 +914,8 @@ satır cutout altında ve kaydırmada 0 px, ORİJİNAL şeridi / rarity dili /
 tek yazma, Varsayılan TAK sayacı değiştirmez, 20/20 ödülsüz; Mağaza derin
 bağlantısı dört rarity'de hedefi gösterir. Tek cihaz kusuru (aynı-kare
 basış, yukarıda) `1c82f94` ile kapatıldı. Gözlem: Mağaza SATIN AL
-butonundan başlayan sürükleme kaydırmıyor (STOP; onaylı ekran, değişmedi). **Çekim:** `tools/collection_shots.tscn -- <dir>
+butonundan başlayan sürükleme kaydırmıyordu (STOP) → 06.3 `dbf9127` ile
+kapatıldı (§16). **Çekim:** `tools/collection_shots.tscn -- <dir>
 [GxY] [safe=61]` (20 durum × 4 boyut + A36; 16 için gerçek equip yolu koşar,
 kayıt sonda AYNEN geri yazılır). Eski `collection_album.*` ve `tab_bar.*`
 SİLİNDİ. Sanat üretilmedi; yeni asset yok.

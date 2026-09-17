@@ -313,8 +313,14 @@ alınacak — şimdi tahmin/vaat yok.
     daha okunur, Legendary aynen; stok rozeti kuyunun sağ üst omzuna (gameplay
     madalyonuyla aynı yer); bölüm plakası dudak + parlama; onay sunumu 190,
     X kurdele kuyruğundan ayrıldı ve krem halkayla oturdu (yalnız Mağaza).
-    Ekonomi/kayıt/equip/rotalar DEĞİŞMEDİ. `tools/shop_ui_test` 199/199;
-    QA `build/qa_m8.6-05.1/`. **A36 cihaz kapısı geçti (6baafbd,
+    Ekonomi/kayıt/equip/rotalar DEĞİŞMEDİ. `tools/shop_ui_test` 212/212
+    (06.3: SATIN AL üstünden sürükleme dizileri); QA `build/qa_m8.6-05.1/`.
+    **06.3 (dbf9127, dal task/024):** SATIN AL butonundan başlayan dikey
+    sürükleme cihazda 0 px kaydırıyordu (Button varsayılanı STOP →
+    ScrollContainer basışı görmüyor) → iki kartın butonu `MOUSE_FILTER_PASS`
+    + kaydırma başlayınca basış görseli bırakılır; sürükleme onay açamaz
+    (BaseButton basışı iptal eder), temiz dokunuş tek onay. Satın alma yolu,
+    fiyat, onay, yerleşim değişmedi; A36'da hedefli yeniden doğrulandı. **A36 cihaz kapısı geçti (6baafbd,
     2026-09-17):** debug APK 45.5 MB sızıntısız, native 1080×2340'ta üst
     satır punch-hole altında, kartlar/rarity/TAKILI okunur, kaydırma ve
     fling kararlı, onay X'i kurdeleye binmiyor; geçici kayıtlarla güç (335→215
@@ -359,8 +365,9 @@ alınacak — şimdi tahmin/vaat yok.
     kusuru: aynı karede basış+bırakış üst satır geri butonunu kalıcı 0.94'te
     bırakıyordu (paylaşılan `UiMotion`) → dar düzeltme `1c82f94`, cihazda
     yeniden doğrulandı. Gözlem (değişmedi): Mağaza SATIN AL'dan başlayan
-    sürükleme kaydırmıyor. Push edildi; **merge izni bekliyor**
-    (`build/qa_m8.6-06/device/`). Ayrıntı: UI_VISUAL_SYSTEM §17.
+    sürükleme kaydırmıyor → 06.3 `dbf9127` ile kapatıldı (Mağaza maddesi).
+    Push edildi; **merge izni bekliyor** (`build/qa_m8.6-06/device/`).
+    Ayrıntı: UI_VISUAL_SYSTEM §17.
 - **Sırada: M8.6 — Visual Cohesion Rebuild** (ekranlar `UiKit`/`UiTokens`
   sistemine geçirilecek: ~~gameplay shell~~ ✅ → ~~home~~ ✅ → ~~map~~ ✅ →
   ~~shop~~ ✅ → ~~collection~~ ✅ cihazda doğrulandı, merge izni bekliyor →
