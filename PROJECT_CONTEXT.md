@@ -333,7 +333,9 @@ alınacak — şimdi tahmin/vaat yok.
     cyan **TAK** / **MAĞAZAYA GİT** ya da nane **TAKILI** plakası; KOLEKSİYON
     N/20 pill'i, 20/20 altın) → **kaydırılan galeri** (rarity bölüm plakaları,
     3 sütun ortalı sıralar, `CollectionSkinCard` 216×220 = `MOUSE_FILTER_PASS`
-    Button: Varsayılan + 20 skin katalog sırasında, kilitli kart da final
+    Button: 20 skin katalog sırasında — **Varsayılan** (06.1, owner onayı
+    sonrası) YAYGIN'ın üstünde ayrı 672×116 **ORİJİNAL taban şeridi** (koleksiyon
+    skini değil, sayılmaz, fiyatsız; seçilir/takılır), kilitli kart da final
     sanat — buzlu gövde + kilit, fiyat kartta değil vitrinde; takılı kartta
     nane TAKILI, seçili kartta cyan halka). Kart dokunuşu yalnız SEÇER (kayıt
     değişmez); TAK → `SaveManager.equip_skin` (tek yazma); kilitli MAĞAZAYA
@@ -341,7 +343,7 @@ alınacak — şimdi tahmin/vaat yok.
     satın ALMAZ. Alt sekme çubuğu (`tab_bar.*`) tamamen SİLİNDİ.
     `SkinData.rarity_display_name/upper` (iç ad değişmedi; Mağaza etiketi ve
     onay metni de Türkçe). Tema +2 variation. `tools/collection_ui_test`
-    155/155 (4 pencere + A36), ui_smoke 73, shop_ui 199, home_ui 207, map_ui
+    162/162 (4 pencere + A36), ui_smoke 74, shop_ui 199, home_ui 207, map_ui
     127, ui_foundation 164, shell 147, skin 30, audio 45, economy 100, refill
     119, revive 120, bot L3 2/2; `tools/collection_shots` 20 durum × 4 boyut
     + A36 (build/qa_m8.6-06/). **Ekonomi, fiyatlar, sandık, kayıt şeması,

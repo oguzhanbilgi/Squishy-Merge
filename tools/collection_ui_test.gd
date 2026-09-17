@@ -6,9 +6,11 @@ extends Node
 ##
 ## Kontroller: yapı (ScreenTopBar + "KOLEKSİYON", geri, Hamur pill'i + "+",
 ## alt sekme çubuğu YOK — main'de TabBar düğümü yok, gerçek ScrollContainer,
-## dört rarity plakası, tam 21 kart = Varsayılan + 20 katalog skini, eski
-## UiPalette/StyleBoxFlat parçası yok); katalog (20 skin, sıra, 8/6/4/2, her
-## kart GERÇEK final önizleme — silüet yok, 20 farklı doku); ilk durum
+## dört rarity plakası, tam 21 seçenek = Varsayılan taban şeridi + 20 katalog
+## skini, eski UiPalette/StyleBoxFlat parçası yok); taban görünüm (M8.6-06.1:
+## geniş ORİJİNAL şeridi YAYGIN plakasının üstünde, hiçbir bölümde değil,
+## fiyatsız, sayaca girmez, seçilir/takılır); katalog (20 skin, sıra, 8/6/4/2,
+## her kart GERÇEK final önizleme — silüet yok, 20 farklı doku); ilk durum
 ## (takılı skin seçili, bozuk id → Varsayılan, gizliyken kazanılan skin →
 ## açılışta vitrinde); seçim (vitrin sanat/ad/rarity/durum/CTA değişir, KAYIT
 ## DEĞİŞMEZ); sahip/TAK (kanonik equip: tam BİR skin_equipped, tam BİR kayıt
@@ -175,9 +177,9 @@ func _ready() -> void:
 		and (headers[0].get_meta(&"plate") as PanelContainer).theme_type_variation == &"PanelShopSection")
 	_c("eski parça yok: CandyButton 0, StyleBoxFlat panel 0, koyu CardPanel 0", _count_class(screen, "CandyButton") == 0
 		and _count_variation(screen, &"CardPanel") == 0 and _count_variation(screen, &"QuietCardPanel") == 0)
-	_c("21 kart = Varsayılan + 20 katalog skini (CollectionSkinCard)", screen.cards().size() == 21
+	_c("21 seçilebilir görünüm = Varsayılan taban şeridi + 20 katalog skini (CollectionSkinCard)", screen.cards().size() == 21
 		and _count_class(screen, "CollectionSkinCard") == 21 and screen.card(&"") != null
-		and screen.card(&"").is_default_entry())
+		and screen.card(&"").is_default_entry() and screen.card(&"").is_wide())
 	var no_card_process: bool = true
 	var cards_pass: bool = true
 	for card in screen.cards():
@@ -214,18 +216,48 @@ func _ready() -> void:
 	_c("kart sırası katalog sırası (rarity + id), Varsayılan ilk; 20 ad kanonik sırada", order_ok and names_ok
 		and cards[0].name_text() == SkinEntry.DEFAULT_NAME)
 	var grid_ok: bool = true
+	var in_sections: int = 0
 	for rarity in EXPECTED_RARITY_COUNTS:
 		var section: VBoxContainer = screen._content.get_node_or_null("Grid_%s" % SkinData.rarity_name(rarity))
-		var expect: int = int(EXPECTED_RARITY_COUNTS[rarity]) + (1 if rarity == SkinData.Rarity.COMMON else 0)
+		var expect: int = int(EXPECTED_RARITY_COUNTS[rarity])
 		var n: int = 0
 		if section != null:
 			for row in section.get_children():
 				if row.get_child_count() > 3 or (row as HBoxContainer).alignment != BoxContainer.ALIGNMENT_CENTER:
 					grid_ok = false
+				for child in row.get_children():
+					if (child as CollectionSkinCard).is_default_entry():
+						grid_ok = false
 				n += row.get_child_count()
 		if section == null or n != expect or section.get_child_count() != ceili(float(expect) / 3.0):
 			grid_ok = false
-	_c("bölüm sıraları 3 sütun, ortalı (EPİK 3+1 / EFSANEVİ 2 ortada); 9 (8 + Varsayılan) / 6 / 4 / 2 kart", grid_ok)
+		in_sections += n
+	_c("bölüm sıraları 3 sütun, ortalı (YAYGIN 3+3+2 / EPİK 3+1 / EFSANEVİ 2 ortada); tam 8 / 6 / 4 / 2 katalog kartı, Varsayılan hiçbirinde değil",
+		grid_ok and in_sections == 20)
+	_c("YAYGIN bölümü Sade ile başlar (Varsayılan bölümün dışında)",
+		((screen._content.get_node("Grid_Common") as VBoxContainer).get_child(0).get_child(0) as CollectionSkinCard).skin_id() == &"common_01")
+
+	print("-- taban görünüm (Varsayılan, M8.6-06.1)")
+	var base: CollectionSkinCard = screen.card(&"")
+	var base_index: int = base.get_index()
+	var header_index: int = screen.section_headers()[0].get_index()
+	_c("Varsayılan geniş ORİJİNAL şeridi: galeri içeriğinin İLK çocuğu, YAYGIN plakasının üstünde, 672 px geniş",
+		base.is_wide() and base.get_parent() == screen._content and base_index == 0 and base_index < header_index
+		and is_equal_approx(base.custom_minimum_size.x, 672.0) and base.custom_minimum_size.y <= 120.0)
+	_c("ORİJİNAL rozeti (lavanta trapez, YAYGIN/Common değil); rarity etiketi yok", base.original_tag() != null
+		and (base.original_tag().get_meta(&"title_label") as Label).text == "ORİJİNAL"
+		and not _collect_text(base).contains("YAYGIN") and not _collect_text(base).contains("Common")
+		and base.name_text() == SkinEntry.DEFAULT_NAME)
+	_c("Varsayılan fiyatsız, kilitsiz, satın alınamaz; kanonik id boş string", base.price() == 0
+		and not base.swatch()._lock.visible and SkinEntry.find(&"").price == 0
+		and not SkinEntry.find(&"").is_purchasable() and SkinEntry.DEFAULT_ID == &"")
+	_c("Varsayılan sayaca girmez: owned_count kataloğu sayar (mid 4/20; Varsayılan takılıyken de 4)", SkinEntry.owned_count() == 4
+		and SkinLibrary.find(&"") == null and not SkinLibrary.all().any(func(s: SkinData) -> bool: return s.id == &""))
+	var catalogue_cards: int = 0
+	for card in screen.cards():
+		if not card.is_default_entry():
+			catalogue_cards += 1
+	_c("tam 20 koleksiyon kartı + 1 taban şeridi; katalog 20 skin", catalogue_cards == 20 and SkinLibrary.total_count() == 20)
 	var art_ok: bool = true
 	var seen: Dictionary = {}
 	for card in cards:
@@ -423,9 +455,10 @@ func _ready() -> void:
 	_apply_fresh()
 	screen.refresh()
 	await get_tree().process_frame
-	_c("yeni oyuncu: 0/20 (Sade varsayılan DEĞİL, satılık), Varsayılan takılı, TAKILI, 0 Hamur", screen.progress_text() == "0/20"
+	_c("yeni oyuncu: 0/20 (Sade varsayılan DEĞİL, satılık), Varsayılan takılı + TAKILI şeridi, 0 Hamur", screen.progress_text() == "0/20"
 		and SkinEntry.owned_count() == 0 and is_zero_approx(screen.progress_bar().value)
 		and screen.selected_id() == &"" and screen.showcase_state_text() == "TAKILI" and _pill_text(bar) == "0"
+		and screen.card(&"").is_equipped() and screen.card(&"").equipped_plate().visible and screen.card(&"").is_selected()
 		and not screen.card(&"common_01").is_owned() and screen.card(&"common_01").price() == 50)
 	_apply_full()
 	screen.refresh()
@@ -438,6 +471,12 @@ func _ready() -> void:
 		if not card.is_owned() or card.price() != 0 or card.swatch()._lock.visible:
 			all_owned = false
 	_c("20/20: hiçbir kartta kilit yok", all_owned)
+	SaveManager.data["equipped_skin"] = ""
+	screen.refresh()
+	await get_tree().process_frame
+	_c("20/20 Varsayılan'dan bağımsız: Varsayılan takılıyken de 20/20, Varsayılan seçili + TAKILI", screen.progress_text() == "20/20"
+		and SkinEntry.owned_count() == 20 and screen.selected_id() == &"" and screen.showcase_state_text() == "TAKILI"
+		and screen.card(&"").is_equipped() and screen.card(&"").equipped_plate().visible)
 
 	print("-- rarity işaretleri")
 	_apply_mid()
@@ -773,17 +812,22 @@ func _check_layout(screen: CanvasLayer, view: Vector2, safe_top: float, window_t
 				overlap = true
 				print("    kart çakışması: ", cards[i].name, " x ", cards[j].name)
 	# Tam sıralar 3 sütun (x 24 / 252 / 480); eksik sıralar ortada (Safran tek: x 252; iki Legendary: x 138 / 366).
-	_c("%s kartlar yatayda 24..696 içinde, 216 px, kesişme yok, ≥ 48 dokunma; tam sıra 3 sütun, eksik sıra ortalı" % tag,
-		inside_x and touch and not overlap and is_equal_approx(cards[0].get_global_rect().size.x, 216.0)
+	_c("%s kartlar yatayda 24..696 içinde, 216 px, kesişme yok, ≥ 48 dokunma; tam sıra 3 sütun, eksik sıra ortalı (YAYGIN son 2 / Safran / Legendary 2)" % tag,
+		inside_x and touch and not overlap and is_equal_approx(cards[1].get_global_rect().size.x, 216.0)
 		and columns.has(24) and columns.has(252) and columns.has(480)
+		and is_equal_approx(screen.card(&"common_07").get_global_rect().position.x, 138.0)
+		and is_equal_approx(screen.card(&"common_08").get_global_rect().position.x, 366.0)
 		and is_equal_approx(screen.card(&"epic_04").get_global_rect().position.x, 252.0)
 		and is_equal_approx(screen.card(&"legendary_01").get_global_rect().position.x, 138.0)
 		and is_equal_approx(screen.card(&"legendary_02").get_global_rect().position.x, 366.0))
-	var first: Rect2 = cards[0].get_global_rect()
+	var base_rect: Rect2 = cards[0].get_global_rect()
+	var first: Rect2 = cards[1].get_global_rect()
 	var header: Rect2 = screen.section_headers()[0].get_global_rect()
-	_c("%s ilk plaka galerinin içinde başlar, ilk kart plakanın altında, ilk sıra tamamen görünür" % tag,
-		header.position.y >= gallery_y and first.position.y > header.end.y and first.end.y <= view.y
-		and cards[2].get_global_rect().end.y <= view.y)
+	_c("%s Varsayılan şeridi galerinin en üstünde (24..696, ≤ 120 px), YAYGIN plakası altında, Sade plakanın altında, ilk sıra tamamen görünür" % tag,
+		base_rect.position.y >= gallery_y and is_equal_approx(base_rect.position.x, 24.0)
+		and is_equal_approx(base_rect.size.x, 672.0) and base_rect.size.y <= 120.0
+		and base_rect.end.y < header.position.y and first.position.y > header.end.y
+		and first.end.y <= view.y and cards[3].get_global_rect().end.y <= view.y)
 	var legendary: CollectionSkinCard = screen.card(&"legendary_01")
 	var card_rect: Rect2 = legendary.get_global_rect()
 	var badge_ok: bool = card_rect.grow(8.0).encloses(legendary.swatch()._lock.get_global_rect())

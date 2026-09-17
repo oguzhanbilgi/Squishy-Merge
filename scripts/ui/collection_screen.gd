@@ -9,9 +9,11 @@ extends CanvasLayer
 ##            BÜYÜK gerçek skin sanatı (`SkinSwatch`, 296–320 px, nefes alır)
 ##            · ad · rarity etiketi + durum çipi · bağlama göre TEK eylem
 ##            (TAK / MAĞAZAYA GİT / TAKILI plakası) · KOLEKSİYON N/20 pill'i.
-##   GALERİ   gerçek ScrollContainer (vitrinin altından tabana): rarity
+##   GALERİ   gerçek ScrollContainer (vitrinin altından tabana): en üstte
+##            "Varsayılan" TABAN görünüm şeridi (geniş kart + ORİJİNAL rozeti;
+##            koleksiyon skini değil, sayılmaz — GAME_DESIGN §5.3), sonra rarity
 ##            bölüm plakaları (YAYGIN / NADİR / EPİK / EFSANEVİ) + 3 sütun
-##            `CollectionSkinCard` (Varsayılan + 20 skin, katalog sırası).
+##            `CollectionSkinCard` (20 katalog skini, katalog sırası).
 ##            Karta dokunmak yalnız SEÇER (vitrin güncellenir, kayıt
 ##            DEĞİŞMEZ); takma vitrindeki TAK ile. Alt sekme çubuğu YOK.
 ##   ZEMİN    candy-night dünya (ShellBackdrop) Home ayarında + erik vignette;
@@ -401,10 +403,12 @@ func _build_progress() -> void:
 	_showcase.add_child(_progress_wrap)
 
 
-## Galeri: rarity başına bölüm plakası + 3 sütunlu kart sıraları. Katalog
-## sırası (SkinLibrary: rarity + id); "Varsayılan" YAYGIN bölümünün ilk kartı
-## (GAME_DESIGN §5.3: grid'in ilk kartı her zaman Varsayılan, seçilebilir).
-## Sıralar `HBoxContainer` (ortalı): eksik son sıra (EPİK 3+1, EFSANEVİ 2)
+## Galeri: en üstte "Varsayılan" taban görünüm şeridi (geniş kart, ORİJİNAL
+## rozeti; GAME_DESIGN §5.3: ilk seçenek her zaman Varsayılan, seçilebilir —
+## ama 20 koleksiyon skininden biri DEĞİL: YAYGIN plakasının ÜSTÜNDE, sayaca
+## girmez), sonra rarity başına bölüm plakası + 3 sütunlu kart sıraları
+## (katalog sırası: SkinLibrary rarity + id; YAYGIN Sade ile başlar). Sıralar
+## `HBoxContainer` (ortalı): eksik son sıra (YAYGIN 3+3+2, EPİK 3+1, EFSANEVİ 2)
 ## ortada durur, sağda boş yuva kalmaz (GridContainer bunu yapamaz).
 func _build_gallery() -> void:
 	_content.add_theme_constant_override("separation", SECTION_GAP)
@@ -427,6 +431,19 @@ func _build_gallery() -> void:
 		_content.add_child(section)
 		sections[rarity] = section
 	for entry in SkinEntry.all(true):
+		if entry.is_default():
+			var base := CollectionSkinCard.create(entry, true)
+			base.selected.connect(_on_card_selected)
+			_content.add_child(base)
+			_content.move_child(base, 0)
+			var gap := Control.new()
+			gap.custom_minimum_size = Vector2(0, HEADER_GAP)
+			gap.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			_content.add_child(gap)
+			_content.move_child(gap, 1)
+			_cards.append(base)
+			_card_by_id[String(entry.id)] = base
+			continue
 		var card := CollectionSkinCard.create(entry)
 		card.selected.connect(_on_card_selected)
 		var section: VBoxContainer = sections[entry.rarity]
