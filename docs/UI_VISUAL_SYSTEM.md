@@ -6,7 +6,7 @@
 **Asset kaynağı:** `tools/make_ui_core.py` → `assets/visual/ui/core/**` +
 `scripts/ui/ui_core_assets.gd` (üretilir, elle düzenlenmez).
 **Galeri:** `tools/ui_system_gallery.tscn` (dev-only, 5 sayfa).
-**Test:** `tools/ui_foundation_test.tscn` (164 kontrol), `tools/gameplay_shell_test.tscn` (147, §13), `tools/home_ui_test.tscn` (207, §14), `tools/map_ui_test.tscn` (127, §15), `tools/shop_ui_test.tscn` (199, §16), `tools/collection_ui_test.tscn` (162, §17).
+**Test:** `tools/ui_foundation_test.tscn` (164 kontrol), `tools/gameplay_shell_test.tscn` (147, §13), `tools/home_ui_test.tscn` (207, §14), `tools/map_ui_test.tscn` (127, §15), `tools/shop_ui_test.tscn` (199, §16), `tools/collection_ui_test.tscn` (164, §17).
 
 Çakışma kuralı: owner'ın son talimatı > GAME_DESIGN.md > bu doküman > kod.
 Bir sayı burada ve `ui_tokens.gd`'de farklıysa **doküman güncellenir, token
@@ -165,7 +165,13 @@ piksel sayarak seçildi: 58 px gövde **10/10** (mürekkep merkezi 26.5, pill
 26), 88 px CTA **14/16** (42 / 41.5). Yeni bir buton yüksekliği eklenirken
 aynı ölçüm tekrarlanır; gözle offset verilmez. Basış hissi `UiMotion.attach_press` (0.94 ölçek + `ui_tap` sesi) —
 `UiKit.button/icon_button/cta` bunu otomatik bağlar; ikinci bir animasyon
-sistemi YOK.
+sistemi YOK. **Aynı-kare koruması (M8.6-06.2 A36 kapısı):** basış ve bırakış
+aynı karede işlenirse press-in tween'i henüz adım atmamıştır (scale 1.0 ama
+tween canlı); `_press_out` yalnız scale'e bakıp erken dönerse buton 0.94'te
+asılı kalırdı (cihazda geri butonu ilk basıştan sonra kalıcı küçük kaldı).
+`_press_in` `ui_motion_pressed` meta'sını koyar, `_press_out` bu işaret
+varken her zaman yeniden başlatır (`collection_ui_test` aynı-kare tıklama
+kontrolü).
 
 Eski dev neon-mavi pill (`Button` varsayılanı, `CandyButton.CTA_*`) M8.5
 ekranlarında duruyor; **yeni ekranlarda kullanılmaz**, her yerde aynı
@@ -886,8 +892,17 @@ collection_skin_card.gd` (`CollectionSkinCard`, tek kart bileşeni),
 rarity_display_name/upper` (§8); `UiMotion.release`; `ShopScreen.focus_skin`
 (MAĞAZAYA GİT hedef karta kaydırır). **Tema:** `PanelCollectionCard`,
 `PanelCollectionCardLocked` (GENERATED). **Test:** `tools/collection_ui_test.
-tscn` (162 kontrol; 4 pencere + A36 payı, üç vitrin durumu, taban görünüm
-taksonomisi, kayıt byte-identical; bekçi + `_exit_tree` güvenlik ağı). **Çekim:** `tools/collection_shots.tscn -- <dir>
+tscn` (164 kontrol; 4 pencere + A36 payı, üç vitrin durumu, taban görünüm
+taksonomisi, aynı-kare basış/bırakış, kayıt byte-identical; bekçi +
+`_exit_tree` güvenlik ağı). **A36 cihaz kapısı geçti (06.2, 2026-09-17,
+`build/qa_m8.6-06/device/DEVICE_GATE_NOTES.md`):** native 1080×2340'ta üst
+satır cutout altında ve kaydırmada 0 px, ORİJİNAL şeridi / rarity dili /
+3 sütun / TAKILI okunur; karttan, sanattan, addan, kilitli karttan ve
+şeritten başlayan sürüklemeler kaydırır ve seçmez; seçim kayıt yazmaz, TAK
+tek yazma, Varsayılan TAK sayacı değiştirmez, 20/20 ödülsüz; Mağaza derin
+bağlantısı dört rarity'de hedefi gösterir. Tek cihaz kusuru (aynı-kare
+basış, yukarıda) `1c82f94` ile kapatıldı. Gözlem: Mağaza SATIN AL
+butonundan başlayan sürükleme kaydırmıyor (STOP; onaylı ekran, değişmedi). **Çekim:** `tools/collection_shots.tscn -- <dir>
 [GxY] [safe=61]` (20 durum × 4 boyut + A36; 16 için gerçek equip yolu koşar,
 kayıt sonda AYNEN geri yazılır). Eski `collection_album.*` ve `tab_bar.*`
 SİLİNDİ. Sanat üretilmedi; yeni asset yok.
