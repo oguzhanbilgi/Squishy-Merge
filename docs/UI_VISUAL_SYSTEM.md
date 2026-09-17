@@ -693,7 +693,7 @@ verisi, unlock/yıldız kuralı, fizik, skin, reklam politikası DEĞİŞMEDİ.
 
 ---
 
-## 16. Production Mağaza (M8.6-05 / 05.1 cila) — PRE-DEVICE VISUAL REVIEW
+## 16. Production Mağaza (M8.6-05 / 05.1 cila) — A36 CİHAZ KAPISI GEÇTİ (6baafbd)
 
 **Karar:** eski M8.5-10 mağazası (tam genişlik koyu satırlar, 72 px ikon,
 sağda neon pill, alt sekme çubuğu) "ayar listesi / dashboard" okunuyordu.
@@ -736,6 +736,25 @@ satır 48. Onay: sunum 190 (172'den), güç kuyusu 164/118, skin önizleme 184
 + rarity halesi; kurdele 60 px içeri çekildi ve kapat X'i krem halka + erik
 gölgeyle köşeye oturdu (`seat_modal_close`, yalnız Mağaza — paylaşılan
 `modal_frame` Mola/Bonus Sandık'ta değişmedi). QA: `build/qa_m8.6-05.1/`.
+
+**A36 cihaz kapısı (2026-09-17, 6baafbd ağacı, Samsung SM-A366B 1080×2340):**
+native'de üst satır punch-hole altında ve kaydırmada piksel-sabit, bölüm
+plakaları/kartlar/rarity halkaları/TAKILI–SAHİPSİN ayrımı okunur, +%17
+önizleme cihazda net kazanç (taç/fiyonk kırpılmadı), haze bandı α .94
+altında kart hayaleti ~%6 (kolda görünmez, değiştirilmedi); yavaş kaydırma +
+hızlı fling sonrası üst kare 0 px farklı, SATIN AL üstünden başlayan swipe
+onay açmadı, son sıra jest alanının 130 px üstünde; Legendary'de 10 s boşta
+yalnız pırıltı pikselleri değişti (PSS sabit). Geçici kayıtlarla: basılı
+durum, onay (X kurdeleye binmiyor), Android geri önce onayı kapatır, güç
+satın alma 335→215→35 (stok +1, tek transaction), stok 0 alınabilir
+(1350→1250), Hamur yetmiyor (35): onay yok + pembe plaka + kayıt md5 aynı,
+skin 1500→1350 + auto-equip yok + SAHİPSİN'e döner, SAHİPSİN/TAKILI
+dokunuşu hiçbir şey yapmaz, Legendary onayı; rotalar (Home madalyon / Home
+"+" / Harita "+" / Koleksiyon "Mağazaya Git" / eski sekme çubuğu) tek örnek.
+logcat: 0 SCRIPT ERROR / 0 E godot / 0 res:// / 0 shader / 0 FATAL / 0 ANR.
+Owner kaydı byte-identical geri kondu (md5 597d50ac…); doğrulama açılışı
+yalnız günlük ödülü yazdı (80→95, seri 4 — normal davranış). Cihaza özel
+kusur yok, kod değişmedi. Ayrıntı: `build/qa_m8.6-05.1/device/DEVICE_GATE_NOTES.md`.
 
 ### 16.1 Kompozisyon (720 tuval, yükseklik serbest)
 

@@ -313,10 +313,17 @@ alınacak — şimdi tahmin/vaat yok.
     madalyonuyla aynı yer); bölüm plakası dudak + parlama; onay sunumu 190,
     X kurdele kuyruğundan ayrıldı ve krem halkayla oturdu (yalnız Mağaza).
     Ekonomi/kayıt/equip/rotalar DEĞİŞMEDİ. `tools/shop_ui_test` 199/199;
-    QA `build/qa_m8.6-05.1/`.
+    QA `build/qa_m8.6-05.1/`. **A36 cihaz kapısı geçti (6baafbd,
+    2026-09-17):** debug APK 45.5 MB sızıntısız, native 1080×2340'ta üst
+    satır punch-hole altında, kartlar/rarity/TAKILI okunur, kaydırma ve
+    fling kararlı, onay X'i kurdeleye binmiyor; geçici kayıtlarla güç (335→215
+    →35, stok 0 → 1 dahil), skin (1500→1350, auto-equip yok) satın alma ve
+    Hamur yetmiyor yolu doğrulandı; owner kaydı byte-identical geri kondu;
+    logcat 0 SCRIPT ERROR / 0 E godot / 0 FATAL. Cihaza özel kusur YOK.
+    Owner manuel onayı + merge izni bekliyor (`build/qa_m8.6-05.1/device/`).
 - **Sırada: M8.6 — Visual Cohesion Rebuild** (ekranlar `UiKit`/`UiTokens`
   sistemine geçirilecek: ~~gameplay shell~~ ✅ → ~~home~~ ✅ → ~~map~~ ✅ →
-  ~~shop~~ 🔶 (owner görsel onayı + cihaz kapısı bekliyor) → collection →
+  ~~shop~~ ✅ cihazda doğrulandı, merge izni bekliyor → collection →
   result/reward/revive), ardından **M9 — Android export.** Ortam hazır (export template'leri, SDK,
   NDK, JDK 17, debug keystore mevcut, ETC2/ASTC import açık, iş
   makinesinde debug `export_presets.cfg` var — gitignore'lu, her makinede
