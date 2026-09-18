@@ -1047,7 +1047,7 @@ yok; "Ana Menüye Dön" onayı owner kararı.
 
 ---
 
-## 19. Pencere iskeleti v2 + Ayarlar + Günlük + Mola/Bonus Sandık cilası (M8.6-08) — PRE-DEVICE VISUAL REVIEW
+## 19. Pencere iskeleti v2 + Ayarlar + Günlük + Mola/Bonus Sandık cilası (M8.6-08) — A36 CİHAZ KAPISI GEÇTİ (3d682e6)
 
 **Kod:** `scripts/ui/ui_kit.gd` (`modal_shell`, `modal_relayout`,
 `modal_body_cap`, `set_modal_height_cap`, `attach_dim_close`, `settings_row`,
@@ -1181,7 +1181,36 @@ kalan; OYNA altlıkta. İlerleme kaynağı, rota, uygunluk DEĞİŞMEDİ. Not:
 sayacı `% 75` saklar, sandık aynı çağrıda verilir; sayaç 75'e ulaşmaz),
 mantık kusuru değil; dal güvenlik için duruyor.
 
-### 19.5 Taşınmayan yüzeyler (bilerek)
+### 19.5 A36 cihaz kapısı (M8.6-08.1, 2026-09-18, 3d682e6)
+
+Samsung SM-A366B, Android 16, native 1080×2340 (density 450, cutout 92 px):
+debug APK 45 579 140 B sızıntısız (build/tools/_visual_source/docs/md/py/zip/sh/
+kayıt/logcat 0; dört pencere + `modal_shell` / `StreakStrip` / `UiToggle`
+sembolleri paketlenmiş bytecode'da). Owner kaydı (670 B) yalnız görsel
+gezinmede kullanıldı — açılış, oyunun kendi kanonik günlük yolunu koştu
+(dünkü giriş → 5. GÜN, gerçek otomatik açılış cihazda görüldü), AL owner
+kaydında hiç basılmadı, sonda byte-identical geri kondu ve oyun bir daha
+açılmadı. Native bulgular: tepelik/oturmuş X/krem gövde keskin; Ayarlar
+Gizlilik açıkken metin + sürüm + Kapat panelde (4 aç/kapa döngüsünde panel
+üst kenarı 846/723 px sabit, kayma yok), anahtar dokunuşları yalnız
+`sfx_enabled` / `haptics_enabled` yazdı, sürükleyip bırakma anahtarı
+döndürmedi ve 0.94'te bırakmadı; X / Kapat / geri / OYNA üstüne karartma
+dokunuşu tek kapanış, Home'a sızma yok. Günlük: 1 / 4 / 12 (+5 rozeti
+kırpılmadı) / kırık seri durumları geçici kayıtlarla; claim yalnız açılış
+yolunda tam bir kez (+15, seri +1, tarih), AL basış görseli + kutlama +
+kapanış + Home yenileme, AL sonrası kayıt md5 aynı; sürükleyip bırakma claim
+etmedi; ikinci açılış "Bugünkü ödülünü aldın" + TAMAM, Hamur sabit;
+alınmış durumda yeniden açılış pencere açmadı; 10 s boşta metin/şerit/CTA
+0 px, yalnız kuyu sanatı süzülüyor, PSS 331→326 MB. Mola: geri / X / DEVAM ET
+devam, Yeniden Başlat / Ana Menüye Dön semantiği aynı; Bonus Sandık 10 / 49 /
+74; tek odak: karartma altındaki HUD butonları ikinci pencere açmıyor;
+Mağaza onayı cihazda değişmemiş. logcat: SCRIPT ERROR 0 / E godot 0 / res://
+0 / shader 0 / FATAL 0 / ANR 0. Cihaza özel kusur YOK, runtime değişmedi.
+Kapı sonrası masaüstü otomatik kapı 3d682e6'da ilk koşuda temiz.
+Kanıt: `build/qa_m8.6-08/device/` (20 zorunlu kare + ek kareler, 4 contact
+sheet, DEVICE_GATE_NOTES.md).
+
+### 19.6 Taşınmayan yüzeyler (bilerek)
 
 Round sonu (M8.6-09), Devam ve Refill (M8.6-10) hâlâ eski iskeletlerde;
 `CandyButton`, `panel_candy.png`, `ModalPanel`, `UiPalette` ve

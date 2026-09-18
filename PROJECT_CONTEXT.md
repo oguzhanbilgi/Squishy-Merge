@@ -383,8 +383,8 @@ alınacak — şimdi tahmin/vaat yok.
     Ayarlar + Günlük + kapat oturması → **M8.6-09** Round sonu + sandık reveal
     → **M8.6-10** Devam + Refill + M8.5 kalıntılarının emekliliği (her biri
     A36 kapılı). Ayrıntı: UI_VISUAL_SYSTEM §18. ui_foundation 164, ui_smoke 74.
-  - `M8.6-08` 🔶 **pencere iskeleti v2 + Ayarlar + Günlük + Mola/Bonus
-    Sandık cilası** (PRE-DEVICE VISUAL REVIEW, dal
+  - `M8.6-08` ✅ **pencere iskeleti v2 + Ayarlar + Günlük + Mola/Bonus
+    Sandık cilası** (DEVICE VERIFIED, dal
     `task/026-production-secondary-shell`, denetim 2470231 üzerine):
     `UiKit.modal_shell` (aynı krem gövde/gloss/parıltı malzemesi; kurdele YA
     DA gövde içi Baloo başlık + owner tepeliği; X **her zaman oturmuş** —
@@ -411,12 +411,21 @@ alınacak — şimdi tahmin/vaat yok.
     mantığı, kayıt şeması, ayar yazma yolu, mola eylemleri, sandık kuralı,
     ekonomi DEĞİŞMEDİ.** Round sonu / Devam / Refill dokunulmadı; CandyButton /
     panel_candy / UiPalette / eski ikon klasörü onlar için duruyor (M8.6-10).
-    **Telefon/ADB kullanılmadı; push/merge yok — owner görsel onayı + A36
-    kapısı bekliyor.** Ayrıntı: UI_VISUAL_SYSTEM §19.
+    **Owner masaüstü görsel onayı verildi; A36 cihaz kapısı geçti (M8.6-08.1,
+    2026-09-18, 3d682e6):** debug APK sızıntısız, native 1080×2340'ta dört
+    pencere keskin ve oturmuş X'li, Gizlilik taşması cihazda da yok, anahtarlar
+    yalnız kendi alanını yazdı, Günlük claim yalnız kanonik açılış yolunda tam
+    bir kez (AL yazmıyor, ikinci claim yok, otomatik açılış çift değil), Mola /
+    Sandık / Mağaza onayı rotaları aynı, tek odak kuralı dokunmayla aşılamıyor,
+    logcat 0 SCRIPT ERROR / 0 E godot / 0 FATAL / 0 ANR, owner cihaz kaydı
+    byte-identical geri kondu; cihaza özel kusur YOK, runtime değişmedi.
+    Dal push edildi — **merge izni bekliyor** (`build/qa_m8.6-08/device/`).
+    Ayrıntı: UI_VISUAL_SYSTEM §19.
 - **Sırada: M8.6 — Visual Cohesion Rebuild** (ekranlar `UiKit`/`UiTokens`
   sistemine geçirilecek: ~~gameplay shell~~ ✅ → ~~home~~ ✅ → ~~map~~ ✅ →
   ~~shop~~ ✅ → ~~collection~~ ✅ main'de → ~~ikincil UI denetimi~~ ✅ →
-  **M8.6-08 shell v2 + Ayarlar + Günlük 🔶 pre-device** → M8.6-09 Round sonu →
+  ~~M8.6-08 shell v2 + Ayarlar + Günlük~~ ✅ cihazda doğrulandı, merge izni
+  bekliyor → **M8.6-09 Round sonu** →
   M8.6-10 Devam/Refill), ardından **M9 — Android export.** Ortam hazır Ortam hazır (export template'leri, SDK,
   NDK, JDK 17, debug keystore mevcut, ETC2/ASTC import açık, iş
   makinesinde debug `export_presets.cfg` var — gitignore'lu, her makinede
