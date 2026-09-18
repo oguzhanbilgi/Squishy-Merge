@@ -559,6 +559,10 @@ func _group_refill() -> void:
 	await _open_refill(PowerUp.Type.UPGRADE)
 	await _capture("refill_09_upgrade_no_provider")
 	await _close_refill()
+	# 10 Sarsıntı (M8.6-10 before seti: dört gücün de stok 0 kahramanı).
+	await _open_refill(PowerUp.Type.SHAKE)
+	await _capture("refill_10_shake_no_provider")
+	await _close_refill()
 
 	_main.set_rewarded_provider(null)
 	_apply_showcase()
@@ -587,7 +591,7 @@ func _group_revive() -> void:
 	# 03 talep gönderildi (test çifti): "Reklam isteniyor…", buton pasif.
 	var stub := _StubProvider.new()
 	_main.set_rewarded_provider(stub)
-	_main._revive.show_offer(_main._board.revives_remaining(), _main._board.max_revives())
+	_main._revive.show_offer(_main._board.revives_remaining(), _main._board.max_revives(), true)
 	_main._revive._continue.pressed.emit()
 	await _settle()
 	await _capture("revive_03_requesting")

@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://dbbrhroo1u500"
-path="res://.godot/imported/cta_button_normal.png-2b97227b3c886d8ecdb3845a35246f34.ctex"
+uid="uid://dxgp08yku8urm"
+path="res://.godot/imported/icon_heart_revive.png-0a46b512f2c6eaafb1534b03fbe324e5.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/visual/ui/cta_button_normal.png"
-dest_files=["res://.godot/imported/cta_button_normal.png-2b97227b3c886d8ecdb3845a35246f34.ctex"]
+source_file="res://assets/visual/ui/icon_heart_revive.png"
+dest_files=["res://.godot/imported/icon_heart_revive.png-0a46b512f2c6eaafb1534b03fbe324e5.ctex"]
 
 [params]
 

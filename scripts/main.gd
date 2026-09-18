@@ -263,6 +263,14 @@ func _notification(what: int) -> void:
 	# Sonuç ekranı karar bekler: geri tuşu yok sayılır (mola açılmaz, çıkılmaz).
 	if _result != null and _result.visible:
 		return
+	# Stok 0 refill penceresi terminal DEĞİL: geri = Kapat (hiçbir şey alınmaz,
+	# oyun kaldığı yerden sürer) — diğer terminal olmayan pencerelerle aynı
+	# (M8.6-07 denetiminin tek boşluğu, M8.6-10'da kapandı). Devam teklifi
+	# ise karar bekler: aşağıda open_pause_menu fail-pending'de çıkar → yok
+	# sayılır (ölü board'a dönüş / çıkış / sonuç atlama yok).
+	if _refill != null and _refill.visible:
+		_on_refill_closed()
+		return
 	# Oyun sırasında: uygulama KAPANMAZ, mola penceresi açılır/kapanır.
 	if _board != null and is_instance_valid(_board):
 		if _pause.visible:
@@ -391,10 +399,23 @@ func _clear_board() -> void:
 # yalnızca "ödül kazanıldı" callback'i çağırmalıdır. "Reklam kapandı"
 # callback'i devam DEĞİLDİR — kapanma ödülsüz de olabilir.
 
+## Sağlayıcı gerçekten bağlı ve ödüllü devam gösterebiliyor mu? Pencere buna
+## göre DEVAM ET'i açar ya da pasif + sebepli gösterir (M8.6-10): sağlayıcı
+## yokken çalışacakmış gibi duran bir reklam butonu yok.
+func _revive_provider_ready() -> bool:
+	return (_rewarded_provider != null
+		and _rewarded_provider.has_method("show_rewarded_revive"))
+
+
 ## Board devam teklifi açtı: round HENÜZ BİTMEDİ, hiçbir ödül/sonuç akışı
 ## çalışmadı.
 func _on_revive_offered(remaining: int) -> void:
-	_revive.show_offer(remaining, _board.max_revives())
+	# Board aynı karede terk edilmiş olabilir (queue_free sonrası son fizik
+	# adımı): ölü board için teklif açılmaz (harness'ta görüldü; production
+	# yolları board'u yalnız duraklatılmışken siler).
+	if _board == null or not is_instance_valid(_board):
+		return
+	_revive.show_offer(remaining, _board.max_revives(), _revive_provider_ready())
 
 
 ## Oyuncu ödüllü CTA'ya bastı.
@@ -403,8 +424,7 @@ func _on_revive_offered(remaining: int) -> void:
 ## yaptığı şey oyuncuya durumu söylemek. Sahte reklam oynatmak ya da bedava
 ## devam vermek bilinçli olarak YAPILMIYOR (GAME_DESIGN.md §11).
 func _on_rewarded_revive_requested() -> void:
-	if _rewarded_provider != null \
-			and _rewarded_provider.has_method("show_rewarded_revive"):
+	if _revive_provider_ready():
 		_rewarded_provider.call("show_rewarded_revive", self)
 		return
 	notify_rewarded_unavailable("Ödüllü reklam henüz bağlı değil.")

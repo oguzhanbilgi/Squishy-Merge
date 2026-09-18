@@ -165,6 +165,7 @@ static func cta(title: String, subtitle: String = "",
 		var picto := icon(icon_role, UiTokens.ICON_MEDIUM, text_color)
 		picto.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 		row.add_child(picto)
+		node.set_meta(&"picto", picto)
 	var column := VBoxContainer.new()
 	column.alignment = BoxContainer.ALIGNMENT_CENTER
 	column.add_theme_constant_override("separation", -6)
@@ -183,8 +184,29 @@ static func cta(title: String, subtitle: String = "",
 		var sub := label(subtitle, &"LabelCaption", HORIZONTAL_ALIGNMENT_CENTER)
 		sub.add_theme_color_override("font_color", Color(text_color, 0.8))
 		column.add_child(sub)
+		node.set_meta(&"subtitle_label", sub)
 	UiMotion.attach_press(node)
 	return node
+
+
+## Kahraman CTA'nin pasif/aktif durumu (M8.6-10). Godot `font_disabled_color`
+## yalniz `Button.text`e uygulanir, `cta()`'nin cocuk etiketlerine ve
+## pictosuna DEGIL: pasif bir CTA'nin yazisi tam kontrastta kalir ve buton
+## basilabilir gorunurdu (M8.5 candy CTA `refresh_cta` ile ayni sebep).
+## Govde temadan (DISABLED lavanta-gri), yazi/picto TEXT_DISABLED (koyu,
+## ~4.8:1 — sebep yazisiyla birlikte okunur kalir).
+static func set_cta_enabled(button: Button, enabled: bool) -> void:
+	button.disabled = not enabled
+	if not button.has_meta(&"title_label"):
+		return
+	var variation: StringName = button.theme_type_variation
+	var text_color: Color = theme().get_color("font_color", variation) if enabled 		else theme().get_color("font_disabled_color", variation)
+	(button.get_meta(&"title_label") as Label).add_theme_color_override("font_color", text_color)
+	if button.has_meta(&"subtitle_label"):
+		(button.get_meta(&"subtitle_label") as Label).add_theme_color_override(
+			"font_color", Color(text_color, 0.8))
+	if button.has_meta(&"picto"):
+		(button.get_meta(&"picto") as TextureRect).self_modulate = text_color
 
 
 # --- Paneller ----------------------------------------------------------------

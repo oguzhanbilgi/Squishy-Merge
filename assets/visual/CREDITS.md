@@ -424,8 +424,8 @@ godot --headless --path . --script res://tools/make_owner_sprites.gd
 | dosya | kaynak | boyut | nerede |
 |---|---|---|---|
 | `ui/board_background.png` | `bg_scene.png` (941×1672) | 720×1280 | Oyun ekranı zemini |
-| `ui/panel_candy.png` | `panel_frame.png` (kırpıldı) | 720×692 | Devam + refill pencereleri |
-| `ui/panel_candy_crown.png` | `panel_frame.png` (kırpıldı) | 338×140 | Aynı pencerelerin tepesi |
+| ~~`ui/panel_candy.png`~~ | `panel_frame.png` (kırpıldı) | 720×692 | **EMEKLİ (M8.6-10):** Devam + refill pencereleri `UiKit.modal_shell`e geçti, dosya repodan kaldırıldı |
+| `ui/panel_candy_crown.png` | ~~`panel_frame.png` (kırpıldı)~~ → M8.5-08'den beri `panel_header_winged_heart_crown.png` (`tools/make_gameplay_art.py`) | 1024×328 | Pencere tepeliği (`UiKit.modal_shell`) |
 
 ### Oyun zemini karartılıyor — kaynak GÜNDÜZ sahnesi
 
@@ -622,11 +622,11 @@ python tools/make_gameplay_art.py
 | `ui/power_upgrade.png` | `power_upgrade_icon.png` | 256×256 | Aynı |
 | `ui/power_clear.png` | `power_cleaner_icon.png` | 256×256 | Aynı |
 | `ui/power_shake.png` | `power_icons_bomb_upgrade_shake_sheet.png` (x 1408-2030 kesit) | 256×256 | Aynı |
-| `ui/power_button_normal.png` | `button_blue_states_normal_selected.png` (sol) | 480×240 | Güç çubuğu butonu |
-| `ui/power_button_selected.png` | Aynı sheet (sağ) | 480×240 | Seçili güç |
-| `ui/power_button_disabled.png` | `button_grey_disabled.png` | 480×240 | Çubuk kapalıyken |
-| `ui/cta_button_normal.png` | `button_blue_states_normal_selected.png` (sol) | 620×120 | Pencere CTA'ları |
-| `ui/cta_button_disabled.png` | `button_grey_disabled.png` | 620×120 | Pasif CTA |
+| ~~`ui/power_button_normal.png`~~ | `button_blue_states_normal_selected.png` (sol) | 480×240 | **EMEKLİ (M8.6-10):** güç çubuğu M8.6-02'de `UiKit.power_slot`a geçti; dosya kaldırıldı |
+| ~~`ui/power_button_selected.png`~~ | Aynı sheet (sağ) | 480×240 | EMEKLİ (M8.6-10) |
+| ~~`ui/power_button_disabled.png`~~ | `button_grey_disabled.png` | 480×240 | EMEKLİ (M8.6-10) |
+| ~~`ui/cta_button_normal.png`~~ | `button_blue_states_normal_selected.png` (sol) | 620×120 | **EMEKLİ (M8.6-10):** Devam/Refill CTA'ları `UiKit.cta` / `ButtonPrimary` / `ButtonPurchase`; dosya kaldırıldı |
+| ~~`ui/cta_button_disabled.png`~~ | `button_grey_disabled.png` | 620×120 | EMEKLİ (M8.6-10) |
 | `ui/board_background_night.png` | `gameplay_background_candy_night.png` | 941×1672 | Oyun ekranı zemini |
 | `ui/board_wall_bamboo.png` | `board_wall_bamboo_vertical.png` (x 469-560 kesit) | 64×1080 | Kap duvarları |
 | `ui/board_floor_bamboo.png` | `board_floor_bamboo_horizontal.png` | 1024×269 | Kap tabanı |
@@ -660,7 +660,15 @@ krem bambu sütunu kesildi (x 469-560).
 | `panel_frame_candy_modal.png` | 2.5:1 başlık şeridi; modal GÖVDESİ değil. Mevcut `ui/panel_candy.png` (1.04:1) pencere dikdörtgenine gerilebiliyor, bu gerilseydi köşe yıldızları ezilirdi |
 | `ui/board_background.png` | M8.5-07'nin karartılmış GÜNDÜZ zemini. Gece varyantı geldiği için runtime'da artık KULLANILMIYOR; dosya silinmedi (owner asset'i, `make_owner_sprites.gd` hâlâ üretiyor) |
 
-## Production UI kabuğu — Free Casual GUI ikonları (M8.5-10)
+## Production UI kabuğu — Free Casual GUI ikonları (M8.5-10) — EMEKLİ (M8.6-10)
+
+> **Durum (M8.6-10):** bu 14 türev ikon (`assets/visual/ui/icons/`) ve
+> türetme aracı (`tools/make_pack_icons.gd`) repodan **kaldırıldı**. Tek
+> runtime tüketicisi `UiPalette` (M8.5 kabuğu) idi; M8.6 production ekranları
+> aynı rolleri LayerLab beyaz picto setinden (`assets/visual/ui/core/icons/`,
+> `UiKit.icon`) alıyor. Aşağıdaki tablo ve lisans notu tarihçe için duruyor;
+> Unity Asset Store EULA endişesi (ham paketin dağıtımı) bu paketten türeyen
+> hiçbir dosya artık üründe olmadığı için kapandı.
 
 Kaynak: **"Free Casual GUI"** — Unco Games Studio, Unity Asset Store
 (ücretsiz). Owner tarafından indirildi:

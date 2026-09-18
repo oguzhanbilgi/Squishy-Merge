@@ -17,11 +17,12 @@ isleri yapiyor. Buradaki iki is onun yapamayacagi turden:
    kanali kontrol edilerek dogrulandi. Desene ve yaprak susune degmeyen
    temiz sutun araligi olculerek kesiliyor (bkz. WALL_CROP).
 
-2. Buton pill'lerini ortak orana getirmek. Uc durumun kaynak orani farkli
-   (normal 2.45 / secili 2.30 / pasif 3.01); duz gerilseler uclardaki
-   yildiz susleri durum degistikce sekil degistirirdi. Surekli bir sutun
-   haritasiyla olcek yildiz kapaklarinda tam 1:1 kaliyor, farkin tamami
-   pill'in duz orta seridinde soguruluyor (bkz. set_aspect).
+2. (EMEKLI — M8.6-10) Buton pill'lerini ortak orana getirmek. M8.5-08'in
+   candy pill CTA'lari (`power_button_*` / `cta_button_*`) M8.6-02 ile
+   gameplay'den, M8.6-10 ile Devam/Refill pencerelerinden kalkti; production
+   artik UiKit (LayerLab 9-slice + palet) kullaniyor. Turetme kodu
+   (`body_crop` / `set_aspect` / `button`) referans olarak duruyor ama
+   artik cagrilmiyor ve dosya URETMIYOR.
 """
 from __future__ import annotations
 
@@ -151,11 +152,6 @@ def save(im: Image.Image, path: str) -> None:
 
 
 def main() -> None:
-    states = load("button_blue_states_normal_selected.png")
-    grey = load("button_grey_disabled.png")
-    normal = states.crop(BTN_NORMAL_CROP)
-    selected = states.crop(BTN_SELECTED_CROP)
-
     print("guc ikonlari ->")
     save(square(load("power_bomb_icon.png"), 256), os.path.join(UI, "power_bomb.png"))
     save(square(load("power_upgrade_icon.png"), 256), os.path.join(UI, "power_upgrade.png"))
@@ -164,12 +160,8 @@ def main() -> None:
     shake = load("power_icons_bomb_upgrade_shake_sheet.png").crop(SHAKE_CROP)
     save(square(shake, 256), os.path.join(UI, "power_shake.png"))
 
-    print("butonlar ->")
-    save(button(normal, POWER_SIZE), os.path.join(UI, "power_button_normal.png"))
-    save(button(selected, POWER_SIZE), os.path.join(UI, "power_button_selected.png"))
-    save(button(grey, POWER_SIZE), os.path.join(UI, "power_button_disabled.png"))
-    save(button(normal, CTA_SIZE), os.path.join(UI, "cta_button_normal.png"))
-    save(button(grey, CTA_SIZE), os.path.join(UI, "cta_button_disabled.png"))
+    # Candy pill butonlari (power_button_* / cta_button_*) M8.6-10'da emekli:
+    # uretilmiyor, kaynak sheet'ler yalnizca arsivde.
 
     print("kap / zemin ->")
     night = load("gameplay_background_candy_night.png").convert("RGB")

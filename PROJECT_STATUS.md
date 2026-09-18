@@ -1467,7 +1467,7 @@ squishy-merge/
 | `ui/skin_swatch.gd` | Skin önizlemesi (M8.5-13): final önizleme sanatı + rarity parıltısı; kilitli = `reveal_locked` ile final sanat + kilit (Koleksiyon/Mağaza, M8.6-06) ya da silüet; varsayılan = orijinal dumpling. |
 | `ui/ui_icons.gd` | HUD ikonlarının tek tanımı, BBCode `[img]` üretir. |
 | `ui/ui_type.gd` | Tipografi rol adları (M8.5-09). |
-| `ui/ui_palette.gd` | Tasarım sistemi: renkler, katmanlar, cip/ikon buton fabrikaları (M8.5-10). |
+| ~~`ui/ui_palette.gd`~~ | **Silindi (M8.6-10):** M8.5-10 tasarım sistemi; tek kaynak artık `ui_tokens.gd` + `ui_kit.gd`. |
 | `ui/ui_motion.gd` | Mikro-etkileşimler: basış, pop, pencere açılışı, sekme geçişi, toast (M8.5-10). |
 | `ui/ui_toggle.gd` | Ayarlar anahtarı (M8.5-10); `UiKit.switch_toggle` ile LayerLab ray/topuz; ScrollContainer içinde kaydırma başlayınca basış ölçeğini bırakır (M8.6-08). |
 | `ui/ui_kit.gd` | Production UI bileşen fabrikası (M8.6-01+): `modal_frame` (Mağaza onayı), **`modal_shell` iskelet v2** (kurdele/başlık+tepelik, oturmuş X, kaydırılan gövde + sabit altlık, tavan sistemi, `attach_dim_close`, `settings_row`) (M8.6-08). |
@@ -1475,7 +1475,9 @@ squishy-merge/
 | `ui/settings_panel.gd` | Ayarlar penceresi (M8.6-08 yeniden kurulum, shell v2): ses efektleri, titreşim (M8.5-15), gizlilik (gövdede açılır, taşmaz), sürüm; yalnız `set_sfx_enabled` / `set_haptics_enabled` yazar. |
 | `ui/daily_reward_popup.gd` | Günlük ödül penceresi (M8.6-08 yeniden kurulum, shell v2): yalnız gösterir; ödül `DailyReward.claim_if_new_day` ile Main yolunda yazılır; AL = kutlama → kapanış → Ana Sayfa yenileme. |
 | `ui/pause_menu.gd` / `ui/bonus_chest_info.gd` | Mola ve Bonus Sandık bilgi pencereleri — shell v2, oturmuş X (M8.6-08 cila; eylemler/kural değişmedi). |
-| `ui/candy_button.gd` | Owner'ın candy pill dokularının tek bağlanma noktası (oyun ekranı + pencereler). |
+| ~~`ui/candy_button.gd`~~ | **Silindi (M8.6-10):** M8.5-08 candy pill CTA'ları; son kullanıcıları Devam + Refill `UiKit`e geçti. Dokuları (`cta_button_*`, `power_button_*`, `panel_candy.png`) ve M8.5 ikon klasörü (`ui/icons/`) de kaldırıldı. |
+| `ui/revive_offer.gd` | Devam (revive) teklifi (M8.6-10 production yeniden kurulum, shell v2 + tepelik): DEVAM HAKKI plakası (iki kalp, `icon_heart_revive`), DEVAM ET kahraman / BİTİR; sağlayıcı yokken CTA pasif + sebep; talep kilidi; yalnız sinyal yayar, hak vermez. |
+| `ui/power_refill.gd` | Stok 0 refill penceresi (M8.6-10 production yeniden kurulum, shell v2 kurdele + X): güç sanatı kahraman + STOK ×0, ÖDÜLLÜ REKLAM / HAMURLA AL kartları, KAPAT; fiyat `PowerUpEconomy`, kota `RewardedPolicy`; yalnız sinyal yayar, stok/Hamur/kota'ya dokunmaz. |
 
 ### Geliştirme araçları (`tools/` — oyun çalışırken hiçbiri kullanılmaz)
 
@@ -1490,7 +1492,10 @@ squishy-merge/
 | `result_shots.gd` + `.tscn` | **Round sonu çekimleri** (M8.6-09): 31 kare (kazanma/kayıp, yıldızlar, 4 rarity Hamur + skin, geri düşüş, çoklu/5/6 ödül + kaydırma, L10, Sonsuz, retry/Harita basış) × pencere boyutu + A36; `only=` ile alt küme. `--headless` ile çalışmaz. |
 | `result_device.gd` + `.tscn` | **Cihaz kapısı sürücüsü** (M8.6-09.1): `result_shots`'ı miras alır, cihazda gerçek çözünürlükte her durumda DURUR (`user://qa_cmd.txt` komut kanalı, `user://qa_state.txt` durum/istatistik: kart sayısı, kaydırma, kare profili, yıldız/kart ms'leri, kayıt özeti). Komutlar: start/next/stats/scroll_top/scroll_end/dup_show/dup_finish/timeline/quit. Ek durumlar: D4 (4 ödül), R1/R2 (gerçek kanonik kazanma ve gerçek taşma → Devam → sonuç). **Ayrı pakette** (`…squishymerge.qa`) export edilir — owner kaydına dokunamaz. |
 | `make_result_art.py` | Owner kontur yıldızından yeniden boyanabilir `icon_star_empty_soft.png` türetir (M8.6-09). |
-| `make_pack_icons.gd` | Free Casual GUI SVG ikonlarını beyaz maske PNG'ye türetir. |
+| ~~`make_pack_icons.gd`~~ | **Silindi (M8.6-10):** Free Casual GUI ikon türetmesi; çıktı klasörü de kaldırıldı. |
+| `revive_refill_ui_test.gd` + `.tscn` | **Headless Devam + Refill testi** (M8.6-10, 266 kontrol): kaynak taraması (eski iskelet / yazma çağrısı yok, emeklilik kanıtı), devam durumları + işlem sınırı (talep tam bir kez, UI hak vermez, callback tam bir kez, sağlayıcısız pasif), Android geri + BİTİR→sonuç sırası, dört güç + kanonik fiyat + Hamur, ödüllü (sağlayıcı yok / bağlı / kota dolu / DÖRT gücün toplamı), satın alma tek transaction + çift basış, kapanış yolları (X/KAPAT/karartma/geri) kayda yazmaz, 5 yapılandırma, performans. Kaydı byte'ı geri koyar. |
+| `revive_refill_shots.gd` + `.tscn` | **Devam + Refill çekimleri** (M8.6-10): 17 durum (devam 2/2, 1/2, sağlayıcı yok, talep, 0/2, BİTİR geçişi, sonuç; refill Bomba yeterli/yetersiz, Büyütücü, Sarsıntı, Temizleyici, ödüllü uygun/kota dolu/sağlayıcı yok, SATIN AL basış/başarı) × pencere boyutu + A36; `only=` ile alt küme. `--headless` ile çalışmaz. |
+| `make_revive_art.py` | Owner kanatlı-kalp tepeliğinden izole kalp `icon_heart_revive.png` türetir (M8.6-10). |
 | `audio_test.gd` + `audio_test.tscn` | **Headless ses + titreşim davranış testi** (M8.5-15, 45 kontrol): eşleme, RNG izolasyonu, soğuma/tavan/öncelik, ayar kalıcılığı, haptik politikası. Kaydı kendi yedekler. |
 | `audio_qa.gd` + `audio_qa.tscn` | **Ses/titreşim QA sahnesi** (pencereli): her olay, rarity, güç, titreşim seviyesi, spam/stres düğmeleri; kanal ve atılan çağrı sayaçları. Production navigasyonunda yok. |
 | `audio_probe.gd` | Eşlenmiş her ses dosyasının süre / tepe dBFS / RMS / sessizlik / kırpma ölçümü (AudioEffectCapture, headless). |

@@ -108,7 +108,7 @@ func _clear() -> void:
 func _build_page(rarity: SkinData.Rarity) -> void:
 	_clear()
 	_label(Vector2(16, 10), "SKIN QA — %s  (tier 1 / 4 / 8 gameplay · sag: final onizleme)"
-		% RARITY_LABELS[rarity], 17, UiPalette.GOLD)
+		% RARITY_LABELS[rarity], 17, UiTokens.GOLD)
 	var skins: Array[SkinData] = SkinLibrary.by_rarity(rarity)
 	var y: float = TOP + 22.0
 	for skin in skins:
@@ -117,11 +117,11 @@ func _build_page(rarity: SkinData.Rarity) -> void:
 			var tier: int = TIERS[i]
 			var cell_x: float = CELL_W * i + CELL_W * 0.5
 			_place_visual(skin, tier, Vector2(cell_x, y + ROW_H * 0.5), DRAW_RADIUS[tier])
-			_label(Vector2(cell_x + 40.0, y + ROW_H * 0.72), "T%d" % tier, 11, UiPalette.TEXT_MUTED)
+			_label(Vector2(cell_x + 40.0, y + ROW_H * 0.72), "T%d" % tier, 11, UiTokens.TEXT_ON_DARK_MUTED)
 		_place_preview(skin, Vector2(CELL_W * 3.5, y + ROW_H * 0.5), PREVIEW_BOX)
 		y += ROW_H
 	# Referans: varsayilan gorunum (skin yok) ust sagda kucuk.
-	_label(Vector2(CELL_W * 3.0 + 4.0, 12.0), "varsayilan T4:", 11, UiPalette.TEXT_MUTED)
+	_label(Vector2(CELL_W * 3.0 + 4.0, 12.0), "varsayilan T4:", 11, UiTokens.TEXT_ON_DARK_MUTED)
 	_place_visual(null, 4, Vector2(CELL_W * 3.0 + 120.0, 24.0), 18.0)
 
 
@@ -129,7 +129,7 @@ func _build_page(rarity: SkinData.Rarity) -> void:
 ## okunurluk, tier 8 yuz/desen/maske detay kontrolu.
 func _build_tier_page(tier: int, zoom: float) -> void:
 	_clear()
-	_label(Vector2(16, 10), "SKIN QA — TIER %d (x%.2f buyutme, gercek boyut sagda)" % [tier, zoom], 17, UiPalette.GOLD)
+	_label(Vector2(16, 10), "SKIN QA — TIER %d (x%.2f buyutme, gercek boyut sagda)" % [tier, zoom], 17, UiTokens.GOLD)
 	var i: int = 0
 	var r: float = TierConfig.radius(tier)
 	for skin in SkinLibrary.all():
@@ -149,7 +149,7 @@ func _build_tier_page(tier: int, zoom: float) -> void:
 func _build_readability_page(ids: Array) -> Dictionary:
 	_clear()
 	_label(Vector2(16, 10), "SKIN QA — TIER OKUNURLUK (8 tier yan yana, gameplay x%.1f)" % READABILITY_ZOOM,
-		17, UiPalette.GOLD)
+		17, UiTokens.GOLD)
 	# Taban koordinat -> ekran px (canvas_items stretch, aspect expand).
 	var to_screen: Transform2D = get_viewport().get_final_transform()
 	var px_scale: float = to_screen.get_scale().x
@@ -166,7 +166,7 @@ func _build_readability_page(ids: Array) -> Dictionary:
 			var r: float = TierConfig.radius(tier) * READABILITY_ZOOM
 			var cx: float = x + r
 			_place_visual(skin, tier, Vector2(cx, cy), r)
-			_label(Vector2(cx - 8.0, cy + r + 2.0), "T%d" % tier, 11, UiPalette.TEXT_MUTED)
+			_label(Vector2(cx - 8.0, cy + r + 2.0), "T%d" % tier, 11, UiTokens.TEXT_ON_DARK_MUTED)
 			var screen_c: Vector2 = to_screen * Vector2(cx, cy)
 			cells.append({"tier": tier, "x": screen_c.x, "y": screen_c.y, "r": r * px_scale})
 			x += r * 2.0 + READABILITY_GAP

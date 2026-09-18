@@ -6,7 +6,7 @@
 **Asset kaynağı:** `tools/make_ui_core.py` → `assets/visual/ui/core/**` +
 `scripts/ui/ui_core_assets.gd` (üretilir, elle düzenlenmez).
 **Galeri:** `tools/ui_system_gallery.tscn` (dev-only, 5 sayfa).
-**Test:** `tools/ui_foundation_test.tscn` (164 kontrol), `tools/gameplay_shell_test.tscn` (147, §13), `tools/home_ui_test.tscn` (207, §14), `tools/map_ui_test.tscn` (127, §15), `tools/shop_ui_test.tscn` (212, §16), `tools/collection_ui_test.tscn` (164, §17), `tools/secondary_modal_ui_test.tscn` (102, §19), `tools/result_ui_test.tscn` (226, §20).
+**Test:** `tools/ui_foundation_test.tscn` (164 kontrol), `tools/gameplay_shell_test.tscn` (147, §13), `tools/home_ui_test.tscn` (207, §14), `tools/map_ui_test.tscn` (127, §15), `tools/shop_ui_test.tscn` (212, §16), `tools/collection_ui_test.tscn` (164, §17), `tools/secondary_modal_ui_test.tscn` (102, §19), `tools/result_ui_test.tscn` (226, §20), `tools/revive_refill_ui_test.tscn` (266, §21).
 
 Çakışma kuralı: owner'ın son talimatı > GAME_DESIGN.md > bu doküman > kod.
 Bir sayı burada ve `ui_tokens.gd`'de farklıysa **doküman güncellenir, token
@@ -174,9 +174,13 @@ asılı kalırdı (cihazda geri butonu ilk basıştan sonra kalıcı küçük ka
 varken her zaman yeniden başlatır (`collection_ui_test` aynı-kare tıklama
 kontrolü).
 
-Eski dev neon-mavi pill (`Button` varsayılanı, `CandyButton.CTA_*`) M8.5
-ekranlarında duruyor; **yeni ekranlarda kullanılmaz**, her yerde aynı
-`ButtonCTA`/`ButtonPrimary` ailesi.
+Eski dev neon-mavi pill (`Button` varsayılanı) ve M8.5-08 candy pill CTA'sı
+(`CandyButton`) **M8.6-10 ile runtime'dan tamamen kalktı** (son kullanıcıları
+Devam + Refill idi); her yerde aynı `ButtonCTA`/`ButtonPrimary`/
+`ButtonPurchase`/`ButtonSecondary` ailesi. Pasif kahraman CTA:
+`UiKit.set_cta_enabled(button, false)` — gövde temadan (DISABLED), iki satır
++ picto `TEXT_DISABLED` (Godot `font_disabled_color` çocuk etiketlere
+uygulanmaz; sebep yazısıyla birlikte okunur kalır, basılabilir görünmez).
 
 ---
 
@@ -193,8 +197,9 @@ ikonu, skin önizlemeleri, dumpling tier'ları, sandık, taç/yıldız/bayrak HU
 rozetleri, kanatlı kalp, logo. `UiKit.art(texture, box)` ile kutulanır.
 
 M8.5-10'daki 14 Free Casual GUI ikonu (`assets/visual/ui/icons/`, `UiPalette.ICON_*`)
-production ekranlarda hâlâ bağlı; M8.6 ekran işlerinde aynı roller picto
-setine geçirilir, sonra eski klasör kaldırılır.
+**M8.6-10'da repodan kaldırıldı** (tek tüketicisi `UiPalette` idi, o da emekli);
+bütün roller LayerLab picto setinden. Unity Asset Store EULA endişesi böylece
+kapandı (`assets/visual/CREDITS.md`).
 
 ---
 
@@ -1212,11 +1217,11 @@ sheet, DEVICE_GATE_NOTES.md).
 
 ### 19.6 Taşınmayan yüzeyler (bilerek)
 
-Round sonu M8.6-09'da taşındı (§20). Devam ve Refill (M8.6-10) hâlâ eski
-iskeletlerde; `CandyButton`, `panel_candy.png`, `ModalPanel`, `UiPalette` ve
-`assets/visual/ui/icons/` bu yüzden **silinmedi** (Ayarlar/Günlük/Round sonu
-artık kullanmıyor; tam emeklilik M8.6-10). Mağaza onayı `modal_frame`'de kaldı
-(cihazda onaylı; piksel eşdeğerliği kanıtlanmış olsa da göç için sebep yok).
+Round sonu M8.6-09'da (§20), Devam ve Refill M8.6-10'da (§21) taşındı — M8.5
+iskeleti kalmadı; `CandyButton`, `panel_candy.png`, `UiPalette`, candy pill
+dokuları ve `assets/visual/ui/icons/` M8.6-10'da **silindi** (§21.6). Mağaza
+onayı `modal_frame`'de kaldı (cihazda onaylı; piksel eşdeğerliği kanıtlanmış
+olsa da göç için sebep yok).
 
 ---
 
@@ -1422,3 +1427,151 @@ Harness notu (runtime kusuru değil): `RoundResult._clear_cards()` `_rewards`
 dizisini de temizlediği için, `show_result`'a sonucun **kendi** `_rewards`
 dizisi geri verilirse kart kalmaz; üretim yolunda `Main` her zaman
 `_collect_rewards`'tan taze dizi veriyor.
+
+---
+
+## 21. Production Devam (revive) + stok 0 Refill (M8.6-10) — PRE-DEVICE VISUAL REVIEW
+
+**Kod:** `scripts/ui/revive_offer.gd` + `scenes/ui/revive_offer.tscn` (katman 11),
+`scripts/ui/power_refill.gd` + `scenes/ui/power_refill.tscn` (katman 11),
+`scripts/ui/ui_kit.gd` (`cta` metaları `subtitle_label` / `picto` +
+`set_cta_enabled`), `scripts/main.gd` (`_revive_provider_ready`, `show_offer`'a
+sağlayıcı durumu, Android geri: Refill = Kapat), `tools/make_revive_art.py` →
+`assets/visual/ui/icon_heart_revive.png` (owner kanatlı-kalp tepeliğinden
+izole kalp; yeni sanat değil). **Test:** `tools/revive_refill_ui_test.tscn` (266).
+**Çekim:** `tools/revive_refill_shots.tscn -- <dir> [GxY] [safe=61] [only=01,08]`
+→ `build/qa_m8.6-10/` (before = M8.6-07 denetim harness'ı ile 15 durum × 5
+yapılandırma; after/final 17 durum × 5; contact sheet'ler; QA_NOTES).
+Tema **değişmedi** (yeni variation yok); `modal_shell` **değişmedi**.
+
+**Neydi (M8.6-07 denetimi, `build/qa_m8.6-10/before/`):** ikisi de M8.5-08
+candy paneli (`panel_candy.png` 600×650/770'e gerilmiş, Refill'de %34 dikey
+gerilme) + mavi yıldızlı `CandyButton` pill'leri: Devam'da "Bitir" ile "DEVAM
+ET" aynı pill (talep sırasında hiyerarşi tersine dönüyordu), Refill'de üç aynı
+CTA, 88 px güç ikonu, sağlayıcı yokken DEVAM ET aktif görünüp basınca "bağlı
+değil" diyordu, Android geri Refill'de yok sayılıyordu (tek boşluk).
+
+### 21.1 Devam — kompozisyon
+
+`modal_shell("DEVAM ETMEK İSTER MİSİN?", 560, heading, topper=true,
+closable=false)`: X YOK, karartma (α .62, STOP) dokunuşu KAPATMAZ, Android geri
+yok sayılır — karar penceresi, çıkış yalnız iki CTA'dan. Tepelik = owner kanatlı
+kalp (duygusal katman; Kazanma sonucundan daha güçlü değil: kontur/altın yok,
+tepelik 1.0×). Hero (sabit): Baloo 30 başlık (tek satır, testle) → `LabelBody`
+19 `TEXT_SECONDARY` "Taşan parçaları temizle, kaldığın yerden devam et." →
+**DEVAM HAKKI plakası** (`label_round` `CREAM_DEEP` + lavanta kontur + arkasında
+pembe α .16 hale): "DEVAM HAKKI" 13 → iki kalp 84 px (`icon_heart_revive`;
+kalan = renkli, kullanılmış = `Color(.62,.58,.72,.42)` soluk lavanta) → "2 / 2"
+`LabelStat` 22. Kalp sayısı = `GameBoard.max_revives()` (2); sahte üçüncü yuva
+yok; açılışta kalan kalpler 1.14 pop (tek seferlik). Altlık (sabit):
+`UiKit.cta("DEVAM ET", "Reklam izle", ButtonCTA, "movie")` → durum notu →
+`ButtonSecondary` "BİTİR".
+
+| durum | DEVAM ET | not |
+|---|---|---|
+| A/B hak var + sağlayıcı bağlı (test çifti) | cyan aktif | — |
+| D sağlayıcı yok (bugünkü production) | **pasif** (DISABLED gövde, TEXT_DISABLED yazı) | "Ödüllü reklam henüz bağlı değil." (uyarı) |
+| E talep gönderildi | pasif (kilitli) | "Reklam isteniyor…" (sakin) |
+| sağlayıcı "olmadı" | bağlıysa yeniden aktif (tekrar dene); değilse pasif | sağlayıcı mesajı |
+| C hak yok (0/2, savunma — runtime açmaz) | pasif | "Bu turdaki devam hakkın bitti." |
+
+`show_offer(remaining, max_revives, provider_ready)` — Main
+`_revive_provider_ready()` (sağlayıcı bağlı ve `show_rewarded_revive` var)
+verir. Talep yalnız `provider_ready and remaining > 0 and not pending` iken
+yayılır (çift dokunuş / çift talep yok). Devam **yalnız** sağlayıcının ödül
+callback'i → `Main.grant_revive` → `GameBoard.grant_revive` ile; pencere o
+anda kapanır (board aynı karede çözülür; ayrı "başarı geçişi" bilerek yok —
+oyun süresi yenmesin). Pencere kayda/ekonomiye dokunmaz (kaynak taraması).
+
+### 21.2 Refill — kompozisyon
+
+`modal_shell("STOK BİTTİ", 560, ribbon, topper=false, closable=true)`: oturmuş
+X, karartma bırakışı KAPATIR (diğer terminal olmayan pencereler gibi), KAPAT
+altlıkta, **Android geri = Kapat** (M8.6-07'nin tek boşluğu; kanıt: bütün
+terminal olmayan pencereler geri ile kapanıyor, Kapat yolu hiçbir şey
+tüketmiyor — `Main._on_refill_closed` → `exit_refill_pending(false)`;
+regresyon testi). Hero (sabit): `candy_well(güç sanatı, güç vurgu rengi, 156,
+112)` (Mağaza onayının sunumundan büyük — pencerenin konusu bu güç; dört güçte
+gerçek sanat, generic refill ikonu yok) → güç adı Baloo 28 → `LockBadge`
+"STOK ×0". Gövde (kaydırılan): iki **ayrı kimlikli** seçenek kartı
+(`card_bevel_soft` `CREAM_DEEP` + `frame_round20` lavanta halka; sol üstte
+küçük kuyu 60/38, Baloo 20 başlık + "+1 Bomba" satırı, durum satırı, gerekirse
+sebep notu, tam genişlik 58 px buton):
+
+| kart | kuyu | durum satırı | buton |
+|---|---|---|---|
+| ÖDÜLLÜ REKLAM | koyu lavanta + beyaz `movie` pictosu | "Bugünkü hakkın: 1/1" (nane; 0/1 uyarı) | `ButtonPrimary` cyan "REKLAM İZLE" + film |
+| HAMURLA AL | altın + owner Hamur sanatı | Hamur 24 + `LabelPrice` 22 "120 Hamur" · sağda "Bakiyen: 335" | `ButtonPurchase` nane "SATIN AL" |
+
+Pasif seçenek = pasif buton + kartın içinde kısa sebep: "Ödüllü reklam henüz
+bağlı değil." / "Bugünkü reklam hakkın doldu, yarın yenilenir." / "Reklam
+isteniyor…" / "Hamur yetersiz (10 Hamur'un var)." (bakiye de uyarı rengine
+döner). Sessiz başarısızlık yok. Altlık: sağlayıcı/işlem notu (Main'in
+`show_unavailable` mesajı) + `ButtonSecondary` KAPAT. Fiyat
+`PowerUpEconomy.price()` (100 / 120 / 160 / 180 — testle kilitli, UI'da sayı
+yok), kota `RewardedPolicy` (günde 1, **dört gücün toplamı**: Bomba'ya ödül →
+Büyütücü/Sarsıntı/Temizleyici 0/1, testle). Güç Paketi seam'i
+(`power_pack_requested`) bağlı değil, butonu yok (billing yok).
+
+**İşlem sınırı (değişmedi):** REKLAM İZLE → `rewarded_refill_requested` →
+Main token'lı talep → sağlayıcı → `Main.grant_rewarded_power(type, token)` →
+`RewardedPolicy.grant` (tek transaction). SATIN AL → `dough_refill_requested`
+→ `PowerUpEconomy.purchase` (tek transaction) → `_finish_refill` (kapanış +
+niyet geri dönüşü: hedefli güçte hedefleme yeniden açılır). Pencere stok
+vermez, Hamur düşmez, kota tüketmez, kayda yazmaz. Çift basış: reklam butonu
+cevap gelene kadar kilitli; SATIN AL tek sinyal (`_purchase_sent`, Main
+cevaplayınca sıfırlanır). Talep / sağlayıcı hatası / kapanış / geri kota
+tüketmez ve yazmaz (byte kontrolü).
+
+### 21.3 Responsive
+
+720×1280 / 720×1560 / 540×960 / 1080×2340 / A36 (720×1560 + safe 61): iki
+pencerede çerçeve + tepelik/kurdele ekranda ve güvenli payın altında, altlık
+çerçevede, CTA'lar ekranda, başlık tek satır, güç sanatı ≥ 96 px görünür, iki
+kart çerçevede (1280 tuvalde kaydırma gerekmiyor; refill doğal yükseklik ≈
+900 px). Devam ≈ 560 px.
+
+### 21.4 Performans
+
+Düğüm: Devam 37, Refill 83 (ağaç, CanvasLayer dahil). Sürekli tween yok
+(kalp pop / pencere açılışı tek seferlik; dinlenmede 0 çalışan tween, testle).
+Parçacık yok. `_process` yok.
+
+### 21.5 Sıra, geri tuşu, güvenlik
+
+fail → Devam → BİTİR / hak yok → `round_finished(false)` tam bir kez → 0.8 s →
+Sonuç (KAYIP); teklif aynı karede kapanır, sonuç teklifin altında hiç
+görünmez (testle). Hak bitince (2 devam) teklif AÇILMAZ (3. devam yok).
+Android geri: Devam açıkken yok sayılır (mola/çıkış/sonuç atlama yok);
+Refill açıkken Kapat; Refill kapalıyken oyun içi mola (değişmedi). Refill
+açıkken mola açılmaz, ikinci güç isteği yok sayılır, stoklu güç silahlanmaz,
+board donuk; fail-pending'de refill açılmaz.
+
+### 21.6 Eski M8.5 kabuğunun emekliliği
+
+Runtime tüketicisi kalmadığı kanıtlanıp (production `scripts/` + `scenes/`
+taraması, testle) **silindi:** `scripts/ui/candy_button.gd` (`CandyButton`),
+`scripts/ui/ui_palette.gd` (`UiPalette`), `assets/visual/ui/panel_candy.png`,
+`cta_button_normal/disabled.png`, `power_button_normal/selected/disabled.png`
+(hepsi yalnız `CandyButton`/`UiPalette` okuyordu), `assets/visual/ui/icons/`
+(14 Free Casual GUI türevi; tek tüketici `UiPalette`) ve türetme aracı
+`tools/make_pack_icons.gd`; `tools/make_gameplay_art.py` candy pill üretimini,
+`tools/make_owner_sprites.gd` `panel_candy` kırpımını bıraktı (CREDITS.md
+güncel). **Kalanlar (bilerek):** `panel_candy_crown.png` (modal tepeliği),
+`UiType` (`game_board.gd` "+N" uçan skor etiketi `UiType.CARD_TITLE` — gameplay
+görseline dokunulmadı), `UiIcons` (Home pill'leri / SkinSwatch kilidi),
+`ui_theme.tres` içindeki M8.5 rolleri (`Display` / `Stat` / `Caption` /
+`SecondaryButton` / `ModalPanel` …: `make_ui_theme.gd` GENERATED listesinde
+değil, temayı yeniden üretmeden silinemez — production kullanıcısı yalnız
+`UiType.CARD_TITLE`; ayrı bir tema temizliği adayı), M7 dönemi ölü owner
+asset'leri (`banner_new`, `ui_button_*`, `ui_panel`, `ui_star_*` — bu
+milestone'un konusu değil, owner kararı).
+
+### 21.7 Şimdilik yapılmayan
+
+Devam'da "başarı geçişi" (kalp pop / nane flaş) yok: kanonik `grant_revive`
+board'u aynı karede çözüyor, pencere beklerse oyun süresi yenir. Refill talebi
+açıkken KAPAT / geri hâlâ açık (M8.5-06 davranışı korundu): gerçek sağlayıcı
+bağlanınca "reklam yüklenirken kapatma → token iptali → izlenen reklam ödülsüz"
+riski sağlayıcı entegrasyonunda ele alınmalı (sağlayıcı iptalde reklamı
+göstermemeli ya da KAPAT bekleme sırasında kilitlenmeli — owner kararı).

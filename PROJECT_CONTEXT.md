@@ -468,12 +468,48 @@ alınacak — şimdi tahmin/vaat yok.
     değişiklik YAPILMADI (zaman çizelgesi kanıtı `build/qa_m8.6-09/device/`).
     Ayrıntı: UI_VISUAL_SYSTEM §20, cihaz notları
     `build/qa_m8.6-09/device/DEVICE_GATE_NOTES.md`.
+  - `M8.6-10` 🔶 **production Devam (revive) + stok 0 Refill + M8.5 kabuğu
+    emekliliği** (PRE-DEVICE VISUAL REVIEW, dal
+    `task/028-production-revive-refill`, main 306dea5 üzerine): son iki M8.5-08
+    candy paneli (`panel_candy` gerilmiş + mavi yıldızlı `CandyButton` pill'leri,
+    birincil = ikincil) kalktı. **Devam:** `modal_shell` 560 + owner kanatlı-kalp
+    tepeliği + "DEVAM ETMEK İSTER MİSİN?", DEVAM HAKKI plakası (owner
+    tepeliğinden türetilen `icon_heart_revive` × 2: kalan renkli / kullanılmış
+    soluk + "2 / 2", sahte yuva yok), cyan DEVAM ET kahraman (film pictosu,
+    "Reklam izle") / lavanta BİTİR; **sağlayıcı yokken DEVAM ET PASİF + "Ödüllü
+    reklam henüz bağlı değil."** (aktif görünüp reddeden buton yok), talep
+    açıkken kilitli ("Reklam isteniyor…"), X yok / karartma kapatmaz / Android
+    geri yok sayılır (değişmedi). **Refill:** pembe kurdele "STOK BİTTİ" +
+    oturmuş X, gücün GERÇEK sanatı 112 px candy kuyuda (gücün vurgu rengi) +
+    ad + "STOK ×0", iki ayrı kimlikli kart: ÖDÜLLÜ REKLAM (lavanta film kuyusu,
+    "Bugünkü hakkın: 1/1", cyan REKLAM İZLE) · HAMURLA AL (altın Hamur kuyusu,
+    "120 Hamur" + "Bakiyen: 335", nane SATIN AL); pasif seçenek = pasif buton +
+    kartta sebep; KAPAT; **Android geri artık Kapat** (M8.6-07'nin tek boşluğu,
+    regresyon testli). **Politika DEĞİŞMEDİ:** 2 devam/round (board sayacı),
+    devam yalnız ödül callback'i ile; ödüllü refill 1/gün DÖRT gücün toplamı,
+    yalnız `RewardedPolicy.grant` tüketir; fiyatlar `PowerUpEconomy` 100/120/
+    160/180 (UI'da sayı yok); tek transaction; pencereler kayda yazmaz; sahte
+    reklam / AdMob / billing YOK. **Emeklilik:** `CandyButton`, `UiPalette`,
+    `panel_candy.png`, `cta_button_*` / `power_button_*`, `assets/visual/ui/
+    icons/` (14 Free Casual GUI türevi — EULA endişesi kapandı) ve
+    `make_pack_icons.gd` silindi (production `scripts/`+`scenes/` taraması 0
+    referans, testle); `UiType` (game_board "+N"), `UiIcons`, tepelik ve
+    temadaki M8.5 rolleri kaldı (UI_VISUAL_SYSTEM §21.6). `UiKit.set_cta_enabled`
+    (pasif kahraman CTA'nın yazı/pictosu). `tools/revive_refill_ui_test`
+    266/266 (kaynak, devam durumları + işlem sınırı + geri + BİTİR→sonuç sırası,
+    dört güç + fiyat + Hamur, ödüllü + paylaşılan kota, satın alma tek
+    transaction + çift basış, kapanış yolları, 5 yapılandırma, performans);
+    refill 119, revive 120, secondary_modal 102, ui_foundation 165;
+    `tools/revive_refill_shots` 17 durum × 4 boyut + A36 (build/qa_m8.6-10/
+    before/after + contact sheet'ler). **Telefon/ADB kullanılmadı; owner görsel
+    onayı + A36 cihaz kapısı bekliyor.** Ayrıntı: UI_VISUAL_SYSTEM §21.
 - **Sırada: M8.6 — Visual Cohesion Rebuild** (ekranlar `UiKit`/`UiTokens`
   sistemine geçirilecek: ~~gameplay shell~~ ✅ → ~~home~~ ✅ → ~~map~~ ✅ →
   ~~shop~~ ✅ → ~~collection~~ ✅ main'de → ~~ikincil UI denetimi~~ ✅ →
   ~~M8.6-08 shell v2 + Ayarlar + Günlük~~ ✅ main'de → ~~M8.6-09 Round
-  sonu~~ ✅ A36 kapısı geçti, dal push edildi — **merge izni bekliyor** →
-  M8.6-10 Devam/Refill), ardından **M9 — Android export.** Ortam hazır Ortam hazır (export template'leri, SDK,
+  sonu~~ ✅ main'de → M8.6-10 Devam/Refill 🔶 PRE-DEVICE VISUAL REVIEW —
+  owner görsel onayı + A36 kapısı bekliyor), ardından **M9 — Android
+  export.** Ortam hazır (export template'leri, SDK,
   NDK, JDK 17, debug keystore mevcut, ETC2/ASTC import açık, iş
   makinesinde debug `export_presets.cfg` var — gitignore'lu, her makinede
   ayrı); eksik olan kalıcı paket adı ve release/upload keystore (uzun
@@ -541,7 +577,12 @@ alınacak — şimdi tahmin/vaat yok.
 - **Ödüllü reklam sağlayıcısı bağlı değil:** devam (revive) akışı uçtan uca
   çalışıyor ama `rewarded_revive_requested` sinyali boşta. AdMob SDK kurulumu
   ve `Main.set_rewarded_provider()` bağlanması ayrı bir iş. Sahte reklam ve
-  bedava devam bilinçli olarak YOK — bkz. GAME_DESIGN §11.6.
+  bedava devam bilinçli olarak YOK — bkz. GAME_DESIGN §11.6. **M8.6-10'dan
+  itibaren** Devam ve Refill pencereleri sağlayıcı yokken reklam CTA'sını
+  PASİF + sebepli gösteriyor (`Main._revive_provider_ready` /
+  `_power_provider_ready`); sağlayıcı bağlanınca aynı pencereler kod değişmeden
+  aktif olur. Sağlayıcı entegrasyonu için açık nokta: refill talebi
+  beklenirken KAPAT/geri token'ı iptal ediyor (UI_VISUAL_SYSTEM §21.7).
 - **Tipografi TAMAM (M8.5-09), production UI kabuğu TAMAM (M8.5-10):**
   bütün production ekranlar aynı font ailesinde ve aynı tasarım
   sisteminde (zemin/yüzey/kart/CTA/seçili/pasif katmanları, candy modal,
@@ -549,8 +590,9 @@ alınacak — şimdi tahmin/vaat yok.
   görsel borç: skin renkleri (aşağıda).
 - **Unity Asset Store paketi repoda DEĞİL:** `_visual_source/
   unity_free_casual_gui/` owner'ın makinesinde; EULA ham paketin yeniden
-  dağıtımına izin vermeyebilir. Türetilmiş 14 ikon `assets/visual/ui/icons/`
-  altında repoda. Owner paketi de eklemek isterse karar onun.
+  dağıtımına izin vermeyebilir. Türetilmiş 14 ikon (`assets/visual/ui/icons/`)
+  **M8.6-10'da üründen ve repodan kaldırıldı** (tek tüketici `UiPalette` idi);
+  runtime yalnız LayerLab picto setini okuyor. Paketten türeyen dosya kalmadı.
 - **Oyun ekranı asset'leri TAMAM (M8.5-08):** dört güç ikonu, buton
   durumları, gece zemini, bambu duvar/taban ve güç efektleri bağlandı.
   Oyun ekranında görünür placeholder kalmadı.

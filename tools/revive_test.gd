@@ -165,7 +165,9 @@ func _on_revive_offered(remaining: int) -> void:
 	_offered_remaining.append(remaining)
 	# Gercek akista bunu main.gd yapiyor; burada pencerenin de acildigini
 	# dogrulamak ve cekim alabilmek icin ayni bagi elle kuruyoruz.
-	_offer.show_offer(remaining, _board.max_revives())
+	# Saglayici "bagli" sayilir: bu test CTA talep / ret / tekrar deneme
+	# dongusunu kontrol ediyor (saglayicisiz durum revive_refill_ui_test'te).
+	_offer.show_offer(remaining, _board.max_revives(), true)
 
 
 func _on_revive_granted(_used: int, _remaining: int) -> void:
@@ -343,7 +345,7 @@ func _try_full_cycle() -> bool:
 	_offer.hide_offer()
 	await get_tree().process_frame
 	await _capture("r08_guc_bari_kapali.png")
-	_offer.show_offer(_board.revives_remaining(), _board.max_revives())
+	_offer.show_offer(_board.revives_remaining(), _board.max_revives(), true)
 	await get_tree().process_frame
 
 	# Guc butonlari fail-pending'de calismamali.

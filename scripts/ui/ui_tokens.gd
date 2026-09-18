@@ -13,8 +13,8 @@ extends RefCounted
 ## ikincil yuzeyler lavanta/erik; birincil CTA candy cyan; satin alma nane;
 ## vurgu candy pembe; premium altin (YALNIZ Legendary + onemli odul);
 ## pasif doygunlugu alinmis lavanta-gri. Tonlar owner asset'lerinden olculdu
-## (`UiPalette` ile ayni degerler — o dosya M8.5 kabugunun, bu dosya M8.6
-## sisteminin kaynagi; ikisi ayni sayilari tasir).
+## (M8.5 kabugunun palet dosyasi M8.6-10'da emekli oldu; tek kaynak burasi,
+## sayilar UI_VISUAL_SYSTEM §2 ile kilitli).
 
 # --- Dunya / zemin -----------------------------------------------------------
 const WORLD_INDIGO: Color = Color("0d153f")

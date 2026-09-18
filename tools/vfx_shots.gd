@@ -313,7 +313,7 @@ func _shot_revive_modal() -> void:
 	var modal: CanvasLayer = REVIVE_OFFER_SCENE.instantiate()
 	add_child(modal)
 	await get_tree().process_frame
-	modal.show_offer(2, 2)
+	modal.show_offer(2, 2, false)
 	for i in 6:
 		await get_tree().process_frame
 	await _capture("v12_devam_penceresi.png")

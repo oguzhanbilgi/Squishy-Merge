@@ -48,6 +48,9 @@ const MIGRATED_SOURCES: Array[String] = [
 	"res://scripts/ui/settings_panel.gd", "res://scripts/ui/daily_reward_popup.gd",
 	"res://scenes/ui/settings_panel.tscn", "res://scenes/ui/daily_reward_popup.tscn",
 	"res://scripts/ui/pause_menu.gd", "res://scripts/ui/bonus_chest_info.gd",
+	# M8.6-10: Devam + Refill de tasindi.
+	"res://scripts/ui/revive_offer.gd", "res://scenes/ui/revive_offer.tscn",
+	"res://scripts/ui/power_refill.gd", "res://scenes/ui/power_refill.tscn",
 ]
 
 var _fails: int = 0

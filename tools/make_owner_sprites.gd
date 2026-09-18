@@ -72,16 +72,11 @@ const UI_ITEMS: Array[Dictionary] = [
 	{"src": "bg_scene.png", "out": "board_background.png",
 		"exact": Vector2i(720, 1280), "crop": false},
 
-	# Candy panel — TAC AYRI DOSYAYA cikiyor. Tek parca birakilsaydi
-	# panelin en/boy orani degistiginde tac da ezilirdi; ayri katman olarak
-	# panelin ustune ortalaniyor.
-	# Kirpilan bolge olculdu (tools/_panel_probe): icerik x 247..1200,
-	# y 17..1066; cercevenin duz ust kenari y=131'de basliyor ama tacin
-	# tabani y=150'ye kadar tasiyor, kesim oradan yapiliyor.
-	{"src": "panel_frame.png", "out": "panel_candy.png",
-		"region": Rect2i(247, 150, 954, 917), "width": 720},
-	{"src": "panel_frame.png", "out": "panel_candy_crown.png",
-		"region": Rect2i(556, 12, 338, 140), "width": 338},
+	# Candy panel (`panel_candy.png`, panel_frame.png'den kirpim) M8.6-10'da
+	# EMEKLI: Devam/Refill pencereleri UiKit.modal_shell'e gecti, dokuya
+	# okuyan kalmadi. Tepelik (`panel_candy_crown.png`) ise M8.5-08'den beri
+	# tools/make_gameplay_art.py'den (panel_header_winged_heart_crown.png,
+	# 1024x328) uretiliyor — buradaki eski 338x140 kirpim da kaldirildi.
 ]
 
 ## --- Android adaptive icon katmanlari ---

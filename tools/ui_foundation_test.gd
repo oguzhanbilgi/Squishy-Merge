@@ -221,10 +221,16 @@ func _ready() -> void:
 		and UiTokens.RARITY_RARE == SkinData.rarity_color(SkinData.Rarity.RARE)
 		and UiTokens.RARITY_EPIC == SkinData.rarity_color(SkinData.Rarity.EPIC)
 		and UiTokens.RARITY_LEGENDARY == SkinData.rarity_color(SkinData.Rarity.LEGENDARY))
-	_c("UiTokens paleti UiPalette ile ayni (cyan/pembe/nane/altin/krem)",
-		UiTokens.CYAN == UiPalette.CYAN and UiTokens.PINK == UiPalette.PINK
-		and UiTokens.MINT == UiPalette.MINT and UiTokens.GOLD == UiPalette.GOLD
-		and UiTokens.CREAM == UiPalette.CREAM and UiTokens.LAVENDER == UiPalette.LAVENDER)
+	# M8.6-10: UiPalette (M8.5 kabugu) emekli; owner asset'lerinden olculen
+	# tonlar artik yalniz UiTokens'ta (UI_VISUAL_SYSTEM §2 ile kilitli).
+	_c("UiTokens paleti owner tonlarinda (cyan/pembe/nane/altin/krem/lavanta)",
+		UiTokens.CYAN == Color("5eddf9") and UiTokens.PINK == Color("f06aa8")
+		and UiTokens.MINT == Color("6ddc8b") and UiTokens.GOLD == Color("ffd166")
+		and UiTokens.CREAM == Color("fcf7ec") and UiTokens.LAVENDER == Color("c694fa"))
+	_c("UiPalette / CandyButton / M8.5 ikon klasoru runtime'dan kalkti",
+		not FileAccess.file_exists("res://scripts/ui/ui_palette.gd")
+		and not FileAccess.file_exists("res://scripts/ui/candy_button.gd")
+		and not DirAccess.dir_exists_absolute("res://assets/visual/ui/icons"))
 	_c("dokunma hedefi: compact >= 44, TOUCH_MIN = 48 <= normal",
 		UiTokens.HEIGHT_COMPACT >= 44 and UiTokens.TOUCH_MIN == 48
 		and UiTokens.HEIGHT_NORMAL >= UiTokens.TOUCH_MIN)
