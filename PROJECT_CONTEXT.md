@@ -421,11 +421,43 @@ alınacak — şimdi tahmin/vaat yok.
     byte-identical geri kondu; cihaza özel kusur YOK, runtime değişmedi.
     Dal push edildi — **merge izni bekliyor** (`build/qa_m8.6-08/device/`).
     Ayrıntı: UI_VISUAL_SYSTEM §19.
+  - `M8.6-09` 🔶 **production Round sonu / level tamam / kayıp / ödül reveal**
+    (PRE-DEVICE VISUAL REVIEW, dal `task/027-production-round-result`, main
+    2f74a3d üzerine): oyundaki son koyu M8.5-10 sayfası (yarı saydam lacivert
+    panel — HUD plakası içinden okunuyordu —, 80 px sandık satırları, İngilizce
+    rarity, gerilmiş banner, neon buton + "Level listesi", yalnız aşağı büyüyen
+    kutu) kalktı. Tek bileşen üç mod (`UiKit.modal_shell` 600, X yok, **sabit
+    `hero`** + kaydırılan `body` + sabit altlık): **WIN** tepelik ×1.18 + altın
+    kontur + gövde içi altın kurdele "LEVEL 4 TAMAM!" + yay üstünde üç owner
+    yıldızı (0.2 s arayla pop + pırıltı) + yeni kilit rozeti (yalnız bu round
+    açtıysa; L10'da "SONSUZ MOD AÇILDI") + **HARİTA** kahraman CTA / TEKRAR OYNA;
+    **FAIL** lavanta kurdele "OLMADI", üç yumuşak lavanta kontur yıldız (türev
+    `icon_star_empty_soft`), teşvik satırı (ulaşılan tier'a göre), **TEKRAR
+    DENE** kahraman / HARİTA; **ENDLESS** "YENİ REKOR!" (altın) / "TUR BİTTİ",
+    skor kahraman çipi, REKOR çipi, TEKRAR OYNA / HARİTA. `ResultRewardCard`
+    (528×128; skin 176): owner sandığı kapalı→açık (`RewardGem` kalibre
+    katmanları), Türkçe rarity etiketi, "+25 HAMUR"; **skin kartında** sandık
+    söner ve GERÇEK final sanat 140 px krem kaidede pop'lar + pembe "YENİ SKİN"
+    + "Koleksiyon'a eklendi"; geri düşüş "+60 HAMUR" + "Epik skinlerin tamamı
+    sende" (skin verildi denmez, iç terim yok); teselli sandıksız lavanta kuyu.
+    Altlık çipleri SKOR · HEDEF (+skor satırı) · HAMUR (kanonik bakiyeye sayarak
+    varır). 5+ ödülde gövde kaydırılır, altlık/CTA sabit, kartlar dokunma hedefi
+    değil (sürükleme kaydırır). Karartma α .74. Main: `show_result`'a salt-okunur
+    `newly_unlocked` / `reached_tier`; RESULT_DELAY aralığında mola kilidi
+    (eskiden açılan mola sonucu haritanın üstünde bırakabiliyordu). **Yazım
+    yolu, sandık kuralı, teselli, yıldız formülü, rotalar, Android geri (yok
+    sayılır), devam/refill DEĞİŞMEDİ**; sonuç ağacı kayda yazmaz (kaynak
+    taraması + byte kontrolü). `tools/result_ui_test` 226/226 (yapı, kazanma,
+    kayıp, ödüller, 6 ödül taşma + sürükleme, kayıt güvenliği + gerçek kayıp
+    yolu, rotalar, L10/Sonsuz, devam sırası, 5 yapılandırma, performans);
+    `tools/result_shots` 31 kare × 4 boyut + A36 (build/qa_m8.6-09/ before/after
+    + 11 contact sheet). **Telefon/ADB kullanılmadı, push/merge yok — owner
+    görsel onayı + A36 cihaz kapısı bekliyor.** Ayrıntı: UI_VISUAL_SYSTEM §20.
 - **Sırada: M8.6 — Visual Cohesion Rebuild** (ekranlar `UiKit`/`UiTokens`
   sistemine geçirilecek: ~~gameplay shell~~ ✅ → ~~home~~ ✅ → ~~map~~ ✅ →
   ~~shop~~ ✅ → ~~collection~~ ✅ main'de → ~~ikincil UI denetimi~~ ✅ →
-  ~~M8.6-08 shell v2 + Ayarlar + Günlük~~ ✅ cihazda doğrulandı, merge izni
-  bekliyor → **M8.6-09 Round sonu** →
+  ~~M8.6-08 shell v2 + Ayarlar + Günlük~~ ✅ main'de → ~~M8.6-09 Round
+  sonu~~ 🔶 PRE-DEVICE (owner görsel onayı + A36 kapısı bekliyor) →
   M8.6-10 Devam/Refill), ardından **M9 — Android export.** Ortam hazır Ortam hazır (export template'leri, SDK,
   NDK, JDK 17, debug keystore mevcut, ETC2/ASTC import açık, iş
   makinesinde debug `export_presets.cfg` var — gitignore'lu, her makinede

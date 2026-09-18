@@ -1821,6 +1821,18 @@ func is_fail_pending() -> bool:
 	return _is_fail_pending
 
 
+## Round kesin bitti mi (`_finish` çağrıldı; sonuç ekranı RESULT_DELAY sonra
+## açılır). Main bu aralıkta mola açmaz (M8.6-09).
+func is_finished() -> bool:
+	return _is_finished
+
+
+## Bu round'da ulaşılan en yüksek tier — sonuç ekranının kayıp notu için
+## ("Hedefe çok yaklaştın"). Yalnız okuma; kayda gitmez.
+func max_tier_reached() -> int:
+	return _max_tier_reached
+
+
 ## Taşma grace'i doldu. Hak varsa teklif, yoksa kesin kayıp.
 func _trigger_overflow_fail() -> void:
 	if _is_finished or _is_fail_pending:

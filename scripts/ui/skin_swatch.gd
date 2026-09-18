@@ -56,6 +56,14 @@ func _init() -> void:
 	resized.connect(_layout)
 
 
+## Ağaç dışında `setup` çağrılıp sonra eklenen örnek (M8.6-09 sonuç kartı):
+## offset'ler ağaç dışında `resized` yaymaz, katmanlar 0 boyutta kalırdı.
+## Girişte gerçek boyutla bir kez yerleşir (ağaç içinde kurulanlar için
+## zararsız tekrar).
+func _ready() -> void:
+	_layout()
+
+
 ## `reveal_locked` (M8.5-14 polish): kilitli skin'de silüet yerine FİNAL
 ## önizlemeyi göster, kilit rozeti kalsın. Mağaza (satın alınan şey
 ## görünmeli — 900 Hamur'luk Legendary "?" olarak satılmaz) ve koleksiyon

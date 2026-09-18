@@ -31,7 +31,8 @@ const RARITY_FX: Array[Dictionary] = [
 	{"glow": 0.62, "ring": 0.95, "rays": 0.60, "spark": 20, "pulse": 0.08},
 ]
 
-## Görselin kutu ölçüsü. Parıltı ve ışınlar bunun DIŞINA taşar.
+## Görselin varsayılan kutu ölçüsü. Parıltı ve ışınlar bunun DIŞINA taşar.
+## M8.6-09: `setup(reward, size)` ile kart başına farklı ölçü (sonuç kartı 88).
 const GEM_SIZE: float = 80.0
 
 var _fx: Dictionary
@@ -42,6 +43,11 @@ var _rays: TextureRect
 var _hidden_layers: Array[Dictionary] = []
 var _sparks: CPUParticles2D
 var _opened: bool = false
+## Bu örneğin kutu ölçüsü (`setup` ile).
+var gem_size: float = GEM_SIZE
+## Açılışta başlayan döngüler (`settle` durdurur).
+var _spin_tween: Tween = null
+var _pulse_tween: Tween = null
 
 
 ## Teselli ödülü her zaman en sönük katmanı kullanır — kaybedilen round'un
@@ -50,24 +56,26 @@ static func fx_level(reward: ChestReward) -> int:
 	return 0 if reward.is_consolation else int(reward.rarity)
 
 
-func setup(reward: ChestReward) -> void:
+func setup(reward: ChestReward, size: float = GEM_SIZE) -> void:
 	_fx = RARITY_FX[fx_level(reward)]
 	_tint = reward.color()
-	custom_minimum_size = Vector2(GEM_SIZE, GEM_SIZE)
+	gem_size = size
+	custom_minimum_size = Vector2(gem_size, gem_size)
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 
 	# Katman sırası: parıltı → ışınlar → çerçeve → SANDIK → parçacıklar.
-	_add_layer(DOT_TEXTURE, GEM_SIZE * 2.0, _tint, _fx["glow"])
+	_add_layer(DOT_TEXTURE, gem_size * 2.0, _tint, _fx["glow"])
 	if _fx["rays"] > 0.0:
-		_rays = _add_layer(BURST_TEXTURE, GEM_SIZE * 2.2,
+		_rays = _add_layer(BURST_TEXTURE, gem_size * 2.2,
 			_tint.lerp(Color.WHITE, 0.35), _fx["rays"])
-	_add_layer(RING_TEXTURE, GEM_SIZE * 1.5, _tint, _fx["ring"])
+	_add_layer(RING_TEXTURE, gem_size * 1.5, _tint, _fx["ring"])
 
 	_chest = TextureRect.new()
 	_chest.texture = CLOSED_TEXTURE
+	_chest.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
 	_chest.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	_chest.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	_chest.size = Vector2(GEM_SIZE, GEM_SIZE)
+	_chest.size = Vector2(gem_size, gem_size)
 	_chest.position = Vector2.ZERO
 	_chest.pivot_offset = _chest.size * 0.5
 	_chest.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -100,17 +108,49 @@ func open() -> void:
 
 	if _rays != null:
 		# Yavaş dönüş: sabit duran ışınlar cansız görünüyor.
-		var spin := create_tween().set_loops().bind_node(_rays)
-		spin.tween_property(_rays, "rotation", TAU, 14.0 - 6.0 * float(_fx["rays"]))
+		_spin_tween = create_tween().set_loops().bind_node(_rays)
+		_spin_tween.tween_property(_rays, "rotation", TAU, 14.0 - 6.0 * float(_fx["rays"]))
 
 	if _fx["pulse"] > 0.0:
-		var pulse := create_tween().set_loops().bind_node(self)
+		_pulse_tween = create_tween().set_loops().bind_node(self)
 		var big: float = 1.0 + float(_fx["pulse"])
-		pulse.tween_property(self, "scale", Vector2(big, big), 0.7).set_trans(Tween.TRANS_SINE)
-		pulse.tween_property(self, "scale", Vector2.ONE, 0.7).set_trans(Tween.TRANS_SINE)
+		_pulse_tween.tween_property(self, "scale", Vector2(big, big), 0.7).set_trans(Tween.TRANS_SINE)
+		_pulse_tween.tween_property(self, "scale", Vector2.ONE, 0.7).set_trans(Tween.TRANS_SINE)
 
 	if _sparks != null:
 		_sparks.emitting = true
+
+
+## Reveal bitti (M8.6-09): sürekli iş durur — parçacık yayımı ve nabız
+## kesilir; ışın dönüşü yalnız Legendary'de (premium an) yavaş döngü olarak
+## kalır, diğer rarity'lerde durur. Açılış görünümü (açık sandık + katmanlar)
+## aynen kalır; `open()` sonrası bir kez çağrılır.
+func settle() -> void:
+	if _sparks != null and is_instance_valid(_sparks):
+		_sparks.emitting = false
+	if _pulse_tween != null and _pulse_tween.is_valid():
+		_pulse_tween.kill()
+		_pulse_tween = null
+		scale = Vector2.ONE
+	if _spin_tween != null and _spin_tween.is_valid() and float(_fx["rays"]) < 0.5:
+		_spin_tween.kill()
+		_spin_tween = null
+
+
+## Sürekli döngü sayısı (test): dönen ışın + nabız + yayan parçacık.
+func continuous_effects() -> int:
+	var n: int = 0
+	if _spin_tween != null and _spin_tween.is_valid() and _spin_tween.is_running():
+		n += 1
+	if _pulse_tween != null and _pulse_tween.is_valid() and _pulse_tween.is_running():
+		n += 1
+	if _sparks != null and is_instance_valid(_sparks) and _sparks.emitting:
+		n += 1
+	return n
+
+
+func is_opened() -> bool:
+	return _opened
 
 
 ## Ortalanmış, kutunun dışına taşan bir texture katmanı. Alpha 0'da başlar,
@@ -121,7 +161,7 @@ func _add_layer(texture: Texture2D, size: float, tint: Color, alpha: float) -> T
 	layer.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	layer.stretch_mode = TextureRect.STRETCH_SCALE
 	layer.size = Vector2(size, size)
-	layer.position = Vector2((GEM_SIZE - size) * 0.5, (GEM_SIZE - size) * 0.5)
+	layer.position = Vector2((gem_size - size) * 0.5, (gem_size - size) * 0.5)
 	layer.pivot_offset = layer.size * 0.5
 	layer.modulate = Color(tint.r, tint.g, tint.b, 0.0)
 	layer.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -133,14 +173,14 @@ func _add_layer(texture: Texture2D, size: float, tint: Color, alpha: float) -> T
 func _make_sparks(amount: int) -> CPUParticles2D:
 	var sparks := CPUParticles2D.new()
 	sparks.texture = SPARKLE_TEXTURE
-	sparks.position = Vector2(GEM_SIZE * 0.5, GEM_SIZE * 0.5)
+	sparks.position = Vector2(gem_size * 0.5, gem_size * 0.5)
 	sparks.amount = amount
 	sparks.lifetime = 1.6
 	sparks.explosiveness = 0.0
 	# Açılır açılmaz parçacıklar zaten havada olsun, birikmeyi bekletmesin.
 	sparks.preprocess = 1.6
 	sparks.emission_shape = CPUParticles2D.EMISSION_SHAPE_SPHERE
-	sparks.emission_sphere_radius = GEM_SIZE * 0.45
+	sparks.emission_sphere_radius = gem_size * 0.45
 	sparks.direction = Vector2.UP
 	sparks.spread = 35.0
 	sparks.gravity = Vector2.ZERO

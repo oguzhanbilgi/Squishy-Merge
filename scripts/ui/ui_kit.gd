@@ -1356,13 +1356,18 @@ const SETTINGS_ICON_SIZE: float = 26.0
 
 ## Production pencere iskeleti v2. `header` = &"ribbon" (pembe kurdele
 ## baslik, Mola / Bonus Sandik) ya da &"heading" (govde ici Baloo baslik;
-## Ayarlar / Gunluk). `topper` owner tepeligini govdenin ustune koyar.
-## `closable` false ise X yok (karar pencereleri). Meta: "body" (icerik VBox,
-## kaydirilir), "footer" (CTA VBox, sabit), "close_button", "ribbon" /
-## "heading", "topper", "scroll", "panel", "column", "fade".
+## Ayarlar / Gunluk). `topper` owner tepeligini govdenin ustune koyar;
+## `topper_scale` buyuk an pencereleri icin (Round sonu 1.18) tepeligi ve
+## tasmasini birlikte olcekler. `closable` false ise X yok (karar
+## pencereleri). Meta: "body" (icerik VBox, kaydirilir), "hero" (baslik ile
+## govde arasinda SABIT ust bolge — yildiz seridi gibi hicbir zaman
+## kaydirilmayan icerik; bos ise gizli, M8.6-09), "footer" (CTA VBox, sabit),
+## "close_button", "ribbon" / "heading", "topper", "scroll", "panel",
+## "column", "fade".
 static func modal_shell(title: String, width: float = 560.0,
 		header: StringName = &"ribbon", topper: bool = false,
-		closable: bool = true, glow: Color = UiTokens.GLOW_SUBTLE) -> Control:
+		closable: bool = true, glow: Color = UiTokens.GLOW_SUBTLE,
+		topper_scale: float = 1.0) -> Control:
 	var frame := Control.new()
 	frame.name = "ModalShell"
 	frame.custom_minimum_size = Vector2(width, 0)
@@ -1371,6 +1376,7 @@ static func modal_shell(title: String, width: float = 560.0,
 	glow_patch.offset_top = -70.0
 	glow_patch.offset_right = 70.0
 	glow_patch.offset_bottom = 70.0
+	glow_patch.name = "Glow"
 	frame.add_child(glow_patch)
 	var body_panel := panel(&"PanelModal")
 	body_panel.name = "Panel"
@@ -1380,6 +1386,7 @@ static func modal_shell(title: String, width: float = 560.0,
 	light.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE)
 	light.offset_bottom = 33.0
 	frame.add_child(light)
+	frame.set_meta(&"glow", glow_patch)
 	# Ic duzen: [baslik] / kaydirilan govde / sabit altlik.
 	var column := VBoxContainer.new()
 	column.name = "Column"
@@ -1391,6 +1398,15 @@ static func modal_shell(title: String, width: float = 560.0,
 		heading = label(title, &"LabelTitle", HORIZONTAL_ALIGNMENT_CENTER)
 		heading.name = "Heading"
 		column.add_child(heading)
+	# Sabit ust bolge (hero): kaydirilan govdenin USTUNDE, hicbir zaman
+	# kaydirilmaz; icerigi olmayan pencerelerde gizli (VBox yer ayirmaz).
+	var hero := VBoxContainer.new()
+	hero.name = "Hero"
+	hero.add_theme_constant_override("separation", UiTokens.SPACE_MD)
+	hero.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	hero.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	hero.visible = false
+	column.add_child(hero)
 	# Govde yuvasi: duz Control (yuksekligi modal_relayout verir) icinde tam
 	# dikdortgen ScrollContainer + altta solma bandi. Band ScrollContainer'in
 	# COCUGU OLAMAZ (her cocugu kaydirilan icerik sayar), o yuzden yuva var.
@@ -1441,7 +1457,9 @@ static func modal_shell(title: String, width: float = 560.0,
 		ribbon.offset_bottom = 46.0
 		frame.add_child(ribbon)
 	var topper_rect: TextureRect = null
+	var topper_overhang: float = MODAL_TOPPER_OVERHANG * topper_scale
 	if topper:
+		var topper_size: Vector2 = MODAL_TOPPER_SIZE * topper_scale
 		topper_rect = art(MODAL_TOPPER_ART, 0.0)
 		topper_rect.name = "Topper"
 		topper_rect.custom_minimum_size = Vector2.ZERO
@@ -1450,10 +1468,10 @@ static func modal_shell(title: String, width: float = 560.0,
 		topper_rect.anchor_right = 0.5
 		topper_rect.anchor_top = 0.0
 		topper_rect.anchor_bottom = 0.0
-		topper_rect.offset_left = -MODAL_TOPPER_SIZE.x * 0.5
-		topper_rect.offset_right = MODAL_TOPPER_SIZE.x * 0.5
-		topper_rect.offset_top = -MODAL_TOPPER_OVERHANG
-		topper_rect.offset_bottom = MODAL_TOPPER_SIZE.y - MODAL_TOPPER_OVERHANG
+		topper_rect.offset_left = -topper_size.x * 0.5
+		topper_rect.offset_right = topper_size.x * 0.5
+		topper_rect.offset_top = -topper_overhang
+		topper_rect.offset_bottom = topper_size.y - topper_overhang
 		frame.add_child(topper_rect)
 	var close: Button = null
 	if closable:
@@ -1470,6 +1488,7 @@ static func modal_shell(title: String, width: float = 560.0,
 	body_panel.minimum_size_changed.connect(func() -> void:
 		frame.custom_minimum_size.y = body_panel.get_combined_minimum_size().y)
 	frame.set_meta(&"body", body)
+	frame.set_meta(&"hero", hero)
 	frame.set_meta(&"footer", footer)
 	frame.set_meta(&"close_button", close)
 	frame.set_meta(&"ribbon", ribbon)
@@ -1480,10 +1499,11 @@ static func modal_shell(title: String, width: float = 560.0,
 	frame.set_meta(&"panel", body_panel)
 	frame.set_meta(&"column", column)
 	frame.set_meta(&"fade", fade)
-	frame.set_meta(&"overhang", MODAL_TOPPER_OVERHANG if topper else MODAL_RIBBON_OVERHANG)
+	frame.set_meta(&"overhang", topper_overhang if topper else MODAL_RIBBON_OVERHANG)
 	# Icerik degisince (satir eklendi, gizlilik acildi) govde siniri yeniden
 	# hesaplanir; ekran boyutu degisince cagiran `modal_relayout` der.
 	body.minimum_size_changed.connect(func() -> void: modal_relayout(frame))
+	hero.minimum_size_changed.connect(func() -> void: modal_relayout(frame))
 	footer.minimum_size_changed.connect(func() -> void: modal_relayout(frame))
 	return frame
 
@@ -1501,6 +1521,9 @@ static func modal_relayout(frame: Control) -> void:
 	var fade: Control = frame.get_meta(&"fade")
 	var has_body: bool = _has_visible_child(body)
 	host.visible = has_body
+	if frame.has_meta(&"hero"):
+		var hero: VBoxContainer = frame.get_meta(&"hero")
+		hero.visible = _has_visible_child(hero)
 	footer.visible = _has_visible_child(footer)
 	if not has_body:
 		fade.visible = false
@@ -1539,6 +1562,10 @@ static func modal_body_cap(frame: Control) -> float:
 	var sep: float = float(column.get_theme_constant("separation"))
 	if heading != null and heading.visible:
 		chrome += heading.get_combined_minimum_size().y + sep
+	if frame.has_meta(&"hero"):
+		var hero: VBoxContainer = frame.get_meta(&"hero")
+		if hero.visible:
+			chrome += hero.get_combined_minimum_size().y + sep
 	if footer.visible:
 		chrome += footer.get_combined_minimum_size().y + sep
 	return frame_cap - chrome

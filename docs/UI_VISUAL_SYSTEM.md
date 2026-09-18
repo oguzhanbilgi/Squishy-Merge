@@ -6,7 +6,7 @@
 **Asset kaynağı:** `tools/make_ui_core.py` → `assets/visual/ui/core/**` +
 `scripts/ui/ui_core_assets.gd` (üretilir, elle düzenlenmez).
 **Galeri:** `tools/ui_system_gallery.tscn` (dev-only, 5 sayfa).
-**Test:** `tools/ui_foundation_test.tscn` (164 kontrol), `tools/gameplay_shell_test.tscn` (147, §13), `tools/home_ui_test.tscn` (207, §14), `tools/map_ui_test.tscn` (127, §15), `tools/shop_ui_test.tscn` (212, §16), `tools/collection_ui_test.tscn` (164, §17), `tools/secondary_modal_ui_test.tscn` (102, §19).
+**Test:** `tools/ui_foundation_test.tscn` (164 kontrol), `tools/gameplay_shell_test.tscn` (147, §13), `tools/home_ui_test.tscn` (207, §14), `tools/map_ui_test.tscn` (127, §15), `tools/shop_ui_test.tscn` (212, §16), `tools/collection_ui_test.tscn` (164, §17), `tools/secondary_modal_ui_test.tscn` (102, §19), `tools/result_ui_test.tscn` (226, §20).
 
 Çakışma kuralı: owner'ın son talimatı > GAME_DESIGN.md > bu doküman > kod.
 Bir sayı burada ve `ui_tokens.gd`'de farklıysa **doküman güncellenir, token
@@ -226,9 +226,9 @@ rarity renginde skin önizleme çerçevesi. Legendary ödülde ek `GLOW_PREMIUM`
 **Oyuncuya görünen rarity adı Türkçe (M8.6-06):** `SkinData.rarity_display_name`
 (Yaygın / Nadir / Epik / Efsanevi) ve `rarity_display_upper` (YAYGIN / NADİR /
 EPİK / EFSANEVİ — Godot `to_upper` Türkçe İ'yi bilmez, elle); `UiKit.rarity_tag`
-bunu yazar (Koleksiyon + Mağaza kartı + Mağaza onayı). İç ad `rarity_name`
-(Common…) variation kimliği ve id öneki olarak DEĞİŞMEDİ. Sonuç ekranı sandık
-başlığı (`ChestReward.title`) hâlâ İngilizce — result/reward işinde.
+bunu yazar (Koleksiyon + Mağaza kartı + Mağaza onayı + Round sonu ödül kartı, M8.6-09).
+İç ad `rarity_name` (Common…) variation kimliği ve id öneki olarak
+DEĞİŞMEDİ. `ChestReward.title()` de Türkçe büyük harf (TESELLİ / YAYGIN …).
 
 **İlerleme:** `ProgressBarMint` (hedef, koleksiyon), `ProgressBarGold` (premium).
 **Anahtar:** `UiKit.switch_toggle(on)` → `UiToggle` + `SwitchOn/SwitchOff`
@@ -1212,8 +1212,145 @@ sheet, DEVICE_GATE_NOTES.md).
 
 ### 19.6 Taşınmayan yüzeyler (bilerek)
 
-Round sonu (M8.6-09), Devam ve Refill (M8.6-10) hâlâ eski iskeletlerde;
-`CandyButton`, `panel_candy.png`, `ModalPanel`, `UiPalette` ve
-`assets/visual/ui/icons/` bu yüzden **silinmedi** (Ayarlar/Günlük artık
-kullanmıyor; tam emeklilik M8.6-10). Mağaza onayı `modal_frame`'de kaldı
+Round sonu M8.6-09'da taşındı (§20). Devam ve Refill (M8.6-10) hâlâ eski
+iskeletlerde; `CandyButton`, `panel_candy.png`, `ModalPanel`, `UiPalette` ve
+`assets/visual/ui/icons/` bu yüzden **silinmedi** (Ayarlar/Günlük/Round sonu
+artık kullanmıyor; tam emeklilik M8.6-10). Mağaza onayı `modal_frame`'de kaldı
 (cihazda onaylı; piksel eşdeğerliği kanıtlanmış olsa da göç için sebep yok).
+
+---
+
+## 20. Production Round sonu — level tamam / kayıp / ödül reveal (M8.6-09) — PRE-DEVICE VISUAL REVIEW
+
+**Kod:** `scripts/ui/round_result.gd` + `scenes/ui/round_result.tscn` (kompozisyon,
+katman 10), `scripts/ui/result_reward_card.gd` (`ResultRewardCard`),
+`scripts/ui/result_star_strip.gd` (`ResultStarStrip`), `scripts/ui/reward_gem.gd`
+(`setup(reward, size)`, `settle()`, `continuous_effects()` — RARITY_FX tablosu
+DEĞİŞMEDİ), `scripts/game/chest_reward.gd` (Türkçe `title/description/note`),
+`scripts/ui/ui_kit.gd` (`modal_shell`: **`hero` sabit üst bölge** + `topper_scale`
++ `glow` metası), `scripts/main.gd` (`show_result`'a salt-okunur `newly_unlocked`
+/ `reached_tier`; RESULT_DELAY aralığında mola kilidi), `scripts/game/game_board.gd`
+(`is_finished()` / `max_tier_reached()` okuyucuları), `tools/make_result_art.py`
+→ `assets/visual/ui/icon_star_empty_soft.png` (owner kontur yıldızının beyaza
+normalize türevi; boya runtime'da). **Test:** `tools/result_ui_test.tscn` (226).
+**Çekim:** `tools/result_shots.tscn -- <dir> [GxY] [safe=61] [only=05,13]` →
+`build/qa_m8.6-09/` (before = M8.6-07 denetim kareleri, after/v1 → v2 → final,
+contact sheet'ler, QA_NOTES). Tema **değişmedi** (yeni variation yok).
+
+**Neydi (M8.6-07 denetimi):** oyundaki son koyu M8.5-10 sayfası — yarı saydam
+lacivert panel (HUD "Hedef tamam!" plakası içinden okunuyordu), 80 px sandık
+satırları, İngilizce rarity başlıkları, gerilmiş `banner_new.png`, neon varsayılan
+Button + "Level listesi", yalnız aşağı büyüyen 680 px kutu (3 sandıkta CTA kap
+dudağında, 4+ ödülde ekran dışı, kaydırma yok), kazanma/kayıp yalnız başlık
+kelimesiyle ayrışıyordu, skin ödülü sanatsız.
+
+### 20.1 Mimari — tek bileşen, üç mod
+
+`UiKit.modal_shell("", 600, ribbon, topper=true, closable=false, topper_scale 1.18)`:
+X YOK (karar ekranı — çıkış yalnız iki CTA'dan). Sütun: **hero** (sabit) →
+**body** (kaydırılan ödül kartları) → **footer** (sabit: özet çipleri + CTA'lar).
+Karartma `Color(0.05, 0, 0.06, 0.74)` STOP (arkadaki HUD'a dokunuş sızmaz;
+dokunuş kapatmaz). Çerçeve `CenterContainer` içinde; `Anchor.offset_top` =
+aktif taşma (tepelik 73 / kurdele 34) → tepelik + gövde bileşiği ortalanır,
+kısa ekranda tepelik üst kenara / çentiğe yaslanmaz.
+
+| | WIN | FAIL | ENDLESS |
+|---|---|---|---|
+| tepelik | owner kanatlı kalp ×1.18 (354×113) | yok | yalnız yeni rekorda |
+| kontur / parıltı | 4 px altın `popup_body` halkası (panelin arkasında; altta panelin pişmiş gölgesi kalır) + sıcak `GLOW_WIN` | yok / `GLOW_SUBTLE` | rekor: altın; değil: yok |
+| başlık | gövde İÇİNDE altın `header_ribbon` "LEVEL 4 TAMAM!" (beyaz Baloo 34 + 6 px `GOLD_DEEP` kontur) | üst kenardan taşan `LAVENDER_DEEP` kurdele "OLMADI" | "YENİ REKOR!" (altın, gövde içi) / "TUR BİTTİ" (lavanta, kenar) |
+| hero | [yeni kilit rozeti] + `ResultStarStrip` | `ResultStarStrip` (0★) + teşvik satırı | SKOR kahraman çipi (Nunito 44) |
+| footer çipleri | SKOR · HEDEF (+skor satırı) · HAMUR | aynı | REKOR · HAMUR |
+| kahraman CTA (`ButtonCTA`) | **HARİTA** (`map`) → `exit_pressed` | **TEKRAR DENE** (`refresh`) → `retry_pressed` | **TEKRAR OYNA** → `retry_pressed` |
+| ikincil (`ButtonSecondary`) | TEKRAR OYNA → `retry_pressed` | HARİTA → `exit_pressed` | HARİTA → `exit_pressed` |
+
+Rota kanonik ve DEĞİŞMEDİ: `exit_pressed` → `Main._on_exit_pressed` (board
+silinir, Harita; yeni açılan düğüm oradaki açılış animasyonuyla),
+`retry_pressed` → `_start_level(_current_level)`. "Sonraki level" rotası icat
+edilmedi. Kilit rozeti: `EquippedBadge` nane "LEVEL N AÇILDI" (`unlock`
+picto) / L10'da altın `Badge` "SONSUZ MOD AÇILDI" (`trophy`) — yalnız Main'in
+yazımdan önce-sonra karşılaştırdığı `newly_unlocked` true iken (tekrar
+oynanan level'da yok). Teşvik: ulaşılan tier = hedef−1 → "Hedefe çok
+yaklaştın!"; hedef tier'a ulaşılmış ama skor hedefi (L8/L10) eksik → "Hedef
+tier tamam, skor az kaldı!"; diğer → "Bir dahaki sefere!". Kazanma dili
+Sonsuz'da hiç kullanılmaz.
+
+### 20.2 `ResultStarStrip`
+
+Üç owner yıldızı yay üzerinde (yan 86, orta 104 ve 16 px yukarıda, aralık 10;
+126 px şerit). Kazanılan = dolu altın; kazanılmayan = `icon_star_empty_soft`
+× `#c9b3e6` (yumuşak lavanta kontur — "üç kez kaybettin" okunmaz). Reveal:
+`set_stars(earned, hidden)` → `reveal(i)`: 0 → 1.28 → 1.0 yay (0.16 + 0.14 s)
++ 5 mini altın yıldız pırıltısı (0.42 s, deterministik açılar, parçacık düğümü
+yok). Sahibi 0.3 s bekler, yıldızları **0.2 s arayla** açar (owner brief'i §10;
+GAME_DESIGN §5.1'deki ~400 ms notu bu brief'le güncellenmeli — doküman
+değişikliği owner onayına bırakıldı) ve `star_reveal`'i 1.0/1.12/1.24 pitch ile
+çalar. Kayıpta pop yok (sahte kazanım yok); Sonsuz'da şerit gizli.
+
+### 20.3 `ResultRewardCard` (528 × 128 / skin 176)
+
+Yatay satır, `card_bevel_soft` gövde (`TRAY_CREAM`; teselli `CREAM_DEEP`;
+Legendary krem→`GOLD_BRIGHT` %14) + `frame_round20` halka (Common gri-lavanta /
+Rare mavi / Epic mor / Legendary altın + altın hale + 3 pırıltı) + erik gölge +
+`card_face`; gövde `clip_contents` (sandık ışınları kartın içinde kalır, halka
+ve hale kökte). **Sahne** (116; skin 160): rarity renginde düşük alfa hale →
+`RewardGem` 88 (kapalı sandık; `open()` = owner sandığı açılır + kalibre rarity
+katmanları). **Yazı sütunu** (açılışa kadar α 0): `UiKit.rarity_tag` (YAYGIN /
+NADİR / EPİK / EFSANEVİ) ya da lavanta "TESELLİ" trapezi → ana satır → not.
+
+| ödül | sahne | ana satır | not |
+|---|---|---|---|
+| Hamur (rarity) | sandık açık, katmanlar | Hamur ikonu 34 + `LabelPrice` 30 "+25 HAMUR" | — |
+| skin | sandık açılır → 0.24 s sonra söner/küçülür → krem `item_circle_inner` kaide üstünde GERÇEK final sanat `SkinSwatch` 140 pop (0.28 s) | skin adı Baloo 30 | pembe **YENİ SKİN** rozeti (pop) + "Koleksiyon'a eklendi"; satın alma CTA'sı YOK |
+| geri düşüş (rarity tamam) | Hamur kartıyla aynı | "+60 HAMUR" | "Epik skinlerin tamamı sende" (iç terim yok, skin verildi denmez) |
+| teselli | sandık YOK: lavanta `candy_well` 84 içinde owner Hamur sanatı | "+5 HAMUR" | — |
+
+Kart `MOUSE_FILTER_IGNORE` (eylemi yok → karttan başlayan sürükleme doğrudan
+ScrollContainer'a). Kart kayda DOKUNMAZ; skin vitrini `SkinEntry.for_skin` +
+`owned = true` ile her zaman "senin" görünümünde (kanonik grant ekrandan önce).
+Reveal sonunda `settle()`: parçacık yayımı ve nabız durur, ışın dönüşü yalnız
+Legendary'de kalır; kart başına `_process` yok; Legendary pırıltıları sahibin
+tek `tween_method`'undan (Legendary kart yoksa hiç çalışmaz).
+
+### 20.4 Reveal ve Hamur sayacı
+
+`show_result` → kartlar kurulur (α 0, yer ayırır) → `modal_relayout` →
+`UiMotion.modal_open` → 0.3 s → yıldızlar (0.2 s) → her kart: 0.45 s bekle
+(4+ ödülde 0.30), gövde kaydırılıyorsa açılan karta kay (0.28 s), `appear()`
+(0.26 s yay) + `chest_open` (teselli hariç), 0.35 s (4+ ödülde 0.25) sonra
+`open()` + rarity renginde ışık
+patlaması (FxLayer, kırpılmaz, kendini siler) + `AudioManager.play_reward` +
+titreşim (Legendary `special`, Epic/yeni skin `medium`, Hamur `light`) →
+sonda `settle()`. Butonlar ilk kareden aktif ("hemen tekrar dene"). HAMUR çipi
+`SaveManager.dough() − açılmamış Hamur` ile başlar, her açılışta pop'la artar →
+son değer = kayıt (sayaç yalnız sunum; harness'ta sahte ödülle de tutarlı).
+`_sequence_id` gizleme / yeniden açılışta eski reveal'i geçersiz kılar;
+`hide_result` kartları serbest bırakır, döngüleri öldürür.
+
+### 20.5 Taşma / kaydırma
+
+Doğal yükseklik: 1 ödül ≈ 676, 3 ödül ≈ 956 px (720×1280 tavanı 1146 −
+krom). **4 Hamur kartı 1280'e sığar; 5+ ödülde gövde kaydırılır**, hero
+(başlık + yıldız) ve altlık (çipler + CTA) SABİT. Runtime'da ödül sayısı için
+tavan yok (level: 1 sandık + ⌊(merge+taşıma)/75⌋ bonus; tipik L10 ≈ 3; Sonsuz
+uzun tur ≈ 5); harness 5 (Sonsuz gerçekçi en çok) ve 6 (stres) ile doğrular:
+bütün kartlar kaydırmayla erişilir, birbirine binmez, altlık ve CTA ekranda.
+
+### 20.6 Sıra, geri tuşu, güvenlik
+
+Devam teklifi (katman 11) açıkken sonuç YOK: `round_finished` yalnız Bitir /
+hak yok yolunda yayılır; Main teklifi kapattıktan 0.8 s sonra sonuç açılır
+(sonuç teklifin altında hiç görünmez). Android geri sonuçta yok sayılır
+(değişmedi); yeni: RESULT_DELAY aralığında da mola açılmaz
+(`Main.open_pause_menu` `is_finished()` kilidi — eskiden bu 0.8 s'de açılan
+mola "Ana Menüye Dön" ile board'u silip sonucu haritanın üstünde
+bırakabiliyordu). Bütün yazımlar (`complete_level`, `record_stars`,
+`ChestSystem.open/consolation`, `add_merges`, `record_endless_score`) sonuç
+açılmadan önce ve tam bir kez; sonuç ağacı `SaveManager` yazma çağrısı içermez
+(kaynak taraması + byte kontrolü testte).
+
+### 20.7 Şimdilik yapılmayan
+
+Owner masaüstü görsel onayı ve A36 cihaz kapısı bekliyor (telefon/ADB
+kullanılmadı). GAME_DESIGN §5.1 "~400 ms" yıldız notu owner brief'iyle 0.2 s'ye
+çekildi — doküman güncellemesi owner onayına bırakıldı.

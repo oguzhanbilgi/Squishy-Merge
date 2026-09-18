@@ -197,6 +197,12 @@ func open_pause_menu() -> void:
 	if _board.is_fail_pending() or _board.is_refill_pending():
 		# Devam/refill penceresi açıkken mola açılmaz — o pencere karar bekliyor.
 		return
+	if _board.is_finished():
+		# Round bitti, sonuç ekranı RESULT_DELAY sonra açılacak (M8.6-09): bu
+		# aralıkta mola açılmaz — açılsaydı "Ana Menüye Dön" board'u silip
+		# haritaya dönerken sonuç ekranı haritanın üstünde belirirdi; Android
+		# geri de sonuç ekranıyla aynı şekilde yok sayılır.
+		return
 	if _settings != null and _settings.visible:
 		# Ayarlar açıkken mola açılmaz (M8.6-08 z-order kuralı: aynı anda tek
 		# ikincil pencere odakta; Ayarlar katman 13, Mola 12). Dokunma yolu
@@ -576,17 +582,26 @@ func _on_round_finished(won: bool) -> void:
 	var merges: int = GameState.merge_count
 	var stars: int = _current_level.stars_earned(won, score)
 	var new_record: bool = false
+	# Sonuç ekranı için salt-okunur bağlam (M8.6-09): "LEVEL N AÇILDI /
+	# SONSUZ MOD AÇILDI" rozeti yalnız BU round yeni bir kilit açtıysa
+	# (yazımdan önceki değerle karşılaştırılır — tekrar oynanan level'da
+	# yok), kayıp notu için ulaşılan tier. İkisi de kayda dokunmaz.
+	var unlocked_before: int = SaveManager.highest_level_unlocked()
+	var reached_tier: int = _board.max_tier_reached() \
+		if _board != null and is_instance_valid(_board) else 0
 
 	if _current_level.is_endless:
 		new_record = SaveManager.record_endless_score(score)
 	elif won:
 		SaveManager.complete_level(_current_level.level_number)
 		SaveManager.record_stars(_current_level.level_number, stars)
+	var newly_unlocked: bool = SaveManager.highest_level_unlocked() > unlocked_before
 
 	var rewards: Array[ChestReward] = _collect_rewards(won, merges)
 
 	await get_tree().create_timer(RESULT_DELAY).timeout
-	_result.show_result(_current_level, won, score, stars, rewards, new_record)
+	_result.show_result(_current_level, won, score, stars, rewards, new_record,
+		newly_unlocked, reached_tier)
 
 
 ## GAME_DESIGN.md §5.2: level tamamlanınca 1 sandık, ayrıca her 75 merge'de

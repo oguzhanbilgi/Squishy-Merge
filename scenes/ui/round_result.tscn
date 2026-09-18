@@ -15,58 +15,12 @@ anchor_bottom = 1.0
 [node name="Dim" type="ColorRect" parent="Center"]
 anchor_right = 1.0
 anchor_bottom = 1.0
-color = Color(0, 0, 0, 0.6)
+color = Color(0.05, 0, 0.06, 0.74)
 
-[node name="Panel" type="PanelContainer" parent="Center"]
-anchor_left = 0.5
-anchor_top = 0.5
-anchor_right = 0.5
-anchor_bottom = 0.5
-offset_left = -300.0
-offset_top = -380.0
-offset_right = 300.0
-offset_bottom = 300.0
-
-[node name="VBox" type="VBoxContainer" parent="Center/Panel"]
-alignment = 1
-theme_override_constants/separation = 14
-
-[node name="Title" type="Label" parent="Center/Panel/VBox"]
-theme_type_variation = &"Display"
-horizontal_alignment = 1
-autowrap_mode = 2
-text = "-"
-
-[node name="Stars" type="HBoxContainer" parent="Center/Panel/VBox"]
-alignment = 1
-theme_override_constants/separation = 12
-
-[node name="Detail" type="Label" parent="Center/Panel/VBox"]
-theme_override_constants/line_spacing = 4
-horizontal_alignment = 1
-text = "-"
-
-[node name="Chests" type="VBoxContainer" parent="Center/Panel/VBox"]
-theme_override_constants/separation = 10
-
-[node name="Dough" type="RichTextLabel" parent="Center/Panel/VBox"]
-custom_minimum_size = Vector2(0, 40)
-bbcode_enabled = true
-fit_content = true
-scroll_active = false
-
-[node name="Buttons" type="HBoxContainer" parent="Center/Panel/VBox"]
-alignment = 1
-theme_override_constants/separation = 20
-
-[node name="Retry" type="Button" parent="Center/Panel/VBox/Buttons"]
-custom_minimum_size = Vector2(196, 80)
-text = "TEKRAR DENE"
-
-[node name="Exit" type="Button" parent="Center/Panel/VBox/Buttons"]
-theme_type_variation = &"SecondaryButton"
-custom_minimum_size = Vector2(196, 80)
-text = "Level listesi"
+[node name="Anchor" type="CenterContainer" parent="Center"]
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 2
 
 [node name="FxLayer" type="Control" parent="."]
 mouse_filter = 2

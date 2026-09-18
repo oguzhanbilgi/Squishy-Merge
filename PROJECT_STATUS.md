@@ -1442,7 +1442,7 @@ squishy-merge/
 | `game/skin_data.gd` / `skin_library.gd` / `skin_entry.gd` | Skin kataloğu (final önizleme + gameplay render profili, M8.5-14) + klasör tarayıcı + oyuncuya göre durum view model'i (M8.5-13). |
 | `game/skin_visual.gd` | Gameplay skin render katmanı (M8.5-14): gövde maskesi + `skin_body.gdshader` materyali (skin×tier paylaşımlı), Legendary aura. |
 | `game/drop_bag.gd` | Bag randomizer (§4.4). |
-| `game/chest_system.gd` / `chest_reward.gd` | Sandık kurası ve ödül nesnesi. |
+| `game/chest_system.gd` / `chest_reward.gd` | Sandık kurası ve ödül nesnesi; `ChestReward.title/description/note` oyuncuya Türkçe (M8.6-09), iç ad `rarity_name` değişmedi. |
 | `game/shop.gd` | Fiyatlar ve satın alma. **Fiyat tune edilecek tek yer.** |
 | `game/daily_reward.gd` | Günlük ödül + streak. |
 | `game/pop_effect.gd` | Merge parçacık patlaması. |
@@ -1460,8 +1460,10 @@ squishy-merge/
 | `ui/shop_screen.gd` | Mağaza (M8.6-05): `ScreenTopBar` + kaydırılan 2 sütun kart gridi + onay penceresi (`UiKit.modal_frame`) + candy geri bildirim plakası. Satın alma yalnız kanonik yoldan. |
 | `ui/shop_power_card.gd` | `ShopPowerCard` — güç ürün kartı (candy kuyu + owner sanatı, amaç, fiyat, SATIN AL, stok rozeti; yetmiyor/başarı durumları). |
 | `ui/shop_skin_card.gd` | `ShopSkinCard` — skin ürün kartı (SkinSwatch önizleme, rarity halkası/hale/pırıltı, fiyat veya SAHİPSİN/TAKILI). |
-| `ui/round_result.gd` | Round sonu: yıldız reveal → sandık reveal. |
-| `ui/reward_gem.gd` | Sandık ödül görseli: kapalı → açılış → rarity katmanları. |
+| `ui/round_result.gd` | Round sonu (M8.6-09 production yeniden kurulum, shell v2 `hero` + kaydırılan gövde + sabit altlık): WIN / FAIL / ENDLESS modları, yıldız reveal → ödül kartı reveal, SKOR/HEDEF/HAMUR çipleri, HARİTA / TEKRAR DENE rotaları; yalnız sunar, kayda yazmaz. |
+| `ui/result_reward_card.gd` | `ResultRewardCard` — Hamur / skin (gerçek final sanat, YENİ SKİN) / geri düşüş / teselli kartı; dokunma hedefi değil (M8.6-09). |
+| `ui/result_star_strip.gd` | `ResultStarStrip` — yay üstünde üç owner yıldızı, yumuşak lavanta kontur (türev `icon_star_empty_soft`), pop + pırıltı reveal (M8.6-09). |
+| `ui/reward_gem.gd` | Sandık ödül görseli: kapalı → açılış → rarity katmanları; `setup(reward, size)`, reveal sonrası `settle()` (M8.6-09). |
 | `ui/skin_swatch.gd` | Skin önizlemesi (M8.5-13): final önizleme sanatı + rarity parıltısı; kilitli = `reveal_locked` ile final sanat + kilit (Koleksiyon/Mağaza, M8.6-06) ya da silüet; varsayılan = orijinal dumpling. |
 | `ui/ui_icons.gd` | HUD ikonlarının tek tanımı, BBCode `[img]` üretir. |
 | `ui/ui_type.gd` | Tipografi rol adları (M8.5-09). |
@@ -1484,6 +1486,9 @@ squishy-merge/
 | `ui_smoke_test.gd` + `ui_smoke_test.tscn` | **Headless UI davranış testi** (74 kontrol): ayar anahtarı, onay diyaloğu, geri tuşu, equip. |
 | `secondary_modal_ui_test.gd` + `.tscn` | **Headless ikincil pencere testi** (M8.6-08, 102 kontrol): shell v2 iskeleti (oturmuş X, gövde/altlık sınırları, tavan + kaydırma, karartma), Ayarlar (kanonik yazma yolu, taşma regresyonu 5 yapılandırma), Günlük (tek claim, AL mutasyonsuz, 7 düğüm, durum modu), Mola/Sandık (hiyerarşi, z-order, rota). Kaydı byte'ı geri koyar. |
 | `secondary_ui_shots.gd` + `.tscn` | **İkincil pencere çekimleri** (M8.6-07/08): 48 durum × pencere boyutu + A36 simülasyonu; `groups=` ile alt küme. `--headless` ile çalışmaz. |
+| `result_ui_test.gd` + `.tscn` | **Headless round sonu testi** (M8.6-09, 226 kontrol): yapı (eski iskelet yok, kayda yazma çağrısı yok), kazanma / kayıp / ödül kartları / dil taraması, 6 ödül taşma + sürükleme, kayıt güvenliği + gerçek kayıp yolu (teselli tam bir kez), rotalar + Android geri, L10 / Sonsuz, devam sırası, 5 yapılandırma, performans. Kaydı byte'ı geri koyar. |
+| `result_shots.gd` + `.tscn` | **Round sonu çekimleri** (M8.6-09): 31 kare (kazanma/kayıp, yıldızlar, 4 rarity Hamur + skin, geri düşüş, çoklu/5/6 ödül + kaydırma, L10, Sonsuz, retry/Harita basış) × pencere boyutu + A36; `only=` ile alt küme. `--headless` ile çalışmaz. |
+| `make_result_art.py` | Owner kontur yıldızından yeniden boyanabilir `icon_star_empty_soft.png` türetir (M8.6-09). |
 | `make_pack_icons.gd` | Free Casual GUI SVG ikonlarını beyaz maske PNG'ye türetir. |
 | `audio_test.gd` + `audio_test.tscn` | **Headless ses + titreşim davranış testi** (M8.5-15, 45 kontrol): eşleme, RNG izolasyonu, soğuma/tavan/öncelik, ayar kalıcılığı, haptik politikası. Kaydı kendi yedekler. |
 | `audio_qa.gd` + `audio_qa.tscn` | **Ses/titreşim QA sahnesi** (pencereli): her olay, rarity, güç, titreşim seviyesi, spam/stres düğmeleri; kanal ve atılan çağrı sayaçları. Production navigasyonunda yok. |

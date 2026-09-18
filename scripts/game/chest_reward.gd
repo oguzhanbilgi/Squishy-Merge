@@ -18,20 +18,29 @@ func is_skin_reward() -> bool:
 	return skin != null
 
 
+## Oyuncuya görünen başlık (M8.6-09: Türkçe, büyük harf — Koleksiyon /
+## Mağaza rarity diliyle aynı `SkinData.rarity_display_upper`). İç ad
+## `rarity_name` (Common…) değişmedi; id/enum/variation kimliği o.
 func title() -> String:
 	if is_consolation:
-		return "Teselli ödülü"
-	return SkinData.rarity_name(rarity)
+		return "TESELLİ"
+	return SkinData.rarity_display_upper(rarity)
 
 
+## Ana satır: skin adı ya da "+N Hamur".
 func description() -> String:
 	if is_skin_reward():
-		return "Yeni skin: %s" % skin.display_name
-	if is_duplicate:
-		# Artık "bu skin zaten vardı" değil: o rarity'nin tamamı toplanmış,
-		# verilecek yeni skin kalmamış.
-		return "%s tamamlandı → %d Hamur" % [SkinData.rarity_name(rarity), dough]
-	return "%d Hamur" % dough
+		return skin.display_name
+	return "+%d Hamur" % dough
+
+
+## Kısa not (yalnız geri düşüşte): o kalitedeki bütün skinler zaten
+## oyuncuda, sandık aynı kalitenin Hamur karşılığını verdi. İç terim
+## ("duplicate" / "fallback") oyuncuya gösterilmez; skin verildi de denmez.
+func note() -> String:
+	if is_duplicate and not is_skin_reward():
+		return "%s skinlerin tamamı sende" % SkinData.rarity_display_name(rarity)
+	return ""
 
 
 func color() -> Color:
