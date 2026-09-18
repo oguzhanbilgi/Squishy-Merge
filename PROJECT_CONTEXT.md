@@ -421,8 +421,8 @@ alınacak — şimdi tahmin/vaat yok.
     byte-identical geri kondu; cihaza özel kusur YOK, runtime değişmedi.
     Dal push edildi — **merge izni bekliyor** (`build/qa_m8.6-08/device/`).
     Ayrıntı: UI_VISUAL_SYSTEM §19.
-  - `M8.6-09` 🔶 **production Round sonu / level tamam / kayıp / ödül reveal**
-    (PRE-DEVICE VISUAL REVIEW, dal `task/027-production-round-result`, main
+  - `M8.6-09` ✅ **production Round sonu / level tamam / kayıp / ödül reveal**
+    (DEVICE VERIFIED, dal `task/027-production-round-result`, main
     2f74a3d üzerine): oyundaki son koyu M8.5-10 sayfası (yarı saydam lacivert
     panel — HUD plakası içinden okunuyordu —, 80 px sandık satırları, İngilizce
     rarity, gerilmiş banner, neon buton + "Level listesi", yalnız aşağı büyüyen
@@ -451,13 +451,28 @@ alınacak — şimdi tahmin/vaat yok.
     kayıp, ödüller, 6 ödül taşma + sürükleme, kayıt güvenliği + gerçek kayıp
     yolu, rotalar, L10/Sonsuz, devam sırası, 5 yapılandırma, performans);
     `tools/result_shots` 31 kare × 4 boyut + A36 (build/qa_m8.6-09/ before/after
-    + 11 contact sheet). **Telefon/ADB kullanılmadı, push/merge yok — owner
-    görsel onayı + A36 cihaz kapısı bekliyor.** Ayrıntı: UI_VISUAL_SYSTEM §20.
+    + 11 contact sheet). Owner masaüstü görsel incelemesini onayladı; **A36
+    cihaz kapısı (M8.6-09.1) GEÇTİ, runtime değişmedi**: SM-A366B / Android 16
+    / 1080×2340, APK c3c6a0d ağacından (45 620 684 B, 787 girdi, sızıntı 0),
+    kabuk cutout'un 167+ px altında ve nav bölgesinin üstünde, HUD karartmada
+    %31 (krem gövdeden yazı okunmuyor), yıldız arası ölçülen 207 ms, dört
+    rarity + dört skin kartı net, 3/4/5/6 ödül (5 = gerçekçi tavan, cihazda
+    kaydırma bile gerekmiyor), kart üstünden sürükleme/fling kaydırıyor,
+    gerçek kanonik kazanma yolu tam bir kez yazdı (Hamur 100→110, kilit 1→2,
+    yıldız {1:3}), teselli +5 bir kez, ikinci `_finish`/`show_result` kopya
+    üretmedi, Android geri yok sayıldı (0 px fark), RESULT_DELAY mola yarışı
+    ve Devam→Sonuç sırası doğrulandı, reveal profili ort. 8.8–12.2 ms,
+    15 s boşta düğüm/PSS sabit, logcat 0/0/0/0; owner kaydı byte-identical
+    geri kondu. İki izleme maddesi (kaydırmada üst kenar kırpması, reveal
+    öncesi boş krem gövde) cihazda ölçüldü, dikkat dağıtıcı bulunmadı →
+    değişiklik YAPILMADI (zaman çizelgesi kanıtı `build/qa_m8.6-09/device/`).
+    Ayrıntı: UI_VISUAL_SYSTEM §20, cihaz notları
+    `build/qa_m8.6-09/device/DEVICE_GATE_NOTES.md`.
 - **Sırada: M8.6 — Visual Cohesion Rebuild** (ekranlar `UiKit`/`UiTokens`
   sistemine geçirilecek: ~~gameplay shell~~ ✅ → ~~home~~ ✅ → ~~map~~ ✅ →
   ~~shop~~ ✅ → ~~collection~~ ✅ main'de → ~~ikincil UI denetimi~~ ✅ →
   ~~M8.6-08 shell v2 + Ayarlar + Günlük~~ ✅ main'de → ~~M8.6-09 Round
-  sonu~~ 🔶 PRE-DEVICE (owner görsel onayı + A36 kapısı bekliyor) →
+  sonu~~ ✅ A36 kapısı geçti, dal push edildi — **merge izni bekliyor** →
   M8.6-10 Devam/Refill), ardından **M9 — Android export.** Ortam hazır Ortam hazır (export template'leri, SDK,
   NDK, JDK 17, debug keystore mevcut, ETC2/ASTC import açık, iş
   makinesinde debug `export_presets.cfg` var — gitignore'lu, her makinede

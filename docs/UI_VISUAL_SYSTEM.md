@@ -1220,7 +1220,7 @@ artık kullanmıyor; tam emeklilik M8.6-10). Mağaza onayı `modal_frame`'de kal
 
 ---
 
-## 20. Production Round sonu — level tamam / kayıp / ödül reveal (M8.6-09) — PRE-DEVICE VISUAL REVIEW
+## 20. Production Round sonu — level tamam / kayıp / ödül reveal (M8.6-09) — DEVICE VERIFIED (A36)
 
 **Kod:** `scripts/ui/round_result.gd` + `scenes/ui/round_result.tscn` (kompozisyon,
 katman 10), `scripts/ui/result_reward_card.gd` (`ResultRewardCard`),
@@ -1349,8 +1349,76 @@ bırakabiliyordu). Bütün yazımlar (`complete_level`, `record_stars`,
 açılmadan önce ve tam bir kez; sonuç ağacı `SaveManager` yazma çağrısı içermez
 (kaynak taraması + byte kontrolü testte).
 
-### 20.7 Şimdilik yapılmayan
+### 20.7 A36 cihaz kapısı (M8.6-09.1, 2026-09-18, c3c6a0d)
 
-Owner masaüstü görsel onayı ve A36 cihaz kapısı bekliyor (telefon/ADB
-kullanılmadı). GAME_DESIGN §5.1 "~400 ms" yıldız notu owner brief'iyle 0.2 s'ye
-çekildi — doküman güncellemesi owner onayına bırakıldı.
+Samsung SM-A366B, Android 16 (SDK 36), native 1080×2340 (density 450, cutout
+92 px, 3 tuşlu gezinme çubuğu 135 px, 120 Hz). Owner masaüstü incelemesini
+onayladıktan sonra koşuldu; **cihaza özel kusur çıkmadı, runtime dosyası
+değişmedi**. Debug APK c3c6a0d ağacından: 45 620 684 B, 787 girdi, sızıntı 0
+(build/tools/_visual_source/docs/md/py/zip/sh/kayıt/logcat/contact sheet);
+`round_result / result_reward_card / result_star_strip / reward_gem /
+chest_reward / skin_*` ve `show_result / _run_reveal / set_stars / note /
+is_finished / RESULT_DELAY / hero` sembolleri paketlenmiş bytecode'da, emekli
+`CandyButton / UiPalette / style_cta` sonuç bytecode'unda yok.
+
+Owner kaydı (670 B) yalnız açılış + Ana Sayfa/Harita görsel geçişinde
+kullanıldı (açılış oyunun kendi kanonik günlük yolunu koştu, AL basılmadı,
+round oynanmadı); bütün sonuç/ödül/ilerleme testleri geçici kayıtlarda ya da
+**ayrı paketteki** (`com.example.squishymerge.qa`, kendi user-data dizini)
+`tools/result_device.tscn` sürücüsünde koştu. Sonda owner kaydı byte-identical
+geri kondu (`cmp` aynı), uygulama bir daha açılmadı, QA paketi kaldırıldı.
+
+Native bulgular:
+
+* **Güvenli alan:** krem panel üst kenarı en dar durumda cutout'un 167 px
+  altında; alt kenar gerçekçi tavanda (5 ödül) nav bölgesinin 73 px, yalnız
+  harness'a özgü 6 ödül stresinde 9 px üstünde — çakışma yok (yükseklik
+  tavanı devreye girip gövdeyi kaydırılabilir yapıyor).
+* **HUD sızması (eski kusur) kapandı:** sonuç açıkken HUD parlaklığı %31'e
+  düşüyor (skor plakası 154.6 → 47.4), krem gövde tamamen opak — içinden
+  yazı okunmuyor.
+* **Yıldızlar:** cihazda ölçülen görünürlük 305 / 517 / 718 ms → **≈207 ms
+  arayla** (hedeflenen 0.2 s), titreme/çift pop yok, son konumlar sabit.
+* **Kartlar:** dört Hamur rarity'si ve dört skin kartı 450 dpi'da net; skin
+  sanatı büyük ve keskin, YENİ SKİN rozeti baskın, "Koleksiyon'a eklendi"
+  ikincil; EFSANEVİ kart altın, soluk değil; geri düşüş kartı skin iddia
+  etmiyor.
+* **Kaydırma:** 5 ödül (gerçekçi tavan) cihazda kaydırma bile gerektirmiyor;
+  6 ödül stresinde kart üstünden başlayan yavaş sürükleme, hızlı fling, ters
+  yön ve iki limite tekrar kaydırma sorunsuz (0 ↔ 130), altlık sabit, kart
+  sürüklemeyi yutmuyor, ödül mutasyonu yok.
+* **İki izleme maddesi ölçüldü, değişiklik yapılmadı:** (1) kaydırmada üst
+  kenar kırpması — durağan hâlde kartlar tam oturuyor, parmak basılıyken kesim
+  ayırıcı çizginin hemen altında temiz; (2) reveal öncesi boş krem gövde —
+  1 ödülde hiç yok (panel büyüyor), 3 ödüllü 3 yıldızlı kazanmada ~0.15 → 1.28 s
+  (yıldızlar bu sırada pop'luyor), Sonsuz'da ~0.12 → 0.60 s; panel yüksekliği
+  zıplamıyor, kartlar patlama + sesle sırayla doluyor. Zaman çizelgesi kanıtı:
+  `build/qa_m8.6-09/device/contact_device_reveal_timeline_3.jpg` / `_5.jpg`.
+* **İlerleme:** gerçek dokunuşla oynanan Level 1 kazanması tam bir kez yazdı
+  (Hamur 100 → 110, kilit 1 → 2, yıldız {} → {"1": 3}); gerçek taşma → Devam
+  teklifi → BİTİR yolunda teselli +5 bir kez; sonuç açıkken ikinci `_finish`
+  ve ikinci `show_result` kopya pencere/kart/ödül üretmedi (kayıt sha256 aynı).
+* **Rotalar:** Android geri sonuçta yok sayıldı (kare farkı 0 px), kart
+  dokunuşu/sürüklemesi sunum-only, HARİTA tek geçiş + harita açılış
+  animasyonu, TEKRAR DENE/TEKRAR OYNA aynı level'ı yeniden başlattı (ek yazım
+  yok), RESULT_DELAY aralığında mola açılmadı (kontrol: canlı board'da aynı
+  dokunuş molayı açıyor), Devam → Sonuç sırasında sonuç parlaması yok.
+* **Performans:** reveal sırasında ortalama kare 8.8–12.2 ms, 25 ms üstü kare
+  13 durumun 11'inde 0 (kalan ikisinde birer kare), SkinSwatch kaynaklı takılma
+  yok; 15 s boşta düğüm 3023 → 3023, FX 0, PSS 389.5 → 386.4 MB. Logcat
+  (206 506 satır): 0 SCRIPT ERROR / 0 E godot / 0 eksik res:// / 0 shader / 0
+  FATAL / 0 ANR / 0 tombstone.
+
+Kanıt ve sürücüler: `build/qa_m8.6-09/device/` (`DEVICE_GATE_NOTES.md`, 01–25
+kare + X_/N_/R_ ek kareler, 9 contact sheet, `apk_leak_check.txt`,
+`export_log.txt`, `logcat_gate.txt`, kayıt yedeği/geri koyma kanıtı,
+`dev.sh` / `qa.sh` / `drive.sh` / `play_l1.py` / `pause_race.py`).
+
+### 20.8 Şimdilik yapılmayan
+
+GAME_DESIGN §5.1 "~400 ms" yıldız notu owner brief'iyle 0.2 s'ye çekildi —
+doküman güncellemesi owner onayına bırakıldı (cihazda ölçülen 207 ms).
+Harness notu (runtime kusuru değil): `RoundResult._clear_cards()` `_rewards`
+dizisini de temizlediği için, `show_result`'a sonucun **kendi** `_rewards`
+dizisi geri verilirse kart kalmaz; üretim yolunda `Main` her zaman
+`_collect_rewards`'tan taze dizi veriyor.
