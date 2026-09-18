@@ -468,8 +468,8 @@ alınacak — şimdi tahmin/vaat yok.
     değişiklik YAPILMADI (zaman çizelgesi kanıtı `build/qa_m8.6-09/device/`).
     Ayrıntı: UI_VISUAL_SYSTEM §20, cihaz notları
     `build/qa_m8.6-09/device/DEVICE_GATE_NOTES.md`.
-  - `M8.6-10` 🔶 **production Devam (revive) + stok 0 Refill + M8.5 kabuğu
-    emekliliği** (PRE-DEVICE VISUAL REVIEW, dal
+  - `M8.6-10` ✅ **production Devam (revive) + stok 0 Refill + M8.5 kabuğu
+    emekliliği** (DEVICE VERIFIED, dal
     `task/028-production-revive-refill`, main 306dea5 üzerine): son iki M8.5-08
     candy paneli (`panel_candy` gerilmiş + mavi yıldızlı `CandyButton` pill'leri,
     birincil = ikincil) kalktı. **Devam:** `modal_shell` 560 + owner kanatlı-kalp
@@ -501,15 +501,29 @@ alınacak — şimdi tahmin/vaat yok.
     transaction + çift basış, kapanış yolları, 5 yapılandırma, performans);
     refill 119, revive 120, secondary_modal 102, ui_foundation 165;
     `tools/revive_refill_shots` 17 durum × 4 boyut + A36 (build/qa_m8.6-10/
-    before/after + contact sheet'ler). **Telefon/ADB kullanılmadı; owner görsel
-    onayı + A36 cihaz kapısı bekliyor.** Ayrıntı: UI_VISUAL_SYSTEM §21.
+    before/after + contact sheet'ler). Owner masaüstü görsel incelemesini onayladı;
+    **A36 cihaz kapısı (M8.6-10.1, 2026-09-19) GEÇTİ, runtime değişmedi:** SM-A366B /
+    Android 16 / 1080×2340, APK 40bab45 ağacından (44 800 970 B, 743 girdi, sızıntı 0,
+    emekli asset'ler APK'da YOK), Devam paneli cutout'un 557 px altında / Refill kurdelesi
+    376 px altında ve altlık nav bölgesinin 374 px üstünde (kaydırma yok), 2/2 ↔ 1/2 net,
+    sağlayıcısız pasif CTA'lar okunur ve dokunuşa/karartmaya/geri ×3'e kapalı (0 talep),
+    test sağlayıcısıyla talep tam bir kez / callback tam bir kez / 3. devam yok, gerçek
+    taşma → BİTİR → 836 ms boşluk → sonuç (teselli bir kez), Hamur satın alma 500 → 380 /
+    stok +1 tek işlem (üçlü dokunuş dahil, güç başına fiyat, yanlış güç yok), ödüllü kota
+    Bomba'ya verilince diğer üçünde 0/1 (dört gücün toplamı), sağlayıcı hatası / bekleyen
+    talep + geri kota tüketmez ve geç callback reddedilir, geri / X / KAPAT / karartma yazma
+    yok, gerçek build'de geçici kayıtla stok 0 tetik + satın alma (380 / bomb 1) + gerçek
+    taşma → Devam → BİTİR (405 → 410) doğrulandı; 15 s dinlenmede düğüm/tween/PSS sabit;
+    logcat 0/0/0/0; owner kaydı gate boyunca hiç yüklenmedi ve byte-identical geri kondu.
+    Cihaza özel kusur YOK. Dal push edildi — **merge izni bekliyor**
+    (`build/qa_m8.6-10/device/DEVICE_GATE_NOTES.md`). Ayrıntı: UI_VISUAL_SYSTEM §21.
 - **Sırada: M8.6 — Visual Cohesion Rebuild** (ekranlar `UiKit`/`UiTokens`
   sistemine geçirilecek: ~~gameplay shell~~ ✅ → ~~home~~ ✅ → ~~map~~ ✅ →
   ~~shop~~ ✅ → ~~collection~~ ✅ main'de → ~~ikincil UI denetimi~~ ✅ →
   ~~M8.6-08 shell v2 + Ayarlar + Günlük~~ ✅ main'de → ~~M8.6-09 Round
-  sonu~~ ✅ main'de → M8.6-10 Devam/Refill 🔶 PRE-DEVICE VISUAL REVIEW —
-  owner görsel onayı + A36 kapısı bekliyor), ardından **M9 — Android
-  export.** Ortam hazır (export template'leri, SDK,
+  sonu~~ ✅ main'de → ~~M8.6-10 Devam/Refill~~ ✅ A36 kapısı geçti, dal push
+  edildi — **merge izni bekliyor**), ardından **M9 — Android export.**
+  Ortam hazır (export template'leri, SDK,
   NDK, JDK 17, debug keystore mevcut, ETC2/ASTC import açık, iş
   makinesinde debug `export_presets.cfg` var — gitignore'lu, her makinede
   ayrı); eksik olan kalıcı paket adı ve release/upload keystore (uzun

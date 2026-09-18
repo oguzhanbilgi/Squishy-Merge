@@ -1430,7 +1430,7 @@ dizisi geri verilirse kart kalmaz; üretim yolunda `Main` her zaman
 
 ---
 
-## 21. Production Devam (revive) + stok 0 Refill (M8.6-10) — PRE-DEVICE VISUAL REVIEW
+## 21. Production Devam (revive) + stok 0 Refill (M8.6-10) — DEVICE VERIFIED (A36, 40bab45)
 
 **Kod:** `scripts/ui/revive_offer.gd` + `scenes/ui/revive_offer.tscn` (katman 11),
 `scripts/ui/power_refill.gd` + `scenes/ui/power_refill.tscn` (katman 11),
@@ -1567,7 +1567,59 @@ değil, temayı yeniden üretmeden silinemez — production kullanıcısı yaln�
 asset'leri (`banner_new`, `ui_button_*`, `ui_panel`, `ui_star_*` — bu
 milestone'un konusu değil, owner kararı).
 
-### 21.7 Şimdilik yapılmayan
+### 21.7 A36 cihaz kapısı (M8.6-10.1, 2026-09-19, 40bab45)
+
+Samsung SM-A366B / Android 16 / native 1080×2340 (yoğunluk 450, cutout 92 px, nav 135 px,
+120 Hz). Debug APK `40bab45` ağacından (44 800 970 B, 743 girdi — M8.6-09'un 45 620 684 /
+787'sinden küçük: emekli asset'ler gitti), sızıntı 0; APK'da `candy_button` / `ui_palette` /
+`panel_candy.png` / `cta_button_*` / `power_button_*` / `ui/icons/` YOK, `revive_offer` /
+`power_refill` / tepelik / `icon_heart_revive` / dört güç sanatı / `movie` pictosu / politika +
+ekonomi + kayıt sembolleri VAR. **Runtime değişmedi; cihaza özel kusur YOK.** Owner kaydı
+(671 B, md5 `942aa5c3…`) gate boyunca hiç yüklenmedi — bütün üretim paketi testleri geçici
+kayıtlarla (`run-as cp`), sonunda pre-gate byte'lar geri kondu (on-device md5/sha256/stat +
+read-back cmp aynı), uygulama force-stop'ta bırakıldı; telefon gate ortasında kendi kendine
+kilitlendi ve **açılması beklendi** (hiç uyandırılmadı / kilidi açılmadı). Logcat 0 SCRIPT
+ERROR / 0 E godot / 0 missing res / 0 shader / 0 FATAL / 0 ANR / 0 tombstone.
+
+- **Devam (native):** panel 742–1597 px, tepelik cutout'un 557 px altında, alt kenar nav
+  bölgesinin 608 px üstünde; 2/2 ↔ 1/2 kalpleri anında ayrışıyor, sağlayıcısız DEVAM ET gri
+  gövde + koyu yazı + turuncu sebep (kırık doku gibi değil), BİTİR lavanta. Sağlayıcısız:
+  pasif CTA'ya iki gerçek dokunuş + karartma dokunuşu + karartma altındaki HUD geri / güç
+  slotu dokunuşları + Android geri ×3 → pencere bölgesi **piksel piksel aynı**, 0 talep,
+  fail-pending sürüyor, mola/sonuç yok, kayıt aynı. Test sağlayıcısıyla: çift + tekrar
+  dokunuş → **1** talep; callback bir kez → devam #1 (sayaç 1), ikinci callback `false`;
+  1/2 → #2; hak bitince taşma teklif AÇMAZ (3. devam yok). Sağlayıcı hatası → tekrar dene.
+  Basıp sürükleyerek bırakma → takılı ölçek yok. **Gerçek taşma → teklif → gerçek BİTİR
+  basışı:** uygulama içi zaman çizelgesi (50 ms): teklif kapanır + round biter aynı örnekte,
+  **836 ms** boyunca ne teklif ne sonuç, sonra sonuç (KAYIP, teselli +5 tam bir kez,
+  `round_finished` 1); hızlı üçlü BİTİR de tek bitiş. 15 s dinlenme: düğüm/bellek sabit,
+  tween 0, PSS 337 → 334 MB.
+- **Refill (native):** panel 507–1831 px, kurdele + X 468 px'te (cutout'un 376 px altında),
+  alt kenar nav bölgesinin **374 px** üstünde, iki kart tam görünür, **kaydırma yok**. Dört
+  kahraman doğru sanat/renk/ad/fiyat (120/180/100/160). Ödüllü ↔ Hamur kartları ilk bakışta
+  ayrı. Sağlayıcısız: REKLAM İZLE pasif + sebep, kota 1/1 dürüst, dokunuş 0 talep. **Satın
+  alma (gerçek basış):** Bomba 500 → 380 / stok 1 (basılı kare + kapanış + slot ×1 + hedefleme
+  geri), Büyütücü hızlı üçlü dokunuş 380 → 200 / stok 1 (tek işlem), Temizleyici 200 → 40 /
+  yalnız clear_small +1 (yanlış güç yok), Sarsıntı tam 100 → 0. Yetersiz (10): SATIN AL pasif +
+  sebep, üçlü dokunuş kayıt sha aynı. **Ödüllü (test sağlayıcı):** çift dokunuş → 1 talep,
+  callback → Bomba +1, kota 1/1 → 0/1; Büyütücü / Sarsıntı / Temizleyici üçü de **0/1 +
+  pasif** (dört gücün toplamı); kopya callback `false`; sağlayıcı hatası kota tüketmez, CTA
+  yeniden açılır, geç callback `false`; **bekleyen talep + Android geri** → pencere kapanır,
+  token iptal, geç callback `false`, stok/kota aynı. **Kapanış:** geri / X / KAPAT / karartma
+  bırakışı → kayıt sha aynı, board sürer, mola açılmaz; Refill kapalıyken geri → Mola
+  (değişmedi). Stok 0 gerçek slot dokunuşu dört güçte doğru pencereyi açar; Refill açıkken
+  stoklu slota dokunuş pencereyi kapatır ama gücü **silahlamaz** (kontrol: canlı board'da aynı
+  dokunuş silahlar). 15 s dinlenme: düğüm/bellek sabit, tween 0, PSS 341 → 336 MB.
+- **Üretim paketi (geçici kayıt, gerçek build):** Level 4'te stok 0 Bomba slotu → Refill
+  (sağlayıcı yok, 120 / 500) → pasif reklam dokunuşları etkisiz → geri kapatır (yazma yok) →
+  SATIN AL → cihaz kaydı **380 / bomb 1** (tek yazma) → Sarsıntı stok 0 → KAPAT (byte aynı).
+  Level 10 hızlı orta dokunuşlarla **gerçek taşma → gerçek Devam** → pasif CTA + karartma +
+  geri ×3 etkisiz → BİTİR: +0.4 s "Bitti" board'u, sonuç yok; ~1.3 s sonuç (teselli +5, kayıt
+  405 → 410, merge'ler bir kez). 10 Hamur kaydında yetersiz durum gerçek build'de de aynı.
+  Kanıt: `build/qa_m8.6-10/device/` (`DEVICE_GATE_NOTES.md`, 55 kare, 7 contact sheet,
+  logcat, kayıt kanıtları).
+
+### 21.8 Şimdilik yapılmayan
 
 Devam'da "başarı geçişi" (kalp pop / nane flaş) yok: kanonik `grant_revive`
 board'u aynı karede çözüyor, pencere beklerse oyun süresi yenir. Refill talebi
