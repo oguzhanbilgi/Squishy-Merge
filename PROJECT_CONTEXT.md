@@ -383,11 +383,41 @@ alınacak — şimdi tahmin/vaat yok.
     Ayarlar + Günlük + kapat oturması → **M8.6-09** Round sonu + sandık reveal
     → **M8.6-10** Devam + Refill + M8.5 kalıntılarının emekliliği (her biri
     A36 kapılı). Ayrıntı: UI_VISUAL_SYSTEM §18. ui_foundation 164, ui_smoke 74.
+  - `M8.6-08` 🔶 **pencere iskeleti v2 + Ayarlar + Günlük + Mola/Bonus
+    Sandık cilası** (PRE-DEVICE VISUAL REVIEW, dal
+    `task/026-production-secondary-shell`, denetim 2470231 üzerine):
+    `UiKit.modal_shell` (aynı krem gövde/gloss/parıltı malzemesi; kurdele YA
+    DA gövde içi Baloo başlık + owner tepeliği; X **her zaman oturmuş** —
+    05.1 halkası + gölge, kurdele kuyruğuna binmez; gövde ScrollContainer'da,
+    altlık sabit; pencere içeriği kadar büyür, güvenli tavanı aşınca gövde
+    kaydırılır, metin küçülmez; `attach_dim_close` tek karartma anlamı =
+    bırakışta, emülasyon olayı filtreli; `settings_row` + `settings_divider`),
+    `StreakStrip` (7 gerçek düğüm: nane tik / altın odak + yıldız / lavanta,
+    "+N" rozeti). **Ayarlar** yeniden kuruldu (tepelik + AYARLAR, 3 satır +
+    nane anahtar 96×52 PASS, Gizlilik krem plakada açılır, sürüm + Kapat
+    altlıkta) — **shipped taşma kusuru yapısal olarak kapandı** (5 pencere
+    yapılandırmasında metin/sürüm/Kapat panelde; regresyon kontrolü). **Günlük**
+    yeniden kuruldu (pembe candy kuyuda Hamur + altın pırıltılar, "+15 HAMUR",
+    "N. GÜN", seri şeridi, AL kahraman CTA = kutlama → kapanır → Ana Sayfa
+    yenilenir; alınmış durum "Bugünkü ödülünü aldın" + TAMAM; karartma
+    dokunuşu artık kapatır). Mola/Bonus Sandık: oturmuş X, eylemler altlıkta,
+    sandık altın kuyuda. Ayarlar katman 13 + `open_pause_menu` Ayarlar
+    açıkken mola açmaz (tek odak). `modal_frame` ve Mağaza onayı DEĞİŞMEDİ
+    (10 karede piksel piksel aynı). `tools/secondary_modal_ui_test` 102/102;
+    tam kapı: ui_foundation 164, ui_smoke 74, home_ui 207, map_ui 127, shop_ui
+    212, collection_ui 164, shell 147, skin 30, audio 45, economy 100, refill
+    119, revive 120, bot L3 2/2; owner kaydı byte-identical; `build/qa_m8.6-08/`
+    21 durum × 4 pencere + A36 + 11 contact sheet. **Ödül kuralı, seri/tarih
+    mantığı, kayıt şeması, ayar yazma yolu, mola eylemleri, sandık kuralı,
+    ekonomi DEĞİŞMEDİ.** Round sonu / Devam / Refill dokunulmadı; CandyButton /
+    panel_candy / UiPalette / eski ikon klasörü onlar için duruyor (M8.6-10).
+    **Telefon/ADB kullanılmadı; push/merge yok — owner görsel onayı + A36
+    kapısı bekliyor.** Ayrıntı: UI_VISUAL_SYSTEM §19.
 - **Sırada: M8.6 — Visual Cohesion Rebuild** (ekranlar `UiKit`/`UiTokens`
   sistemine geçirilecek: ~~gameplay shell~~ ✅ → ~~home~~ ✅ → ~~map~~ ✅ →
   ~~shop~~ ✅ → ~~collection~~ ✅ main'de → ~~ikincil UI denetimi~~ ✅ →
-  **M8.6-08 shell v2 + Ayarlar + Günlük** → M8.6-09 Round sonu → M8.6-10
-  Devam/Refill), ardından **M9 — Android export.** Ortam hazır (export template'leri, SDK,
+  **M8.6-08 shell v2 + Ayarlar + Günlük 🔶 pre-device** → M8.6-09 Round sonu →
+  M8.6-10 Devam/Refill), ardından **M9 — Android export.** Ortam hazır Ortam hazır (export template'leri, SDK,
   NDK, JDK 17, debug keystore mevcut, ETC2/ASTC import açık, iş
   makinesinde debug `export_presets.cfg` var — gitignore'lu, her makinede
   ayrı); eksik olan kalıcı paket adı ve release/upload keystore (uzun

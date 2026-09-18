@@ -55,6 +55,14 @@ func set_on(on: bool) -> void:
 	queue_redraw()
 
 
+## ScrollContainer içinde (M8.6-08 Ayarlar, `MOUSE_FILTER_PASS`): kaydırma
+## başlayınca BaseButton basışı iptal eder ama `button_up` yaymaz — basış
+## ölçeği (0.94) burada bırakılır (Koleksiyon kartı deseni, M8.6-06).
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_SCROLL_BEGIN:
+		UiMotion.release(self)
+
+
 func _on_toggled(on: bool) -> void:
 	var tween: Tween = create_tween()
 	tween.tween_method(_set_knob, _knob, 1.0 if on else 0.0, SLIDE_TIME) \

@@ -197,6 +197,11 @@ func open_pause_menu() -> void:
 	if _board.is_fail_pending() or _board.is_refill_pending():
 		# Devam/refill penceresi açıkken mola açılmaz — o pencere karar bekliyor.
 		return
+	if _settings != null and _settings.visible:
+		# Ayarlar açıkken mola açılmaz (M8.6-08 z-order kuralı: aynı anda tek
+		# ikincil pencere odakta; Ayarlar katman 13, Mola 12). Dokunma yolu
+		# zaten karartmayla kapalı; bu, kod yollarını da kapatır.
+		return
 	_board.set_menu_paused(true)
 	_pause.open_menu()
 

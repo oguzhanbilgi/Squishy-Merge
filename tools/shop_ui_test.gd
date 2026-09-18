@@ -274,7 +274,7 @@ func _ready() -> void:
 		and shop._confirm_art.get_global_rect().grow(2.0).encloses(confirm_swatch.get_global_rect())
 		and not confirm_swatch._image.get_global_rect().intersects(
 			(shop._confirm_art.get_child(shop._confirm_art.get_child_count() - 1) as Control).get_global_rect()))
-	_c("onay: paylaşılan modal_frame reçetesi değişmedi (Mola/Bonus Sandık kurdelesi 24 px)",
+	_c("onay: modal_frame reçetesi değişmedi (varsayılan kurdele 24 px; Mola/Bonus Sandık M8.6-08'de modal_shell'e geçti)",
 		is_equal_approx((UiKit.modal_frame("x").get_meta(&"ribbon") as Control).offset_left, 24.0))
 	shop._close_confirm()
 	await get_tree().process_frame

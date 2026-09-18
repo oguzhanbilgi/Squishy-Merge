@@ -32,8 +32,10 @@ extends Node
 ## bekleniyor" durumunu çekmek için var — hiçbir şey vermez.
 ##
 ## Kullanım:
-##   godot --path . res://tools/secondary_ui_shots.tscn -- <çıktı_klasörü> [GxY] [safe=61]
+##   godot --path . res://tools/secondary_ui_shots.tscn -- <çıktı_klasörü> [GxY] [safe=61] [groups=daily,chest]
 ## `safe=N`: A36 punch-hole payı simülasyonu (tuval px; dosya adına `_a36`).
+## `groups=`: yalnız seçilen gruplar (daily, chest, settings, generic, pause,
+## refill, revive, result); verilmezse hepsi.
 
 const MAIN_SCENE: PackedScene = preload("res://scenes/main.tscn")
 const SHOT_SIZE := Vector2i(720, 1280)
@@ -64,6 +66,13 @@ var _save_bytes: PackedByteArray = PackedByteArray()
 var _had_save: bool = false
 var _safe_top: float = -1.0
 var _shots: int = 0
+## `groups=daily,chest,...` ile grup secimi (M8.6-08: yalniz tasinan
+## pencereler yeniden cekilir, 240 denetim karesi bosuna uretilmez). Bos = hepsi.
+var _groups: PackedStringArray = PackedStringArray()
+
+
+func _wants(group: String) -> bool:
+	return _groups.is_empty() or _groups.has(group)
 
 
 func _ready() -> void:
@@ -74,6 +83,8 @@ func _ready() -> void:
 	for arg in args:
 		if String(arg).begins_with("safe="):
 			_safe_top = float(String(arg).trim_prefix("safe="))
+		elif String(arg).begins_with("groups="):
+			_groups = String(arg).trim_prefix("groups=").split(",", false)
 	DisplayServer.window_set_size(_size)
 	await get_tree().process_frame
 	await get_tree().process_frame
@@ -94,14 +105,14 @@ func _ready() -> void:
 	_apply_showcase()
 	_apply_safe_top_to_shell()
 
-	await _group_daily()
-	await _group_chest()
-	await _group_settings()
-	await _group_generic()
-	await _group_pause()
-	await _group_refill()
-	await _group_revive()
-	await _group_result()
+	if _wants("daily"): await _group_daily()
+	if _wants("chest"): await _group_chest()
+	if _wants("settings"): await _group_settings()
+	if _wants("generic"): await _group_generic()
+	if _wants("pause"): await _group_pause()
+	if _wants("refill"): await _group_refill()
+	if _wants("revive"): await _group_revive()
+	if _wants("result"): await _group_result()
 
 	SaveManager.data = _saved_data
 	_restore_save_file()
@@ -149,6 +160,19 @@ func _capture(name: String) -> void:
 func _settle(seconds: float = 0.45) -> void:
 	await get_tree().create_timer(seconds).timeout
 	await get_tree().process_frame
+
+
+## Gerçek işaretçi olayı (shop_ui_test ile aynı): basış görseli ve gerçek
+## `pressed` yolu için.
+func _pointer(pos: Vector2, pressed: bool) -> void:
+	var ev := InputEventMouseButton.new()
+	ev.button_index = MOUSE_BUTTON_LEFT
+	ev.pressed = pressed
+	ev.position = pos
+	ev.global_position = pos
+	if pressed:
+		ev.button_mask = MOUSE_BUTTON_MASK_LEFT
+	Input.parse_input_event(ev)
 
 
 ## Yerel takvimde "dün" (DailyReward yerel günü okur).
@@ -314,6 +338,23 @@ func _group_daily() -> void:
 	await _settle()
 	await _capture("daily_05_status_claimed")
 	_main._daily.close_popup()
+	await _show_home()
+
+	# M8.6-08: AL basışı (pres görseli) ve kutlama anı (bugünkü düğüm yıldız +
+	# pırıltı) — gerçek dokunuş olayıyla; pencere kutlamadan sonra kendi kapanır.
+	_main._daily.show_reward(_daily_result(4, false))
+	await _settle()
+	var claim: Button = _main._daily.cta_button()
+	var at: Vector2 = claim.get_global_rect().get_center()
+	_pointer(at, true)
+	await _settle(0.08)
+	await _capture("daily_07_claim_press")
+	_pointer(at, false)
+	await get_tree().create_timer(0.16).timeout
+	await _capture("daily_08_claim_success")
+	await _settle(0.6)
+	if _main._daily.visible:
+		_main._daily.close_popup()
 	await _show_home()
 
 	# GERÇEK açılış yolu (kayda yazar; çıkışta byte'ı geri konur): dün giriş

@@ -183,7 +183,7 @@ func _ready() -> void:
 	daily.pressed.emit()
 	await get_tree().process_frame
 	_c("alınmışken Günlük → durum penceresi ('aldın', TAMAM), ödül tekrar VERİLMEDİ", _main._daily.visible
-		and _main._daily._reward.text.contains("aldın") and _main._daily._close.text == "TAMAM"
+		and _main._daily._reward.text.contains("aldın") and _main._daily.cta_text() == "TAMAM"
 		and SaveManager.dough() == dough_before + DailyReward.DAILY_DOUGH)
 	_main._daily.close_popup()
 	await get_tree().process_frame

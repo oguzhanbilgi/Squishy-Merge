@@ -6,7 +6,7 @@
 **Asset kaynağı:** `tools/make_ui_core.py` → `assets/visual/ui/core/**` +
 `scripts/ui/ui_core_assets.gd` (üretilir, elle düzenlenmez).
 **Galeri:** `tools/ui_system_gallery.tscn` (dev-only, 5 sayfa).
-**Test:** `tools/ui_foundation_test.tscn` (164 kontrol), `tools/gameplay_shell_test.tscn` (147, §13), `tools/home_ui_test.tscn` (207, §14), `tools/map_ui_test.tscn` (127, §15), `tools/shop_ui_test.tscn` (212, §16), `tools/collection_ui_test.tscn` (164, §17).
+**Test:** `tools/ui_foundation_test.tscn` (164 kontrol), `tools/gameplay_shell_test.tscn` (147, §13), `tools/home_ui_test.tscn` (207, §14), `tools/map_ui_test.tscn` (127, §15), `tools/shop_ui_test.tscn` (212, §16), `tools/collection_ui_test.tscn` (164, §17), `tools/secondary_modal_ui_test.tscn` (102, §19).
 
 Çakışma kuralı: owner'ın son talimatı > GAME_DESIGN.md > bu doküman > kod.
 Bir sayı burada ve `ui_tokens.gd`'de farklıysa **doküman güncellenir, token
@@ -1044,3 +1044,147 @@ hiyerarşisi; 2 devam/round ve 1 refill/gün politikası, token, sağlayıcı
 seam'i DEĞİŞMEZ) + `CandyButton` CTA / candy panel sahneleri / M8.5 rollerinin
 emekliye ayrılması → A36 kapısı. Genel onay (`ConfirmationModal`) için kanıt
 yok; "Ana Menüye Dön" onayı owner kararı.
+
+---
+
+## 19. Pencere iskeleti v2 + Ayarlar + Günlük + Mola/Bonus Sandık cilası (M8.6-08) — PRE-DEVICE VISUAL REVIEW
+
+**Kod:** `scripts/ui/ui_kit.gd` (`modal_shell`, `modal_relayout`,
+`modal_body_cap`, `set_modal_height_cap`, `attach_dim_close`, `settings_row`,
+`settings_divider`, `_seat_close`), `scripts/ui/streak_strip.gd`
+(`StreakStrip`), `scripts/ui/settings_panel.gd` + `.tscn`,
+`scripts/ui/daily_reward_popup.gd` + `.tscn`, `scripts/ui/pause_menu.gd`,
+`scripts/ui/bonus_chest_info.gd`, `scripts/main.gd` (tek koruma satırı).
+**Test:** `tools/secondary_modal_ui_test.tscn` (102). **Çekim:**
+`tools/secondary_ui_shots.tscn -- <dir> [GxY] [safe=61] [groups=daily,chest,settings,pause,generic]`
+→ `build/qa_m8.6-08/` (before = M8.6-07 denetim kareleri, after/final 21
+durum × 4 pencere + A36, contact sheet'ler). Tema **değişmedi** (yeni
+variation yok); `modal_frame` **değişmedi**.
+
+### 19.1 `UiKit.modal_shell` anatomisi (shell v2)
+
+`modal_shell(title, width = 560, header = &"ribbon" | &"heading", topper,
+closable, glow)`; meta: `body`, `footer`, `close_button`, `ribbon` /
+`heading`, `topper`, `scroll`, `body_host`, `panel`, `column`, `fade`,
+`body_scrolls`.
+
+| Katman | Malzeme | Not |
+|---|---|---|
+| parıltı | `popup_glow` `GLOW_SUBTLE` (−70 px) | modal_frame ile aynı |
+| gövde | `PanelModal` (`popup_body` krem, iç pay 36/56/36/36) | üst 56 = kurdele/tepelik payı |
+| gloss | `popup_light` α .5, üst 33 px | |
+| sütun | VBox: [`heading`] / `body_host` / `footer` | ayrık 12 |
+| `body_host` | düz Control: tam dikdörtgen `ScrollContainer` (dikey `SHOW_NEVER`, yatay kapalı, stil boş) + altta 40 px krem solma bandı (`fade`, yalnız kaydırılabilirken) | band ScrollContainer'ın çocuğu OLAMAZ (her çocuğu içerik sayar) |
+| `body` | VBox, ekranın içeriği | kaydırılan tek bölge |
+| `footer` | VBox (ayrık 8), CTA alanı | **hiç kaydırılmaz**; boşsa gizli |
+| kurdele | `HeaderRibbon`, iki yandan **60 px** içeride, −34/+46 | `header = &"ribbon"` (Mola, Bonus Sandık; Mağaza onayı ile aynı ölçü) |
+| başlık | `LabelTitle` 32 ortalı, gövde içinde | `header = &"heading"` (Ayarlar, Günlük) |
+| tepelik | `panel_candy_crown.png` 300×96 (1024×328, oran korunur), −62 px taşma | owner kimlik katmanı (§10) |
+| kapat | `ButtonRoundIcon` 64, sağ üst köşe (−40/+24, −26/+38), **her zaman oturmuş** (`_seat_close`: erik temas gölgesi + krem halka +4, 05.1 reçetesi) | kurdele kuyruğuyla kesişmez (testle) |
+
+**Boyut sistemi.** Pencere içeriği kadar büyür (min = doğal gövde). Tavan:
+`modal_body_cap` = tuval yüksekliği − `safe_top` − `safe_bottom` −
+2 × `MODAL_OUTER_MARGIN` (36) − tepelik/kurdele taşması − krom (panel iç
+payları + başlık + altlık + aralar). Doğal gövde tavanı aşarsa **gövde
+kaydırılır** (`body_host` yüksekliği = tavan, en az `MODAL_BODY_MIN` 160),
+metin küçültülmez, altlık yerinde kalır. `set_modal_height_cap(frame, h)`
+pencere toplam yüksekliğini dışarıdan sınırlar (test / prova). Not:
+`canvas_items` + `expand` tuvali hiçbir pencerede 1280'in altına indirmez
+(540×960 = 720×1280'in 0.75'i), yani gerçek en kısa durum 1280'dir;
+Gizlilik açık Ayarlar (≈ 700 px) ona sığar, kaydırma yalnız daha kısa
+tavanda devreye girer (`secondary_modal_ui_test` 640 tavanıyla kanıtlar).
+
+**Karartma.** `UiKit.attach_dim_close(dim, callback)`: tüm ikincil
+pencerelerde TEK anlam — parmak/tık **bırakılınca** (basışta değil);
+dokunmadan üretilen emülasyon fare olayı (`device == -1`) atlanır (bir dokunuş
+iki kez tetiklemez); karartma `STOP` (arkadaki ekrana tıklama sızmaz —
+Ana Sayfa OYNA'nın üstüne tık Harita'ya gitmez, testle). Renk her yerde
+`Color(0.05, 0, 0.06, 0.62)` (değişmedi).
+
+**Z-order.** Ayarlar katman **13** (Mola/Günlük/Sandık 12'nin üstünde):
+Ayarlar ile Mola bir arada görünürse Ayarlar önde, Mola karartmanın arkasında
+etkileşimsiz. `Main.open_pause_menu` Ayarlar açıkken mola AÇMAZ (tek odak
+kuralı; dokunma yolu zaten karartmayla kapalıydı, kod yolları da kapandı).
+Ayarlar kapanınca mola açıksa board donuk kalır (değişmedi).
+
+**`modal_frame` (M8.6-01) DEĞİŞMEDİ:** Mağaza onayı onu + `seat_modal_close`
+ile kullanmaya devam ediyor; `seat_modal_close` gövdesi `_seat_close`'a
+taşındı (aynı düğüm sırası/ölçü) — `generic_01/02` kareleri M8.6-07
+denetimiyle 5 pencere yapılandırmasında **piksel piksel aynı** (PIL fark = 0).
+
+### 19.2 Ayarlar (yeniden kurulum)
+
+`modal_shell("AYARLAR", 560, heading, tepelik)`. Gövde (ayrık 4):
+`UiKit.settings_row` × 3 (44 px lavanta yuvarlak kuyucuk + 26 px plum picto
+`sound_on` / `vibration` / `info`, `LabelSection` 24 başlık, sağda kontrol),
+aralarında 2 px lavanta `settings_divider`. Kart çerçevesi YOK. Anahtar:
+`UiKit.switch_toggle` 96×52 (`SwitchOn` nane / `SwitchOff` lavanta-gri +
+LayerLab topuz), **`MOUSE_FILTER_PASS`** (kısa tavanda gövde kaydırılırken
+anahtardan başlayan sürükleme de kaydırır; BaseButton kaydırma başlayınca
+basışı iptal eder, anahtar yanlışlıkla dönmez). Gizlilik: `ButtonSecondary`
+132×58 Göster/Gizle → gövdede bir ton geri krem (`CREAM_DEEP`,
+`frame_round20`) plaka + `LabelBody` 19 `TEXT_SECONDARY` metin (kanonik kopya
+`PRIVACY_TEXT`, değişmedi). Altlık: `LabelCaption` `TEXT_TERTIARY` sürüm +
+`ButtonSecondary` Kapat. **Eski taşma kusuru yapısal olarak kapandı**
+(pencere içeriği kadar büyür; 720×1280 / 1560 / 540×960 / 1080×2340 / A36'da
+metin, sürüm ve Kapat panelin içinde — regresyon kontrolü). Kayıt sözleşmesi
+aynı: yalnız `set_sfx_enabled` / `set_haptics_enabled` (dokunuşta), açıp
+kapamak yazmaz. Müzik anahtarı bilerek yok. X / Kapat / karartma / Android
+geri → `close_panel` (Ana Sayfa aynen kalır, uygulama kapanmaz).
+
+### 19.3 Günlük ödül (yeniden kurulum) + `StreakStrip`
+
+`modal_shell("GÜNLÜK ÖDÜL", 560, heading, tepelik)`. Gövde (ayrık 8):
+`UiKit.candy_well(icon_dough, PINK, 164, 118)` (Mağaza onayı ürün sunumuyla
+aynı ölçek; Ana Sayfa Günlük madalyonuyla aynı pembe aile) + 4 sabit altın
+pırıltı (owner yıldızı) + sanatın yavaş süzülmesi (tek loop tween, kapanınca
+durur; `_process` yok) → `LabelPrice` 38 **"+15 HAMUR"** (durum modunda
+`LabelPositive` 24 "Bugünkü ödülünü aldın") → altın `Badge` **"N. GÜN"** →
+`StreakStrip` → not (`LabelWarning` "Serin kırılmıştı, sayaç sıfırlandı." /
+`LabelCaption` "Yarın tekrar gel, seri devam etsin."). Altlık: `ButtonCTA` 88
+**AL** (ödül) ya da `ButtonPrimary` 58 **TAMAM** (durum).
+
+`StreakStrip` (Control, 7 düğüm 44 px, bugün ×1.14, 14 px iç pay, altında
+1–7 numaraları `LabelCaption`, bağlantı çizgileri `_draw` ile arkada):
+CLAIMED nane disk + beyaz tik; TODAY altın odak halkası + krem disk + soluk
+yıldız (kutlanmamış) / altın disk + parlak yıldız (`mark_today`, pop 1.22);
+FUTURE lavanta-krem disk. Segmentler: tamamlanan nane, bugüne gelen altın,
+gelecek lavanta. Seri > 7: 7. düğümde altın `CountBadge` "+N". Gün başına
+farklı ödül **icat edilmedi** (runtime her gün `DailyReward.DAILY_DOUGH`).
+
+**Claim işlemi (değişmedi):** ödül `DailyReward.claim_if_new_day` ile
+Main'in açılış / madalyon yolunda kayda yazılır (`record_daily_login` +
+`add_dough`, tek Hamur + tek seri mutasyonu), pencere yalnız gösterir. **AL**
+kutlamadır: bugünkü düğüm yıldız + kuyu pop + 8 yıldızlık 0.42 s patlama
+(deterministik tween'ler, parçacık düğümü yok) → 0.48 s sonra `close_popup`
+→ `closed` → `Main._on_daily_closed` → Ana Sayfa yenilenir (Hamur pill'i
+kanonik yoldan güncellenir). AL kayda DOKUNMAZ (kaynak taramasıyla testli);
+ikinci basış yok sayılır; Android geri / X / karartma kutlamayı beklemez.
+Aynı gün ikinci açılış = durum modu, ödül tekrar verilmez.
+**Karartma dokunuşu kapatır (M8.6-08'de eklendi)** — diğer Ana Sayfa
+pencereleriyle aynı; `show_reward` / `show_status` / `close_popup`
+imzaları aynı.
+
+### 19.4 Mola / Bonus Sandık (dar cila)
+
+Mola: `modal_shell("Mola", 560, ribbon)`; üç eylem altlıkta — `ButtonCTA`
+DEVAM ET (play) / `ButtonSecondary` Yeniden Başlat (refresh) / ince ayraç /
+`ButtonDanger` Ana Menüye Dön (home); "Oyun duraklatıldı." dolgu satırı
+kalktı; X oturmuş; X ve karartma = devam (bırakışta). Eylemler, terk,
+Android geri, onay penceresinin olmaması DEĞİŞMEDİ.
+
+Bonus Sandık: `modal_shell("Bonus Sandık", 560, ribbon)`; owner sandık sanatı
+altın `candy_well` (150/112, ödül rengi) içinde; kural metni elle satır kırma
+yerine autowrap; `ProgressBarGold` 22 + `LabelStat` sayaç + `LabelCaption`
+kalan; OYNA altlıkta. İlerleme kaynağı, rota, uygunluk DEĞİŞMEDİ. Not:
+"Sandık hazır" dalı runtime'da erişilemez — tasarım gereği (`add_merges`
+sayacı `% 75` saklar, sandık aynı çağrıda verilir; sayaç 75'e ulaşmaz),
+mantık kusuru değil; dal güvenlik için duruyor.
+
+### 19.5 Taşınmayan yüzeyler (bilerek)
+
+Round sonu (M8.6-09), Devam ve Refill (M8.6-10) hâlâ eski iskeletlerde;
+`CandyButton`, `panel_candy.png`, `ModalPanel`, `UiPalette` ve
+`assets/visual/ui/icons/` bu yüzden **silinmedi** (Ayarlar/Günlük artık
+kullanmıyor; tam emeklilik M8.6-10). Mağaza onayı `modal_frame`'de kaldı
+(cihazda onaylı; piksel eşdeğerliği kanıtlanmış olsa da göç için sebep yok).

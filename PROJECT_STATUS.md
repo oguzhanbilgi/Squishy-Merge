@@ -1467,8 +1467,12 @@ squishy-merge/
 | `ui/ui_type.gd` | Tipografi rol adları (M8.5-09). |
 | `ui/ui_palette.gd` | Tasarım sistemi: renkler, katmanlar, cip/ikon buton fabrikaları (M8.5-10). |
 | `ui/ui_motion.gd` | Mikro-etkileşimler: basış, pop, pencere açılışı, sekme geçişi, toast (M8.5-10). |
-| `ui/ui_toggle.gd` | Ayarlar anahtarı (M8.5-10). |
-| `ui/settings_panel.gd` | Ayarlar penceresi: ses efektleri, titreşim (M8.5-15), gizlilik, sürüm (M8.5-10). |
+| `ui/ui_toggle.gd` | Ayarlar anahtarı (M8.5-10); `UiKit.switch_toggle` ile LayerLab ray/topuz; ScrollContainer içinde kaydırma başlayınca basış ölçeğini bırakır (M8.6-08). |
+| `ui/ui_kit.gd` | Production UI bileşen fabrikası (M8.6-01+): `modal_frame` (Mağaza onayı), **`modal_shell` iskelet v2** (kurdele/başlık+tepelik, oturmuş X, kaydırılan gövde + sabit altlık, tavan sistemi, `attach_dim_close`, `settings_row`) (M8.6-08). |
+| `ui/streak_strip.gd` | `StreakStrip` — Günlük ödül seri şeridi: 7 düğüm (alınmış / bugün / gelecek), bağlantı çizgileri, gün numaraları, "+N" rozeti (M8.6-08). |
+| `ui/settings_panel.gd` | Ayarlar penceresi (M8.6-08 yeniden kurulum, shell v2): ses efektleri, titreşim (M8.5-15), gizlilik (gövdede açılır, taşmaz), sürüm; yalnız `set_sfx_enabled` / `set_haptics_enabled` yazar. |
+| `ui/daily_reward_popup.gd` | Günlük ödül penceresi (M8.6-08 yeniden kurulum, shell v2): yalnız gösterir; ödül `DailyReward.claim_if_new_day` ile Main yolunda yazılır; AL = kutlama → kapanış → Ana Sayfa yenileme. |
+| `ui/pause_menu.gd` / `ui/bonus_chest_info.gd` | Mola ve Bonus Sandık bilgi pencereleri — shell v2, oturmuş X (M8.6-08 cila; eylemler/kural değişmedi). |
 | `ui/candy_button.gd` | Owner'ın candy pill dokularının tek bağlanma noktası (oyun ekranı + pencereler). |
 
 ### Geliştirme araçları (`tools/` — oyun çalışırken hiçbiri kullanılmaz)
@@ -1477,7 +1481,9 @@ squishy-merge/
 |---|---|
 | `bot_runner.gd` + `bot_brain.gd` | **Headless denge testi.** Gerçek `GameBoard`'u gerçek fizikle oynatır. Bu projedeki tüm kazanma oranı ölçümlerinin kaynağı. |
 | `ui_shots.gd` + `ui_shots.tscn` | **Production UI kabuğu çekimleri** (M8.5-10): dört sekme, ayarlar, en kötü durum, oyun ekranı; üç ölçü. `--headless` ile çalışmaz. |
-| `ui_smoke_test.gd` + `ui_smoke_test.tscn` | **Headless UI davranış testi** (26 kontrol): ayar anahtarı, onay diyaloğu, geri tuşu, equip. |
+| `ui_smoke_test.gd` + `ui_smoke_test.tscn` | **Headless UI davranış testi** (74 kontrol): ayar anahtarı, onay diyaloğu, geri tuşu, equip. |
+| `secondary_modal_ui_test.gd` + `.tscn` | **Headless ikincil pencere testi** (M8.6-08, 102 kontrol): shell v2 iskeleti (oturmuş X, gövde/altlık sınırları, tavan + kaydırma, karartma), Ayarlar (kanonik yazma yolu, taşma regresyonu 5 yapılandırma), Günlük (tek claim, AL mutasyonsuz, 7 düğüm, durum modu), Mola/Sandık (hiyerarşi, z-order, rota). Kaydı byte'ı geri koyar. |
+| `secondary_ui_shots.gd` + `.tscn` | **İkincil pencere çekimleri** (M8.6-07/08): 48 durum × pencere boyutu + A36 simülasyonu; `groups=` ile alt küme. `--headless` ile çalışmaz. |
 | `make_pack_icons.gd` | Free Casual GUI SVG ikonlarını beyaz maske PNG'ye türetir. |
 | `audio_test.gd` + `audio_test.tscn` | **Headless ses + titreşim davranış testi** (M8.5-15, 45 kontrol): eşleme, RNG izolasyonu, soğuma/tavan/öncelik, ayar kalıcılığı, haptik politikası. Kaydı kendi yedekler. |
 | `audio_qa.gd` + `audio_qa.tscn` | **Ses/titreşim QA sahnesi** (pencereli): her olay, rarity, güç, titreşim seviyesi, spam/stres düğmeleri; kanal ve atılan çağrı sayaçları. Production navigasyonunda yok. |

@@ -1285,7 +1285,14 @@ static func seat_modal_close(frame: Control, ribbon_margin: float = 60.0,
 	var ribbon: Control = frame.get_meta(&"ribbon")
 	ribbon.offset_left = ribbon_margin
 	ribbon.offset_right = -ribbon_margin
-	var close: Button = frame.get_meta(&"close_button")
+	_seat_close(frame.get_meta(&"close_button"), ring)
+
+
+## Kapat dairesinin oturagi (05.1 recetesi, M8.6-08'de `modal_shell` ile
+## paylasiliyor): erik temas golgesi + krem halka, ikisi de butonun ARKASINDA.
+## Dugum sirasi ve olculer seat_modal_close'un 05.1 haliyle birebir — Magaza
+## onayi piksel piksel ayni kalir.
+static func _seat_close(close: Button, ring: float = 4.0) -> void:
 	var shadow := patch("popup_glow", Color(0.22, 0.09, 0.36, 0.30))
 	shadow.show_behind_parent = true
 	_inset(shadow, -10.0, -4.0, -10.0, -16.0)
@@ -1296,3 +1303,339 @@ static func seat_modal_close(frame: Control, ribbon_margin: float = 60.0,
 	_inset(halo, -ring, -ring, -ring, 8.0 - ring)
 	close.add_child(halo)
 	close.set_meta(&"seat_ring", halo)
+
+
+# --- Pencere iskeleti v2 (M8.6-08) ------------------------------------------
+#
+# `modal_frame` (M8.6-01) yapiyi verir ama uc kullanicisi uc farkli sekilde
+# tamamliyordu (kapat oturmasi yalniz Magaza'da, karartma dokunusu uc ayri
+# anlamda, govde yuksekligi sabit sahnelerde tasiyordu — Ayarlar). Shell v2
+# ayni malzemeden (popup_body krem govde + gloss + pembe parilti + kurdele +
+# pembe kapat) TEK uretim recetesi kurar:
+#
+#   [tepelik]            owner'in kanatli-kalp tepeligi (kimlik, §10) — secmeli
+#   baslik               pembe kurdele (`ribbon`) YA DA govde ici Baloo baslik
+#                        (`heading`); tepelikli pencerelerde baslik govdede
+#   X                    her zaman OTURMUS (05.1 halkasi + golge), kurdele
+#                        kuyrugunun uzerine binmez
+#   govde                `body` VBox — ScrollContainer icinde: icerik guvenli
+#                        yuksekligi asarsa GOVDE kaydirilir, pencere ekran
+#                        disina tasmaz, metin kucultulmez
+#   altlik               `footer` VBox — CTA alani, HICBIR ZAMAN kaydirilmaz
+#
+# Boyut sistemi: pencere icerigi kadar buyur (min = dogal icerik), ekranin
+# guvenli yuksekligini (safe-top/bottom + MODAL_OUTER_MARGIN + tepelik/kurdele
+# tasmasi) asamaz; asinca govde `MODAL_BODY_MIN`'in altina inmeden kaydirilir.
+# `modal_frame` DEGISMEDI: Magaza onayi (05.1, cihazda dogrulanmis) onu
+# kullanmaya devam eder.
+
+## Owner'in kanatli-kalp tepeligi (1024x328) — 720 tuvalinde 300x96 (eski
+## candy panel sahneleriyle ayni olcu, orani korunur).
+const MODAL_TOPPER_ART: Texture2D = preload("res://assets/visual/ui/panel_candy_crown.png")
+const MODAL_TOPPER_SIZE: Vector2 = Vector2(300.0, 96.0)
+## Tepeligin govde ust kenarindan yukari tasmasi (kalp govdenin ustunde,
+## kurdele kuyruklari govdeye biner).
+const MODAL_TOPPER_OVERHANG: float = 62.0
+## Kurdelenin govde ustune tasmasi (modal_frame ile ayni).
+const MODAL_RIBBON_OVERHANG: float = 34.0
+## Oturmus X icin kurdelenin iki yandan iceri cekilmesi (05.1 ile ayni).
+const MODAL_SEAT_RIBBON_MARGIN: float = 60.0
+## Pencerenin ekran kenarlarina (guvenli alan disinda) biraktigi nefes payi.
+const MODAL_OUTER_MARGIN: float = 36.0
+## Kaydirilan govdenin alt siniri: ekran ne kadar kisa olursa olsun govde
+## bundan dar bir pencereye sikistirilmaz (kaydirma bunun icinde calisir).
+const MODAL_BODY_MIN: float = 160.0
+## Kaydirilabilir govdenin altindaki krem solma bandi (icerigin devam ettigini
+## soyler; yalniz govde gercekten kaydirilabiliyorsa gorunur).
+const MODAL_SCROLL_FADE: float = 40.0
+## Ayar satiri olculeri (§13): satir 64, ikon kuyucugu 44, picto 26.
+const SETTINGS_ROW_HEIGHT: float = 64.0
+const SETTINGS_ICON_WELL: float = 44.0
+const SETTINGS_ICON_SIZE: float = 26.0
+
+
+## Production pencere iskeleti v2. `header` = &"ribbon" (pembe kurdele
+## baslik, Mola / Bonus Sandik) ya da &"heading" (govde ici Baloo baslik;
+## Ayarlar / Gunluk). `topper` owner tepeligini govdenin ustune koyar.
+## `closable` false ise X yok (karar pencereleri). Meta: "body" (icerik VBox,
+## kaydirilir), "footer" (CTA VBox, sabit), "close_button", "ribbon" /
+## "heading", "topper", "scroll", "panel", "column", "fade".
+static func modal_shell(title: String, width: float = 560.0,
+		header: StringName = &"ribbon", topper: bool = false,
+		closable: bool = true, glow: Color = UiTokens.GLOW_SUBTLE) -> Control:
+	var frame := Control.new()
+	frame.name = "ModalShell"
+	frame.custom_minimum_size = Vector2(width, 0)
+	var glow_patch := patch("popup_glow", glow)
+	glow_patch.offset_left = -70.0
+	glow_patch.offset_top = -70.0
+	glow_patch.offset_right = 70.0
+	glow_patch.offset_bottom = 70.0
+	frame.add_child(glow_patch)
+	var body_panel := panel(&"PanelModal")
+	body_panel.name = "Panel"
+	body_panel.set_anchors_preset(Control.PRESET_FULL_RECT)
+	frame.add_child(body_panel)
+	var light := patch("popup_light", Color(1, 1, 1, 0.5))
+	light.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE)
+	light.offset_bottom = 33.0
+	frame.add_child(light)
+	# Ic duzen: [baslik] / kaydirilan govde / sabit altlik.
+	var column := VBoxContainer.new()
+	column.name = "Column"
+	column.add_theme_constant_override("separation", UiTokens.SPACE_MD)
+	column.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	body_panel.add_child(column)
+	var heading: Label = null
+	if header == &"heading":
+		heading = label(title, &"LabelTitle", HORIZONTAL_ALIGNMENT_CENTER)
+		heading.name = "Heading"
+		column.add_child(heading)
+	# Govde yuvasi: duz Control (yuksekligi modal_relayout verir) icinde tam
+	# dikdortgen ScrollContainer + altta solma bandi. Band ScrollContainer'in
+	# COCUGU OLAMAZ (her cocugu kaydirilan icerik sayar), o yuzden yuva var.
+	var host := Control.new()
+	host.name = "BodyHost"
+	host.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	host.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	column.add_child(host)
+	var scroll := ScrollContainer.new()
+	scroll.name = "Scroll"
+	scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_SHOW_NEVER
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	scroll.follow_focus = false
+	scroll.add_theme_stylebox_override("panel", StyleBoxEmpty.new())
+	scroll.set_anchors_preset(Control.PRESET_FULL_RECT)
+	host.add_child(scroll)
+	var body := VBoxContainer.new()
+	body.name = "Body"
+	body.add_theme_constant_override("separation", UiTokens.SPACE_MD)
+	body.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	body.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	scroll.add_child(body)
+	var fade := TextureRect.new()
+	fade.name = "ScrollFade"
+	fade.texture = _scroll_fade_texture()
+	fade.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	fade.stretch_mode = TextureRect.STRETCH_SCALE
+	fade.self_modulate = UiTokens.CREAM
+	fade.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	fade.visible = false
+	fade.set_anchors_preset(Control.PRESET_BOTTOM_WIDE)
+	fade.offset_top = -MODAL_SCROLL_FADE
+	host.add_child(fade)
+	var footer := VBoxContainer.new()
+	footer.name = "Footer"
+	footer.add_theme_constant_override("separation", UiTokens.SPACE_SM)
+	footer.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	footer.visible = false
+	column.add_child(footer)
+	var ribbon: PanelContainer = null
+	if header == &"ribbon":
+		ribbon = header_ribbon(title)
+		ribbon.name = "Ribbon"
+		ribbon.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE)
+		ribbon.offset_left = MODAL_SEAT_RIBBON_MARGIN
+		ribbon.offset_right = -MODAL_SEAT_RIBBON_MARGIN
+		ribbon.offset_top = -MODAL_RIBBON_OVERHANG
+		ribbon.offset_bottom = 46.0
+		frame.add_child(ribbon)
+	var topper_rect: TextureRect = null
+	if topper:
+		topper_rect = art(MODAL_TOPPER_ART, 0.0)
+		topper_rect.name = "Topper"
+		topper_rect.custom_minimum_size = Vector2.ZERO
+		topper_rect.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
+		topper_rect.anchor_left = 0.5
+		topper_rect.anchor_right = 0.5
+		topper_rect.anchor_top = 0.0
+		topper_rect.anchor_bottom = 0.0
+		topper_rect.offset_left = -MODAL_TOPPER_SIZE.x * 0.5
+		topper_rect.offset_right = MODAL_TOPPER_SIZE.x * 0.5
+		topper_rect.offset_top = -MODAL_TOPPER_OVERHANG
+		topper_rect.offset_bottom = MODAL_TOPPER_SIZE.y - MODAL_TOPPER_OVERHANG
+		frame.add_child(topper_rect)
+	var close: Button = null
+	if closable:
+		close = icon_button("close", &"ButtonRoundIcon", 64.0)
+		close.name = "Close"
+		close.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT)
+		close.offset_left = -40.0
+		close.offset_right = 24.0
+		close.offset_top = -26.0
+		close.offset_bottom = 38.0
+		_seat_close(close)
+		frame.add_child(close)
+	# Govde yuksekligi icerige gore: PanelContainer minimumunu cerceveye tasi.
+	body_panel.minimum_size_changed.connect(func() -> void:
+		frame.custom_minimum_size.y = body_panel.get_combined_minimum_size().y)
+	frame.set_meta(&"body", body)
+	frame.set_meta(&"footer", footer)
+	frame.set_meta(&"close_button", close)
+	frame.set_meta(&"ribbon", ribbon)
+	frame.set_meta(&"heading", heading)
+	frame.set_meta(&"topper", topper_rect)
+	frame.set_meta(&"scroll", scroll)
+	frame.set_meta(&"body_host", host)
+	frame.set_meta(&"panel", body_panel)
+	frame.set_meta(&"column", column)
+	frame.set_meta(&"fade", fade)
+	frame.set_meta(&"overhang", MODAL_TOPPER_OVERHANG if topper else MODAL_RIBBON_OVERHANG)
+	# Icerik degisince (satir eklendi, gizlilik acildi) govde siniri yeniden
+	# hesaplanir; ekran boyutu degisince cagiran `modal_relayout` der.
+	body.minimum_size_changed.connect(func() -> void: modal_relayout(frame))
+	footer.minimum_size_changed.connect(func() -> void: modal_relayout(frame))
+	return frame
+
+
+## Govde/altlik gorunurlugu + kaydirilan govdenin yuksekligi. Acilista
+## (icerik dolduktan sonra) ve icerik degisince cagrilir. Kural: govde dogal
+## yuksekligine kadar buyur; guvenli tavani asarsa `MODAL_BODY_MIN`'in
+## altina inmeden kaydirilir; altlik her zaman cercevenin icinde kalir.
+static func modal_relayout(frame: Control) -> void:
+	if frame == null or not is_instance_valid(frame) or not frame.has_meta(&"scroll"):
+		return
+	var host: Control = frame.get_meta(&"body_host")
+	var body: VBoxContainer = frame.get_meta(&"body")
+	var footer: VBoxContainer = frame.get_meta(&"footer")
+	var fade: Control = frame.get_meta(&"fade")
+	var has_body: bool = _has_visible_child(body)
+	host.visible = has_body
+	footer.visible = _has_visible_child(footer)
+	if not has_body:
+		fade.visible = false
+		frame.set_meta(&"body_scrolls", false)
+		return
+	var natural: float = body.get_combined_minimum_size().y
+	var cap: float = maxf(modal_body_cap(frame), MODAL_BODY_MIN)
+	var height: float = minf(natural, cap)
+	if not is_equal_approx(host.custom_minimum_size.y, height):
+		host.custom_minimum_size.y = height
+	var scrolls: bool = natural > height + 0.5
+	frame.set_meta(&"body_scrolls", scrolls)
+	fade.visible = scrolls
+
+
+## Govdenin kullanabilecegi en buyuk yukseklik (tuval px): ekranin guvenli
+## yuksekligi - dis pay - tepelik/kurdele tasmasi - pencere kromu (panel
+## ic paylari, baslik, altlik, aralar). `set_modal_height_cap` ile pencere
+## toplam yuksekligi disaridan da sinirlanabilir (test / kisa ekran provasi).
+static func modal_body_cap(frame: Control) -> float:
+	var panel_node: PanelContainer = frame.get_meta(&"panel")
+	var column: VBoxContainer = frame.get_meta(&"column")
+	var footer: VBoxContainer = frame.get_meta(&"footer")
+	# Kurdele modunda "heading" metasi YOK (set_meta(null) metayi siler;
+	# get_meta'nin null varsayilani da hata verir -> has_meta).
+	var heading: Label = frame.get_meta(&"heading") if frame.has_meta(&"heading") else null
+	var frame_cap: float = float(frame.get_meta(&"height_cap", -1.0))
+	if frame_cap <= 0.0:
+		var view: Vector2 = Vector2(720.0, 1280.0)
+		if frame.is_inside_tree():
+			view = frame.get_viewport_rect().size
+		frame_cap = view.y - safe_top(view) - safe_bottom(view) \
+			- 2.0 * MODAL_OUTER_MARGIN - float(frame.get_meta(&"overhang", MODAL_RIBBON_OVERHANG))
+	var box: StyleBox = panel_node.get_theme_stylebox("panel")
+	var chrome: float = box.content_margin_top + box.content_margin_bottom
+	var sep: float = float(column.get_theme_constant("separation"))
+	if heading != null and heading.visible:
+		chrome += heading.get_combined_minimum_size().y + sep
+	if footer.visible:
+		chrome += footer.get_combined_minimum_size().y + sep
+	return frame_cap - chrome
+
+
+## Pencerenin toplam yuksekligini sinirlar (tuval px); <= 0 = ekrandan hesapla.
+static func set_modal_height_cap(frame: Control, cap: float) -> void:
+	frame.set_meta(&"height_cap", cap)
+	modal_relayout(frame)
+
+
+static func _has_visible_child(container: Control) -> bool:
+	for child in container.get_children():
+		var control := child as Control
+		if control != null and control.visible:
+			return true
+	return false
+
+
+## Kaydirma solma bandi dokusu: dikeyde seffaftan opaga (self_modulate ile
+## krem boyanir). Tek seferlik uretilir, statik onbellekte tutulur.
+static var _fade_texture: Texture2D = null
+
+static func _scroll_fade_texture() -> Texture2D:
+	if _fade_texture != null:
+		return _fade_texture
+	var image := Image.create(1, 16, false, Image.FORMAT_RGBA8)
+	for y in 16:
+		var t: float = float(y) / 15.0
+		image.set_pixel(0, y, Color(1, 1, 1, t * t))
+	_fade_texture = ImageTexture.create_from_image(image)
+	return _fade_texture
+
+
+## Karartmaya dokunma = kapat, tum ikincil pencerelerde TEK anlam: parmak /
+## tik BIRAKILINCA (basista degil — kaydirma ya da iptal edilen dokunus
+## kapatmasin). Emulasyon olaylari (device -1: dokunmadan uretilen fare —
+## Android, `emulate_mouse_from_touch`; fareden uretilen dokunus — masaustu,
+## proje ayari `emulate_touch_from_mouse`) atlanir: bir dokunus/tik tam BIR
+## kez tetikler. `dim` girdi almaya devam eder (arkadaki ekrana tiklama
+## sizmaz).
+static func attach_dim_close(dim: Control, on_close: Callable) -> void:
+	dim.mouse_filter = Control.MOUSE_FILTER_STOP
+	dim.gui_input.connect(func(event: InputEvent) -> void:
+		if event.device == InputEvent.DEVICE_ID_EMULATION:
+			return
+		var touch := event as InputEventScreenTouch
+		if touch != null:
+			if not touch.pressed:
+				on_close.call()
+			return
+		var click := event as InputEventMouseButton
+		if click != null and not click.pressed and click.button_index == MOUSE_BUTTON_LEFT:
+			on_close.call())
+
+
+## Ayar satiri (§13): lavanta yuvarlak kuyucukta picto + Baloo baslik + sagda
+## kontrol (anahtar / buton). Kart cercevesi YOK — satir candy pencerenin
+## icinde bir oyun menusu kontrolu gibi okunur; satirlar arasina
+## `settings_divider()`. Meta: "title_label", "control", "icon".
+static func settings_row(icon_role: String, title: String, control: Control) -> HBoxContainer:
+	var row := HBoxContainer.new()
+	row.custom_minimum_size = Vector2(0, SETTINGS_ROW_HEIGHT)
+	row.add_theme_constant_override("separation", UiTokens.SPACE_MD + 2)
+	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var well := Control.new()
+	well.custom_minimum_size = Vector2(SETTINGS_ICON_WELL, SETTINGS_ICON_WELL)
+	well.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	well.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	well.add_child(flat_plate("btn_circle_flat", UiTokens.LAVENDER_SURFACE))
+	var light := patch("item_circle_inner", Color(1, 1, 1, 0.38))
+	_inset(light, SETTINGS_ICON_WELL * 0.12, SETTINGS_ICON_WELL * 0.06,
+		SETTINGS_ICON_WELL * 0.12, SETTINGS_ICON_WELL * 0.42)
+	well.add_child(light)
+	var picto := icon(icon_role, SETTINGS_ICON_SIZE, UiTokens.TEXT_PRIMARY)
+	picto.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
+	picto.offset_left = -SETTINGS_ICON_SIZE * 0.5
+	picto.offset_right = SETTINGS_ICON_SIZE * 0.5
+	picto.offset_top = -SETTINGS_ICON_SIZE * 0.5
+	picto.offset_bottom = SETTINGS_ICON_SIZE * 0.5
+	well.add_child(picto)
+	row.add_child(well)
+	var text := label(title, &"LabelSection")
+	text.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	row.add_child(text)
+	control.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	row.add_child(control)
+	row.set_meta(&"title_label", text)
+	row.set_meta(&"control", control)
+	row.set_meta(&"icon", picto)
+	return row
+
+
+## Satirlar arasi ince lavanta cizgi (2 px), kart kenari degil.
+static func settings_divider() -> Control:
+	var line := ColorRect.new()
+	line.color = Color(UiTokens.LAVENDER_SURFACE, 0.9)
+	line.custom_minimum_size = Vector2(0, 2)
+	line.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	return line
