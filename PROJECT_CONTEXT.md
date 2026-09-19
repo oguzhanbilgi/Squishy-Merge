@@ -548,13 +548,43 @@ alınacak — şimdi tahmin/vaat yok.
     cila milestone'u M8.7-02 (efekt dili + etiket + Büyütücü + kazanma
     çapası) + A36 kapısı;** P2 listesi planlanmadı. Ayrıntı:
     `build/qa_m8.7-01/GAMEPLAY_FINAL_AUDIT.md`.
+  - `M8.7-02` ✅ **final gameplay cilası — merge + güç efekt dili** (dal
+    `task/030-final-gameplay-polish`, denetim 623717b üzerine; PRE-DEVICE
+    VISUAL REVIEW; fizik/ekonomi/HUD/sonuç/Devam/Refill/RewardGem DEĞİŞMEDİ,
+    P2 listesi dokunulmadı, telefon/ADB YOK). Yalnız beş P1: **(A) fx rolü:**
+    `GameBoard.GLOW_TEXTURE`=fx_ring.png (dolu parıltı: merge parlaması, bokeh,
+    toz), `RING_TEXTURE`=fx_dot.png (içi boş halka: güç halkaları),
+    `PopEffect.DOT_TEXTURE`=fx_ring.png; ölçek yardımcıları görünür çapla
+    (`_ring_scale`/`_glow_scale`, GLOW_VISIBLE 0.40 / RING_VISIBLE 0.72);
+    Kenney ışık dokuları (parıltı/halka/yıldız/patlama) yalnız gameplay'de
+    toplamsal `fx_light_additive.tres` materyalinde (siyah saçak → gri duman
+    sorunu bitti); halkalar hedef çapına / kap genişliğine göre (Sarsıntı
+    0.30→1.0 kap genişliği, eskiden 1.4–2.1 dolu sis); PNG'ler ve RewardGem
+    aynen. **(B) dünya "+N":** doğan tier'ın yarıçapı + %25 + 14 px pay
+    (T4 28 px, T8 43 px tacın üstünde), gerçek Label boyutuyla deterministik
+    kısa ömürlü çakışma önleme (dikey kat, yan yana ise yana kayma, en fazla
+    3 adım, canlı etiket listesi spawn'da budanır — yönetici/process yok).
+    **(C) Büyütücü:** 0.15 s anticipation (kilitlenme halkası + hedefe bağlı
+    yükleme sütunu, `upgrade` sesi dokunuşta) → dönüşüm; stok dokunuşta
+    (kanonik), hedef pencerede `is_merging` kilitli, erteleme board tween'i;
+    sütun önde (z 5) ve parçanın 1.7 r üstünde (yüz açık); T7→T8 kral
+    parıltısı + SPECIAL (parite). **(D) kazanma çapası:** `_check_objective(
+    anchor)` → patlama kazandıran merge/Büyütücü noktasında (eskiden kap ağzı,
+    580–710 px yukarıda), çapasız tetik yığın tepesi. **(E) T8:** 4.0 r altın
+    yıldız (%55 tam opak, 0.62 s) + fx_burst 8 kollu yıldız + çapraz beyaz
+    yıldız + 120 ms sonra 14 kıvılcım; T8 pop noktaları altına kayar (bloom
+    denendi, 1080'de T8 merge karesini 14→23 ms'ye çıkardığı için ÇIKARILDI). `tools/gameplay_feedback_test` 129/129; `gameplay_audit_shots`
+    `polish` grubu (16 senaryo × 4 boyut, before/after) + 3 perf satırı;
+    `build/qa_m8.7-02/` 9 contact sheet + rapor. Owner görsel onayı + A36
+    kapısı bekliyor.
 - **Sırada: M8.6 — Visual Cohesion Rebuild** (ekranlar `UiKit`/`UiTokens`
   sistemine geçirilecek: ~~gameplay shell~~ ✅ → ~~home~~ ✅ → ~~map~~ ✅ →
   ~~shop~~ ✅ → ~~collection~~ ✅ main'de → ~~ikincil UI denetimi~~ ✅ →
   ~~M8.6-08 shell v2 + Ayarlar + Günlük~~ ✅ main'de → ~~M8.6-09 Round
   sonu~~ ✅ main'de → ~~M8.6-10 Devam/Refill~~ ✅ main'de (fd5dfab) →
-  ~~M8.7-01 gameplay denetimi~~ ✅ dal `task/029`, owner kararı bekliyor:
-  M8.7-02 cila mı, doğrudan M9 mu), ardından **M9 — Android export.**
+  ~~M8.7-01 gameplay denetimi~~ ✅ dal `task/029` → ~~M8.7-02 gameplay
+  cilası~~ ✅ dal `task/030`, owner görsel onayı + A36 kapısı bekliyor),
+  ardından **M9 — Android export.**
   Ortam hazır (export template'leri, SDK,
   NDK, JDK 17, debug keystore mevcut, ETC2/ASTC import açık, iş
   makinesinde debug `export_presets.cfg` var — gitignore'lu, her makinede
@@ -584,6 +614,12 @@ alınacak — şimdi tahmin/vaat yok.
 - Güç başlangıç stoğu: **kayıt başına 1'er adet, tek seferlik**. Stok
   yalnızca efekt gerçekleşince düşer; güçle yapılan silmeler skor/merge
   üretmez (GAME_DESIGN §10)
+- **fx doku adları içeriğin tersi (M8.7-01 ölçümü):** `fx_ring.png` DOLU
+  parıltı, `fx_dot.png` İÇİ BOŞ halka. Gameplay yalnızca ROL sabitlerini
+  kullanır (`GameBoard.GLOW_TEXTURE` / `RING_TEXTURE`, `PopEffect.DOT_TEXTURE`)
+  ve bu dört Kenney ışık dokusunu toplamsal `fx_light_additive.tres` ile
+  çizer; onaylı RewardGem/round_result dosyaları olduğu gibi (normal
+  karışım) kullanır. PNG'leri yeniden adlandırma/düzenleme YOK
 - Görsel asset üretimi owner'da — Claude Code final art üretmez.
   Owner kaynakları `_visual_source/` altında ARŞİV; runtime yalnızca
   `assets/visual/` altındaki türevleri okur. Türetme betiği:

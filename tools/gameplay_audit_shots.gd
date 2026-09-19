@@ -16,6 +16,8 @@ extends Node
 ##   godot --path . res://tools/gameplay_audit_shots.tscn -- <çıktı> [GxY] [safe=61] [groups=drop,merge]
 ##
 ## Gruplar: states drop merge chain danger bomb upgrade shake cleaner protect goal perf
+##          polish (M8.7-02: §24 önce/sonra dizileri — merge 01–03, zincir 04–06,
+##          sarsıntı 07–09, Büyütücü 10–13, kazanma 14–16; fx/etiket/patlama ölçümleri)
 ## Dosya adı: <grup>/<NN>_<durum>[_fK]_<GxY>[_a36].png — K = senaryo başından
 ## itibaren fizik karesi (60 Hz → K/60 sn).
 
@@ -69,6 +71,9 @@ var _perf_wall_max_ms: float = 0.0
 var _perf_wall_sum_ms: float = 0.0
 var _perf_wall_over_16ms: int = 0
 var _perf_wall_over_33ms: int = 0
+## En uzun karenin senaryo içindeki fizik karesi indeksi (hangi olayla çakıştı?).
+var _perf_wall_max_pf: int = -1
+var _perf_pf0: int = 0
 var _perf_results: Array[Dictionary] = []
 
 
@@ -134,6 +139,8 @@ func _ready() -> void:
 		await _group_goal()
 	if _want("perf"):
 		await _group_perf()
+	if _want("polish"):
+		await _group_polish()
 
 	await _teardown()
 	_write_reports()
@@ -164,7 +171,9 @@ func _process(delta: float) -> void:
 	var now_usec: int = Time.get_ticks_usec()
 	if _perf_last_usec > 0:
 		var wall_ms: float = float(now_usec - _perf_last_usec) / 1000.0
-		_perf_wall_max_ms = maxf(_perf_wall_max_ms, wall_ms)
+		if wall_ms > _perf_wall_max_ms:
+			_perf_wall_max_ms = wall_ms
+			_perf_wall_max_pf = _pf - _perf_pf0
 		_perf_wall_sum_ms += wall_ms
 		if wall_ms > 16.7:
 			_perf_wall_over_16ms += 1
@@ -1362,6 +1371,8 @@ func _perf_begin() -> void:
 	_perf_wall_sum_ms = 0.0
 	_perf_wall_over_16ms = 0
 	_perf_wall_over_33ms = 0
+	_perf_wall_max_pf = -1
+	_perf_pf0 = _pf
 	_perf_active = true
 
 
@@ -1372,6 +1383,7 @@ func _perf_end(name: String, note: String = "") -> void:
 		"wall_avg_ms": wall_avg, "wall_max_ms": _perf_wall_max_ms,
 		"wall_fps_uncapped": 1000.0 / maxf(0.001, wall_avg),
 		"wall_over_16ms": _perf_wall_over_16ms, "wall_over_33ms": _perf_wall_over_33ms,
+		"wall_max_pf": _perf_wall_max_pf,
 		"delta_avg_ms": _perf_delta_sum / maxf(1.0, float(_perf_frames)) * 1000.0,
 		"delta_max_ms": _perf_delta_max * 1000.0, "frames_over_20ms": _perf_delta_over_20ms,
 		"process_ms_max": _perf_process_ms_max, "physics_ms_max": _perf_physics_ms_max,
@@ -1383,8 +1395,8 @@ func _perf_end(name: String, note: String = "") -> void:
 		"particle_nodes_max": _perf_particles_max, "fx_sprites_labels_max": _perf_fx_max,
 		"dumplings": _count(), "note": note}
 	_perf_results.append(row)
-	_log("  perf %-16s frames %4d  wall avg %5.2f ms (%4.0f fps uncapped) max %6.2f ms  >16.7ms %3d >33ms %2d  | engine process max %6.2f physics max %5.2f ms | nodes %4d bodies %3d pairs %3d tweens %2d particles %2d fx %2d dumplings %2d  %s" % [
-		name, row["frames"], row["wall_avg_ms"], row["wall_fps_uncapped"], row["wall_max_ms"],
+	_log("  perf %-16s frames %4d  wall avg %5.2f ms (%4.0f fps uncapped) max %6.2f ms @pf%d  >16.7ms %3d >33ms %2d  | engine process max %6.2f physics max %5.2f ms | nodes %4d bodies %3d pairs %3d tweens %2d particles %2d fx %2d dumplings %2d  %s" % [
+		name, row["frames"], row["wall_avg_ms"], row["wall_fps_uncapped"], row["wall_max_ms"], row["wall_max_pf"],
 		row["wall_over_16ms"], row["wall_over_33ms"], row["process_ms_max"], row["physics_ms_max"],
 		row["nodes_max"], row["bodies_active_max"], row["collision_pairs_max"], row["tweens_max"],
 		row["particle_nodes_max"], row["fx_sprites_labels_max"], row["dumplings"], note])
@@ -1488,6 +1500,31 @@ func _group_perf() -> void:
 	await _frames(120)
 	_perf_end("many_effects", "T7+T7 merge + bomb + upgrade + shake")
 
+	# M8.7-02 karşılaştırma satırları: tek normal merge (T3), tek T8 merge,
+	# Büyütücü T7→T8 — efekt dili değişikliğinin kare maliyeti.
+	for spec in [[3, "merge_t3_single"], [7, "merge_t8_single"]]:
+		await _make_board("res://resources/levels/level_08.tres")
+		var pcx: float = _board._center_x()
+		var pr: float = TierConfig.radius(spec[0])
+		_spawn(spec[0], Vector2(pcx - pr * 0.5, _board.FLOOR_Y - pr - 6.0))
+		await _settle(90)
+		_perf_begin()
+		var merge_pf: Array = [-1]
+		var mcb := func(_t: int, _p: Vector2) -> void: merge_pf[0] = _pf - _perf_pf0
+		GameState.merge_performed.connect(mcb)
+		_spawn(spec[0], Vector2(pcx - pr * 0.5 + pr * 0.55, _board.FLOOR_Y - pr - 320.0))
+		await _frames(120)
+		GameState.merge_performed.disconnect(mcb)
+		_perf_end(spec[1], "T%d+T%d → T%d, düşüş + merge + efekt + yerleşme; merge @pf%d" % [spec[0], spec[0], spec[0] + 1, merge_pf[0]])
+	await _make_board("res://resources/levels/level_08.tres")
+	await _pile([[7, 6], [4, 3, 2]])
+	var up7: Dumpling = _find(7, true)
+	_perf_begin()
+	_board._powerups.request(PowerUp.Type.UPGRADE)
+	_board._use_targeted_power(up7)
+	await _frames(120)
+	_perf_end("upgrade_t8", "Büyütücü T7→T8: anticipation + dönüşüm + kral parıltısı")
+
 	# Sarsıntı ağır yığında.
 	await _make_board("res://resources/levels/endless.tres")
 	await _pile([[8, 7, 6], [6, 5, 5, 4], [4, 3, 4, 3, 3], [2, 2, 3, 2, 1, 2], [3, 2, 1, 2, 3, 1, 2],
@@ -1545,6 +1582,510 @@ func _group_perf() -> void:
 	Engine.max_fps = 60
 	DisplayServer.window_set_vsync_mode(DisplayServer.VSYNC_ENABLED)
 	_end("perf")
+
+
+# --- polish: M8.7-02 §24 önce/sonra dizileri ------------------------------------------
+#
+# Aynı runtime API'si, aynı yerleşimler; fark: efektin ilk 12 karesi sık
+# örneklenir ve her senaryoda dünya efektleri (board'un çocuğu Sprite2D /
+# Label / CPUParticles2D) doku adı, ölçek, alfa ve z ile loglanır — böylece
+# "flash hangi dokuyu kullanıyor", "+N parçanın ne kadar üstünde",
+# "kazanma patlaması merge noktasından kaç px uzakta" soruları kareye
+# bakmadan da cevaplanır.
+
+const POLISH_MERGE_SEQ: Array = [0, 1, 2, 3, 4, 5, 6, 8, 10, 12, 16, 20, 30]
+const POLISH_UPGRADE_SEQ: Array = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 14, 16, 20, 28, 40]
+const POLISH_WIN_SEQ: Array = [0, 3, 8, 15, 30, 48]
+
+
+## Board'un çocuğu olan geçici efekt düğümleri (bokeh ve HUD hariç).
+func _fx_nodes() -> Array:
+	var out: Array = []
+	if _board == null or not is_instance_valid(_board):
+		return out
+	for child in _board.get_children():
+		if child == _board._bokeh:
+			continue
+		if child is Sprite2D or child is Label or child is CPUParticles2D \
+				or (child.get_script() != null and child.has_node("Dots")):
+			out.append(child)
+	# Parçaya bağlanan efektler (Büyütücü anticipation halkası / sütunu,
+	# M8.7-02): gövdenin doğrudan Sprite2D çocukları (Visual hariç).
+	for piece in _board._dumpling_layer.get_children():
+		if piece is Dumpling and is_instance_valid(piece):
+			for child in piece.get_children():
+				if child is Sprite2D:
+					out.append(child)
+	return out
+
+
+## Efekt düğümlerini tek satırda logla: ad / doku / ölçek / alfa / z / konum.
+func _log_fx(label: String) -> void:
+	var parts: PackedStringArray = PackedStringArray()
+	for node in _fx_nodes():
+		if node is Sprite2D:
+			var s := node as Sprite2D
+			var tex: String = s.texture.resource_path.get_file() if s.texture != null else "?"
+			parts.append("sprite(%s sc=%.2f a=%.2f z=%d @%.0f,%.0f)" % [tex, s.scale.x, s.modulate.a, s.z_index,
+				s.global_position.x, s.global_position.y])
+		elif node is Label:
+			var l := node as Label
+			var rect: Rect2 = Rect2(l.global_position, l.size * l.scale)
+			parts.append("label('%s' sc=%.2f a=%.2f rect=%.0f,%.0f %.0fx%.0f)" % [l.text, l.scale.x, l.modulate.a,
+				rect.position.x, rect.position.y, rect.size.x, rect.size.y])
+		elif node is CPUParticles2D:
+			var c := node as CPUParticles2D
+			var tex: String = c.texture.resource_path.get_file() if c.texture != null else "?"
+			parts.append("particles(%s n=%d life=%.2f sc=%.2f-%.2f @%.0f,%.0f)" % [tex, c.amount, c.lifetime,
+				c.scale_amount_min, c.scale_amount_max, c.global_position.x, c.global_position.y])
+		else:
+			var dots: CPUParticles2D = node.get_node("Dots")
+			var tex: String = dots.texture.resource_path.get_file() if dots.texture != null else "?"
+			parts.append("pop(%s n=%d sc=%.4f-%.4f)" % [tex, dots.amount, dots.scale_amount_min, dots.scale_amount_max])
+	_log("  fx %-24s f%03d  %s" % [label, _pf, " | ".join(parts) if not parts.is_empty() else "(yok)"])
+
+
+## Dünya "+N" etiketleri (board'un çocuğu Label'lar).
+func _float_labels() -> Array[Label]:
+	var out: Array[Label] = []
+	for node in _fx_nodes():
+		if node is Label:
+			out.append(node as Label)
+	return out
+
+
+## Etiket dikdörtgeni (ölçek dahil, pivot merkez).
+static func _label_rect(l: Label) -> Rect2:
+	var size: Vector2 = l.size * l.scale
+	var center: Vector2 = l.global_position + l.size * 0.5
+	return Rect2(center - size * 0.5, size)
+
+
+## "+N" etiketinin parçaya göre yeri: etiket alt kenarı ile parçanın
+## collider tepesi arasındaki boşluk (pozitif = parçanın üstünde).
+func _log_label_vs_piece(label: String, piece: Dumpling) -> void:
+	if piece == null or not is_instance_valid(piece):
+		return
+	var top: float = piece.global_position.y - TierConfig.radius(piece.tier)
+	for l in _float_labels():
+		var rect: Rect2 = _label_rect(l)
+		_log("  label %-22s f%03d '%s' bottom-gap %.0f px above collider top (rect %.0f,%.0f %.0fx%.0f; piece r=%.0f @%.0f,%.0f)" % [
+			label, _pf, l.text, top - rect.end.y, rect.position.x, rect.position.y, rect.size.x, rect.size.y,
+			TierConfig.radius(piece.tier), piece.global_position.x, piece.global_position.y])
+
+
+## Etiketler arası çakışma (piksel alanı) — zincir/eşzamanlı senaryolar.
+func _log_label_overlap(label: String) -> void:
+	var labels: Array[Label] = _float_labels()
+	if labels.size() < 2:
+		_log("  overlap %-20s f%03d labels=%d (tek etiket, çakışma yok)" % [label, _pf, labels.size()])
+		return
+	for i in labels.size():
+		for j in range(i + 1, labels.size()):
+			var a: Rect2 = _label_rect(labels[i])
+			var b: Rect2 = _label_rect(labels[j])
+			var inter: Rect2 = a.intersection(b)
+			var area: float = inter.get_area() if inter.has_area() else 0.0
+			_log("  overlap %-20s f%03d '%s' x '%s' = %.0f px² (dy %.0f px)" % [label, _pf, labels[i].text, labels[j].text,
+				area, b.position.y - a.position.y])
+
+
+func _group_polish() -> void:
+	for tier in [1, 3, 7]:
+		await _polish_merge(tier)
+	await _polish_chain_x2()
+	await _polish_chain_x3()
+	await _polish_labels_near()
+	await _polish_shake()
+	await _polish_upgrade(3)
+	await _polish_upgrade(7)
+	await _polish_win_low()
+	await _polish_win_high()
+	await _polish_win_score()
+
+
+## 01–03: T1→T2 / T3→T4 / T7→T8 (level 8, taban; merge grubuyla aynı yerleşim).
+func _polish_merge(tier: int) -> void:
+	var idx: String = {1: "01", 3: "02", 7: "03"}.get(tier, "0x")
+	var name: String = "%s_merge_t%d_to_t%d" % [idx, tier, tier + 1]
+	_begin("polish_" + name)
+	await _make_board("res://resources/levels/level_08.tres")
+	var cx: float = _board._center_x()
+	var r: float = TierConfig.radius(tier)
+	var rest: Dumpling = _spawn(tier, Vector2(cx - r * 0.5, _board.FLOOR_Y - r - 6.0))
+	await _settle(120)
+	_pf = 0
+	var falling: Dumpling = _spawn(tier, Vector2(cx - r * 0.5 + r * 0.55, _board.FLOOR_Y - r - 320.0))
+	var merged: Array = [false]
+	var cb := func(_t: int, _p: Vector2) -> void: merged[0] = true
+	GameState.merge_performed.connect(cb)
+	var contact_pf: int = -1
+	var merged_pf: int = -1
+	for i in 300:
+		await get_tree().physics_frame
+		if not merged[0] and is_instance_valid(falling) and is_instance_valid(rest):
+			var dist: float = falling.global_position.distance_to(rest.global_position)
+			if contact_pf < 0 and dist <= 2.0 * r + 10.0:
+				contact_pf = _pf
+				await _shot("polish", name + "_contact")
+		if merged[0]:
+			merged_pf = _pf
+			break
+	GameState.merge_performed.disconnect(cb)
+	if merged_pf < 0:
+		_log("  HATA: merge olmadı (%s)" % name)
+		_end("polish_" + name)
+		await _flush()
+		return
+	var score_before: int = GameState.score
+	var born: Dumpling = _last_dumpling()
+	var visual: Node2D = born.get_node("Visual") if is_instance_valid(born) else null
+	var since: int = 0
+	var scale_max: float = 0.0
+	var flash_seen: String = ""
+	var flash_end: int = -1
+	for i in 60:
+		if POLISH_MERGE_SEQ.has(since):
+			await _shot("polish", name)
+		if since <= 2 or since == 8:
+			_log_fx(name)
+			_log_label_vs_piece(name, born)
+		# Merge parlaması: board çocuğu Sprite2D (hayalet değil: doku fx/ klasöründen).
+		var flash_alive: bool = false
+		for node in _fx_nodes():
+			if node is Sprite2D and (node as Sprite2D).texture != null \
+					and (node as Sprite2D).texture.resource_path.contains("/fx/"):
+				flash_alive = true
+				if flash_seen.is_empty():
+					flash_seen = (node as Sprite2D).texture.resource_path.get_file()
+		if not flash_seen.is_empty() and not flash_alive and flash_end < 0:
+			flash_end = since
+		if visual != null and is_instance_valid(visual):
+			scale_max = maxf(scale_max, visual.scale.x)
+		await get_tree().physics_frame
+		since += 1
+	_timing("polish_" + name, "contact→resolve", merged_pf - maxi(contact_pf, 0))
+	_timing("polish_" + name, "merge flash lifetime (sprite alive)", maxi(flash_end, 0), "texture %s" % flash_seen)
+	_log("  merge %s: born tier %d (count %d), score %d, visual scale peak %.3f, flash texture %s" % [
+		name, born.tier if is_instance_valid(born) else -1, _count(), GameState.score, scale_max, flash_seen])
+	await _settle(200, 10)
+	await _shot("polish", name + "_settled")
+	_end("polish_" + name)
+	await _flush()
+
+
+## Zincir yardımcısı: merge sinyallerini kare indeksleriyle toplar, her merge
+## karesinde ve +2'de kare alır, etiket çakışmasını loglar.
+func _polish_run_chain(name: String, max_merges: int, frames: int) -> PackedInt32Array:
+	var merge_pfs: PackedInt32Array = PackedInt32Array()
+	var cb := func(_t: int, _p: Vector2) -> void: merge_pfs.append(_pf)
+	GameState.merge_performed.connect(cb)
+	var last: int = 0
+	var pending_shots: Array = []
+	var calm: int = 0
+	var combo_peak: int = 0
+	for i in frames:
+		await get_tree().physics_frame
+		combo_peak = maxi(combo_peak, _board._combo_count)
+		if merge_pfs.size() > last:
+			last = merge_pfs.size()
+			await _shot("polish", "%s_merge%d" % [name, last])
+			_log_fx("%s_merge%d" % [name, last])
+			_log_label_overlap("%s_merge%d" % [name, last])
+			_log_label_vs_piece("%s_merge%d" % [name, last], _last_dumpling())
+			pending_shots.append([_pf + 2, "%s_merge%d_plus2" % [name, last]])
+			pending_shots.append([_pf + 6, "%s_merge%d_plus6" % [name, last]])
+			pending_shots.append([_pf + 12, "%s_merge%d_plus12" % [name, last]])
+		for k in range(pending_shots.size() - 1, -1, -1):
+			if pending_shots[k][0] <= _pf:
+				await _shot("polish", pending_shots[k][1])
+				_log_label_overlap(pending_shots[k][1])
+				pending_shots.remove_at(k)
+		calm = calm + 1 if _max_speed() <= SETTLE_SPEED else 0
+		if merge_pfs.size() >= max_merges and pending_shots.is_empty() and calm >= 8 and i > 90:
+			break
+	GameState.merge_performed.disconnect(cb)
+	_log("  %s: %d merges at frames %s, combo peak x%d, score %d" % [name, merge_pfs.size(), merge_pfs, combo_peak, GameState.score])
+	for i in range(1, merge_pfs.size()):
+		_timing("polish_" + name, "merge %d -> merge %d gap" % [i, i + 1], merge_pfs[i] - merge_pfs[i - 1])
+	return merge_pfs
+
+
+## 04: x2 — tabanda T3 | T4; T3 üstüne T3 düşer → doğan T4 yandaki T4'e değer → T5.
+func _polish_chain_x2() -> void:
+	var name: String = "04_chain_x2"
+	await _make_board("res://resources/levels/level_09.tres")
+	var cx: float = _board._center_x()
+	var y: float = _board.FLOOR_Y
+	var x3: float = cx - 50.0
+	var x4: float = x3 + 34.0 + 42.0 + 1.0
+	_spawn(3, Vector2(x3, y - 34.0 - 4.0))
+	_spawn(4, Vector2(x4, y - 42.0 - 4.0))
+	await _settle(90)
+	var rest: Dumpling = _find(3, true)
+	_begin("polish_" + name)
+	_pf = 0
+	_spawn(3, Vector2(rest.global_position.x + 12.0, y - 34.0 - 300.0))
+	await _polish_run_chain(name, 2, 320)
+	await _shot("polish", name + "_settled")
+	_end("polish_" + name)
+	await _flush()
+
+
+## 05: x3 — chain grubunun vadi yerleşimi (ilk x3 üreten x4 ofseti tutulur).
+func _polish_chain_x3() -> void:
+	var name: String = "05_chain_x3"
+	var got: int = 0
+	for offset in [0.0, 6.0, -6.0, 12.0]:
+		await _make_board("res://resources/levels/level_09.tres")
+		var cx: float = _board._center_x()
+		var y: float = _board.FLOOR_Y
+		var x3: float = cx - 60.0
+		var x4: float = x3 + 34.0 + 42.0 + 1.0
+		var x2: float = x3 + 30.0 + offset
+		_spawn(3, Vector2(x3, y - 34.0 - 4.0))
+		_spawn(4, Vector2(x4, y - 42.0 - 4.0))
+		await _settle(90)
+		_spawn(2, Vector2(x2, y - 120.0))
+		await _settle(120)
+		var valley: Dumpling = _find(2, true)
+		x2 = valley.global_position.x if valley != null else x2
+		_begin("polish_" + name)
+		_pf = 0
+		_spawn(2, Vector2(x2, y - 27.0 - 300.0))
+		var pfs: PackedInt32Array = await _polish_run_chain(name, 3, 320)
+		_log("  x3 attempt (x4 offset %+.0f): %d merges" % [offset, pfs.size()])
+		await _shot("polish", name + "_settled")
+		_end("polish_" + name)
+		got = pfs.size()
+		if got >= 3:
+			await _flush()
+			break
+		_pending.clear()
+	if got < 3:
+		_log("  UYARI: x3 zincir oluşmadı; son deneme kareleri yazılıyor")
+		await _flush()
+
+
+## 06: iki ayrı merge 1–3 kare arayla, etiketler yan yana (T4 +110 | T3 +90).
+func _polish_labels_near() -> void:
+	var name: String = "06_labels_near"
+	await _make_board("res://resources/levels/level_09.tres")
+	var cx: float = _board._center_x()
+	var y: float = _board.FLOOR_Y
+	var xa: float = cx - 34.0
+	var xb: float = xa + 42.0 + 34.0 + 2.0
+	_spawn(4, Vector2(xa, y - 42.0 - 4.0))
+	_spawn(3, Vector2(xb, y - 34.0 - 4.0))
+	await _settle(120)
+	var a: Dumpling = _find(4, true)
+	var b: Dumpling = _find(3, true)
+	_begin("polish_" + name)
+	_pf = 0
+	# Düşüş mesafeleri eşit: iki merge aynı ya da ardışık karede.
+	_spawn(4, Vector2(a.global_position.x + 3.0, a.global_position.y - 42.0 - 42.0 - 200.0))
+	await get_tree().physics_frame
+	_spawn(3, Vector2(b.global_position.x - 3.0, b.global_position.y - 34.0 - 34.0 - 200.0))
+	await _polish_run_chain(name, 2, 300)
+	await _shot("polish", name + "_settled")
+	_end("polish_" + name)
+	await _flush()
+
+
+## 07–09: Sarsıntı başlangıç / tepe / yerleşme (shake grubunun yığını).
+func _polish_shake() -> void:
+	var name: String = "07_shake"
+	await _make_board("res://resources/levels/level_06.tres")
+	await _pile([[6, 5, 4], [3, 4, 3, 2], [1, 2, 1, 3, 1], [2, 1, 2]])
+	_begin("polish_" + name)
+	_pf = 0
+	await _shot("polish", name + "_before")
+	_board._use_shake()
+	var seq: Array = [0, 1, 2, 3, 4, 5, 6, 8, 10, 12, 15, 18, 24, 30, 45]
+	var since: int = 0
+	var ring_seen: String = ""
+	var ring_max_px: float = 0.0
+	var ring_end: int = -1
+	for i in 130:
+		if seq.has(since):
+			await _shot("polish", name if since < 8 else ("08_shake_peak" if since < 24 else "09_shake_settle"))
+		if since <= 6 or since == 12 or since == 18:
+			_log_fx(name)
+		var alive: bool = false
+		for node in _fx_nodes():
+			if node is Sprite2D and (node as Sprite2D).texture != null \
+					and ((node as Sprite2D).texture.resource_path.ends_with("fx_ring.png")
+					or (node as Sprite2D).texture.resource_path.ends_with("fx_dot.png")):
+				alive = true
+				ring_seen = (node as Sprite2D).texture.resource_path.get_file()
+				ring_max_px = maxf(ring_max_px, (node as Sprite2D).scale.x * (node as Sprite2D).texture.get_size().x)
+		if not ring_seen.is_empty() and not alive and ring_end < 0:
+			ring_end = since
+		await get_tree().physics_frame
+		since += 1
+	_timing("polish_" + name, "shake ring sprite lifetime", maxi(ring_end, 0),
+		"texture %s, max texture px %.0f (container %.0f)" % [ring_seen, ring_max_px, _board.level.container_width])
+	await _settle(200, 10)
+	await _shot("polish", "09_shake_settle")
+	_end("polish_" + name)
+	await _flush()
+
+
+## 10–13: Büyütücü — hedef / anticipation / dönüşüm (T3→T4) ve T7→T8 parıltısı.
+func _polish_upgrade(tier: int) -> void:
+	var name: String = "10_upgrade_t3_to_t4" if tier == 3 else "13_upgrade_t7_to_t8"
+	var rows: Array = [[5, 3, 5], [2, 1, 2], [3]] if tier == 3 else [[7, 6], [4, 3, 2]]
+	await _make_board("res://resources/levels/level_08.tres")
+	await _pile(rows)
+	_begin("polish_" + name)
+	_pf = 0
+	_board._on_power_pressed(int(PowerUp.Type.UPGRADE))
+	await _frames(3)
+	await _shot("polish", name + "_target")
+	var target: Dumpling = _find(tier, true)
+	var pos: Vector2 = target.global_position
+	var count_before: int = _count()
+	var stock_before: int = SaveManager.powerup_count(PowerUp.Type.UPGRADE)
+	var score_before: int = GameState.score
+	var merges: Array = [0]
+	var cb := func(_t: int, _p: Vector2) -> void: merges[0] += 1
+	GameState.merge_performed.connect(cb)
+	_pf = 0
+	_board._use_targeted_power(target)
+	var stock_after_tap: int = SaveManager.powerup_count(PowerUp.Type.UPGRADE)
+	var since: int = 0
+	var mutated: int = -1
+	var born: Dumpling = null
+	var scale_max: float = 0.0
+	var shake_peak: float = 0.0
+	var sparkle_max: int = 0
+	for i in 60:
+		if mutated < 0 and not is_instance_valid(target):
+			mutated = since
+			born = _last_dumpling()
+		if POLISH_UPGRADE_SEQ.has(since):
+			await _shot("polish", name + ("_anticipation" if mutated < 0 else "_transform"))
+		if since <= 12 or since == 16 or since == 20:
+			_log_fx(name)
+		var sparkles: int = 0
+		for node in _fx_nodes():
+			if node is Sprite2D and (node as Sprite2D).texture != null \
+					and (node as Sprite2D).texture.resource_path.ends_with("fx_sparkle.png"):
+				sparkles += 1
+		sparkle_max = maxi(sparkle_max, sparkles)
+		if born != null and is_instance_valid(born):
+			scale_max = maxf(scale_max, (born.get_node("Visual") as Node2D).scale.x)
+		shake_peak = maxf(shake_peak, _board._shake_strength)
+		await get_tree().physics_frame
+		since += 1
+	GameState.merge_performed.disconnect(cb)
+	_timing("polish_" + name, "tap → tier transform (anticipation)", maxi(mutated, 0),
+		"stock %d→%d (tap) →%d, merges %d, score %d→%d" % [stock_before, stock_after_tap,
+		SaveManager.powerup_count(PowerUp.Type.UPGRADE), merges[0], score_before, GameState.score])
+	_log("  upgrade %s: born tier %d at Δ %.1f px, pieces %d→%d, visual scale peak %.3f, shake peak %.1f px, king sparkle sprites max %d, status '%s'" % [
+		name, born.tier if is_instance_valid(born) else -1,
+		born.global_position.distance_to(pos) if is_instance_valid(born) else -1.0, count_before, _count(),
+		scale_max, shake_peak, sparkle_max, _board._status_label.text])
+	await _settle(200, 10)
+	await _shot("polish", name + "_settled")
+	_end("polish_" + name)
+	await _flush()
+
+
+## Kazanma yardımcısı: bitiş karesini yakalar, patlama düğümlerinin merge
+## noktasına uzaklığını loglar, WIN_SEQ karelerini alır.
+func _polish_run_win(name: String) -> void:
+	var win_point: Array = [Vector2.INF]
+	var cb := func(_t: int, p: Vector2) -> void: win_point[0] = p
+	GameState.merge_performed.connect(cb)
+	var finished_pf: int = -1
+	var finished_count: Array = [0]
+	var fcb := func(_won: bool) -> void: finished_count[0] += 1
+	_board.round_finished.connect(fcb)
+	for i in 300:
+		await get_tree().physics_frame
+		if _board.is_finished():
+			finished_pf = _pf
+			break
+	GameState.merge_performed.disconnect(cb)
+	if finished_pf < 0:
+		_log("  HATA: %s — round bitmedi" % name)
+		_board.round_finished.disconnect(fcb)
+		return
+	# Patlama düğümleri (CPUParticles2D) — merge noktasına uzaklık.
+	var bursts: PackedStringArray = PackedStringArray()
+	for node in _fx_nodes():
+		if node is CPUParticles2D:
+			var c := node as CPUParticles2D
+			var d: float = c.global_position.distance_to(win_point[0]) if win_point[0] != Vector2.INF else -1.0
+			bursts.append("%s@%.0f,%.0f d=%.0f" % [c.texture.resource_path.get_file() if c.texture != null else "?",
+				c.global_position.x, c.global_position.y, d])
+	_log("  win %s: finished f%03d, winning merge point %s, pile top y %.0f, line y %.0f, container top y %.0f, bursts: %s" % [
+		name, finished_pf, win_point[0], _pile_top(), _board.overflow_line_y(), _board.container_top_y(),
+		" | ".join(bursts) if not bursts.is_empty() else "(yok)"])
+	var since: int = 0
+	for i in 50:
+		if POLISH_WIN_SEQ.has(since):
+			await _shot("polish", name)
+		if since == 0 or since == 8:
+			_log_fx(name)
+		await get_tree().physics_frame
+		since += 1
+	_board.round_finished.disconnect(fcb)
+	_log("  win %s: round_finished ×%d, status '%s', score %d" % [name, finished_count[0], _board._status_label.text, GameState.score])
+
+
+## 14: düşük yığın (L1: T3+T3 → T4 hedef).
+func _polish_win_low() -> void:
+	var name: String = "14_win_low"
+	await _make_board("res://resources/levels/level_01.tres")
+	await _pile([[2, 3, 1]])
+	var rest: Dumpling = _find(3, true)
+	_begin("polish_" + name)
+	_pf = 0
+	_spawn(3, Vector2(rest.global_position.x + 34.0 * 0.4, rest.global_position.y - 34.0 - 260.0))
+	await _polish_run_win(name)
+	_end("polish_" + name)
+	await _flush()
+
+
+## 15: yüksek yığın (L2: birleşmeyen dolgu + tepede T3+T3 → T4).
+func _polish_win_high() -> void:
+	var name: String = "15_win_high"
+	await _make_board("res://resources/levels/level_02.tres")
+	await _pile([[5, 6, 5], [4, 5, 4], [3, 3]], true)
+	var top_y: float = _pile_top()
+	var cx: float = _board._center_x()
+	var rest: Dumpling = _spawn(3, Vector2(cx, top_y - 34.0 - 4.0))
+	await _settle(120)
+	_begin("polish_" + name)
+	_log("  high pile: top y %.0f (line y %.0f, %d pieces)" % [_pile_top(), _board.overflow_line_y(), _count()])
+	_pf = 0
+	_spawn(3, Vector2(rest.global_position.x + 10.0, rest.global_position.y - 34.0 - 200.0))
+	await _polish_run_win(name)
+	_end("polish_" + name)
+	await _flush()
+
+
+## 16: skor hedefi (L8: tier 7 var, skor eşiğini küçük bir merge geçiyor).
+func _polish_win_score() -> void:
+	var name: String = "16_win_score"
+	await _make_board("res://resources/levels/level_08.tres")
+	await _pile([[7, 5], [3, 2]])
+	GameState.add_score(_board.level.target_score - 90 + 10)
+	# Tier 7 board'a doğrudan konuldu (merge ile gelmedi): hedef bayrağı elle,
+	# revive_test'in kazanma yolu gibi. Kazanmayı skoru geçen merge tetikler.
+	_board._reached_target_tier = true
+	await _frames(2)
+	var rest: Dumpling = _find(3, true)
+	_begin("polish_" + name)
+	_log("  score target: reached tier %d / target %d, score %d / %d" % [_board._max_tier_reached,
+		_board.level.target_tier, GameState.score, _board.level.target_score])
+	_pf = 0
+	_spawn(3, Vector2(rest.global_position.x + 12.0, rest.global_position.y - 34.0 - 240.0))
+	await _polish_run_win(name)
+	_end("polish_" + name)
+	await _flush()
 
 
 # --- Raporlar / kayıt ----------------------------------------------------------------

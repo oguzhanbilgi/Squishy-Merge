@@ -22,10 +22,38 @@ signal pause_requested
 
 const DUMPLING_SCENE: PackedScene = preload("res://scenes/game/dumpling.tscn")
 const POP_EFFECT_SCENE: PackedScene = preload("res://scenes/game/pop_effect.tscn")
-const BOKEH_TEXTURE: Texture2D = preload("res://assets/visual/fx/fx_dot.png")
-## Güç efektlerinin halka/parıltı katmanları (M8.5-07).
-const RING_TEXTURE: Texture2D = preload("res://assets/visual/fx/fx_ring.png")
+## Efekt dokusu ROLLERİ (M8.7-02). İki Kenney türevi dosya içeriğinin TERSİ
+## adı taşıyor: `fx_ring.png` yumuşak DOLU bir parıltı, `fx_dot.png` İÇİ BOŞ
+## bir halka (M8.7-01 denetiminde alfa profiliyle ölçüldü). Dosyalar
+## değiştirilmiyor — onaylı sonuç ekranı (RewardGem) ikisini olduğu gibi
+## kullanıyor. Gameplay tarafında sabitler ROL → dosya eşler:
+##   GLOW = dolu parıltı  (merge parlaması, bokeh, toz)
+##   RING = içi boş halka (güç halkaları: kilitlenme / şok / açılma / süpürme / sarsıntı)
+const GLOW_TEXTURE: Texture2D = preload("res://assets/visual/fx/fx_ring.png")
+const RING_TEXTURE: Texture2D = preload("res://assets/visual/fx/fx_dot.png")
+## Dokunun GÖRÜNÜR çapı / doku boyutu (ölçülen alfa profili): parıltının
+## yarı-alfa çekirdeği doku kenarının %40'ında biter, halkanın tepe alfası
+## %72'sinde durur. Ölçek yardımcıları hedef pikseli bu oranlara böler —
+## aksi hâlde parıltı hedefin yarısı, halka hedefin dörtte üçü çıkar.
+const GLOW_VISIBLE: float = 0.40
+const RING_VISIBLE: float = 0.72
+## Toz parçacıkları eskiden halka dokusuyla ölçeklenmişti; dolu parıltıya
+## geçince aynı görünür boyut için çarpan (0.72 / 0.40).
+const GLOW_DUST_SCALE: float = 1.8
 const SPARKLE_TEXTURE: Texture2D = preload("res://assets/visual/fx/fx_sparkle.png")
+## Sekiz kollu patlama yıldızı — sonuç ekranının (RewardGem / round_result)
+## kullandığı dosya; gameplay'de yalnızca tier 8 kutlaması (M8.7-02).
+const BURST_TEXTURE: Texture2D = preload("res://assets/visual/fx/fx_burst.png")
+## Kenney ışık dokuları (parıltı / halka / yıldız / patlama) siyah zemin
+## için üretilmiş: yarı saydam kenarlarında RGB alfayla birlikte KARARIYOR
+## (ölçüldü: r=20 px'te RGB 177 / α 148, r=46'da RGB 12 / α 6). Normal
+## karışımla koyu kuyunun üstünde gri "duman" olarak okunuyorlardı — dolu
+## parıltı sis, noktalar kurum gibi. Toplamsal karışım (ADD) bu dokuların
+## tasarlandığı mod: koyu saçak yok, parıltı ışık gibi okunur, alfa solması
+## aynen çalışır. YALNIZCA bu dört doku (owner'ın renkli asset'leri —
+## bulut, bomba, sütun, girdap — normal karışımda kalır; RewardGem'e
+## dokunulmadı).
+const FX_LIGHT_MATERIAL: CanvasItemMaterial = preload("res://assets/visual/fx/fx_light_additive.tres")
 ## Owner'ın güç efekt asset'leri (M8.5-08). Prosedürel katmanların YERİNE
 ## GEÇMİYOR, üstüne biniyorlar: halka/toz okunurluğu sağlıyor, bu dokular
 ## karakteri veriyor.
@@ -921,13 +949,31 @@ const FX_SPARKLE_MAX: int = 16
 const FX_SWEEP_MIN_TARGETS: int = 3
 
 
-## Genişleyen ya da daralan halka. `from_scale` > `to_scale` ise kilitlenme
-## (içeri doğru), tersi ise patlama (dışarı doğru) okunur.
-func _spawn_ring(at: Vector2, ring_color: Color, from_scale: float,
-		to_scale: float, duration: float = FX_RING_TIME) -> void:
-	_spawn_fx_sprite(at, RING_TEXTURE,
-		Color(ring_color.r, ring_color.g, ring_color.b, 0.9),
-		from_scale, to_scale, duration)
+## Genişleyen ya da daralan İÇİ BOŞ halka. Ölçüler GÖRÜNÜR halka çapı (px):
+## `from_px` > `to_px` ise kilitlenme (içeri doğru), tersi patlama (dışarı).
+## Halka dokusunun tepe alfası ~0.5: koyu kuyunun üstünde tek kat soluk
+## kalıyordu, aynı doku ikinci kat olarak çocuk sprite'ta tekrarlanıyor
+## (bileşik ~0.75; ölçek/alfa/temizlik ebeveynden miras — ek tween yok).
+func _spawn_ring(at: Vector2, ring_color: Color, from_px: float,
+		to_px: float, duration: float = FX_RING_TIME, alpha_hold: float = 0.0) -> Sprite2D:
+	var ring: Sprite2D = _spawn_fx_sprite(at, RING_TEXTURE,
+		Color(ring_color.r, ring_color.g, ring_color.b, 1.0),
+		_ring_scale(from_px), _ring_scale(to_px), duration, 0.0, alpha_hold)
+	var second := Sprite2D.new()
+	second.texture = RING_TEXTURE
+	second.material = FX_LIGHT_MATERIAL
+	ring.add_child(second)
+	return ring
+
+
+## Görünür halka çapı `diameter_px` için sprite ölçeği (RING_VISIBLE payı).
+static func _ring_scale(diameter_px: float) -> float:
+	return _scale_for(RING_TEXTURE, diameter_px / RING_VISIBLE)
+
+
+## Görünür parıltı çapı `diameter_px` için sprite ölçeği (GLOW_VISIBLE payı).
+static func _glow_scale(diameter_px: float) -> float:
+	return _scale_for(GLOW_TEXTURE, diameter_px / GLOW_VISIBLE)
 
 
 ## Tek atışlık, ölçeklenip sönen sprite. Halkalar da, owner'ın patlama /
@@ -941,6 +987,8 @@ func _spawn_fx_sprite(at: Vector2, texture: Texture2D, tint: Color,
 		spin: float = 0.0, alpha_hold: float = 0.0) -> Sprite2D:
 	var fx := Sprite2D.new()
 	fx.texture = texture
+	if _is_light_texture(texture):
+		fx.material = FX_LIGHT_MATERIAL
 	fx.position = at
 	fx.rotation = spin
 	fx.z_index = 5
@@ -957,6 +1005,12 @@ func _spawn_fx_sprite(at: Vector2, texture: Texture2D, tint: Color,
 	return fx
 
 
+## Toplamsal karışım isteyen ışık dokusu mu? (bkz. FX_LIGHT_MATERIAL)
+static func _is_light_texture(texture: Texture2D) -> bool:
+	return texture == GLOW_TEXTURE or texture == RING_TEXTURE \
+		or texture == SPARKLE_TEXTURE or texture == BURST_TEXTURE
+
+
 ## Bir asset'in hedef PİKSEL çapı için gereken sprite ölçeği. Dokuları elle
 ## "0.42" gibi sihirli sayılarla ölçeklemek, dosya boyutu değişince sessizce
 ## bozulurdu.
@@ -965,10 +1019,14 @@ static func _scale_for(texture: Texture2D, target_px: float) -> float:
 
 
 ## Tek atışlık parçacık bulutu. `up_bias` 1.0 = tamamen yukarı, 0.0 = her yöne.
+## `size_mul`: parçacık ölçeği çarpanı (dolu parıltı tozu GLOW_DUST_SCALE ile).
 func _spawn_burst(at: Vector2, texture: Texture2D, burst_color: Color,
-		count: int, speed: float, up_bias: float, life: float) -> void:
+		count: int, speed: float, up_bias: float, life: float,
+		size_mul: float = 1.0) -> void:
 	var fx := CPUParticles2D.new()
 	fx.texture = texture
+	if _is_light_texture(texture):
+		fx.material = FX_LIGHT_MATERIAL
 	fx.position = at
 	fx.z_index = 5
 	fx.emitting = false
@@ -981,8 +1039,8 @@ func _spawn_burst(at: Vector2, texture: Texture2D, burst_color: Color,
 	fx.gravity = Vector2(0.0, lerpf(700.0, 180.0, up_bias))
 	fx.initial_velocity_min = speed * 0.45
 	fx.initial_velocity_max = speed
-	fx.scale_amount_min = 0.10
-	fx.scale_amount_max = 0.26
+	fx.scale_amount_min = 0.10 * size_mul
+	fx.scale_amount_max = 0.26 * size_mul
 	fx.color = burst_color
 	add_child(fx)
 	fx.emitting = true
@@ -1023,9 +1081,11 @@ func _run_bomb(target: Dumpling) -> void:
 	var tier: int = target.tier
 	target.play_lock_on()
 	# Kilitlenme halkası hedefin üstüne kapanıyor: mermi daha yola çıkmadan
-	# hangi parçanın seçildiği belli oluyor.
+	# hangi parçanın seçildiği belli oluyor. Ölçü hedefin çapına göre
+	# (M8.7-02): küçük hedefte de büyük hedefte de halka parçaya oturur.
+	var target_px: float = TierConfig.radius(tier) * 2.0
 	_spawn_ring(destination, PowerUp.accent(PowerUp.Type.BOMB),
-		2.4, 0.85, BOMB_TRAVEL)
+		maxf(target_px * 2.4, 180.0), target_px * 1.05, BOMB_TRAVEL)
 
 	# Mermi hedefi KAPATMAMALI: çapı hedefin çapının %85'i, ve hiçbir zaman
 	# tier 3'ün çapından büyük değil. Tier 8'e atılan bomba ekranı yutmasın.
@@ -1069,7 +1129,8 @@ func _detonate_bomb(target: Dumpling, at: Vector2, tier: int) -> void:
 	# Skor ve merge sayacı DEĞİŞMEZ (GAME_DESIGN.md §10).
 	var accent: Color = PowerUp.accent(PowerUp.Type.BOMB)
 	# Genişleyen şok halkası + kısa duman: patlamanın merkezi net okunsun.
-	_spawn_ring(at, accent, 0.5, 2.6, 0.3)
+	var target_px: float = TierConfig.radius(tier) * 2.0
+	_spawn_ring(at, accent, maxf(target_px * 0.6, 48.0), maxf(target_px * 3.2, 300.0), 0.3)
 	# Owner'ın patlama asset'i (uçan bombadan AYRI dosya). Kısa: 0.34 sn.
 	# `alpha_hold` ile ilk üçte biri tam opak duruyor, sonra sönüyor —
 	# baştan sönseydi patlama hiç okunmadan kaybolurdu.
@@ -1077,12 +1138,27 @@ func _detonate_bomb(target: Dumpling, at: Vector2, tier: int) -> void:
 		_scale_for(BOMB_IMPACT_TEXTURE, TierConfig.radius(tier) * 2.2),
 		_scale_for(BOMB_IMPACT_TEXTURE, TierConfig.radius(tier) * 4.4),
 		0.34, 0.0, 0.34)
-	_spawn_burst(at, BOKEH_TEXTURE, Color(0.72, 0.66, 0.78, 0.85),
-		FX_DUST_MAX, TierConfig.radius(tier) * 5.0, 0.15, 0.42)
+	_spawn_burst(at, GLOW_TEXTURE, Color(0.72, 0.66, 0.78, 0.85),
+		FX_DUST_MAX, TierConfig.radius(tier) * 5.0, 0.15, 0.42, GLOW_DUST_SCALE)
 	_spawn_pop(at, TierConfig.color(tier), TierConfig.radius(tier), maxi(tier, 2))
 	_add_shake(tier)
 	AudioManager.play(&"bomb_impact")
 	Haptics.strong()
+
+
+## Büyütücü anticipation süresi (M8.7-02): dokunuş → dönüşüm. Bomba'nın
+## kilitlenme vuruşunun (BOMB_TRAVEL 0.28 s) yarısı — "yüklendi" okunsun,
+## ağırlaşmasın. 9 fizik karesi.
+const UPGRADE_ANTICIPATION: float = 0.15
+## Owner sütununun (ok + halkalar) parça çapına göre yüksekliği ve merkez
+## kayması: dokuda taban halkası yüksekliğin ~%83'ünde, ok ucu ~%5'inde.
+## Merkez parçanın 1.7 r üstüne alınınca taban halkası parçanın tepesini
+## sarıyor (yüz açık kalır), ok parçanın üstünden yükseliyor.
+const UPGRADE_BEAM_HEIGHT: float = 2.8
+const UPGRADE_BEAM_LIFT: float = 1.7
+## Sütunun tepe alfası: yüzün üstünden geçen sarmal okunur kalsın ama yüzü
+## silmesin.
+const UPGRADE_BEAM_ALPHA: float = 0.7
 
 
 ## Büyütücü: parçayı mutate etmek yerine kaldırıp bir üst tier'ı aynı yerde
@@ -1091,7 +1167,72 @@ func _detonate_bomb(target: Dumpling, at: Vector2, tier: int) -> void:
 ##
 ## Momentum korunuyor ki parça havada donmasın. Skor/merge sayacı ARTMAZ ama
 ## level hedefi yeni tier'ı görür.
+##
+## M8.7-02 — ANTICIPATION: dönüşüm UPGRADE_ANTICIPATION kadar ertelenir
+## (Bomba'nın BOMB_TRAVEL sonrası patlamasıyla aynı desen). İşlem güvenliği:
+##   - stok DOKUNUŞTA düştü (_use_targeted_power, kanonik); silah indi, aynı
+##     karede ikinci dokunuş silahsız board'a gider → ikinci düşüş yok
+##   - hedef pencere boyunca KİLİTLİ: `is_merging = true` — çarpışma yolu
+##     merge istemez, Temizleyici / Bomba / devam temizliği onu görmez
+##     (hepsi `_is_live` → is_merging'e bakıyor), taşma sayacı da saymaz
+##   - erteleme board'a bağlı tween: level yeniden başlarsa tween ölür,
+##     yarım işlem kalmaz; fail-pending / mola sırasında dönüşüm donmuş
+##     board'a katılır (_spawn_dumpling donduruyor — merge kuyruğuyla aynı)
+##   - hedef değişemez: Callable hedefi bağlı taşır, yeniden seçim yok
 func _run_upgrade(target: Dumpling) -> void:
+	target.is_merging = true
+	target.play_lock_on()
+	var at: Vector2 = target.global_position
+	var accent: Color = PowerUp.accent(PowerUp.Type.UPGRADE)
+	var from_r: float = TierConfig.radius(target.tier)
+	var to_r: float = TierConfig.radius(target.tier + 1)
+	# Anticipation görselleri HEDEFİN çocuğu: parça havadaysa onunla gider,
+	# dönüşümde parçayla birlikte yok olur (yerlerini dönüşüm efekti alır).
+	# Gövde dönüşü sıfırlanıyor ki ok dik dursun.
+	# 1) Kapanan halka — Bomba'nın kilitlenme dili, daha hızlı.
+	# (Süresi pencereden bir tık kısa: halka hedef silinmeden kendini
+	# temizler, tween sırasına güvenilmez.)
+	var ring: Sprite2D = _spawn_ring(at, accent, from_r * 2.0 * 2.2, from_r * 2.0 * 1.05,
+		UPGRADE_ANTICIPATION * 0.9)
+	_reparent_to_target(ring, target)
+	# 2) Owner sütunu ÖNDE (z 5), parçanın üstüne kaydırılmış, yükleniyor:
+	#    küçük ve saydam → tam boy. Sönme dönüşümde (aşağıda).
+	var beam := Sprite2D.new()
+	beam.texture = UPGRADE_BEAM_TEXTURE
+	beam.z_index = 5
+	beam.modulate = Color(1, 1, 1, 0.0)
+	beam.scale = Vector2.ONE * _scale_for(UPGRADE_BEAM_TEXTURE, to_r * UPGRADE_BEAM_HEIGHT) * 0.7
+	beam.position = at + Vector2(0.0, -to_r * UPGRADE_BEAM_LIFT)
+	add_child(beam)
+	_reparent_to_target(beam, target)
+	var charge := create_tween()
+	charge.set_parallel(true)
+	charge.tween_property(beam, "scale",
+		Vector2.ONE * _scale_for(UPGRADE_BEAM_TEXTURE, to_r * UPGRADE_BEAM_HEIGHT),
+		UPGRADE_ANTICIPATION).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	charge.tween_property(beam, "modulate:a", UPGRADE_BEAM_ALPHA, UPGRADE_ANTICIPATION)
+	# Sihirli yükseliş sesi dokunuşta başlar: yükselen ton dönüşüme varır.
+	AudioManager.play(&"upgrade")
+	# Dönüşüm: board'a bağlı tween (board silinirse iptal). Hedef bağlı.
+	create_tween().tween_callback(_finish_upgrade.bind(target)) \
+		.set_delay(UPGRADE_ANTICIPATION)
+
+
+## Board'da doğan bir efekti dünya dönüşümünü koruyarak hedefe bağlar.
+func _reparent_to_target(fx: Node2D, target: Dumpling) -> void:
+	var xform: Transform2D = fx.global_transform
+	fx.get_parent().remove_child(fx)
+	target.add_child(fx)
+	fx.global_transform = xform
+	fx.global_rotation = 0.0
+
+
+## Büyütücü dönüşümü (anticipation sonrası). Mekanik M8.5-07 ile aynı:
+## eski parça kalkar, üst tier aynı yerde aynı hızla doğar; skor/merge yok.
+func _finish_upgrade(target: Dumpling) -> void:
+	if not is_instance_valid(target) or target.is_queued_for_deletion():
+		# Kilit tüm kaldırma yollarını kapatıyor; bu dal savunma amaçlı.
+		return
 	var old_tier: int = target.tier
 	var new_tier: int = target.tier + 1
 	var at: Vector2 = target.global_position
@@ -1103,7 +1244,7 @@ func _run_upgrade(target: Dumpling) -> void:
 	# Normal merge'den daha güçlü squash: dönüşüm "büyüdü" diye okunmalı.
 	upgraded.play_squash(0.34, 0.26)
 
-	# --- Reveal (M8.5-07). Dönüşüm ANI değişmedi; efekt onun etrafında. ---
+	# --- Reveal (M8.5-07 / M8.7-02). ---
 	#
 	# Normal merge ile karışmasın diye Büyütücü'nün kendi imzası var:
 	# merge'de halka YOK, burada eski tier'ın çapından yeni tier'ın çapına
@@ -1111,36 +1252,40 @@ func _run_upgrade(target: Dumpling) -> void:
 	var accent: Color = PowerUp.accent(PowerUp.Type.UPGRADE)
 	var from_r: float = TierConfig.radius(old_tier)
 	var to_r: float = TierConfig.radius(new_tier)
-	_spawn_ring(at, accent, from_r / 64.0, (to_r * 1.5) / 64.0, 0.32)
-	# Owner'ın yükselme sütunu (ok + halkalar). Yeni parçanın ARKASINDA
-	# kalıyor (z_index düşürülüyor) — dönüşen dumpling'in kendisi görünmeli,
-	# efekt onu kapatmamalı.
-	var beam: Sprite2D = _spawn_fx_sprite(at, UPGRADE_BEAM_TEXTURE,
-		Color(1, 1, 1, 0.95),
-		_scale_for(UPGRADE_BEAM_TEXTURE, to_r * 2.6),
-		_scale_for(UPGRADE_BEAM_TEXTURE, to_r * 3.6),
-		0.46, 0.0, 0.30)
-	beam.z_index = -1
+	_spawn_ring(at, accent, from_r * 2.0, to_r * 3.0, 0.32)
+	# Owner'ın yükselme sütunu: anticipation'daki sütunun (hedefle birlikte
+	# silindi) kaldığı boydan açılıp söner — ÖNDE (z 5), parçanın üstüne
+	# kaydırılmış; taban halkası gövdeyi sarar, ok yüzün üstünden çıkar.
+	# Sönme baştan başlıyor: yeni yüz dönüşümün hemen ardından okunur.
+	_spawn_fx_sprite(at + Vector2(0.0, -to_r * UPGRADE_BEAM_LIFT), UPGRADE_BEAM_TEXTURE,
+		Color(1, 1, 1, UPGRADE_BEAM_ALPHA),
+		_scale_for(UPGRADE_BEAM_TEXTURE, to_r * UPGRADE_BEAM_HEIGHT),
+		_scale_for(UPGRADE_BEAM_TEXTURE, to_r * UPGRADE_BEAM_HEIGHT * 1.2),
+		0.32)
 	# Yukarı doğru parıltı: "yükseldi" hissi. up_bias yüksek = dar koni.
 	_spawn_burst(at, SPARKLE_TEXTURE, accent.lerp(Color.WHITE, 0.35),
 		FX_SPARKLE_MAX, to_r * 4.5, 0.85, 0.55)
 
 	_spawn_pop(at, TierConfig.color(new_tier), TierConfig.radius(new_tier), new_tier)
 	_add_shake(new_tier)
-	# Sihirli yükseliş + varılan tier'ın merge sesi (tier 8'de premium kutlama
-	# da play_merge içinden gelir).
-	AudioManager.play(&"upgrade")
+	# Varılan tier'ın merge sesi (tier 8'de premium kutlama da play_merge
+	# içinden gelir); `upgrade` sesi dokunuşta çaldı.
 	AudioManager.play_merge(new_tier)
-	Haptics.medium()
 
-	# Tier 8'in normal kutlaması güçle elde edilse de çalışır.
+	# Tier 8: normal T7+T7 merge ile AYNI kutlama sınıfı (M8.7-02 parite):
+	# kral parıltısı + SPECIAL titreşim + durum plakası. Skor / merge sayacı
+	# yine YOK.
 	if new_tier == TierConfig.MAX_TIER:
+		_play_king_shine(at)
+		Haptics.special()
 		_flash_status("%s!" % TierConfig.tier_name(new_tier))
+	else:
+		Haptics.medium()
 
 	# Hedef takibi: "Tier X'e ulaş" güçle de karşılanabilir.
 	if not level.is_endless and new_tier >= level.target_tier:
 		_reached_target_tier = true
-	_check_objective()
+	_check_objective(at)
 
 
 # --- Sarsıntı ---
@@ -1205,7 +1350,7 @@ func _use_clear_small() -> void:
 	if targets.size() >= FX_SWEEP_MIN_TARGETS:
 		var center := Vector2(_center_x(), (overflow_line_y() + FLOOR_Y) * 0.5)
 		_spawn_ring(center, PowerUp.accent(PowerUp.Type.CLEAR_SMALL),
-			0.4, level.container_width / 52.0, 0.42)
+			level.container_width * 0.12, level.container_width, 0.42)
 		# Owner'ın yıldız girdabı: süpürmenin "sihirli süpürge" kimliğini
 		# veriyor. Halka okunurluğu, girdap karakteri sağlıyor.
 		_spawn_fx_sprite(center, STAR_SWIRL_TEXTURE, Color(1, 1, 1, 0.9),
@@ -1254,12 +1399,14 @@ func _play_shake_feedback() -> void:
 			_scale_for(PUFF_TEXTURE, level.container_width * 0.20),
 			_scale_for(PUFF_TEXTURE, level.container_width * 0.34),
 			0.52, 0.0, 0.22)
-		_spawn_burst(at, BOKEH_TEXTURE, Color(0.85, 0.80, 0.90, 0.55),
-			FX_DUST_MAX / puffs, 210.0, 0.7, 0.5)
+		_spawn_burst(at, GLOW_TEXTURE, Color(0.85, 0.80, 0.90, 0.55),
+			FX_DUST_MAX / puffs, 210.0, 0.7, 0.5, GLOW_DUST_SCALE)
 	# Kap kenarının kısa parlaması.
 	_shake_flash = 1.0
+	# Kabın ortasından duvarlara açılan İÇİ BOŞ halka (M8.7-02: doğru doku +
+	# kap genişliğine göre ölçü; eskiden 1.4–2.1 kap genişliğinde dolu sis).
 	_spawn_ring(Vector2(_center_x(), (overflow_line_y() + FLOOR_Y) * 0.5),
-		accent, level.container_width / 90.0, level.container_width / 60.0, 0.36)
+		accent, level.container_width * 0.30, level.container_width, 0.36, 0.2)
 
 
 func _set_aim(x: float) -> void:
@@ -1371,11 +1518,12 @@ func _resolve_merge(a: Dumpling, b: Dumpling, point: Vector2) -> void:
 	if celebratory:
 		_flash_status("%s!" % TierConfig.tier_name(new_tier))
 	if new_tier >= FLOAT_SCORE_MIN_TIER:
-		_spawn_float_score(point, TierConfig.merge_score(new_tier), TierConfig.color(new_tier))
+		_spawn_float_score(point, TierConfig.merge_score(new_tier), TierConfig.color(new_tier),
+			TierConfig.radius(new_tier))
 
 	if not level.is_endless and new_tier >= level.target_tier:
 		_reached_target_tier = true
-	_check_objective()
+	_check_objective(point)
 
 
 ## Sonsuz mod: iki tier 8 çarpışınca ikisi de yok olur (GAME_DESIGN.md §4).
@@ -1472,7 +1620,8 @@ func _setup_bokeh() -> void:
 	# Referans pencere + taşma payı: kamera zoom'undan bağımsız, ekranın
 	# tamamına yayılsın.
 	var frame: Rect2 = reference_frame().grow(200.0)
-	_bokeh.texture = BOKEH_TEXTURE
+	_bokeh.texture = GLOW_TEXTURE
+	_bokeh.material = FX_LIGHT_MATERIAL
 	_bokeh.z_index = -10
 	_bokeh.position = frame.get_center()
 	_bokeh.emission_shape = CPUParticles2D.EMISSION_SHAPE_RECTANGLE
@@ -1489,8 +1638,10 @@ func _setup_bokeh() -> void:
 	_bokeh.gravity = Vector2.ZERO
 	_bokeh.initial_velocity_min = 8.0
 	_bokeh.initial_velocity_max = 26.0
-	_bokeh.scale_amount_min = 0.15
-	_bokeh.scale_amount_max = 0.55
+	# Dolu parıltı dokusuyla (M8.7-02) aynı görünür boyut: eski halka
+	# ölçeği × GLOW_DUST_SCALE.
+	_bokeh.scale_amount_min = 0.15 * GLOW_DUST_SCALE
+	_bokeh.scale_amount_max = 0.55 * GLOW_DUST_SCALE
 	_bokeh.color = Color(1.0, 0.95, 0.85, 0.13)
 	_bokeh.emitting = true
 
@@ -1547,37 +1698,91 @@ func _play_merge_pull(a: Dumpling, b: Dumpling, point: Vector2) -> void:
 		tween.chain().tween_callback(ghost.queue_free)
 
 
-## Yumusak parlama: beyaza kirilmis tier renginde bir nokta, yaricapin
-## 0.6'sindan 1.9'una acilip soner. Guc halkalarindan farkli (dolu, yumusak).
+## Yumusak parlama: beyaza kirilmis tier renginde DOLU bir parilti, gorunur
+## capi parcanin capinin 0.6'sindan 1.6–2.1'ine acilip soner. Guc
+## halkalarindan farkli (dolu, yumusak). M8.7-02: GLOW dokusu + gorunur-cap
+## olcegi — eskiden ici bos halka dokusuyla ince bir kontur olarak ciziliyordu.
 func _play_merge_flash(at: Vector2, flash_color: Color, radius: float, tier: int) -> void:
-	var size_scale: float = _scale_for(BOKEH_TEXTURE, radius * 2.0)
+	var diameter: float = radius * 2.0
 	var tint: Color = flash_color.lerp(Color.WHITE, 0.55)
-	tint.a = lerpf(0.55, 0.85, _tier_t(tier))
-	_spawn_fx_sprite(at, BOKEH_TEXTURE, tint, size_scale * 0.6,
-		size_scale * lerpf(1.6, 2.1, _tier_t(tier)), MERGE_FLASH_TIME)
+	# Toplamsal karisim: pastel parcanin ustunde 0.3-0.4 bile beyaz bir
+	# "pat" veriyor; daha yukarisi yuzu karelerce siliyordu. Ust tier'larda
+	# ustune kral parlamasi + 80 nokta bindigi icin alfa tier'la DUSER.
+	tint.a = lerpf(0.38, 0.30, _tier_t(tier))
+	_spawn_fx_sprite(at, GLOW_TEXTURE, tint, _glow_scale(diameter * 0.6),
+		_glow_scale(diameter * lerpf(1.6, 1.7, _tier_t(tier))), MERGE_FLASH_TIME)
 
 
-## Tier 8: altin parilti yildizi donerek acilir — premium kutlama, guc
-## efektlerinden ayri (sparkle dokusu, halka yok).
+## Tier 8 kutlamasi (GAME_DESIGN §1 "konfeti + buyuk ses"): buyuk donen
+## altin yildiz + sekiz kollu patlama yildizi + capraz beyaz yildiz + ikinci
+## kivilcim dalgasi (altin pop noktalari PopEffect'te). Guc efektlerinden
+## ayri (halka yok). M8.7-02'de guclendirildi; T7+T7 merge ve Buyutucu AYNI
+## fonksiyonu cagirir. Ust sinir: 3 sprite + 14 parcacik, < 0.7 s, kendini
+## temizler.
+const KING_SHINE_TIME: float = 0.62
+
+
 func _play_king_shine(at: Vector2) -> void:
-	var gold := Color(1.0, 0.9, 0.55, 0.95)
-	var base: float = _scale_for(SPARKLE_TEXTURE, TierConfig.radius(TierConfig.MAX_TIER) * 3.2)
-	var shine: Sprite2D = _spawn_fx_sprite(at, SPARKLE_TEXTURE, gold, base * 0.3, base, 0.55,
-		0.0, 0.35)
+	var r: float = TierConfig.radius(TierConfig.MAX_TIER)
+	var gold := Color(1.0, 0.9, 0.55, 1.0)
+	# Altin bloom BILEREK YOK: merge parlamasi zaten dolu bir parilti; ustune
+	# ikinci bir 900+ px toplamsal sprite 1080 panelde T8 merge karesini
+	# olculebilir sekilde uzatiyordu (masaustu 14-23 ms) ve yuzu bir kare
+	# daha kapatiyordu. Ozel his yildiz + patlama yildizi + kivilcim
+	# dalgasindan geliyor.
+	# Ana yildiz: daha buyuk (4.0 r), daha uzun tam opak (%55), donerek.
+	var base: float = _scale_for(SPARKLE_TEXTURE, r * 4.0)
+	var shine: Sprite2D = _spawn_fx_sprite(at, SPARKLE_TEXTURE, gold, base * 0.3, base,
+		KING_SHINE_TIME, 0.0, 0.55)
 	var spin := create_tween()
-	spin.tween_property(shine, "rotation", 0.9, 0.55).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
-	# Ikinci, gecikmeli ve capraz: tek yildiz duz durunca "ikon" gibi kaliyordu.
+	spin.tween_property(shine, "rotation", 0.9, KING_SHINE_TIME) \
+		.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	# Sekiz kollu patlama yildizi (sonuc ekraninin dili): ters yone donerek
+	# acilir, kisa tutulur, soner.
+	var burst_base: float = _scale_for(BURST_TEXTURE, r * 3.6)
+	var burst: Sprite2D = _spawn_fx_sprite(at, BURST_TEXTURE, Color(1.0, 0.9, 0.55, 0.75),
+		burst_base * 0.2, burst_base, 0.5, 0.3, 0.25)
+	var spin_b := create_tween()
+	spin_b.tween_property(burst, "rotation", 0.3 - 0.5, 0.5) \
+		.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	# Ikinci, gecikmeli ve capraz beyaz yildiz: tek yildiz duz durunca "ikon"
+	# gibi kaliyordu.
 	get_tree().create_timer(0.08).timeout.connect(func() -> void:
 		if not is_inside_tree():
 			return
 		var second: Sprite2D = _spawn_fx_sprite(at, SPARKLE_TEXTURE,
-			Color(1.0, 1.0, 1.0, 0.8), base * 0.2, base * 0.8, 0.45, 0.78, 0.3)
+			Color(1.0, 1.0, 1.0, 0.85), base * 0.2, base * 0.85, 0.5, 0.78, 0.35)
 		var spin2 := create_tween()
-		spin2.tween_property(second, "rotation", 0.78 - 0.7, 0.45))
+		spin2.tween_property(second, "rotation", 0.78 - 0.7, 0.5))
+	# Ikinci kivilcim dalgasi: radyal 14 altin parilti, 120 ms sonra — pop
+	# parcaciklari sonerken ikinci bir "vurus".
+	get_tree().create_timer(0.12).timeout.connect(func() -> void:
+		if not is_inside_tree():
+			return
+		_spawn_burst(at, SPARKLE_TEXTURE, Color(1.0, 0.93, 0.62, 0.95), 14, r * 4.5, 0.3, 0.6))
+
+
+## "+N" etiketi (M8.7-02): dogan parcanin GERCEK yaricapina gore konum,
+## kisa omurlu cakisma onleme. Genislik sabit; yukseklik fontun en az
+## yuksekligine acilir (~43 px), hesaplar gercek `size` ile yapilir.
+const FLOAT_SCORE_SIZE: Vector2 = Vector2(80.0, 32.0)
+## Etiketin alt kenari parcanin collider tepesinin bu kadar ustunde baslar:
+## yaricapin orani + sabit pay. Sprite'larin aksesuari (tac, fiyonk) daireyi
+## asiyor, reveal pop'u da parcayi %12 buyutuyor — ikisi de payin icinde.
+const FLOAT_SCORE_CLEARANCE_RATIO: float = 0.25
+const FLOAT_SCORE_CLEARANCE_PX: float = 14.0
+## Cakisma onlemede etiketler arasi bosluk ve en fazla kat sayisi.
+const FLOAT_SCORE_LANE_GAP: float = 6.0
+const FLOAT_SCORE_LANE_MAX: int = 3
+
+## Canli "+N" etiketleri (kendilerini siliyorlar; liste spawn'da budanir).
+## Yonetici yok, process dongusu yok.
+var _float_labels: Array[Label] = []
 
 
 ## Birlesme noktasinda ucan "+N" (dunya uzayinda, HUD pop'undan ayri).
-func _spawn_float_score(at: Vector2, amount: int, tint: Color) -> void:
+## `radius` = DOGAN parcanin yaricapi: etiket yuzun/sanatin disinda baslar.
+func _spawn_float_score(at: Vector2, amount: int, tint: Color, radius: float) -> Label:
 	var label := Label.new()
 	UiType.apply(label, UiType.CARD_TITLE)
 	label.text = "+%d" % amount
@@ -1587,18 +1792,54 @@ func _spawn_float_score(at: Vector2, amount: int, tint: Color) -> void:
 	label.add_theme_constant_override("shadow_offset_y", 2)
 	label.add_theme_constant_override("shadow_outline_size", 2)
 	label.z_index = 6
-	label.position = at + Vector2(-40.0, -TierConfig.radius(2) - 30.0)
-	label.size = Vector2(80.0, 32.0)
+	label.size = FLOAT_SCORE_SIZE
 	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	label.pivot_offset = label.size * 0.5
 	label.scale = Vector2(0.6, 0.6)
 	add_child(label)
+	# Konum ağaca girdikten SONRA: Label kendini en az font yüksekliğine
+	# (26 pt + gölge ≈ 43 px) açıyor; kat hesabı gerçek boyutla yapılmalı.
+	var top: float = at.y - radius * (1.0 + FLOAT_SCORE_CLEARANCE_RATIO) \
+		- FLOAT_SCORE_CLEARANCE_PX - label.size.y
+	var rect := Rect2(Vector2(at.x - label.size.x * 0.5, top), label.size)
+	label.position = _float_score_lane(rect).position
+	label.pivot_offset = label.size * 0.5
+	_float_labels.append(label)
 	var tween := create_tween()
 	tween.set_parallel(true)
 	tween.tween_property(label, "scale", Vector2.ONE, 0.12).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 	tween.tween_property(label, "position:y", label.position.y - 46.0, 0.5).set_ease(Tween.EASE_OUT)
 	tween.tween_property(label, "modulate:a", 0.0, 0.3).set_delay(0.2)
 	tween.chain().tween_callback(label.queue_free)
+	return label
+
+
+## Kisa omurlu, deterministik cakisma onleme: yeni etiket canli bir etiketin
+## dikdortgenine (pay dahil) giriyorsa — yatay bindirme kucukse (yan yana
+## iki merge) kendi parcasinin ustunde kalacak sekilde YANA itilir, degilse
+## onun USTUNE alinir (dikey kat); en fazla FLOAT_SCORE_LANE_MAX adim.
+## Girdi yalnizca canli etiketlerin o anki konumu — ayni durum ayni sonucu
+## verir. Etiketler kendi merge noktasinin ustunde kalir (kat basina ~49 px).
+func _float_score_lane(rect: Rect2) -> Rect2:
+	for i in range(_float_labels.size() - 1, -1, -1):
+		var l: Label = _float_labels[i]
+		if not is_instance_valid(l) or l.is_queued_for_deletion():
+			_float_labels.remove_at(i)
+	for step in FLOAT_SCORE_LANE_MAX:
+		var bumped: bool = false
+		for live in _float_labels:
+			var occupied := Rect2(live.position, live.size).grow(FLOAT_SCORE_LANE_GAP)
+			if not occupied.intersects(rect):
+				continue
+			var overlap_x: float = occupied.intersection(rect).size.x
+			if overlap_x <= rect.size.x * 0.5:
+				var dir: float = 1.0 if rect.get_center().x >= occupied.get_center().x else -1.0
+				rect.position.x += dir * overlap_x
+			else:
+				rect.position.y = occupied.position.y - rect.size.y
+			bumped = true
+		if not bumped:
+			break
+	return rect
 
 
 ## Anlamli inis: parcanin alt kenarinda kucuk toz pufu. Yerlesmis yigin
@@ -1629,23 +1870,51 @@ func _play_goal_celebration() -> void:
 	tween.tween_property(plate, "scale", Vector2(1.15, 1.15), 0.16) \
 		.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 	tween.tween_property(plate, "scale", Vector2.ONE, 0.14)
-	var at := Vector2(_center_x(), container_top_y() + 40.0)
-	_spawn_burst(at, SPARKLE_TEXTURE, Color(1.0, 0.92, 0.6, 0.95), 22, 420.0, 0.85, 0.9)
-	_spawn_burst(at, BOKEH_TEXTURE, Color(1.0, 0.75, 0.9, 0.7), 14, 300.0, 0.7, 0.7)
+	# M8.7-02: patlama KAZANDIRAN olayin noktasindan (merge / Buyutucu), kap
+	# agzindan degil — "su yaptigim sey" ile "level tamam" ayni yerde. Nokta
+	# yoksa (test / harici tetik) yiginin tepesi. Board icinde tutulur.
+	var at: Vector2 = _win_anchor
+	if at == Vector2.INF:
+		at = Vector2(_center_x(), _pile_top_y())
+	at.x = clampf(at.x, _left_x() + 60.0, _right_x() - 60.0)
+	at.y = clampf(at.y, overflow_line_y() - 40.0, FLOOR_Y - 40.0)
+	_spawn_burst(at, SPARKLE_TEXTURE, Color(1.0, 0.92, 0.6, 0.95), 22, 420.0, 0.85, 0.9, 1.5)
+	_spawn_burst(at, GLOW_TEXTURE, Color(1.0, 0.75, 0.9, 0.7), 14, 300.0, 0.7, 0.7, GLOW_DUST_SCALE)
 	_shake_strength = maxf(_shake_strength, 5.0)
+
+
+## Canli yiginin tepesi (dunya y). Bos board: kabin ortasi.
+func _pile_top_y() -> float:
+	var top: float = INF
+	for node in _dumpling_layer.get_children():
+		var dumpling := node as Dumpling
+		if dumpling != null and is_instance_valid(dumpling) and not dumpling.is_queued_for_deletion():
+			top = minf(top, dumpling.global_position.y - TierConfig.radius(dumpling.tier))
+	if top == INF:
+		return (overflow_line_y() + FLOOR_Y) * 0.5
+	return top
 
 
 # --- Hedef, süre, taşma ---
 
+## Kazanma kutlamasinin capasi: hedefi tamamlayan olayin dunya noktasi
+## (M8.7-02). Vector2.INF = bilinmiyor (yigin tepesine duser).
+var _win_anchor: Vector2 = Vector2.INF
+
+
 ## Hedef tier'a ulaşmak yetmez; level 10'da ayrıca skor hedefi var, o yüzden
 ## her merge'den sonra iki koşul birlikte kontrol ediliyor.
-func _check_objective() -> void:
+## `anchor`: kontrolü tetikleyen olayın noktası (merge noktası / Büyütücü
+## hedefi) — kazanma kutlaması oraya bağlanır. Parametresiz çağrı (test)
+## yığın tepesine düşer.
+func _check_objective(anchor: Vector2 = Vector2.INF) -> void:
 	if _is_finished or level.is_endless:
 		return
 	if not _reached_target_tier:
 		return
 	if level.has_score_target() and GameState.score < level.target_score:
 		return
+	_win_anchor = anchor
 	_finish(true)
 
 

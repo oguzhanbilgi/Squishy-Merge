@@ -847,6 +847,15 @@ Ortak, tekrar kullanılabilir bir durum makinesi
 Geçerli hedef: canlı, board'da ve merge işleminde OLMAYAN dumpling.
 Büyütücü için ek koşul: `tier < 8`.
 
+> **Sunum zamanlaması (M8.5-07 Bomba, M8.7-02 Büyütücü):** hedef onaylandığı
+> dokunuşta stok düşer ve hedef kilitlenir (başka merge / güç onu göremez);
+> etki kısa bir sunum vuruşundan sonra uygulanır — Bomba'da merminin 0.28 s
+> uçuşu, Büyütücü'de 0.15 s'lik kilitlenme halkası + yükleme sütunu
+> ("anticipation"). Kural değişmedi: iptal ve geçersiz hedef yine stok
+> tüketmez; pencere içinde ikinci bir dokunuş ikinci bir işlem üretmez.
+> Büyütücü ile elde edilen tier 8, normal T7+T7 merge ile aynı kutlamayı
+> (kral parıltısı + özel titreşim) alır — skor yine vermez (§10.3).
+
 ### 10.5 Sarsıntı — taşma koruması
 
 Kap yeniden inşa edilmez, duvarlar oynamaz, hiçbir parça teleport edilmez.
