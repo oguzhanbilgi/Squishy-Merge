@@ -517,12 +517,44 @@ alınacak — şimdi tahmin/vaat yok.
     logcat 0/0/0/0; owner kaydı gate boyunca hiç yüklenmedi ve byte-identical geri kondu.
     Cihaza özel kusur YOK. Dal push edildi — **merge izni bekliyor**
     (`build/qa_m8.6-10/device/DEVICE_GATE_NOTES.md`). Ayrıntı: UI_VISUAL_SYSTEM §21.
+  - `M8.7-01` ✅ **final gameplay experience denetimi** (dal
+    `task/029-final-gameplay-audit`, main fd5dfab üzerine; YALNIZ araç +
+    doküman, runtime/fizik/ekonomi/UI DEĞİŞMEDİ, telefon/ADB YOK):
+    `tools/gameplay_audit_shots.tscn` (yeni dev harness) §25'teki 29 durumu
+    fizik-karesi indeksli kare dizileri olarak çekti — 241 kare × {720×1280,
+    1080×2340, 540×960, A36 simülasyonu} = 964 PNG, 0 SCRIPT ERROR, owner kaydı
+    her koşuda byte-identical; senaryo başına ses/titreşim olayları, zamanlama
+    (kare) ve masaüstü perf (fps tavansız duvar saati) `build/qa_m8.7-01/`
+    (GAMEPLAY_FINAL_AUDIT / VFX_INVENTORY / AUDIO_HAPTIC_INVENTORY /
+    POLISH_ROADMAP + 19 contact sheet + zoom'lar). **P0 yok:** taşma 90 kare
+    = 1.5 s, sarsıntı koruması 72 kare = 1.2 s ve stack etmiyor, devam koruması
+    ≈ 1.5 s, merge temas +1 kare, güçler skor vermiyor, tünelleme yok, yerleşince
+    mikro hareket 0. **Tek kök-neden sunum kusuru:** `fx_ring.png` yumuşak DOLU
+    parıltı, `fx_dot.png` İÇİ BOŞ halka (alfa profiliyle ölçüldü) — gameplay
+    tüketicilerinin tamamı tersini varsayıyor → Sarsıntı 500–700 px sis
+    lekesi, merge parlaması ince kontur, pop noktaları kabarcık, bokeh "○".
+    Diğer P1: dünya "+N" etiketi yeni parçanın yüzünün içinde doğuyor
+    (`radius(2)` sabit ofset) ve zincirde üst üste biniyor; Büyütücü'de
+    anticipation yok, sütun parçanın arkasında, T7→T8 yükseltmede kral parıltısı
+    ve SPECIAL titreşim yok (merge yolundan sapma); kazanma parıltısı kap
+    ağzında, kazandıran merge'den 400–600 px yukarıda; T8 parıltısı GAME_DESIGN
+    §1 "konfeti"sinin gerisinde. KEEP: düşüş/fizik, temas/gölge, tehlike
+    mekaniği, güç sonrası koruma, HUD okunurluğu, kamera. Perf (masaüstü):
+    en fazla tek kare 16.7 ms üstü (T8 merge + bomba + büyütücü + sarsıntı
+    aynı karede: 19 ms), `_resolve_merge` 2.4–3.6 ms,
+    board `_ready` 24–33 ms (level açılışında tek kare) — A36'da doğrulanacak
+    liste raporda. Kapı: shell 147, ui_smoke 74, economy 100, refill 119,
+    revive 120, audio 45, skin 30, contact_rig, bot L3 2/2. **Öneri: tek
+    cila milestone'u M8.7-02 (efekt dili + etiket + Büyütücü + kazanma
+    çapası) + A36 kapısı;** P2 listesi planlanmadı. Ayrıntı:
+    `build/qa_m8.7-01/GAMEPLAY_FINAL_AUDIT.md`.
 - **Sırada: M8.6 — Visual Cohesion Rebuild** (ekranlar `UiKit`/`UiTokens`
   sistemine geçirilecek: ~~gameplay shell~~ ✅ → ~~home~~ ✅ → ~~map~~ ✅ →
   ~~shop~~ ✅ → ~~collection~~ ✅ main'de → ~~ikincil UI denetimi~~ ✅ →
   ~~M8.6-08 shell v2 + Ayarlar + Günlük~~ ✅ main'de → ~~M8.6-09 Round
-  sonu~~ ✅ main'de → ~~M8.6-10 Devam/Refill~~ ✅ A36 kapısı geçti, dal push
-  edildi — **merge izni bekliyor**), ardından **M9 — Android export.**
+  sonu~~ ✅ main'de → ~~M8.6-10 Devam/Refill~~ ✅ main'de (fd5dfab) →
+  ~~M8.7-01 gameplay denetimi~~ ✅ dal `task/029`, owner kararı bekliyor:
+  M8.7-02 cila mı, doğrudan M9 mu), ardından **M9 — Android export.**
   Ortam hazır (export template'leri, SDK,
   NDK, JDK 17, debug keystore mevcut, ETC2/ASTC import açık, iş
   makinesinde debug `export_presets.cfg` var — gitignore'lu, her makinede
