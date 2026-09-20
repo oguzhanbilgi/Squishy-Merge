@@ -1,5 +1,5 @@
 extends Control
-## Ses + titreşim QA sahnesi (M8.5-15). DEV ARACI — production navigasyonunda
+## Ses + titreşim QA sahnesi (M8.5-15, M8.8-02 olayları). DEV ARACI — production navigasyonunda
 ## YOK, yalnızca doğrudan açılır:
 ##
 ##   godot --path . res://tools/audio_qa.tscn
@@ -48,15 +48,13 @@ func _ready() -> void:
 			AudioManager.play_landing(1 + i % 8, 500.0 + 50.0 * i))
 	for tier in range(1, 9):
 		var t: int = tier
-		_button(column, "Merge -> tier %d%s" % [t, "  (premium kutlama + SPECIAL)" if t == 8 else ""],
+		var haptic: String = "yok" if t < Haptics.MERGE_LIGHT_MIN_TIER else (
+			"LIGHT" if t < Haptics.MERGE_MEDIUM_MIN_TIER else ("MEDIUM" if t < TierConfig.MAX_TIER else "SPECIAL"))
+		_button(column, "Merge -> tier %d  (titreşim %s%s)" % [t, haptic,
+			"; bloom + kutu + kuyruk" if t == TierConfig.MAX_TIER else ""],
 			func() -> void:
 				AudioManager.play_merge(t)
-				if t >= TierConfig.MAX_TIER:
-					Haptics.special()
-				elif t >= AudioManager.MERGE_HIGH_MIN_TIER:
-					Haptics.medium()
-				else:
-					Haptics.light())
+				Haptics.merge_tier(t))
 	_button(column, "Combo zinciri x2..x6 (0.25 s arayla)", func() -> void: _combo_chain())
 	_button(column, "Hızlı merge stresi: 12 merge / 1.2 s", func() -> void: _merge_stress())
 	_button(column, "Sonsuz: tier 8 yok oluşu (annihilation) + STRONG", func() -> void:
@@ -75,12 +73,19 @@ func _ready() -> void:
 		AudioManager.play(&"bomb_whoosh")
 		get_tree().create_timer(0.28).timeout.connect(func() -> void:
 			AudioManager.play(&"bomb_impact"); Haptics.strong()))
-	_button(column, "Büyütücü (upgrade + merge tier 5) + MEDIUM", func() -> void:
-		AudioManager.play(&"upgrade"); AudioManager.play_merge(5); Haptics.medium())
+	_button(column, "Büyütücü: dokunuş -> 150 ms -> dönüşüm (tier 5) + MEDIUM", func() -> void:
+		AudioManager.play(&"upgrade")
+		get_tree().create_timer(0.15).timeout.connect(func() -> void:
+			AudioManager.play(&"upgrade_transform"); AudioManager.play_merge(5); Haptics.medium()))
+	_button(column, "Büyütücü T7 -> T8: dönüşüm + bloom + SPECIAL", func() -> void:
+		AudioManager.play(&"upgrade")
+		get_tree().create_timer(0.15).timeout.connect(func() -> void:
+			AudioManager.play(&"upgrade_transform"); AudioManager.play_merge(8); Haptics.special()))
 	_button(column, "Sarsıntı (shake) + MEDIUM", func() -> void:
 		AudioManager.play(&"shake"); Haptics.medium())
-	_button(column, "Temizleyici: 12 puf (40 ms arayla) + LIGHT", func() -> void:
+	_button(column, "Temizleyici: süpürme + 12 pop (40 ms arayla) + LIGHT", func() -> void:
 		Haptics.light()
+		AudioManager.play(&"clear_sweep")
 		for i in 12:
 			get_tree().create_timer(0.04 * i).timeout.connect(func() -> void:
 				AudioManager.play(&"clear_puff", 1.0 + 0.04 * float(1 + i % 2))))
@@ -151,7 +156,7 @@ func _combo_chain() -> void:
 		get_tree().create_timer(0.25 * i).timeout.connect(func() -> void:
 			AudioManager.play_merge(2 + i % 3)
 			AudioManager.play_combo(count)
-			Haptics.light())
+			Haptics.merge_tier(2 + i % 3))
 
 
 func _merge_stress() -> void:
@@ -162,7 +167,7 @@ func _merge_stress() -> void:
 		get_tree().create_timer(0.1 * i).timeout.connect(func() -> void:
 			AudioManager.play_landing(1 + i % 4, 600.0)
 			AudioManager.play_merge(1 + i % 7)
-			Haptics.light()
+			Haptics.merge_tier(1 + i % 7)
 			if i == 11:
 				_stress_running = false)
 

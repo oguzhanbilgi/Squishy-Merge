@@ -328,8 +328,9 @@ func _test_merge() -> void:
 	_check("kral parıltısı: yıldız + patlama yıldızı sprite'ları", _sprites_with(_board.SPARKLE_TEXTURE).size() >= 1
 		and _sprites_with(_board.BURST_TEXTURE).size() == 1)
 	_check("kral parıltısı toplamsal", (_sprites_with(_board.SPARKLE_TEXTURE)[0] as Sprite2D).material == LIGHT_MATERIAL)
-	_check_eq("tier_max sesi 1 kez", int(AudioManager.play_count.get(&"tier_max", 0)) - tier_max_before, 1)
 	await _wait(0.2)
+	# tier_max bloom'u merge anından +20 ms sonra başlar (M8.8-02 gecikmeli katman).
+	_check_eq("tier_max sesi 1 kez", int(AudioManager.play_count.get(&"tier_max", 0)) - tier_max_before, 1)
 	_check("T8 merge titreşimi SPECIAL (35 + 60 ms)", _haptics.size() == 2 and _haptics[0]["ms"] == 35 and _haptics[1]["ms"] == 60)
 	labels = _fx("label")
 	if labels.size() == 1:

@@ -1268,8 +1268,10 @@ func _finish_upgrade(target: Dumpling) -> void:
 
 	_spawn_pop(at, TierConfig.color(new_tier), TierConfig.radius(new_tier), new_tier)
 	_add_shake(new_tier)
-	# Varılan tier'ın merge sesi (tier 8'de premium kutlama da play_merge
-	# içinden gelir); `upgrade` sesi dokunuşta çaldı.
+	# Ölçülü dönüşüm sesi (hava süpürmesi) + varılan tier'ın merge ailesi
+	# (tier 8'de bloom da play_merge içinden gelir); `upgrade` yükselişi
+	# dokunuşta çaldı (owner C — minimal, müzikal değil).
+	AudioManager.play(&"upgrade_transform")
 	AudioManager.play_merge(new_tier)
 
 	# Tier 8: normal T7+T7 merge ile AYNI kutlama sınıfı (M8.7-02 parite):
@@ -1341,9 +1343,11 @@ func _use_clear_small() -> void:
 	if not _powerups.consume(PowerUp.Type.CLEAR_SMALL):
 		return
 
-	# Tek hafif aktivasyon darbesi; parça başına titreşim YOK. Puf sesleri
-	# _pop_and_free'de (soğuma + kanal tavanı spam'i kesiyor).
+	# Tek hafif aktivasyon darbesi; parça başına titreşim YOK. İnce süpürme
+	# sesi bir kez burada; pop'lar _pop_and_free'de (soğuma + kanal tavanı
+	# spam'i kesiyor) — owner B: pop karakteri önde, süpürme altta.
 	Haptics.light()
+	AudioManager.play(&"clear_sweep")
 	# Süpürme halkası: tek tek pop'lar "dağınık" okunuyordu; ortak bir
 	# halka hepsinin AYNI güçle kaldırıldığını anlatıyor. Tek parça için
 	# gereksiz olurdu, o yüzden eşik var.
@@ -1503,16 +1507,12 @@ func _resolve_merge(a: Dumpling, b: Dumpling, point: Vector2) -> void:
 
 	GameState.add_score(TierConfig.merge_score(new_tier))
 	GameState.register_merge(new_tier, point)
-	# Tier başına artan pitch (GAME_DESIGN.md §6) + tier 8 premium kutlama;
-	# ayrıntı AudioManager.play_merge. Titreşim: normal hafif, yüksek tier
-	# orta, tier 8 özel desen. Combo AYRICA titreşmez (merge taşıyor).
+	# Tier başına artan pitch (GAME_DESIGN.md §6) + tier 8 bloom; ayrıntı
+	# AudioManager.play_merge. Titreşim büyüklüğü taşır (M8.8-02): T1–T3 yok,
+	# T4–T5 hafif, T6–T7 orta, T8 özel desen — eşleme Haptics.merge_tier.
+	# Combo AYRICA titreşmez (merge taşıyor).
 	AudioManager.play_merge(new_tier)
-	if new_tier >= TierConfig.MAX_TIER:
-		Haptics.special()
-	elif new_tier >= AudioManager.MERGE_HIGH_MIN_TIER:
-		Haptics.medium()
-	else:
-		Haptics.light()
+	Haptics.merge_tier(new_tier)
 	_register_combo()
 
 	if celebratory:

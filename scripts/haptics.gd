@@ -18,10 +18,19 @@ extends RefCounted
 ## yalnızca DAHA GÜÇLÜ bir darbe öncekinin yerine geçer (hafif olan atılır).
 ## Zincir merge'de titreşim yağmuru olmaz; Tier 8 / Legendary kaybolmaz.
 ##
+## Merge eşlemesi (owner kararı, M8.8-02 — docs/audio/HAPTIC_MAPPING.md):
+## titreşim BÜYÜK birleşmeleri taşır. T1–T3 YOK (sürekli olur, rahatlatıcı
+## kimlik), T4–T5 LIGHT, T6–T7 MEDIUM, T8 SPECIAL. `merge_tier()` tek yer.
+##
 ## Gameplay durumuna ASLA dokunmaz; SaveManager.set_haptics_enabled tek
 ## yazma noktası (ayar), Haptics.set_enabled onun uygulayıcısı.
 
 enum Strength { LIGHT, MEDIUM, STRONG }
+
+## Normal merge sonucu tier'a göre darbe: bu tier'dan itibaren LIGHT / MEDIUM;
+## altı sessiz; TierConfig.MAX_TIER SPECIAL.
+const MERGE_LIGHT_MIN_TIER: int = 4
+const MERGE_MEDIUM_MIN_TIER: int = 6
 
 ## Darbe süreleri (ms). Uzun titreşim YOK: en uzunu 60 ms.
 const DURATION_MS: Dictionary = {
@@ -81,6 +90,18 @@ static func medium() -> bool:
 
 static func strong() -> bool:
 	return _pulse(Strength.STRONG)
+
+
+## Normal merge (ve Büyütücü dışı tier ulaşımı): sonuç tier'ına göre
+## T1–T3 hiç, T4–T5 LIGHT, T6–T7 MEDIUM, T8 SPECIAL. Dönüş: darbe gönderildi mi.
+static func merge_tier(tier: int) -> bool:
+	if tier >= TierConfig.MAX_TIER:
+		return special()
+	if tier >= MERGE_MEDIUM_MIN_TIER:
+		return medium()
+	if tier >= MERGE_LIGHT_MIN_TIER:
+		return light()
+	return false
 
 
 ## Tier 7 -> 8 ve Legendary reveal: iki darbeli kısa premium desen.

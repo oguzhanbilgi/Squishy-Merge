@@ -1,6 +1,18 @@
-# AUDIO_ASSET_REQUIREMENTS.md — Final SFX şartnamesi (M8.5-15)
+# AUDIO_ASSET_REQUIREMENTS.md — SFX şartnamesi (M8.5-15; M8.8-02'de KARŞILANDI)
 
-Ses SİSTEMİ hazır; final ÖRNEKLER eksik. Bu liste, ses sistemine
+> **DURUM (M8.8-02): şartname karşılandı.** Final örnekler owner onayıyla
+> entegre edildi; production gerçeği `docs/audio/AUDIO_SYSTEM.md`,
+> `docs/audio/MERGE_SOUND_FAMILY.md`, `docs/audio/HAPTIC_MAPPING.md`, dosya
+> manifesti `docs/audio/PRODUCTION_FILES.md`, kaynaklar `assets/audio/CREDITS.md`.
+> **Aşağıdaki hedef dosya adları ESKİDİ** (production adları `sfx_merge_body_light_01`,
+> `sfx_tier8_bloom_01`, `sfx_ui_confirm_01` … — tam liste manifestte). "Aynı adla
+> üzerine yaz" iş akışı da kalktı: yeni bir örnek eklemek = `tools/audio_production_build.py`
+> `RECIPES`'e satır + `AudioManager.EVENTS`'e yol. Format kuralları (aşağıdaki "Ortak
+> kurallar") hâlâ geçerlidir ve build betiği bunları uygular; Sonniss GDC kaynakları
+> (royalty-free, atıfsız, AI kullanımı yasak) M8.8-01'de lisans doğrulamasıyla
+> havuza eklendi. Gerisi tarihçe.
+
+Orijinal (M8.5-15): Ses SİSTEMİ hazır; final ÖRNEKLER eksik. Bu liste, ses sistemine
 dokunmadan kaynak bulmak / ürettirmek için yeterli olacak şekilde yazıldı.
 **Dosyayı aynı adla `assets/audio/sfx/<klasör>/` altına koy, Godot'ta bir
 kez import et — kod değişmez.** Varyant eklemek istersen
@@ -14,7 +26,10 @@ Ortak kurallar:
 - Karakter: candy / kawaii / squishy. **Sert transient, bas-ağır darbe,
   metalik çınlama, 8-bit/chiptune, gerçekçi patlama YOK.** Telefon
   hoparlöründe (~300 Hz altı yok) okunmalı.
-- Lisans: CC0 ya da owner'ın kendi üretimi; kaynağı `assets/audio/CREDITS.md`'ye yaz.
+- Lisans: CC0, owner'ın kendi üretimi ya da (M8.8-01'den itibaren) lisansı
+  doğrulanmış Sonniss GDC bundle dosyası; kaynağı `assets/audio/CREDITS.md`'ye yaz.
+- Import: `.import` dosyasında `compress/mode=0` (PCM) — Godot 4.6 varsayılanı QOA'dır
+  (M8.8-02'de düzeltildi).
 
 Öncelik: ★★★ imza / her round, ★★ sık, ★ nadir.
 

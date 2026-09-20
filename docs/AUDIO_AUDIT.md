@@ -1,8 +1,22 @@
-# AUDIO_AUDIT.md — Ses + titreşim envanteri ve mimarisi (M8.5-15)
+# AUDIO_AUDIT.md — Ses + titreşim envanteri ve mimarisi (M8.5-15, TARİHSEL)
 
-> Bu dosya **ses sisteminin gerçek durumunu** anlatır: hangi dosya nerede
-> çalıyor, hangi kalitede, ne KEEP / ne REPLACE. Kilitli tasarım sayısı
-> içermez (GAME_DESIGN §6 nitel kalır). Eksik final örneklerin şartnamesi:
+> **DURUM (M8.8-02): bu dosya ARTIK production gerçeğini anlatmıyor.** M8.5-15
+> interim setinin (5 Kenney OGG + 22 sentez) envanteri, o günkü ölçümler ve
+> kararların gerekçesi olarak DURUYOR. Final production sistemi için tek otorite:
+> - [`audio/AUDIO_SYSTEM.md`](audio/AUDIO_SYSTEM.md) — olay haritası, kaynak/lisans, bus, seviye, öncelik, soğuma, kanal tavanı
+> - [`audio/MERGE_SOUND_FAMILY.md`](audio/MERGE_SOUND_FAMILY.md) — owner onaylı A merge ailesi, T1–T8 reçetesi
+> - [`audio/HAPTIC_MAPPING.md`](audio/HAPTIC_MAPPING.md) — titreşim eşlemesi (T1–T3 yok / T4–5 LIGHT / T6–7 MEDIUM / T8 SPECIAL)
+> - [`audio/PRODUCTION_FILES.md`](audio/PRODUCTION_FILES.md) — üretilen 35 dosyanın işleme ve ölçüm manifesti
+>
+> Aşağıdaki §3 olay tablosu ve §4 titreşim politikası **eskidi** (özellikle:
+> `merge_high` olayı kalktı, tier 1–5 LIGHT eşlemesi T4'ten başlar oldu, bütün
+> dosya adları değişti). §2 mimari büyük ölçüde geçerli; M8.8-02 eklemeleri
+> (gecikmeli katmanlar, fallback zinciri, tier bandı gövde havuzları) yalnız
+> AUDIO_SYSTEM.md'de. Aşağısı yalnızca tarihçe için okunur.
+
+> Orijinal giriş (M8.5-15): Bu dosya **ses sisteminin gerçek durumunu** anlatır:
+> hangi dosya nerede çalıyor, hangi kalitede, ne KEEP / ne REPLACE. Kilitli tasarım
+> sayısı içermez (GAME_DESIGN §6 nitel kalır). Eksik final örneklerin şartnamesi:
 > [`AUDIO_ASSET_REQUIREMENTS.md`](AUDIO_ASSET_REQUIREMENTS.md).
 
 ## 0. Dürüst özet
@@ -72,7 +86,7 @@ inişle kesilebiliyordu), olay başına soğuma/tavan yok (yığın inişi = 10
   Editor/masaüstünde `is_supported()` false → platform çağrısı yok.
   Ayar: `SaveManager.haptics_enabled` (varsayılan true), Ayarlar → Titreşim.
 
-## 3. Olay → ses eşlemesi (final tablo `AudioManager.EVENTS`)
+## 3. Olay → ses eşlemesi (M8.5-15 interim tablosu — ESKİDİ, bkz. audio/AUDIO_SYSTEM.md §3)
 
 | olay | çağrı noktası | dosya(lar) | gain | pitch | soğuma / tavan | öncelik | titreşim |
 |---|---|---|---|---|---|---|---|
@@ -122,7 +136,10 @@ tepesi ≤ −3 dBFS (Kenney istisnaları tabloda), üstüne SFX bus limiter.
 sayı animasyonuna ses gürültü olurdu), hedef kutlaması (round_win onu
 kapsıyor), devam teklifi penceresi (taşma tonu sunum sesi), tutorial.
 
-## 4. Titreşim politikası (özet)
+## 4. Titreşim politikası (M8.5-15 — ESKİDİ; güncel: audio/HAPTIC_MAPPING.md)
+
+> M8.8-02 owner kararı: normal merge T1–T3 **titreşimsiz**, T4–T5 LIGHT, T6–T7
+> MEDIUM, T8 SPECIAL (`Haptics.merge_tier`). Aşağıdaki tablo eski eşlemedir.
 
 | olay | seviye |
 |---|---|
@@ -138,7 +155,10 @@ kapsıyor), devam teklifi penceresi (taşma tonu sunum sesi), tutorial.
 Zincir merge'de 70 ms penceresi hafif darbeleri yutar; Tier 8 STRONG
 pencereyi deler. Uzun titreşim yok (en uzunu 60 ms).
 
-## 5. Asset sınıflandırması (KEEP / MODIFY / REPLACE)
+## 5. Asset sınıflandırması (M8.5-15 — sonuç: hepsi M8.8-02'de REPLACE edildi)
+
+> Bu tablodaki bütün dosyalar M8.8-02'de kaldırıldı; production seti ve
+> kaynakları `assets/audio/CREDITS.md`.
 
 | dosya | kaynak | sınıf | not |
 |---|---|---|---|

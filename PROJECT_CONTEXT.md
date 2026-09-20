@@ -648,6 +648,39 @@ alınacak — şimdi tahmin/vaat yok.
     yumuşak mı / 100 kez bıkar mı / dumpling'e yakışır mı / premium mi) +
     puanlama tablosu; paket `M8.8-01_OWNER_AUDIO_SHORTLIST.zip` (6.2 MB, 43
     ses + 4 doküman, 164'lük havuz yok). Runtime yine DEĞİŞMEDİ.
+  - `M8.8-02` ✅ **production ses entegrasyonu + final SFX/titreşim hizası**
+    (dal `task/032-production-audio-integration`, `task/031` 1dd9c1e üzerine =
+    main 0abd22b → denetim → entegrasyon; PRE-DEVICE: masaüstü kapı geçti,
+    telefon/ADB YOK, push/merge YOK). Owner'ın dinleme kararları uygulandı:
+    **merge A (premium)** — POP (`Cartoon Bubbles Short`, iki kabarcık = iki
+    varyant, kilitli 0.85→1.48 pitch) + tier bandı gövde havuzları (T1–3
+    `impactGeneric_light`, T4–6 `impactPlate`, T7–8 `impactPunch_medium_001`) +
+    T3+ cam parıltısı (+30 ms) + T5+ çan (+45 ms) + T8 bloom (+20) / müzik kutusu
+    (+70) / kuyruk (+120 ms), T8 ilk 50 ms −14 dBFS = T5–6 ile aynı, 0.9 s uzun
+    (gürültülü değil geniş); **Büyütücü C** dokunuşta yükseliş, dönüşümde ölçülü hava
+    + merge ailesi (150 ms değişmedi); **drop C** (`impactGeneric_light_001`, iniş +
+    −18 dB bırakma tik'i); **Bomba A** fırlatma/vuruş/+15 ms puf; **Temizleyici B**
+    3 dilimlenmiş pop + altta süpürme; **win/fail B/B** (STEEL09 / PIZZI00); **sandık
+    A** (mandal, owner kararı); Hamur `Ting Coins`; **UI** tek Kenney Interface
+    ailesi (TAP/CONFIRM/BACK/ERROR); owner'ın reddettiği kategorilerde Claude seçimi:
+    Sarsıntı = `Accept Boing Crunch` warble (375–1100 Hz, 0.45 s), tehlike =
+    `impactWood_light_001/003` yumuşak ahşap tok, Legendary = onaylı katman
+    kompozisyonu (bloom + kutu + yükselen kutu + kuyruk). 35 WAV 44.1 kHz/16-bit/mono
+    (`tools/audio_production_build.py`, deterministik, `docs/audio/PRODUCTION_FILES.md`;
+    22 sentez + 5 Kenney OGG + `make_sfx.gd` silindi; `.import` PCM). Runtime:
+    `delay_ms` gecikmeli katmanlar (SceneTreeTimer, process yok, `stop_all`
+    iptal), iç içe katman ağacı, fallback zinciri, `MERGE_RECIPE` tier tablosu.
+    **Titreşim owner kararı:** normal merge T1–T3 YOK / T4–5 LIGHT / T6–7 MEDIUM /
+    T8 SPECIAL (`Haptics.merge_tier`), güçler aynen; ses/titreşim hizası gövdede.
+    Kanonik doküman: `docs/audio/AUDIO_SYSTEM.md` + `MERGE_SOUND_FAMILY.md` +
+    `HAPTIC_MAPPING.md`; `AUDIO_AUDIT` / `AUDIO_ASSET_REQUIREMENTS` tarihsel işaretli;
+    `CREDITS.md` + `docs/licenses/audio/`. `tools/audio_test` 116/116 (yeni suite),
+    `tools/audio_event_render` 30 senaryolu entegre dinleme paketi
+    (`build/qa_m8.8-02/audition/`). Kapı: gameplay_feedback 129, shell 147, ui_smoke
+    74, result_ui 226, revive_refill_ui 266, economy 100, refill 119, revive 120,
+    skin 30, bot L3 2/2; owner kaydı byte-identical. **Fizik, skor, ekonomi, güç
+    mekaniği, kayıt şeması, görsel DEĞİŞMEDİ** (game_board.gd'de yalnız 3 ses/titreşim
+    satırı). Sıradaki: owner masaüstü dinleme incelemesi → A36 cihaz kapısı.
 - **Sırada: M8.6 — Visual Cohesion Rebuild** (ekranlar `UiKit`/`UiTokens`
   sistemine geçirilecek: ~~gameplay shell~~ ✅ → ~~home~~ ✅ → ~~map~~ ✅ →
   ~~shop~~ ✅ → ~~collection~~ ✅ main'de → ~~ikincil UI denetimi~~ ✅ →
@@ -655,9 +688,10 @@ alınacak — şimdi tahmin/vaat yok.
   sonu~~ ✅ main'de → ~~M8.6-10 Devam/Refill~~ ✅ main'de (fd5dfab) →
   ~~M8.7-01 gameplay denetimi~~ ✅ dal `task/029` → ~~M8.7-02 gameplay
   cilası~~ ✅ dal `task/030`, A36 kapısı GEÇTİ, main'e merge izni
-  bekliyor) → ~~M8.8-01 ses kaynak denetimi~~ ✅ dal `task/031` (owner
-  dinleme onayı bekliyor) → **M8.8-02 onaylı seslerin entegrasyonu + A36
-  kapısı**, ardından **M9 — Android export.**
+  bekliyor) → ~~M8.8-01 ses kaynak denetimi~~ ✅ dal `task/031` → ~~M8.8-02
+  onaylı seslerin entegrasyonu~~ ✅ dal `task/032` (masaüstü kapı geçti) →
+  **M8.8-02 A36 cihaz kapısı** (owner/ChatGPT onayıyla), ardından **M9 —
+  Android export.**
   Ortam hazır (export template'leri, SDK,
   NDK, JDK 17, debug keystore mevcut, ETC2/ASTC import açık, iş
   makinesinde debug `export_presets.cfg` var — gitignore'lu, her makinede

@@ -721,18 +721,22 @@ değiştirmez ve diske yazmaz.** Envanter ve Hamur asla negatife inmez.
 
 ## 6. Ses tasarımı
 
-> **Ses dosyaları (M8.5-15):** merkezi olay tablosu `AudioManager.EVENTS`
-> (`scripts/autoload/audio_manager.gd`), dosyalar `assets/audio/sfx/<ui|
-> gameplay|powers|rewards>/`. Beş Kenney CC0 örnek + 22 GEÇİCİ sentez örnek;
-> hiçbiri kulakla doğrulanmış final değil. **Dosya isimleri sabit
-> tutulmalı** — owner final örneği aynı adla üzerine yazınca kod değişmez.
-> Envanter/mimari: `docs/AUDIO_AUDIT.md`; eksik örnek şartnamesi:
-> `docs/AUDIO_ASSET_REQUIREMENTS.md`; kaynaklar: `assets/audio/CREDITS.md`.
-> Bus yapısı: Master → SFX (HardLimiter) / Music (`default_bus_layout.tres`).
-> Tier başına pitch escalation tek örnek üzerinden (`TierConfig.merge_pitch`),
-> üstüne tier'a göre pesleşen gövde katmanı; tier 8'de premium parıltı.
-> Titreşim (owner kararı, M8.5-15): `scripts/haptics.gd`, Ayarlar → Titreşim;
-> politika `docs/AUDIO_AUDIT.md` §4.
+> **Ses dosyaları (M8.5-15 → M8.8-02 production):** merkezi olay tablosu
+> `AudioManager.EVENTS` (`scripts/autoload/audio_manager.gd`), dosyalar
+> `assets/audio/sfx/<ui|gameplay|powers|rewards>/` — M8.8-02'den itibaren 35
+> **owner onaylı production** WAV (Kenney CC0 + Sonniss GDC 2026, offline bir kez
+> üretildi; `tools/audio_production_build.py`). Kanonik dokümanlar:
+> `docs/audio/AUDIO_SYSTEM.md` (olay haritası), `docs/audio/MERGE_SOUND_FAMILY.md`
+> (owner onaylı A merge ailesi), `docs/audio/HAPTIC_MAPPING.md`; kaynaklar
+> `assets/audio/CREDITS.md`. `docs/AUDIO_AUDIT.md` / `AUDIO_ASSET_REQUIREMENTS.md`
+> tarihsel. Bus yapısı: Master → SFX (HardLimiter) / Music (`default_bus_layout.tres`).
+> Tier başına pitch escalation POP katmanında (`TierConfig.merge_pitch`, 0.85 → 1.48,
+> kilitli), üstüne tier bandına göre gövde havuzu (T1–3 hafif / T4–6 dolu / T7–8
+> büyük), tier ≥ 3 cam parıltısı, tier ≥ 5 çan; tier 8 = bell bloom + müzik kutusu
+> notası + kısa parıltı kuyruğu (daha geniş/uzun, daha gürültülü değil).
+> Titreşim (owner kararı, M8.5-15; eşleme M8.8-02): `scripts/haptics.gd`, Ayarlar →
+> Titreşim; normal merge T1–T3 yok / T4–T5 LIGHT / T6–T7 MEDIUM / T8 SPECIAL —
+> `docs/audio/HAPTIC_MAPPING.md`.
 
 - Her tier'ın merge sesi bir öncekinden hafifçe yüksek pitch'te (escalation)
 - Combo yapılırsa (kısa süre içinde art arda merge) ekstra "combo" sesi +
