@@ -634,6 +634,20 @@ alınacak — şimdi tahmin/vaat yok.
     YOK (v1 non-goal zaten). Hiçbir ses kulakla doğrulanmadı — owner dinleme
     onayı sonrası M8.8-02 entegrasyon. Kapı: audio_test 45/45, ui_smoke 74/74
     (ui_smoke kaydı yazdı, owner kaydı byte-identical geri kondu).
+    **01.1 owner dinleme kısa listesi (2026-09-20, aynı dal):** 164 aday owner
+    için çok fazlaydı → `tools/audio_owner_shortlist.py` ile **43 dosya**
+    (`build/qa_m8.8-01/owner_shortlist/NNN_ROL__orijinal-ad.wav`, yalnız gain
+    eşitleme, kompresyon/EQ yok; 250 Hz–3 kHz telefon bandı payı ölçülüp
+    raporlandı, seçim için kullanılmadı — metrik yalnız bariz sorunu eler,
+    zevk gerektiren yerde gerçek alternatif kaldı). Merge ailesi BODY A/B/C ·
+    SPARKLE A/B · LARGE BODY A/B · T8 BLOOM A/B · T8 TAIL A/B etiketli;
+    gövde kaynakları telefon bandı ölçümüyle `impactPlate_light_003` /
+    `impactPlate_medium_001` kardeşlerine kaydı (ince/parlak DEĞİL, aynı aile,
+    daha çok orta bant). **STILL WEAK:** Sarsıntı ve sandık açılışı — sonra
+    hedefli tek ses kaynaklanacak. `OWNER_LISTENING_GUIDE.md` (4 soru:
+    yumuşak mı / 100 kez bıkar mı / dumpling'e yakışır mı / premium mi) +
+    puanlama tablosu; paket `M8.8-01_OWNER_AUDIO_SHORTLIST.zip` (6.2 MB, 43
+    ses + 4 doküman, 164'lük havuz yok). Runtime yine DEĞİŞMEDİ.
 - **Sırada: M8.6 — Visual Cohesion Rebuild** (ekranlar `UiKit`/`UiTokens`
   sistemine geçirilecek: ~~gameplay shell~~ ✅ → ~~home~~ ✅ → ~~map~~ ✅ →
   ~~shop~~ ✅ → ~~collection~~ ✅ main'de → ~~ikincil UI denetimi~~ ✅ →
