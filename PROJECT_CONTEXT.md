@@ -605,6 +605,35 @@ alınacak — şimdi tahmin/vaat yok.
     merge karesi ~23 ms (120 Hz'de 2–3 vsync) her iki build'de var — polish
     değil, ileride optimizasyon adayı. Dal push edildi — **merge izni
     bekliyor** (`build/qa_m8.7-02/device/DEVICE_GATE_NOTES.md`).
+  - `M8.8-01` ✅ **production ses kaynak denetimi + aday paleti** (dal
+    `task/031-production-audio-audit`, main 0abd22b üzerine; YALNIZ Python
+    araç + doküman, runtime/`AudioManager`/`Haptics`/GameBoard/`project.godot`
+    DEĞİŞMEDİ, repoya ses import edilmedi, telefon/ADB YOK). Owner'ın indirdiği
+    Kenney Impact / Interface / UI / Music Jingles (CC0) + Sonniss GDC 2026
+    Part 9 (royalty-free, atıf yok, **AI eğitimi yasak**) paketleri
+    `D:\dev\squishy-audio-source` altında (repo dışı, gitignore'lu
+    `_audio_source/` DEĞİL) indekslendi: 715 dosya (368 OGG + 347 WAV, 8.0 GB),
+    lisanslar paketlerdeki dosyalardan okundu, her dosyaya seçim ölçümleri
+    (tepe/RMS/centroid/flatness/transient/bant payları/pitch yönü).
+    `tools/audio_source_audit.py` (envanter) + `tools/audio_audition_export.py`
+    (kısa liste → `build/qa_m8.8-01/auditions/<kategori>/` orijinal kopya +
+    `auditions_normalized/` yalnız dinleme için −20 dBFS RMS eşitlenmiş kopya)
+    izole venv ile (`squishy-audio-source\.venv`, numpy + soundfile; ffmpeg yok).
+    Sonuç: 13 kategoride 164 aday (123 tekil dosya; STRONG/ALT/REF gerekçeli),
+    `FINAL_AUDIO_PALETTE.md` (her olay için birincil + 2 alternatif + işleme),
+    `MERGE_SOUND_FAMILY_BLUEPRINT.md` (4 kaynaktan tek merge ailesi: bubble pop +
+    Kenney generic/plate gövde + tiny glass + bell chime, T8 = bell bloom + music
+    box + arp kuyruğu; tier başına pitch/gain/katman/ofset), `HAPTIC_ALIGNMENT.md`
+    (runtime eşlemesi olduğu gibi raporlandı — **fark:** T1–3 merge LIGHT,
+    brief "yok ya da mevcut minimal" diyor; değiştirilmedi),
+    `AUDIO_SOURCE_PROVENANCE.md`, `LISTENING_ORDER.md`, owner dinleme paketi
+    `M8.8-01_audio_review_bundle.zip` (73.7 MB). Kritik ölçüm: mevcut
+    `kenney_impact_soft_01.ogg` (iniş + merge gövdesi) enerjisinin %100'ü
+    200 Hz altında → telefon hoparlöründe duyulmuyor; öneri Kenney
+    `impactPunch_medium_001` / `impactPlate_*`. Müzik: kütüphanelerde uygun loop
+    YOK (v1 non-goal zaten). Hiçbir ses kulakla doğrulanmadı — owner dinleme
+    onayı sonrası M8.8-02 entegrasyon. Kapı: audio_test 45/45, ui_smoke 74/74
+    (ui_smoke kaydı yazdı, owner kaydı byte-identical geri kondu).
 - **Sırada: M8.6 — Visual Cohesion Rebuild** (ekranlar `UiKit`/`UiTokens`
   sistemine geçirilecek: ~~gameplay shell~~ ✅ → ~~home~~ ✅ → ~~map~~ ✅ →
   ~~shop~~ ✅ → ~~collection~~ ✅ main'de → ~~ikincil UI denetimi~~ ✅ →
@@ -612,7 +641,9 @@ alınacak — şimdi tahmin/vaat yok.
   sonu~~ ✅ main'de → ~~M8.6-10 Devam/Refill~~ ✅ main'de (fd5dfab) →
   ~~M8.7-01 gameplay denetimi~~ ✅ dal `task/029` → ~~M8.7-02 gameplay
   cilası~~ ✅ dal `task/030`, A36 kapısı GEÇTİ, main'e merge izni
-  bekliyor), ardından **M9 — Android export.**
+  bekliyor) → ~~M8.8-01 ses kaynak denetimi~~ ✅ dal `task/031` (owner
+  dinleme onayı bekliyor) → **M8.8-02 onaylı seslerin entegrasyonu + A36
+  kapısı**, ardından **M9 — Android export.**
   Ortam hazır (export template'leri, SDK,
   NDK, JDK 17, debug keystore mevcut, ETC2/ASTC import açık, iş
   makinesinde debug `export_presets.cfg` var — gitignore'lu, her makinede
