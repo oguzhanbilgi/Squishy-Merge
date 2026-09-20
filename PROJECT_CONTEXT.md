@@ -575,16 +575,44 @@ alınacak — şimdi tahmin/vaat yok.
     yıldız + 120 ms sonra 14 kıvılcım; T8 pop noktaları altına kayar (bloom
     denendi, 1080'de T8 merge karesini 14→23 ms'ye çıkardığı için ÇIKARILDI). `tools/gameplay_feedback_test` 129/129; `gameplay_audit_shots`
     `polish` grubu (16 senaryo × 4 boyut, before/after) + 3 perf satırı;
-    `build/qa_m8.7-02/` 9 contact sheet + rapor. Owner görsel onayı + A36
-    kapısı bekliyor.
+    `build/qa_m8.7-02/` 9 contact sheet + rapor. **Owner masaüstü görsel
+    onayı GEÇTİ (2026-09-20, T8 ~3 kare/50 ms parlaması "etki" olarak kabul;
+    azaltılmadı).**
+    **A36 cihaz kapısı (M8.7-02.1, 2026-09-20) GEÇTİ, runtime değişmedi:**
+    SM-A366B / Android 16 / 1080×2340 / 120 Hz, üretim APK a3edb40 ağacından
+    (44 801 208 B, 745 girdi, sızıntı 0, `fx_light_additive.tres` + tüm yeni
+    semboller bytecode'da, harness yok), ayrı QA paketi
+    (`tools/gameplay_device.tscn`, kendi veri dizini, sonda kaldırıldı).
+    Merge T1/T3/T5/T7 fizik masaüstüyle aynı (temas→çözüm 3 kare), toplamsal
+    parıltı Adreno'da temiz (saçak yok), +N 28/33/47 px üstte, etiket çakışması
+    0 px², Sarsıntı halkası 144→480 px sis yok, Büyütücü dokunuş→dönüşüm 9–10
+    kare, T7→T8 kral parıltısı + SPECIAL (OS `dumpsys vibrator_manager`:
+    35+60 ms çiftleri hem merge hem Büyütücü'de, 32 ms MEDIUM, 18 ms LIGHT),
+    yarış durumları (aynı hedef / başka hedef / mola / taşma / board silme)
+    tek düşüş tek dönüşüm, koruma 72/91 kare, kazanma patlaması merge
+    noktasında (d=0) üç rotada, gerçek Main kazanma → sonuç 0.82 s sonra tek
+    kez; üretim paketinde gerçek dokunuşla iki L1 kazanma (patlama T4'te,
+    sonuç, harita L2 açık, kayıt bir kez). Perf (aynı telefonda 623717b ile
+    a3edb40 art arda, 3'er geçiş): ortalama 8.4 ms (vsync 120 Hz); merge
+    karesi T3 23–24 → 17–23 ms, T8 26 → 19–24 ms, Büyütücü dokunuş karesi
+    22–24 → 15–17 ms, many-effects 31–32 → 25–29 ms; >25 ms yalnız açılıştan
+    sonraki İLK merge (her iki build'de 45–67 ms) ve level açılışı `_ready`
+    (57–120 ms); 10× T8 / 10× Sarsıntı / 10× Büyütücü / 10× merge sonrası
+    geçici düğüm 0, tween 0, statik bellek sabit, PSS 359→268 MB. Logcat
+    0/0/0/0/0/0 (tek AdrenoVK satırı Android framework'ün kendi Vulkan
+    örneği). Owner cihaz kaydı byte-identical geri kondu (md5 942aa5c3,
+    sha256 9af78146, cmp), uygulama force-stop. Cihaza özel kusur YOK. Not:
+    merge karesi ~23 ms (120 Hz'de 2–3 vsync) her iki build'de var — polish
+    değil, ileride optimizasyon adayı. Dal push edildi — **merge izni
+    bekliyor** (`build/qa_m8.7-02/device/DEVICE_GATE_NOTES.md`).
 - **Sırada: M8.6 — Visual Cohesion Rebuild** (ekranlar `UiKit`/`UiTokens`
   sistemine geçirilecek: ~~gameplay shell~~ ✅ → ~~home~~ ✅ → ~~map~~ ✅ →
   ~~shop~~ ✅ → ~~collection~~ ✅ main'de → ~~ikincil UI denetimi~~ ✅ →
   ~~M8.6-08 shell v2 + Ayarlar + Günlük~~ ✅ main'de → ~~M8.6-09 Round
   sonu~~ ✅ main'de → ~~M8.6-10 Devam/Refill~~ ✅ main'de (fd5dfab) →
   ~~M8.7-01 gameplay denetimi~~ ✅ dal `task/029` → ~~M8.7-02 gameplay
-  cilası~~ ✅ dal `task/030`, owner görsel onayı + A36 kapısı bekliyor),
-  ardından **M9 — Android export.**
+  cilası~~ ✅ dal `task/030`, A36 kapısı GEÇTİ, main'e merge izni
+  bekliyor), ardından **M9 — Android export.**
   Ortam hazır (export template'leri, SDK,
   NDK, JDK 17, debug keystore mevcut, ETC2/ASTC import açık, iş
   makinesinde debug `export_presets.cfg` var — gitignore'lu, her makinede
