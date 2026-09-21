@@ -385,6 +385,17 @@ func _test_delayed_layers() -> void:
 	await get_tree().create_timer(0.2).timeout
 	_c("gecikmeli katmanlar soğumaya uyar (2 çağrı → 1 bloom / 1 kutu / 1 kuyruk)",
 		_count(&"tier_max") == 1 and _count(&"tier_max_box") == 1 and _count(&"tier_max_tail") == 1)
+	# M8.8-02.1 cihaz bulgusu: ilk bloom (1.1 s) hâlâ çalarken 0.45 s sonra ikinci
+	# T8 → katmanlar düşmemeli (max_voices 2); üçüncü aynı pencerede atılır.
+	_reset_counts()
+	await get_tree().create_timer(0.35).timeout
+	AudioManager.play_merge(8)
+	await get_tree().create_timer(0.45).timeout
+	AudioManager.play_merge(8)
+	await get_tree().create_timer(0.35).timeout
+	_c("0.45 s arayla iki T8: bloom / kutu / kuyruk ikisinde de çaldı (kayıp katman yok)",
+		_count(&"tier_max") == 2 and _count(&"tier_max_box") == 2 and _count(&"tier_max_tail") == 2
+		and int(AudioManager.drop_count.get(&"tier_max", 0)) == 0)
 	_reset_counts()
 	await _settle()
 

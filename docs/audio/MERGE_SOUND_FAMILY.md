@@ -92,7 +92,8 @@ land on the pop/body strike and on the opening bloom/box — see HAPTIC_MAPPING.
 - SPARKLE: 3 sibling files, ±3 % pitch, ±1 dB. CHIME: ±0.5 dB.
 - Nothing below T8 has a tail longer than the 0.5 s chime; T1–T4 are ≤ 0.3 s.
 - No musical phrase on any normal merge; the music-box note appears only at T8 (once
-  per T8, cooldown 300 ms on the whole T8 tree).
+  per T8, cooldown 300 ms on the whole T8 tree; two T8 stacks may overlap — `max_voices`
+  2 on bloom/box/tail since the M8.8-02.1 device gate — a third inside the 1.1 s bloom is dropped).
 - Combo (`play_combo`) is the same glass tick at −11 dB with the existing +4 %/step
   pitch — a sweetener, not a melody.
 - Voice caps: POP 4 (steal oldest), bodies 3/3/2, sparkle 3, chime 2 — a fast chain

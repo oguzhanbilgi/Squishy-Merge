@@ -130,14 +130,17 @@ const EVENTS: Dictionary = {
 		"steal_self": true, "priority": Priority.NORMAL},
 	## Tier 8: sıcak çan bloom'u (+20 ms) + müzik kutusu notası (+70 ms) +
 	## kısa parıltı kuyruğu (+120 ms). Daha GENİŞ ve UZUN, daha gürültülü
-	## değil. CRITICAL: hiçbir katmanı kesilmez.
+	## değil. CRITICAL: hiçbir katmanı kesilmez. max_voices 2 (M8.8-02.1 cihaz
+	## kapısı): bloom 1.1 s sürer; ikinci bir T8 (zincir, Büyütücü, sonsuz yok
+	## oluşu) 0.3–1.1 s içinde gelirse katmanları düşmesin — 300 ms soğuma aynı
+	## karedeki çiftleri yine engeller.
 	&"tier_max": {"streams": ["rewards/sfx_tier8_bloom_01.wav"], "gain_db": -7.0,
-		"delay_ms": 20, "cooldown_ms": 300, "max_voices": 1, "priority": Priority.CRITICAL,
+		"delay_ms": 20, "cooldown_ms": 300, "max_voices": 2, "priority": Priority.CRITICAL,
 		"layers": [&"tier_max_box", &"tier_max_tail"]},
 	&"tier_max_box": {"streams": ["rewards/sfx_tier8_box_01.wav"], "gain_db": -10.0,
-		"delay_ms": 70, "cooldown_ms": 300, "max_voices": 1, "priority": Priority.CRITICAL},
+		"delay_ms": 70, "cooldown_ms": 300, "max_voices": 2, "priority": Priority.CRITICAL},
 	&"tier_max_tail": {"streams": ["rewards/sfx_tier8_tail_01.wav"], "gain_db": -14.0,
-		"delay_ms": 120, "cooldown_ms": 300, "max_voices": 1, "priority": Priority.CRITICAL},
+		"delay_ms": 120, "cooldown_ms": 300, "max_voices": 2, "priority": Priority.CRITICAL},
 	## Sonsuz modda iki tier 8'in yok oluşu: en pes büyük gövde + tier 8 bloom'u.
 	&"annihilation": {"streams": ["gameplay/sfx_merge_body_large_01.wav"], "gain_db": -3.0,
 		"pitch": 0.75, "cooldown_ms": 100, "max_voices": 1, "priority": Priority.HIGH,

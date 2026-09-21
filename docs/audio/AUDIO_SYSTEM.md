@@ -55,6 +55,9 @@ Companion documents:
   generation counter so pending timers fire as no-ops; `pending_delayed()` exposes the
   count for tests. Layer trees are expanded recursively (`MAX_LAYER_DEPTH` 3, cycle-safe).
   A delayed layer still obeys its own cooldown / voice cap / priority when it fires.
+  The three T8 layers allow 2 voices (M8.8-02.1): a second T8 stack 0.3–1.1 s after the
+  first (chain, Büyütücü, endless annihilation) keeps its bloom/box/tail; the 300 ms cooldown
+  still blocks same-frame doubles.
 - **Local RNG:** variant choice and pitch/gain jitter come from a seeded
   `RandomNumberGenerator` (`AUDIO_RNG_SEED`), including inside delayed callbacks; the
   global `randf/randi` sequence is never touched (drop-bag determinism).
@@ -87,9 +90,9 @@ are in `MERGE_RECIPE` (see MERGE_SOUND_FAMILY.md). `delay ms` is the offset from
 | `merge_body_large` | `gameplay/sfx_merge_body_large_01.wav` | -6 | 1.00 | 0.00 / 1.0 | 0 | 30 | 2 | yes | NORMAL | — | `merge_body_full` |
 | `merge_sparkle` | `gameplay/sfx_merge_sparkle_01.wav`, `gameplay/sfx_merge_sparkle_02.wav`, `gameplay/sfx_merge_sparkle_03.wav` | -14 | 1.00 | 0.03 / 1.0 | 30 | 30 | 3 | yes | NORMAL | — | — |
 | `merge_chime` | `gameplay/sfx_merge_chime_01.wav` | -11 | 1.00 | 0.00 / 0.5 | 45 | 60 | 2 | yes | NORMAL | — | — |
-| `tier_max` | `rewards/sfx_tier8_bloom_01.wav` | -7 | 1.00 | 0.00 / 0.0 | 20 | 300 | 1 | no | CRITICAL | `tier_max_box`, `tier_max_tail` | — |
-| `tier_max_box` | `rewards/sfx_tier8_box_01.wav` | -10 | 1.00 | 0.00 / 0.0 | 70 | 300 | 1 | no | CRITICAL | — | — |
-| `tier_max_tail` | `rewards/sfx_tier8_tail_01.wav` | -14 | 1.00 | 0.00 / 0.0 | 120 | 300 | 1 | no | CRITICAL | — | — |
+| `tier_max` | `rewards/sfx_tier8_bloom_01.wav` | -7 | 1.00 | 0.00 / 0.0 | 20 | 300 | 2 | no | CRITICAL | `tier_max_box`, `tier_max_tail` | — |
+| `tier_max_box` | `rewards/sfx_tier8_box_01.wav` | -10 | 1.00 | 0.00 / 0.0 | 70 | 300 | 2 | no | CRITICAL | — | — |
+| `tier_max_tail` | `rewards/sfx_tier8_tail_01.wav` | -14 | 1.00 | 0.00 / 0.0 | 120 | 300 | 2 | no | CRITICAL | — | — |
 | `annihilation` | `gameplay/sfx_merge_body_large_01.wav` | -3 | 0.75 | 0.00 / 0.0 | 0 | 100 | 1 | no | HIGH | `tier_max` | — |
 | `combo` | `gameplay/sfx_merge_sparkle_01.wav`, `gameplay/sfx_merge_sparkle_02.wav`, `gameplay/sfx_merge_sparkle_03.wav` | -11 | 1.00 | 0.00 / 0.0 | 0 | 90 | 2 | yes | NORMAL | — | — |
 | `danger` | `gameplay/sfx_danger_01.wav`, `gameplay/sfx_danger_02.wav` | -10 | 1.00 | 0.02 / 0.0 | 0 | 400 | 1 | no | NORMAL | — | — |
@@ -190,7 +193,7 @@ share): `docs/audio/PRODUCTION_FILES.md`.
 
 ## 6. Verification
 
-- `tools/audio_test.tscn` — 116 checks (loading, file hygiene/format, fallback chain,
+- `tools/audio_test.tscn` — 117 checks (loading, file hygiene/format, fallback chain,
   RNG isolation, merge recipe per tier, delayed layers + cleanup, cooldown/voices,
   priority matrix, settings, haptic dictionary + merge mapping, call-site source scan,
   gameplay state untouched). Run: `godot --headless --audio-driver Dummy --path .
