@@ -203,6 +203,11 @@ share): `docs/audio/PRODUCTION_FILES.md`.
   listening / technical review.
 - `tools/audio_qa.tscn` — interactive dev scene, every event on a button.
 - `tools/audio_probe.gd` — per-file peak/RMS/silence measurement through the engine.
+- `tools/audio_device.tscn` — A36 device-gate driver (QA package only, extends
+  `gameplay_device.gd`): per-command SFX-bus capture to WAV, event counters with
+  first/last play times, voice / pending caps, haptic timeline, on-screen owner listening
+  panel. M8.8-02.1 gate (2026-09-21) PASSED on the phone speaker with the owner listening;
+  evidence in `build/qa_m8.8-02/device/DEVICE_GATE_NOTES.md`.
 
 ## 7. Out of scope / not done here
 

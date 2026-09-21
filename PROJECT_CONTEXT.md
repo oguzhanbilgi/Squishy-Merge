@@ -681,6 +681,37 @@ alınacak — şimdi tahmin/vaat yok.
     skin 30, bot L3 2/2; owner kaydı byte-identical. **Fizik, skor, ekonomi, güç
     mekaniği, kayıt şeması, görsel DEĞİŞMEDİ** (game_board.gd'de yalnız 3 ses/titreşim
     satırı). Sıradaki: owner masaüstü dinleme incelemesi → A36 cihaz kapısı.
+    **A36 cihaz kapısı (M8.8-02.1, 2026-09-21) GEÇTİ — bir dar ses-only düzeltmeyle
+    (`a60f501`):** SM-A366B / Android 16 (BP4A…CCZH1) / 1080×2340 / oyunda 120 Hz,
+    üretim APK `de5be7b` ağacından (44 901 473 B, 761 girdi, sızıntı 0, tam 35 PCM
+    örnek, SFX bus + limiter, yeni semboller bytecode'da, eski yok), ayrı QA paketi
+    (`tools/audio_device.tscn`: gameplay_device üstüne komut başına SFX bus yakalama →
+    WAV + tepe/kırpma, olay sayaçları + ilk-son çalma anı, kanal/bekleyen tavanı,
+    titreşim zaman çizelgesi, ekranda 6 düğmeli owner dinleme paneli; sonda kaldırıldı).
+    54 + 7 cihaz yakalamasında **0 kırpılmış örnek**; hoparlör merdiveni en gür 50 ms
+    T1 −13.0 · T3 −12.8 · T4 −12.9 · T6 −13.7 · T8 −13.2 dBFS (T8 daha uzun, daha gür
+    değil; bloom/kutu/kuyruk cihazda +20/+50/+99 ms). Titreşim merdiveni sink + OS
+    `dumpsys vibrator_manager` ile kanıtlandı: T1–T3 hiç, T4/T5 18 ms, T6/T7 32 ms, T8
+    35+60 ms (OS 34/35/51/48/51/74 ms, aynı anlar); 24 merge/0.4 s spam'de 12 kanal
+    tavanı, limiter devrede, kırpma 0, 12 darbe bastırıldı. Gerçek yollar: Bomba
+    (fırlatma → +290 ms vuruş + +22 ms puf, tek STRONG), Sarsıntı (tek MEDIUM),
+    Temizleyici (süpürme + parça başına pop, tek LIGHT), Büyütücü T4→T5 +154 ms tek
+    MEDIUM / T7→T8 +174 ms tam T8 yığını + tek SPECIAL, tehlike → fail + revive.
+    Mute / titreşim kapalı / mola / board silme / stop_all / arka plan: yetim katman 0,
+    pending 0, çökme 0. Perf 120 Hz ort 8.4 ms, T8 merge karesi 17.6–22 ms (M8.7-02.1 ile
+    aynı bant). **Owner hoparlör dinleme kontrolü: 5 senaryoda PASS** (merge dizisi, T8,
+    Sarsıntı, tehlike, Legendary). Bulgu → düzeltme: 0.3–1.1 s arayla iki T8 (zincir /
+    Büyütücü / sonsuz yok oluşu) ikincinin bloom'unu düşürüyordu (`max_voices` 1, bloom
+    1.1 s) → üç T8 katmanında `max_voices` 2 (soğuma aynı), audio_test 117/117, cihazda
+    yeniden doğrulandı (2/2/2). Üretim paketinde gerçek dokunuşlarla L1: T3+T3 LIGHT →
+    kazanma → Common sandık LIGHT (tur boyunca 2 titreşim), tekrar oyunda T2+T2 merge 0
+    titreşim, Sarsıntı MEDIUM / Bomba STRONG (stok 3→2, skor değişmedi). Logcat 57 550
+    satır: 0/0/0/0/0/0. Owner cihaz kaydı (671 B, md5 942aa5c3, sha256 9af78146) byte-identical
+    geri kondu, uygulama force-stop. Post-device masaüstü kapı yeşil (audio 117, feedback
+    129, shell 147, ui_smoke 74, result_ui 226, revive_refill_ui 266, economy 100, refill 119,
+    revive 120, skin 30, bot L3 2/2; masaüstü kaydı byte-identical). Kanıt
+    `build/qa_m8.8-02/device/DEVICE_GATE_NOTES.md`. Dal push edildi — **main'e merge
+    edilmedi** (owner kararı bekliyor).
 - **Sırada: M8.6 — Visual Cohesion Rebuild** (ekranlar `UiKit`/`UiTokens`
   sistemine geçirilecek: ~~gameplay shell~~ ✅ → ~~home~~ ✅ → ~~map~~ ✅ →
   ~~shop~~ ✅ → ~~collection~~ ✅ main'de → ~~ikincil UI denetimi~~ ✅ →
@@ -689,9 +720,9 @@ alınacak — şimdi tahmin/vaat yok.
   ~~M8.7-01 gameplay denetimi~~ ✅ dal `task/029` → ~~M8.7-02 gameplay
   cilası~~ ✅ dal `task/030`, A36 kapısı GEÇTİ, main'e merge izni
   bekliyor) → ~~M8.8-01 ses kaynak denetimi~~ ✅ dal `task/031` → ~~M8.8-02
-  onaylı seslerin entegrasyonu~~ ✅ dal `task/032` (masaüstü kapı geçti) →
-  **M8.8-02 A36 cihaz kapısı** (owner/ChatGPT onayıyla), ardından **M9 —
-  Android export.**
+  onaylı seslerin entegrasyonu~~ ✅ dal `task/032` → ~~M8.8-02.1 A36 cihaz
+  kapısı~~ ✅ GEÇTİ (a60f501, push edildi, main'e merge izni bekliyor), ardından
+  **M9 — Android export.**
   Ortam hazır (export template'leri, SDK,
   NDK, JDK 17, debug keystore mevcut, ETC2/ASTC import açık, iş
   makinesinde debug `export_presets.cfg` var — gitignore'lu, her makinede
