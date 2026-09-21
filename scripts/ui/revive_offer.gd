@@ -31,8 +31,10 @@ extends CanvasLayer
 ## penceresi — çıkış yalnız iki CTA'dan. Kayıt/ekonomi yazımı YOK.
 ##
 ## Sözleşme (Main / revive_test / result_ui_test / secondary_ui_shots):
-## `show_offer(remaining, max_revives, provider_ready)`, `hide_offer()`,
-## `show_unavailable(message)`, `rewarded_revive_requested`, `decline_pressed`.
+## `show_offer(remaining, max_revives, provider_ready[, provider_note])`,
+## `refresh_provider(provider_ready[, provider_note])` (M8.9-01: reklam pencere
+## açıkken yüklenince CTA açılır), `hide_offer()`, `show_unavailable(message)`,
+## `rewarded_revive_requested`, `decline_pressed`.
 
 ## Oyuncu ödüllü reklam CTA'sına bastı. Bu bir TALEP'tir, devam hakkı DEĞİL.
 signal rewarded_revive_requested
@@ -72,6 +74,9 @@ var _decline: Button
 var _remaining_count: int = 0
 var _max_revives: int = 0
 var _provider_ready: bool = false
+## Sağlayıcı hazır değilken pencerede yazan sebep (M8.9-01: "Reklam
+## hazırlanıyor…" / "Reklam şu anda kullanılamıyor."); boşsa NOTE_NO_PROVIDER.
+var _provider_note: String = ""
 var _request_pending: bool = false
 var _message: String = ""
 
@@ -186,12 +191,16 @@ func _ensure_hearts(count: int) -> void:
 # --- Sözleşme ------------------------------------------------------------------
 
 ## `remaining`: bu round'da KALAN devam hakkı (board söyler). `provider_ready`:
-## ödüllü sağlayıcı bağlı mı (Main söyler) — değilse DEVAM ET pasif ve sebebi
-## yazılı; teklif yine açık, BİTİR erişilir.
-func show_offer(remaining: int, max_revives: int, provider_ready: bool) -> void:
+## ödüllü reklam ŞİMDİ gösterilebilir mi (Main söyler) — değilse DEVAM ET pasif
+## ve sebebi yazılı (`provider_note`, boşsa "henüz bağlı değil"); teklif yine
+## açık, BİTİR erişilir. Sağlayıcı hazır olunca Main `refresh_provider` ile
+## butonu açar (M8.9-01: reklam pencere açıkken yüklenebilir).
+func show_offer(remaining: int, max_revives: int, provider_ready: bool,
+		provider_note: String = "") -> void:
 	_remaining_count = maxi(0, remaining)
 	_max_revives = maxi(0, max_revives)
 	_provider_ready = provider_ready
+	_provider_note = provider_note
 	_request_pending = false
 	_message = ""
 	_ensure_hearts(_max_revives)
@@ -209,6 +218,17 @@ func hide_offer() -> void:
 	visible = false
 	_request_pending = false
 	_message = ""
+
+
+## Sağlayıcının hazırlık durumu pencere açıkken değişti (reklam yüklendi /
+## yüklenemedi / tükendi): CTA ve not tazelenir. Bekleyen talebe dokunmaz —
+## talep sonucu yalnız grant ya da show_unavailable ile kapanır.
+func refresh_provider(provider_ready: bool, provider_note: String = "") -> void:
+	_provider_ready = provider_ready
+	_provider_note = provider_note
+	if not visible:
+		return
+	_refresh()
 
 
 ## Sağlayıcı talebi reddetti / reklam hazır değil / ödül kazanılmadı. Teklif
@@ -254,7 +274,7 @@ func _refresh() -> void:
 		text = _message
 		warning = true
 	elif not _provider_ready:
-		text = NOTE_NO_PROVIDER
+		text = _provider_note if _provider_note != "" else NOTE_NO_PROVIDER
 		warning = true
 	_note.text = text
 	_note.visible = text != ""
@@ -308,3 +328,7 @@ func is_request_pending() -> bool:
 
 func provider_ready() -> bool:
 	return _provider_ready
+
+
+func provider_note() -> String:
+	return _provider_note

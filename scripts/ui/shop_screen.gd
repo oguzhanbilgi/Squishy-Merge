@@ -290,7 +290,7 @@ func _layout() -> void:
 	_margin.add_theme_constant_override("margin_left", int(SIDE_MARGIN))
 	_margin.add_theme_constant_override("margin_right", int(SIDE_MARGIN))
 	_margin.add_theme_constant_override("margin_top", int(_bar.height() + CONTENT_TOP_GAP))
-	_margin.add_theme_constant_override("margin_bottom", int(BOTTOM_PADDING + UiKit.safe_bottom(view)))
+	_margin.add_theme_constant_override("margin_bottom", int(BOTTOM_PADDING + UiKit.bottom_inset(view)))
 
 
 # --- Tazeleme -----------------------------------------------------------------
@@ -545,11 +545,11 @@ func _show_toast(message: String, tint: Color, text_color: Color = UiTokens.TEXT
 	var h: float = maxf(min.y, 56.0)
 	var view: Vector2 = _root.size
 	_toast.size = Vector2(w, h)
-	var y: float = view.y - TOAST_BOTTOM - UiKit.safe_bottom(view) - h
+	var y: float = view.y - TOAST_BOTTOM - UiKit.bottom_inset(view) - h
 	if card != null and is_instance_valid(card):
 		var rect: Rect2 = card.get_global_rect()
 		y = rect.end.y + TOAST_CARD_GAP
-		if y + h > view.y - UiKit.safe_bottom(view) - 24.0:
+		if y + h > view.y - UiKit.bottom_inset(view) - 24.0:
 			y = rect.position.y - h - TOAST_CARD_GAP
 		y = clampf(y, _bar.height() + 8.0, view.y - h - 24.0)
 	_toast.set_meta(&"toast_home", Vector2((view.x - w) * 0.5, y))

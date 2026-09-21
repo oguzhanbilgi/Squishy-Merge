@@ -30,6 +30,10 @@ window/stretch/mode="canvas_items"
 window/stretch/aspect="expand"
 window/handheld/orientation=1
 
+[editor_plugins]
+
+enabled=PackedStringArray("res://addons/AdmobPlugin/plugin.cfg", "res://addons/squishy_ads_export/plugin.cfg")
+
 [gui]
 
 theme/custom="res://assets/visual/ui_theme.tres"

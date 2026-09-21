@@ -36,16 +36,27 @@ var _chest_info: CanvasLayer
 const BACK_DEBOUNCE_MSEC: int = 250
 var _last_back_msec: int = -1000
 var _board: Node2D
-## Ödüllü reklam sağlayıcısı (M9+ AdMob). null = sağlayıcı yok.
+## Ödüllü reklam sağlayıcısı. null = sağlayıcı yok (masaüstü / eklentisiz).
+## Production'da `MonetizationManager` (M8.9-01, AdMob); testlerde stub.
 ##
-## Beklenen arayüz (ikisi de opsiyonel, `has_method` ile kontrol ediliyor):
+## Beklenen arayüz (hepsi opsiyonel, `has_method` ile kontrol ediliyor):
 ##   show_rewarded_revive(main: Node) -> void
 ##       ödül kazanılınca  main.grant_revive()
 ##       kazanılmayınca    main.notify_rewarded_unavailable(mesaj)
 ##   show_rewarded_power(main: Node, type: int, token: int) -> void
 ##       ödül kazanılınca  main.grant_rewarded_power(type, token)
 ##       kazanılmayınca    main.notify_power_rewarded_unavailable(mesaj)
+##   is_rewarded_ready() -> bool   yüklü reklam ŞİMDİ gösterilebilir mi
+##                                 (yoksa sağlayıcı bağlı = hazır sayılır)
+##   rewarded_note() -> String     hazır değilken pencerede yazan sebep
+##   ensure_rewarded() -> void     pencere açıldı, hazırlanmaya başla
+##   cancel_rewarded_request()     pencere kapandı / round bitti
 var _rewarded_provider: Object = null
+## Production reklam yöneticisi (M8.9-01). Eklenti yoksa (masaüstü, headless
+## testler) null — sağlayıcısız eski davranış. Testler `ads_backend_override`
+## ile sahte arka uç takıp aynı Main yollarını çalıştırır.
+var _ads: MonetizationManager = null
+static var ads_backend_override: AdBackend = null
 
 ## --- Ödüllü güç refill talebi (M8.5-06) ---
 ##
@@ -62,6 +73,10 @@ var _current_level: LevelData
 ## Ekran indeksi -> ekran: 0 Ana Sayfa, 1 Harita, 2 Koleksiyon, 3 Mağaza.
 var _screens: Array[CanvasLayer] = []
 var _active_tab: int = 0
+## Ekran indeksi -> reklam yüzeyi (banner yalnız yöneticinin izin verdiği
+## yüzeylerde; Harita v1'de banner dışı — ADS_SYSTEM §6).
+const TAB_SURFACES: Array[int] = [MonetizationManager.Surface.HOME, MonetizationManager.Surface.MAP,
+	MonetizationManager.Surface.COLLECTION, MonetizationManager.Surface.SHOP]
 
 
 func _ready() -> void:
@@ -70,6 +85,13 @@ func _ready() -> void:
 	# Cihaz kapisinda (A36, HUD v5) yakalandi: mola acikken geri = uygulama
 	# kapandi. Kapanis yalniz asagidaki _notification'da, ana sekmede.
 	get_tree().quit_on_go_back = false
+	# Reklam yöneticisi EKRANLARDAN ÖNCE: banner yuvası (UiKit.bottom_inset)
+	# açılışta bir kez hesaplanır, ekranlar ilk yerleşimde onu okur.
+	_ads = MonetizationManager.create(ads_backend_override)
+	if _ads != null:
+		add_child(_ads)
+		_ads.rewarded_availability_changed.connect(_on_rewarded_availability_changed)
+		set_rewarded_provider(_ads)
 	_result = ROUND_RESULT_SCENE.instantiate()
 	_result.retry_pressed.connect(_on_retry_pressed)
 	_result.exit_pressed.connect(_on_exit_pressed)
@@ -124,6 +146,7 @@ func _ready() -> void:
 
 	_settings = SETTINGS_SCENE.instantiate()
 	_settings.closed.connect(_on_settings_closed)
+	_settings.set_privacy_options_source(_ads)
 	add_child(_settings)
 
 	_pause = PAUSE_MENU_SCENE.instantiate()
@@ -150,6 +173,7 @@ func _show_tab(tab: int) -> void:
 		return
 	var changed: bool = tab != _active_tab or not _screens[tab].visible
 	_active_tab = tab
+	_set_ad_surface(TAB_SURFACES[tab])
 	for i in _screens.size():
 		var screen: CanvasLayer = _screens[i]
 		screen.visible = i == tab
@@ -367,6 +391,7 @@ func _start_level(level: LevelData) -> void:
 	_refill.hide_refill()
 	_clear_refill_request()
 
+	_set_ad_surface(MonetizationManager.Surface.GAMEPLAY)
 	_board = GAME_BOARD_SCENE.instantiate()
 	_board.setup(level)
 	_board.round_finished.connect(_on_round_finished)
@@ -383,6 +408,9 @@ func _clear_board() -> void:
 	if _refill != null:
 		_refill.hide_refill()
 	_clear_refill_request()
+	# Board giderken açık bir reklam talebi varsa (pencere kapanmadan terk)
+	# iptal: geç gelen ödül callback'i hiçbir şey vermez.
+	_cancel_rewarded_request()
 	if _board != null:
 		_board.queue_free()
 		_board = null
@@ -399,12 +427,63 @@ func _clear_board() -> void:
 # yalnızca "ödül kazanıldı" callback'i çağırmalıdır. "Reklam kapandı"
 # callback'i devam DEĞİLDİR — kapanma ödülsüz de olabilir.
 
-## Sağlayıcı gerçekten bağlı ve ödüllü devam gösterebiliyor mu? Pencere buna
-## göre DEVAM ET'i açar ya da pasif + sebepli gösterir (M8.6-10): sağlayıcı
-## yokken çalışacakmış gibi duran bir reklam butonu yok.
+## Sağlayıcı gerçekten bağlı ve ödüllü devam ŞİMDİ gösterebiliyor mu? Pencere
+## buna göre DEVAM ET'i açar ya da pasif + sebepli gösterir (M8.6-10):
+## sağlayıcı yokken ya da reklam yüklenmemişken çalışacakmış gibi duran bir
+## reklam butonu yok. Hazırlık değişince `_on_rewarded_availability_changed`
+## açık pencereyi tazeler (M8.9-01).
 func _revive_provider_ready() -> bool:
-	return (_rewarded_provider != null
-		and _rewarded_provider.has_method("show_rewarded_revive"))
+	return _provider_ready("show_rewarded_revive")
+
+
+func _provider_ready(method: String) -> bool:
+	if _rewarded_provider == null or not _rewarded_provider.has_method(method):
+		return false
+	if _rewarded_provider.has_method("is_rewarded_ready"):
+		return _rewarded_provider.is_rewarded_ready()
+	return true
+
+
+## Sağlayıcı hazır değilken pencerede yazan sebep; boş = pencerenin kendi
+## "henüz bağlı değil" metni (sağlayıcı yok).
+func _provider_note() -> String:
+	if _rewarded_provider != null and _rewarded_provider.has_method("rewarded_note"):
+		return _rewarded_provider.rewarded_note()
+	return ""
+
+
+## Sağlayıcısız / hazır değilken gelen talebe cevap: sağlayıcının kendi sebebi,
+## yoksa pencerenin "henüz bağlı değil" metni.
+func _unavailable_note() -> String:
+	var note: String = _provider_note()
+	return note if note != "" else "Ödüllü reklam henüz bağlı değil."
+
+
+## Pencere açıldı: sağlayıcı hazırlanmaya başlasın (önyükleme / yeniden dene).
+func _ensure_rewarded() -> void:
+	if _rewarded_provider != null and _rewarded_provider.has_method("ensure_rewarded"):
+		_rewarded_provider.ensure_rewarded()
+
+
+## Pencere kapandı / round bitti: açık reklam talebi iptal (geç ödül yok).
+func _cancel_rewarded_request() -> void:
+	if _rewarded_provider != null and _rewarded_provider.has_method("cancel_rewarded_request"):
+		_rewarded_provider.cancel_rewarded_request()
+
+
+## Sağlayıcı "hazır" durumu değişti (reklam yüklendi / yüklenemedi / rıza):
+## açık Devam / Refill penceresi CTA'sını ve notunu tazeler. Bekleyen talep
+## ve kayıt/kota bu yoldan DEĞİŞMEZ.
+func _on_rewarded_availability_changed() -> void:
+	if _revive != null and _revive.visible:
+		_revive.refresh_provider(_revive_provider_ready(), _provider_note())
+	if _refill != null and _refill.visible and not _refill.is_request_pending():
+		_refill.refresh(_power_provider_ready(), _provider_note())
+
+
+func _set_ad_surface(surface: int) -> void:
+	if _ads != null:
+		_ads.set_surface(surface as MonetizationManager.Surface)
 
 
 ## Board devam teklifi açtı: round HENÜZ BİTMEDİ, hiçbir ödül/sonuç akışı
@@ -415,7 +494,8 @@ func _on_revive_offered(remaining: int) -> void:
 	# yolları board'u yalnız duraklatılmışken siler).
 	if _board == null or not is_instance_valid(_board):
 		return
-	_revive.show_offer(remaining, _board.max_revives(), _revive_provider_ready())
+	_revive.show_offer(remaining, _board.max_revives(), _revive_provider_ready(), _provider_note())
+	_ensure_rewarded()
 
 
 ## Oyuncu ödüllü CTA'ya bastı.
@@ -427,7 +507,7 @@ func _on_rewarded_revive_requested() -> void:
 	if _revive_provider_ready():
 		_rewarded_provider.call("show_rewarded_revive", self)
 		return
-	notify_rewarded_unavailable("Ödüllü reklam henüz bağlı değil.")
+	notify_rewarded_unavailable(_unavailable_note())
 
 
 ## Sağlayıcının "ödül kazanıldı" callback'i buraya bağlanır. Tek devam
@@ -448,6 +528,7 @@ func grant_revive() -> bool:
 ## Devam hakkı TÜKETİLMEZ.
 func decline_revive() -> void:
 	_revive.hide_offer()
+	_cancel_rewarded_request()
 	if _board != null and is_instance_valid(_board):
 		_board.decline_revive()
 
@@ -458,7 +539,8 @@ func notify_rewarded_unavailable(message: String) -> void:
 	_revive.show_unavailable(message)
 
 
-## Sağlayıcıyı bağlar (M9+). Beklenen arayüz için `_rewarded_provider`
+## Sağlayıcıyı bağlar (production: MonetizationManager, M8.9-01; testler:
+## stub). Beklenen arayüz için `_rewarded_provider`
 ## tanımına bakın.
 func set_rewarded_provider(provider: Object) -> void:
 	_rewarded_provider = provider
@@ -477,16 +559,16 @@ func set_rewarded_provider(provider: Object) -> void:
 # istenmesi, açılması, yüklenememesi ve ödülsüz kapanması NE stok verir NE
 # kota tüketir — revive'daki (§11.2) invariant'ın aynısı.
 
-## Sağlayıcı gerçekten bağlı ve ödüllü güç gösterebiliyor mu?
+## Sağlayıcı gerçekten bağlı ve ödüllü güç ŞİMDİ gösterebiliyor mu?
 func _power_provider_ready() -> bool:
-	return (_rewarded_provider != null
-		and _rewarded_provider.has_method("show_rewarded_power"))
+	return _provider_ready("show_rewarded_power")
 
 
 ## Board stok 0 bir güç istedi ve oyunu dondurdu.
 func _on_power_refill_offered(type: int) -> void:
 	_clear_refill_request()
-	_refill.show_refill(type as PowerUp.Type, _power_provider_ready())
+	_refill.show_refill(type as PowerUp.Type, _power_provider_ready(), _provider_note())
+	_ensure_rewarded()
 
 
 ## Oyuncu ödüllü CTA'ya bastı.
@@ -513,7 +595,7 @@ func _on_rewarded_power_requested(type: int) -> void:
 		_rewarded_provider.call("show_rewarded_power", self, type,
 			_refill_pending_token)
 		return
-	notify_power_rewarded_unavailable("Ödüllü reklam henüz bağlı değil.")
+	notify_power_rewarded_unavailable(_unavailable_note())
 
 
 ## Sağlayıcının "ödül kazanıldı" callback'i. Ödüllü stok vermenin TEK yolu.
@@ -555,7 +637,7 @@ func _on_dough_refill_requested(type: int) -> void:
 		# Yetersiz Hamur: HİÇBİR state değişmez, pencere açık kalır.
 		AudioManager.play(&"ui_invalid")
 		_refill.show_unavailable("Hamur yetmiyor (%d Hamur'un var)."
-			% SaveManager.dough(), _power_provider_ready())
+			% SaveManager.dough(), _power_provider_ready(), _provider_note())
 		return
 	_finish_refill(type as PowerUp.Type, "%s ×1 alındı!")
 
@@ -576,13 +658,14 @@ func _finish_refill(type: PowerUp.Type, message: String) -> void:
 ## KALIR, kota tüketilmez, stok değişmez.
 func notify_power_rewarded_unavailable(message: String) -> void:
 	_clear_refill_request()
-	_refill.show_unavailable(message, _power_provider_ready())
+	_refill.show_unavailable(message, _power_provider_ready(), _provider_note())
 
 
 ## Oyuncu pencereyi kapattı: hiçbir şey alınmadı, oyun kaldığı yerden
 ## devam ediyor. Niyet geri dönüşü YOK (oyuncu vazgeçti).
 func _on_refill_closed() -> void:
 	_clear_refill_request()
+	_cancel_rewarded_request()
 	_refill.hide_refill()
 	if _board != null and is_instance_valid(_board):
 		_board.exit_refill_pending(false)
@@ -620,6 +703,7 @@ func _on_round_finished(won: bool) -> void:
 	var rewards: Array[ChestReward] = _collect_rewards(won, merges)
 
 	await get_tree().create_timer(RESULT_DELAY).timeout
+	_set_ad_surface(MonetizationManager.Surface.RESULT)
 	_result.show_result(_current_level, won, score, stars, rewards, new_record,
 		newly_unlocked, reached_tier)
 

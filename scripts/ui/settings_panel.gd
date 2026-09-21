@@ -3,8 +3,12 @@ extends CanvasLayer
 ##
 ##   Ses Efektleri   gerçek anahtar: SFX bus'ını susturur, kayda yazar
 ##   Titreşim        gerçek anahtar (M8.5-15): Haptics'i kapatır, kayda yazar
-##   Gizlilik        kısa, doğru metin (veri toplanmıyor, backend yok) —
-##                   Göster/Gizle ile pencerenin İÇİNDE açılır
+##   Gizlilik        kısa, doğru metin (hesap/sunucu/analitik yok; reklam
+##                   için Google AdMob — M8.9-01) — Göster/Gizle ile
+##                   pencerenin İÇİNDE açılır
+##   Gizlilik seçenekleri  (M8.9-01) YALNIZ reklam SDK'sı (UMP) bir rıza
+##                   formu sunuyorsa görünür: Aç → SDK'nın kendi formu.
+##                   SDK gerekli demiyorsa satır GİZLİ (sahte kontrol yok).
 ##   Sürüm           uygulama adı + sürüm (project.godot → config/version)
 ##   Kapat           altlıkta ikincil buton; X ve karartma da kapatır
 ##
@@ -27,7 +31,9 @@ extends CanvasLayer
 
 signal closed
 
-const PRIVACY_TEXT: String = "Squishy Merge kişisel veri toplamaz. İlerlemen yalnızca bu cihazda saklanır; hesap, sunucu ve analitik yoktur. Şu an reklam ve uygulama içi satın alma da yok."
+const PRIVACY_TEXT: String = "Squishy Merge hesap, sunucu ve analitik kullanmaz; ilerlemen yalnızca bu cihazda saklanır. Ödüllü ve banner reklamlar için Google AdMob kullanılır; reklam SDK'sı reklam kimliği gibi cihaz verilerini Google'ın gizlilik politikasına göre işleyebilir. Uygulama içi satın alma yok."
+const PRIVACY_OPTIONS_TITLE: String = "Gizlilik seçenekleri"
+const PRIVACY_OPTIONS_BUTTON: String = "Aç"
 const MODAL_WIDTH: float = 560.0
 
 var _frame: Control
@@ -37,6 +43,14 @@ var _privacy_button: Button
 ## Genişleyen gizlilik bloğu (metin plakası). Adı ui_smoke_test ile aynı.
 var _privacy: PanelContainer
 var _privacy_text: Label
+## Reklam rızası giriş noktası (M8.9-01): satır + ayırıcı, varsayılan gizli.
+var _privacy_options_row: HBoxContainer
+var _privacy_options_divider: Control
+var _privacy_options_button: Button
+## `privacy_options_required()` / `show_privacy_options()` + sinyal
+## `privacy_options_changed(required)` sunan nesne (MonetizationManager);
+## null = reklam yöneticisi yok → satır hiç görünmez.
+var _privacy_options_source: Object = null
 var _about: Label
 var _close: Button
 
@@ -89,6 +103,20 @@ func _ready() -> void:
 	body.add_child(_privacy)
 	_privacy.set_meta(&"gap", privacy_gap)
 
+	# Gizlilik seçenekleri (UMP): yalnız SDK "gerekli" derken görünür.
+	_privacy_options_divider = UiKit.settings_divider()
+	_privacy_options_divider.name = "PrivacyOptionsDivider"
+	_privacy_options_divider.visible = false
+	body.add_child(_privacy_options_divider)
+	_privacy_options_button = UiKit.button(PRIVACY_OPTIONS_BUTTON, &"ButtonSecondary")
+	_privacy_options_button.custom_minimum_size = Vector2(132, UiTokens.HEIGHT_NORMAL)
+	_privacy_options_button.pressed.connect(_on_privacy_options_pressed)
+	_privacy_options_row = UiKit.settings_row("lock", PRIVACY_OPTIONS_TITLE, _privacy_options_button)
+	_privacy_options_row.name = "PrivacyOptionsRow"
+	_privacy_options_row.visible = false
+	body.add_child(_privacy_options_row)
+	_apply_privacy_options_visibility()
+
 	# Altlık: sürüm (düşük vurgu) + Kapat. Hiç kaydırılmaz.
 	var footer: VBoxContainer = _frame.get_meta(&"footer")
 	var footer_gap := Control.new()
@@ -124,6 +152,7 @@ func open_panel() -> void:
 	_sfx_toggle.set_on(SaveManager.sfx_enabled())
 	_haptics_toggle.set_on(SaveManager.haptics_enabled())
 	_set_privacy_open(false)
+	_apply_privacy_options_visibility()
 	visible = true
 	UiKit.modal_relayout(_frame)
 	(_frame.get_meta(&"scroll") as ScrollContainer).scroll_vertical = 0
@@ -163,9 +192,56 @@ func _set_privacy_open(open: bool) -> void:
 	_privacy_button.text = "Gizle" if open else "Göster"
 
 
+# --- Gizlilik seçenekleri (M8.9-01) ---------------------------------------------
+
+## Main bağlar (yönetici yoksa null). SDK durumu değişince satır güncellenir.
+func set_privacy_options_source(source: Object) -> void:
+	if _privacy_options_source != null and _privacy_options_source.has_signal("privacy_options_changed"):
+		_privacy_options_source.privacy_options_changed.disconnect(_on_privacy_options_changed)
+	_privacy_options_source = source
+	if source != null and source.has_signal("privacy_options_changed"):
+		source.privacy_options_changed.connect(_on_privacy_options_changed)
+	_apply_privacy_options_visibility()
+
+
+func _on_privacy_options_changed(_required: bool) -> void:
+	_apply_privacy_options_visibility()
+
+
+func _privacy_options_required() -> bool:
+	return (_privacy_options_source != null and is_instance_valid(_privacy_options_source)
+		and _privacy_options_source.has_method("privacy_options_required")
+		and _privacy_options_source.privacy_options_required())
+
+
+func _apply_privacy_options_visibility() -> void:
+	if _privacy_options_row == null:
+		return
+	var required: bool = _privacy_options_required()
+	_privacy_options_row.visible = required
+	_privacy_options_divider.visible = required
+	if visible and _frame != null:
+		UiKit.modal_relayout(_frame)
+
+
+func _on_privacy_options_pressed() -> void:
+	if not _privacy_options_required() or not _privacy_options_source.has_method("show_privacy_options"):
+		return
+	AudioManager.play(&"ui_tap")
+	_privacy_options_source.show_privacy_options()
+
+
 ## Testler / araçlar için.
 func frame() -> Control:
 	return _frame
+
+
+func privacy_options_row() -> HBoxContainer:
+	return _privacy_options_row
+
+
+func privacy_options_button() -> Button:
+	return _privacy_options_button
 
 
 func is_privacy_open() -> bool:

@@ -57,12 +57,18 @@ hedefliyor.
 
 ### İş modeli
 
-- **v1:** reklamsız, gerçek para yok, IAP yok. Amaç organik/ASO testi ve
-  gerçek retention verisi toplamak.
+> **Güncellendi (M8.9, 2026-09-21).** Eski "v1 reklamsız, ödüllü reklam
+> v1.1'de" cümlesi ARTIK GEÇERSİZ.
+
+- **v1 (soft-launch öncesi plan):** ödüllü devam (revive) + ödüllü güç
+  refill'i + banner (Ana Sayfa / Mağaza / Koleksiyon) — Google AdMob,
+  `M8.9-01`'de test reklamlarıyla entegre (docs/monetization/). Interstitial /
+  app-open **bilerek ertelendi**; gerçek retention/monetizasyon verisi olmadan
+  karar verilmiyor. IAP / Play Billing hâlâ yok.
 - **v1'de oyun içi mağaza VAR** ama gerçek para geçmiyor — "Hamur" adlı soft
   currency ile kozmetik skin alınıyor. Bu bir para sink'i, IAP değil.
-- **v1.1+ (şimdi YAPILMIYOR):** ödüllü reklam, muhtemel kozmetik IAP. Gerçek
-  kullanıcı verisi olmadan bu katmana zaman harcanmıyor.
+- **Sonra:** gerçek para Güç Paketi (GAME_DESIGN §5.7.4, billing yok),
+  muhtemel kozmetik IAP — gerçek kullanıcı verisiyle.
 
 ### Başarı ölçütü
 
@@ -72,8 +78,9 @@ alınacak; şimdi tahmin veya vaat yok.
 
 ### Non-goal'lar (v1'de bilinçli olarak YAPILMIYOR)
 
-Çoklu kavanoz/tema · IAP/reklam/ödeme · native haptik plugin (yerleşik
-titreşim M8.5-15'te v1'e alındı) · leaderboard ·
+Çoklu kavanoz/tema · IAP/ödeme (Billing) · **interstitial / app-open reklam
+ve mediation** (ödüllü + banner M8.9'da v1'e alındı) · native haptik plugin
+(yerleşik titreşim M8.5-15'te v1'e alındı) · leaderboard ·
 bulut kayıt · hesap sistemi · backend/sunucu · **otomatik test framework'ü
 (GUT vb.)** · iOS build.
 
@@ -1407,8 +1414,11 @@ squishy-merge/
 │   └── ui/                  # home_screen, level_select, collection_screen,
 │                            #   shop_screen, round_result, daily_reward_popup,
 │                            #   settings_panel, shell_backdrop (M8.5-10)
+├── addons/AdmobPlugin/      # godot-admob v6.0 release (kaynak değişmedi) + android_export.cfg (M8.9-01)
+├── addons/squishy_ads_export/ # proje export eklentisi: android_export.cfg'yi PCK'ye ekler + doğrular
 ├── scripts/
 │   ├── autoload/            # GameState, AudioManager, SaveManager
+│   ├── ads/                 # MonetizationManager, AdBackend/AdmobBackend, AdConfig, AdEvents (M8.9-01)
 │   ├── game/                # oyun mantığı
 │   └── ui/                  # ekran mantığı
 ├── resources/
@@ -1429,6 +1439,16 @@ squishy-merge/
 | `autoload/audio_manager.gd` | Tüm SFX çalma noktası (M8.5-15): `EVENTS` olay tablosu, 12 kanal + öncelikli kanal çalma, soğuma/tavan, yerel RNG, fallback. `play(&"merge")`, `play_merge(tier)`, `play_landing(tier, hız)`. Bus: Master → SFX (limiter) / Music. |
 | `haptics.gd` | `Haptics` statik servisi (M8.5-15): LIGHT/MEDIUM/STRONG/SPECIAL, spam penceresi, editor'de güvenli, test sink'i. |
 | `autoload/save_manager.gd` | Yerel kalıcı kayıt, JSON, `user://`. Bulut yok. |
+
+### Reklam (M8.9-01 — `scripts/ads/`)
+
+| script | işi |
+|---|---|
+| `ads/monetization_manager.gd` | `MonetizationManager` — tek üretim reklam soyutlaması: UMP rıza yaşam döngüsü, SDK başlatma, ödüllü durum makinesi (devam + refill, talep bağlamı, önyükleme, geri çekilme), banner yaşam döngüsü + yuva, olaylar. Main'in çocuğu (autoload değil); eklentisiz platformda yaratılmaz. |
+| `ads/ad_backend.gd` | `AdBackend` — SDK'ya bakan soyut arayüz (düz tipli sinyaller). |
+| `ads/admob_backend.gd` | `AdmobBackend` — eklentinin `Admob` düğümünü sarar; kimlikler `AdConfig`'ten; banner uyarlanabilir/alt/güvenli alan; TFCD/TFUA UNSPECIFIED, içerik G. |
+| `ads/ad_config.gd` | `AdConfig` — `addons/AdmobPlugin/android_export.cfg` → is_real + app/rewarded/banner kimlikleri + debug_geography; gerçek modda eksik/örnek kimlikte geçersiz. |
+| `ads/ad_events.gd` | `AdEvents` — analitik olay dikişi (12 olay, abone/son 200); sağlayıcı sonraki milestone. |
 
 ### Oyun mantığı
 
@@ -1472,7 +1492,7 @@ squishy-merge/
 | `ui/ui_toggle.gd` | Ayarlar anahtarı (M8.5-10); `UiKit.switch_toggle` ile LayerLab ray/topuz; ScrollContainer içinde kaydırma başlayınca basış ölçeğini bırakır (M8.6-08). |
 | `ui/ui_kit.gd` | Production UI bileşen fabrikası (M8.6-01+): `modal_frame` (Mağaza onayı), **`modal_shell` iskelet v2** (kurdele/başlık+tepelik, oturmuş X, kaydırılan gövde + sabit altlık, tavan sistemi, `attach_dim_close`, `settings_row`) (M8.6-08). |
 | `ui/streak_strip.gd` | `StreakStrip` — Günlük ödül seri şeridi: 7 düğüm (alınmış / bugün / gelecek), bağlantı çizgileri, gün numaraları, "+N" rozeti (M8.6-08). |
-| `ui/settings_panel.gd` | Ayarlar penceresi (M8.6-08 yeniden kurulum, shell v2): ses efektleri, titreşim (M8.5-15), gizlilik (gövdede açılır, taşmaz), sürüm; yalnız `set_sfx_enabled` / `set_haptics_enabled` yazar. |
+| `ui/settings_panel.gd` | Ayarlar penceresi (M8.6-08 yeniden kurulum, shell v2): ses efektleri, titreşim (M8.5-15), gizlilik (gövdede açılır, taşmaz; metin M8.9-01'de AdMob'u anlatır), **"Gizlilik seçenekleri" satırı yalnız UMP form sunuyorsa** (M8.9-01), sürüm; yalnız `set_sfx_enabled` / `set_haptics_enabled` yazar. |
 | `ui/daily_reward_popup.gd` | Günlük ödül penceresi (M8.6-08 yeniden kurulum, shell v2): yalnız gösterir; ödül `DailyReward.claim_if_new_day` ile Main yolunda yazılır; AL = kutlama → kapanış → Ana Sayfa yenileme. |
 | `ui/pause_menu.gd` / `ui/bonus_chest_info.gd` | Mola ve Bonus Sandık bilgi pencereleri — shell v2, oturmuş X (M8.6-08 cila; eylemler/kural değişmedi). |
 | ~~`ui/candy_button.gd`~~ | **Silindi (M8.6-10):** M8.5-08 candy pill CTA'ları; son kullanıcıları Devam + Refill `UiKit`e geçti. Dokuları (`cta_button_*`, `power_button_*`, `panel_candy.png`) ve M8.5 ikon klasörü (`ui/icons/`) de kaldırıldı. |
@@ -1484,6 +1504,8 @@ squishy-merge/
 | araç | işi |
 |---|---|
 | `bot_runner.gd` + `bot_brain.gd` | **Headless denge testi.** Gerçek `GameBoard`'u gerçek fizikle oynatır. Bu projedeki tüm kazanma oranı ölçümlerinin kaynağı. |
+| `fake_ad_backend.gd` | `FakeAdBackend` — reklam SDK'sı test çifti (M8.9-01): çağrı sayar, her SDK olayı testten elle tetiklenir. Export dışı. |
+| `monetization_test.gd` + `.tscn` | **Headless monetizasyon testi** (M8.9-01, 181 kontrol): yapılandırma korumaları, olay dikişi, kaynak taraması, rıza akışı/hataları/gizlilik seçenekleri, ödüllü başarı + callback güvenliği (çift/geç/eski/iptal/yanlış güç) + hata/geri çekilme/zaman aşımı + arka plan, banner yuva/yüzey/gezinme/hata, Main entegrasyonu (gerçek pencereler + board + kota + Ayarlar). Kaydı byte'ı geri koyar. |
 | `ui_shots.gd` + `ui_shots.tscn` | **Production UI kabuğu çekimleri** (M8.5-10): dört sekme, ayarlar, en kötü durum, oyun ekranı; üç ölçü. `--headless` ile çalışmaz. |
 | `ui_smoke_test.gd` + `ui_smoke_test.tscn` | **Headless UI davranış testi** (74 kontrol): ayar anahtarı, onay diyaloğu, geri tuşu, equip. |
 | `secondary_modal_ui_test.gd` + `.tscn` | **Headless ikincil pencere testi** (M8.6-08, 102 kontrol): shell v2 iskeleti (oturmuş X, gövde/altlık sınırları, tavan + kaydırma, karartma), Ayarlar (kanonik yazma yolu, taşma regresyonu 5 yapılandırma), Günlük (tek claim, AL mutasyonsuz, 7 düğüm, durum modu), Mola/Sandık (hiyerarşi, z-order, rota). Kaydı byte'ı geri koyar. |
@@ -1590,16 +1612,36 @@ verilmiyor:
 | 11 | Proje ikonu hâlâ Godot'un varsayılan robotu (`config/icon="res://icon.svg"`). Kompozit ikon üretildi ama `project.godot`'a bağlanmadı. | 🔴 M9/M10 öncesi. |
 | 12 | `_visual_source/` içinde 4 zip (~17.6 MB) var ve bunlar yanlarındaki açılmış klasörlerin **birebir kopyası**. Repo boyutunun dörtte biri. | 🟡 Silinebilir; git geçmişinden çıkarmak history rewrite gerektirir. |
 | 13 | Kazanma/kaybetme jingle'ı kulakla doğrulanmadı (M6 blokajı, hiç kapanmadı). | 🟡 Owner playtest'inde kontrol edilmeli. |
+| 15 | **AdMob eklentisi UMP boşluğu (M8.9-01):** godot-admob v6.0 `canRequestAds` / `getPrivacyOptionsRequirementStatus` / `showPrivacyOptionsForm` sarmaz; SDK'dan türeyen eşdeğerler kullanılıyor (PRIVACY_CONSENT §4). ABD eyalet mesajı yapılandırılırsa fork/upstream PR gerekir. | 🟡 Owner/ChatGPT kararı. |
+| 16 | **Gradle debug APK 102 MB** — `android_source` şablonunun debug `libgodot_android.so` 75 MB (strip'siz). Release/AAB'de küçülür; prebuilt debug 45 MB idi. | 🟢 Beklenen; M9'da release boyutu ölçülecek. |
 | 14 | **Gameplay/tooling RNG coupling.** Kamera sarsıntısı `_process` içinde `randf_range` çağırıyordu — görsel ama `drop_bag.shuffle()` ile aynı global RNG akışını tüketiyor ve fizik kareleri arasında değişken sayıda çalışıyordu; `bot_runner` tekrarlanamazdı. | 🟢 **M8.5-11'de kaldırıldı:** sarsıntı `_fx_rng` kullanıyor; global RNG'yi artık yalnızca drop bag tüketiyor. Bot hâlâ seed'siz (rastgele başlangıç); seedli harness istenirse `seed()` eklemek yeter, drop_bag'e dokunmak gerekmiyor. |
 
 ---
 
 ## 8. Kalan işler
 
+### M8.9 — Monetizasyon (AdMob) — kalanlar
+
+`M8.9-01` temel tamam (test reklamı, dal `task/033`). Kalan:
+
+1. **Owner: AdMob hesabı** — uygulama kaydı (App ID), rewarded + banner
+   reklam birimleri, Privacy & messaging GDPR mesajı → `addons/AdmobPlugin/
+   android_export.cfg [Release]` + `is_real=true` (yalnız release adımında).
+2. **Owner/ChatGPT: kitle politikası** — Play "Hedef kitle" beyanı ↔ TFCD /
+   TFUA / içerik derecesi (PRIVACY_CONSENT §6).
+3. **A36 test reklamı cihaz kapısı** (ayrı yetki): rıza formu
+   (`debug_geography=eea`), yükleme/gösterim/ödül/kapanış, uçak modu, arka
+   plan, banner yuva hizası, logcat.
+4. `M8.9-02` **analitik sağlayıcı** — `AdEvents` dikişine bağlanır.
+5. Eklenti UMP boşluğu kararı (§7 #15).
+
 ### M9 — Android export
 
 **Ortam neredeyse hazır** (§2'deki tabloya bakın). Godot, export
 template'leri, Android SDK, NDK, JDK 17 ve debug keystore mevcut.
+**M8.9-01'den itibaren export Gradle build ister** (`gradle_build/
+use_gradle_build=true`, `android/build/` şablonu `--install-android-build-
+template` ile; her makinede ayrı).
 
 **Yapılacaklar:**
 

@@ -521,7 +521,7 @@ func _layout() -> void:
 	_margin.add_theme_constant_override("margin_left", int(SIDE_MARGIN))
 	_margin.add_theme_constant_override("margin_right", int(SIDE_MARGIN))
 	_margin.add_theme_constant_override("margin_top", int(GALLERY_TOP_PAD))
-	_margin.add_theme_constant_override("margin_bottom", int(BOTTOM_PADDING + UiKit.safe_bottom(view)))
+	_margin.add_theme_constant_override("margin_bottom", int(BOTTOM_PADDING + UiKit.bottom_inset(view)))
 	_gallery_haze.position = Vector2(0.0, gallery_y - GALLERY_HAZE_ABOVE)
 	_gallery_haze.size = Vector2(view.x, GALLERY_HAZE_ABOVE + GALLERY_HAZE_BELOW)
 	_fx.position = Vector2.ZERO

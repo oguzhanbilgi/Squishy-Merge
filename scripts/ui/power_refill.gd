@@ -35,9 +35,13 @@ extends CanvasLayer
 ## olurdu — billing yok).
 ##
 ## Sözleşme (Main / refill_test / secondary_ui_shots): `show_refill(type,
-## provider_ready)`, `refresh(provider_ready)`, `show_unavailable(message,
-## provider_ready)`, `hide_refill()`, `current_type()`; düğümler `_ad`,
-## `_dough`, `_quota`, `_note`, `_close`.
+## provider_ready[, provider_note])`, `refresh(provider_ready[, provider_note])`,
+## `show_unavailable(message, provider_ready[, provider_note])`, `hide_refill()`,
+## `current_type()`; düğümler `_ad`, `_dough`, `_quota`, `_note`, `_close`.
+## `provider_note` (M8.9-01): sağlayıcı hazır değilken kartta yazan gerçek sebep
+## ("Reklam hazırlanıyor…" / "Reklam şu anda kullanılamıyor."); boşsa
+## NOTE_NO_PROVIDER. Reklam pencere açıkken yüklenirse Main `refresh(true)` ile
+## butonu açar — sahte "hazır" yok.
 
 ## Oyuncu ödüllü reklam CTA'sına bastı. Bu bir TALEP'tir, stok DEĞİL.
 signal rewarded_refill_requested(type: int)
@@ -79,6 +83,9 @@ const DOUGH_ACCENT: Color = UiTokens.GOLD
 
 var _type: int = -1
 var _provider_ready: bool = false
+## Sağlayıcı hazır değilken reklam kartında yazan sebep (M8.9-01); boşsa
+## NOTE_NO_PROVIDER.
+var _provider_note: String = ""
 var _request_pending: bool = false
 var _purchase_sent: bool = false
 
@@ -292,12 +299,14 @@ func current_type() -> int:
 	return _type
 
 
-## `provider_ready`: rewarded sağlayıcısı bağlı mı. Bu turda daima false —
-## AdMob kurulmadı.
-func show_refill(type: PowerUp.Type, provider_ready: bool) -> void:
+## `provider_ready`: ödüllü reklam ŞİMDİ gösterilebilir mi (Main söyler);
+## `provider_note`: değilse kartta yazan sebep (boşsa "henüz bağlı değil").
+## Reklam pencere açıkken hazır olursa Main `refresh(true)` ile butonu açar.
+func show_refill(type: PowerUp.Type, provider_ready: bool, provider_note: String = "") -> void:
 	_type = int(type)
 	_request_pending = false
 	_purchase_sent = false
+	_provider_note = provider_note
 	var art: Texture2D = PowerUp.icon(type)
 	var picture: TextureRect = _well.get_meta(&"art")
 	picture.texture = art
@@ -315,11 +324,13 @@ func show_refill(type: PowerUp.Type, provider_ready: bool) -> void:
 
 
 ## Butonların açık/kapalı durumunu, kota ve fiyat satırlarını tazeler. Satın
-## alma sonrası ve kota değişince tekrar çağrılıyor. Hiçbir şey yazmaz.
-func refresh(provider_ready: bool) -> void:
+## alma sonrası, kota değişince ve sağlayıcı hazırlığı değişince tekrar
+## çağrılıyor. Hiçbir şey yazmaz.
+func refresh(provider_ready: bool, provider_note: String = "") -> void:
 	if _type < 0:
 		return
 	_provider_ready = provider_ready
+	_provider_note = provider_note
 	_purchase_sent = false
 	var type: PowerUp.Type = _type as PowerUp.Type
 	_stock_label.text = STOCK_BADGE % SaveManager.powerup_count(type)
@@ -338,7 +349,7 @@ func refresh(provider_ready: bool) -> void:
 	elif quota_left <= 0:
 		ad_reason = NOTE_QUOTA_USED
 	elif not provider_ready:
-		ad_reason = NOTE_NO_PROVIDER
+		ad_reason = provider_note if provider_note != "" else NOTE_NO_PROVIDER
 	_set_note(_ad_note, ad_reason, _request_pending)
 
 	# Hamur kartı: fiyat tek kaynaktan; yetmiyorsa pasif + sebep.
@@ -363,9 +374,9 @@ func _set_note(note: Label, text: String, quiet: bool) -> void:
 ## Sağlayıcı talebi reddetti / reklam hazır değil / ödül kazanılmadı, ya da
 ## Hamur işlemi yarışta başarısız oldu. Pencere AÇIK KALIR, kota tüketilmez,
 ## stok değişmez; mesaj altlıkta.
-func show_unavailable(message: String, provider_ready: bool) -> void:
+func show_unavailable(message: String, provider_ready: bool, provider_note: String = "") -> void:
 	_request_pending = false
-	refresh(provider_ready)
+	refresh(provider_ready, provider_note)
 	_note.text = message
 	_note.visible = message != ""
 
@@ -386,7 +397,7 @@ func _on_ad_pressed() -> void:
 	_request_pending = true
 	_note.text = ""
 	_note.visible = false
-	refresh(_provider_ready)
+	refresh(_provider_ready, _provider_note)
 	rewarded_refill_requested.emit(_type)
 
 
@@ -470,3 +481,11 @@ func is_request_pending() -> bool:
 
 func is_purchase_sent() -> bool:
 	return _purchase_sent
+
+
+func provider_ready() -> bool:
+	return _provider_ready
+
+
+func provider_note() -> String:
+	return _provider_note

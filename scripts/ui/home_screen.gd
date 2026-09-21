@@ -441,7 +441,8 @@ func _layout() -> void:
 	if view.x <= 0.0 or view.y <= 0.0:
 		return
 	var safe_top: float = _safe_top_override if _safe_top_override >= 0.0 else UiKit.safe_top(view)
-	var safe_bottom: float = UiKit.safe_bottom(view)
+	# Alt butce: gesture bar + banner yuvasi (M8.9-01; eklentisiz 0).
+	var safe_bottom: float = UiKit.bottom_inset(view)
 	var extra: float = maxf(view.y - 1280.0, 0.0)
 
 	# ÜST satır.

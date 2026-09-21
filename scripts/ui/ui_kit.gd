@@ -801,6 +801,29 @@ static func safe_bottom(view: Vector2) -> float:
 	return inset_px * (view.x / window.x)
 
 
+## Alt banner yuvasi (M8.9-01) — tuval piksel. MonetizationManager acilista
+## bir kez yazar (eklenti varsa uyarlanabilir banner yuksekligi, yoksa 0) ve
+## oturum boyunca SABIT tutar: banner dolu/bos fark etmez, duzen ziplamaz.
+## Banner yuzeyleri (Ana Sayfa / Magaza / Koleksiyon) alt payi `bottom_inset`
+## ile ayirir; oyun, sonuc ve harita bu yuvayi KULLANMAZ.
+static var _banner_slot: float = 0.0
+
+
+static func set_banner_slot(px: float) -> void:
+	_banner_slot = maxf(0.0, px)
+
+
+static func banner_slot() -> float:
+	return _banner_slot
+
+
+## Banner yuzeylerinin alt kenar butcesi: gesture bar + banner yuvasi.
+## Banner guvenli alanin ICINE (nav bar'in ustune) yerlestigi icin ikisi
+## toplanir; masaustunde ve eklentisiz cihazda safe_bottom ile birebir.
+static func bottom_inset(view: Vector2) -> float:
+	return safe_bottom(view) + _banner_slot
+
+
 ## Duz yuvarlak plaka (03B.1): `frame_round20` / `label_round` gibi PISMIS
 ## cizgisi ve golgesi olmayan beyaz plakalari istenen boyutta cizer. NinePatchRect
 ## DEGIL — patch kenarlari (51x50) kucuk plakadan buyuk olunca NinePatchRect
