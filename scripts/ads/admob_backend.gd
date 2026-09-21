@@ -186,12 +186,20 @@ func load_banner() -> void:
 	_admob.load_banner_ad()
 
 
+## Eklentinin `Admob` düğümü sahne ağacından çıkarken (uygulama kapanışı,
+## test harness'inde yeniden kurulum) önbelleğindeki reklamları KENDİSİ
+## kaldırır ve bu, yöneticinin `_exit_tree`'sinden ÖNCE olur (çocuk düğüm
+## önce çıkar). Kaldırılmış bir kimlikle show/hide istemek eklentide
+## `push_error` üretiyordu (A36 kapısı, logcat) — kimlik önbellekte yoksa
+## sessizce atlanır; davranış değişmez.
 func show_banner(ad_id: String) -> void:
-	_admob.show_banner_ad(ad_id)
+	if _admob._active_banner_ads.has_key(ad_id):
+		_admob.show_banner_ad(ad_id)
 
 
 func hide_banner(ad_id: String) -> void:
-	_admob.hide_banner_ad(ad_id)
+	if _admob._active_banner_ads.has_key(ad_id):
+		_admob.hide_banner_ad(ad_id)
 
 
 func remove_banner(ad_id: String) -> void:
