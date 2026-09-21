@@ -755,11 +755,33 @@ alınacak — şimdi tahmin/vaat yok.
     100, refill 119, revive 120, skin 30, home_ui 207, shop_ui 212,
     collection_ui 164, secondary_modal 102, ui_foundation 165, map_ui 127, bot
     L3 2/2). **Fizik, ekonomi, kota, kayıt şeması, gameplay/ses DEĞİŞMEDİ.**
-    **Owner kararları bekliyor:** AdMob hesabı (App ID, 2 reklam birimi,
-    Privacy & messaging), COPPA/TFCD/TFUA + içerik derecesi, eklentinin
-    `getPrivacyOptionsRequirementStatus` boşluğu için fork/upstream, A36 test
-    reklamı cihaz kapısı (ayrı yetki). Kanonik: `docs/monetization/ADS_SYSTEM.md`,
-    `docs/monetization/PRIVACY_CONSENT.md`.
+    **A36 test-reklam cihaz kapısı (M8.9-01.1, 2026-09-21) GEÇTİ — bir dar
+    düzeltmeyle:** SM-A366B / Android 16 / 1080×2340 / yoğunluk 450; ayrı QA
+    paketi (`tools/ads_device.tscn`, komut/durum dosyası, gerçek dokunuşlar) +
+    üretim paketi (geçici kayıt). TR coğrafyasında UMP NOT_REQUIRED → SDK init
+    → 6 s içinde gerçek Google test banner'ı (Ana Sayfa / Mağaza / Koleksiyon,
+    1080×168 px, yuva 169,5 px, OYNA/son satır üstte) ve hazır test ödüllü
+    reklam; Harita / oyun / sonuç ekranında banner yok, gezinme döngüsü ×3 tek
+    AdView, sızıntı yok. Gerçek test ödüllü reklamla devam ×2 (çift dokunuş → tek
+    gösterim; reklam sırasında HOME → dönüş tek kapanış; ödül callback'i reklam
+    hâlâ üstteyken geliyor → grant tam bir kez), üçüncü teklif pasif; üretim
+    paketinde gerçek taşma → gerçek teklif → test reklamı → devam. Refill: Bomba
+    gerçek reklamla +1, kota 1→0, Sarsıntı'da CTA pasif (kota dört gücün toplamı),
+    Hamur yolu bağımsız. Gerçek no-fill (geçersiz kimlik, SDK kod 3) → dürüst
+    "kullanılamıyor" + sınırlı geri çekilme; sahte arka uçla gösterim hatası /
+    round terki / KAPAT yarışları ödül vermedi. Logcat 0 SCRIPT ERROR / 0 FATAL /
+    0 ANR; tek E/godot kusuru = yönetici sökülürken eklentinin zaten kaldırdığı
+    banner'a `hide` → `AdmobBackend` kimliği önbellekte yoksa atlar (dar düzeltme).
+    Owner görsel kontrolü (Ana Sayfa / Mağaza / Koleksiyon banner + bir ödüllü
+    geçiş): **PASS**. Owner kaydı byte-identical geri kondu, QA paketi kaldırıldı.
+    **ÜRETİM ENGELLERİ (kapı geçse de açık):** (a) eklenti v6.0 UMP
+    `canRequestAds` / `getPrivacyOptionsRequirementStatus` /
+    `showPrivacyOptionsForm`'u sarmıyor VE `debug_geography` cihazda uygulanamıyor
+    (upstream #120: Java `Integer` bekliyor, Godot `Long` gönderiyor) → EEA rıza
+    formu cihazda gösterilemedi; üretim öncesi küçük eklenti yaması (AAR) ya da
+    upstream PR kararı gerek; (b) COPPA/TFCD/TFUA + kitle kararı; (c) AdMob hesabı
+    (App ID, 2 reklam birimi, Privacy & messaging mesajı) — üretim kimliği yok.
+    Kanonik: `docs/monetization/ADS_SYSTEM.md` §12, `PRIVACY_CONSENT.md` §4/§7.
 - **Sırada: M8.6 — Visual Cohesion Rebuild** (ekranlar `UiKit`/`UiTokens`
   sistemine geçirilecek: ~~gameplay shell~~ ✅ → ~~home~~ ✅ → ~~map~~ ✅ →
   ~~shop~~ ✅ → ~~collection~~ ✅ main'de → ~~ikincil UI denetimi~~ ✅ →
@@ -769,9 +791,10 @@ alınacak — şimdi tahmin/vaat yok.
   cilası~~ ✅ dal `task/030`, A36 kapısı GEÇTİ, main'e merge izni
   bekliyor) → ~~M8.8-01 ses kaynak denetimi~~ ✅ dal `task/031` → ~~M8.8-02
   onaylı seslerin entegrasyonu~~ ✅ dal `task/032` → ~~M8.8-02.1 A36 cihaz
-  kapısı~~ ✅ main'de (93aa25b) → ~~M8.9-01 AdMob temeli~~ ✅ dal `task/033`
-  (test reklamı; A36 kapısı + AdMob hesabı + M8.9-02 analitik sağlayıcı
-  bekliyor), ardından **M9 — Android export.**
+  kapısı~~ ✅ main'de (93aa25b) → ~~M8.9-01 AdMob temeli~~ ✅ → ~~M8.9-01.1 A36
+  test-reklam kapısı~~ ✅ GEÇTİ (dal `task/033`, push edildi, main'e merge izni
+  bekliyor; üretim engelleri: eklenti UMP yüzeyi, COPPA, AdMob hesabı), sonra
+  M8.9-02 analitik sağlayıcı, ardından **M9 — Android export.**
   Ortam hazır (export template'leri, SDK,
   NDK, JDK 17, debug keystore mevcut, ETC2/ASTC import açık, iş
   makinesinde debug `export_presets.cfg` var — gitignore'lu, her makinede
@@ -876,11 +899,12 @@ alınacak — şimdi tahmin/vaat yok.
   shader/aura performans ölçümü M9'da.
 
 ## Next action
-Owner/ChatGPT: (1) `task/033` incelemesi + A36 **test reklamı** cihaz kapısı
-yetkisi (uçak modu, rıza formu `debug_geography=eea`, banner yuvası); (2)
-AdMob hesabı: uygulama kaydı, rewarded + banner reklam birimi, Privacy &
-messaging GDPR mesajı → `android_export.cfg [Release]`; (3) COPPA / hedef
-kitle kararı (PRIVACY_CONSENT §6). Sonra M8.9-02 analitik sağlayıcı
+Owner/ChatGPT: (1) `task/033` incelemesi + main'e merge kararı (A36 test-reklam
+kapısı geçti); (2) eklenti UMP boşluğu kararı — küçük AAR yaması (3 sarmalayıcı
++ #120 `Number` düzeltmesi) mi, upstream PR mi (PRIVACY_CONSENT §4) — üretim
+öncesi şart; (3) COPPA / hedef kitle kararı (PRIVACY_CONSENT §6); (4) AdMob
+hesabı: uygulama kaydı, rewarded + banner reklam birimi, Privacy & messaging
+GDPR mesajı → `android_export.cfg [Release]`. Sonra M8.9-02 analitik sağlayıcı
 (`AdEvents` dikişine), ardından M9 Android export (adaptive icon,
 `config/icon`, release keystore, Gradle preset her makinede).
 Ayrıntılı liste: PROJECT_STATUS.md §8.

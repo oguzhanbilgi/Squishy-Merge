@@ -1612,7 +1612,8 @@ verilmiyor:
 | 11 | Proje ikonu hâlâ Godot'un varsayılan robotu (`config/icon="res://icon.svg"`). Kompozit ikon üretildi ama `project.godot`'a bağlanmadı. | 🔴 M9/M10 öncesi. |
 | 12 | `_visual_source/` içinde 4 zip (~17.6 MB) var ve bunlar yanlarındaki açılmış klasörlerin **birebir kopyası**. Repo boyutunun dörtte biri. | 🟡 Silinebilir; git geçmişinden çıkarmak history rewrite gerektirir. |
 | 13 | Kazanma/kaybetme jingle'ı kulakla doğrulanmadı (M6 blokajı, hiç kapanmadı). | 🟡 Owner playtest'inde kontrol edilmeli. |
-| 15 | **AdMob eklentisi UMP boşluğu (M8.9-01):** godot-admob v6.0 `canRequestAds` / `getPrivacyOptionsRequirementStatus` / `showPrivacyOptionsForm` sarmaz; SDK'dan türeyen eşdeğerler kullanılıyor (PRIVACY_CONSENT §4). ABD eyalet mesajı yapılandırılırsa fork/upstream PR gerekir. | 🟡 Owner/ChatGPT kararı. |
+| 15 | **AdMob eklentisi UMP boşluğu (M8.9-01) — ÜRETİM ENGELİ:** godot-admob v6.0 `canRequestAds` / `getPrivacyOptionsRequirementStatus` / `showPrivacyOptionsForm` sarmaz (SDK'dan türeyen eşdeğerler kullanılıyor, PRIVACY_CONSENT §4) VE `debug_geography` cihazda uygulanamıyor (upstream #120: Java `Integer` bekliyor, Godot `Long` gönderiyor; v7.0 kaynağında düzeltilmiş ama v7.0 Godot 4.7) → EEA rıza formu A36'da gösterilemedi. Üretim öncesi küçük AAR yaması ya da upstream PR. | 🔴 Owner/ChatGPT kararı. |
+| 17 | **Ödül callback'i reklam kapanmadan geliyor (A36 gözlemi, M8.9-01.1):** Godot AdActivity arkasında çalışmaya devam ettiği için `grant_revive` / `grant_rewarded_power` reklam hâlâ üstteyken uygulanıyor; veri doğru ama "Devam!" flaşı, +1 pop ve MEDIUM titreşim reklamın arkasında oynuyor. İstenirse grant kapanışa ertelenebilir. | 🟡 UX; owner kararı, değişiklik yapılmadı. |
 | 16 | **Gradle debug APK 102 MB** — `android_source` şablonunun debug `libgodot_android.so` 75 MB (strip'siz). Release/AAB'de küçülür; prebuilt debug 45 MB idi. | 🟢 Beklenen; M9'da release boyutu ölçülecek. |
 | 14 | **Gameplay/tooling RNG coupling.** Kamera sarsıntısı `_process` içinde `randf_range` çağırıyordu — görsel ama `drop_bag.shuffle()` ile aynı global RNG akışını tüketiyor ve fizik kareleri arasında değişken sayıda çalışıyordu; `bot_runner` tekrarlanamazdı. | 🟢 **M8.5-11'de kaldırıldı:** sarsıntı `_fx_rng` kullanıyor; global RNG'yi artık yalnızca drop bag tüketiyor. Bot hâlâ seed'siz (rastgele başlangıç); seedli harness istenirse `seed()` eklemek yeter, drop_bag'e dokunmak gerekmiyor. |
 
@@ -1629,9 +1630,9 @@ verilmiyor:
    android_export.cfg [Release]` + `is_real=true` (yalnız release adımında).
 2. **Owner/ChatGPT: kitle politikası** — Play "Hedef kitle" beyanı ↔ TFCD /
    TFUA / içerik derecesi (PRIVACY_CONSENT §6).
-3. **A36 test reklamı cihaz kapısı** (ayrı yetki): rıza formu
-   (`debug_geography=eea`), yükleme/gösterim/ödül/kapanış, uçak modu, arka
-   plan, banner yuva hizası, logcat.
+3. ~~**A36 test reklamı cihaz kapısı**~~ → **GEÇTİ (M8.9-01.1, 2026-09-21)**;
+   rıza formu #120 yüzünden gösterilemedi (yukarıda §7 #15), uçak modu owner'ın
+   günlük telefonunda denenmedi (gerçek no-fill + masaüstü testleri kapsıyor).
 4. `M8.9-02` **analitik sağlayıcı** — `AdEvents` dikişine bağlanır.
 5. Eklenti UMP boşluğu kararı (§7 #15).
 

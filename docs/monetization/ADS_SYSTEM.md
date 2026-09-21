@@ -5,8 +5,11 @@
 > gizlilik ayrıntısı: [PRIVACY_CONSENT.md](PRIVACY_CONSENT.md).
 >
 > **Durum (2026-09-21):** entegrasyon + Gradle export + deterministik sahte
-> sağlayıcı testleri + TEST reklam APK'sı tamam. **Cihazda gerçek test reklamı
-> henüz doğrulanmadı** (A36 kapısı ayrı yetki bekliyor). Üretim kimliği YOK.
+> sağlayıcı testleri + TEST reklam APK'sı tamam; **A36 test-reklam cihaz kapısı
+> GEÇTİ** (M8.9-01.1, §12) — gerçek Google test banner'ı (Ana Sayfa / Mağaza /
+> Koleksiyon) ve gerçek test ödüllü reklamla devam + refill cihazda doğrulandı,
+> owner görsel onayı PASS. **Üretime hazır DEĞİL:** eklentinin UMP yüzeyi
+> (PRIVACY_CONSENT §4) ve COPPA/kitle kararı (§6) açık; üretim kimliği YOK.
 
 ## 1. Kapsam (v1 monetizasyon planı)
 
@@ -239,17 +242,64 @@ mimarisi gerektirmiyor).
   Ayarlar satırı, gizlilik metni, yuva ↔ OYNA konumu). Kayıt byte-identical.
 - Mevcut suite'ler değişmeden yeşil (gate: bkz. PROJECT_STATUS M8.9-01).
 
+## 12. A36 test-reklam cihaz kapısı (M8.9-01.1, 2026-09-21) — GEÇTİ
+
+Kanıt: `build/qa_m8.9-01/device/DEVICE_GATE_NOTES.md` (yerel, gitignore'lu) +
+33 kare + `logcat_gate.txt`. Sürücü: `tools/ads_device.tscn` (ayrı QA paketi
+`…squishymerge.qa`, komut/durum dosyası kanalı, gerçek dokunuşlar).
+
+- **Cihaz:** SM-A366B / Android 16 / 1080×2340 / yoğunluk 450 (384 dp genişlik)
+  / oyunda 120 Hz; GMA dynamite 260480602. Owner kaydı byte-identical geri kondu.
+- **Rıza (TR, form yok):** update 5,6 s → NOT_REQUIRED → SDK init 1,5 s → banner
+  + ödüllü 5–6 s içinde hazır; SDK rıza çözülmeden BAŞLATILMADI (log sırası).
+  **EEA debug akışı cihazda ÇALIŞTIRILAMADI:** eklenti v6.0 `debug_geography`'yi
+  Java'da `Integer` bekliyor, Godot `Long` gönderiyor (`Invalid debug_geography
+  type: Long`) → coğrafya yok sayılıyor; upstream issue #120 (açık), yalnız v7.0
+  kaynağında düzeltilmiş (Godot 4.7). Form yolu yalnız masaüstü sahte testlerle
+  kapsanıyor (PRIVACY_CONSENT §4 / §7).
+- **Banner:** gerçek "Test Reklamı" uyarlanabilir banner 384×60 dp = 1080×168 px,
+  alt kenara sabit (inset T=92 / B=0, jest gezinme), yuva 113 tuval px = 169,5 px;
+  Ana Sayfa OYNA / Mağaza son satır / Koleksiyon galerisi banner'ın üstünde; Harita
+  / oyun / sonuç ekranında banner yok (alt bant beyaz oranı 0,00). Gezinme döngüsü
+  ×3: tek AdView, aynı kimlik, yalnız show/hide (28 çağrı, 0 uyarı), sızıntı yok.
+- **Ödüllü devam:** gerçek test videosu; ödül callback'i **reklam etkinliği hâlâ
+  üstteyken** geldi (Godot bu cihazda AdActivity arkasında çalışmaya devam ediyor)
+  → `Main.grant_revive` tam bir kez, kapanış → 4 s'de sonraki reklam önyüklendi.
+  Çift dokunuş → tek gösterim. Reklam sırasında HOME → dönüş: SDK reklamı kapattı,
+  tek kapanış callback'i, çift ödül yok, takılı SHOWING yok. 2/2 sonra üçüncü
+  teklifte CTA pasif ("hakkın bitti"). Üretim paketinde gerçek taşma → gerçek
+  teklif → test reklamı → devam (kurtarma temizliği) doğrulandı.
+- **Ödüllü refill:** Bomba stok 0 → gerçek reklam → `grant_rewarded_power(BOMB,
+  token)` tam bir kez (stok 1, kota 1→0); aynı reklamın ikinci "ödül"ü yok sayıldı;
+  Sarsıntı'da CTA pasif + kota notu (reklam hazır olsa da); Hamur yolu bağımsız.
+- **Hata yolları:** gerçek no-fill (geçersiz kimlikle SDK kod 3 "Publisher data not
+  found") → FAILED + sınırlı geri çekilme, pencerede "Reklam hazırlanıyor…" →
+  "Reklam şu anda kullanılamıyor.", BİTİR/KAPAT/Hamur yolu açık; sahte arka uçla
+  gösterim hatası, round terki ve KAPAT yarışları: ödül/kota yok.
+- **Logcat:** SCRIPT ERROR 0, FATAL 0, ANR 0, tombstone 0, res:// eksik 0, pencere
+  sızıntısı 0; E/godot yalnız (a) bilerek geçersiz kimlik yükleme hataları ve (b)
+  yönetici sökülürken eklentinin zaten kaldırdığı banner için `hide` → **dar
+  düzeltme:** `AdmobBackend.show/hide_banner` eklenti önbelleğinde olmayan kimliği
+  atlar (eklenti düğümü çocuk olduğu için yöneticiden önce çıkıyor). PSS 428 →
+  467 MB (3 ödüllü + gezinme) → 448 MB; GMA WebView'ları reklamsız build'e göre
+  ~100–150 MB ekliyor, ilerleyen büyüme yok.
+- **UX notu (değişiklik YAPILMADI, owner kararı):** ödül `earned` anında verildiği
+  için devam/refill'in görsel geri bildirimi (Devam! flaşı, +1 pop, MEDIUM titreşim)
+  reklam kapanmadan, arka planda oynuyor. Veri doğru; istenirse grant kapanışa
+  ertelenebilir (küçük değişiklik, testli olmalı).
+
 ## 11. Açık noktalar / owner kararları
 
 1. **AdMob hesabı:** uygulama kaydı (App ID), rewarded + banner reklam
    birimleri, Privacy & messaging'de GDPR (ve gerekiyorsa US state) mesajı.
    Bunlar olmadan üretim kimliği/rıza mesajı yok — bkz. §8.
 2. **Kitle/COPPA:** PRIVACY_CONSENT §6.
-3. **Eklenti boşluğu:** v6.0 UMP'nin `canRequestAds()` /
+3. **Eklenti boşluğu (ÜRETİM ENGELİ):** v6.0 UMP'nin `canRequestAds()` /
    `getPrivacyOptionsRequirementStatus()` / `showPrivacyOptionsForm()`'unu
-   sarmaz; eşdeğer türetme ve seçenekler PRIVACY_CONSENT §4.
-4. **Cihaz kapısı (A36, test reklamı):** rıza formu (`debug_geography=eea`),
-   gerçek yükleme/gösterim/ödül/kapanış, uçak modu, arka plan, banner yuva
-   hizası — ayrı yetki.
+   sarmaz VE `debug_geography` cihazda uygulanamıyor (upstream #120, Long/Integer);
+   eşdeğer türetme ve seçenekler PRIVACY_CONSENT §4. Üretim öncesi küçük bir
+   eklenti yaması (AAR yeniden derleme) ya da upstream PR kararı gerekiyor.
+4. ~~**Cihaz kapısı (A36, test reklamı)**~~ → **GEÇTİ (§12)**; EEA formu cihazda
+   #120 yüzünden gösterilemedi.
 5. **Gameplay/Harita banner'ı:** veriyle yeniden değerlendirme (§6).
 6. **Next-Gen SDK geçişi:** eklentiye bağlı, v1 için gerekmez (§2).
