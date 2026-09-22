@@ -55,6 +55,10 @@ func _ready() -> void:
 	_saved_data = SaveManager.data.duplicate(true)
 	# main._ready günlük ödülü bugün alınmış saysın (kayda yazmasın).
 	SaveManager.data["last_login_date"] = Time.get_date_string_from_system()
+	# M8.10: bu harness KABUGU olcuyor — onboarding tamamlanmis olmali,
+	# yoksa Main dogrudan ilk acilis tutorial'ina girer. Kayit dosyasini
+	# geri koymayan baska bir suite diske `false` birakmis olabilir.
+	SaveManager.data["onboarding_completed"] = true
 
 	_main = MAIN_SCENE.instantiate()
 	add_child(_main)

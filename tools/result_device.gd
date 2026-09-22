@@ -67,6 +67,10 @@ func _ready() -> void:
 		_save_bytes = FileAccess.get_file_as_bytes(SaveManager.SAVE_PATH)
 	_saved_data = SaveManager.data.duplicate(true)
 	SaveManager.data["last_login_date"] = Time.get_date_string_from_system()
+	# M8.10: bu harness KABUGU olcuyor — onboarding tamamlanmis olmali,
+	# yoksa Main dogrudan ilk acilis tutorial'ina girer. Kayit dosyasini
+	# geri koymayan baska bir suite diske `false` birakmis olabilir.
+	SaveManager.data["onboarding_completed"] = true
 
 	_main = MAIN_SCENE.instantiate()
 	add_child(_main)
@@ -382,7 +386,6 @@ func _real_round(level_path: String, center_only: bool, hold_name: String) -> vo
 	_main._start_level(load(level_path))
 	await get_tree().process_frame
 	await get_tree().process_frame
-	_main._board._dismiss_tutorial()
 	_main._result.hide_result()
 	_reset_profile()
 	_profile_start_msec = -1

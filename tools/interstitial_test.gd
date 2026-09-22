@@ -395,7 +395,6 @@ func _test_main_integration() -> void:
 	main._start_level(load(LEVEL_10))
 	await _settle(2)
 	var board: Node2D = main._board
-	board._dismiss_tutorial()
 	board._enter_fail_pending()
 	await _settle(2)
 	main.decline_revive()
@@ -411,7 +410,6 @@ func _test_main_integration() -> void:
 	main._start_level(load(LEVEL_10))
 	await _settle(2)
 	board = main._board
-	board._dismiss_tutorial()
 	m._tick_active(900.0)
 	await _settle(2)
 	_c("oyun ortasında 900 sn: uygun ama gösterim YOK, board sürüyor", m.interstitial_eligible()
@@ -448,7 +446,6 @@ func _test_main_integration() -> void:
 	main._start_level(load(LEVEL_10))
 	await _settle(2)
 	board = main._board
-	board._dismiss_tutorial()
 	board._enter_fail_pending()
 	await _settle(2)
 	var offer: CanvasLayer = main._revive
@@ -478,7 +475,6 @@ func _test_main_integration() -> void:
 	main._start_level(load(LEVEL_10))
 	await _settle(2)
 	board = main._board
-	board._dismiss_tutorial()
 	board._enter_fail_pending()
 	await _settle(2)
 	seq_before = main._result_seq

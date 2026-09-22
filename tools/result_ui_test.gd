@@ -79,6 +79,10 @@ func _ready() -> void:
 	if _had_save:
 		_save_bytes = FileAccess.get_file_as_bytes(SaveManager.SAVE_PATH)
 	SaveManager.data["last_login_date"] = Time.get_date_string_from_system()
+	# M8.10: bu harness KABUGU olcuyor — onboarding tamamlanmis olmali,
+	# yoksa Main dogrudan ilk acilis tutorial'ina girer. Kayit dosyasini
+	# geri koymayan baska bir suite diske `false` birakmis olabilir.
+	SaveManager.data["onboarding_completed"] = true
 	_apply_showcase()
 	get_window().size = Vector2i(720, 1000)
 	await get_tree().process_frame
@@ -439,7 +443,6 @@ func _test_real_path() -> void:
 	_main._start_level(load(LEVEL_04))
 	await get_tree().process_frame
 	await get_tree().process_frame
-	_main._board._dismiss_tutorial()
 	var board: Node2D = _main._board
 	board._revives_used = board.MAX_REVIVES_PER_ROUND
 	GameState.reset_run()
@@ -589,7 +592,6 @@ func _test_revive_order() -> void:
 	_main._start_level(load(LEVEL_04))
 	await get_tree().process_frame
 	await get_tree().process_frame
-	_main._board._dismiss_tutorial()
 	var board: Node2D = _main._board
 	GameState.reset_run()
 	GameState.add_score(500)
@@ -725,7 +727,6 @@ func _open(level_path: String, won: bool, score: int, rewards: Array[ChestReward
 	_main._start_level(load(level_path))
 	await get_tree().process_frame
 	await get_tree().process_frame
-	_main._board._dismiss_tutorial()
 	_main._board.round_finished.disconnect(_main._on_round_finished)
 	GameState.reset_run()
 	GameState.add_score(score)

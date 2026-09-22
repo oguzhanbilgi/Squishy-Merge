@@ -67,6 +67,10 @@ func _ready() -> void:
 	SaveManager.data["equipped_skin"] = ""
 	SaveManager.data["powerup_starter_granted"] = true
 	SaveManager.data["last_login_date"] = Time.get_date_string_from_system()
+	# M8.10: bu harness KABUGU olcuyor — onboarding tamamlanmis olmali,
+	# yoksa Main dogrudan ilk acilis tutorial'ina girer. Kayit dosyasini
+	# geri koymayan baska bir suite diske `false` birakmis olabilir.
+	SaveManager.data["onboarding_completed"] = true
 	Haptics.set_sink(_on_device_haptic, true)
 	Haptics.reset_counters()
 	_log("=== gameplay_device %s view=%s hz=%.0f ===" % [_tag(), str(_size), DisplayServer.screen_get_refresh_rate()])
@@ -664,7 +668,6 @@ func _interop() -> void:
 	await get_tree().process_frame
 	await get_tree().process_frame
 	var board: Node2D = _main._board
-	board._dismiss_tutorial()
 	board.round_finished.connect(func(_w: bool) -> void: _finished_count += 1)
 	var cx: float = board._center_x()
 	board._spawn_dumpling(3, Vector2(cx - 17.0, board.FLOOR_Y - 34.0 - 6.0))

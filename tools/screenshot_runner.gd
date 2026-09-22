@@ -369,6 +369,10 @@ func _fake_rewards() -> Array[ChestReward]:
 ## sekme çubuğu ancak main.gd bağladığında görünüyor ve asıl doğrulanmak
 ## istenen şey de o.
 func _shot_shell() -> void:
+	# M8.10: bu harness KABUGU olcuyor — onboarding tamamlanmis olmali,
+	# yoksa Main dogrudan ilk acilis tutorial'ina girer. Kayit dosyasini
+	# geri koymayan baska bir suite diske `false` birakmis olabilir.
+	SaveManager.data["onboarding_completed"] = true
 	var main: Node2D = MAIN_SCENE.instantiate()
 	add_child(main)
 	await get_tree().process_frame

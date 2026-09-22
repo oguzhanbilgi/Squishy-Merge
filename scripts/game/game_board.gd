@@ -19,6 +19,10 @@ signal settings_requested
 ## HUD'daki Geri / Çıkış butonu: Main "Mola" penceresini açar ve board'u
 ## `set_menu_paused(true)` ile dondurur. Board kendi başına round bitirmez.
 signal pause_requested
+## --- Ilk acilis tutorial disi (M8.10, docs/TUTORIAL_SYSTEM.md) ---
+## Oyuncu GERCEK surukle/birak hareketini tamamladi ve parca DOGDU.
+## TutorialController adim ilerletmek icin dinler; board tutorial'i BILMEZ.
+signal dumpling_dropped(tier: int)
 
 const DUMPLING_SCENE: PackedScene = preload("res://scenes/game/dumpling.tscn")
 const POP_EFFECT_SCENE: PackedScene = preload("res://scenes/game/pop_effect.tscn")
@@ -150,12 +154,20 @@ const REVIVE_PROTECTION: float = 1.5
 ## oyun açıyor; devam anlamlı ama round yeniden başlamıyor.
 const REVIVE_RESCUE_DEPTH: float = 120.0
 
-## Sürükle-bırak ipucunun gösterildiği level. Yalnızca ilk level'da, ilk
-## bırakışa kadar. Bkz. _setup_tutorial().
-const TUTORIAL_LEVEL: int = 1
-const TUTORIAL_SIZE: Vector2 = Vector2(360.0, 220.0)
-## İpucu kabın ağzı ile taşma çizgisi arasında, bu oranda aşağıda duruyor.
-const TUTORIAL_Y_RATIO: float = 0.42
+## --- Tutorial bırakma yardımı (M8.10) ---
+##
+## Eski "level 1'de sürükle • bırak ipucu" KALDIRILDI: ürün onboarding'i
+## artık `TutorialController` + `TutorialOverlay` (yalnız ilk açılışta,
+## docs/TUTORIAL_SYSTEM.md). Board'da kalan tek şey tutorial'ın kullandığı
+## pasif dikiş — normal oyunda kapalı ve hiçbir yola dokunmaz.
+##
+## CLAMP: bırakma x'i kabın ortasına göre bu yarı genişlikte sınırlanır
+## (ilk drop duvara yapışıp sekmesin). Önizleme de sınırlı: oyuncu ne
+## görüyorsa o düşer.
+## SNAP: bırakma x'i verilen hedefe çekilir (ikinci T1 birincinin üstüne).
+## Önizleme SERBEST kalır (sürükleme gerçek hissettirir); hizalama bırakma
+## anında uygulanır ve parça görünür biçimde kılavuz çizgisine süzülür.
+enum TutorialAssist { NONE, CLAMP, SNAP }
 
 ## Ekran sarsıntısı (M8 juice): merge'in tier'ına göre ölçekleniyor.
 ## Küçük merge'de neredeyse hissedilmiyor, tier 8'de belirgin.
@@ -263,9 +275,20 @@ var _danger_pulse: float = 0.0
 ## Tehlike nabzinin fazi ve aciliyeti (0..1, tasma sayaci / grace) — sunum.
 var _danger_phase: float = 0.0
 var _danger_urgency: float = 0.0
-## İpucu bir kez kapandıktan sonra tekrar açılmasın (fade tween'i sırasında
-## ikinci bir bırakış gelirse iki tween çakışırdı).
-var _tutorial_dismissed: bool = false
+## --- Tutorial durumu (M8.10) — normal oyunda hepsi kapalı/boş ---
+## Tutorial açıklama adımlarının dondurması. Fail/refill/menü ile AYNI
+## makineyi kullanır ama AYRI bayrak: hiçbiri diğerinin durumunu bozmaz
+## (tutorial pause'u fail-pending ile karıştırma kuralı).
+var _is_tutorial_paused: bool = false
+## Tutorial adımı board girdisini tamamen kapattı (WELCOME / açıklamalar).
+var _tutorial_input_locked: bool = false
+## Tutorial'a özel deterministik drop kuyruğu (T1, T1). Normal `_drop_bag`
+## RNG'sine DOKUNMAZ; kuyruk bitince torba devralır (torba round başına yeni,
+## yani tutorial'dan sonra tertemiz bir torba çalışır).
+var _tutorial_queue: Array[int] = []
+var _tutorial_assist: TutorialAssist = TutorialAssist.NONE
+var _tutorial_assist_x: float = 0.0
+var _tutorial_assist_span: float = 0.0
 ## Sarsıntı sonrası taşma koruması kalan süre (sn). >0 iken taşma birikmiyor.
 var _shake_protection: float = 0.0
 ## Sarsıntının kap kenarındaki parlaması (1 → 0). Yalnızca GÖRSEL; fizik
@@ -307,7 +330,6 @@ var _view_size: Vector2 = Vector2(720.0, 1280.0)
 @onready var _status_label: Label = _hud.status_label
 @onready var _combo_label: Label = _hud.combo_label
 @onready var _score_pop: Label = _hud.score_pop
-@onready var _tutorial: VBoxContainer = _hud.tutorial
 @onready var _combo_badge: TextureRect = _hud.combo_badge
 @onready var _power_bar: PowerBar = _hud.power_bar
 @onready var _camera: Camera2D = $Camera2D
@@ -341,8 +363,8 @@ func _ready() -> void:
 	_setup_overflow_area()
 
 	_aim_x = _center_x()
-	_pending_tier = _drop_bag.next_tier()
-	_next_tier = _drop_bag.next_tier()
+	_pending_tier = _next_drop_tier()
+	_next_tier = _next_drop_tier()
 	_refresh_preview()
 	_hud.set_level(level, SaveManager.endless_high_score())
 	_prev_score = GameState.score
@@ -352,7 +374,6 @@ func _ready() -> void:
 	_set_combo_text("")
 	_score_pop.text = ""
 	_score_pop.modulate.a = 0.0
-	_setup_tutorial()
 	_setup_powerups()
 
 
@@ -385,8 +406,6 @@ func _apply_layout(view: Vector2, safe_top: float = -1.0) -> void:
 	_hud.apply_layout(rects)
 	_camera.zoom = Vector2.ONE * _camera_zoom
 	_camera.position = _camera_center
-	if _tutorial.visible:
-		_place_tutorial()
 	queue_redraw()
 
 
@@ -430,7 +449,7 @@ func board_screen_rect() -> Rect2:
 func set_menu_paused(paused: bool) -> void:
 	if paused == _is_menu_paused or _is_finished:
 		return
-	if paused and (_is_fail_pending or _is_refill_pending):
+	if paused and (_is_fail_pending or _is_refill_pending or _is_tutorial_paused):
 		# Zaten donuk: ayrı bir dondurma katmanı açma, pencere kapanınca
 		# mevcut durum neyse o sürer.
 		return
@@ -463,42 +482,172 @@ func _note_tier(tier: int) -> void:
 	_update_goal_progress()
 
 
-## Sürükle-bırak ipucu: yalnızca level 1'de, ilk bırakışa kadar
-## (GAME_DESIGN.md §1.1).
-func _setup_tutorial() -> void:
-	if level.is_endless or level.level_number != TUTORIAL_LEVEL:
-		_tutorial.visible = false
+# --- Ilk acilis tutorial dikisi (M8.10) ---------------------------------------
+#
+# SORUMLULUK SINIRI: board urun onboarding'ini BILMEZ. Burada yalnizca
+# "girdiyi kapat", "dondur", "su tier'lari sirayla ver", "birakmayi suraya
+# hizala" gibi mekanik kancalar var; hangi adimda hangisinin acilacagina
+# `TutorialController` karar verir, tamamlanmayi `SaveManager` yazar.
+#
+# Normal oyunda bu kancalarin HICBIRI kurulmaz: kuyruk bos, yardim NONE,
+# bayraklar false — fizik, torba, nisan ve birakma yollari birebir ayni.
+
+## Tutorial'a ozel drop kuyrugu (add_child'dan ONCE, `setup` ile birlikte).
+## Kuyruktaki tier'lar sirayla verilir, bitince normal torba devralir.
+func setup_tutorial_queue(tiers: Array[int]) -> void:
+	_tutorial_queue = tiers.duplicate()
+
+
+## Siradaki drop tier'i: tutorial kuyrugu varsa oradan, yoksa torbadan.
+## Kuyruk torbayi TUKETMEZ — tutorial'dan sonra torba hic cekilmemis olur.
+func _next_drop_tier() -> int:
+	if not _tutorial_queue.is_empty():
+		return _tutorial_queue.pop_front()
+	return _drop_bag.next_tier()
+
+
+func tutorial_queue_size() -> int:
+	return _tutorial_queue.size()
+
+
+## Tutorial aciklama adimi: board donar (parcalar coach kartinin altinda
+## suruklenmesin). Fail/refill/menu dondurmasindan AYRI bayrak.
+func set_tutorial_paused(paused: bool) -> void:
+	if paused == _is_tutorial_paused or _is_finished:
 		return
-	_place_tutorial()
-	_tutorial.visible = true
-
-	# Hafif bir salınım — hareketsiz bir ipucu gözden kaçıyor.
-	var bob := create_tween().set_loops().bind_node(_tutorial)
-	var home: Vector2 = _tutorial.position
-	bob.tween_property(_tutorial, "position", home + Vector2(0.0, 10.0), 0.9) \
-		.set_trans(Tween.TRANS_SINE)
-	bob.tween_property(_tutorial, "position", home, 0.9).set_trans(Tween.TRANS_SINE)
-
-
-## İpucu HUD katmanında (ekran koordinatı); kabın ağzı ile taşma çizgisi
-## arasındaki dünya noktası kameradan ekrana çevrilir. Round başında burası
-## boş, ilk parça düşmeden ipucu zaten kayboluyor.
-func _place_tutorial() -> void:
-	var span: float = overflow_line_y() - container_top_y()
-	var mid_y: float = container_top_y() + span * TUTORIAL_Y_RATIO
-	var at: Vector2 = world_to_screen(Vector2(_center_x(), mid_y))
-	_tutorial.size = TUTORIAL_SIZE
-	_tutorial.position = at - TUTORIAL_SIZE * 0.5
-
-
-## İlk bırakışta sönerek kaybolur — oyuncu mekaniği anladı.
-func _dismiss_tutorial() -> void:
-	if _tutorial_dismissed or not _tutorial.visible:
+	_is_tutorial_paused = paused
+	if paused and (_is_fail_pending or _is_refill_pending or _is_menu_paused):
+		# Zaten donuk: ayri bir dondurma katmani acma.
 		return
-	_tutorial_dismissed = true
-	var fade := create_tween().bind_node(_tutorial)
-	fade.tween_property(_tutorial, "modulate:a", 0.0, 0.35)
-	fade.tween_callback(func() -> void: _tutorial.visible = false)
+	_preview.visible = not paused and not _powerups.is_armed() and not _tutorial_input_locked
+	_power_bar.set_enabled(not paused)
+	_set_board_frozen(paused)
+
+
+func is_tutorial_paused() -> bool:
+	return _is_tutorial_paused
+
+
+## Tutorial adimi board girdisini kapatir/acar (nisan, birakma, guc
+## hedefleme). Kapaliyken onizleme de gizlenir — birakilamayan bir parcanin
+## ucu gorunmesin.
+func set_tutorial_input_locked(locked: bool) -> void:
+	_tutorial_input_locked = locked
+	if _is_finished:
+		return
+	_preview.visible = not locked and not _is_paused() and not _powerups.is_armed()
+
+
+func is_tutorial_input_locked() -> bool:
+	return _tutorial_input_locked
+
+
+## Birakmayi kabin ortasinda `half_width` yari genislikli guvenli banda
+## sinirlar (ilk drop). Onizleme de bandin disina cikmaz.
+func set_tutorial_drop_clamp(half_width: float) -> void:
+	_tutorial_assist = TutorialAssist.CLAMP
+	_tutorial_assist_x = _center_x()
+	_tutorial_assist_span = maxf(0.0, half_width)
+	_set_aim(_aim_x)
+
+
+## Birakmayi `world_x`'e hizalar (ikinci T1 birincinin ustune). Onizleme
+## serbest kalir; hizalama birakma aninda uygulanir.
+func set_tutorial_drop_snap(world_x: float) -> void:
+	_tutorial_assist = TutorialAssist.SNAP
+	_tutorial_assist_x = world_x
+	_tutorial_assist_span = 0.0
+
+
+func clear_tutorial_drop_assist() -> void:
+	_tutorial_assist = TutorialAssist.NONE
+	_tutorial_assist_span = 0.0
+	_set_aim(_aim_x)
+
+
+## Tutorial kilavuz cizgisinin ekran x'i (overlay cizer); yardim yoksa -1.
+func tutorial_guide_screen_x() -> float:
+	if _tutorial_assist != TutorialAssist.SNAP:
+		return -1.0
+	return world_to_screen(Vector2(_tutorial_assist_x, drop_line_y())).x
+
+
+## Yardim uygulanmis birakma x'i (yalniz tutorial; NONE'da aynen doner).
+func _assisted_drop_x(x: float) -> float:
+	match _tutorial_assist:
+		TutorialAssist.CLAMP:
+			return clampf(x, _tutorial_assist_x - _tutorial_assist_span,
+				_tutorial_assist_x + _tutorial_assist_span)
+		TutorialAssist.SNAP:
+			return _tutorial_assist_x
+		_:
+			return x
+
+
+## Tutorial retry'i (merge gelmedi): bekleyen parcayi verilen tier'a cevirir.
+## YALNIZ tutorial cagirir; torbaya ve `_next_tier`'a dokunmaz.
+func set_tutorial_pending_tier(tier: int) -> void:
+	_pending_tier = clampi(tier, 1, TierConfig.DROP_POOL_MAX_TIER)
+	_set_aim(_aim_x)
+
+
+## --- Tutorial spot dikdortgenleri (ekran px) ---
+##
+## HUD dugumleri board'un ici; overlay onlara erismesin diye olculeri
+## buradan veriyoruz (TutorialController yalniz Rect2 goruyor).
+
+## HEDEF plakasi (GOAL adimi).
+func tutorial_goal_rect() -> Rect2:
+	return _hud.goal_plate.get_global_rect()
+
+
+## Tasma (tehlike) cizgisi bandi: kabin iki duvari arasinda, cizginin
+## etrafinda okunur bir serit.
+func tutorial_danger_rect() -> Rect2:
+	var left: Vector2 = world_to_screen(Vector2(_left_x(), overflow_line_y()))
+	var right: Vector2 = world_to_screen(Vector2(_right_x(), overflow_line_y()))
+	var pad: float = 22.0
+	return Rect2(left.x, left.y - pad, maxf(1.0, right.x - left.x), pad * 2.0)
+
+
+## Tutorial coach yuzeyinin girebilecegi GUVENLI BANT (ekran px): HUD'un
+## alti ile evrim seridinin ustu arasi. Kart ve ATLA kontrolu bu bandin
+## disina cikmaz — hicbir HUD kontrolunu, seridi ya da banner yuvasini
+## ortmezler (M8.10 gorsel QA'sinda iki carpisma boyle kapandi).
+func tutorial_safe_band() -> Rect2:
+	var rects: Dictionary = _hud.layout()
+	if rects.is_empty():
+		var view: Vector2 = get_viewport_rect().size
+		return Rect2(0.0, 0.0, view.x, view.y)
+	var hud: Rect2 = rects["hud"]
+	var strip: Rect2 = rects["strip"]
+	var view_rect: Rect2 = rects["view"]
+	return Rect2(0.0, hud.end.y, view_rect.size.x, maxf(0.0, strip.position.y - hud.end.y))
+
+
+## Dort guc slotu (iki tepsi birlikte).
+func tutorial_powers_rect() -> Rect2:
+	return _hud.tray_left.get_global_rect().merge(_hud.tray_right.get_global_rect())
+
+
+## Bir parcanin ekran dikdortgeni (MATCH_DROP hedef vurgusu).
+func tutorial_dumpling_rect(dumpling: Dumpling) -> Rect2:
+	if dumpling == null or not is_instance_valid(dumpling):
+		return Rect2()
+	var radius: float = TierConfig.radius(dumpling.tier) * _camera_zoom
+	var center: Vector2 = world_to_screen(dumpling.global_position)
+	return Rect2(center - Vector2(radius, radius), Vector2(radius, radius) * 2.0)
+
+
+## Canli parcalar (tutorial "ilk parca oturdu mu" icin; salt okunur kopya).
+func live_dumplings() -> Array:
+	var out: Array = []
+	for node in _dumpling_layer.get_children():
+		var dumpling := node as Dumpling
+		if dumpling != null and is_instance_valid(dumpling) \
+				and not dumpling.is_queued_for_deletion():
+			out.append(dumpling)
+	return out
 
 
 # --- Geometri ---
@@ -781,9 +930,10 @@ func _draw_danger() -> void:
 # seçimi olarak yorumlanıyor, boşluğa dokunmak iptal ediyor.
 
 func _unhandled_input(event: InputEvent) -> void:
-	# Bir overlay açıkken oyun girdisi tamamen kapalı: ne nişan, ne bırakma,
-	# ne hedefleme. Tek etkileşim overlay'in kendi butonları.
-	if _is_finished or _is_paused():
+	# Bir overlay acikken oyun girdisi tamamen kapali: ne nisan, ne birakma,
+	# ne hedefleme. Tek etkilesim overlay'in kendi butonlari. Tutorial adimi
+	# da ayni kapiyi kullanir (M8.10: adim basina acik/kapali).
+	if _is_finished or _is_paused() or _tutorial_input_locked:
 		return
 
 	if _powerups.is_armed():
@@ -1419,6 +1569,10 @@ func _play_shake_feedback() -> void:
 func _set_aim(x: float) -> void:
 	var margin: float = TierConfig.radius(_pending_tier)
 	_aim_x = clampf(x, _left_x() + margin, _right_x() - margin)
+	# CLAMP yardimi onizlemeyi de baglar: oyuncu ne goruyorsa o duser.
+	# SNAP yardimi onizlemeye DOKUNMAZ (surukleme serbest kalsin).
+	if _tutorial_assist == TutorialAssist.CLAMP:
+		_aim_x = _assisted_drop_x(_aim_x)
 	_refresh_preview()
 
 
@@ -1435,13 +1589,18 @@ func _drop() -> void:
 	# güvenilemez, ve _drop() dışarıdan da (test/bot) çağrılabiliyor.
 	if _is_finished or _is_paused() or _drop_cooldown > 0.0:
 		return
-	_dismiss_tutorial()
+	if _tutorial_input_locked:
+		return
+	# Tutorial yardimi (M8.10): normal oyunda NONE -> `_aim_x` aynen kullanilir.
+	var drop_x: float = _assisted_drop_x(_aim_x)
+	var dropped_tier: int = _pending_tier
 	AudioManager.play_drop()
-	_spawn_dumpling(_pending_tier, Vector2(_aim_x, drop_line_y()))
+	_spawn_dumpling(dropped_tier, Vector2(drop_x, drop_line_y()))
 	_pending_tier = _next_tier
-	_next_tier = _drop_bag.next_tier()
+	_next_tier = _next_drop_tier()
 	_drop_cooldown = DROP_COOLDOWN
-	_set_aim(_aim_x)
+	_set_aim(drop_x)
+	dumpling_dropped.emit(dropped_tier)
 
 
 func _spawn_dumpling(tier: int, at: Vector2) -> Dumpling:
@@ -2018,7 +2177,7 @@ func _is_overflowing() -> bool:
 
 ## Oyun herhangi bir overlay yüzünden durmuş mu?
 func _is_paused() -> bool:
-	return _is_fail_pending or _is_refill_pending or _is_menu_paused
+	return _is_fail_pending or _is_refill_pending or _is_menu_paused or _is_tutorial_paused
 
 
 func is_refill_pending() -> bool:
@@ -2237,6 +2396,7 @@ func _finish(won: bool) -> void:
 	# Bir overlay açıkken round bitmiş olabilir. Board donmuş kalmasın.
 	_is_fail_pending = false
 	_is_refill_pending = false
+	_is_tutorial_paused = false
 	_set_board_frozen(false)
 	_preview.visible = false
 	# Round bitti: hiçbir güç silahlanamaz, silahlı olan iptal olur.

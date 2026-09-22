@@ -73,15 +73,12 @@ func _capture(name: String) -> void:
 	print(("kaydedildi : " if err == OK else "HATA       : "), file)
 
 
-func _make_board(level: String = "res://resources/levels/level_04.tres",
-		keep_tutorial: bool = false) -> void:
+func _make_board(level: String = "res://resources/levels/level_04.tres") -> void:
 	await _teardown()
 	_board = GAME_BOARD_SCENE.instantiate()
 	_board.setup(load(level))
 	add_child(_board)
 	await get_tree().process_frame
-	if not keep_tutorial:
-		_board._dismiss_tutorial()
 	await get_tree().process_frame
 
 
@@ -203,6 +200,10 @@ func _shot_endless() -> void:
 ## Mola penceresi: gerçek Main akışı (HUD Geri → PauseMenu), board donuk.
 func _shot_pause_menu() -> void:
 	await _teardown()
+	# M8.10: bu harness KABUGU olcuyor — onboarding tamamlanmis olmali,
+	# yoksa Main dogrudan ilk acilis tutorial'ina girer. Kayit dosyasini
+	# geri koymayan baska bir suite diske `false` birakmis olabilir.
+	SaveManager.data["onboarding_completed"] = true
 	var main: Node2D = MAIN_SCENE.instantiate()
 	add_child(main)
 	await get_tree().process_frame
@@ -210,7 +211,6 @@ func _shot_pause_menu() -> void:
 	main._start_level(load("res://resources/levels/level_04.tres"))
 	await get_tree().process_frame
 	await get_tree().process_frame
-	main._board._dismiss_tutorial()
 	_board = main._board
 	await _pile([[4, 3, 4, 3], [3, 2, 2, 3]])
 	main._board.get_node("HUD").back_button.pressed.emit()

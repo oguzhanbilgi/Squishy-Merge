@@ -1517,6 +1517,8 @@ squishy-merge/
 | `fake_ad_backend.gd` | `FakeAdBackend` — reklam SDK'sı test çifti (M8.9-01): çağrı sayar, her SDK olayı testten elle tetiklenir. Export dışı. |
 | `monetization_test.gd` + `.tscn` | **Headless monetizasyon testi** (M8.9-01/02, 191 kontrol): yapılandırma korumaları (interstitial kimliği fail-closed), olay dikişi (28), kaynak taraması, rıza akışı/hataları/gizlilik seçenekleri, ödüllü başarı + callback güvenliği (çift/geç/eski/iptal/yanlış güç) + hata/geri çekilme/zaman aşımı + arka plan, banner yuva/5 yüzey/gezinme/hata/onboarding, Main entegrasyonu (gerçek pencereler + board + kota + Ayarlar). Kaydı byte'ı geri koyar. |
 | `daily_rewards_test.gd` + `.tscn` | **Headless günlük ödüller testi** (M8.9-02/02.1, 134 kontrol): onboarding migration'ı, gün anahtarı (ileri/geri/aynı gün), üç kota + tek transaction + bağımsızlık, loot (4000 seed'li kura), Mağaza kartı + pencere + reveal, Main + sahte SDK (talep/çift/iptal/hata/gün değişimi), birleşik giriş ödülü (yeni gün / yeniden açılış / ertesi gün / kırık seri / geri saat / bağımsızlık / onboarding false no-op), otomatik pencere, onboarding bastırması. Kaydı byte'ı geri koyar. |
+| `tutorial_test.gd` + `.tscn` | **Headless ilk açılış tutorial'ı testi** (M8.10, 149 kontrol): yeni kayıt açılışında otomatik tutorial, WELCOME girdi kapısı, FIRST_DROP clamp'i + yalnız geçerli bırakmanın ilerletmesi, MATCH_DROP hizalaması, GERÇEK merge şartı (T2 + skor + merge sayacı + tutorial T2'si board'da kalıyor + torba tüketilmedi), açıklama adımlarında girdi/dondurma + "coach kartı hedefi örtmüyor", tamamlanma atomikliği (iki alan tek transaction, çift tamamlanma yazmıyor), ilk gün bastırmasının tamamı + ertesi gün +15/seri, ATLA'nın aynı kanonik yoldan geçmesi, Android geri onayı (mola açılmıyor, kabuğa düşülmüyor), yarıda kapanma → baştan, onboarded oyuncunun Level 1 tekrarında tutorial görmemesi, monetizasyon ertelemesi (round ortası yuva 0 + rıza başlamadı → kabuk geçişinde açılıyor). Kaydı byte'ı geri koyar. |
+| `tutorial_shots.gd` + `.tscn` | **M8.10 tutorial çekimleri** (pencereli): gerçek `main.tscn` + gerçek board üstünde 10 durum (karşılama, ilk bırakma, eşleştirme, merge kutlaması, hedef/tehlike/güçler spot'ları, hazırsın, geri onayı, tamamlanma sonrası); her adımda kart/hedef dikdörtgenleri, örtüşme, güvenli alan ve banner yuvası ölçümü stdout'ta. Adım beklemesi SÜREYE değil DURUMA bağlı. `--headless` ile çalışmaz. |
 | `interstitial_test.gd` + `.tscn` | **Headless geçiş reklamı testi** (M8.9-02, 60 kontrol): 899/900 saat, dışlanan anlar, doğal mola / hazır değil / gösterim → saat 0 / callback bir kez, 60 sn bekleme, ödüllü dışlaması, yükleme/gösterim hataları, onay zaman aşımı, süresi dolma, Main: sonuç tam bir kez. Kaydı byte'ı geri koyar. |
 | `daily_ads_shots.gd` + `.tscn` | **M8.9-02 düzen çekimleri** (pencereli): Harita/oyun + banner yuvası (orta ve yeni oyuncu), Mağaza günlük kartı, GÜNLÜK ÖDÜLLER penceresi (hazır/karışık), reveal (Hamur / Common / Legendary), yuvasız referanslar; ölçümler stdout'ta. `--headless` ile çalışmaz. |
 | `ads_device.gd` + `.tscn` | **Reklam cihaz kapısı sürücüsü** (M8.9-01.1 / M8.9-02.2): gerçek `main.tscn`'i gerçek ya da sahte arka uçla kurar, `user://qa_cmd.txt` komut kanalı + `user://qa_state.txt` durum dosyası (reklam/ödüllü/geçiş/banner/günlük/pencere/harita/oyun dikdörtgenleri ekran px, son olaylar). M8.9-02.2 QA komutları: onboarding, login, dailyq, dayclock, fresh, relaunch, daily_open/close/reveal, clock (aktif süre enjeksiyonu), inter_block, fake_i*. **Yalnız ayrı QA paketinde** (`…squishymerge.qa`); üretim export'u `tools/*` hariç — üretim sabitlerine dokunmaz. |
@@ -1665,9 +1667,73 @@ verilmiyor:
 5. ~~İki günlük pencere kararı~~ → M8.9-02.1'de birleştirildi (§7 #18).
 6. **Analitik sağlayıcı** — `AdEvents` dikişine bağlanır (28 olay hazır).
 7. Eklenti UMP boşluğu kararı (§7 #15).
-8. M8.10 ilk açılış tutorial'ı — `onboarding_completed` sözleşmesi
-   (DAILY_REWARDS §9) + **ilk gün kuralı** (tutorial gününde otomatik günlük
-   pencere yok; owner kararı, yalnız dokümante).
+8. ~~M8.10 ilk açılış tutorial'ı~~ → **UYGULANDI** (dal
+   `task/035-first-run-tutorial`, base `d72fde5`) — §9'a bakın. **A36 cihaz
+   kapısı ÇALIŞTIRILMADI; main'e birleştirilmedi, push edilmedi.**
+
+### M8.10 — İlk açılış tutorial'ı + ilk gün kuralı
+
+Dal `task/035-first-run-tutorial`. Kanonik doküman
+[docs/TUTORIAL_SYSTEM.md](docs/TUTORIAL_SYSTEM.md).
+
+**Neden bu tasarım.** Onboarding dikişi M8.9-02'de hazırlanmıştı ama
+tutorial'ın kendisi yoktu; Level 1'de duran "sürükle • bırak" ipucu ise
+onboarded oyuncuya da çıkıyordu. İki sistem yan yana yaşayamayacağı için
+eski ipucu KALDIRILDI (`gameplay_hud.tutorial` widget'ı ve
+`GameBoard._setup_tutorial/_place_tutorial/_dismiss_tutorial` silindi;
+harness'lerdeki `_dismiss_tutorial()` çağrıları temizlendi).
+
+**Sahte fizik yok.** Tutorial gerçek `GameBoard` + gerçek `Dumpling` +
+gerçek `_resolve_merge` üstünde çalışıyor. T2 doğrudan doğurulmuyor: iki T1
+gerçekten bırakılıyor ve adım ancak `GameState.merge_performed` geldiğinde
+ilerliyor. Öğretim kuyruğu (`[T1, T1]`) `DropBag` RNG'sine dokunmuyor
+(kuyruk bitince torba devralıyor; torba round başına yeni, yani tutorial'dan
+sonra hiç çekilmemiş oluyor). İki bırakma yardımı tutorial'a özel: ilk drop
+kabın ortasında ±%24 banda CLAMP (önizleme de sınırlı), ikinci drop ilk
+T1'in x'ine SNAP (önizleme serbest, hizalama bırakma anında + cyan kılavuz
+çizgisi). Merge 3 sn içinde gelmezse adım güvenle yeniden kuruluyor —
+oyuncu takılı kalmıyor.
+
+**Sorumluluk sınırı.** Board ürün onboarding'ini bilmiyor: yalnız pasif
+dikişler sunuyor (`setup_tutorial_queue`, `set_tutorial_input_locked`,
+`set_tutorial_paused`, `set_tutorial_drop_clamp/snap`, spot dikdörtgenleri).
+Tutorial pause'u fail-pending / refill-pending / menü dondurmasından AYRI
+bayrak; karşılıklı koruma var ve `_finish()` üçünü de temizliyor. Tutorial
+açıkken Mola ve Ayarlar açılmıyor (oyun içi Geri butonu tutorial'ın kendi
+onayını açıyor), Android geri "DEVAM ET / ATLA" gösteriyor — monetize edilmiş
+Ana Sayfa'ya onboarding false iken ASLA düşülmüyor.
+
+**Kalıcılık.** Yeni `Onboarding` servisi (tek yetkili nokta) + kayıt alanı
+`onboarding_completed_day`. `SaveManager.complete_onboarding(day_key)` iki
+alanı ve `last_seen_day_key`'i TEK `save_game()` ile yazıyor; idempotent
+(ikinci çağrıda diske yazma DA yok). Eski kayıtta tamamlanma günü
+UYDURULMUYOR — boş kalıyor ve "yerleşik oyuncu, bastırma yok" demek. Yarıda
+kapanırsa onboarding false kalıyor ve tutorial baştan başlıyor (adım adım
+kalıcılık bilinçli olarak YOK).
+
+**İlk gün kuralı.** Tek kapı `Onboarding.daily_rewards_unlocked()`; kontrol
+UI'da değil MODELDE (üç transaction + `popup_due` + giriş ödülü içinde).
+Tamamlanma gününde günlük sistemin tamamı kapalı, telafi yok; ertesi yerel
+günde sıfırdan (seri 1, +15, tek pencere, tam kotalar). Saat geri alma
+korumasıyla tutarlı: B gününe geçtikten sonra A'ya dönmek yeniden
+kilitlemiyor.
+
+**Monetizasyon.** UMP/rıza akışı onboarding'e kadar hiç başlamıyor
+(`_maybe_start_consent`); şart kaldırılmadı, yalnız ertelendi. Tutorial'dan
+doğan Level 1 round'unun ORTASINDA banner yuvası açılmıyor — `Main` geçici
+(kayda yazılmayan) bir erteleme bayrağı tutuyor ve ilk güvenli geçişte
+(`_show_tab` / `_start_level`) açıyor. Bu sırada bulunan bir hata da
+düzeltildi: `_consent_attempts` başarıda sıfırlandığı için "rıza başladı mı"
+sorusuna cevap veremiyordu (ikinci `request_consent_update` izni geçici
+olarak kaybettiriyordu) → ayrı `_consent_started` bayrağı.
+
+**Testler (ilk geçerli koşu).** `tutorial_test` 149/149, `daily_rewards_test`
+179/179, `monetization_test` 207/207, `interstitial_test` 60/60. Görsel QA:
+`tools/tutorial_shots.tscn` 3 boyut × 10 durum, her adımda "kart hedefi
+örtmüyor" ölçümü.
+
+**Açık:** A36 cihaz kapısı çalıştırılmadı; tutorial metinleri yalnız Türkçe;
+üretim engelleri (UMP sarmalayıcı, COPPA, gerçek AdMob kimlikleri) değişmedi.
 
 ### M9 — Android export
 

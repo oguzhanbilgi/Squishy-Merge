@@ -194,8 +194,6 @@ func _handle(line: String) -> void:
 			_main._start_level(load("res://resources/levels/level_%02d.tres" % n))
 			await get_tree().process_frame
 			await get_tree().process_frame
-			if _board() != null:
-				_main._board._dismiss_tutorial()
 			_hook_finished()
 			await _settle()
 		"fail":

@@ -49,6 +49,7 @@ func _ready() -> void:
 	await _test_main_integration()
 	await _test_unified_login()
 	await _test_auto_popup_and_onboarding()
+	await _test_first_day_rule()
 
 	AdEvents.unsubscribe(_on_event)
 	DailyRewards.clock_override = ""
@@ -796,7 +797,13 @@ func _test_unified_login() -> void:
 	main._show_tab(3)
 	await _settle(2)
 	_c("Mağaza günlük kartı gizli", not main._screens[3].daily_card().visible)
-	# Tutorial bitti (M8.10 sözleşmesi): ilk giriş işlemi ancak şimdi.
+	# Tutorial bitti: ilk giriş işlemi ancak şimdi. M8.10'da onboarding false
+	# bir kayıtla açılan Main doğrudan tutorial round'una giriyor — önce o
+	# round terk ediliyor (kabuğa dönüş), sonra normal günlük akış ölçülüyor.
+	# `complete_onboarding()` GÜNSÜZ çağrılıyor: "yerleşik oyuncu" semantiği,
+	# yani ilk gün bastırması YOK (bu bölüm günlük akışı ölçüyor).
+	main.abandon_run()
+	await _settle(2)
 	SaveManager.complete_onboarding()
 	main._ads.set_onboarding_completed(true)
 	main._check_daily_reward()
@@ -903,7 +910,9 @@ func _test_auto_popup_and_onboarding() -> void:
 		and UiKit.banner_slot() == 0.0 and fake.banner_loads == 0)
 	_c("onboarding false: ödüllü/geçiş reklamı yüklenmedi, hazır değil, not 'kullanılamıyor'", fake.rewarded_loads == 0
 		and fake.interstitial_loads == 0 and not m.is_rewarded_ready() and m.rewarded_note() == MonetizationManager.NOTE_UNAVAILABLE)
-	_c("onboarding false: otomatik günlük pencere yok", not main._daily_rewards.visible and DailyRewards.popup_due())
+	# M8.10: kapı artık `popup_due()`'nun KENDİSİNDE (Onboarding.daily_rewards_unlocked).
+	_c("onboarding false: otomatik günlük pencere yok (popup_due false)",
+		not main._daily_rewards.visible and not DailyRewards.popup_due())
 	main._show_tab(3)
 	await _settle(2)
 	main.open_daily_rewards()
@@ -915,7 +924,6 @@ func _test_auto_popup_and_onboarding() -> void:
 	# Devam teklifi: sağlayıcı hazır değil -> CTA pasif (reklam sunumu yok).
 	main._start_level(load("res://resources/levels/level_10.tres"))
 	await _settle(2)
-	main._board._dismiss_tutorial()
 	main._board._enter_fail_pending()
 	await _settle(3)
 	_c("onboarding false: devam teklifinde DEVAM ET pasif + 'kullanılamıyor' (reklam sunulmaz)", main._revive.visible
@@ -930,6 +938,14 @@ func _test_auto_popup_and_onboarding() -> void:
 	SaveManager.complete_onboarding()
 	m.set_onboarding_completed(true)
 	await _settle(1)
+	# M8.10 §18: rıza akışı onboarding'e kadar ERTELENİYOR, yani ilk UMP
+	# güncellemesi ancak şimdi gidiyor. Yükleme rıza gelince başlar — sahte
+	# SDK'nın cevabı burada veriliyor (gerçek akışta da sıra budur).
+	_c("onboarding öncesi rıza akışı başlamamıştı, tamamlanınca başladı",
+		m.consent_started() and fake.consent_update_calls == 1)
+	fake.complete_consent_update(true)
+	fake.complete_init()
+	await _settle(1)
 	_c("complete_onboarding + yönetici bildirimi: yuva hesaplandı, ödüllü + geçiş + banner yüklemeleri başladı",
 		m.banner_slot_px() > 0.0 and UiKit.banner_slot() > 0.0 and fake.rewarded_loads == 1
 		and fake.interstitial_loads == 1 and fake.banner_loads == 1)
@@ -939,6 +955,130 @@ func _test_auto_popup_and_onboarding() -> void:
 	main.queue_free()
 	await _settle(2)
 	DailyRewards.auto_popup_enabled = true
+
+
+# --- M8.10 ilk gün kuralı (docs/TUTORIAL_SYSTEM.md §7) ---------------------------
+#
+# Tutorial'ın bitirildiği takvim gününde günlük ödül sistemi TAMAMEN kapalı;
+# ertesi yerel günde sıfırdan başlıyor. Kapı `Onboarding.daily_rewards_unlocked()`;
+# burada modelin (UI değil) gerçekten bloke ettiği doğrulanıyor.
+
+func _test_first_day_rule() -> void:
+	print("-- M8.10 ilk gün kuralı: tamamlanma günü kapalı, ertesi gün sıfırdan")
+	# Kota gün anahtarı `clock_override` ile sürülüyor; giriş ödülü (DailyReward)
+	# CİHAZIN gerçek tarihine bakıyor — gün ilerlemesi orada `last_login_date`
+	# ile kuruluyor (bu testin geri kalanıyla aynı desen).
+	const DAY_C_LOCAL: String = "2026-09-24"
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 11
+	DailyRewards.set_rng(rng)
+
+	# A günü, tutorial bitmemiş: her şey kapalı.
+	SaveManager.data = SaveManager.DEFAULT_DATA.duplicate(true)
+	SaveManager.data["powerup_starter_granted"] = true
+	SaveManager.save_game()
+	DailyRewards.clock_override = DAY_A
+	DailyRewards.observe_day()
+	_c("A: onboarding false -> günlük kilitli", not Onboarding.daily_rewards_unlocked())
+	_c("A: giriş ödülü alınamaz", not DailyReward.is_claimable())
+	_c("A: ücretsiz sandık bloke", DailyRewards.claim_free_chest() == null)
+	_c("A: otomatik pencere due değil", not DailyRewards.popup_due())
+
+	# Tutorial A gününde bitti: iki alan tek transaction.
+	var ok: bool = Onboarding.complete(Onboarding.SOURCE_TUTORIAL)
+	_c("A: Onboarding.complete true döndü (ilk kez)", ok)
+	_c("A: onboarding true + tamamlanma günü A", SaveManager.onboarding_completed()
+		and SaveManager.onboarding_completed_day() == DAY_A)
+	_c("A: iki alan da DİSKTE", _disk().get("onboarding_completed", false) == true
+		and String(_disk().get("onboarding_completed_day", "")) == DAY_A)
+	_c("A: ikinci complete false döndü (idempotent)",
+		not Onboarding.complete(Onboarding.SOURCE_TUTORIAL))
+
+	# A günü: onboarding tamam AMA günlük sistem hâlâ kapalı.
+	_c("A: tamamlanma gününde günlük HÂLÂ kilitli", not Onboarding.daily_rewards_unlocked())
+	_c("A: ilk gün bastırması bildiriliyor", Onboarding.is_first_day_suppressed())
+	var claim: Dictionary = DailyReward.claim_if_new_day()
+	_c("A: giriş ödülü no-op (+15 YOK, seri 0)", not bool(claim["claimed"])
+		and SaveManager.dough() == 0 and SaveManager.daily_streak() == 0
+		and SaveManager.last_login_date() == "")
+	_c("A: is_claimable false", not DailyReward.is_claimable())
+	_c("A: ücretsiz sandık bloke", DailyRewards.claim_free_chest() == null)
+	_c("A: reklamlı sandık bloke", DailyRewards.grant_ad_chest(DAY_A) == null)
+	_c("A: reklamlı +150 bloke", not DailyRewards.grant_ad_dough(DAY_A))
+	_c("A: otomatik pencere due değil", not DailyRewards.popup_due())
+	_c("A: kotalar tüketilmedi (hepsi duruyor)",
+		int(DailyRewards.state()["remaining_total"]) == 4)
+
+	# B günü: normal döngü SIFIRDAN başlar.
+	DailyRewards.clock_override = DAY_B
+	DailyRewards.observe_day()
+	_c("B: günlük sistem açıldı", Onboarding.daily_rewards_unlocked())
+	_c("B: ilk gün bastırması bitti", not Onboarding.is_first_day_suppressed())
+	_c("B: giriş ödülü alınabilir", DailyReward.is_claimable())
+	var b_claim: Dictionary = DailyReward.claim_if_new_day()
+	_c("B: +15 tam bir kez", bool(b_claim["claimed"]) and SaveManager.dough() == 15)
+	_c("B: seri 1. günden başladı (geriye dönük telafi yok)",
+		SaveManager.daily_streak() == 1)
+	_c("B: ikinci claim no-op", not bool(DailyReward.claim_if_new_day()["claimed"]))
+	_c("B: ücretsiz sandık hazır", DailyRewards.free_chest_available())
+	_c("B: reklamlı sandık 0/2 tüketilmiş", DailyRewards.ad_chests_remaining() == 2)
+	_c("B: +150 hazır", DailyRewards.ad_dough_available())
+	_c("B: otomatik pencere due", DailyRewards.popup_due())
+	DailyRewards.mark_popup_seen()
+	_c("B: pencere görüldü -> ikinci kez due değil", not DailyRewards.popup_due())
+	var b_chest: DailyChestReward = DailyRewards.claim_free_chest()
+	_c("B: ücretsiz sandık verildi", b_chest != null)
+	_c("B: ikinci ücretsiz sandık bloke", DailyRewards.claim_free_chest() == null)
+
+	# B gününde saat A'ya geri alınırsa: yeniden kilitlenmez, ikinci döngü yok.
+	DailyRewards.clock_override = DAY_A
+	_c("B->A saat geri: günlük AÇIK kalır (efektif gün ileri)",
+		Onboarding.daily_rewards_unlocked())
+	_c("B->A saat geri: ikinci +15 yok",
+		not bool(DailyReward.claim_if_new_day()["claimed"]) and SaveManager.dough() == 15 + b_chest.dough())
+	_c("B->A saat geri: ücretsiz sandık hâlâ alınmış", not DailyRewards.free_chest_available())
+	DailyRewards.clock_override = DAY_B
+	_c("B'ye dönüş: ikinci sıfırlama yok", not DailyRewards.free_chest_available()
+		and not DailyRewards.popup_due())
+
+	# C günü: seri 2, yeni kotalar. (Giriş ödülü gerçek sisteme tarihine bakıyor:
+	# gün ilerlemesi `last_login_date` ile kuruluyor — bu suite'in deseni.)
+	DailyRewards.clock_override = DAY_C_LOCAL
+	DailyRewards.observe_day()
+	var dough_b: int = SaveManager.dough()
+	SaveManager.record_daily_login(_days_ago(1), 1)
+	var c_claim: Dictionary = DailyReward.claim_if_new_day()
+	_c("C: +15 ve seri 2", bool(c_claim["claimed"]) and SaveManager.daily_streak() == 2
+		and SaveManager.dough() == dough_b + DailyReward.DAILY_DOUGH)
+	_c("C: kotalar yenilendi", DailyRewards.free_chest_available()
+		and DailyRewards.ad_chests_remaining() == 2 and DailyRewards.ad_dough_available())
+	_c("C: otomatik pencere yeniden due", DailyRewards.popup_due())
+
+	# Eski/yerleşik kayıt (migration): tamamlanma günü YOK -> bastırma YOK.
+	_write_json({"highest_level_unlocked": 7, "total_merges": 500,
+		"powerup_starter_granted": true, "dough": 200})
+	SaveManager.load_game()
+	DailyRewards.clock_override = DAY_A
+	DailyRewards.observe_day()
+	_c("migration: onboarding true (ilerleme kanıtı)", SaveManager.onboarding_completed())
+	_c("migration: tamamlanma günü BOŞ (bugünün tarihi uydurulmadı)",
+		SaveManager.onboarding_completed_day() == "")
+	_c("migration: yerleşik oyuncuya ilk gün bastırması UYGULANMAZ",
+		Onboarding.daily_rewards_unlocked() and not Onboarding.is_first_day_suppressed())
+	_c("migration: giriş ödülü normal çalışıyor", DailyReward.is_claimable())
+	var mig: Dictionary = DailyReward.claim_if_new_day()
+	_c("migration: +15 verildi", bool(mig["claimed"]) and SaveManager.dough() == 215)
+	_c("migration: günlük kotalar açık", DailyRewards.free_chest_available()
+		and DailyRewards.popup_due())
+
+	# Kayıtta onboarding true + tamamlanma günü GELECEKTE (bozuk/elle düzenlenmiş)
+	# -> gate kapalı kalır; ödül sızmaz.
+	SaveManager.data["onboarding_completed_day"] = DAY_C_LOCAL
+	DailyRewards.clock_override = DAY_B
+	_c("gelecek tarihli tamamlanma günü: günlük kilitli",
+		not Onboarding.daily_rewards_unlocked())
+	DailyRewards.clock_override = ""
+	DailyRewards.set_rng(null)
 
 
 func _restore_save_file() -> void:

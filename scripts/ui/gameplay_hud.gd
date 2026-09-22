@@ -26,7 +26,6 @@ const STAR_ART: Texture2D = preload("res://assets/visual/ui/icon_star_filled.png
 const CROWN_ART: Texture2D = preload("res://assets/visual/ui/icon_crown.png")
 const FLAG_ART: Texture2D = preload("res://assets/visual/ui/icon_flag.png")
 const BADGE_STARBURST: Texture2D = preload("res://assets/visual/ui/badge_starburst.png")
-const TUTORIAL_POSE: Texture2D = preload("res://assets/visual/ui/tutorial_pose.png")
 ## Tier dokuları: gameplay sprite'larının kendisi (owner sanatı).
 const DUMPLING_VISUAL: GDScript = preload("res://scripts/game/dumpling_visual.gd")
 
@@ -61,7 +60,6 @@ var status_plate: PanelContainer
 var combo_label: Label
 var combo_badge: TextureRect
 var score_pop: Label
-var tutorial: VBoxContainer
 var scrim: TextureRect
 var banner_seam: Control
 
@@ -377,21 +375,6 @@ func _build_overlays() -> void:
 	score_pop.modulate.a = 0.0
 	add_child(score_pop)
 
-	tutorial = VBoxContainer.new()
-	tutorial.name = "Tutorial"
-	tutorial.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	tutorial.alignment = BoxContainer.ALIGNMENT_CENTER
-	tutorial.add_theme_constant_override("separation", UiTokens.SPACE_XS)
-	tutorial.visible = false
-	add_child(tutorial)
-	var pose := TextureRect.new()
-	pose.texture = TUTORIAL_POSE
-	pose.custom_minimum_size = Vector2(0, 168)
-	pose.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	pose.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	pose.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	tutorial.add_child(pose)
-	tutorial.add_child(UiKit.label("sürükle • bırak", &"LabelSectionOnDark", HORIZONTAL_ALIGNMENT_CENTER))
 
 
 ## Gelecek banner bölgesi: görünmez, sadece yerleşim sözleşmesinin somut

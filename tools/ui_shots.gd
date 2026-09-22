@@ -75,6 +75,10 @@ func _settle() -> void:
 
 
 func _boot_main() -> void:
+	# M8.10: bu harness KABUGU olcuyor — onboarding tamamlanmis olmali,
+	# yoksa Main dogrudan ilk acilis tutorial'ina girer. Kayit dosyasini
+	# geri koymayan baska bir suite diske `false` birakmis olabilir.
+	SaveManager.data["onboarding_completed"] = true
 	_main = MAIN_SCENE.instantiate()
 	add_child(_main)
 	await get_tree().process_frame

@@ -47,12 +47,20 @@ const DEFAULT_DATA: Dictionary = {
 	## Titreşim (M8.5-15). Mobilde varsayılan AÇIK; eski kayıtlarda anahtar
 	## yok, DEFAULT_DATA üzerine yazıldığı için otomatik true kalıyor.
 	"haptics_enabled": true,
-	## İlk açılış / tutorial dikişi (M8.9-02; tutorial'ın kendisi M8.10).
+	## İlk açılış / tutorial dikişi (M8.9-02; tutorial M8.10).
 	## YENİ kayıt: false — banner, interstitial, günlük ödül penceresi ve
 	## ödüllü reklam sunumu tutorial bitene kadar kapalı. ESKİ kayıt (anahtar
 	## yok): load_game ilerleme kanıtına bakar (bkz. _migrate_onboarding) —
 	## gerçek oyuncular etkilenmez. Yalnız `complete_onboarding` true yapar.
 	"onboarding_completed": false,
+	## Tutorial'ın tamamlandığı YEREL TAKVİM GÜNÜ (YYYY-MM-DD) — M8.10 ilk gün
+	## kuralı (docs/TUTORIAL_SYSTEM.md §5). O gün günlük ödül sistemi tamamen
+	## kapalıdır; ertesi yerel günde sıfırdan başlar. BOŞ STRING iki farklı
+	## şeyi anlatır ve ikisi de doğru davranışı verir:
+	##   onboarding false -> tutorial henüz bitmedi (zaten her şey kapalı)
+	##   onboarding true  -> ESKİ/YERLEŞİK kayıt (M8.10 öncesi tamamlanmış):
+	##                       bastırma YOK, bugünün tarihi UYDURULMAZ.
+	"onboarding_completed_day": "",
 	## Günlük ödüller (M8.9-02, docs/monetization/DAILY_REWARDS.md): yerel
 	## takvim günü anahtarı + o günün kotaları. Gün değişince sayaçlar
 	## OKUMADA sıfır görünür (yazma yok); ilk işlem yeni günü yazar.
@@ -104,6 +112,11 @@ func load_game() -> void:
 ## kalıcılaştırır (okuma sırasında beklenmedik yazma yok — rewarded_power ve
 ## equipped_skin ile aynı ilke). Dosyasız yeni oyuncu bu yola hiç girmez
 ## (DEFAULT_DATA false).
+##
+## M8.10: `onboarding_completed_day` burada UYDURULMAZ — boş kalır ve
+## `Onboarding.daily_rewards_unlocked()` bunu "yerleşik oyuncu, ilk gün
+## bastırması YOK" diye okur (docs/TUTORIAL_SYSTEM.md §6). Eski oyuncuların
+## günlük ödül davranışı böylece birebir korunur.
 func _migrate_onboarding(parsed: Dictionary) -> void:
 	if parsed.has("onboarding_completed"):
 		return
@@ -486,12 +499,32 @@ func onboarding_completed() -> bool:
 	return bool(data.get("onboarding_completed", false))
 
 
-## Tutorial bitti: tek yazma, geri alınmaz. M8.10 tutorial akışının sonunda
-## çağrılacak; testler de bunu kullanır. Zaten true ise yazmaz.
-func complete_onboarding() -> void:
+## Tutorial'ın tamamlandığı yerel gün (YYYY-MM-DD) ya da boş — bkz.
+## DEFAULT_DATA notu ve `Onboarding.daily_rewards_unlocked()`.
+func onboarding_completed_day() -> String:
+	return String(data.get("onboarding_completed_day", ""))
+
+
+## Tutorial bitti (ya da atlandı): TEK yazma, geri alınmaz, idempotent —
+## zaten true ise hiçbir alan değişmez ve diske yazma DA olmaz (§26).
+##
+## `day_key` verilirse (M8.10 tutorial akışı) tamamlanma günü AYNI
+## transaction'da yazılır; ayrıca o gün `last_seen_day_key` olarak da
+## işlenir — böylece ilk gün kuralı ile saat geri alma koruması aynı
+## efektif günü görür (tutorial'dan hemen sonra saati geri almak günlük
+## sistemi "yeni gün" gibi açamaz). `day_key` boş bırakılırsa yalnız
+## bayrak yazılır: M8.10 ÖNCESİ sözleşme (testler / eski çağrılar) ve
+## "yerleşik oyuncu" semantiği (bastırma yok) korunur.
+func complete_onboarding(day_key: String = "") -> void:
 	if onboarding_completed():
 		return
 	data["onboarding_completed"] = true
+	if not day_key.is_empty():
+		data["onboarding_completed_day"] = day_key
+		var raw: Dictionary = _daily_raw()
+		if day_key > String(raw["last_seen_day_key"]):
+			raw["last_seen_day_key"] = day_key
+			data["daily_rewards"] = raw
 	save_game()
 
 

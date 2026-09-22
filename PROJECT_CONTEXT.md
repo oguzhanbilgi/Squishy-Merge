@@ -864,6 +864,33 @@ alınacak — şimdi tahmin/vaat yok.
     (20 suite, `build/qa_m8.9-02_integration/`), main'den export edilen
     TEST-reklam APK'sı cihaz kapısındakiyle birebir (`356b0501…`).
     M8.10 ilk gün kuralı yalnız dokümante (DAILY_REWARDS §9), UYGULANMADI.
+  - `M8.10` ⏳ **İlk açılış tutorial'ı + ilk gün günlük kuralı** (dal
+    `task/035-first-run-tutorial`, base `d72fde5`). **Gerçekten yeni oyuncu**
+    (`onboarding_completed == false`) açılışta doğrudan GERÇEK Level 1
+    tutorial'ına giriyor — Ana Sayfa/Harita yolculuğu yok, reklam yok, UMP
+    formu yok, günlük ödül mutasyonu yok. Adımlar: karşılama (maskot + BAŞLA)
+    → ilk bırakma (gerçek sürükle/bırak, güvenli banda clamp) → eşleştirme
+    (ikinci T1 birinciye SNAP) → **GERÇEK merge** (production `_resolve_merge`
+    T2'yi doğuruyor; sahte fizik/sahte T2 YOK, tutorial T2'si board'da kalıyor)
+    → kısa kutlama → hedef / tehlike çizgisi / güçler spot'ları → hazırsın.
+    Öğretim kuyruğu `[T1, T1]` tutorial'a özel; **normal DropBag RNG'sine
+    DOKUNULMUYOR**. Küçük **ATLA** her an var (ana CTA değil) ve aynı kanonik
+    tamamlanma yolundan geçiyor; Android geri "DEVAM ET / ATLA" onayı açıyor,
+    monetize Ana Sayfa'ya düşülmüyor. Yeni `Onboarding` servisi + kayıt alanı
+    `onboarding_completed_day`: tamamlanma **tek transaction** (iki alan +
+    `last_seen_day_key`), idempotent. **İlk gün kuralı:** tutorial'ın
+    bitirildiği takvim gününde günlük sistemin TAMAMI kapalı (+15/seri/pencere/
+    üç kota/Mağaza bölümü/madalyon), telafi yok; ertesi yerel günde sıfırdan.
+    Kapı modelde (`Onboarding.daily_rewards_unlocked`), UI'da değil. Eski
+    kayıtta tamamlanma günü BOŞ = yerleşik oyuncu, bastırma YOK. **UMP/rıza
+    akışı onboarding'e kadar hiç başlamıyor** (şart kaldırılmadı, ertelendi);
+    tutorial'dan doğan round'un ORTASINDA banner yuvası açılmıyor — bir
+    sonraki güvenli kabuk/round geçişinde. Eski "Level 1 sürükle • bırak"
+    ipucu KALDIRILDI (iki tutorial yarışmıyor). Yeni: `tutorial_controller`,
+    `tutorial_overlay` (katman 8), `onboarding`, `tutorial_events`,
+    `tools/tutorial_test` (149), `tools/tutorial_shots`. **Durum: masaüstü
+    testleri + görsel QA tamam; A36 cihaz kapısı ÇALIŞTIRILMADI, main'e
+    birleştirilmedi, push edilmedi.** Doküman: `docs/TUTORIAL_SYSTEM.md`.
 - **Sırada: M8.6 — Visual Cohesion Rebuild** (ekranlar `UiKit`/`UiTokens`
   sistemine geçirilecek: ~~gameplay shell~~ ✅ → ~~home~~ ✅ → ~~map~~ ✅ →
   ~~shop~~ ✅ → ~~collection~~ ✅ main'de → ~~ikincil UI denetimi~~ ✅ →
@@ -877,8 +904,10 @@ alınacak — şimdi tahmin/vaat yok.
   test-reklam kapısı~~ ✅ main'de (33b6382) → ~~M8.9-02 monetizasyon
   genişletmesi + günlük ödüller~~ ✅ + ~~02.1 birleşik günlük pencere~~ ✅ +
   ~~02.2 A36 cihaz kapısı~~ ✅ main'de (9561a4c) →
-  M8.10 ilk açılış tutorial'ı (`onboarding_completed` dikişi hazır) →
-  analitik sağlayıcı (`AdEvents`), ardından **M9 — Android export.**
+  ~~M8.10 ilk açılış tutorial'ı + ilk gün kuralı~~ ✅ dal
+  `task/035-first-run-tutorial` (masaüstü tamam, A36 kapısı BEKLİYOR) →
+  analitik sağlayıcı (`AdEvents` / `TutorialEvents`), ardından
+  **M9 — Android export.**
   Ortam hazır (export template'leri, SDK,
   NDK, JDK 17, debug keystore mevcut, ETC2/ASTC import açık, iş
   makinesinde debug `export_presets.cfg` var — gitignore'lu, her makinede
@@ -991,8 +1020,10 @@ M8.9-02 kapandı, kanıt `build/qa_m8.9-02.2/device/` (38 kare, notlar) +
 sarmalayıcı + #120 `Number` düzeltmesi) mi, upstream PR mi (PRIVACY_CONSENT §4)
 — üretim öncesi şart; (3) COPPA / hedef kitle kararı (PRIVACY_CONSENT §6); (4)
 AdMob hesabı: uygulama kaydı, rewarded + banner + interstitial reklam birimi,
-Privacy & messaging GDPR mesajı → `android_export.cfg [Release]`. Sonra M8.10
-ilk açılış tutorial'ı (`complete_onboarding` sözleşmesi), analitik sağlayıcı
-(`AdEvents` dikişine), ardından M9 Android export (adaptive icon,
+Privacy & messaging GDPR mesajı → `android_export.cfg [Release]`. (5) **M8.10
+`task/035-first-run-tutorial` A36 cihaz kapısı + merge kararı** — ilk açılış
+tutorial'ı ve ilk gün günlük kuralı masaüstünde bitti, cihazda
+doğrulanmadı (`docs/TUTORIAL_SYSTEM.md`). Sonra analitik sağlayıcı
+(`AdEvents` / `TutorialEvents` dikişine), ardından M9 Android export (adaptive icon,
 `config/icon`, release keystore, Gradle preset her makinede).
 Ayrıntılı liste: PROJECT_STATUS.md §8.

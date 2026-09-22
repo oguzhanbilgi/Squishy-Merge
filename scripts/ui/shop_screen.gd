@@ -264,7 +264,9 @@ func _build_daily_section() -> void:
 func _refresh_daily() -> void:
 	if _daily_card == null:
 		return
-	var shown: bool = SaveManager.onboarding_completed()
+	# M8.10: bölüm yalnız günlük sistem AÇIKKEN görünür — tutorial bitmeden
+	# ve tutorial'ın bitirildiği takvim gününde gizli (ilk gün kuralı).
+	var shown: bool = Onboarding.daily_rewards_unlocked()
 	_daily_header.visible = shown
 	_daily_card.visible = shown
 	_daily_spacer.visible = shown

@@ -1,3 +1,10 @@
+<!-- M8.10 (2026-09-22): rıza (UMP) akışı artık onboarding tamamlanana kadar
+     BAŞLAMIYOR — tutorial'ın üstüne gizlilik formu gelmesin. Rıza ŞARTI
+     kaldırılmadı: `_ads_enabled()` hâlâ izin + SDK istiyor, yani ilk reklam
+     talebinden ÖNCE akış mutlaka çalışıyor. Ayrıca tutorial'dan doğan ilk
+     Level 1 round'unun ortasında banner yuvası açılmıyor (bir sonraki güvenli
+     kabuk/round geçişinde açılıyor). Ayrıntı: ../TUTORIAL_SYSTEM.md §8. -->
+
 # ADS_SYSTEM.md — AdMob reklam sistemi (M8.9-01 / M8.9-02)
 
 > Kanonik doküman. Kilitli ürün kuralları GAME_DESIGN §5.4.1 / §5.7.3 / §11 /

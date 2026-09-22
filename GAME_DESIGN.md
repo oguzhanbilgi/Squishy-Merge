@@ -27,15 +27,28 @@ uydurulmaz.
 > çalışılmayacak bir "çelişki" değil, tasarımın parçası. Tek şart:
 > kesin/otomatik game-over olmamalı.
 
-### 1.1 Onboarding ipucu (owner onayı, M8 art turu)
+### 1.1 İlk açılış tutorial'ı (owner kararı, M8.10 — KİLİTLİ)
 
-Level 1'de ilk drop'a kadar `tutorial_pose` karakteri + "sürükle • bırak"
-ipucu gösterilir, ilk bırakışta söner.
+> **M8 art turundaki "Level 1'de sürükle • bırak ipucu" KALDIRILDI.** O ipucu
+> onboarded bir oyuncu Level 1'i tekrar oynadığında da çıkıyordu ve gerçek
+> bir onboarding değildi. Yerini M8.10'un etkileşimli tutorial'ı aldı; iki
+> sistem aynı anda YAŞAMAZ.
 
-Yalnızca level 1'de; sonsuz modda ve diğer level'larda hiç görünmez.
-Konumu kabın ağzı ile taşma çizgisi arasında hesaplanır (kap genişliği
-level'a göre değiştiği için sabit koordinat değil). Kalıcı bir tutorial
-akışı değil — tek ekranlık, tek seferlik bir ipucu.
+**Yalnız GERÇEKTEN YENİ oyuncu** (`onboarding_completed == false`) açılışta
+doğrudan gerçek Level 1 tutorial'ına girer — Ana Sayfa → OYNA → Harita
+yolculuğu yok. Onboarded oyuncu Level 1'i tekrar oynadığında **hiçbir
+tutorial öğesi görmez**; sonsuz mod ve Level 2+ hiç görmez.
+
+Adımlar: karşılama (maskot + BAŞLA) → ilk bırakma (gerçek sürükle/bırak,
+güvenli banda sınırlı) → eşleştirme (ikinci T1 birinciye hizalanır) →
+**GERÇEK merge** (T2 production fizikten doğar; sahte merge YOK) → kısa
+kutlama → hedef / tehlike çizgisi / güçler anlatımı → hazırsın. Küçük bir
+**ATLA** kontrolü her an var (ana CTA değil). Rehberli kısım ~20–45 sn.
+
+Tutorial **ÖDÜL VERMEZ** (Hamur, sandık, ekstra güç yok) ve başlangıç güç
+stoğuna dokunmaz. Tutorial boyunca reklam, UMP formu ve günlük ödül
+mutasyonu YOK. Tam akış, kalıcılık ve ilk gün kuralı:
+[docs/TUTORIAL_SYSTEM.md](docs/TUTORIAL_SYSTEM.md).
 
 ## 2. Tier listesi (8 tier)
 
@@ -413,9 +426,10 @@ tier'lara uygulanır.
   üst bölgesinde "N. GÜN · +15 HAMUR · ALINDI" + seri şeridi olarak
   gösterilir; eski ayrı giriş ödülü penceresi kaldırıldı. Ödül pencereden
   ÖNCE tek işlemle (`DailyReward.claim_if_new_day`) yazılır; pencere yalnız
-  gösterir, kapatıp açmak ikinci +15 vermez. **Onboarding tamamlanmadan
-  (tutorial, M8.10) giriş ödülü işlemi HİÇ çalışmaz** — Hamur, seri, tarih
-  değişmez; ilk işlem tutorial bitince sistemin ilk çalışmasında.
+  gösterir, kapatıp açmak ikinci +15 vermez. **Onboarding tamamlanmadan VE
+  tutorial'ın bitirildiği takvim GÜNÜNDE giriş ödülü işlemi HİÇ çalışmaz**
+  (M8.10 ilk gün kuralı, §12.3) — Hamur, seri, tarih değişmez, geriye dönük
+  telafi yok; ilk işlem tamamlanma gününden SONRAKİ ilk yerel günde.
 
 ### 5.4.1 Günlük ödüller — GÜNLÜK ÖDÜLLER (M8.9-02, owner kararı, KİLİTLİ)
 
@@ -1090,17 +1104,35 @@ dikeyde ≤ %4 sıkıştırılır, düğümler aynı dönüşümle).
   olamaz (tek tam ekran reklam).
 - Test birimi Google'ın resmi interstitial test kimliği; gerçek kimlik YOK.
 
-### 12.3 Onboarding dikişi (tutorial M8.10)
-Kayıt alanı `onboarding_completed`: yeni kayıt **false**, eski kayıt ilerleme
-kanıtıyla (level > 1 / yıldız / merge / sonsuz rekoru / açılmış skin) **true**.
-false iken: banner yok (tam düzen), geçiş reklamı yok (saat durur), otomatik
-günlük pencere ve Mağaza günlük kartı yok, Ana Sayfa Günlük madalyonu
-pencere açmaz, **günlük giriş ödülü işlemi çalışmaz (kayıt mutasyonu yok)**,
-ödüllü devam/refill sunumu yok.
-Tutorial (M8.10) bitince `SaveManager.complete_onboarding()` (tek yazma) +
-`MonetizationManager.set_onboarding_completed(true)`; sonrasında reklamlar ve
-günlük pencere uygun olur. Tutorial UX'i bu milestone'da YOK.
-**İlk gün kuralı (owner kararı, M8.10'da uygulanacak — M8.9-02.2'de yalnız
-dokümante):** yeni oyuncu tutorial'ı bitirdiği takvim gününde günlük pencere
-OTOMATİK açılmaz; otomatik günlük ödüller tutorial gününden SONRAKİ ilk uygun
-yerel günde başlar (bugünkü kod: tamamlanma anında bir kez açılır).
+### 12.3 Onboarding dikişi ve ilk gün kuralı (M8.10 — UYGULANDI)
+Kayıt alanları `onboarding_completed` + `onboarding_completed_day`: yeni kayıt
+**false / ""**, eski kayıt ilerleme kanıtıyla (level > 1 / yıldız / merge /
+sonsuz rekoru / açılmış skin) **true**, tamamlanma günü **UYDURULMAZ** (boş
+kalır = yerleşik oyuncu, bastırma yok).
+
+`onboarding_completed == false` iken: banner yok (tam düzen), geçiş reklamı
+yok (saat durur), **UMP/rıza akışı hiç başlamaz** (tutorial'ın üstüne form
+gelmesin; rıza şartı kaldırılmadı, yalnız ertelendi — ilk reklam talebinden
+ÖNCE mutlaka çalışır), otomatik günlük pencere ve Mağaza günlük kartı yok,
+Ana Sayfa Günlük madalyonu pencere açmaz, **günlük giriş ödülü işlemi
+çalışmaz (kayıt mutasyonu yok)**, ödüllü devam/refill sunumu yok.
+
+Tutorial bitince (ya da ATLA ile) **tek transaction**:
+`onboarding_completed = true` + `onboarding_completed_day = <yerel gün>`
+(+ `last_seen_day_key` ileriye). Ardından
+`MonetizationManager.set_onboarding_completed(true)` — ama **tutorial'dan
+doğan Level 1 round'unun ORTASINDA DEĞİL**: banner yuvası o anda açılıp kabı
+yeniden yerleştirmez, monetizasyon bir sonraki güvenli geçişte (kabuk ekranı
+ya da yeni round) açılır. Bu erteleme GEÇİCİ bir sunum bayrağıdır, kayda
+yazılmaz.
+
+**İlk gün kuralı (owner kararı, KİLİTLİ):** tutorial'ın bitirildiği takvim
+gününde GÜNLÜK ÖDÜL SİSTEMİNİN TAMAMI kapalıdır — +15 giriş ödülü yok, seri
+ilerlemez, otomatik pencere açılmaz, ücretsiz/reklamlı sandık ve reklamlı
++150 yok, Mağaza bölümü gizli, Ana Sayfa madalyonu nokta göstermez ve açmaz.
+Kaçırılan ödül SONRADAN telafi edilmez. Ertesi yerel günde sistem sıfırdan
+başlar: seri 1. gün, +15, tek otomatik pencere, tam kotalar. Tek yetkili
+kapı `Onboarding.daily_rewards_unlocked()`; kontrol modeldedir, UI'da değil.
+**Monetizasyonun açılması ≠ günlük ödüllerin açılması** — aynı gün reklamlar
+çalışabilir, günlük sistem ertesi güne kadar kapalı kalır.
+Ayrıntı: [docs/TUTORIAL_SYSTEM.md](docs/TUTORIAL_SYSTEM.md).

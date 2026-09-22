@@ -4,6 +4,11 @@
 > [ADS_SYSTEM.md](ADS_SYSTEM.md), rıza [PRIVACY_CONSENT.md](PRIVACY_CONSENT.md).
 > Kilitli sayılar GAME_DESIGN §5.4.1 / §5.7.3 / §11'de; burada uygulanma biçimi.
 >
+> **M8.10 GÜNCELLEMESİ (2026-09-22):** §9'daki ilk gün kuralı artık
+> **UYGULANDI** (`task/035-first-run-tutorial`, main'e birleştirilmedi).
+> Kanonik anlatım [../TUTORIAL_SYSTEM.md](../TUTORIAL_SYSTEM.md); bu dosyadaki
+> kotalar, loot reçetesi, pencere UX'i ve geçiş reklamı politikası DEĞİŞMEDİ.
+>
 > **Durum (2026-09-22): KAPANDI.** `M8.9-02` uygulaması + `M8.9-02.1` birleşik
 > günlük UX'i tamam; **`M8.9-02.2` Samsung A36 TEST-reklam cihaz kapısı GEÇTİ**
 > (ADS_SYSTEM §14), **owner görsel kontrolü PASS** (5/5), main entegrasyonu
@@ -11,7 +16,8 @@
 > **DONDURULDU**. **Üretime hazır DEĞİL:** UMP sarmalayıcı boşluğu +
 > `debug_geography` #120, COPPA/TFCD/TFUA kitle kararı ve gerçek AdMob
 > kimlikleri (App ID + banner + ödüllü + geçiş) hâlâ AÇIK — ADS_SYSTEM §11.
-> M8.10 ilk gün kuralı (§9) yalnız dokümante, UYGULANMADI.
+> ~~M8.10 ilk gün kuralı (§9) yalnız dokümante~~ → **M8.10'da UYGULANDI**
+> (yukarıdaki nota bakın).
 
 ## 1. Dört bağımsız kota ailesi
 
@@ -211,16 +217,22 @@ değişirse pencere kabuğa dönünce açılır (oyun ortasında asla).
   (tek yazma, geri alınmaz) + `MonetizationManager.set_onboarding_completed(true)`
   → yuva hesaplanır, banner/ödüllü/geçiş yüklemeleri başlar, günlük pencere
   ve Mağaza kartı görünür. Tutorial UX'i bu milestone'da YOK.
-- **M8.10 ilk gün kuralı (owner kararı, YALNIZ DOKÜMAN — M8.9-02.2'de
-  uygulanmadı):** yeni oyuncu tutorial'ı bitirdiği takvim gününde günlük
-  pencere OTOMATİK açılmaz; otomatik günlük ödüller `complete_onboarding`
-  gününden SONRAKİ ilk uygun yerel günde başlar. Bugünkü davranış (cihazda
-  doğrulandı): `complete_onboarding` anında giriş +15 ve pencere hemen bir
-  kez gelir. Uygulama M8.10 tutorial işiyle birlikte; muhtemel dikiş:
-  `complete_onboarding` günün anahtarını `popup_seen_day` olarak yazar
-  (giriş +15 / kotalar o gün yine erişilebilir mi — owner kararı bekliyor).
+- **M8.10 ilk gün kuralı — UYGULANDI (owner kararı, KİLİTLİ):** tutorial'ın
+  bitirildiği takvim gününde günlük ödül sisteminin TAMAMI kapalıdır: giriş
+  +15 yok, seri ilerlemez, otomatik pencere açılmaz, ücretsiz/reklamlı
+  sandık ve reklamlı +150 yok, Mağaza bölümü gizli, Ana Sayfa madalyonu
+  nokta göstermez ve açmaz. Kaçırılan ödül SONRADAN telafi edilmez. Ertesi
+  yerel günde sistem sıfırdan başlar (seri 1. gün, +15, tek otomatik
+  pencere, tam kotalar). Kayıt alanı `onboarding_completed_day`;
+  `complete_onboarding(day_key)` iki alanı + `last_seen_day_key`'i TEK
+  transaction'da yazar. Tek yetkili kapı **`Onboarding.daily_rewards_unlocked()`**
+  ve kontrol modeldedir (üç transaction + `popup_due` içinde), UI'da değil.
+  Eski kayıtta `onboarding_completed_day` BOŞ kalır = yerleşik oyuncu,
+  bastırma YOK. Ayrıntı: [../TUTORIAL_SYSTEM.md](../TUTORIAL_SYSTEM.md).
 - **false iken bastırılanlar:** banner (yuva 0 — tam eski düzen, Harita ve
-  oyun dahil), geçiş reklamı (yükleme yok, saat durur), otomatik günlük
+  oyun dahil), geçiş reklamı (yükleme yok, saat durur), **UMP/rıza akışı
+  (M8.10: hiç başlamaz — tutorial'ın üstüne form gelmez; rıza şartı
+  KALDIRILMADI, ilk reklam talebinden önce mutlaka çalışır)**, otomatik günlük
   pencere, Mağaza GÜNLÜK ÖDÜLLER bölümü (gizli; pencere de açılmaz), Ana
   Sayfa Günlük madalyonu (nokta yok, açmaz), **günlük giriş ödülü işlemi**
   (`DailyReward.claim_if_new_day` / `is_claimable` no-op: Hamur, seri, tarih
@@ -243,11 +255,15 @@ değişirse pencere kabuğa dönünce açılır (oyun ortasında asla).
    `build/qa_m8.9-02.2/device/` (yerel).
 4. Üretim engelleri değişmedi: UMP sarmalayıcı boşluğu + #120, COPPA/TFCD/
    TFUA, gerçek AdMob kimlikleri (interstitial birimi dahil: artık 3 birim).
-5. **M8.10 ilk gün kuralı** (§9) — doküman; tutorial ile uygulanacak.
+5. ~~**M8.10 ilk gün kuralı**~~ → **UYGULANDI** (§9,
+   [../TUTORIAL_SYSTEM.md](../TUTORIAL_SYSTEM.md)); A36 cihaz kapısı henüz
+   çalıştırılmadı.
 
 ## 11. Testler
 
-- `tools/daily_rewards_test.tscn` — **134 kontrol** (M8.9-02.1: + birleşik
+- `tools/daily_rewards_test.tscn` — **179 kontrol** (M8.10: + ilk gün kuralı
+  bölümü — A günü tam bastırma, B günü sıfırdan döngü, saat geri/ileri,
+  C günü seri 2, migration'da bastırma yok; M8.9-02.1: + birleşik
   giriş ödülü: yeni gün +15/seri tam bir kez + tek pencere, Ana Sayfa / Mağaza
   yeniden açılış +15 yok, aynı gün yeniden açılış, ertesi gün, kırık seri,
   geri saat, bağımsızlık (giriş ↔ üç kota / refill / devam), onboarding false
@@ -275,8 +291,12 @@ değişirse pencere kabuğa dönünce açılır (oyun ortasında asla).
 - `tools/secondary_modal_ui_test.tscn` — **100 kontrol** (Günlük bölümü
   M8.9-02.1'de birleşik pencereye taşındı: claim pencereden önce tam bir kez,
   üst bölge, KAPAT/X/geri/karartma, 540×960, eski pencere yok).
-- `tools/monetization_test.tscn` — **191 kontrol** (yeni yüzeyler, interstitial
-  kimliği fail-closed, 28 olay, onboarding yuva).
+- `tools/monetization_test.tscn` — **207 kontrol** (yeni yüzeyler, interstitial
+  kimliği fail-closed, 28 olay, onboarding yuva; M8.10: rıza/SDK/reklam
+  açılışının onboarding'e kadar ertelenmesi ve tamamlanınca reklamdan ÖNCE
+  çalışması).
+- `tools/tutorial_test.tscn` — **149 kontrol** (M8.10 ilk açılış tutorial'ı +
+  ilk gün kuralı + monetizasyon ertelemesi; [../TUTORIAL_SYSTEM.md](../TUTORIAL_SYSTEM.md) §12).
 - Görsel: `tools/daily_ads_shots.tscn` (§ ADS_SYSTEM §13).
 - Cihaz: `tools/ads_device.tscn` (QA paketi) — M8.9-02.2 komutları: `onboarding
   0|1`, `login DAYS_AGO STREAK`, `dailyq FREE ADCHESTS DOUGH [SEEN]`, `dayclock

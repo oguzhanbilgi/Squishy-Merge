@@ -20,6 +20,7 @@ const POWER_REFILL_SCENE: PackedScene = preload("res://scenes/ui/power_refill.ts
 const SETTINGS_SCENE: PackedScene = preload("res://scenes/ui/settings_panel.tscn")
 const PAUSE_MENU_SCENE: PackedScene = preload("res://scenes/ui/pause_menu.tscn")
 const CHEST_INFO_SCENE: PackedScene = preload("res://scenes/ui/bonus_chest_info.tscn")
+const TUTORIAL_OVERLAY_SCENE: PackedScene = preload("res://scenes/ui/tutorial_overlay.tscn")
 
 ## Round bitip sonuç ekranı açılmadan önceki kısa nefes payı — son merge'in
 ## efekti ekranda kalsın diye.
@@ -45,6 +46,17 @@ var _chest_info: CanvasLayer
 const BACK_DEBOUNCE_MSEC: int = 250
 var _last_back_msec: int = -1000
 var _board: Node2D
+## --- İlk açılış tutorial'ı (M8.10 — docs/TUTORIAL_SYSTEM.md) ---
+## Yeni kayıtta (onboarding false) açılışta otomatik olarak GERÇEK Level 1
+## başlar ve `TutorialController` adımları sürer. Onboarding tamamsa ikisi de
+## hiç devreye girmez (eski oyuncu normal kabuğa açılır).
+var _tutorial: TutorialController
+var _tutorial_overlay: TutorialOverlay
+## Tutorial round'un ORTASINDA bitti: monetizasyon açılışı bir sonraki güvenli
+## geçişe (kabuk ekranı / yeni round) ertelendi — banner yuvası açılıp board
+## yeniden yerleşmesin (§19). GEÇİCİ bir sunum bayrağı: KAYDA YAZILMAZ,
+## uygulama kapanırsa onboarding zaten kalıcı, açılışta normal yol işler.
+var _monetization_deferred: bool = false
 ## Ödüllü reklam sağlayıcısı. null = sağlayıcı yok (masaüstü / eklentisiz).
 ## Production'da `MonetizationManager` (M8.9-01, AdMob); testlerde stub.
 ##
@@ -195,14 +207,87 @@ func _ready() -> void:
 	_chest_info.play_pressed.connect(_on_play_pressed)
 	add_child(_chest_info)
 
-	_show_tab(0)
+	_tutorial_overlay = TUTORIAL_OVERLAY_SCENE.instantiate()
+	add_child(_tutorial_overlay)
+	_tutorial = TutorialController.new()
+	_tutorial.name = "TutorialController"
+	_tutorial.setup(_tutorial_overlay)
+	_tutorial.completed.connect(_on_tutorial_completed)
+	add_child(_tutorial)
+
+	# İlk açılış (M8.10): yeni oyuncu Ana Sayfa'yı, günlük pencereyi, banner'ı
+	# ve UMP formunu GÖRMEDEN doğrudan Level 1 tutorial'ına girer (§4).
+	var fresh: bool = not Onboarding.is_completed()
+	if fresh:
+		_hide_shell()
+	else:
+		_show_tab(0)
 	# Günlük ödüller (M8.9-02 / 02.1): görülen en yeni gün kayda işlenir (saat
 	# geri alma koruması), günlük giriş ödülü BİR KEZ çözülür (onboarding
 	# bitmişse), sonra TEK pencere (GÜNLÜK ÖDÜLLER) günde bir kez.
 	DailyRewards.observe_day()
 	_resolve_daily_login()
 	_booted = true
-	_maybe_auto_open_daily_rewards()
+	if fresh:
+		_begin_first_run_tutorial()
+	else:
+		_maybe_auto_open_daily_rewards()
+
+
+# --- İlk açılış tutorial'ı (M8.10) ---
+#
+# SÖZLEŞME: tutorial GERÇEK Level 1 board'unda çalışır (sahte fizik yok);
+# yalnız ilk iki drop tutorial kuyruğundan gelir. Tamamlanma/atlama TEK
+# kanonik yoldan (`Onboarding.complete`) geçer ve aynı gün günlük ödülleri
+# kapalı tutar (ilk gün kuralı, §5).
+
+func _begin_first_run_tutorial() -> void:
+	var level: LevelData = _first_level()
+	if level == null:
+		# Level 1 resource'u yoksa oyuncuyu kilitli bırakma: onboarding'i
+		# kapat ve normal kabuğa aç (savunma; production'da olmaz).
+		push_error("Tutorial: Level 1 bulunamadı, onboarding atlanıyor.")
+		_on_tutorial_completed(Onboarding.SOURCE_SKIP)
+		_show_tab(0)
+		return
+	_start_level(level, TutorialController.DROP_QUEUE)
+	_tutorial.begin(_board)
+
+
+func _first_level() -> LevelData:
+	for level in LevelLibrary.load_levels():
+		if level.level_number == 1:
+			return level
+	return null
+
+
+## Tutorial bitti ya da atlandı — İKİSİ DE buradan geçer (ayrı "sahte
+## tamamlandı" bayrağı YOK, §11). `Onboarding.complete` idempotent: çift
+## çağrı tek kayıt mutasyonu yapar.
+func _on_tutorial_completed(source: String) -> void:
+	Onboarding.complete(source, _tutorial.completion_context() if _tutorial != null else {})
+	# §19: bu round tutorial'dan doğdu — kalanı reklamsız oynansın. Banner
+	# yuvası ancak bir sonraki güvenli geçişte açılır.
+	_monetization_deferred = true
+	_activate_monetization_if_safe()
+
+
+## Ertelenmiş monetizasyon açılışı: board yokken (kabuk ekranı) ya da yeni
+## bir round kurulurken. Round ORTASINDA asla — banner yuvası açılıp kap
+## yeniden yerleşmesin. Tekrar çağrılması zararsız.
+func _activate_monetization_if_safe() -> void:
+	if not _monetization_deferred:
+		return
+	if _board != null and is_instance_valid(_board):
+		return
+	_monetization_deferred = false
+	if _ads != null:
+		_ads.set_onboarding_completed(SaveManager.onboarding_completed())
+
+
+## Tutorial şu an ekranda mı (mola/ayarlar bastırması ve geri tuşu için).
+func is_tutorial_active() -> bool:
+	return _tutorial != null and _tutorial.is_active()
 
 
 # --- Ekranlar ---
@@ -225,6 +310,9 @@ func _show_tab(tab: int) -> void:
 	# istenirse (günlük ödül kapanışı gibi) oynatılmıyor.
 	if changed:
 		UiMotion.screen_in(_screens[tab])
+	# Güvenli kabuk geçişi: tutorial round'u sırasında ertelenmiş
+	# monetizasyon açılışı (rıza + yükleme + banner yuvası) burada başlar.
+	_activate_monetization_if_safe()
 	# Oyundan / sonuçtan kabuğa dönüldü: günlük pencere bugün hiç
 	# gösterilmediyse (açılış oyun içindeyken ertelenmişse) şimdi.
 	_maybe_auto_open_daily_rewards()
@@ -243,6 +331,10 @@ func close_settings() -> void:
 ## Oyun içi HUD'daki ayarlar butonu (M8.6-02): pencere açılırken board
 ## donar (fail/refill dondurmasıyla aynı makine), kapanınca çözülür.
 func _on_board_settings_requested() -> void:
+	if is_tutorial_active():
+		# Tutorial sırasında ikincil pencere açılmaz: tutorial dondurması
+		# ile menü dondurması birbirini bozmasın (§10).
+		return
 	if _board != null and is_instance_valid(_board):
 		_board.set_menu_paused(true)
 	open_settings()
@@ -262,6 +354,11 @@ func _on_settings_closed() -> void:
 
 func open_pause_menu() -> void:
 	if _board == null or not is_instance_valid(_board):
+		return
+	if is_tutorial_active():
+		# Tutorial'ın kendi güvenli çıkışı var (DEVAM ET / ATLA): mola
+		# penceresi açılmaz, "Ana Menüye Dön" ile onboarding yarım kalamaz.
+		_tutorial.handle_back()
 		return
 	if _board.is_fail_pending() or _board.is_refill_pending():
 		# Devam/refill penceresi açıkken mola açılmaz — o pencere karar bekliyor.
@@ -326,6 +423,11 @@ func _notification(what: int) -> void:
 	if now - _last_back_msec < BACK_DEBOUNCE_MSEC:
 		return
 	_last_back_msec = now
+	# Tutorial açıkken geri: küçük onay (DEVAM ET / ATLA). Onboarding false
+	# iken monetize edilmiş Ana Sayfa'ya ASLA düşülmez (§12).
+	if is_tutorial_active():
+		_tutorial.handle_back()
+		return
 	if _settings != null and _settings.visible:
 		close_settings()
 		return
@@ -454,7 +556,9 @@ func _check_daily_reward() -> void:
 ## "bugün görüldü" işaretlenir — kapatmak hiçbir ödül tüketmez; Mağaza'dan
 ## gün boyu yeniden açılır.
 func _maybe_auto_open_daily_rewards() -> void:
-	if not _booted or _daily_rewards == null or not SaveManager.onboarding_completed():
+	# M8.10: kapı artık `Onboarding.daily_rewards_unlocked()` — tutorial'ın
+	# bitirildiği takvim gününde de kapalı (ilk gün kuralı).
+	if not _booted or _daily_rewards == null or not Onboarding.daily_rewards_unlocked():
 		return
 	if not DailyRewards.popup_due():
 		return
@@ -470,9 +574,10 @@ func _maybe_auto_open_daily_rewards() -> void:
 	_open_daily_rewards_window(true)
 
 
-## Mağaza kartı (gün boyu). Onboarding bitmeden açılmaz.
+## Mağaza kartı / Ana Sayfa madalyonu (gün boyu). Günlük sistem kilitliyken
+## (onboarding bitmedi YA DA tutorial günü) hiçbir şey yapmaz.
 func open_daily_rewards() -> void:
-	if _daily_rewards == null or not SaveManager.onboarding_completed():
+	if _daily_rewards == null or not Onboarding.daily_rewards_unlocked():
 		return
 	if _daily_rewards.visible:
 		return
@@ -608,11 +713,16 @@ func _refresh_shell_dough() -> void:
 
 # --- Oyun ---
 
-func _start_level(level: LevelData) -> void:
+## `tutorial_queue`: yalnız ilk açılış tutorial'ı doldurur (T1, T1). Normal
+## akışta boş — DropBag birebir eskisi gibi çalışır.
+func _start_level(level: LevelData, tutorial_queue: Array[int] = []) -> void:
 	_current_level = level
 	_hide_shell()
 	_result.hide_result()
 	_clear_board()
+	# Yeni round sınırı: ertelenmiş monetizasyon açılışı için güvenli an
+	# (board henüz yok; yuva bu round'un ilk yerleşiminde okunur).
+	_activate_monetization_if_safe()
 	if _pause != null:
 		_pause.close_menu()
 
@@ -623,6 +733,8 @@ func _start_level(level: LevelData) -> void:
 	_set_ad_surface(MonetizationManager.Surface.GAMEPLAY)
 	_board = GAME_BOARD_SCENE.instantiate()
 	_board.setup(level)
+	if not tutorial_queue.is_empty():
+		_board.setup_tutorial_queue(tutorial_queue)
 	_board.round_finished.connect(_on_round_finished)
 	_board.revive_offered.connect(_on_revive_offered)
 	_board.power_refill_offered.connect(_on_power_refill_offered)
@@ -632,6 +744,10 @@ func _start_level(level: LevelData) -> void:
 
 
 func _clear_board() -> void:
+	# Round terk ediliyor: tutorial yarıdaysa overlay kapanır ve KAYIT
+	# DEĞİŞMEZ (onboarding false kalır, bir sonraki açılışta baştan, §25).
+	if _tutorial != null and _tutorial.is_active():
+		_tutorial.abort()
 	if _revive != null:
 		_revive.hide_offer()
 	if _refill != null:
@@ -911,6 +1027,14 @@ func _on_round_finished(won: bool) -> void:
 	# Round gerçekten bitti: teklif penceresi her hâlükârda kapanır (kazanma
 	# fail-pending sırasında da gerçekleşebiliyor).
 	_revive.hide_offer()
+
+	# Savunma (M8.10): tutorial hâlâ açıkken round biterse (Level 1 hedefi
+	# tier 4 olduğu için öğretim merge'i round'u BİTİREMEZ — bu, taşma gibi
+	# beklenmedik bir yol için ağ) onboarding yarım bırakılmaz: oyuncu bir
+	# round'u tamamladı, kanonik tamamlanma yolundan geçirilir ve coach
+	# yüzeyi sonuç ekranından ÖNCE kapanır.
+	if is_tutorial_active():
+		_tutorial.finish_for_round_end()
 
 	var score: int = GameState.score
 	var merges: int = GameState.merge_count

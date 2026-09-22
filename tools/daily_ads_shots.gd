@@ -108,8 +108,6 @@ func _ready() -> void:
 	await _show_tab(0)
 	_main._start_level(load(LEVEL_04))
 	await _settle()
-	if _main._board != null:
-		_main._board._dismiss_tutorial()
 	await _settle()
 	_report_gameplay()
 	await _capture("02_gameplay_slot")
@@ -178,8 +176,6 @@ func _ready() -> void:
 	await _capture("09_map_noslot")
 	_main._start_level(load(LEVEL_04))
 	await _settle()
-	if _main._board != null:
-		_main._board._dismiss_tutorial()
 	await _settle()
 	await _capture("10_gameplay_noslot")
 	_main.abandon_run()

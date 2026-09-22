@@ -56,7 +56,6 @@ func _make_board(level: String = "res://resources/levels/level_01.tres") -> void
 	_board.setup(load(level))
 	add_child(_board)
 	_board.get_node("Preview").visible = false
-	_board._dismiss_tutorial()
 	await get_tree().process_frame
 
 

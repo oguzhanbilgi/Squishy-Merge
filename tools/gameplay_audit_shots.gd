@@ -274,7 +274,7 @@ func _flush() -> void:
 	_pending.clear()
 
 
-func _make_board(level: String, keep_tutorial: bool = false) -> void:
+func _make_board(level: String) -> void:
 	await _teardown()
 	_board = GAME_BOARD_SCENE.instantiate()
 	_board.setup(load(level))
@@ -282,8 +282,6 @@ func _make_board(level: String, keep_tutorial: bool = false) -> void:
 	await get_tree().process_frame
 	if _safe_top >= 0.0:
 		_board._apply_layout(Vector2(_size), _safe_top)
-	if not keep_tutorial:
-		_board._dismiss_tutorial()
 	await get_tree().process_frame
 
 
@@ -428,10 +426,8 @@ func _group_states() -> void:
 	await _shot("states", "01_empty_t1", false)
 	_end("01_empty")
 
-	# 01b level 1 ipucu (referans; approved UI, yalnız okunurluk bağlamı).
-	await _make_board("res://resources/levels/level_01.tres", true)
-	await _frames(2)
-	await _shot("states", "01b_tutorial_l1", false)
+	# 01b level 1 ipucu: M8.10'da KALDIRILDI (ilk açılış tutorial'ı
+	# TutorialOverlay'e taşındı, çekimleri tools/tutorial_shots.tscn'de).
 
 	# 02 küçük yığın (5 parça).
 	await _make_board("res://resources/levels/level_04.tres")

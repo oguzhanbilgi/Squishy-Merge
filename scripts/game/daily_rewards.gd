@@ -25,6 +25,12 @@ extends RefCounted
 ## Sonuç ödülü transaction ANINDA belirlenir ve kayda işlenir; pencere
 ## animasyonu sonradan oynar. Uygulama animasyon bitmeden kapansa da ödül
 ## tam bir kez verilmiş olur.
+##
+## ONBOARDING / İLK GÜN KAPISI (M8.10): `Onboarding.daily_rewards_unlocked()`
+## false iken (tutorial bitmedi YA DA tutorial'ın bitirildiği takvim günü)
+## ÜÇ transaction da no-op döner ve otomatik pencere "due" olmaz. Kapı UI'da
+## değil BURADA: pencere bir şekilde açılsa bile ödül verilemez
+## (docs/TUTORIAL_SYSTEM.md §5).
 
 const FREE_CHESTS_PER_DAY: int = 1
 const AD_CHESTS_PER_DAY: int = 2
@@ -113,8 +119,11 @@ static func ad_dough_available() -> bool:
 	return not bool(SaveManager.daily_rewards_state(day_key())["dough_ad_claimed"])
 
 
-## Otomatik pencere bugün henüz gösterilmedi mi? (Onboarding kontrolü Main'de.)
+## Otomatik pencere bugün henüz gösterilmedi mi? Günlük sistem kilitliyken
+## (onboarding / ilk gün) ASLA. Main ayrıca kabuk/pencere koşullarına bakar.
 static func popup_due() -> bool:
+	if not Onboarding.daily_rewards_unlocked():
+		return false
 	return auto_popup_enabled and SaveManager.daily_popup_seen_day() != day_key()
 
 
@@ -127,6 +136,8 @@ static func mark_popup_seen() -> void:
 ## Ücretsiz sandık: kota var → kura → kayıt (tek yazma) → değişmez sonuç.
 ## Kota yoksa null; hiçbir şey değişmez. Çift dokunuş: ikinci çağrı null.
 static func claim_free_chest() -> DailyChestReward:
+	if not Onboarding.daily_rewards_unlocked():
+		return null
 	var key: String = day_key()
 	if bool(SaveManager.daily_rewards_state(key)["free_chest_claimed"]):
 		return null
@@ -144,6 +155,8 @@ static func claim_free_chest() -> DailyChestReward:
 ## talebin günü: eski güne ait geç callback (gün değişti) ödül vermez. Kota
 ## doluysa null; kayıt değişmez.
 static func grant_ad_chest(request_day_key: String) -> DailyChestReward:
+	if not Onboarding.daily_rewards_unlocked():
+		return null
 	var key: String = day_key()
 	if request_day_key != key:
 		return null
@@ -163,6 +176,8 @@ static func grant_ad_chest(request_day_key: String) -> DailyChestReward:
 
 ## Reklamlı +150 Hamur — YALNIZ "ödül kazanıldı" callback'inden (Main).
 static func grant_ad_dough(request_day_key: String) -> bool:
+	if not Onboarding.daily_rewards_unlocked():
+		return false
 	var key: String = day_key()
 	if request_day_key != key:
 		return false

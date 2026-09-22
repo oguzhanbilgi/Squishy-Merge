@@ -8,21 +8,23 @@ extends RefCounted
 ## M8.9-02.1: oyuncuya tek pencerede gösterilir (`DailyRewardsPopup` üst
 ## bölgesi: "N. GÜN · +15 HAMUR · ALINDI" + seri şeridi); pencere yalnız
 ## gösterir, ödülü YALNIZ `claim_if_new_day` (Main açılış / Günlük madalyonu
-## / Mağaza kartı yolunda, açılıştan ÖNCE) yazar. ONBOARDING KAPISI:
-## `onboarding_completed` false iken (tutorial bitmeden, M8.10) bu sınıf kaydı
-## HİÇ değiştirmez — ne Hamur ne seri ne tarih; gizli/geriye dönük ödül yok,
-## ilk giriş işlemi onboarding tamamlandıktan sonraki ilk çalışmada olur.
+## / Mağaza kartı yolunda, açılıştan ÖNCE) yazar. ONBOARDING KAPISI
+## (M8.10 — `Onboarding.daily_rewards_unlocked()`): tutorial bitmeden VE
+## tutorial'ın bitirildiği takvim GÜNÜNDE bu sınıf kaydı HİÇ değiştirmez —
+## ne Hamur ne seri ne tarih; gizli/geriye dönük ödül yok. İlk giriş işlemi
+## tamamlanma gününden SONRAKİ ilk yerel günün ilk çalışmasında olur
+## (docs/TUTORIAL_SYSTEM.md §5).
 
 ## GEÇİCİ değer — §5.2'deki Hamur oranlarıyla aynı gerekçe: v1.1 shop
 ## ekonomisi tasarlanınca gerçek bir değere göre revize edilecek.
 const DAILY_DOUGH: int = 15
 
 
-## Bugün ilk giriş ise ödülü verir ve seriyi ilerletir. Onboarding
-## tamamlanmadıysa hiçbir şey yapmaz (kayıt mutasyonu YOK).
-## Döner: {claimed, streak, reward, streak_broken}
+## Bugün ilk giriş ise ödülü verir ve seriyi ilerletir. Günlük sistem kapalıysa
+## (onboarding bitmedi ya da tutorial günü, M8.10) hiçbir şey yapmaz — kayıt
+## mutasyonu YOK. Döner: {claimed, streak, reward, streak_broken}
 static func claim_if_new_day() -> Dictionary:
-	if not SaveManager.onboarding_completed():
+	if not Onboarding.daily_rewards_unlocked():
 		return _result(false, SaveManager.daily_streak(), 0, false)
 	var today: String = Time.get_date_string_from_system()
 	var last: String = SaveManager.last_login_date()
@@ -50,11 +52,11 @@ static func claim_if_new_day() -> Dictionary:
 
 
 ## Bugün ödül alınabilir mi? YALNIZCA okur — `claim_if_new_day` ile aynı
-## kapılar (onboarding bitmemiş → hayır; aynı gün → hayır; saat geri alınmış
+## kapılar (günlük sistem kapalı → hayır; aynı gün → hayır; saat geri alınmış
 ## → hayır). Ana Sayfa'daki Günlük madalyonunun bildirim noktası bunu
 ## gösterir (M8.6-03B).
 static func is_claimable() -> bool:
-	if not SaveManager.onboarding_completed():
+	if not Onboarding.daily_rewards_unlocked():
 		return false
 	var today: String = Time.get_date_string_from_system()
 	var last: String = SaveManager.last_login_date()

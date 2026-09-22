@@ -120,7 +120,6 @@ func _make_board(level: int, stock: int = 3) -> void:
 	_board.round_finished.connect(func(won: bool) -> void: _finished.append(won))
 	add_child(_board)
 	await get_tree().process_frame
-	_board._dismiss_tutorial()
 	await get_tree().process_frame
 
 

@@ -64,6 +64,10 @@ func _ready() -> void:
 	# Günlük ödül bugün alınmış gibi: main._ready kayda yazmasın (bu test
 	# "Ana Sayfa'yı çizmek kaydı değiştirmez" sözünü ölçüyor).
 	SaveManager.data["last_login_date"] = Time.get_date_string_from_system()
+	# M8.10: bu harness KABUGU olcuyor — onboarding tamamlanmis olmali,
+	# yoksa Main dogrudan ilk acilis tutorial'ina girer. Kayit dosyasini
+	# geri koymayan baska bir suite diske `false` birakmis olabilir.
+	SaveManager.data["onboarding_completed"] = true
 	_apply_showcase()
 
 	get_window().size = Vector2i(720, 1000)

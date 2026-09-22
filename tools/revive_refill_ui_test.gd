@@ -100,6 +100,10 @@ func _ready() -> void:
 	if _had_save:
 		_save_bytes = FileAccess.get_file_as_bytes(SaveManager.SAVE_PATH)
 	SaveManager.data["last_login_date"] = Time.get_date_string_from_system()
+	# M8.10: bu harness KABUGU olcuyor — onboarding tamamlanmis olmali,
+	# yoksa Main dogrudan ilk acilis tutorial'ina girer. Kayit dosyasini
+	# geri koymayan baska bir suite diske `false` birakmis olabilir.
+	SaveManager.data["onboarding_completed"] = true
 	_apply_showcase()
 	get_window().size = Vector2i(720, 1000)
 	await get_tree().process_frame
@@ -203,7 +207,6 @@ func _start(level: String, detach: bool) -> void:
 	_main._start_level(load(level))
 	await get_tree().process_frame
 	await get_tree().process_frame
-	_board()._dismiss_tutorial()
 	_finished_count = 0
 	_board().round_finished.connect(func(_won: bool) -> void: _finished_count += 1)
 	if detach:
