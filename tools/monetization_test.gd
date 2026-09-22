@@ -1,6 +1,9 @@
 extends Node
-## Monetizasyon temelinin deterministik testi (M8.9-01/02) — İNTERNET, CİHAZ
-## VE EKLENTİ YOK. `FakeAdBackend` SDK'yı taklit eder; MonetizationManager'ın
+## Monetizasyon temelinin deterministik testi (M8.9-01/02, M9-01) — İNTERNET,
+## CİHAZ VE EKLENTİ YOK. M9-01: izin kapısı UMP `canRequestAds()` (istek
+## öncesi yeniden sorulur), gizlilik seçenekleri UMP'nin resmî durum/formu,
+## eski eklenti için türetme geri düşüşü; yapılandırma kuralları ayrıntısı
+## `release_config_test`'te. `FakeAdBackend` SDK'yı taklit eder; MonetizationManager'ın
 ## rıza yaşam döngüsü, ödüllü durum makinesi (devam + refill), banner yaşam
 ## döngüsü (Ana Sayfa / Harita / Mağaza / Koleksiyon / oyun; sonuç gizli),
 ## geri çekilme/önyükleme, analitik olay dikişi ve Main/UI entegrasyonu
@@ -82,6 +85,7 @@ func _ready() -> void:
 	await _test_consent_flow()
 	await _test_consent_errors()
 	await _test_privacy_options()
+	await _test_can_request_ads_gate()
 	await _test_rewarded_preload_and_success()
 	await _test_rewarded_callback_safety()
 	await _test_rewarded_failures()
@@ -150,10 +154,11 @@ func _boot(fake: FakeAdBackend) -> MonetizationManager:
 # --- Yapılandırma / olaylar / kaynak ---------------------------------------------
 
 func _test_config() -> void:
-	print("-- yapılandırma (android_export.cfg)")
+	print("-- yapılandırma (android_export.cfg; M9-01 build türü seçer — ayrıntı release_config_test)")
 	var config: AdConfig = AdConfig.load_project()
 	_c("android_export.cfg okundu", config.source == AdConfig.CONFIG_PATH)
-	_c("TEST modu: is_real=false", not config.is_real)
+	_c("editör/headless = DEBUG build → TEST modu (is_real=false)", not config.is_real
+		and config.build_type == AdConfig.BuildType.DEBUG and AdConfig.current_build_type() == AdConfig.BuildType.DEBUG)
 	_c("uygulama kimliği Google örnek app id", config.app_id == AdConfig.TEST_APP_ID)
 	_c("ödüllü kimlik Google örnek rewarded id", config.rewarded_id == AdConfig.TEST_REWARDED_ID)
 	_c("banner kimliği Google örnek ADAPTIVE banner id (katlanabilir değil)",
@@ -161,9 +166,9 @@ func _test_config() -> void:
 	_c("interstitial kimliği Google örnek interstitial id (M8.9-02)", config.interstitial_id == AdConfig.TEST_INTERSTITIAL_ID
 		and config.interstitial_id.ends_with("/1033173712"))
 	_c("yapılandırma geçerli", config.is_valid() and config.error == "")
-	_c("debug coğrafyası ayarlanmadı", config.debug_geography == "")
+	_c("debug coğrafyası ayarlanmadı", config.effective_debug_geography() == "")
 
-	# Gerçek mod korumaları: geçici dosya ile.
+	# Release kuralları (M9-01: RELEASE build türü) — geçici dosya ile.
 	var tmp: String = "user://_ads_cfg_test.cfg"
 	var file := ConfigFile.new()
 	file.set_value("General", "is_real", true)
@@ -172,38 +177,36 @@ func _test_config() -> void:
 	file.set_value("Release", "banner_id", "")
 	file.set_value("Release", "interstitial_id", "")
 	file.save(tmp)
-	var real_missing := AdConfig.new()
-	real_missing._load(tmp)
-	_c("is_real=true + boş [Release] -> GEÇERSİZ (reklam başlatılmaz)", real_missing.is_real and not real_missing.is_valid())
+	var real_missing := AdConfig.load_file(tmp, AdConfig.BuildType.RELEASE)
+	_c("release + boş [Release] -> GEÇERSİZ (reklam başlatılmaz)", real_missing.is_real and not real_missing.is_valid())
 	file.set_value("Release", "app_id", AdConfig.TEST_APP_ID)
 	file.set_value("Release", "rewarded_id", AdConfig.TEST_REWARDED_ID)
 	file.set_value("Release", "banner_id", AdConfig.TEST_BANNER_ID)
 	file.set_value("Release", "interstitial_id", AdConfig.TEST_INTERSTITIAL_ID)
 	file.save(tmp)
-	var real_sample := AdConfig.new()
-	real_sample._load(tmp)
-	_c("is_real=true + Google örnek kimliği -> GEÇERSİZ", not real_sample.is_valid())
+	_c("release + Google örnek kimliği -> GEÇERSİZ", not AdConfig.load_file(tmp, AdConfig.BuildType.RELEASE).is_valid())
 	file.set_value("Release", "app_id", "ca-app-pub-1111111111111111~2222222222")
 	file.set_value("Release", "rewarded_id", "ca-app-pub-1111111111111111/3333333333")
 	file.set_value("Release", "banner_id", "ca-app-pub-1111111111111111/4444444444")
 	file.set_value("Debug", "debug_geography", "EEA")
 	file.save(tmp)
-	var real_no_inter := AdConfig.new()
-	real_no_inter._load(tmp)
-	_c("is_real=true + interstitial kimliği örnek/boş -> GEÇERSİZ (fail-closed, M8.9-02)", not real_no_inter.is_valid())
+	_c("release + interstitial kimliği örnek -> GEÇERSİZ (fail-closed, M8.9-02)",
+		not AdConfig.load_file(tmp, AdConfig.BuildType.RELEASE).is_valid())
 	file.set_value("Release", "interstitial_id", "ca-app-pub-1111111111111111/5555555555")
 	file.save(tmp)
-	var real_ok := AdConfig.new()
-	real_ok._load(tmp)
-	_c("is_real=true + dolu [Release] (4 kimlik) -> geçerli, üretim kimlikleri seçildi",
+	var real_ok := AdConfig.load_file(tmp, AdConfig.BuildType.RELEASE)
+	_c("release + dolu [Release] (4 kimlik) -> geçerli, üretim kimlikleri seçildi",
 		real_ok.is_valid() and real_ok.rewarded_id.ends_with("/3333333333") and real_ok.banner_id.ends_with("/4444444444")
 		and real_ok.interstitial_id.ends_with("/5555555555"))
-	_c("debug_geography küçük harfe normalize (eea)", real_ok.debug_geography == "eea")
+	_c("release'te debug coğrafyası HİÇ uygulanmaz (dosyada EEA olsa da)", real_ok.effective_debug_geography() == "")
+	var same_file_debug := AdConfig.load_file(tmp, AdConfig.BuildType.DEBUG)
+	_c("aynı dosya DEBUG build'de: yine Google örnekleri + coğrafya küçük harfe normalize (eea)", same_file_debug.is_valid()
+		and not same_file_debug.is_real and same_file_debug.rewarded_id == AdConfig.TEST_REWARDED_ID
+		and same_file_debug.effective_debug_geography() == "eea")
 	file.set_value("General", "is_real", false)
 	file.set_value("Debug", "debug_geography", "mars")
 	file.save(tmp)
-	var bad_geo := AdConfig.new()
-	bad_geo._load(tmp)
+	var bad_geo := AdConfig.load_file(tmp, AdConfig.BuildType.DEBUG)
 	_c("geçersiz debug_geography -> hata, reklam başlamaz", not bad_geo.is_valid() and bad_geo.debug_geography == "")
 	DirAccess.remove_absolute(ProjectSettings.globalize_path(tmp))
 	_c("eklentisiz platformda AdmobBackend.create null (masaüstü)", AdmobBackend.create(config) == null
@@ -254,8 +257,14 @@ func _test_sources() -> void:
 		and not ads_src.contains("mediation") and ads_src.contains("load_interstitial"))
 	_c("üretim kodunda IAP / Billing / analitik sağlayıcı yok", not ads_src.contains("Billing") and not ads_src.contains("Firebase")
 		and not main_src.contains("Billing"))
-	_c("üretim kodunda Google örnek yayıncı dışında sabit reklam kimliği yok",
-		ads_src.count("ca-app-pub-") == ads_src.count("ca-app-pub-3940256099942544"))
+	# Somut kimlikler (M9-01: AdConfig biçim desenleri kimlik değil — regex'le say).
+	var concrete_ids: int = 0
+	var foreign_ids: int = 0
+	for found in RegEx.create_from_string("ca-app-pub-(\\d{16})[~/]\\d{10}").search_all(ads_src):
+		concrete_ids += 1
+		if found.get_string(1) != "3940256099942544":
+			foreign_ids += 1
+	_c("üretim kodunda Google örnek yayıncı dışında sabit reklam kimliği yok", concrete_ids >= 4 and foreign_ids == 0)
 	_c("üretim kodu FakeAdBackend'i bilmez", not main_src.contains("FakeAdBackend") and not manager_src.contains("FakeAdBackend"))
 	var cfg: String = FileAccess.get_file_as_string("res://addons/AdmobPlugin/android_export.cfg")
 	_c("android_export.cfg: is_real=false, [Release] boş (üretim kimliği commit edilmedi)",
@@ -290,10 +299,12 @@ func _test_consent_flow() -> void:
 	_c("gizlilik seçenekleri gerekli değil (form yok)", not m.privacy_options_required())
 	await _free_manager(m)
 
-	# 2. Rıza gerekli + form var -> form -> OBTAINED.
+	# 2. Rıza gerekli + form var -> form -> OBTAINED (EEA: UMP gizlilik
+	# seçeneklerini de REQUIRED döner — M9-01 resmî değer).
 	fake = FakeAdBackend.new()
 	fake.status = AdBackend.ConsentStatus.REQUIRED
 	fake.form_available = true
+	fake.privacy_status = AdBackend.PrivacyOptionsStatus.REQUIRED
 	m = _make_manager(fake)
 	fake.complete_consent_update(true)
 	_c("REQUIRED + form -> CONSENT_FORM, form yükleniyor, SDK yok", m.ads_state() == MonetizationManager.AdsState.CONSENT_FORM
@@ -386,44 +397,189 @@ func _test_consent_errors() -> void:
 
 
 func _test_privacy_options() -> void:
-	print("-- gizlilik seçenekleri giriş noktası")
+	print("-- gizlilik seçenekleri giriş noktası (M9-01: UMP getPrivacyOptionsRequirementStatus / showPrivacyOptionsForm)")
 	var fake := FakeAdBackend.new()
 	fake.status = AdBackend.ConsentStatus.OBTAINED
 	fake.form_available = true
+	fake.privacy_status = AdBackend.PrivacyOptionsStatus.REQUIRED
 	var m: MonetizationManager = _make_manager(fake)
 	var changes: Array[bool] = []
 	m.privacy_options_changed.connect(func(required: bool) -> void: changes.append(required))
+	_c("yamalı arka uç: yönetici UMP'nin resmî çağrılarını kullanıyor", m.uses_privacy_api())
 	_c("update öncesi gerekli değil (SDK sorulmadı)", not m.privacy_options_required())
 	fake.complete_consent_update(true)
 	fake.complete_init()
-	_c("OBTAINED + form var -> gerekli (sinyal true)", m.privacy_options_required() and changes == [true])
+	_c("privacy status REQUIRED -> gerekli (sinyal true)", m.privacy_options_required() and changes == [true])
 	m.set_surface(MonetizationManager.Surface.HOME)
 	var banner_id: String = fake.complete_banner_load(true)
 	_c("banner gösterildi (ön koşul)", m.banner_state() == MonetizationManager.BannerState.SHOWN and banner_id != "")
-	_c("show_privacy_options -> SDK formu yüklenir", m.show_privacy_options() and fake.consent_form_loads == 1)
-	_c("form açıkken ikinci çağrı reddedilir", not m.show_privacy_options() and fake.consent_form_loads == 1)
-	fake.complete_form_load(true)
-	_c("form gösterildi", fake.consent_form_shows == 1)
-	fake.dismiss_form(AdBackend.ConsentStatus.OBTAINED)
-	_c("seçim sonrası hâlâ OBTAINED -> izin sürer, banner açık, SDK yeniden başlatılmadı",
-		m.ads_allowed() and m.banner_state() == MonetizationManager.BannerState.SHOWN and fake.init_calls == 1)
-	# Rıza geri çekildi (SDK REQUIRED diyor): reklam durur.
-	_c("show_privacy_options (2)", m.show_privacy_options())
-	fake.complete_form_load(true)
-	fake.dismiss_form(AdBackend.ConsentStatus.REQUIRED)
-	_c("form sonrası REQUIRED -> ADS_NOT_ALLOWED, banner GİZLENDİ, ödüllü hazır değil",
+	_c("show_privacy_options -> SDK'nın showPrivacyOptionsForm'u (rıza formu yüklenmez)", m.show_privacy_options()
+		and fake.privacy_form_shows == 1 and fake.consent_form_loads == 0)
+	_c("form açıkken ikinci çağrı reddedilir; form kaplarken aktif süre sayılmaz", not m.show_privacy_options()
+		and fake.privacy_form_shows == 1 and m.consent_form_covering())
+	fake.dismiss_privacy_form(AdBackend.ConsentStatus.OBTAINED)
+	_c("seçim sonrası izin sürer (canRequestAds), banner açık, SDK yeniden başlatılmadı",
+		m.ads_allowed() and m.banner_state() == MonetizationManager.BannerState.SHOWN and fake.init_calls == 1
+		and not m.consent_form_covering())
+	# Rıza geri çekildi (SDK REQUIRED diyor → canRequestAds false): reklam durur.
+	_c("show_privacy_options (2)", m.show_privacy_options() and fake.privacy_form_shows == 2)
+	fake.dismiss_privacy_form(AdBackend.ConsentStatus.REQUIRED)
+	_c("form sonrası canRequestAds false -> ADS_NOT_ALLOWED, banner GİZLENDİ, ödüllü hazır değil",
 		m.ads_state() == MonetizationManager.AdsState.ADS_NOT_ALLOWED and fake.banner_hides.size() == 1
 		and not m.is_rewarded_ready() and m.rewarded_note() == MonetizationManager.NOTE_UNAVAILABLE)
-	_c("form sunulmayan bölgede satır gizli", true)
+	_c("kullanıcı seçimi sonrası planlı rıza yeniden denemesi YOK (form ısrarı yok)", not m.has_pending_consent_retry())
+	_c("REQUIRED iken giriş noktası görünür kalır (kullanıcı fikrini değiştirebilir)", m.privacy_options_required())
+	# Fikrini değiştirdi: yeniden izin → reklam geri gelir, SDK yeniden başlatılmaz.
+	_c("show_privacy_options (3)", m.show_privacy_options() and fake.privacy_form_shows == 3)
+	fake.dismiss_privacy_form(AdBackend.ConsentStatus.OBTAINED)
+	_c("yeniden izin -> ADS_ALLOWED, banner yeniden görünür, init tek", m.ads_allowed()
+		and m.banner_state() == MonetizationManager.BannerState.SHOWN and fake.init_calls == 1)
+	# Form hatası (ör. ağ): SDK durumu değişmedi → izin olduğu gibi kalır.
+	_c("show_privacy_options (4)", m.show_privacy_options())
+	fake.dismiss_privacy_form(-1, 2, "network")
+	_c("form hatayla kapandı, izin değişmedi -> hâlâ ADS_ALLOWED, satır görünür", m.ads_allowed()
+		and m.privacy_options_required())
+	# Geç/yersiz kapanış sinyali (form açık değilken): yok sayılır.
+	fake.dismiss_privacy_form(AdBackend.ConsentStatus.REQUIRED)
+	_c("form açık değilken gelen kapanış sinyali yok sayılır (durum değişmez)", m.ads_allowed())
+	fake.status = AdBackend.ConsentStatus.OBTAINED
 	await _free_manager(m)
 
 	fake = FakeAdBackend.new()
 	fake.status = AdBackend.ConsentStatus.NOT_REQUIRED
 	fake.form_available = false
+	fake.privacy_status = AdBackend.PrivacyOptionsStatus.NOT_REQUIRED
 	m = _make_manager(fake)
 	fake.complete_consent_update(true)
-	_c("NOT_REQUIRED + form yok -> gizlilik seçenekleri gerekli DEĞİL, show reddedilir",
-		not m.privacy_options_required() and not m.show_privacy_options() and fake.consent_form_loads == 0)
+	_c("privacy status NOT_REQUIRED -> gerekli DEĞİL, show reddedilir, form açılmaz",
+		not m.privacy_options_required() and not m.show_privacy_options() and fake.privacy_form_shows == 0
+		and fake.consent_form_loads == 0)
+	await _free_manager(m)
+
+	# Form sunulan bölge ama UMP gizlilik seçeneklerini GEREKMEZ diyor (ör. ABD
+	# dışı mesaj yok): M8.9 türetmesi burada "gerekli" derdi — artık SDK'nın dediği.
+	fake = FakeAdBackend.new()
+	fake.status = AdBackend.ConsentStatus.OBTAINED
+	fake.form_available = true
+	fake.privacy_status = AdBackend.PrivacyOptionsStatus.NOT_REQUIRED
+	m = _make_manager(fake)
+	fake.complete_consent_update(true)
+	_c("resmî değer türetmeyi ezer: form var ama status NOT_REQUIRED -> satır GİZLİ", not m.privacy_options_required())
+	await _free_manager(m)
+
+	# ABD eyalet mesajı: rıza NOT_REQUIRED, gizlilik seçenekleri REQUIRED (M8.9'un
+	# açık noktası — türetme bunu göremiyordu).
+	fake = FakeAdBackend.new()
+	fake.status = AdBackend.ConsentStatus.NOT_REQUIRED
+	fake.form_available = false
+	fake.privacy_status = AdBackend.PrivacyOptionsStatus.REQUIRED
+	m = _make_manager(fake)
+	fake.complete_consent_update(true)
+	_c("NOT_REQUIRED + privacy REQUIRED (ABD eyalet mesajı) -> reklam izinli VE satır görünür", m.ads_allowed()
+		and m.privacy_options_required())
+	await _free_manager(m)
+
+	# Eski (yamasız) eklenti: M8.9 türetmesi aynen çalışır (geri düşüş, uyarıyla).
+	fake = FakeAdBackend.new()
+	fake.privacy_api = false
+	fake.status = AdBackend.ConsentStatus.OBTAINED
+	fake.form_available = true
+	m = _make_manager(fake)
+	fake.complete_consent_update(true)
+	fake.complete_init()
+	_c("yamasız arka uç: türetme yolu (uses_privacy_api false), form var -> gerekli", not m.uses_privacy_api()
+		and m.privacy_options_required() and m.ads_allowed())
+	_c("yamasız: show_privacy_options -> rıza formu yüklenir (showPrivacyOptionsForm yok)", m.show_privacy_options()
+		and fake.consent_form_loads == 1 and fake.privacy_form_shows == 0)
+	fake.complete_form_load(true)
+	fake.dismiss_form(AdBackend.ConsentStatus.REQUIRED)
+	_c("yamasız: form sonrası REQUIRED -> ADS_NOT_ALLOWED", m.ads_state() == MonetizationManager.AdsState.ADS_NOT_ALLOWED)
+	_c("yamasız: canRequestAds hiç çağrılmadı (türetme)", fake.can_request_calls == 0)
+	await _free_manager(m)
+
+
+## M9-01: izin kapısı UMP'nin resmî `canRequestAds()`'i — rıza durumundan
+## türetilmez; SDK başlatma ve HER reklam yüklemesinden hemen önce yeniden sorulur.
+func _test_can_request_ads_gate() -> void:
+	print("-- UMP canRequestAds kapısı (M9-01)")
+	# A. Durum OBTAINED ama SDK "istek yok" diyor → kapı SDK'nın dediği.
+	var fake := FakeAdBackend.new()
+	fake.status = AdBackend.ConsentStatus.OBTAINED
+	fake.can_request_override = 0
+	var m: MonetizationManager = _make_manager(fake)
+	fake.complete_consent_update(true)
+	_c("OBTAINED ama canRequestAds false -> ADS_NOT_ALLOWED, SDK BAŞLATILMADI, yükleme yok",
+		m.ads_state() == MonetizationManager.AdsState.ADS_NOT_ALLOWED and fake.init_calls == 0
+		and fake.rewarded_loads == 0 and fake.interstitial_loads == 0 and fake.can_request_calls >= 1)
+	_c("izinsizlikte sınırlı yeniden deneme planlandı (M8.9 aynen)", m.has_pending_consent_retry())
+	await _free_manager(m)
+
+	# B. Rıza durumu UNKNOWN ama SDK izin veriyor (UMP 3: mesaj yapılandırılmamış).
+	fake = FakeAdBackend.new()
+	fake.status = AdBackend.ConsentStatus.UNKNOWN
+	fake.can_request_override = 1
+	m = _make_manager(fake)
+	fake.complete_consent_update(true)
+	_c("UNKNOWN ama canRequestAds true -> ADS_ALLOWED + SDK başlatıldı (SDK tek gerçek)", m.ads_allowed()
+		and fake.init_calls == 1)
+	await _free_manager(m)
+
+	# C. Güncelleme HATASI + önceki oturumun geçerli rızası → reklam sürer.
+	fake = FakeAdBackend.new()
+	fake.status = AdBackend.ConsentStatus.OBTAINED
+	m = _make_manager(fake)
+	fake.complete_consent_update(false)
+	_c("update HATASI + önceki geçerli rıza (canRequestAds true) -> ERROR_WITH_PREVIOUS_STATE, SDK başlatıldı",
+		m.ads_state() == MonetizationManager.AdsState.ERROR_WITH_PREVIOUS_STATE and m.ads_allowed() and fake.init_calls == 1)
+	_c("geçici hata geçerli rızayı SİLMEDİ: yeniden deneme yok, form denenmedi", not m.has_pending_consent_retry()
+		and fake.consent_form_loads == 0)
+	fake.complete_init()
+	_c("hata sonrası önyüklemeler açıldı (ödüllü + geçiş)", fake.rewarded_loads == 1 and fake.interstitial_loads == 1)
+	await _free_manager(m)
+
+	# D. Güncelleme HATASI + önceki rıza yok → reklam yok, sınırlı deneme.
+	fake = FakeAdBackend.new()
+	fake.status = AdBackend.ConsentStatus.UNKNOWN
+	m = _make_manager(fake)
+	fake.complete_consent_update(false)
+	_c("update HATASI + önceki rıza yok (canRequestAds false) -> ADS_NOT_ALLOWED + planlı deneme, SDK yok",
+		m.ads_state() == MonetizationManager.AdsState.ADS_NOT_ALLOWED and m.has_pending_consent_retry() and fake.init_calls == 0)
+	await _free_manager(m)
+
+	# E. Rıza formu sonrası da karar canRequestAds'in.
+	fake = FakeAdBackend.new()
+	fake.status = AdBackend.ConsentStatus.REQUIRED
+	fake.form_available = true
+	m = _make_manager(fake)
+	fake.complete_consent_update(true)
+	fake.complete_form_load(true)
+	fake.can_request_override = 0
+	fake.dismiss_form(AdBackend.ConsentStatus.OBTAINED)
+	_c("form sonrası OBTAINED ama canRequestAds false -> ADS_NOT_ALLOWED + deneme, SDK yok",
+		m.ads_state() == MonetizationManager.AdsState.ADS_NOT_ALLOWED and m.has_pending_consent_retry() and fake.init_calls == 0)
+	await _free_manager(m)
+
+	# F. HER yüklemeden hemen önce yeniden sorulur: izin sonradan kalkarsa
+	# planlı yükleme gitmez, kayma yakalanır.
+	fake = FakeAdBackend.new()
+	m = _boot(fake)
+	m.set_surface(MonetizationManager.Surface.HOME)
+	fake.complete_banner_load(true)
+	_c("ön koşul: izinli, SDK hazır, banner açık, ödüllü yükleniyor", m.ads_allowed()
+		and m.banner_state() == MonetizationManager.BannerState.SHOWN and fake.rewarded_loads == 1)
+	var calls_before: int = fake.can_request_calls
+	for _i in 30:
+		m._tick_active(1.0)
+	await _settle(3)
+	_c("canRequestAds her karede SORULMAZ (yalnız istek anlarında)", fake.can_request_calls == calls_before)
+	fake.complete_rewarded_load(false)
+	fake.can_request_override = 0
+	await _wait(MonetizationManager.REWARDED_RETRY_DELAYS[0])
+	_c("izin kalkınca planlı ödüllü yükleme GİTMEDİ (istek öncesi canRequestAds)", fake.rewarded_loads == 1)
+	_c("kayma yakalandı -> ADS_NOT_ALLOWED, banner gizlendi, ödüllü hazır değil",
+		m.ads_state() == MonetizationManager.AdsState.ADS_NOT_ALLOWED and fake.banner_hides.size() == 1
+		and not m.is_rewarded_ready())
+	fake.can_request_override = -1
 	await _free_manager(m)
 
 
@@ -664,11 +820,11 @@ func _test_rewarded_lifecycle_edges() -> void:
 	fake.complete_rewarded_load(true)
 	_c("ön koşul: READY", m.is_rewarded_ready())
 	fake.form_available = true
+	fake.privacy_status = AdBackend.PrivacyOptionsStatus.REQUIRED
 	fake.status = AdBackend.ConsentStatus.OBTAINED
 	fake.complete_consent_update(true)
 	_c("show_privacy_options", m.show_privacy_options())
-	fake.complete_form_load(true)
-	fake.dismiss_form(AdBackend.ConsentStatus.REQUIRED)
+	fake.dismiss_privacy_form(AdBackend.ConsentStatus.REQUIRED)
 	_c("izin kalkınca yüklü reklam bile 'hazır' değil, not 'kullanılamıyor'", not m.is_rewarded_ready()
 		and m.rewarded_note() == MonetizationManager.NOTE_UNAVAILABLE)
 	m.show_rewarded_revive(stub)
@@ -1187,17 +1343,20 @@ func _test_main_integration() -> void:
 		and not settings.PRIVACY_TEXT.contains("reklam ve uygulama içi satın alma da yok"))
 	_main.close_settings()
 	fake.form_available = true
+	fake.privacy_status = AdBackend.PrivacyOptionsStatus.REQUIRED
 	fake.status = AdBackend.ConsentStatus.OBTAINED
 	fake.complete_consent_update(true)
 	_main.open_settings()
 	await _settle(2)
-	_c("SDK form sunuyor -> satır GÖRÜNÜR ('Gizlilik seçenekleri' + Aç)", settings.privacy_options_row().visible
+	_c("UMP privacy status REQUIRED -> satır GÖRÜNÜR ('Gizlilik seçenekleri' + Aç)", settings.privacy_options_row().visible
 		and settings.privacy_options_button().text == settings.PRIVACY_OPTIONS_BUTTON)
+	_c("gizlilik politikası URL'i yok -> 'Gizlilik politikası' satırı GİZLİ (M9-01, sahte bağlantı yok)",
+		not settings.privacy_policy_row().visible)
 	settings.privacy_options_button().pressed.emit()
 	await _settle(1)
-	_c("Aç -> SDK formu yükleniyor", fake.consent_form_loads == 1)
-	fake.complete_form_load(true)
-	fake.dismiss_form(AdBackend.ConsentStatus.OBTAINED)
+	_c("Aç -> SDK'nın gizlilik seçenekleri formu (showPrivacyOptionsForm)", fake.privacy_form_shows == 1
+		and fake.consent_form_loads == 0)
+	fake.dismiss_privacy_form(AdBackend.ConsentStatus.OBTAINED)
 	await _settle(1)
 	_c("form kapandı, izin sürüyor, satır hâlâ görünür", m.ads_allowed() and settings.privacy_options_row().visible)
 	_main.close_settings()

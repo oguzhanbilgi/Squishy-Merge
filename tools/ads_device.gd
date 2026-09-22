@@ -23,10 +23,16 @@ extends Node
 ##   stock B U S C · dough N · quota 0|1 · unlock N
 ##   abandon · leave · settings · close_settings
 ##   remake real [geo] [rewarded_id]   Main'i gerçek arka uçla yeniden kur
-##                            (geo: eea|disabled|other|regulated_us_state;
-##                             rewarded_id: ör. geçersiz kimlik → gerçek no-fill)
+##                            (geo: eea|not_eea|disabled|other|regulated_us_state|none
+##                             — M9-01: yamalı eklentiyle cihazda GERÇEKTEN uygulanır
+##                             (#120 düzeldi); yalnız DEBUG build, release reddeder;
+##                             not_eea → UMP OTHER; rewarded_id: ör. geçersiz kimlik →
+##                             gerçek no-fill)
 ##   remake fake              Main'i sahte arka uçla yeniden kur
-##   reset_consent            UMP durumunu sıfırla (yalnız gerçek arka uç; test)
+##   reset_consent            UMP durumunu sıfırla (yalnız gerçek arka uç; test) —
+##                            sonra `remake real eea` = rıza formu yeniden
+##   privacy                  Ayarlar → Gizlilik seçenekleri → Aç ile aynı yol (M9-01)
+##   (durum satırı `ump:` api / can_request_ads / privacy_status — M9-01)
 ##   fake_consent ok|fail · fake_init · fake_load ok|fail · fake_show_fail
 ##   fake_earned · fake_dismiss · fake_banner ok|fail
 ##   ensure                   MonetizationManager.ensure_rewarded()
@@ -257,11 +263,13 @@ func _handle(line: String) -> void:
 			else:
 				var config: AdConfig = AdConfig.load_project()
 				if parts.size() > 2:
-					config.debug_geography = parts[2] if parts[2] != "none" else ""
+					# M9-01: yalnız DEBUG build'de kabul edilir (release'te reddedilir).
+					if not config.set_debug_geography(parts[2] if parts[2] != "none" else ""):
+						_last = "remake: debug coğrafyası reddedildi (%s)" % parts[2]
 				if parts.size() > 3:
 					config.rewarded_id = parts[3]
 				var real: AdmobBackend = AdmobBackend.create(config)
-				_backend_kind = "real geo=%s rewarded=%s" % [config.debug_geography, config.rewarded_id]
+				_backend_kind = "real geo=%s rewarded=%s" % [config.effective_debug_geography(), config.rewarded_id]
 				_fake = null
 				await _make_main(real)
 		"reset_consent":
@@ -269,6 +277,11 @@ func _handle(line: String) -> void:
 			if ads != null and ads.backend() is AdmobBackend:
 				(ads.backend() as AdmobBackend)._admob.reset_consent_info()
 				_last = "reset_consent"
+		"privacy":
+			# M9-01: Ayarlar'daki "Gizlilik seçenekleri → Aç" ile aynı yol (kod
+			# yolu; cihazda gerçek dokunuş tercih — `settings:` satırındaki satır).
+			if _ads() != null:
+				_last = "privacy -> %s" % str(_ads().show_privacy_options())
 		"ensure":
 			if _ads() != null:
 				_ads().ensure_rewarded()
@@ -500,6 +513,12 @@ func _write_state(label: String) -> void:
 			AdBackend.ConsentStatus.keys()[backend.consent_status()] if backend != null else "-",
 			str(backend.is_consent_form_available()) if backend != null else "-",
 			str(ads.privacy_options_required()), ads.consent_attempts(), str(ads.has_pending_consent_retry())])
+		# M9-01: UMP resmî değerleri (yamalı eklenti) — EEA / NOT_EEA kapısı bunları okur.
+		var papi: bool = backend != null and backend.has_privacy_api()
+		lines.append("ump: api=%s can_request_ads=%s privacy_status=%s uses_api=%s" % [str(papi),
+			str(backend.can_request_ads()) if papi else "-",
+			AdBackend.PrivacyOptionsStatus.keys()[backend.privacy_options_status()] if papi else "-",
+			str(ads.uses_privacy_api())])
 		var req: Dictionary = ads.request_info()
 		lines.append("rewarded: state=%s ready=%s note='%s' attempts=%d retry=%s request={active=%s id=%d kind=%s type=%d token=%d day=%s ad_id=%s earned=%s cancelled=%s}" % [
 			MonetizationManager.RewardedState.keys()[ads.rewarded_state()], str(ads.is_rewarded_ready()),

@@ -6,9 +6,13 @@ extends CanvasLayer
 ##   Gizlilik        kısa, doğru metin (hesap/sunucu/analitik yok; reklam
 ##                   için Google AdMob — M8.9-01) — Göster/Gizle ile
 ##                   pencerenin İÇİNDE açılır
-##   Gizlilik seçenekleri  (M8.9-01) YALNIZ reklam SDK'sı (UMP) bir rıza
-##                   formu sunuyorsa görünür: Aç → SDK'nın kendi formu.
-##                   SDK gerekli demiyorsa satır GİZLİ (sahte kontrol yok).
+##   Gizlilik seçenekleri  (M8.9-01) YALNIZ UMP gerekli diyorsa görünür (M9-01:
+##                   `getPrivacyOptionsRequirementStatus() == REQUIRED`): Aç →
+##                   SDK'nın kendi gizlilik seçenekleri formu. SDK gerekli
+##                   demiyorsa satır GİZLİ (sahte kontrol yok).
+##   Gizlilik politikası   (M9-01) Play'in "uygulama içinde de" şartı için
+##                   barındırılan politikaya bağlantı; URL owner'da (project.godot
+##                   `squishy/privacy/policy_url`) — boşken satır HİÇ görünmez.
 ##   Sürüm           uygulama adı + sürüm (project.godot → config/version)
 ##   Kapat           altlıkta ikincil buton; X ve karartma da kapatır
 ##
@@ -34,6 +38,9 @@ signal closed
 const PRIVACY_TEXT: String = "Squishy Merge hesap, sunucu ve analitik kullanmaz; ilerlemen yalnızca bu cihazda saklanır. Ödüllü, banner ve geçiş (tam ekran) reklamları için Google AdMob kullanılır; reklam SDK'sı reklam kimliği gibi cihaz verilerini Google'ın gizlilik politikasına göre işleyebilir. Uygulama içi satın alma yok."
 const PRIVACY_OPTIONS_TITLE: String = "Gizlilik seçenekleri"
 const PRIVACY_OPTIONS_BUTTON: String = "Aç"
+const PRIVACY_POLICY_TITLE: String = "Gizlilik politikası"
+## Owner'ın barındırdığı politika (M9-01); boş = satır yok.
+const PRIVACY_POLICY_SETTING: String = "squishy/privacy/policy_url"
 const MODAL_WIDTH: float = 560.0
 
 var _frame: Control
@@ -51,6 +58,10 @@ var _privacy_options_button: Button
 ## `privacy_options_changed(required)` sunan nesne (MonetizationManager);
 ## null = reklam yöneticisi yok → satır hiç görünmez.
 var _privacy_options_source: Object = null
+## Gizlilik politikası bağlantısı (M9-01): satır + ayırıcı, URL yoksa gizli.
+var _privacy_policy_row: HBoxContainer
+var _privacy_policy_divider: Control
+var _privacy_policy_button: Button
 var _about: Label
 var _close: Button
 
@@ -117,6 +128,18 @@ func _ready() -> void:
 	body.add_child(_privacy_options_row)
 	_apply_privacy_options_visibility()
 
+	# Gizlilik politikası (M9-01): yalnız owner bir https URL'i verdiyse.
+	_privacy_policy_divider = UiKit.settings_divider()
+	_privacy_policy_divider.name = "PrivacyPolicyDivider"
+	body.add_child(_privacy_policy_divider)
+	_privacy_policy_button = UiKit.button(PRIVACY_OPTIONS_BUTTON, &"ButtonSecondary")
+	_privacy_policy_button.custom_minimum_size = Vector2(132, UiTokens.HEIGHT_NORMAL)
+	_privacy_policy_button.pressed.connect(_on_privacy_policy_pressed)
+	_privacy_policy_row = UiKit.settings_row("help", PRIVACY_POLICY_TITLE, _privacy_policy_button)
+	_privacy_policy_row.name = "PrivacyPolicyRow"
+	body.add_child(_privacy_policy_row)
+	_apply_privacy_policy_visibility()
+
 	# Altlık: sürüm (düşük vurgu) + Kapat. Hiç kaydırılmaz.
 	var footer: VBoxContainer = _frame.get_meta(&"footer")
 	var footer_gap := Control.new()
@@ -153,6 +176,7 @@ func open_panel() -> void:
 	_haptics_toggle.set_on(SaveManager.haptics_enabled())
 	_set_privacy_open(false)
 	_apply_privacy_options_visibility()
+	_apply_privacy_policy_visibility()
 	visible = true
 	UiKit.modal_relayout(_frame)
 	(_frame.get_meta(&"scroll") as ScrollContainer).scroll_vertical = 0
@@ -231,9 +255,39 @@ func _on_privacy_options_pressed() -> void:
 	_privacy_options_source.show_privacy_options()
 
 
+# --- Gizlilik politikası (M9-01) --------------------------------------------------
+
+## Owner'ın verdiği politika URL'i; yalnız https kabul (boş/başka → "").
+static func privacy_policy_url() -> String:
+	var url: String = String(ProjectSettings.get_setting(PRIVACY_POLICY_SETTING, "")).strip_edges()
+	return url if url.begins_with("https://") else ""
+
+
+func _apply_privacy_policy_visibility() -> void:
+	if _privacy_policy_row == null:
+		return
+	var shown: bool = not privacy_policy_url().is_empty()
+	_privacy_policy_row.visible = shown
+	_privacy_policy_divider.visible = shown
+	if visible and _frame != null:
+		UiKit.modal_relayout(_frame)
+
+
+func _on_privacy_policy_pressed() -> void:
+	var url: String = privacy_policy_url()
+	if url.is_empty():
+		return
+	AudioManager.play(&"ui_tap")
+	OS.shell_open(url)
+
+
 ## Testler / araçlar için.
 func frame() -> Control:
 	return _frame
+
+
+func privacy_policy_row() -> HBoxContainer:
+	return _privacy_policy_row
 
 
 func privacy_options_row() -> HBoxContainer:

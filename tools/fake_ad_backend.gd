@@ -28,6 +28,16 @@ var banner_removed: Array[String] = []
 ## SDK'nın rıza durumu (test ayarlar); `consent_status()` bunu döner.
 var status: ConsentStatus = ConsentStatus.UNKNOWN
 var form_available: bool = false
+## M9-01: UMP resmî çağrıları (yamalı eklenti) var mı. Varsayılan true =
+## üretimdeki AAR; false = M8.9 türetme yolu (eski eklenti) testleri.
+var privacy_api: bool = true
+## `can_request_ads()`: -1 → UMP tanımı (update çağrıldıktan sonra
+## NOT_REQUIRED/OBTAINED), 0/1 → testin zorladığı değer (kapının durumdan
+## değil canRequestAds'ten geldiğini kanıtlamak için).
+var can_request_override: int = -1
+var privacy_status: PrivacyOptionsStatus = PrivacyOptionsStatus.UNKNOWN
+var can_request_calls: int = 0
+var privacy_form_shows: int = 0
 ## Sabit uyarlanabilir banner yüksekliği (dp) ve yoğunluk (A36: 64 dp × 2.625).
 var adaptive_height_dp: int = 64
 var density_value: float = 2.625
@@ -81,6 +91,30 @@ func load_consent_form() -> void:
 func show_consent_form() -> void:
 	_log("show_consent_form")
 	consent_form_shows += 1
+
+
+func has_privacy_api() -> bool:
+	return privacy_api
+
+
+## UMP: requestConsentInfoUpdate çağrılmadan false; sonra NOT_REQUIRED /
+## OBTAINED iken true (ya da testin zorladığı değer).
+func can_request_ads() -> bool:
+	can_request_calls += 1
+	if can_request_override >= 0:
+		return can_request_override == 1
+	if consent_update_calls == 0:
+		return false
+	return status == ConsentStatus.NOT_REQUIRED or status == ConsentStatus.OBTAINED
+
+
+func privacy_options_status() -> PrivacyOptionsStatus:
+	return privacy_status
+
+
+func show_privacy_options_form() -> void:
+	_log("show_privacy_options_form")
+	privacy_form_shows += 1
 
 
 func load_rewarded() -> void:
@@ -174,6 +208,14 @@ func dismiss_form(new_status: int = -1, code: int = 0, message: String = "") -> 
 	if new_status >= 0:
 		status = new_status as ConsentStatus
 	consent_form_dismissed.emit(code, message)
+
+
+## Gizlilik seçenekleri formu kapandı (M9-01); `new_status` → oyuncunun yeni
+## seçimi (ör. rızayı geri çekti → REQUIRED).
+func dismiss_privacy_form(new_status: int = -1, code: int = 0, message: String = "") -> void:
+	if new_status >= 0:
+		status = new_status as ConsentStatus
+	privacy_options_form_dismissed.emit(code, message)
 
 
 ## Bekleyen ilk ödüllü yüklemeyi cevaplar; ad_id döner ("" = bekleyen yok).

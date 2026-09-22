@@ -14,6 +14,8 @@ extends RefCounted
 ##   - Rıza durumu SDK'nın kendi durumudur; burada önbellek tutulmaz.
 
 enum ConsentStatus { UNKNOWN, NOT_REQUIRED, REQUIRED, OBTAINED }
+## UMP `getPrivacyOptionsRequirementStatus()` (M9-01).
+enum PrivacyOptionsStatus { UNKNOWN, NOT_REQUIRED, REQUIRED }
 
 signal initialization_completed
 signal consent_info_updated
@@ -22,6 +24,8 @@ signal consent_form_loaded
 signal consent_form_failed_to_load(code: int, message: String)
 ## code 0 = hata yok (form normal kapandı).
 signal consent_form_dismissed(code: int, message: String)
+## UMP gizlilik seçenekleri formu kapandı (M9-01); code 0 = hata yok.
+signal privacy_options_form_dismissed(code: int, message: String)
 
 signal rewarded_loaded(ad_id: String)
 signal rewarded_failed_to_load(ad_id: String, code: int, message: String)
@@ -79,6 +83,28 @@ func load_consent_form() -> void:
 
 
 func show_consent_form() -> void:
+	pass
+
+
+## UMP'nin resmî üç çağrısı sunuluyor mu (M9-01, yamalı eklenti)? false →
+## yönetici M8.9'un SDK'dan türettiği eşdeğerlere düşer ve bunu loglar.
+func has_privacy_api() -> bool:
+	return false
+
+
+## UMP `ConsentInformation.canRequestAds()`.
+func can_request_ads() -> bool:
+	return false
+
+
+## UMP `ConsentInformation.getPrivacyOptionsRequirementStatus()`.
+func privacy_options_status() -> PrivacyOptionsStatus:
+	return PrivacyOptionsStatus.UNKNOWN
+
+
+## UMP `UserMessagingPlatform.showPrivacyOptionsForm()` → kapanınca
+## `privacy_options_form_dismissed`.
+func show_privacy_options_form() -> void:
 	pass
 
 

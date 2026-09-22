@@ -59,6 +59,7 @@ signal consent_form_dismissed(error_data: FormError)
 signal consent_form_failed_to_load(error_data: FormError)
 signal consent_info_updated
 signal consent_info_update_failed(error_data: FormError)
+signal privacy_options_form_dismissed(error_data: FormError)
 signal tracking_authorization_granted
 signal tracking_authorization_denied
 
@@ -470,6 +471,8 @@ func _connect_signals() -> void:
 	_plugin_singleton.connect("consent_form_failed_to_load", _on_consent_form_failed_to_load)
 	_plugin_singleton.connect("consent_info_updated", _on_consent_info_updated)
 	_plugin_singleton.connect("consent_info_update_failed", _on_consent_info_update_failed)
+	if _plugin_singleton.has_signal("privacy_options_form_dismissed"):
+		_plugin_singleton.connect("privacy_options_form_dismissed", _on_privacy_options_form_dismissed)
 	if _plugin_singleton.has_signal("tracking_authorization_granted"):
 		_plugin_singleton.connect("tracking_authorization_granted", _on_tracking_authorization_granted)
 	if _plugin_singleton.has_signal("tracking_authorization_denied"):
@@ -1123,6 +1126,37 @@ func is_consent_form_available() -> bool:
 	return false
 
 
+## True when the native plugin exposes the UMP privacy-options API below
+## (can_request_ads / get_privacy_options_requirement_status / show_privacy_options_form).
+func has_privacy_options_api() -> bool:
+	return _plugin_singleton != null and _plugin_singleton.has_signal("privacy_options_form_dismissed")
+
+
+## UMP ConsentInformation.canRequestAds().
+func can_request_ads() -> bool:
+	if not has_privacy_options_api():
+		Admob.log_error("%s: can_request_ads() is not available" % PLUGIN_SINGLETON_NAME)
+		return false
+	return _plugin_singleton.can_request_ads()
+
+
+## UMP ConsentInformation.getPrivacyOptionsRequirementStatus():
+## "REQUIRED", "NOT_REQUIRED" or "UNKNOWN".
+func get_privacy_options_requirement_status() -> String:
+	if not has_privacy_options_api():
+		Admob.log_error("%s: get_privacy_options_requirement_status() is not available" % PLUGIN_SINGLETON_NAME)
+		return "UNKNOWN"
+	return _plugin_singleton.get_privacy_options_requirement_status()
+
+
+## UMP UserMessagingPlatform.showPrivacyOptionsForm(); emits privacy_options_form_dismissed.
+func show_privacy_options_form() -> void:
+	if not has_privacy_options_api():
+		Admob.log_error("%s: show_privacy_options_form() is not available" % PLUGIN_SINGLETON_NAME)
+		return
+	_plugin_singleton.show_privacy_options_form()
+
+
 func update_consent_info(a_parameters: ConsentRequestParameters = null) -> void:
 	if _plugin_singleton == null:
 		Admob.log_error("%s plugin not initialized" % PLUGIN_SINGLETON_NAME)
@@ -1418,6 +1452,10 @@ func _on_consent_info_updated() -> void:
 
 func _on_consent_info_update_failed(error_data: Dictionary) -> void:
 	consent_info_update_failed.emit(FormError.new(error_data))
+
+
+func _on_privacy_options_form_dismissed(error_data: Dictionary) -> void:
+	privacy_options_form_dismissed.emit(FormError.new(error_data))
 
 
 func _on_tracking_authorization_granted() -> void:

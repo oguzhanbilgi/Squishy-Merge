@@ -9,15 +9,17 @@ extends AdBackend
 ## Eklentinin RIZA API'si (v6.0): update_consent_info → consent_info_updated /
 ## consent_info_update_failed; get_consent_status; is_consent_form_available;
 ## load_consent_form → consent_form_loaded / consent_form_failed_to_load;
-## show_consent_form → consent_form_dismissed. `canRequestAds()` ve
-## `getPrivacyOptionsRequirementStatus()` sarmalayıcıda YOK — bkz.
-## docs/monetization/PRIVACY_CONSENT.md §4 (eşdeğer türetme ve açık nokta).
+## show_consent_form → consent_form_dismissed. M9-01 yaması (tools/admob_plugin)
+## UMP'nin resmî üç çağrısını ekledi: can_request_ads,
+## get_privacy_options_requirement_status, show_privacy_options_form →
+## privacy_options_form_dismissed; `has_privacy_api()` yamalı AAR'ı algılar
+## (docs/monetization/PRIVACY_CONSENT.md §4).
 ##
-## Kimlikler AdConfig'ten (android_export.cfg): test modunda Google örnek
-## kimlikleri (rewarded, adaptive banner, interstitial — M8.9-02). Eklentinin
-## kendi varsayılan "debug" kimlikleri KULLANILMAZ — banner için eklenti
-## varsayılanı (…/2014213617) Google'ın katlanabilir banner örneği, bizim
-## banner uyarlanabilir sabit (…/9214589741).
+## Kimlikler AdConfig'ten (android_export.cfg): DEBUG build'de Google örnek
+## kimlikleri (rewarded, adaptive banner, interstitial), RELEASE build'de
+## [Release] (M9-01). Eklentinin kendi varsayılan "debug" kimlikleri
+## KULLANILMAZ — banner için eklenti varsayılanı (…/2014213617) Google'ın
+## katlanabilir banner örneği, bizim banner uyarlanabilir sabit (…/9214589741).
 
 const SINGLETON_NAME: String = "AdmobPlugin"
 
@@ -66,12 +68,13 @@ func attach(host: Node) -> void:
 	_admob.banner_size = LoadAdRequest.RequestedAdSize.ADAPTIVE
 	_admob.banner_collapsible_position = LoadAdRequest.CollapsiblePosition.DISABLED
 	_admob.banner_anchor_to_safe_area = true
-	# Kitle/içerik: en muhafazakâr içerik derecesi (G); COPPA/TFUA etiketi
-	# BİLEREK UNSPECIFIED — owner kararı bekleyen politika seçimi
-	# (docs/monetization/PRIVACY_CONSENT.md §6). Tahmin edilmedi.
-	_admob.max_ad_content_rating = AdmobConfig.ContentRating.G
-	_admob.child_directed = AdmobConfig.TagForChildDirectedTreatment.UNSPECIFIED
-	_admob.under_age_of_consent = AdmobConfig.TagForUnderAgeOfConsent.UNSPECIFIED
+	# Kitle/içerik (M9-01): android_export.cfg [Audience]. Owner kararı
+	# verilene kadar M8.9 değerleri — içerik derecesi G, COPPA/TFUA etiketi
+	# UNSPECIFIED (gönderilmez); tahmin edilmedi
+	# (docs/monetization/AUDIENCE_DECISION.md).
+	_admob.max_ad_content_rating = _content_rating(_config.max_ad_content_rating)
+	_admob.child_directed = _tfcd(_config.tag_for_child_directed_treatment)
+	_admob.under_age_of_consent = _tfua(_config.tag_for_under_age_of_consent)
 	_admob.auto_configure_on_initialize = true
 	# Tek seferlik ödüllü reklam: gösterildikten sonra önbellekten düşer;
 	# sonraki reklam MonetizationManager tarafından yeniden yüklenir.
@@ -85,19 +88,55 @@ func attach(host: Node) -> void:
 	_admob.max_rewarded_ad_cache = 3
 	_admob.max_banner_ad_cache = 2
 	_admob.max_interstitial_ad_cache = 2
-	match _config.debug_geography:
-		"disabled":
-			_admob.debug_geography = ConsentRequestParameters.DebugGeography.DISABLED
-		"eea":
-			_admob.debug_geography = ConsentRequestParameters.DebugGeography.EEA
-		"regulated_us_state":
-			_admob.debug_geography = ConsentRequestParameters.DebugGeography.REGULATED_US_STATE
-		"other":
-			_admob.debug_geography = ConsentRequestParameters.DebugGeography.OTHER
-		_:
-			_admob.debug_geography = ConsentRequestParameters.DebugGeography.NOT_SET
+	# UMP debug coğrafyası YALNIZ debug build + test modunda (release'te
+	# `effective_debug_geography()` daima ""; eklenti de is_real iken ve Java
+	# tarafı da gerçek modda yok sayar — üç kilit). "not_eea": UMP 3.1'de
+	# kullanımdan kalkan NOT_EEA yerine önerilen OTHER.
+	_admob.debug_geography = debug_geography_value(_config.effective_debug_geography())
 	host.add_child(_admob)
 	_connect()
+
+
+static func debug_geography_value(geo: String) -> ConsentRequestParameters.DebugGeography:
+	match geo:
+		"disabled":
+			return ConsentRequestParameters.DebugGeography.DISABLED
+		"eea":
+			return ConsentRequestParameters.DebugGeography.EEA
+		"regulated_us_state":
+			return ConsentRequestParameters.DebugGeography.REGULATED_US_STATE
+		"other", "not_eea":
+			return ConsentRequestParameters.DebugGeography.OTHER
+	return ConsentRequestParameters.DebugGeography.NOT_SET
+
+
+static func _content_rating(value: String) -> AdmobConfig.ContentRating:
+	match value:
+		"PG":
+			return AdmobConfig.ContentRating.PG
+		"T":
+			return AdmobConfig.ContentRating.T
+		"MA":
+			return AdmobConfig.ContentRating.MA
+	return AdmobConfig.ContentRating.G
+
+
+static func _tfcd(value: String) -> AdmobConfig.TagForChildDirectedTreatment:
+	match value:
+		"true":
+			return AdmobConfig.TagForChildDirectedTreatment.TRUE
+		"false":
+			return AdmobConfig.TagForChildDirectedTreatment.FALSE
+	return AdmobConfig.TagForChildDirectedTreatment.UNSPECIFIED
+
+
+static func _tfua(value: String) -> AdmobConfig.TagForUnderAgeOfConsent:
+	match value:
+		"true":
+			return AdmobConfig.TagForUnderAgeOfConsent.TRUE
+		"false":
+			return AdmobConfig.TagForUnderAgeOfConsent.FALSE
+	return AdmobConfig.TagForUnderAgeOfConsent.UNSPECIFIED
 
 
 func _connect() -> void:
@@ -111,6 +150,8 @@ func _connect() -> void:
 		consent_form_failed_to_load.emit(error.get_code(), error.get_message()))
 	_admob.consent_form_dismissed.connect(func(error: FormError) -> void:
 		consent_form_dismissed.emit(error.get_code(), error.get_message()))
+	_admob.privacy_options_form_dismissed.connect(func(error: FormError) -> void:
+		privacy_options_form_dismissed.emit(error.get_code(), error.get_message()))
 
 	_admob.rewarded_ad_loaded.connect(func(info: AdInfo, _response: ResponseInfo) -> void:
 		rewarded_loaded.emit(info.get_ad_id()))
@@ -190,6 +231,28 @@ func load_consent_form() -> void:
 
 func show_consent_form() -> void:
 	_admob.show_consent_form()
+
+
+## Yamalı AAR (M9-01) yeni sinyali kaydettiyse true.
+func has_privacy_api() -> bool:
+	return _admob != null and _admob.has_privacy_options_api()
+
+
+func can_request_ads() -> bool:
+	return _admob.can_request_ads()
+
+
+func privacy_options_status() -> PrivacyOptionsStatus:
+	match _admob.get_privacy_options_requirement_status():
+		"REQUIRED":
+			return PrivacyOptionsStatus.REQUIRED
+		"NOT_REQUIRED":
+			return PrivacyOptionsStatus.NOT_REQUIRED
+	return PrivacyOptionsStatus.UNKNOWN
+
+
+func show_privacy_options_form() -> void:
+	_admob.show_privacy_options_form()
 
 
 func load_rewarded() -> void:

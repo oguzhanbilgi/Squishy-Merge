@@ -32,10 +32,14 @@ extends Node
 ##     çevrimdışı HİÇBİR ŞEY vermez ve kota tüketmez.
 ##
 ## Rıza (UMP) — SDK durumu tek gerçek, kendi GDPR önbelleğimiz yok:
-##   her açılışta update → gerekiyorsa form → durum → ADS_ALLOWED /
-##   ADS_NOT_ALLOWED; update hata verirse SDK'nın önceki oturumdan taşıdığı
-##   durum kullanılır (ERROR_WITH_PREVIOUS_STATE). Reklam yalnız izin
-##   verildikten VE SDK başlatıldıktan sonra istenir. Sonsuz bekleme yok:
+##   her açılışta update → gerekiyorsa form → UMP `canRequestAds()` →
+##   ADS_ALLOWED / ADS_NOT_ALLOWED; update hata verirse yine `canRequestAds()`
+##   (SDK önceki oturumun rızasını taşır → ERROR_WITH_PREVIOUS_STATE). M9-01:
+##   kapı resmî `canRequestAds()` (yamalı eklenti); SDK başlatma ve HER reklam
+##   yüklemesinden hemen önce yeniden sorulur. Eklenti sunmuyorsa M8.9'un
+##   türetilmiş eşdeğerine düşülür (uyarıyla). Gizlilik seçenekleri satırı
+##   `getPrivacyOptionsRequirementStatus() == REQUIRED`, formu
+##   `showPrivacyOptionsForm()`. Sonsuz bekleme yok:
 ##   rıza/yükleme beklerken CTA pasif + "Reklam hazırlanıyor…", hata/kota/
 ##   çevrimdışıysa "Reklam şu anda kullanılamıyor." — sahte "hazır" yok.
 ##
@@ -157,6 +161,10 @@ var _consent_last_attempt_msec: int = -1000000
 var _consent_retry_timer: SceneTreeTimer = null
 var _form_purpose: FormPurpose = FormPurpose.NONE
 var _privacy_options_required: bool = false
+## Arka uç UMP'nin resmî çağrılarını sunuyor mu (M9-01 yamalı eklenti):
+## `canRequestAds` / `getPrivacyOptionsRequirementStatus` /
+## `showPrivacyOptionsForm`. false → M8.9 türetmesi (uyarı basılır).
+var _privacy_api: bool = false
 var _sdk_ready: bool = false
 var _sdk_initializing: bool = false
 var _app_paused: bool = false
@@ -230,6 +238,9 @@ func _ready() -> void:
 		set_process(false)
 		return
 	_backend.attach(self)
+	_privacy_api = _backend.has_privacy_api()
+	if not _privacy_api:
+		push_warning("MonetizationManager: arka uç UMP canRequestAds / gizlilik seçenekleri API'sini sunmuyor — M8.9 türetmesi kullanılıyor (tools/admob_plugin)")
 	_connect_backend()
 	_compute_banner_slot()
 	print_verbose("MonetizationManager: %s, %s" % [_backend.backend_name(),
@@ -283,6 +294,7 @@ func _connect_backend() -> void:
 	_backend.consent_form_loaded.connect(_on_consent_form_loaded)
 	_backend.consent_form_failed_to_load.connect(_on_consent_form_failed_to_load)
 	_backend.consent_form_dismissed.connect(_on_consent_form_dismissed)
+	_backend.privacy_options_form_dismissed.connect(_on_privacy_options_form_dismissed)
 	_backend.rewarded_loaded.connect(_on_rewarded_loaded)
 	_backend.rewarded_failed_to_load.connect(_on_rewarded_failed_to_load)
 	_backend.rewarded_showed.connect(_on_rewarded_showed)
@@ -432,29 +444,51 @@ func _on_consent_info_update_failed(_code: int, _message: String) -> void:
 	_resolve_consent(true)
 
 
+## Güncelleme sonucu (başarı ya da hata) → form gerekiyorsa form, yoksa izin
+## kararını UMP `canRequestAds()` verir. Hata yolunda form DENENMEZ; SDK'nın
+## önceki oturumdan taşıdığı rıza hâlâ izin veriyorsa reklam sürer
+## (ERROR_WITH_PREVIOUS_STATE) — geçici bir ağ hatası geçerli rızayı SİLMEZ.
 func _resolve_consent(after_error: bool) -> void:
 	var status: AdBackend.ConsentStatus = _backend.consent_status()
 	_update_privacy_options()
-	match status:
-		AdBackend.ConsentStatus.NOT_REQUIRED, AdBackend.ConsentStatus.OBTAINED:
-			_consent_attempts = 0
-			_set_state(AdsState.ERROR_WITH_PREVIOUS_STATE if after_error else AdsState.ADS_ALLOWED)
-			_ensure_sdk()
-		AdBackend.ConsentStatus.REQUIRED:
-			if after_error:
-				_set_state(AdsState.ADS_NOT_ALLOWED)
-				_schedule_consent_retry()
-			elif _backend.is_consent_form_available():
-				_set_state(AdsState.CONSENT_FORM)
-				_form_purpose = FormPurpose.STARTUP
-				_backend.load_consent_form()
-			else:
-				# Rıza gerekli ama SDK form sunamıyor: reklam istenmez.
-				_set_state(AdsState.ADS_NOT_ALLOWED)
-				_schedule_consent_retry()
-		_:
-			_set_state(AdsState.ADS_NOT_ALLOWED)
-			_schedule_consent_retry()
+	if not after_error and status == AdBackend.ConsentStatus.REQUIRED and _backend.is_consent_form_available():
+		# loadAndShowConsentFormIfRequired'ın açık hâli (aynı SDK çağrıları).
+		_set_state(AdsState.CONSENT_FORM)
+		_form_purpose = FormPurpose.STARTUP
+		_backend.load_consent_form()
+		return
+	if _sdk_can_request_ads():
+		_consent_attempts = 0
+		_set_state(AdsState.ERROR_WITH_PREVIOUS_STATE if after_error else AdsState.ADS_ALLOWED)
+		_ensure_sdk()
+	else:
+		# Rıza gerekli ama alınmadı / form yok / önceki durum yok: reklam
+		# istenmez, sınırlı yeniden deneme.
+		_set_state(AdsState.ADS_NOT_ALLOWED)
+		_schedule_consent_retry()
+
+
+## UMP "reklam istenebilir mi": resmî `canRequestAds()` (M9-01). Eklenti
+## sunmuyorsa M8.9 eşdeğeri — Google'ın tanımının kendisi: güncelleme
+## çağrıldıktan sonra durum NOT_REQUIRED ya da OBTAINED.
+func _sdk_can_request_ads() -> bool:
+	if _privacy_api:
+		return _backend.can_request_ads()
+	var status: AdBackend.ConsentStatus = _backend.consent_status()
+	return _consent_checked and (status == AdBackend.ConsentStatus.NOT_REQUIRED
+		or status == AdBackend.ConsentStatus.OBTAINED)
+
+
+## Her reklam isteğinden (SDK başlatma / yükleme) HEMEN ÖNCE: UMP hâlâ izin
+## veriyor mu? Vermiyorsa istek gitmez; durum bizde "izinli" kalmışsa (kayma)
+## izin kalkar — banner gizlenir, ödüllü/geçiş hazır sayılmaz.
+func _request_permitted() -> bool:
+	if _sdk_can_request_ads():
+		return true
+	if ads_allowed():
+		push_warning("MonetizationManager: UMP canRequestAds() false — reklam isteği durduruldu")
+		_set_state(AdsState.ADS_NOT_ALLOWED)
+	return false
 
 
 func _schedule_consent_retry() -> void:
@@ -479,15 +513,24 @@ func _on_consent_form_failed_to_load(_code: int, _message: String) -> void:
 		_schedule_consent_retry()
 
 
-## Form kapandı (rıza verildi / reddedildi / hata): durumu SDK'dan yeniden oku.
+## Form kapandı (rıza verildi / reddedildi / hata): izni SDK'dan yeniden oku.
 func _on_consent_form_dismissed(_code: int, _message: String) -> void:
-	var purpose: FormPurpose = _form_purpose
+	_after_form(_form_purpose)
+
+
+## Gizlilik seçenekleri formu kapandı (M9-01, `showPrivacyOptionsForm`).
+func _on_privacy_options_form_dismissed(_code: int, _message: String) -> void:
+	if _form_purpose != FormPurpose.PRIVACY_OPTIONS:
+		return
+	_after_form(FormPurpose.PRIVACY_OPTIONS)
+
+
+func _after_form(purpose: FormPurpose) -> void:
 	_form_purpose = FormPurpose.NONE
 	if purpose == FormPurpose.NONE:
 		return
-	var status: AdBackend.ConsentStatus = _backend.consent_status()
 	_update_privacy_options()
-	if status == AdBackend.ConsentStatus.OBTAINED or status == AdBackend.ConsentStatus.NOT_REQUIRED:
+	if _sdk_can_request_ads():
 		_consent_attempts = 0
 		_set_state(AdsState.ADS_ALLOWED)
 		_ensure_sdk()
@@ -497,13 +540,17 @@ func _on_consent_form_dismissed(_code: int, _message: String) -> void:
 			_schedule_consent_retry()
 
 
-## Gizlilik seçenekleri giriş noktası gerekli mi? v6.0 eklentisi UMP'nin
-## `getPrivacyOptionsRequirementStatus()`'ünü sarmaz; SDK'dan türeyen
-## eşdeğer: rıza güncellemesi yapıldı VE SDK bir rıza formu sunuyor
-## (`isConsentFormAvailable`, yalnız düzenlenen bölgelerde true). Ayrıntı ve
-## açık nokta: docs/monetization/PRIVACY_CONSENT.md §4.
+## Gizlilik seçenekleri giriş noktası gerekli mi? M9-01: UMP
+## `getPrivacyOptionsRequirementStatus() == REQUIRED` (Google: REQUIRED iken
+## görünür bir giriş noktası ZORUNLU, değilse gizli). Eklenti sunmuyorsa M8.9
+## eşdeğeri: güncelleme yapıldı VE SDK bir rıza formu sunuyor. Ayrıntı:
+## docs/monetization/PRIVACY_CONSENT.md §4.
 func _update_privacy_options() -> void:
-	var required: bool = _consent_checked and _backend.is_consent_form_available()
+	var required: bool
+	if _privacy_api:
+		required = _consent_checked and _backend.privacy_options_status() == AdBackend.PrivacyOptionsStatus.REQUIRED
+	else:
+		required = _consent_checked and _backend.is_consent_form_available()
 	if required != _privacy_options_required:
 		_privacy_options_required = required
 		privacy_options_changed.emit(required)
@@ -513,13 +560,23 @@ func privacy_options_required() -> bool:
 	return _privacy_options_required
 
 
-## Ayarlar → "Gizlilik seçenekleri": SDK'nın formunu yeniden sunar; kapanınca
-## izin durumu yeniden değerlendirilir (reklam durabilir ya da başlayabilir).
+## Arka uç UMP'nin resmî çağrılarını mı kullanıyor (true) yoksa M8.9
+## türetmesine mi düştü (false)? Testler + teşhis + QA sürücüsü.
+func uses_privacy_api() -> bool:
+	return _privacy_api
+
+
+## Ayarlar → "Gizlilik seçenekleri": SDK'nın gizlilik seçenekleri formunu
+## (`showPrivacyOptionsForm`) açar; kapanınca izin durumu yeniden
+## değerlendirilir (reklam durabilir ya da başlayabilir).
 func show_privacy_options() -> bool:
 	if _backend == null or not _privacy_options_required or _form_purpose != FormPurpose.NONE:
 		return false
 	_form_purpose = FormPurpose.PRIVACY_OPTIONS
-	_backend.load_consent_form()
+	if _privacy_api:
+		_backend.show_privacy_options_form()
+	else:
+		_backend.load_consent_form()
 	return true
 
 
@@ -535,6 +592,9 @@ func _ensure_sdk() -> void:
 		_preload_rewarded()
 		_preload_interstitial()
 		_sync_banner()
+		return
+	# Google: Mobile Ads SDK yalnız canRequestAds() true iken başlatılır.
+	if not _request_permitted():
 		return
 	_sdk_initializing = true
 	_backend.initialize()
@@ -729,6 +789,8 @@ func _preload_rewarded() -> void:
 		RewardedState.LOADING, RewardedState.READY, RewardedState.SHOWING, RewardedState.REWARD_EARNED:
 			return
 	if _rewarded_attempts >= REWARDED_MAX_ATTEMPTS:
+		return
+	if not _request_permitted():
 		return
 	_cancel_timer(_rewarded_retry_timer)
 	_rewarded_retry_timer = null
@@ -1040,6 +1102,8 @@ func _preload_interstitial() -> void:
 			return
 	if _interstitial_attempts >= INTERSTITIAL_MAX_ATTEMPTS:
 		return
+	if not _request_permitted():
+		return
 	_cancel_timer(_interstitial_retry_timer)
 	_interstitial_retry_timer = null
 	_set_interstitial_state(InterstitialState.LOADING)
@@ -1274,6 +1338,8 @@ func _sync_banner() -> void:
 
 
 func _load_banner() -> void:
+	if not _request_permitted():
+		return
 	_cancel_timer(_banner_retry_timer)
 	_banner_retry_timer = null
 	_set_banner_state(BannerState.LOADING)
@@ -1346,8 +1412,8 @@ func _cancel_timer(timer: SceneTreeTimer) -> void:
 # --- Testler / teşhis --------------------------------------------------------------
 
 func describe() -> String:
-	return "ads=%s sdk=%s onb=%s rewarded=%s ready=%s inter=%s elig=%s active=%.0f cool=%.0f banner=%s surface=%s slot=%d req=%s" % [
-		AdsState.keys()[_state], str(_sdk_ready), str(_onboarding_completed),
+	return "ads=%s papi=%s priv=%s sdk=%s onb=%s rewarded=%s ready=%s inter=%s elig=%s active=%.0f cool=%.0f banner=%s surface=%s slot=%d req=%s" % [
+		AdsState.keys()[_state], str(_privacy_api), str(_privacy_options_required), str(_sdk_ready), str(_onboarding_completed),
 		RewardedState.keys()[_rewarded_state], str(is_rewarded_ready()),
 		InterstitialState.keys()[_interstitial_state], str(_interstitial_eligible), _active_elapsed,
 		_fullscreen_cooldown, BannerState.keys()[_banner_state], Surface.keys()[_surface],

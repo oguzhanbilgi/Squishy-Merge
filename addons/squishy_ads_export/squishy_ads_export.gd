@@ -27,12 +27,16 @@ class AdsConfigExportPlugin extends EditorExportPlugin:
 	func _get_name() -> String:
 		return "SquishyAdsConfig"
 
-	func _export_begin(_features: PackedStringArray, _is_debug: bool, _path: String, _flags: int) -> void:
+	func _export_begin(_features: PackedStringArray, is_debug: bool, _path: String, _flags: int) -> void:
 		if not FileAccess.file_exists(CONFIG_PATH):
 			push_error("SquishyAdsExport: %s yok — reklam yapılandırması paketlenemedi." % CONFIG_PATH)
 			return
 		add_file(CONFIG_PATH, FileAccess.get_file_as_bytes(CONFIG_PATH), false)
-		var config: AdConfig = AdConfig.load_project()
+		# M9-01: build türü kimlikleri seçer — export'un türüyle doğrula (editör
+		# kendisi hep debug'dır; `load_project()` burada yanlış türü okurdu).
+		var type: AdConfig.BuildType = AdConfig.BuildType.DEBUG if is_debug else AdConfig.BuildType.RELEASE
+		var config: AdConfig = AdConfig.load_file(CONFIG_PATH, type)
 		print("SquishyAdsExport: paketlendi -> %s" % config.describe())
 		if not config.is_valid():
-			push_error("SquishyAdsExport: reklam yapılandırması GEÇERSİZ (%s) — cihazda reklam başlatılmaz." % config.error)
+			push_error("SquishyAdsExport: %s reklam yapılandırması GEÇERSİZ (%s) — bu build'de reklam başlatılmaz." % [
+				"debug" if is_debug else "RELEASE", "; ".join(config.problems())])
