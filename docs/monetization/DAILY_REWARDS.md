@@ -5,8 +5,8 @@
 > Kilitli sayılar GAME_DESIGN §5.4.1 / §5.7.3 / §11'de; burada uygulanma biçimi.
 >
 > **M8.10 GÜNCELLEMESİ (2026-09-22):** §9'daki ilk gün kuralı artık
-> **UYGULANDI ve A36'da DOĞRULANDI** (`task/035-first-run-tutorial`, push
-> edildi; main'e birleştirilmedi). Cihazda: tamamlanma gününde +15/seri/
+> **UYGULANDI ve A36'da DOĞRULANDI**; **main'e alındı `3fb2945`** (ff-only,
+> 2026-09-22). Cihazda: tamamlanma gününde +15/seri/
 > pencere/üç kota/Mağaza bölümü/Ana Sayfa madalyonu kapalı ve kayıtta tek
 > alan değişmiyor; ertesi gün +15 tam bir kez, seri 1, tek pencere, tam
 > kotalar; saat geri alınınca ikinci ödül yok.

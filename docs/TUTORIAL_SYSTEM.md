@@ -10,8 +10,10 @@
 > **Durum (2026-09-22): A36 CİHAZ KAPISI GEÇTİ.** `task/035-first-run-tutorial`
 > dalında uygulandı, masaüstü kapısı yeşil, **Samsung A36 (SM-A366B / Android
 > 16) üstünde GERÇEK DOKUNUŞLA doğrulandı** (§13), **owner görsel kontrolü PASS
-> (5/5)**. Dal push edildi; **main'e BİRLEŞTİRİLMEDİ** (owner kararı bekliyor).
-> Üretim engelleri değişmedi (§13 sonu).
+> (5/5)**. **Main'e alındı: `3fb2945` (ff-only, push edildi, 2026-09-22) —
+> M8.10 KAPANDI, ilk açılış deneyimi DONDURULDU.** Dal `task/035-first-run-tutorial`
+> duruyor. Üretim engelleri değişmedi (§13 sonu): tutorial kapısının geçmesi
+> monetizasyonu üretime hazır YAPMAZ.
 
 ## 1. Ne çözüyor
 

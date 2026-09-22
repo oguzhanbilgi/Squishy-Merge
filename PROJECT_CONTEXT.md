@@ -888,9 +888,10 @@ alınacak — şimdi tahmin/vaat yok.
     sonraki güvenli kabuk/round geçişinde. Eski "Level 1 sürükle • bırak"
     ipucu KALDIRILDI (iki tutorial yarışmıyor). Yeni: `tutorial_controller`,
     `tutorial_overlay` (katman 8), `onboarding`, `tutorial_events`,
-    `tools/tutorial_test` (149), `tools/tutorial_shots`. **Durum: masaüstü
-    testleri + görsel QA tamam; A36 cihaz kapısı ÇALIŞTIRILMADI, main'e
-    birleştirilmedi, push edilmedi.** Doküman: `docs/TUTORIAL_SYSTEM.md`.
+    `tools/tutorial_test` (199), `tools/tutorial_shots`. **Durum: masaüstü
+    kapısı + görsel QA tamam, A36 cihaz kapısı GEÇTİ (M8.10.1), main'e
+    alındı `3fb2945` (ff-only, push edildi).** Doküman:
+    `docs/TUTORIAL_SYSTEM.md`.
   - `M8.10.1` ✅ **A36 ilk açılış tutorial'ı cihaz kapısı GEÇTİ**
     (2026-09-22; TUTORIAL_SYSTEM §12.1). SM-A366B / Android 16 / 1080×2340,
     aynı ağaçtan iki APK (üretim biçimli TEST-reklam + ayrı QA paketi).
@@ -1051,9 +1052,10 @@ sarmalayıcı + #120 `Number` düzeltmesi) mi, upstream PR mi (PRIVACY_CONSENT �
 — üretim öncesi şart; (3) COPPA / hedef kitle kararı (PRIVACY_CONSENT §6); (4)
 AdMob hesabı: uygulama kaydı, rewarded + banner + interstitial reklam birimi,
 Privacy & messaging GDPR mesajı → `android_export.cfg [Release]`. (5)
-~~M8.10 A36 cihaz kapısı~~ → **GEÇTİ (M8.10.1, 2026-09-22)**, owner görsel
-kontrolü PASS; **`task/035-first-run-tutorial` main'e merge kararı owner'da**
-(`docs/TUTORIAL_SYSTEM.md` §12.1, kanıt `build/qa_m8.10.1/`). Sonra analitik sağlayıcı
+~~M8.10 A36 cihaz kapısı + main entegrasyonu~~ → **GEÇTİ ve MAIN'E ALINDI**
+(`3fb2945`, ff-only, 2026-09-22), owner görsel kontrolü PASS; **M8.10 KAPANDI,
+ilk açılış deneyimi DONDURULDU** (`docs/TUTORIAL_SYSTEM.md` §12.1, kanıt
+`build/qa_m8.10.1/`). Sonra analitik sağlayıcı
 (`AdEvents` / `TutorialEvents` dikişine), ardından M9 Android export (adaptive icon,
 `config/icon`, release keystore, Gradle preset her makinede).
 Ayrıntılı liste: PROJECT_STATUS.md §8.

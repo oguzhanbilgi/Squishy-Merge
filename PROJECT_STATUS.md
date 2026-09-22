@@ -1667,10 +1667,11 @@ verilmiyor:
 5. ~~İki günlük pencere kararı~~ → M8.9-02.1'de birleştirildi (§7 #18).
 6. **Analitik sağlayıcı** — `AdEvents` dikişine bağlanır (28 olay hazır).
 7. Eklenti UMP boşluğu kararı (§7 #15).
-8. ~~M8.10 ilk açılış tutorial'ı~~ → **UYGULANDI + A36 KAPISI GEÇTİ**
-   (dal `task/035-first-run-tutorial`, base `d72fde5`, push edildi) —
-   aşağıya ve `docs/TUTORIAL_SYSTEM.md` §12.1'e bakın. **Main'e
-   birleştirilmedi; merge kararı owner'da.**
+8. ~~M8.10 ilk açılış tutorial'ı~~ → **KAPANDI: uygulandı, A36 kapısı
+   GEÇTİ, main'e alındı `3fb2945`** (ff-only, push edildi, 2026-09-22;
+   base `d72fde5`). Dal `task/035-first-run-tutorial` duruyor. Ayrıntı
+   aşağıda ve `docs/TUTORIAL_SYSTEM.md` §12.1'de. İlk açılış deneyimi
+   DONDURULDU.
 
 ### M8.10 — İlk açılış tutorial'ı + ilk gün kuralı
 
