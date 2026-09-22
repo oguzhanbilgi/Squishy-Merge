@@ -14,9 +14,10 @@ extends AdBackend
 ## docs/monetization/PRIVACY_CONSENT.md §4 (eşdeğer türetme ve açık nokta).
 ##
 ## Kimlikler AdConfig'ten (android_export.cfg): test modunda Google örnek
-## kimlikleri. Eklentinin kendi varsayılan "debug" kimlikleri KULLANILMAZ —
-## banner için eklenti varsayılanı (…/2014213617) Google'ın katlanabilir
-## banner örneği, bizim banner uyarlanabilir sabit (…/9214589741).
+## kimlikleri (rewarded, adaptive banner, interstitial — M8.9-02). Eklentinin
+## kendi varsayılan "debug" kimlikleri KULLANILMAZ — banner için eklenti
+## varsayılanı (…/2014213617) Google'ın katlanabilir banner örneği, bizim
+## banner uyarlanabilir sabit (…/9214589741).
 
 const SINGLETON_NAME: String = "AdmobPlugin"
 
@@ -57,6 +58,8 @@ func attach(host: Node) -> void:
 	_admob.android_real_rewarded_id = _config.rewarded_id if _config.is_real else ""
 	_admob.android_debug_banner_id = _config.banner_id if not _config.is_real else AdConfig.TEST_BANNER_ID
 	_admob.android_real_banner_id = _config.banner_id if _config.is_real else ""
+	_admob.android_debug_interstitial_id = _config.interstitial_id if not _config.is_real else AdConfig.TEST_INTERSTITIAL_ID
+	_admob.android_real_interstitial_id = _config.interstitial_id if _config.is_real else ""
 	# Banner: alt kenara sabit, uyarlanabilir, güvenli alanın (nav bar /
 	# cutout) içinde — ekranlar UiKit.bottom_inset ile aynı payı ayırıyor.
 	_admob.banner_position = LoadAdRequest.AdPosition.BOTTOM
@@ -75,8 +78,13 @@ func attach(host: Node) -> void:
 	_admob.remove_rewarded_ads_after_displayed = true
 	_admob.remove_rewarded_ads_after_scene = true
 	_admob.remove_banner_ads_after_scene = true
+	# Geçiş reklamı da tek kullanımlık (M8.9-02): gösterildikten sonra düşer,
+	# yöneticisi sıradakini yükler; tek önbellekli reklam yeter.
+	_admob.remove_interstitial_ads_after_displayed = true
+	_admob.remove_interstitial_ads_after_scene = true
 	_admob.max_rewarded_ad_cache = 3
 	_admob.max_banner_ad_cache = 2
+	_admob.max_interstitial_ad_cache = 2
 	match _config.debug_geography:
 		"disabled":
 			_admob.debug_geography = ConsentRequestParameters.DebugGeography.DISABLED
@@ -120,6 +128,21 @@ func _connect() -> void:
 		rewarded_earned.emit(info.get_ad_id(), reward.get_type(), reward.get_amount()))
 	_admob.rewarded_ad_dismissed_full_screen_content.connect(func(info: AdInfo) -> void:
 		rewarded_dismissed.emit(info.get_ad_id()))
+
+	_admob.interstitial_ad_loaded.connect(func(info: AdInfo, _response: ResponseInfo) -> void:
+		interstitial_loaded.emit(info.get_ad_id()))
+	_admob.interstitial_ad_failed_to_load.connect(func(info: AdInfo, error: LoadAdError) -> void:
+		interstitial_failed_to_load.emit(info.get_ad_id(), error.get_code(), error.get_message()))
+	_admob.interstitial_ad_showed_full_screen_content.connect(func(info: AdInfo) -> void:
+		interstitial_showed.emit(info.get_ad_id()))
+	_admob.interstitial_ad_failed_to_show_full_screen_content.connect(func(info: AdInfo, error: AdError) -> void:
+		interstitial_failed_to_show.emit(info.get_ad_id(), error.get_code(), error.get_message()))
+	_admob.interstitial_ad_impression.connect(func(info: AdInfo) -> void:
+		interstitial_impression.emit(info.get_ad_id()))
+	_admob.interstitial_ad_clicked.connect(func(info: AdInfo) -> void:
+		interstitial_clicked.emit(info.get_ad_id()))
+	_admob.interstitial_ad_dismissed_full_screen_content.connect(func(info: AdInfo) -> void:
+		interstitial_dismissed.emit(info.get_ad_id()))
 
 	_admob.banner_ad_loaded.connect(func(info: AdInfo, _response: ResponseInfo) -> void:
 		banner_loaded.emit(info.get_ad_id(), info.get_measured_width(), info.get_measured_height(), false))
@@ -180,6 +203,24 @@ func show_rewarded(ad_id: String) -> void:
 func remove_rewarded(ad_id: String) -> void:
 	if _admob._active_rewarded_ads.has_key(ad_id):
 		_admob.remove_rewarded_ad(ad_id)
+
+
+func load_interstitial() -> void:
+	_admob.load_interstitial_ad()
+
+
+## Yalnız eklenti önbelleğinde olan (yüklü) kimlik gösterilir: eklentinin
+## Java tarafı yüklenmemiş reklamda sessizce `Log.w` basıp HİÇBİR sinyal
+## vermez — yönetici zaten yalnız READY iken çağırır ve gösterim onay zaman
+## aşımı tutar (MonetizationManager.INTERSTITIAL_SHOW_CONFIRM_TIMEOUT).
+func show_interstitial(ad_id: String) -> void:
+	if _admob._active_interstitial_ads.has_key(ad_id):
+		_admob.show_interstitial_ad(ad_id)
+
+
+func remove_interstitial(ad_id: String) -> void:
+	if _admob._active_interstitial_ads.has_key(ad_id):
+		_admob.remove_interstitial_ad(ad_id)
 
 
 func load_banner() -> void:

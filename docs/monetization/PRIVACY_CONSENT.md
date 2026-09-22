@@ -110,10 +110,11 @@ yeterli. Kesin çözüm seçenekleri (owner/ChatGPT kararı):
 ## 5. Ayarlar penceresi
 
 - **Gizlilik metni** güncellendi (eski metin "reklam yok" diyordu, artık
-  yanlış olurdu): hesap/sunucu/analitik yok; ilerleme cihazda; ödüllü ve
-  banner reklam için Google AdMob; reklam SDK'sı reklam kimliği gibi cihaz
-  verilerini Google'ın politikasına göre işleyebilir; uygulama içi satın alma
-  yok. Metin `SettingsPanel.PRIVACY_TEXT` — kod ile aynı gerçeği anlatır.
+  yanlış olurdu): hesap/sunucu/analitik yok; ilerleme cihazda; ödüllü,
+  banner ve geçiş (tam ekran) reklamları için Google AdMob (M8.9-02'de geçiş
+  reklamı eklendi); reklam SDK'sı reklam kimliği gibi cihaz verilerini
+  Google'ın politikasına göre işleyebilir; uygulama içi satın alma yok.
+  Metin `SettingsPanel.PRIVACY_TEXT` — kod ile aynı gerçeği anlatır.
 - **"Gizlilik seçenekleri" satırı** (`UiKit.settings_row("lock", …)` + "Aç"
   butonu) yalnız `MonetizationManager.privacy_options_required()` true iken
   görünür; sinyalle güncellenir. Görünmüyorsa yer de tutmaz (ayırıcı dahil).
@@ -129,6 +130,7 @@ Kod tahmin ETMEDİ; eklenti/SDK varsayılanlarında bırakıldı:
 | `setTagForUnderAgeOfConsent` (TFUA, AB) | UNSPECIFIED | Aynı kararın AB karşılığı. Google 25.3.0'da her ikisini tek `setAgeRestrictedTreatment()` altında topladı (eklenti 24.9.0'da eski API). |
 | `max_ad_content_rating` | **G** (eklenti varsayılanı; en muhafazakâr) | Kawaii tema için uygun görünüyor; onaylanmalı. |
 | Privacy & messaging | yok | AdMob konsolunda GDPR mesajı (zorunlu, AB/UK/CH) + gerekirse US state mesajı; "Gizlilik seçenekleri" davranışı buna bağlı (§4). |
+| Reklam birimleri | yok (yalnız Google test birimleri) | rewarded + adaptive banner + **interstitial** (M8.9-02) — üç birim; onboarding bitmeden hiçbir reklam istenmez (DAILY_REWARDS §9). |
 | Play Data safety | yok (M10) | GMA SDK'nın veri beyanı + AD_ID izni; WAKE_LOCK/FOREGROUND_SERVICE geçişli bağımlılıklardan (ADS_SYSTEM §9). |
 | Gizlilik politikası URL'i | yok (M10) | Metin AdMob kullanımını ve reklam kimliğini anmalı. |
 

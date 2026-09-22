@@ -47,6 +47,26 @@ const DEFAULT_DATA: Dictionary = {
 	## Titreşim (M8.5-15). Mobilde varsayılan AÇIK; eski kayıtlarda anahtar
 	## yok, DEFAULT_DATA üzerine yazıldığı için otomatik true kalıyor.
 	"haptics_enabled": true,
+	## İlk açılış / tutorial dikişi (M8.9-02; tutorial'ın kendisi M8.10).
+	## YENİ kayıt: false — banner, interstitial, günlük ödül penceresi ve
+	## ödüllü reklam sunumu tutorial bitene kadar kapalı. ESKİ kayıt (anahtar
+	## yok): load_game ilerleme kanıtına bakar (bkz. _migrate_onboarding) —
+	## gerçek oyuncular etkilenmez. Yalnız `complete_onboarding` true yapar.
+	"onboarding_completed": false,
+	## Günlük ödüller (M8.9-02, docs/monetization/DAILY_REWARDS.md): yerel
+	## takvim günü anahtarı + o günün kotaları. Gün değişince sayaçlar
+	## OKUMADA sıfır görünür (yazma yok); ilk işlem yeni günü yazar.
+	## `last_seen_day_key`: görülen en yeni gün — saat geri alınırsa yeni
+	## ödül üretilmez (DailyRewards.day_key). `popup_seen_day`: otomatik
+	## pencerenin gösterildiği gün (ödül tüketmez).
+	"daily_rewards": {
+		"day_key": "",
+		"free_chest_claimed": false,
+		"ad_chests_claimed": 0,
+		"dough_ad_claimed": false,
+		"popup_seen_day": "",
+		"last_seen_day_key": "",
+	},
 }
 
 
@@ -70,7 +90,37 @@ func load_game() -> void:
 		return
 	for key: String in parsed:
 		data[key] = parsed[key]
+	_migrate_onboarding(parsed)
 	_grant_starter_powerups()
+
+
+## Eski kayıt (anahtar yok) için tek seferlik onboarding kararı (M8.9-02).
+## Kural (docs/monetization/DAILY_REWARDS.md §9): kanonik ilerleme alanlarından
+## herhangi biri oynanmışlık kanıtıysa tutorial TAMAMLANMIŞ sayılır —
+## `highest_level_unlocked` > 1, en az bir level yıldızı, `total_merges` > 0,
+## sonsuz mod rekoru ya da açılmış skin. Hamur miktarına BAKILMAZ (günlük giriş
+## ödülü tek açılışta 15 Hamur veriyor; oynanmışlık kanıtı değil). Yalnız
+## bellekte karar verilir, DİSKE YAZILMAZ: sonraki doğal kayıt anahtarı
+## kalıcılaştırır (okuma sırasında beklenmedik yazma yok — rewarded_power ve
+## equipped_skin ile aynı ilke). Dosyasız yeni oyuncu bu yola hiç girmez
+## (DEFAULT_DATA false).
+func _migrate_onboarding(parsed: Dictionary) -> void:
+	if parsed.has("onboarding_completed"):
+		return
+	data["onboarding_completed"] = has_progress_evidence()
+
+
+## Kayıtta oynanmışlık kanıtı var mı (onboarding migration kuralı).
+func has_progress_evidence() -> bool:
+	if highest_level_unlocked() > 1:
+		return true
+	if not (data.get("level_stars", {}) as Dictionary).is_empty():
+		return true
+	if int(data.get("total_merges", 0)) > 0:
+		return true
+	if endless_high_score() > 0:
+		return true
+	return not owned_skins().is_empty()
 
 
 func save_game() -> void:
@@ -428,3 +478,151 @@ func set_haptics_enabled(enabled: bool) -> void:
 	data["haptics_enabled"] = enabled
 	Haptics.set_enabled(enabled)
 	save_game()
+
+
+# --- Onboarding dikişi (M8.9-02; tutorial M8.10) ---
+
+func onboarding_completed() -> bool:
+	return bool(data.get("onboarding_completed", false))
+
+
+## Tutorial bitti: tek yazma, geri alınmaz. M8.10 tutorial akışının sonunda
+## çağrılacak; testler de bunu kullanır. Zaten true ise yazmaz.
+func complete_onboarding() -> void:
+	if onboarding_completed():
+		return
+	data["onboarding_completed"] = true
+	save_game()
+
+
+# --- Günlük ödüller (M8.9-02 — docs/monetization/DAILY_REWARDS.md) ---
+#
+# Dört bağımsız kota ailesi: ücretsiz sandık (1/gün), reklamlı sandık (2/gün,
+# BAŞARILI ödül), reklamlı +150 Hamur (1/gün, BAŞARILI ödül); mevcut ödüllü
+# güç refill'i (1/gün, dört gücün toplamı, yukarıda) ve devam hakkı (2/round,
+# board) bunlardan tamamen ayrı. Hiçbiri diğerinin kotasını tüketmez.
+#
+# Her grant TEK transaction: kota kontrolü BURADA (çağıranın kontrolüne
+# güvenilmez — stale/duplicate callback dolu kotada ödül veremez), kota +
+# Hamur + skin tek `save_game()` ile diske iner.
+
+const DAILY_REWARDS_DEFAULT: Dictionary = {
+	"day_key": "", "free_chest_claimed": false, "ad_chests_claimed": 0,
+	"dough_ad_claimed": false, "popup_seen_day": "", "last_seen_day_key": "",
+}
+
+
+func _daily_raw() -> Dictionary:
+	var raw: Variant = data.get("daily_rewards", {})
+	var out: Dictionary = DAILY_REWARDS_DEFAULT.duplicate()
+	if raw is Dictionary:
+		for key: String in raw:
+			out[key] = raw[key]
+	return out
+
+
+## `day_key` gününün durumu (yalnız OKUR). Kayıttaki gün başka bir günse
+## sayaçlar sıfır döner ve diske yazılmaz.
+func daily_rewards_state(day_key: String) -> Dictionary:
+	var raw: Dictionary = _daily_raw()
+	var same_day: bool = String(raw["day_key"]) == day_key
+	return {
+		"day_key": day_key,
+		"free_chest_claimed": bool(raw["free_chest_claimed"]) if same_day else false,
+		"ad_chests_claimed": int(raw["ad_chests_claimed"]) if same_day else 0,
+		"dough_ad_claimed": bool(raw["dough_ad_claimed"]) if same_day else false,
+		"popup_seen_day": String(raw["popup_seen_day"]),
+		"last_seen_day_key": String(raw["last_seen_day_key"]),
+	}
+
+
+## Kayıttaki günü `day_key`'e taşır (sayaçlar sıfırdan); aynı günse dokunmaz.
+## Yalnız transaction'lar çağırır — diske onlar yazar.
+func _daily_for_write(day_key: String) -> Dictionary:
+	var raw: Dictionary = _daily_raw()
+	if String(raw["day_key"]) != day_key:
+		raw["day_key"] = day_key
+		raw["free_chest_claimed"] = false
+		raw["ad_chests_claimed"] = 0
+		raw["dough_ad_claimed"] = false
+	return raw
+
+
+func daily_last_seen_day_key() -> String:
+	return String(_daily_raw()["last_seen_day_key"])
+
+
+## Görülen en yeni gün (saat geri alma koruması). Yalnız ileri gider.
+func record_daily_last_seen_day(day_key: String) -> void:
+	var raw: Dictionary = _daily_raw()
+	if day_key <= String(raw["last_seen_day_key"]):
+		return
+	raw["last_seen_day_key"] = day_key
+	data["daily_rewards"] = raw
+	save_game()
+
+
+func daily_popup_seen_day() -> String:
+	return String(_daily_raw()["popup_seen_day"])
+
+
+## Otomatik günlük pencere bugün gösterildi — ödül TÜKETMEZ, yalnız işaret.
+func mark_daily_popup_seen(day_key: String) -> void:
+	var raw: Dictionary = _daily_raw()
+	if String(raw["popup_seen_day"]) == day_key:
+		return
+	raw["popup_seen_day"] = day_key
+	data["daily_rewards"] = raw
+	save_game()
+
+
+## Ücretsiz günlük sandık: kota (1/gün) + Hamur + (varsa) skin, TEK yazma.
+## Dönüş: verildiyse true; o gün zaten alınmışsa hiçbir alan değişmez.
+func claim_daily_free_chest(day_key: String, dough_amount: int, skin_id: StringName) -> bool:
+	var raw: Dictionary = _daily_for_write(day_key)
+	if bool(raw["free_chest_claimed"]):
+		return false
+	raw["free_chest_claimed"] = true
+	_apply_daily_chest(raw, dough_amount, skin_id)
+	return true
+
+
+## Reklamlı günlük sandık (BAŞARILI ödül callback'i): kota (`cap`/gün) + Hamur
+## + (varsa) skin, TEK yazma. Kota doluysa hiçbir alan değişmez
+## (stale/duplicate callback koruması).
+func grant_daily_ad_chest(day_key: String, dough_amount: int, skin_id: StringName, cap: int) -> bool:
+	var raw: Dictionary = _daily_for_write(day_key)
+	if int(raw["ad_chests_claimed"]) >= cap:
+		return false
+	raw["ad_chests_claimed"] = int(raw["ad_chests_claimed"]) + 1
+	_apply_daily_chest(raw, dough_amount, skin_id)
+	return true
+
+
+## Reklamlı günlük Hamur (BAŞARILI ödül callback'i): kota (1/gün) + Hamur,
+## TEK yazma.
+func grant_daily_ad_dough(day_key: String, amount: int) -> bool:
+	var raw: Dictionary = _daily_for_write(day_key)
+	if bool(raw["dough_ad_claimed"]) or amount <= 0:
+		return false
+	raw["dough_ad_claimed"] = true
+	data["daily_rewards"] = raw
+	data["dough"] = dough() + amount
+	save_game()
+	return true
+
+
+## Sandık içeriğini kayda işler ve diske yazar (çağıran kota alanını zaten
+## güncelledi). Skin sahiplik kontrolü: zaten sahip olunan id verilmez.
+func _apply_daily_chest(raw: Dictionary, dough_amount: int, skin_id: StringName) -> void:
+	data["daily_rewards"] = raw
+	data["dough"] = dough() + maxi(dough_amount, 0)
+	var granted_skin: bool = false
+	if skin_id != &"" and not owns_skin(skin_id):
+		var owned: Array = owned_skins().duplicate()
+		owned.append(String(skin_id))
+		data["unlocked_skins"] = owned
+		granted_skin = true
+	save_game()
+	if granted_skin:
+		skin_granted.emit(skin_id)

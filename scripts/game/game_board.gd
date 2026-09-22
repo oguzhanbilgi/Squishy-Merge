@@ -373,7 +373,10 @@ func _apply_layout(view: Vector2, safe_top: float = -1.0) -> void:
 	_view_size = view
 	if safe_top < 0.0:
 		safe_top = _detect_safe_top(view)
-	var rects: Dictionary = GameplayLayout.compute(view, GameplayLayout.banner_height(), safe_top)
+	# Banner payi (M8.9-02): canli reklam yuvasi + alt guvenli pay ya da
+	# test override'i; hicbir kontrol/kap o bolgeye girmez, fizik degismez.
+	var rects: Dictionary = GameplayLayout.compute(view,
+		GameplayLayout.effective_banner_height(view), safe_top)
 	var fit: Dictionary = GameplayLayout.fit_board(reference_frame(), rects["board"], view)
 	_camera_zoom = fit["zoom"]
 	_camera_center = fit["position"]

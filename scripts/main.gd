@@ -15,6 +15,7 @@ const SHOP_SCENE: PackedScene = preload("res://scenes/ui/shop_screen.tscn")
 const GAME_BOARD_SCENE: PackedScene = preload("res://scenes/game/game_board.tscn")
 const ROUND_RESULT_SCENE: PackedScene = preload("res://scenes/ui/round_result.tscn")
 const DAILY_POPUP_SCENE: PackedScene = preload("res://scenes/ui/daily_reward_popup.tscn")
+const DAILY_REWARDS_SCENE: PackedScene = preload("res://scenes/ui/daily_rewards_popup.tscn")
 const REVIVE_OFFER_SCENE: PackedScene = preload("res://scenes/ui/revive_offer.tscn")
 const POWER_REFILL_SCENE: PackedScene = preload("res://scenes/ui/power_refill.tscn")
 const SETTINGS_SCENE: PackedScene = preload("res://scenes/ui/settings_panel.tscn")
@@ -27,6 +28,10 @@ const RESULT_DELAY: float = 0.8
 
 var _result: CanvasLayer
 var _daily: CanvasLayer
+## GÜNLÜK ÖDÜLLER penceresi (M8.9-02): ücretsiz sandık + reklamlı Hamur +
+## reklamlı sandık. Günlük giriş ödülü (`_daily`, GAME_DESIGN §5.4) ayrı ve
+## DEĞİŞMEDİ; ikisi aynı anda açılmaz (giriş ödülü kapanınca sıra buna gelir).
+var _daily_rewards: CanvasLayer
 var _revive: CanvasLayer
 var _refill: CanvasLayer
 var _settings: CanvasLayer
@@ -46,6 +51,12 @@ var _board: Node2D
 ##   show_rewarded_power(main: Node, type: int, token: int) -> void
 ##       ödül kazanılınca  main.grant_rewarded_power(type, token)
 ##       kazanılmayınca    main.notify_power_rewarded_unavailable(mesaj)
+##   show_rewarded_daily_chest(main, day_key, token) /
+##   show_rewarded_daily_dough(main, day_key, token)        (M8.9-02)
+##       ödül kazanılınca  main.grant_daily_chest / grant_daily_dough(day_key, token)
+##       kazanılmayınca    main.notify_daily_rewarded_unavailable(kind, mesaj)
+##   try_show_interstitial(break_name, callback) -> bool     (M8.9-02)
+##       doğal molada geçiş reklamı; true = gösterildi, callback kapanınca
 ##   is_rewarded_ready() -> bool   yüklü reklam ŞİMDİ gösterilebilir mi
 ##                                 (yoksa sağlayıcı bağlı = hazır sayılır)
 ##   rewarded_note() -> String     hazır değilken pencerede yazan sebep
@@ -69,6 +80,19 @@ static var ads_backend_override: AdBackend = null
 var _refill_token: int = 0
 var _refill_pending_token: int = 0
 var _refill_pending_type: int = -1
+## --- Günlük reklamlı ödül talebi (M8.9-02) — refill token deseninin aynısı ---
+## Bağlam: tür ("daily_chest" / "daily_dough") + talebin GÜN anahtarı + token.
+## Grant yalnız açık talebin token'ı VE günü eşleşirse; kabul edilir edilmez
+## token sıfırlanır (çift/geç/eski callback ödül veremez).
+var _daily_token: int = 0
+var _daily_pending_token: int = 0
+var _daily_pending_kind: String = ""
+var _daily_pending_day: String = ""
+## Sonuç ekranı geçişi (M8.9-02): round bitişi başına tam bir kez.
+var _result_seq: int = 0
+## _ready tamamlandı: otomatik günlük pencere ancak bundan sonra (açılış
+## sırasındaki _show_tab günlük giriş ödülünün önüne geçmesin).
+var _booted: bool = false
 var _current_level: LevelData
 ## Ekran indeksi -> ekran: 0 Ana Sayfa, 1 Harita, 2 Koleksiyon, 3 Mağaza.
 var _screens: Array[CanvasLayer] = []
@@ -89,6 +113,9 @@ func _ready() -> void:
 	# açılışta bir kez hesaplanır, ekranlar ilk yerleşimde onu okur.
 	_ads = MonetizationManager.create(ads_backend_override)
 	if _ads != null:
+		# Onboarding (tutorial, M8.10) bitmeden yuva 0 ve reklam yok; kayıt
+		# karar verir (eski kayıt ilerleme kanıtıyla tamamlanmış sayılır).
+		_ads.set_onboarding_completed(SaveManager.onboarding_completed())
 		add_child(_ads)
 		_ads.rewarded_availability_changed.connect(_on_rewarded_availability_changed)
 		set_rewarded_provider(_ads)
@@ -125,6 +152,8 @@ func _ready() -> void:
 	var shop: CanvasLayer = SHOP_SCENE.instantiate()
 	# Magaza (M8.6-05): kendi ust satiri — geri -> Ana Sayfa; sekme cubugu yok.
 	shop.home_requested.connect(_on_home_requested)
+	# Magaza GUNLUK ODULLER karti (M8.9-02): ayni pencere, gun boyu acilabilir.
+	shop.daily_rewards_requested.connect(open_daily_rewards)
 	_screens = [home, select, album, shop]
 	for screen in _screens:
 		add_child(screen)
@@ -132,6 +161,13 @@ func _ready() -> void:
 	_daily = DAILY_POPUP_SCENE.instantiate()
 	_daily.closed.connect(_on_daily_closed)
 	add_child(_daily)
+
+	_daily_rewards = DAILY_REWARDS_SCENE.instantiate()
+	_daily_rewards.free_chest_requested.connect(_on_daily_free_chest_requested)
+	_daily_rewards.ad_dough_requested.connect(_on_daily_ad_dough_requested)
+	_daily_rewards.ad_chest_requested.connect(_on_daily_ad_chest_requested)
+	_daily_rewards.closed.connect(_on_daily_rewards_closed)
+	add_child(_daily_rewards)
 
 	_revive = REVIVE_OFFER_SCENE.instantiate()
 	_revive.rewarded_revive_requested.connect(_on_rewarded_revive_requested)
@@ -160,7 +196,13 @@ func _ready() -> void:
 	add_child(_chest_info)
 
 	_show_tab(0)
+	# Günlük ödüller (M8.9-02): görülen en yeni gün kayda işlenir (saat geri
+	# alma koruması), sonra günlük giriş ödülü; o kapanınca (ya da yoksa
+	# hemen) GÜNLÜK ÖDÜLLER penceresi günde bir kez.
+	DailyRewards.observe_day()
 	_check_daily_reward()
+	_booted = true
+	_maybe_auto_open_daily_rewards()
 
 
 # --- Ekranlar ---
@@ -183,6 +225,9 @@ func _show_tab(tab: int) -> void:
 	# istenirse (günlük ödül kapanışı gibi) oynatılmıyor.
 	if changed:
 		UiMotion.screen_in(_screens[tab])
+	# Oyundan / sonuçtan kabuğa dönüldü: günlük pencere bugün hiç
+	# gösterilmediyse (açılış oyun içindeyken ertelenmişse) şimdi.
+	_maybe_auto_open_daily_rewards()
 
 
 # --- Ayarlar (M8.5-10) ---
@@ -265,6 +310,12 @@ func is_pause_open() -> bool:
 ## Oyun sırasında bilerek YOK SAYILIYOR: yanlışlıkla round kaybettirmek
 ## ya da uygulamadan çıkmak istemiyoruz.
 func _notification(what: int) -> void:
+	if what == NOTIFICATION_APPLICATION_RESUMED:
+		# Öne dönüş (M8.9-02): gün değişmiş olabilir — en yeni gün kayda işlenir,
+		# günlük pencere o gün için henüz gösterilmediyse uygun ekranda açılır.
+		DailyRewards.observe_day()
+		_maybe_auto_open_daily_rewards()
+		return
 	if what != NOTIFICATION_WM_GO_BACK_REQUEST:
 		return
 	# Godot 4.6 Android tek geri basisinda GO_BACK'i IKI kez gonderebiliyor
@@ -283,6 +334,9 @@ func _notification(what: int) -> void:
 		return
 	if _daily != null and _daily.visible:
 		_daily.close_popup()
+		return
+	if _daily_rewards != null and _daily_rewards.visible:
+		_daily_rewards.close_popup()
 		return
 	# Sonuç ekranı karar bekler: geri tuşu yok sayılır (mola açılmaz, çıkılmaz).
 	if _result != null and _result.visible:
@@ -375,6 +429,169 @@ func _check_daily_reward() -> void:
 
 func _on_daily_closed() -> void:
 	_show_tab(_active_tab)
+
+
+# --- GÜNLÜK ÖDÜLLER (M8.9-02) — docs/monetization/DAILY_REWARDS.md ---
+#
+# Sorumluluk dağılımı:
+#   DailyRewards      : gün anahtarı, üç ayrı kota, kura, TEK transaction grant
+#   DailyRewardsPopup : pencere; ödül VERMEZ, yalnız talep yayar ve sonucu gösterir
+#   Main (bu)         : ikisini ve sağlayıcıyı bağlayan kanca + token güvenliği
+#
+# INVARIANT: reklamlı günlük ödül YALNIZCA grant_daily_chest / grant_daily_dough
+# ile verilir ve bu metotları yalnızca "ödül kazanıldı" callback'i çağırmalıdır.
+# Talep, açılış, yüklenememe, ödülsüz kapanış NE ödül verir NE kota tüketir.
+# Ücretsiz sandık reklamsız: AÇ → tek transaction → reveal.
+
+## Otomatik günlük pencere: günde bir kez, onboarding bitmişse, kabuk
+## ekranındayken (oyun / sonuç / başka pencere yokken). Gösterildiği an
+## "bugün görüldü" işaretlenir — kapatmak hiçbir ödül tüketmez; Mağaza'dan
+## gün boyu yeniden açılır.
+func _maybe_auto_open_daily_rewards() -> void:
+	if not _booted or _daily_rewards == null or not SaveManager.onboarding_completed():
+		return
+	if not DailyRewards.popup_due():
+		return
+	if _board != null and is_instance_valid(_board):
+		return
+	if _result.visible or _daily.visible or _daily_rewards.visible \
+			or (_settings != null and _settings.visible) or (_pause != null and _pause.visible) \
+			or (_chest_info != null and _chest_info.visible) or _revive.visible or _refill.visible:
+		return
+	if _ads != null and _ads.fullscreen_ad_active():
+		return
+	DailyRewards.mark_popup_seen()
+	_open_daily_rewards_window(true)
+
+
+## Mağaza kartı (gün boyu). Onboarding bitmeden açılmaz.
+func open_daily_rewards() -> void:
+	if _daily_rewards == null or not SaveManager.onboarding_completed():
+		return
+	if _daily_rewards.visible:
+		return
+	_open_daily_rewards_window(false)
+
+
+func _open_daily_rewards_window(auto: bool) -> void:
+	_clear_daily_request()
+	_daily_rewards.open_popup(_daily_provider_ready(), _provider_note(), auto)
+	_ensure_rewarded()
+	AdEvents.emit(&"daily_popup_shown", {"day_key": DailyRewards.day_key(), "auto": auto,
+		"remaining": DailyRewards.state()["remaining_total"]})
+
+
+func _daily_provider_ready() -> bool:
+	return _provider_ready("show_rewarded_daily_chest")
+
+
+## Ücretsiz sandık: kota → kura → kayıt (tek transaction, DailyRewards) →
+## reveal. İkinci basış / yarış: null → yalnız tazelenir.
+func _on_daily_free_chest_requested() -> void:
+	var reward: DailyChestReward = DailyRewards.claim_free_chest()
+	if reward == null:
+		_daily_rewards.refresh(_daily_provider_ready(), _provider_note())
+		return
+	_daily_rewards.show_reveal(reward)
+	_refresh_shell_dough()
+
+
+func _on_daily_ad_dough_requested() -> void:
+	_request_daily_rewarded("daily_dough")
+
+
+func _on_daily_ad_chest_requested() -> void:
+	_request_daily_rewarded("daily_chest")
+
+
+func _request_daily_rewarded(kind: String) -> void:
+	var day_key: String = DailyRewards.day_key()
+	var quota_ok: bool = DailyRewards.ad_dough_available() if kind == "daily_dough" \
+		else DailyRewards.ad_chests_remaining() > 0
+	if not quota_ok:
+		_daily_rewards.show_unavailable(kind, "Bugünkü hakkın doldu, yarın yenilenir.",
+			_daily_provider_ready(), _provider_note())
+		return
+	# Yeni talep = yeni token. Önceki talebin callback'i artık geçersiz.
+	_daily_token += 1
+	_daily_pending_token = _daily_token
+	_daily_pending_kind = kind
+	_daily_pending_day = day_key
+	AdEvents.emit(&"daily_dough_requested" if kind == "daily_dough" else &"daily_ad_chest_requested",
+		{"day_key": day_key})
+	if not _daily_provider_ready():
+		notify_daily_rewarded_unavailable(kind, _unavailable_note())
+		return
+	if kind == "daily_dough":
+		_rewarded_provider.call("show_rewarded_daily_dough", self, day_key, _daily_pending_token)
+	else:
+		_rewarded_provider.call("show_rewarded_daily_chest", self, day_key, _daily_pending_token)
+
+
+## Sağlayıcının "ödül kazanıldı" callback'i (reklamlı sandık). Üç kapı: açık
+## talep, token, tür + gün. Token ÖNCE tüketilir. Kota/kayıt DailyRewards'ta.
+func grant_daily_chest(day_key: String, token: int) -> bool:
+	if _daily_pending_token == 0 or token != _daily_pending_token:
+		return false
+	if _daily_pending_kind != "daily_chest" or day_key != _daily_pending_day:
+		return false
+	_clear_daily_request()
+	var reward: DailyChestReward = DailyRewards.grant_ad_chest(day_key)
+	if reward == null:
+		# Kota dolu / gün değişti (yarış): ödül yok, pencere açık kalır.
+		_daily_rewards.show_unavailable("daily_chest", "Bugünkü hakkın doldu, yarın yenilenir.",
+			_daily_provider_ready(), _provider_note())
+		return false
+	_daily_rewards.show_reveal(reward)
+	_refresh_shell_dough()
+	return true
+
+
+## Sağlayıcının "ödül kazanıldı" callback'i (+150 Hamur).
+func grant_daily_dough(day_key: String, token: int) -> bool:
+	if _daily_pending_token == 0 or token != _daily_pending_token:
+		return false
+	if _daily_pending_kind != "daily_dough" or day_key != _daily_pending_day:
+		return false
+	_clear_daily_request()
+	if not DailyRewards.grant_ad_dough(day_key):
+		_daily_rewards.show_unavailable("daily_dough", "Bugünkü hakkın doldu, yarın yenilenir.",
+			_daily_provider_ready(), _provider_note())
+		return false
+	AudioManager.play(&"daily_reward")
+	Haptics.medium()
+	_daily_rewards.show_unavailable("daily_dough", "+%d Hamur eklendi!" % DailyRewards.AD_DOUGH_AMOUNT,
+		_daily_provider_ready(), _provider_note())
+	_refresh_shell_dough()
+	return true
+
+
+## Reklam yüklenemedi / gösterilemedi / ödül kazanılmadı. Pencere AÇIK KALIR,
+## kota tüketilmez.
+func notify_daily_rewarded_unavailable(kind: String, message: String) -> void:
+	_clear_daily_request()
+	if _daily_rewards != null and _daily_rewards.visible:
+		_daily_rewards.show_unavailable(kind, message, _daily_provider_ready(), _provider_note())
+
+
+func _on_daily_rewards_closed() -> void:
+	AdEvents.emit(&"daily_popup_closed", {"day_key": DailyRewards.day_key(),
+		"pending": _daily_pending_kind != ""})
+	_clear_daily_request()
+	_cancel_rewarded_request()
+	_show_tab(_active_tab)
+
+
+func _clear_daily_request() -> void:
+	_daily_pending_token = 0
+	_daily_pending_kind = ""
+	_daily_pending_day = ""
+
+
+## Hamur değişti (günlük ödül): görünen kabuk ekranı bakiyesini tazeler.
+func _refresh_shell_dough() -> void:
+	if _active_tab < _screens.size() and _screens[_active_tab].has_method("refresh"):
+		_screens[_active_tab].refresh()
 
 
 # --- Oyun ---
@@ -479,6 +696,8 @@ func _on_rewarded_availability_changed() -> void:
 		_revive.refresh_provider(_revive_provider_ready(), _provider_note())
 	if _refill != null and _refill.visible and not _refill.is_request_pending():
 		_refill.refresh(_power_provider_ready(), _provider_note())
+	if _daily_rewards != null and _daily_rewards.visible and not _daily_rewards.is_request_pending():
+		_daily_rewards.refresh(_daily_provider_ready(), _provider_note())
 
 
 func _set_ad_surface(surface: int) -> void:
@@ -703,6 +922,28 @@ func _on_round_finished(won: bool) -> void:
 	var rewards: Array[ChestReward] = _collect_rewards(won, merges)
 
 	await get_tree().create_timer(RESULT_DELAY).timeout
+	# Doğal mola (M8.9-02): round KESİN bitti, devam kararları tamamlandı,
+	# sonuç henüz açılmadı. Geçiş reklamı uygun + hazırsa ŞİMDİ gösterilir ve
+	# sonuç reklam kapanınca (tam bir kez) açılır; değilse sonuç HEMEN —
+	# reklam yüklemesi ya da bekleme için sonuç asla bekletilmez.
+	_result_seq += 1
+	var present: Callable = _present_result.bind(_result_seq, won, score, stars, rewards,
+		new_record, newly_unlocked, reached_tier)
+	if _ads != null and _ads.try_show_interstitial("round_finish", present):
+		return
+	present.call()
+
+
+## Sonuç ekranını açar — round bitişi başına tam bir kez (`seq`; geç gelen
+## reklam callback'i ikinci bir sonuç üretemez, sonuç kaybolmaz).
+func _present_result(seq: int, won: bool, score: int, stars: int, rewards: Array[ChestReward],
+		new_record: bool, newly_unlocked: bool, reached_tier: int) -> void:
+	if seq != _result_seq or _current_level == null:
+		return
+	if _board == null or not is_instance_valid(_board):
+		# Round bu arada terk edildi (harness); sonuç açılmaz.
+		return
+	_result_seq += 1
 	_set_ad_surface(MonetizationManager.Surface.RESULT)
 	_result.show_result(_current_level, won, score, stars, rewards, new_record,
 		newly_unlocked, reached_tier)

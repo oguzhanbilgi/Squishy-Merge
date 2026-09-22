@@ -17,11 +17,15 @@ sevenler. Kısa oturumlarla (30–90 sn round) oynamayı tercih eden kullanıcı
 
 ## Business model
 - **Soft-launch öncesi monetizasyon planı (owner kararı, M8.9):** ödüllü
-  devam (revive) + ödüllü güç refill'i + banner (Ana Sayfa / Mağaza /
-  Koleksiyon) **v1'DE VAR** — Google AdMob, `M8.9-01`'de test reklamlarıyla
-  entegre edildi (docs/monetization/ADS_SYSTEM.md). Üretim kimlikleri ve
-  AdMob hesabı kurulumu ayrı adım. **Interstitial / app-open BİLEREK
-  ERTELENDİ** — gerçek retention verisi gelene kadar karar yok.
+  devam (revive) + ödüllü güç refill'i + banner (Ana Sayfa / Harita / Mağaza /
+  Koleksiyon / oyun) + **geçiş reklamı** (15 dk aktif süre, yalnız round
+  bitişi molasında, 60 sn tam ekran beklemesi) + **günlük ödüller** (ücretsiz
+  sandık 1/gün, reklamlı sandık 2/gün, reklamlı +150 Hamur 1/gün, otomatik
+  GÜNLÜK ÖDÜLLER penceresi + Mağaza kartı) **v1'DE VAR** — Google AdMob,
+  `M8.9-01` temeli A36'da doğrulanıp main'e alındı, `M8.9-02` genişletmesi test
+  reklamıyla entegre edildi (docs/monetization/ADS_SYSTEM.md,
+  DAILY_REWARDS.md). Üretim kimlikleri (3 birim) ve AdMob hesabı kurulumu ayrı
+  adım. **App-open / rewarded interstitial / mediation YOK.**
 - Gerçek para **Güç Paketi** planlanıyor ama **HENÜZ KURULMADI** — Play
   Billing yok, fiyat/product ID yok. Skinler hiçbir zaman gerçek parayla
   satılmayacak. Bkz. GAME_DESIGN §5.7.
@@ -38,8 +42,8 @@ alınacak — şimdi tahmin/vaat yok.
 - Çoklu kavanoz/tema seçeneği (tek sabit tema)
 - IAP / Play Billing **kurulumu** (tasarımı yapıldı, kod YOK — GAME_DESIGN
   §5.7.4). ~~Reklam~~ → **M8.9'da v1'e alındı** (ödüllü devam + ödüllü
-  refill + banner, AdMob); **interstitial / rewarded interstitial / app-open
-  hâlâ non-goal** (veri gelene kadar), mediation yok
+  refill + günlük ödüllü sandık/Hamur + banner + geçiş reklamı, AdMob);
+  **rewarded interstitial / app-open / mediation / analitik SDK non-goal**
 - ~~Haptic feedback (v1.1'e bırakıldı)~~ → **owner kararıyla M8.5-15'te
   v1'e alındı** (yerleşik `Input.vibrate_handheld`, Ayarlar'da anahtar;
   native haptik plugin hâlâ non-goal)
@@ -782,6 +786,54 @@ alınacak — şimdi tahmin/vaat yok.
     upstream PR kararı gerek; (b) COPPA/TFCD/TFUA + kitle kararı; (c) AdMob hesabı
     (App ID, 2 reklam birimi, Privacy & messaging mesajı) — üretim kimliği yok.
     Kanonik: `docs/monetization/ADS_SYSTEM.md` §12, `PRIVACY_CONSENT.md` §4/§7.
+    **Main'e alındı (33b6382, 2026-09-21, ff-only, push edildi) — M8.9-01 KAPANDI,
+    test-reklam temeli DONDURULDU.**
+  - `M8.9-02` ✅ **monetizasyon genişletmesi + günlük ödüller** (dal
+    `task/034-monetization-daily-rewards`, main 33b6382 üzerine; TEST REKLAMI,
+    telefon/ADB YOK, push/merge YOK; owner ürün kararları). Araştırma: Google
+    interstitial belgeleri (2026-09-21) + eklenti v6.0 `Interstitial.java`
+    (`InterstitialAd` / `InterstitialAdLoadCallback` / `FullScreenContentCallback`
+    sarılı) → özel köprü gerekmedi. **Banner:** Harita + oyun ekranı da yüzey
+    (`BANNER_SURFACES` 5; sonuçta gizli); oyun `GameplayLayout` seam'i canlı
+    yuvayla dolar (kompakt aralık modu 16:9; **fizik/kap/FLOOR_Y/yarıçap
+    DEĞİŞMEDİ**, 720×1280 zoom 0,971→0,874, A36 L1–L3 aynı), Harita dünyası
+    yuvanın üstünde biter (`_fit_world`; 16:9'da zemin dikeyde %3,4
+    sıkıştırma, A36'da birebir cover). **Geçiş reklamı:** `MonetizationManager`
+    interstitial durum makinesi (IDLE/LOADING/READY/SHOWING/DISMISSED/FAILED,
+    tek önbellek, 55 dk tazeleme, 15/60/180/600 sn geri çekilme), aktif süre
+    saati (900 sn; arka plan / UMP formu / tam ekran reklam / onboarding
+    sayılmaz), YALNIZ `Main._on_round_finished` doğal molasında
+    `try_show_interstitial` → sonuç reklam kapanınca tam bir kez (`_result_seq`),
+    hazır değilse sonuç hemen, saat yalnız gerçek gösterimde sıfırlanır, 60 sn
+    tam ekran beklemesi, ödüllü ↔ geçiş dışlaması, 5 s gösterim onay zaman
+    aşımı. Test birimi `…/1033173712`, `[Release] interstitial_id=""` (fail-closed).
+    **Günlük ödüller:** `DailyRewards` (tek yetkili model: yerel gün anahtarı +
+    geri alma koruması `last_seen_day_key`, üç AYRI kota, tek transaction'lar),
+    `DailyChestLoot` (+15 garanti, %30 skin, 60/25/12/3, sahip olunmayan skin,
+    tükenmişse +15 bonus = +30; level sandığı reçetesi DEĞİŞMEDİ),
+    `DailyChestReward` (değişmez sonuç), `SaveManager.daily_rewards` +
+    `claim/grant_daily_*` (kota + Hamur + skin tek yazma). Reklamlı yollar
+    `RewardedKind.DAILY_CHEST / DAILY_DOUGH` + gün anahtarı + token; ödül yalnız
+    `Main.grant_daily_chest / grant_daily_dough`. **UI:** `DailyRewardsPopup`
+    (pembe kurdele, üç seçenek kartı, HAZIR/ALINDI/REKLAM HAZIRLANIYOR/2 / 2/
+    BUGÜNLÜK BİTTİ, KAPAT; reveal: owner sandığı → +15 HAMUR → YENİ SKİN kartı,
+    DEVAM ~1,2 s), Mağaza en üstte GÜNLÜK ÖDÜLLER kartı (HAZIR / N ödül kaldı /
+    BUGÜNLÜK TAMAMLANDI), otomatik pencere günde bir (giriş ödülü penceresinden
+    SONRA; kapatmak ödül tüketmez), pencereler banner'ın üstünde ortalanır.
+    **Onboarding dikişi:** `onboarding_completed` (yeni kayıt false; eski kayıt
+    ilerleme kanıtıyla true — level > 1 / yıldız / merge / rekor / skin; Hamur
+    kanıt değil; karar bellekte, disk sonraki kayıtta); false iken banner/yuva,
+    geçiş, günlük pencere/kart, ödüllü sunum yok; `complete_onboarding()` +
+    `set_onboarding_completed(true)` M8.10 sözleşmesi. Olay dikişi 28 olay.
+    Testler: `daily_rewards_test` **111**, `interstitial_test` **60**,
+    `monetization_test` **191**; tam gate yeşil (audio 117, feedback 129, shell
+    147, ui_smoke 74, result_ui 226, revive_refill_ui 266, economy 100, refill
+    119, revive 120, skin 30, home_ui 207, shop_ui 213, collection_ui 164,
+    secondary_modal 102, ui_foundation 165, map_ui 127, bot L3 2/2). Görsel:
+    `tools/daily_ads_shots` 3 boyut (build/qa_m8.9-02/). **Fizik, ekonomi,
+    level sandığı, ses/titreşim, kayıt anlamı DEĞİŞMEDİ.** Sıradaki: owner/ChatGPT
+    incelemesi → A36 cihaz kapısı (ayrı adım). Not: giriş ödülü + GÜNLÜK ÖDÜLLER
+    iki pencere art arda (birleştirme owner kararı, DAILY_REWARDS §10).
 - **Sırada: M8.6 — Visual Cohesion Rebuild** (ekranlar `UiKit`/`UiTokens`
   sistemine geçirilecek: ~~gameplay shell~~ ✅ → ~~home~~ ✅ → ~~map~~ ✅ →
   ~~shop~~ ✅ → ~~collection~~ ✅ main'de → ~~ikincil UI denetimi~~ ✅ →
@@ -792,9 +844,10 @@ alınacak — şimdi tahmin/vaat yok.
   bekliyor) → ~~M8.8-01 ses kaynak denetimi~~ ✅ dal `task/031` → ~~M8.8-02
   onaylı seslerin entegrasyonu~~ ✅ dal `task/032` → ~~M8.8-02.1 A36 cihaz
   kapısı~~ ✅ main'de (93aa25b) → ~~M8.9-01 AdMob temeli~~ ✅ → ~~M8.9-01.1 A36
-  test-reklam kapısı~~ ✅ GEÇTİ (dal `task/033`, push edildi, main'e merge izni
-  bekliyor; üretim engelleri: eklenti UMP yüzeyi, COPPA, AdMob hesabı), sonra
-  M8.9-02 analitik sağlayıcı, ardından **M9 — Android export.**
+  test-reklam kapısı~~ ✅ main'de (33b6382) → ~~M8.9-02 monetizasyon
+  genişletmesi + günlük ödüller~~ ✅ dal `task/034` (A36 kapısı bekliyor) →
+  M8.10 ilk açılış tutorial'ı (`onboarding_completed` dikişi hazır) →
+  analitik sağlayıcı (`AdEvents`), ardından **M9 — Android export.**
   Ortam hazır (export template'leri, SDK,
   NDK, JDK 17, debug keystore mevcut, ETC2/ASTC import açık, iş
   makinesinde debug `export_presets.cfg` var — gitignore'lu, her makinede
@@ -866,15 +919,16 @@ alınacak — şimdi tahmin/vaat yok.
   alınabiliyor (100/120/160/180) ve stok 0 refill penceresi çalışıyor.
   Ödüllü kota **1/gün** olarak kilitli ama **AdMob SDK yok** — reklam CTA'sı
   sağlayıcı bağlanana kadar pasif. Gerçek para Güç Paketi hâlâ YOK.
-- **Ödüllü reklam sağlayıcısı BAĞLI (M8.9-01) — TEST reklamı, cihazda
-  doğrulanmadı:** `MonetizationManager` Main'e `set_rewarded_provider` ile
-  takılıyor; Devam/Refill CTA'sı yalnız yüklü reklam varken aktif. Eksik:
-  owner'ın AdMob hesabı (App ID + rewarded/banner reklam birimleri + Privacy
-  & messaging GDPR mesajı), COPPA/TFCD kararı, A36 test reklamı cihaz kapısı,
-  eklentinin `getPrivacyOptionsRequirementStatus` boşluğu için fork/upstream
-  kararı (docs/monetization/PRIVACY_CONSENT.md §4/§6). Refill talebi
-  beklenirken KAPAT/geri hem Main token'ını hem yöneticideki talebi iptal
-  ediyor (geç ödül hiçbir şey vermez — testli).
+- **Ödüllü reklam sağlayıcısı BAĞLI (M8.9-01, A36'da TEST reklamıyla
+  doğrulandı; M8.9-02 genişletmesi cihazda henüz değil):** `MonetizationManager`
+  Main'e `set_rewarded_provider` ile takılıyor; Devam/Refill/GÜNLÜK ÖDÜLLER
+  CTA'ları yalnız yüklü reklam varken aktif. **ÜRETİM ENGELLERİ (açık):** (A)
+  eklenti v6.0 UMP `canRequestAds` / `getPrivacyOptionsRequirementStatus` /
+  `showPrivacyOptionsForm` sarmıyor (SDK'dan türeyen eşdeğerler); (B)
+  `debug_geography` cihazda uygulanamıyor (upstream #120, Long/Integer) → EEA
+  formu cihazda test edilemedi; (C) COPPA/TFCD/TFUA + kitle kararı; (D) gerçek
+  AdMob kimlikleri yok (App ID + rewarded + banner + interstitial). Bkz.
+  docs/monetization/PRIVACY_CONSENT.md §4/§6, ADS_SYSTEM §11.
 - **Tipografi TAMAM (M8.5-09), production UI kabuğu TAMAM (M8.5-10):**
   bütün production ekranlar aynı font ailesinde ve aynı tasarım
   sisteminde (zemin/yüzey/kart/CTA/seçili/pasif katmanları, candy modal,
@@ -899,12 +953,16 @@ alınacak — şimdi tahmin/vaat yok.
   shader/aura performans ölçümü M9'da.
 
 ## Next action
-Owner/ChatGPT: (1) `task/033` incelemesi + main'e merge kararı (A36 test-reklam
-kapısı geçti); (2) eklenti UMP boşluğu kararı — küçük AAR yaması (3 sarmalayıcı
-+ #120 `Number` düzeltmesi) mi, upstream PR mi (PRIVACY_CONSENT §4) — üretim
-öncesi şart; (3) COPPA / hedef kitle kararı (PRIVACY_CONSENT §6); (4) AdMob
-hesabı: uygulama kaydı, rewarded + banner reklam birimi, Privacy & messaging
-GDPR mesajı → `android_export.cfg [Release]`. Sonra M8.9-02 analitik sağlayıcı
+Owner/ChatGPT: (1) `task/034` (M8.9-02) incelemesi — masaüstü çekimler
+`build/qa_m8.9-02/shots/` — sonra A36 test-reklam cihaz kapısı (geçiş reklamı
+doğal molada, Harita/oyun banner'ı, günlük reklamlı akış) ve merge kararı;
+(2) iki günlük pencere (giriş ödülü + GÜNLÜK ÖDÜLLER) birleştirilsin mi
+(DAILY_REWARDS §10); (3) eklenti UMP boşluğu kararı — küçük AAR yaması (3
+sarmalayıcı + #120 `Number` düzeltmesi) mi, upstream PR mi (PRIVACY_CONSENT §4)
+— üretim öncesi şart; (4) COPPA / hedef kitle kararı (PRIVACY_CONSENT §6); (5)
+AdMob hesabı: uygulama kaydı, rewarded + banner + interstitial reklam birimi,
+Privacy & messaging GDPR mesajı → `android_export.cfg [Release]`. Sonra M8.10
+ilk açılış tutorial'ı (`complete_onboarding` sözleşmesi), analitik sağlayıcı
 (`AdEvents` dikişine), ardından M9 Android export (adaptive icon,
 `config/icon`, release keystore, Gradle preset her makinede).
 Ayrıntılı liste: PROJECT_STATUS.md §8.

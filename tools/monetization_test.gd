@@ -1,9 +1,12 @@
 extends Node
-## Monetizasyon temelinin deterministik testi (M8.9-01) — İNTERNET, CİHAZ VE
-## EKLENTİ YOK. `FakeAdBackend` SDK'yı taklit eder; MonetizationManager'ın
+## Monetizasyon temelinin deterministik testi (M8.9-01/02) — İNTERNET, CİHAZ
+## VE EKLENTİ YOK. `FakeAdBackend` SDK'yı taklit eder; MonetizationManager'ın
 ## rıza yaşam döngüsü, ödüllü durum makinesi (devam + refill), banner yaşam
-## döngüsü, geri çekilme/önyükleme, analitik olay dikişi ve Main/UI
-## entegrasyonu (gerçek pencereler, gerçek board, gerçek kota) doğrulanır.
+## döngüsü (Ana Sayfa / Harita / Mağaza / Koleksiyon / oyun; sonuç gizli),
+## geri çekilme/önyükleme, analitik olay dikişi ve Main/UI entegrasyonu
+## (gerçek pencereler, gerçek board, gerçek kota) doğrulanır. Geçiş reklamı
+## ve günlük ödüller kendi suite'lerinde (`interstitial_test`,
+## `daily_rewards_test`).
 ##
 ## KAYIT DOSYASINA YAZAR (kota/stok senaryoları). Test başında yedekler,
 ## sonunda byte-identical geri koyar ve bunu kontrol eder.
@@ -65,6 +68,10 @@ func _ready() -> void:
 	if _had_save:
 		_save_bytes = FileAccess.get_file_as_bytes(SaveManager.SAVE_PATH)
 	SaveManager.data["last_login_date"] = Time.get_date_string_from_system()
+	# Onboarding tamam (M8.9-02): reklam ve yuva ancak o zaman; otomatik günlük
+	# pencere bu suite'in konusu değil (daily_rewards_test).
+	SaveManager.data["onboarding_completed"] = true
+	DailyRewards.auto_popup_enabled = false
 	# Geri çekilme / zaman aşımı sürelerini testte kısalt (5 s -> 10 ms).
 	MonetizationManager.time_scale = 0.002
 	AdEvents.subscribe(_on_event)
@@ -83,6 +90,7 @@ func _ready() -> void:
 	await _test_main_integration()
 
 	AdEvents.unsubscribe(_on_event)
+	DailyRewards.auto_popup_enabled = true
 	MonetizationManager.time_scale = 1.0
 	SaveManager.data = _saved
 	_restore_save_file()
@@ -148,6 +156,8 @@ func _test_config() -> void:
 	_c("ödüllü kimlik Google örnek rewarded id", config.rewarded_id == AdConfig.TEST_REWARDED_ID)
 	_c("banner kimliği Google örnek ADAPTIVE banner id (katlanabilir değil)",
 		config.banner_id == AdConfig.TEST_BANNER_ID and config.banner_id.ends_with("/9214589741"))
+	_c("interstitial kimliği Google örnek interstitial id (M8.9-02)", config.interstitial_id == AdConfig.TEST_INTERSTITIAL_ID
+		and config.interstitial_id.ends_with("/1033173712"))
 	_c("yapılandırma geçerli", config.is_valid() and config.error == "")
 	_c("debug coğrafyası ayarlanmadı", config.debug_geography == "")
 
@@ -158,6 +168,7 @@ func _test_config() -> void:
 	file.set_value("Release", "app_id", "")
 	file.set_value("Release", "rewarded_id", "")
 	file.set_value("Release", "banner_id", "")
+	file.set_value("Release", "interstitial_id", "")
 	file.save(tmp)
 	var real_missing := AdConfig.new()
 	real_missing._load(tmp)
@@ -165,6 +176,7 @@ func _test_config() -> void:
 	file.set_value("Release", "app_id", AdConfig.TEST_APP_ID)
 	file.set_value("Release", "rewarded_id", AdConfig.TEST_REWARDED_ID)
 	file.set_value("Release", "banner_id", AdConfig.TEST_BANNER_ID)
+	file.set_value("Release", "interstitial_id", AdConfig.TEST_INTERSTITIAL_ID)
 	file.save(tmp)
 	var real_sample := AdConfig.new()
 	real_sample._load(tmp)
@@ -174,10 +186,16 @@ func _test_config() -> void:
 	file.set_value("Release", "banner_id", "ca-app-pub-1111111111111111/4444444444")
 	file.set_value("Debug", "debug_geography", "EEA")
 	file.save(tmp)
+	var real_no_inter := AdConfig.new()
+	real_no_inter._load(tmp)
+	_c("is_real=true + interstitial kimliği örnek/boş -> GEÇERSİZ (fail-closed, M8.9-02)", not real_no_inter.is_valid())
+	file.set_value("Release", "interstitial_id", "ca-app-pub-1111111111111111/5555555555")
+	file.save(tmp)
 	var real_ok := AdConfig.new()
 	real_ok._load(tmp)
-	_c("is_real=true + dolu [Release] -> geçerli, üretim kimlikleri seçildi",
-		real_ok.is_valid() and real_ok.rewarded_id.ends_with("/3333333333") and real_ok.banner_id.ends_with("/4444444444"))
+	_c("is_real=true + dolu [Release] (4 kimlik) -> geçerli, üretim kimlikleri seçildi",
+		real_ok.is_valid() and real_ok.rewarded_id.ends_with("/3333333333") and real_ok.banner_id.ends_with("/4444444444")
+		and real_ok.interstitial_id.ends_with("/5555555555"))
 	_c("debug_geography küçük harfe normalize (eea)", real_ok.debug_geography == "eea")
 	file.set_value("General", "is_real", false)
 	file.set_value("Debug", "debug_geography", "mars")
@@ -209,8 +227,9 @@ func _test_events() -> void:
 	for i in AdEvents.RECENT_LIMIT + 20:
 		AdEvents.emit(&"banner_impression", {"i": i})
 	_c("son olay tamponu sınırlı (RECENT_LIMIT)", AdEvents.recent().size() == AdEvents.RECENT_LIMIT)
-	_c("olay adları listesi görev tanımıyla aynı (12 olay)", AdEvents.NAMES.size() == 12
-		and AdEvents.NAMES.has(&"rewarded_earned") and AdEvents.NAMES.has(&"banner_clicked"))
+	_c("olay adları listesi görev tanımıyla aynı (12 + 8 interstitial + 8 günlük = 28)", AdEvents.NAMES.size() == 28
+		and AdEvents.NAMES.has(&"rewarded_earned") and AdEvents.NAMES.has(&"banner_clicked")
+		and AdEvents.NAMES.has(&"interstitial_skipped_not_ready") and AdEvents.NAMES.has(&"daily_chest_result"))
 	AdEvents.clear_recent()
 
 
@@ -228,17 +247,22 @@ func _test_sources() -> void:
 		and not FileAccess.get_file_as_string("res://scripts/ui/power_refill.gd").contains("MonetizationManager"))
 	_c("yönetici eklenti sınıflarını bilmez (yalnız AdBackend)", not manager_src.contains("Admob.")
 		and not manager_src.contains("load_rewarded_ad") and not manager_src.contains("_plugin_singleton"))
-	_c("interstitial / app-open / rewarded-interstitial API'si üretim kodunda YOK",
-		not ads_src.contains("interstitial") and not ads_src.contains("app_open") and not ads_src.contains("show_native"))
+	_c("app-open / rewarded-interstitial / native / mediation API'si üretim kodunda YOK (interstitial M8.9-02'de var)",
+		not ads_src.contains("app_open") and not ads_src.contains("show_native") and not ads_src.contains("rewarded_interstitial")
+		and not ads_src.contains("mediation") and ads_src.contains("load_interstitial"))
+	_c("üretim kodunda IAP / Billing / analitik sağlayıcı yok", not ads_src.contains("Billing") and not ads_src.contains("Firebase")
+		and not main_src.contains("Billing"))
 	_c("üretim kodunda Google örnek yayıncı dışında sabit reklam kimliği yok",
 		ads_src.count("ca-app-pub-") == ads_src.count("ca-app-pub-3940256099942544"))
 	_c("üretim kodu FakeAdBackend'i bilmez", not main_src.contains("FakeAdBackend") and not manager_src.contains("FakeAdBackend"))
 	var cfg: String = FileAccess.get_file_as_string("res://addons/AdmobPlugin/android_export.cfg")
 	_c("android_export.cfg: is_real=false, [Release] boş (üretim kimliği commit edilmedi)",
 		cfg.contains("is_real=false") and cfg.count("=\"\"") >= 3)
-	_c("ödül kilitli yollardan (Main.grant_revive / grant_rewarded_power) geçer, başka yol yok",
+	_c("ödül kilitli yollardan (Main.grant_revive / grant_rewarded_power / grant_daily_*) geçer, başka yol yok",
 		manager_src.contains("main.grant_revive()") and manager_src.contains("main.grant_rewarded_power(")
-		and not manager_src.contains("SaveManager.") and not manager_src.contains("RewardedPolicy.grant"))
+		and manager_src.contains("main.grant_daily_chest(") and manager_src.contains("main.grant_daily_dough(")
+		and not manager_src.contains("SaveManager.") and not manager_src.contains("RewardedPolicy.grant")
+		and not manager_src.contains("DailyRewards."))
 	_c("yönetici kayda yazmaz (save_game yok)", not manager_src.contains("save_game"))
 
 
@@ -670,21 +694,24 @@ func _test_banner() -> void:
 	fake.complete_consent_update(true)
 	fake.complete_init()
 	_c("SDK hazır + Ana Sayfa -> banner yükleniyor (1)", fake.banner_loads == 1 and m.banner_state() == MonetizationManager.BannerState.LOADING)
-	m.set_surface(MonetizationManager.Surface.MAP)
+	m.set_surface(MonetizationManager.Surface.RESULT)
 	var b1: String = fake.complete_banner_load(true)
-	_c("Harita'dayken yüklenen banner GÖSTERİLMEZ (LOADED, gizli)", m.banner_state() == MonetizationManager.BannerState.LOADED
+	_c("sonuç ekranındayken yüklenen banner GÖSTERİLMEZ (LOADED, gizli)", m.banner_state() == MonetizationManager.BannerState.LOADED
 		and fake.banner_shows.is_empty())
 	_c("olay: banner_loaded", _events_named(&"banner_loaded").size() == 1)
 	m.set_surface(MonetizationManager.Surface.HOME)
 	_c("Ana Sayfa -> gösterildi (aynı reklam, yeni yükleme yok)", m.banner_state() == MonetizationManager.BannerState.SHOWN
 		and fake.banner_shows == [b1] and fake.banner_loads == 1)
-	m.set_surface(MonetizationManager.Surface.GAMEPLAY)
-	_c("oyun ekranı -> GİZLENDİ (oyun arkasında sızan banner yok)", m.banner_state() == MonetizationManager.BannerState.LOADED
-		and fake.banner_hides == [b1])
-	m.set_surface(MonetizationManager.Surface.RESULT)
-	_c("sonuç ekranı -> gizli kalır, ikinci hide yok", fake.banner_hides.size() == 1)
 	m.set_surface(MonetizationManager.Surface.MAP)
-	_c("Harita -> gizli (v1'de Harita banner dışı)", m.banner_state() == MonetizationManager.BannerState.LOADED and fake.banner_shows.size() == 1)
+	_c("Harita -> gösterili kalır (M8.9-02 owner kararı: Harita banner yüzeyi)", m.banner_state() == MonetizationManager.BannerState.SHOWN
+		and fake.banner_hides.is_empty())
+	m.set_surface(MonetizationManager.Surface.GAMEPLAY)
+	_c("oyun ekranı -> gösterili kalır (M8.9-02: oyun banner yüzeyi, ayrılmış yuva)", m.banner_state() == MonetizationManager.BannerState.SHOWN
+		and fake.banner_hides.is_empty() and fake.banner_shows.size() == 1)
+	m.set_surface(MonetizationManager.Surface.RESULT)
+	_c("sonuç ekranı -> GİZLENDİ (tek hide)", m.banner_state() == MonetizationManager.BannerState.LOADED and fake.banner_hides == [b1])
+	m.set_surface(MonetizationManager.Surface.NONE)
+	_c("NONE -> gizli kalır, ikinci hide yok", fake.banner_hides.size() == 1)
 	m.set_surface(MonetizationManager.Surface.SHOP)
 	_c("Mağaza -> gösterildi", m.banner_state() == MonetizationManager.BannerState.SHOWN and fake.banner_shows.size() == 2)
 	m.set_surface(MonetizationManager.Surface.COLLECTION)
@@ -692,6 +719,10 @@ func _test_banner() -> void:
 		and fake.banner_shows.size() == 2 and fake.banner_hides.size() == 1)
 	m.set_surface(MonetizationManager.Surface.COLLECTION)
 	_c("aynı yüzey tekrar: hiçbir çağrı yok", fake.banner_shows.size() == 2 and fake.banner_hides.size() == 1)
+	_c("banner yüzeyleri: Ana Sayfa / Harita / Mağaza / Koleksiyon / oyun; sonuç dışarıda",
+		MonetizationManager.BANNER_SURFACES.size() == 5 and MonetizationManager.BANNER_SURFACES.has(MonetizationManager.Surface.MAP)
+		and MonetizationManager.BANNER_SURFACES.has(MonetizationManager.Surface.GAMEPLAY)
+		and not MonetizationManager.BANNER_SURFACES.has(MonetizationManager.Surface.RESULT))
 	fake.emit_banner_refreshed(b1)
 	fake.emit_banner_impression(b1)
 	fake.emit_banner_clicked(b1)
@@ -726,7 +757,7 @@ func _test_banner() -> void:
 			await _wait(MonetizationManager.BANNER_RETRY_DELAYS[mini(m.banner_attempts() - 1, MonetizationManager.BANNER_RETRY_DELAYS.size() - 1)])
 	_c("banner denemesi sınırlı (%d), sonra durur" % MonetizationManager.BANNER_MAX_ATTEMPTS, fake.banner_loads == MonetizationManager.BANNER_MAX_ATTEMPTS
 		and not m.has_pending_banner_retry())
-	m.set_surface(MonetizationManager.Surface.GAMEPLAY)
+	m.set_surface(MonetizationManager.Surface.RESULT)
 	m.set_surface(MonetizationManager.Surface.HOME)
 	_c("sınır dolunca gezinme yeni yükleme açmaz (spam yok)", fake.banner_loads == MonetizationManager.BANNER_MAX_ATTEMPTS)
 	await _free_manager(m)
@@ -735,12 +766,29 @@ func _test_banner() -> void:
 	fake = FakeAdBackend.new()
 	m = _boot(fake)
 	m.set_surface(MonetizationManager.Surface.HOME)
-	m.set_surface(MonetizationManager.Surface.GAMEPLAY)
+	m.set_surface(MonetizationManager.Surface.RESULT)
 	var b2: String = fake.complete_banner_load(true)
-	_c("yükleme sürerken oyuna geçildi: yüklenen banner gösterilmedi", m.banner_state() == MonetizationManager.BannerState.LOADED
+	_c("yükleme sürerken sonuca geçildi: yüklenen banner gösterilmedi", m.banner_state() == MonetizationManager.BannerState.LOADED
 		and fake.banner_shows.is_empty() and b2 != "")
 	m.set_surface(MonetizationManager.Surface.HOME)
 	_c("Ana Sayfa'ya dönünce gösterildi", fake.banner_shows == [b2])
+	await _free_manager(m)
+
+	# Onboarding tamamlanmamış: yuva 0, hiçbir yüzeyde banner yok; tamamlanınca yuva + banner.
+	fake = FakeAdBackend.new()
+	fake.status = AdBackend.ConsentStatus.NOT_REQUIRED
+	m = _make_manager(fake)
+	m.set_onboarding_completed(false)
+	await _settle(1)
+	fake.complete_consent_update(true)
+	fake.complete_init()
+	m.set_surface(MonetizationManager.Surface.HOME)
+	m.set_surface(MonetizationManager.Surface.GAMEPLAY)
+	_c("onboarding false: yuva 0, banner hiçbir yüzeyde yüklenmez, ödüllü yüklenmez", m.banner_slot_px() == 0.0
+		and UiKit.banner_slot() == 0.0 and fake.banner_loads == 0 and fake.rewarded_loads == 0 and fake.interstitial_loads == 0)
+	m.set_onboarding_completed(true)
+	_c("onboarding true: yuva hesaplandı, banner + ödüllü + geçiş yüklemeleri başladı", m.banner_slot_px() == expected_slot
+		and fake.banner_loads == 1 and fake.rewarded_loads == 1 and fake.interstitial_loads == 1)
 	await _free_manager(m)
 
 
@@ -766,6 +814,11 @@ func _test_main_integration() -> void:
 
 	var fake := FakeAdBackend.new()
 	fake.status = AdBackend.ConsentStatus.NOT_REQUIRED
+	# Gerçekçi en büyük yuva (M8.9-02): 64 dp × 2.0 → 128 tuval px (telefonlarda
+	# uyarlanabilir banner 50–64 dp / 320–412 dp genişlik → 87–128 px; 720 px
+	# pencerede A36 yoğunluğu 168 px'lik gerçek dışı bir yuva üretirdi).
+	fake.adaptive_height_dp = 64
+	fake.density_value = 2.0
 	_main_script.ads_backend_override = fake
 	_main = MAIN_SCENE.instantiate()
 	add_child(_main)
@@ -786,17 +839,34 @@ func _test_main_integration() -> void:
 	var b1: String = fake.complete_banner_load(true)
 	_c("banner Ana Sayfa'da gösterildi", fake.banner_shows == [b1])
 	_main._show_tab(1)
-	_c("Harita -> banner gizli", fake.banner_hides == [b1])
+	await _settle(2)
+	var map_screen: CanvasLayer = _main._screens[1]
+	_c("Harita -> banner gösterili kalır (M8.9-02), Harita dünyası yuvanın üstünde biter", fake.banner_hides.is_empty()
+		and is_equal_approx(map_screen.world_rect().end.y, 1280.0 - slot))
+	var slot_top: float = 1280.0 - slot
+	var nodes_clear: bool = true
+	for node in map_screen.nodes():
+		nodes_clear = nodes_clear and node.get_global_rect().end.y <= slot_top
+		if node._plaque.visible:
+			nodes_clear = nodes_clear and node._plaque.get_global_rect().end.y <= slot_top
+	_c("Harita: 10 düğüm (+ plaka) ve Sonsuz kalesi yuvaya girmiyor, kale üst satırın altında",
+		nodes_clear and map_screen.endless_node().get_global_rect().position.y >= map_screen.top_bar().get_global_rect().end.y
+		and map_screen.endless_node().get_global_rect().end.y <= slot_top)
+	_c("Harita dünya dikey sıkıştırması sınırlı (>= 0.94) ve yatay ölçek cover", map_screen.world_scale().y >= 0.94
+		and map_screen.world_scale().y <= map_screen.world_scale().x + 0.001)
 	_main._show_tab(3)
-	_c("Mağaza -> banner gösterildi", fake.banner_shows.size() == 2)
+	_c("Mağaza -> gösterili kalır", fake.banner_shows.size() == 1 and fake.banner_hides.is_empty())
 	_main._show_tab(2)
-	_c("Koleksiyon -> gösterili kalır", fake.banner_shows.size() == 2 and fake.banner_hides.size() == 1)
+	_c("Koleksiyon -> gösterili kalır", fake.banner_shows.size() == 1 and fake.banner_hides.is_empty())
 	_main._show_tab(0)
 
 	# Devam akışı: pencere açıkken reklam yüklenir, CTA açılır, ödül board'a gider.
 	_main._start_level(load(LEVEL_10))
 	await _settle(2)
-	_c("oyun -> banner gizli (GAMEPLAY yüzeyi)", m.surface() == MonetizationManager.Surface.GAMEPLAY and fake.banner_hides.size() == 2)
+	_c("oyun -> banner gösterili kalır (GAMEPLAY yüzeyi), banner seam = yuva, board seam'in üstünde",
+		m.surface() == MonetizationManager.Surface.GAMEPLAY and fake.banner_hides.is_empty()
+		and is_equal_approx((_main._board.layout()["banner"] as Rect2).size.y, slot)
+		and _main._board.board_screen_rect().end.y <= (_main._board.layout()["banner"] as Rect2).position.y)
 	var board: Node2D = _main._board
 	board._dismiss_tutorial()
 	var finished: Array[int] = [0]
@@ -941,14 +1011,17 @@ func _test_main_integration() -> void:
 	await _settle(1)
 	_c("round terk edildikten sonra gelen ödül stok VERMEZ, çökme yok", SaveManager.powerup_count(PowerUp.Type.CLEAR_SMALL) == 0
 		and _main._board == null and m.surface() == MonetizationManager.Surface.MAP)
+	_c("gezinme döngüsü boyunca tek AdView (1 yükleme), sonuç dışında hide yok", fake.banner_loads == 1
+		and fake.banner_shows.size() == 1)
 
 	# Ayarlar: gizlilik seçenekleri satırı SDK'ya göre.
 	var settings: CanvasLayer = _main._settings
 	_main.open_settings()
 	await _settle(2)
 	_c("form sunulmayan bölgede 'Gizlilik seçenekleri' satırı GİZLİ", not settings.privacy_options_row().visible)
-	_c("gizlilik metni reklamı doğru anlatıyor (AdMob, satın alma yok)", settings.PRIVACY_TEXT.contains("AdMob")
-		and settings.PRIVACY_TEXT.contains("satın alma yok") and not settings.PRIVACY_TEXT.contains("reklam ve uygulama içi satın alma da yok"))
+	_c("gizlilik metni reklamı doğru anlatıyor (AdMob, geçiş reklamı dahil, satın alma yok)", settings.PRIVACY_TEXT.contains("AdMob")
+		and settings.PRIVACY_TEXT.contains("geçiş") and settings.PRIVACY_TEXT.contains("satın alma yok")
+		and not settings.PRIVACY_TEXT.contains("reklam ve uygulama içi satın alma da yok"))
 	_main.close_settings()
 	fake.form_available = true
 	fake.status = AdBackend.ConsentStatus.OBTAINED

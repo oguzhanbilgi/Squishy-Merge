@@ -1560,6 +1560,7 @@ static func modal_shell(title: String, width: float = 560.0,
 static func modal_relayout(frame: Control) -> void:
 	if frame == null or not is_instance_valid(frame) or not frame.has_meta(&"scroll"):
 		return
+	_seat_modal_above_banner(frame)
 	var host: Control = frame.get_meta(&"body_host")
 	var body: VBoxContainer = frame.get_meta(&"body")
 	var footer: VBoxContainer = frame.get_meta(&"footer")
@@ -1584,6 +1585,22 @@ static func modal_relayout(frame: Control) -> void:
 	fade.visible = scrolls
 
 
+## Banner yuvasi varken (M8.9-02) pencere banner'in USTUNDEKI alanda
+## ortalanir: tam dikdortgen CenterContainer'in alt kenari yuva kadar
+## yukari cekilir (yuva 0 ise hicbir sey degismez — masaustu/onboarding
+## oncesi duzen birebir). Karartma ayri dugum, tum ekrani kaplamaya devam
+## eder. Her pencere ayni iskeleti kullandigi icin tek yerde.
+static func _seat_modal_above_banner(frame: Control) -> void:
+	var anchor := frame.get_parent() as CenterContainer
+	if anchor == null:
+		return
+	if anchor.anchor_bottom < 0.999 or anchor.anchor_top > 0.001:
+		return
+	var inset: float = -_banner_slot
+	if not is_equal_approx(anchor.offset_bottom, inset):
+		anchor.offset_bottom = inset
+
+
 ## Govdenin kullanabilecegi en buyuk yukseklik (tuval px): ekranin guvenli
 ## yuksekligi - dis pay - tepelik/kurdele tasmasi - pencere kromu (panel
 ## ic paylari, baslik, altlik, aralar). `set_modal_height_cap` ile pencere
@@ -1600,7 +1617,9 @@ static func modal_body_cap(frame: Control) -> float:
 		var view: Vector2 = Vector2(720.0, 1280.0)
 		if frame.is_inside_tree():
 			view = frame.get_viewport_rect().size
-		frame_cap = view.y - safe_top(view) - safe_bottom(view) \
+		# Alt butce = gesture bar + banner yuvasi (M8.9-02): pencere hicbir
+		# zaman banner'in altina uzamaz (altlik / KAPAT reklamin altinda kalmaz).
+		frame_cap = view.y - safe_top(view) - bottom_inset(view) \
 			- 2.0 * MODAL_OUTER_MARGIN - float(frame.get_meta(&"overhang", MODAL_RIBBON_OVERHANG))
 	var box: StyleBox = panel_node.get_theme_stylebox("panel")
 	var chrome: float = box.content_margin_top + box.content_margin_bottom

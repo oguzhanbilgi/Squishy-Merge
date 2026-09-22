@@ -1,6 +1,6 @@
 class_name AdEvents
 extends RefCounted
-## Reklam analitik OLAY dikişi (M8.9-01). Yalnız olay adları ve bağlam;
+## Reklam + günlük ödül analitik OLAY dikişi (M8.9-01/02). Yalnız olay adları ve bağlam;
 ## analitik SAĞLAYICI YOK — o sonraki milestone (Firebase vb. burada
 ## bilerek entegre edilmedi). Sağlayıcı gelince `subscribe()` ile bağlanır;
 ## MonetizationManager'a dokunulmaz.
@@ -10,9 +10,17 @@ extends RefCounted
 ##   rewarded_showed / rewarded_impression / rewarded_earned /
 ##   rewarded_dismissed / rewarded_show_failed
 ##   banner_loaded / banner_load_failed / banner_impression / banner_clicked
-## Bağlam anahtarları: `placement` ("revive" / "refill" / "preload"),
-## `power` (refill'de gücün kayıt anahtarı), `ad_id`, `code`, `message`,
-## `stale` (geç/eşleşmeyen callback), `t_msec`.
+##   interstitial_loaded / interstitial_load_failed / interstitial_eligible /
+##   interstitial_showed / interstitial_impression / interstitial_dismissed /
+##   interstitial_show_failed / interstitial_skipped_not_ready   (M8.9-02)
+##   daily_popup_shown / daily_popup_closed / daily_free_chest_claimed /
+##   daily_ad_chest_requested / daily_ad_chest_earned / daily_dough_requested /
+##   daily_dough_earned / daily_chest_result                     (M8.9-02)
+## Bağlam anahtarları: `placement` ("revive" / "refill" / "daily_chest" /
+## "daily_dough" / "preload"), `power` (refill'de gücün kayıt anahtarı),
+## `ad_id`, `code`, `message`, `stale` (geç/eşleşmeyen callback), `t_msec`;
+## interstitial'da `active_elapsed_sec` + `natural_break` (+ `reason`);
+## günlükte `day_key`, `source`, `dough`, `skin`, `rarity`.
 ##
 ## Son RECENT_LIMIT olay bellekte tutulur (testler ve cihaz teşhisi);
 ## kayda/diske hiçbir şey yazılmaz.
@@ -23,6 +31,12 @@ const NAMES: Array[StringName] = [
 	&"rewarded_showed", &"rewarded_impression", &"rewarded_earned",
 	&"rewarded_dismissed", &"rewarded_show_failed",
 	&"banner_loaded", &"banner_load_failed", &"banner_impression", &"banner_clicked",
+	&"interstitial_loaded", &"interstitial_load_failed", &"interstitial_eligible",
+	&"interstitial_showed", &"interstitial_impression", &"interstitial_dismissed",
+	&"interstitial_show_failed", &"interstitial_skipped_not_ready",
+	&"daily_popup_shown", &"daily_popup_closed", &"daily_free_chest_claimed",
+	&"daily_ad_chest_requested", &"daily_ad_chest_earned", &"daily_dough_requested",
+	&"daily_dough_earned", &"daily_chest_result",
 ]
 
 static var _listeners: Array[Callable] = []

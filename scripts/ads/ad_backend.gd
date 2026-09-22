@@ -32,6 +32,16 @@ signal rewarded_clicked(ad_id: String)
 signal rewarded_earned(ad_id: String, reward_type: String, amount: int)
 signal rewarded_dismissed(ad_id: String)
 
+## Geçiş (interstitial) reklamı (M8.9-02) — ödüllüyle aynı kimlik sözleşmesi;
+## ödül yok.
+signal interstitial_loaded(ad_id: String)
+signal interstitial_failed_to_load(ad_id: String, code: int, message: String)
+signal interstitial_showed(ad_id: String)
+signal interstitial_failed_to_show(ad_id: String, code: int, message: String)
+signal interstitial_impression(ad_id: String)
+signal interstitial_clicked(ad_id: String)
+signal interstitial_dismissed(ad_id: String)
+
 signal banner_loaded(ad_id: String, width_dp: int, height_dp: int, refreshed: bool)
 signal banner_failed_to_load(ad_id: String, code: int, message: String)
 signal banner_impression(ad_id: String)
@@ -81,6 +91,18 @@ func show_rewarded(_ad_id: String) -> void:
 
 
 func remove_rewarded(_ad_id: String) -> void:
+	pass
+
+
+func load_interstitial() -> void:
+	pass
+
+
+func show_interstitial(_ad_id: String) -> void:
+	pass
+
+
+func remove_interstitial(_ad_id: String) -> void:
 	pass
 
 

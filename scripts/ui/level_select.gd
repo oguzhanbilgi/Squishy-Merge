@@ -15,11 +15,23 @@ extends CanvasLayer
 ##           "OYNA" plakası. Kilitli dokunuş: kilit sallanır, level başlamaz.
 ##   SONSUZ  kalede 116 px altın madalyon (taç + SONSUZ); kilitliyse lavanta +
 ##           "Level 10'u bitir". Her şey bitmişse odak (hale) Sonsuz'dadır.
-##   ALT     sekme çubuğu YOK (main.gd Harita'da gizler) — dünya tabana kadar.
+##   ALT     sekme çubuğu YOK (main.gd Harita'da gizler) — dünya tabana kadar;
+##           banner yuvası varsa (M8.9-02, owner kararı) dünya yuvanın
+##           ÜSTÜNDE biter: level 1 düğümü / OYNA plakası / patika başı
+##           banner'a girmez (bkz. `_fit_world`).
 ##
 ## Koordinatlar DOKU uzayında (720×1280 harita zemini). Zemin cover ile
 ## ölçeklenip kırpıldığı için düğümler aynı dönüşümle taşınır
 ## (`_map_to_screen`); patika hizası her oranda korunur.
+##
+## Banner yuvalı yerleşim (M8.9-02): dünya dikdörtgeni yuva kadar kısalır.
+## Cover ölçeğiyle Sonsuz kalesi üst satırın altında VE level 1 plakası
+## yuvanın üstünde kalıyorsa (uzun ekranlar, A36) her şey aynen. 16:9'da
+## iki uç birlikte sığmıyor (gerekli 1106 px doku, mevcut ~1087 px); yeni
+## kompozisyon icat etmek yerine zemin DİKEYDE en fazla %6 sıkıştırılır
+## (720×1280: %2,8 — dokuda gözle seçilmez), düğümler aynı dönüşümle taşınır,
+## kırpma iki ucu da kurtaracak şekilde dağıtılır. Yuva 0 iken eski cover
+## yerleşimi birebir.
 ##
 ## Level verisi, unlock kuralı (`SaveManager.highest_level_unlocked`), yıldız
 ## verisi, Sonsuz şartı (`is_endless_unlocked`) ve level başlatma yolu
@@ -74,6 +86,9 @@ const SPARKLES: Array = [
 ]
 const STAR_ART: Texture2D = preload("res://assets/visual/ui/icon_star_filled.png")
 const SPARKLE_TEXTURE: Texture2D = preload("res://assets/visual/fx/fx_sparkle.png")
+## Harita zemini (sahnedeki MapBackground dokusu; sıkıştırma modunda atlas
+## bunun üstüne kurulur, cover modunda doğrudan bu).
+const MAP_TEXTURE: Texture2D = preload("res://assets/visual/ui/map_background.png")
 
 ## Açılış animasyonu (M8.5-12): patika yanar → düğüm pop → parıltı. ~0.7 s.
 const UNLOCK_POP_TIME: float = 0.32
@@ -100,9 +115,21 @@ var _unlock_tweens: Array[Tween] = []
 ## Test kancası: cihaz üst güvenli payı (A36 punch-hole) masaüstünde
 ## okunamaz; negatif = gerçek değeri kullan.
 var _safe_top_override: float = -1.0
+## Test kancası: alt pay (banner yuvası + gesture bar); negatif = gerçek
+## (`UiKit.bottom_inset`).
+var _bottom_inset_override: float = -1.0
 ## Dünya dikdörtgeni (cover): son yerleşimde hesaplandı.
 var _world: Rect2 = Rect2(Vector2.ZERO, MAP_SIZE)
+## Yatay ölçek (doku px → ekran px). Dikey ölçek `_world_scale_y` (yuva
+## yokken eşit); `_crop_top` dokunun üstten atılan satırı (doku px).
 var _world_scale: float = 1.0
+var _world_scale_y: float = 1.0
+var _crop_top: float = 0.0
+## Sonsuz kalesinin üst satırdan, level 1 plakasının yuvadan uzaklığı (px).
+const FIT_MARGIN: float = 12.0
+## Dikey sıkıştırma tabanı (sy / sx); altına inilmez (bantlı düzen yerine
+## küçük bir taşma kabul edilir — hedef oranlarda gerekmiyor).
+const MIN_SQUASH: float = 0.94
 
 @onready var _root: Control = $Root
 @onready var _art: TextureRect = $Root/MapBackground
@@ -119,7 +146,7 @@ var _world_scale: float = 1.0
 func _ready() -> void:
 	_levels = LevelLibrary.load_levels()
 	var strip := AtlasTexture.new()
-	strip.atlas = _art.texture
+	strip.atlas = MAP_TEXTURE
 	strip.region = Rect2(0.0, 0.0, MAP_SIZE.x, float(SKY_STRIP_ROWS))
 	_sky.texture = strip
 	_haze.texture = _vertical_gradient(Color(0.96, 0.97, 1.0, 0.72), Color(0.96, 0.97, 1.0, 0.0))
@@ -149,13 +176,54 @@ func _ready() -> void:
 ## COVERED doldurur (ölçek = max(w/720, h/1280), merkezlenir). Aynı dönüşüm
 ## düğümlere uygulanır. Punch-hole yokken eski (tam ekran) dönüşümle birebir.
 func _map_to_screen(map_point: Vector2) -> Vector2:
-	return (map_point - MAP_SIZE * 0.5) * _world_scale + _world.get_center()
+	return Vector2((map_point.x - MAP_SIZE.x * 0.5) * _world_scale + _world.get_center().x,
+		_world.position.y + (map_point.y - _crop_top) * _world_scale_y)
 
 
 func _safe_top() -> float:
 	if _safe_top_override >= 0.0:
 		return _safe_top_override
 	return UiKit.safe_top(_root.size)
+
+
+func _bottom_inset() -> float:
+	if _bottom_inset_override >= 0.0:
+		return _bottom_inset_override
+	return UiKit.bottom_inset(_root.size)
+
+
+## Dünya ölçeği + kırpma (bkz. üst not). Cover ölçeği `sx`; dikey `sy` ≤ sx.
+## Sınırlar: Sonsuz kalesinin üstü üst satırın altında (FIT_MARGIN), level 1
+## OYNA plakasının altı dünyanın (= yuvanın) üstünde (FIT_MARGIN). Sığıyorsa
+## kırpma ortalanır (eski davranış); sığmıyorsa önce kırpma iki uca göre
+## seçilir, o da yetmezse sy düşürülür.
+func _fit_world(view: Vector2, safe_top: float, bottom_inset: float) -> void:
+	_world = Rect2(0.0, safe_top, view.x, maxf(view.y - safe_top - bottom_inset, 1.0))
+	var sx: float = maxf(_world.size.x / MAP_SIZE.x, _world.size.y / MAP_SIZE.y)
+	_world_scale = sx
+	_world_scale_y = sx
+	_crop_top = (MAP_SIZE.y - _world.size.y / sx) * 0.5
+	if bottom_inset <= 0.0:
+		return
+	var ns: float = _node_world_scale()
+	var bar_bottom: float = _bar.height() + 3.0 - _world.position.y
+	# Doku uzayında iki uç: kale madalyonunun üstü, level 1 plakasının altı.
+	var top_anchor: float = ENDLESS_POSITION.y
+	var top_extent: float = MapLevelNode.ENDLESS_DIAMETER * ns * 0.5
+	var bottom_anchor: float = NODE_POSITIONS[0].y
+	var bottom_extent: float = MapLevelNode.LEVEL_DIAMETER * MapLevelNode.CURRENT_SCALE * ns * 0.5 \
+		+ MapLevelNode.LIP - MapLevelNode.PLAQUE_OVERLAP + MapLevelNode.PLAQUE_HEIGHT + 2.0
+	var span_budget: float = _world.size.y - 2.0 * FIT_MARGIN - bar_bottom - top_extent - bottom_extent
+	var sy: float = minf(sx, span_budget / maxf(bottom_anchor - top_anchor, 1.0))
+	# Dikey cover'ı kaybetmemek için taban: dünya yüksekliği / doku yüksekliği.
+	sy = maxf(sy, maxf(_world.size.y / MAP_SIZE.y, sx * MIN_SQUASH))
+	_world_scale_y = sy
+	var total_crop: float = maxf(MAP_SIZE.y - _world.size.y / sy, 0.0)
+	var crop_max: float = top_anchor - (bar_bottom + FIT_MARGIN + top_extent) / sy
+	var crop_min: float = bottom_anchor - (_world.size.y - FIT_MARGIN - bottom_extent) / sy
+	var crop: float = total_crop * 0.5
+	crop = clampf(crop, crop_min, crop_max) if crop_min <= crop_max else crop_min
+	_crop_top = clampf(crop, 0.0, total_crop)
 
 
 func _layout() -> void:
@@ -166,10 +234,23 @@ func _layout() -> void:
 		return
 	var safe_top: float = _safe_top()
 	_bar.layout(view.x, safe_top)
-	_world = Rect2(0.0, safe_top, view.x, maxf(view.y - safe_top, 1.0))
-	_world_scale = maxf(_world.size.x / MAP_SIZE.x, _world.size.y / MAP_SIZE.y)
+	_fit_world(view, safe_top, _bottom_inset())
 	_art.position = _world.position
 	_art.size = _world.size
+	if is_equal_approx(_world_scale_y, _world_scale):
+		# Cover: dokuyu Godot kırpar (eski yol, yuva yokken birebir).
+		_art.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+		_art.texture = MAP_TEXTURE
+	else:
+		# Dikey sıkıştırma: görünen doku bölgesi atlas ile kesilir ve dünya
+		# dikdörtgenine gerilir (yuvanın altına hiçbir şey çizilmez).
+		var visible_w: float = _world.size.x / _world_scale
+		var visible_h: float = _world.size.y / _world_scale_y
+		var atlas := AtlasTexture.new()
+		atlas.atlas = MAP_TEXTURE
+		atlas.region = Rect2((MAP_SIZE.x - visible_w) * 0.5, _crop_top, visible_w, visible_h)
+		_art.stretch_mode = TextureRect.STRETCH_SCALE
+		_art.texture = atlas
 	_sky.position = Vector2.ZERO
 	_sky.size = Vector2(view.x, safe_top + 2.0)
 	# Bant, zeminin GÖRÜNEN yatay aralığının en üst satırlarını gerer (uzun
@@ -177,7 +258,7 @@ func _layout() -> void:
 	var art_left: float = _world.position.x + (_world.size.x - MAP_SIZE.x * _world_scale) * 0.5
 	var strip: AtlasTexture = _sky.texture as AtlasTexture
 	if strip != null:
-		strip.region = Rect2((0.0 - art_left) / _world_scale, 0.0, view.x / _world_scale, float(SKY_STRIP_ROWS))
+		strip.region = Rect2((0.0 - art_left) / _world_scale, _crop_top, view.x / _world_scale, float(SKY_STRIP_ROWS))
 	_haze.position = Vector2.ZERO
 	_haze.size = Vector2(view.x, safe_top + HAZE_HEIGHT)
 	_vignette.position = Vector2.ZERO
@@ -443,6 +524,21 @@ static func _radial_vignette() -> GradientTexture2D:
 func _layout_with_safe_top(safe_top: float) -> void:
 	_safe_top_override = safe_top
 	_layout()
+
+
+## Test/çekim kancası: alt pay (banner yuvası) da verilir.
+func _layout_with_insets(safe_top: float, bottom_inset: float) -> void:
+	_safe_top_override = safe_top
+	_bottom_inset_override = bottom_inset
+	_layout()
+
+
+func world_scale() -> Vector2:
+	return Vector2(_world_scale, _world_scale_y)
+
+
+func crop_top() -> float:
+	return _crop_top
 
 
 func nodes() -> Array[MapLevelNode]:

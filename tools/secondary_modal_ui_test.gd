@@ -69,6 +69,8 @@ func _c(name: String, ok: bool) -> void:
 
 
 func _ready() -> void:
+	# Otomatik GÜNLÜK ÖDÜLLER penceresi (M8.9-02) bu harness'in konusu değil.
+	DailyRewards.auto_popup_enabled = false
 	await get_tree().process_frame
 	_saved = SaveManager.data.duplicate(true)
 	_had_save = FileAccess.file_exists(SaveManager.SAVE_PATH)

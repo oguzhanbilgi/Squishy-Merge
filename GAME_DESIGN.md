@@ -407,6 +407,49 @@ tier'lara uygulanır.
 - Ödül miktarı: **15 Hamur** — §5.2'deki oranlarla aynı gerekçeyle GEÇİCİ
 - Seri kırılırsa sayaç sıfırlanır — bu v1.1 reklam/monetizasyon kapısını
   açar ama v1'de sadece görüntülenir, işlevsel bir ödeme yok
+- **M8.9-02:** günlük giriş ödülü DEĞİŞMEDİ; üstüne ayrı bir GÜNLÜK ÖDÜLLER
+  sistemi geldi (§5.4.1). İki pencere art arda açılır (giriş ödülü önce);
+  birleştirme owner kararı (docs/monetization/DAILY_REWARDS.md §10).
+
+### 5.4.1 Günlük ödüller — GÜNLÜK ÖDÜLLER (M8.9-02, owner kararı, KİLİTLİ)
+
+Üç günlük sistem, her biri **AYRI kota**, yerel takvim gününe göre
+(`YYYY-MM-DD`; cihaz saati geri alınırsa görülen en yeni gün geçerli kalır —
+yeni ödül üretilmez; saati ileri almak çevrimdışı kayıtta engellenemez, bilinçli
+kabul):
+
+| sistem | kota | ne verir |
+|---|---|---|
+| **Ücretsiz sandık** | günde **1**, reklam yok | günlük sandık (aşağıda) |
+| **Reklamlı +150 Hamur** | günde **1 BAŞARILI** ödüllü reklam | tam **+150 Hamur** |
+| **Reklamlı sandık** | günde **2 BAŞARILI** ödüllü reklam | günlük sandık |
+
+Bunlar mevcut ödüllü güç refill'i (§5.7.3, günde 1 DÖRT gücün toplamı) ve devam
+hakkından (§11, round başına 2) **tamamen bağımsızdır**; hiçbiri diğerinin
+kotasını tüketmez. Reklamlı ödül YALNIZ "ödül kazanıldı" callback'iyle; talep,
+iptal, ödülsüz kapanış, yükleme/gösterim hatası kota tüketmez.
+
+**Günlük sandık içeriği (DAILY profili — level sonu sandığından FARKLI, §5.2
+DEĞİŞMEDİ):**
+
+| adım | değer |
+|---|---|
+| garanti | **+15 Hamur** (`GUARANTEED_DOUGH`, bu milestone için kilitli başlangıç) |
+| bağımsız skin kurası | **%30** |
+| kura tuttuysa rarity | Common %60 / Rare %25 / Epic %12 / Legendary %3 (§5.2 ile aynı eşikler) |
+| skin | o rarity'de **sahip olunmayan** koleksiyon skinlerinden biri; "Varsayılan" asla |
+| rarity tükenmişse | skin yerine **+15 bonus Hamur** |
+
+Sonuç: skin yok **+15** · yeni skin **+15 + skin** · kura tuttu/tükendi **+30**.
+Ödül claim anında belirlenir ve kayda işlenir (tek transaction); reveal animasyonu
+yeniden kura çekmez. Değerler `DailyChestLoot` / `DailyRewards` sabitlerinde,
+veri odaklı tek yer.
+
+**Pencere ve giriş:** "GÜNLÜK ÖDÜLLER" penceresi günde bir kez otomatik açılır
+(onboarding tamamsa, kabuk ekranında; kapatmak ödül tüketmez, yalnız "bugün
+görüldü") ve Mağaza'nın en üstündeki GÜNLÜK ÖDÜLLER kartından gün boyu
+yeniden açılır. Durumlar: HAZIR / ALINDI / REKLAM HAZIRLANIYOR / 2 / 2 · 1 / 2 /
+BUGÜNLÜK BİTTİ. Ayrıntı: docs/monetization/DAILY_REWARDS.md.
 
 ### 5.5 Level haritası
 - Level'lar bir yol üzerinde sıralı düğümler; kilitli level bulanık/gri,
@@ -1002,3 +1045,47 @@ kuralları değişmez.
 >
 > Devam penceresinin **final art'ı YOK**: mevcut kawaii UI temasının panel ve
 > buton stilini kullanıyor, kendi asset'i yok.
+
+---
+
+## 12. Geçiş (interstitial) reklamı, banner yüzeyleri ve onboarding dikişi (M8.9-02, owner kararı)
+
+> **STATUS:** test reklamıyla bağlı, deterministik testli, masaüstü görsel
+> inceleme yapıldı; **A36 cihaz kapısı bekliyor**. Üretim engelleri (UMP
+> sarmalayıcı boşluğu, COPPA, gerçek kimlikler) açık — docs/monetization/.
+
+### 12.1 Banner yüzeyleri (KİLİTLİ)
+GÖSTER: Ana Sayfa, Harita, Mağaza, Koleksiyon, oyun ekranı. GİZLE: sonuç ekranı,
+tam ekran reklam anları, onboarding tamamlanmamış (yuva da yok). Banner gerçek
+ayrılmış alandır (yuva): oyun kabı, güç butonları, nişan/bırakma kontrolleri,
+Harita düğümleri ve OYNA plakasının üstüne ASLA binmez. Oyun: **fizik, kap
+ölçüleri, FLOOR_Y, taşma çizgisi, yarıçaplar, güç davranışı DEĞİŞMEZ** —
+yalnız kamera/yerleşim (16:9'da kompakt aralıklar + kap ölçeği −%10; A36'da
+L1–L3 değişmez, L4+ ≤ −%6). Harita: dünya yuvanın üstünde biter (16:9'da zemin
+dikeyde ≤ %4 sıkıştırılır, düğümler aynı dönüşümle).
+
+### 12.2 Geçiş reklamı politikası (KİLİTLİ)
+- **Uygunluk:** `INTERSTITIAL_INTERVAL_SEC = 900` saniye **AKTİF ön plan**
+  süresi. Sayılmaz: arka plan / ekran kapalı, UMP formu, ödüllü ya da geçiş
+  reklamı ekranda, onboarding tamamlanmamış. Oyun içi normal pencereler sayılır.
+- **Gösterim yeri — yalnız doğal mola:** round KESİN bitti + devam kararları
+  tamamlandı + sonuç ekranından ÖNCE. Aktif oyunun ortasında, devam teklifinde,
+  ödüllü reklamda, sandık reveal'inde, UMP formunda, tutorial'da ASLA.
+- **Hazır değilse sonuç HEMEN açılır**; sonuç asla reklam yüklemesi ya da
+  bekleme için bekletilmez; uygunluk korunur, sonraki molada denenir.
+- **Saat sıfırlama:** yalnız gerçek tam ekran gösterim başlayınca (SDK
+  "gösterildi"); uygunluk, yükleme hatası, hazır olmayan mola sıfırlamaz.
+- **Bekleme:** `FULLSCREEN_AD_COOLDOWN_SEC = 60` aktif saniye — herhangi bir
+  tam ekran reklam (ödüllü ya da geçiş) kapanışından sonra geçiş reklamı
+  bastırılır; art arda iki tam ekran reklam yok. Ödüllü ile geçiş aynı anda
+  olamaz (tek tam ekran reklam).
+- Test birimi Google'ın resmi interstitial test kimliği; gerçek kimlik YOK.
+
+### 12.3 Onboarding dikişi (tutorial M8.10)
+Kayıt alanı `onboarding_completed`: yeni kayıt **false**, eski kayıt ilerleme
+kanıtıyla (level > 1 / yıldız / merge / sonsuz rekoru / açılmış skin) **true**.
+false iken: banner yok (tam düzen), geçiş reklamı yok (saat durur), otomatik
+günlük pencere ve Mağaza günlük kartı yok, ödüllü devam/refill sunumu yok.
+Tutorial (M8.10) bitince `SaveManager.complete_onboarding()` (tek yazma) +
+`MonetizationManager.set_onboarding_completed(true)`; sonrasında reklamlar ve
+günlük pencere uygun olur. Tutorial UX'i bu milestone'da YOK.

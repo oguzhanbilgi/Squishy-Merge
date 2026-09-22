@@ -31,7 +31,7 @@ extends CanvasLayer
 
 signal closed
 
-const PRIVACY_TEXT: String = "Squishy Merge hesap, sunucu ve analitik kullanmaz; ilerlemen yalnızca bu cihazda saklanır. Ödüllü ve banner reklamlar için Google AdMob kullanılır; reklam SDK'sı reklam kimliği gibi cihaz verilerini Google'ın gizlilik politikasına göre işleyebilir. Uygulama içi satın alma yok."
+const PRIVACY_TEXT: String = "Squishy Merge hesap, sunucu ve analitik kullanmaz; ilerlemen yalnızca bu cihazda saklanır. Ödüllü, banner ve geçiş (tam ekran) reklamları için Google AdMob kullanılır; reklam SDK'sı reklam kimliği gibi cihaz verilerini Google'ın gizlilik politikasına göre işleyebilir. Uygulama içi satın alma yok."
 const PRIVACY_OPTIONS_TITLE: String = "Gizlilik seçenekleri"
 const PRIVACY_OPTIONS_BUTTON: String = "Aç"
 const MODAL_WIDTH: float = 560.0

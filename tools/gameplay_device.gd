@@ -45,6 +45,8 @@ var _result_shown: int = 0
 
 
 func _ready() -> void:
+	# Otomatik GÜNLÜK ÖDÜLLER penceresi (M8.9-02) bu harness'in konusu değil.
+	DailyRewards.auto_popup_enabled = false
 	# Denetim harness'inin _ready'si masaüstü gruplarını koşup çıkar — burada
 	# çağrılmıyor; komut döngüsü var.
 	_out_dir = ProjectSettings.globalize_path("user://qa_shots")

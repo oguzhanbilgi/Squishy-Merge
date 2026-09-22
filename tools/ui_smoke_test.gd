@@ -31,6 +31,8 @@ func _first_swatch(card: Control) -> SkinSwatch:
 
 
 func _ready() -> void:
+	# Otomatik GÜNLÜK ÖDÜLLER penceresi (M8.9-02) bu harness'in konusu değil.
+	DailyRewards.auto_popup_enabled = false
 	await get_tree().process_frame
 	var main: Node2D = MAIN_SCENE.instantiate()
 	add_child(main)

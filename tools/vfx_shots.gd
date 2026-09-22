@@ -31,6 +31,8 @@ var _stock_backup: Dictionary = {}
 
 
 func _ready() -> void:
+	# Otomatik GÜNLÜK ÖDÜLLER penceresi (M8.9-02) bu harness'in konusu değil.
+	DailyRewards.auto_popup_enabled = false
 	var args: PackedStringArray = OS.get_cmdline_user_args()
 	_out_dir = args[0] if args.size() >= 1 else ProjectSettings.globalize_path("user://shots")
 	DirAccess.make_dir_recursive_absolute(_out_dir)

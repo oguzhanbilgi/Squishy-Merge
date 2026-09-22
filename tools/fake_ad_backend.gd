@@ -17,6 +17,9 @@ var consent_form_shows: int = 0
 var rewarded_loads: int = 0
 var rewarded_shows: Array[String] = []
 var rewarded_removed: Array[String] = []
+var interstitial_loads: int = 0
+var interstitial_shows: Array[String] = []
+var interstitial_removed: Array[String] = []
 var banner_loads: int = 0
 var banner_shows: Array[String] = []
 var banner_hides: Array[String] = []
@@ -30,9 +33,11 @@ var adaptive_height_dp: int = 64
 var density_value: float = 2.625
 
 var _rewarded_seq: int = 0
+var _interstitial_seq: int = 0
 var _banner_seq: int = 0
 ## Bekleyen (cevaplanmamış) yükleme kimlikleri — test cevaplar.
 var pending_rewarded: Array[String] = []
+var pending_interstitial: Array[String] = []
 var pending_banner: Array[String] = []
 
 
@@ -93,6 +98,23 @@ func show_rewarded(ad_id: String) -> void:
 func remove_rewarded(ad_id: String) -> void:
 	_log("remove_rewarded:" + ad_id)
 	rewarded_removed.append(ad_id)
+
+
+func load_interstitial() -> void:
+	_log("load_interstitial")
+	interstitial_loads += 1
+	_interstitial_seq += 1
+	pending_interstitial.append("interstitial_%d" % _interstitial_seq)
+
+
+func show_interstitial(ad_id: String) -> void:
+	_log("show_interstitial:" + ad_id)
+	interstitial_shows.append(ad_id)
+
+
+func remove_interstitial(ad_id: String) -> void:
+	_log("remove_interstitial:" + ad_id)
+	interstitial_removed.append(ad_id)
 
 
 func load_banner() -> void:
@@ -184,6 +206,34 @@ func emit_rewarded_dismissed(ad_id: String) -> void:
 
 func emit_rewarded_show_failed(ad_id: String, code: int = 1, message: String = "show failed") -> void:
 	rewarded_failed_to_show.emit(ad_id, code, message)
+
+
+## Bekleyen ilk geçiş reklamı yüklemesini cevaplar; ad_id döner ("" = yok).
+func complete_interstitial_load(ok: bool, code: int = 3, message: String = "No fill") -> String:
+	if pending_interstitial.is_empty():
+		return ""
+	var ad_id: String = pending_interstitial.pop_front()
+	if ok:
+		interstitial_loaded.emit(ad_id)
+	else:
+		interstitial_failed_to_load.emit(ad_id, code, message)
+	return ad_id
+
+
+func emit_interstitial_showed(ad_id: String) -> void:
+	interstitial_showed.emit(ad_id)
+
+
+func emit_interstitial_impression(ad_id: String) -> void:
+	interstitial_impression.emit(ad_id)
+
+
+func emit_interstitial_dismissed(ad_id: String) -> void:
+	interstitial_dismissed.emit(ad_id)
+
+
+func emit_interstitial_show_failed(ad_id: String, code: int = 1, message: String = "show failed") -> void:
+	interstitial_failed_to_show.emit(ad_id, code, message)
 
 
 func complete_banner_load(ok: bool, code: int = 3, message: String = "No fill") -> String:

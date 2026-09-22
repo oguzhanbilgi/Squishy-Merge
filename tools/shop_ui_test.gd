@@ -75,6 +75,8 @@ func _c(name: String, ok: bool) -> void:
 
 
 func _ready() -> void:
+	# Otomatik GÜNLÜK ÖDÜLLER penceresi (M8.9-02) bu harness'in konusu değil.
+	DailyRewards.auto_popup_enabled = false
 	await get_tree().process_frame
 	_saved = SaveManager.data.duplicate(true)
 	var save_path: String = SaveManager.SAVE_PATH
@@ -138,10 +140,14 @@ func _ready() -> void:
 		and shop.scroll().horizontal_scroll_mode == ScrollContainer.SCROLL_MODE_DISABLED
 		and shop.scroll().vertical_scroll_mode == ScrollContainer.SCROLL_MODE_SHOW_NEVER)
 	var headers: Array[Control] = shop.section_headers()
-	_c("iki bölüm plakası: GÜÇLER, SKİNLER (PanelShopSection)", headers.size() == 2
-		and (headers[0].get_meta(&"title_label") as Label).text == "GÜÇLER"
-		and (headers[1].get_meta(&"title_label") as Label).text == "SKİNLER"
-		and (headers[0].get_meta(&"plate") as PanelContainer).theme_type_variation == &"PanelShopSection")
+	_c("üç bölüm plakası: GÜNLÜK ÖDÜLLER (M8.9-02), GÜÇLER, SKİNLER (PanelShopSection)", headers.size() == 3
+		and (headers[0].get_meta(&"title_label") as Label).text == "GÜNLÜK ÖDÜLLER"
+		and (headers[1].get_meta(&"title_label") as Label).text == "GÜÇLER"
+		and (headers[2].get_meta(&"title_label") as Label).text == "SKİNLER"
+		and (headers[1].get_meta(&"plate") as PanelContainer).theme_type_variation == &"PanelShopSection")
+	_c("günlük ödüller kartı: tek geniş kart, AÇ butonu, durum rozeti; ödül vermez (yalnız sinyal)",
+		shop.daily_card() != null and shop.daily_button() != null and shop.daily_button().text == shop.DAILY_BUTTON
+		and shop.daily_status_text() != "" and shop.daily_button().mouse_filter == Control.MOUSE_FILTER_PASS)
 	_c("tam 4 güç ürünü (ShopPowerCard), sırası PowerUp.all()", shop.power_cards().size() == 4
 		and _count_class(shop, "ShopPowerCard") == 4 and shop.power_cards()[0].type() == PowerUp.Type.BOMB
 		and shop.power_cards()[3].type() == PowerUp.Type.CLEAR_SMALL)

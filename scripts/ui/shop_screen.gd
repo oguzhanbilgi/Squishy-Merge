@@ -6,9 +6,13 @@ extends CanvasLayer
 ##           "MAĞAZA" kurdelesi · Hamur pill'i — "+" YOK (Mağaza zaten "+"in
 ##           hedefi; kendine giden ölü rota olmasın), yalnız bakiye.
 ##   İÇERİK  gerçek ScrollContainer (üst satırın ALTINDAN kayar, üstte koyu
-##           haze ile solar): GÜÇLER bölüm plakası + 2×2 `ShopPowerCard` ·
-##           SKİNLER bölüm plakası + 2×10 `ShopSkinCard`; altta rahat pay
-##           (+ cihaz alt güvenli alanı). Alt sekme çubuğu YOK.
+##           haze ile solar): GÜNLÜK ÖDÜLLER bölüm plakası + tek geniş kart
+##           (M8.9-02: durum rozeti HAZIR / "N ödül kaldı" / BUGÜNLÜK
+##           TAMAMLANDI + AÇ → `daily_rewards_requested` → Main aynı
+##           GÜNLÜK ÖDÜLLER penceresini açar; onboarding bitmeden gizli) ·
+##           GÜÇLER bölüm plakası + 2×2 `ShopPowerCard` · SKİNLER bölüm
+##           plakası + 2×10 `ShopSkinCard`; altta rahat pay (+ cihaz alt
+##           güvenli alanı + banner yuvası). Alt sekme çubuğu YOK.
 ##   ZEMİN   candy-night dünya (ShellBackdrop) Home ayarında + kenar vignette;
 ##           kartlar dünyanın üstünde oturan krem candy nesneler.
 ##
@@ -26,6 +30,9 @@ extends CanvasLayer
 
 ## Üst satırdaki geri butonu (→ Ana Sayfa, main._on_home_requested).
 signal home_requested
+## GÜNLÜK ÖDÜLLER kartının AÇ butonu (M8.9-02) → Main pencereyi açar. Kart
+## ödül VERMEZ, kayda yazmaz; durumu yalnız `DailyRewards.state()`'ten okur.
+signal daily_rewards_requested
 
 const TITLE: String = "MAĞAZA"
 const SIDE_MARGIN: float = 24.0
@@ -52,8 +59,25 @@ const CONFIRM_POWER_WELL: float = 164.0
 const CONFIRM_POWER_ART: float = 118.0
 const CONFIRM_SKIN_WELL: float = 168.0
 const CONFIRM_SKIN_PREVIEW: float = 184.0
+## Günlük ödüller kartı (M8.9-02).
+const DAILY_TITLE: String = "GÜNLÜK ÖDÜLLER"
+const DAILY_SUB: String = "Ücretsiz sandık · reklamla Hamur ve sandık"
+const DAILY_BUTTON: String = "AÇ"
+const DAILY_STATUS_READY: String = "HAZIR"
+const DAILY_STATUS_LEFT: String = "%d ödül kaldı"
+const DAILY_STATUS_DONE: String = "BUGÜNLÜK TAMAMLANDI"
+const DAILY_WELL: float = 72.0
+const DAILY_ART: float = 50.0
+const DAILY_BUTTON_HEIGHT: float = 58.0
+const CHEST_ART: Texture2D = preload("res://assets/visual/ui/chest_closed.png")
 
 var _bar: ScreenTopBar
+var _daily_header: Control
+var _daily_card: PanelContainer
+var _daily_spacer: Control
+var _daily_status: PanelContainer
+var _daily_status_label: Label
+var _daily_button: Button
 var _power_cards: Array[ShopPowerCard] = []
 var _skin_cards: Array[ShopSkinCard] = []
 ## Kart kimliği -> kart: "power_<tip>" ve skin id (String). Testler ve
@@ -133,6 +157,7 @@ func _tune_backdrop() -> void:
 
 func _build_content() -> void:
 	_content.add_theme_constant_override("separation", SECTION_GAP)
+	_build_daily_section()
 	var powers_header := UiKit.section_header("GÜÇLER")
 	powers_header.name = "PowersHeader"
 	_content.add_child(powers_header)
@@ -156,6 +181,108 @@ func _build_content() -> void:
 		skin_grid.add_child(card)
 		_skin_cards.append(card)
 		_cards[String(entry.id)] = card
+
+
+## GÜNLÜK ÖDÜLLER bölümü (M8.9-02): bölüm plakası + tek geniş kart (güç
+## kartlarıyla aynı krem gövde dili: candy kuyuda owner sandığı, Baloo
+## başlık + alt satır, sağda durum rozeti, altta cyan AÇ). Ödül burada
+## verilmez; AÇ pencereyi açar. Onboarding bitmeden bölüm gizli (tutorial
+## öncesi günlük/reklam sunumu yok — `_refresh_daily`).
+func _build_daily_section() -> void:
+	_daily_header = UiKit.section_header(DAILY_TITLE)
+	_daily_header.name = "DailyHeader"
+	_content.add_child(_daily_header)
+	_daily_card = PanelContainer.new()
+	_daily_card.name = "DailyCard"
+	_daily_card.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_daily_card.add_theme_stylebox_override("panel",
+		UiKit.style("card_bevel_soft", UiTokens.TRAY_CREAM, Vector4(16, 14, 16, 18)))
+	var ring := UiKit.flat_plate("frame_round20", Color(UiTokens.LAVENDER_SURFACE, 0.95))
+	ring.show_behind_parent = true
+	UiKit.inset(ring, -2.0, -2.0, -2.0, -2.0)
+	_daily_card.add_child(ring)
+	var column := VBoxContainer.new()
+	column.add_theme_constant_override("separation", UiTokens.SPACE_SM)
+	column.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_daily_card.add_child(column)
+	var head := HBoxContainer.new()
+	head.add_theme_constant_override("separation", UiTokens.SPACE_MD)
+	head.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	column.add_child(head)
+	var well_host := Control.new()
+	well_host.custom_minimum_size = Vector2(DAILY_WELL + 10.0, DAILY_WELL + 12.0)
+	well_host.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	head.add_child(well_host)
+	var well := UiKit.candy_well(CHEST_ART, UiTokens.PINK, DAILY_WELL, DAILY_ART)
+	well.name = "Well"
+	well.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
+	well.offset_left = -DAILY_WELL * 0.5
+	well.offset_right = DAILY_WELL * 0.5
+	well.offset_top = -(DAILY_WELL + 6.0) * 0.5
+	well.offset_bottom = (DAILY_WELL + 6.0) * 0.5
+	well_host.add_child(well)
+	var text := VBoxContainer.new()
+	text.alignment = BoxContainer.ALIGNMENT_CENTER
+	text.add_theme_constant_override("separation", -2)
+	text.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	text.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	head.add_child(text)
+	var title := UiKit.label(DAILY_TITLE, &"LabelSection")
+	title.name = "Title"
+	title.add_theme_font_size_override("font_size", 22)
+	text.add_child(title)
+	var sub := UiKit.label(DAILY_SUB, &"LabelBody")
+	sub.name = "Sub"
+	sub.add_theme_font_size_override("font_size", 16)
+	sub.add_theme_color_override("font_color", UiTokens.TEXT_SECONDARY)
+	sub.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	text.add_child(sub)
+	var status_host := CenterContainer.new()
+	status_host.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	head.add_child(status_host)
+	_daily_status = UiKit.badge(DAILY_STATUS_READY)
+	_daily_status.name = "DailyStatus"
+	_daily_status_label = _daily_status.get_child(0).get_child(0)
+	_daily_status_label.add_theme_font_size_override("font_size", 14)
+	status_host.add_child(_daily_status)
+	_daily_button = UiKit.button(DAILY_BUTTON, &"ButtonPrimary")
+	_daily_button.name = "DailyOpen"
+	_daily_button.custom_minimum_size = Vector2(0, DAILY_BUTTON_HEIGHT)
+	# ScrollContainer içinde buton (06.3 kuralı): basış kaydırmayı engellemez,
+	# kaydırma başlayınca basış görseli bırakılır (BaseButton basışı iptal eder).
+	_daily_button.mouse_filter = Control.MOUSE_FILTER_PASS
+	_scroll.scroll_started.connect(func() -> void: UiMotion.release(_daily_button))
+	_daily_button.pressed.connect(func() -> void: daily_rewards_requested.emit())
+	column.add_child(_daily_button)
+	_content.add_child(_daily_card)
+	_daily_spacer = _make_spacer(SECTION_SPACER)
+	_daily_spacer.name = "DailySpacer"
+	_content.add_child(_daily_spacer)
+
+
+## Günlük kartın durumu kanonik modelden; onboarding bitmeden bölüm gizli.
+func _refresh_daily() -> void:
+	if _daily_card == null:
+		return
+	var shown: bool = SaveManager.onboarding_completed()
+	_daily_header.visible = shown
+	_daily_card.visible = shown
+	_daily_spacer.visible = shown
+	if not shown:
+		return
+	var state: Dictionary = DailyRewards.state()
+	var left: int = int(state["remaining_total"])
+	var max_total: int = DailyRewards.FREE_CHESTS_PER_DAY + DailyRewards.AD_CHESTS_PER_DAY + DailyRewards.AD_DOUGH_PER_DAY
+	var text: String = DAILY_STATUS_DONE
+	if left >= max_total:
+		text = DAILY_STATUS_READY
+	elif left > 0:
+		text = DAILY_STATUS_LEFT % left
+	_daily_status_label.text = text
+	var ready: bool = left > 0
+	_daily_status.theme_type_variation = &"Badge" if ready else &"LockBadge"
+	_daily_status_label.theme_type_variation = &"LabelBadge" if ready else &"LabelBadgeOnDark"
+	_daily_status_label.add_theme_font_size_override("font_size", 14)
 
 
 func _make_grid(grid_name: String) -> GridContainer:
@@ -326,6 +453,7 @@ func _focus_card(card: Control) -> void:
 
 
 func _refresh_states(pop_balance: bool) -> void:
+	_refresh_daily()
 	for card in _power_cards:
 		card.refresh()
 	for card in _skin_cards:
@@ -619,6 +747,18 @@ func power_card(type: PowerUp.Type) -> ShopPowerCard:
 
 func skin_card(id: StringName) -> ShopSkinCard:
 	return _cards.get(String(id))
+
+
+func daily_card() -> PanelContainer:
+	return _daily_card
+
+
+func daily_button() -> Button:
+	return _daily_button
+
+
+func daily_status_text() -> String:
+	return _daily_status_label.text
 
 
 func section_headers() -> Array[Control]:

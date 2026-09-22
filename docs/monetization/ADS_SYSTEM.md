@@ -1,25 +1,33 @@
-# ADS_SYSTEM.md — AdMob reklam sistemi (M8.9-01)
+# ADS_SYSTEM.md — AdMob reklam sistemi (M8.9-01 / M8.9-02)
 
-> Kanonik doküman. Kilitli ürün kuralları GAME_DESIGN §5.7.3 / §11'de;
-> burada onların **uygulanma biçimi** ve teknik seçimler anlatılır. Rıza /
-> gizlilik ayrıntısı: [PRIVACY_CONSENT.md](PRIVACY_CONSENT.md).
+> Kanonik doküman. Kilitli ürün kuralları GAME_DESIGN §5.4.1 / §5.7.3 / §11 /
+> §12'de; burada onların **uygulanma biçimi** ve teknik seçimler anlatılır.
+> Rıza / gizlilik: [PRIVACY_CONSENT.md](PRIVACY_CONSENT.md); günlük ödüller,
+> geçiş reklamı politikası ve onboarding dikişi: [DAILY_REWARDS.md](DAILY_REWARDS.md).
 >
-> **Durum (2026-09-21):** entegrasyon + Gradle export + deterministik sahte
-> sağlayıcı testleri + TEST reklam APK'sı tamam; **A36 test-reklam cihaz kapısı
-> GEÇTİ** (M8.9-01.1, §12) — gerçek Google test banner'ı (Ana Sayfa / Mağaza /
-> Koleksiyon) ve gerçek test ödüllü reklamla devam + refill cihazda doğrulandı,
-> owner görsel onayı PASS. **Üretime hazır DEĞİL:** eklentinin UMP yüzeyi
-> (PRIVACY_CONSENT §4) ve COPPA/kitle kararı (§6) açık; üretim kimliği YOK.
+> **Durum (2026-09-22):** M8.9-01 temeli (ödüllü devam/refill + banner + UMP)
+> A36'da doğrulandı ve main'de (33b6382). **M8.9-02** (owner kararı): Harita +
+> oyun banner'ı, geçiş reklamı (900 sn aktif süre, yalnız round bitişi molası,
+> 60 sn tam ekran beklemesi), günlük ödüller (ücretsiz sandık 1/gün, reklamlı
+> sandık 2/gün, reklamlı +150 Hamur 1/gün), otomatik günlük pencere, Mağaza
+> girişi, `onboarding_completed` dikişi — deterministik testler + masaüstü
+> görsel inceleme + TEST-reklam APK'sı tamam; **A36 cihaz kapısı henüz YOK**
+> (ayrı adım). **Üretime hazır DEĞİL:** eklentinin UMP yüzeyi (PRIVACY_CONSENT
+> §4) + #120, COPPA/kitle kararı (§6) açık; üretim kimliği YOK (artık 3 birim).
 
 ## 1. Kapsam (v1 monetizasyon planı)
 
 | ürün | durum | kural |
 |---|---|---|
-| Ödüllü devam (revive) | ✅ bağlı, test reklamı | round başına en fazla 2 başarılı devam (board sayar) |
-| Ödüllü güç refill'i | ✅ bağlı, test reklamı | günde 1, DÖRT gücün toplamı; yalnız seçilen güce +1 |
-| Banner (uyarlanabilir sabit, alt) | ✅ Ana Sayfa / Mağaza / Koleksiyon | oyun, sonuç, Harita ve pencereli tam ekranlarda GİZLİ |
-| Interstitial / rewarded interstitial / app-open | ❌ bilerek YOK | gerçek retention verisi gelene kadar ertelendi |
-| IAP / Billing, mediation, üretim kimlikleri | ❌ bu milestone'da yok | sonraki adımlar |
+| Ödüllü devam (revive) | ✅ bağlı, test reklamı, A36'da doğrulandı | round başına en fazla 2 başarılı devam (board sayar) |
+| Ödüllü güç refill'i | ✅ bağlı, test reklamı, A36'da doğrulandı | günde 1, DÖRT gücün toplamı; yalnız seçilen güce +1 |
+| Ödüllü günlük sandık (M8.9-02) | ✅ bağlı, test reklamı, cihazda henüz değil | günde 2 BAŞARILI ödül; ayrı kota (DAILY_REWARDS §1) |
+| Ödüllü günlük +150 Hamur (M8.9-02) | ✅ bağlı, test reklamı, cihazda henüz değil | günde 1 BAŞARILI ödül; ayrı kota |
+| Ücretsiz günlük sandık (M8.9-02) | ✅ reklam yok | günde 1; loot reçetesi DAILY_REWARDS §4 |
+| Banner (uyarlanabilir sabit, alt) | ✅ Ana Sayfa / Harita / Mağaza / Koleksiyon / oyun (M8.9-02 ile Harita + oyun eklendi; cihazda henüz değil) | sonuç ekranında GİZLİ; onboarding bitmeden yuva yok |
+| Geçiş (interstitial) reklamı (M8.9-02) | ✅ bağlı, test birimi, cihazda henüz değil | 900 sn AKTİF süre → uygun; YALNIZ round bitişi molasında, sonuçtan önce; 60 sn tam ekran beklemesi (DAILY_REWARDS §8) |
+| Rewarded interstitial / app-open / native / mediation | ❌ bilerek YOK | — |
+| IAP / Billing, analitik sağlayıcı, üretim kimlikleri | ❌ bu milestone'da yok | sonraki adımlar |
 
 Hamur satın alma yolu (`PowerUpEconomy.purchase`) reklamdan tamamen bağımsız
 kaldı; skinler asla reklam/paraya bağlı değil.
@@ -60,9 +68,13 @@ AdConfig (scripts/ads/ad_config.gd)  — android_export.cfg → is_real + kimlik
 
 - Oyun/UI eklenti içlerini bilmez. Main mevcut dikişi kullanır:
   `set_rewarded_provider(manager)` + `show_rewarded_revive(main)` /
-  `show_rewarded_power(main, type, token)` (M8.5-04/06'dan beri aynı) ve
+  `show_rewarded_power(main, type, token)` (M8.5-04/06'dan beri aynı),
   M8.9-01'de eklenen `is_rewarded_ready()` / `rewarded_note()` /
-  `ensure_rewarded()` / `cancel_rewarded_request()` / `set_surface()`.
+  `ensure_rewarded()` / `cancel_rewarded_request()` / `set_surface()` ve
+  M8.9-02'de eklenen `show_rewarded_daily_chest / _dough(main, day_key, token)`,
+  `try_show_interstitial(break_name, callback)`, `set_onboarding_completed(done)`.
+  Ödül türü talep bağlamından (`RewardedKind` REVIVE / REFILL / DAILY_CHEST /
+  DAILY_DOUGH + güç / gün anahtarı + token); görünen pencereden çıkarılmaz.
   Test stub'ları (refill_test, revive_refill_ui_test…) bu yeni metotları
   sunmadığı için "bağlı = hazır" sayılır — eski testler değişmeden yeşil.
 - **Eklenti yoksa** (masaüstü, headless) `MonetizationManager.create()` null
@@ -107,8 +119,12 @@ BEKLEMEZ (spinner yok): Ana Sayfa normal açılır, form üstte belirir.
 
 Kota/hak kontrolleri **yöneticide DEĞİL**, kilitli yerlerde: board (2/round),
 `Main.grant_rewarded_power` (token + tip) ve `RewardedPolicy.grant` /
-`SaveManager.grant_rewarded_powerup` (1/gün, tek transaction). Yönetici
-kayda hiç yazmaz.
+`SaveManager.grant_rewarded_powerup` (1/gün, tek transaction); günlük
+`Main.grant_daily_chest / grant_daily_dough` (token + tür + gün) →
+`DailyRewards.grant_*` → `SaveManager.grant_daily_*` (tek transaction).
+Yönetici kayda hiç yazmaz. Tek tam ekran reklam kuralı geçiş reklamını da
+kapsar: ödüllü talep açıkken geçiş gösterilmez, geçiş gösterilirken ödüllü
+"hazır" değildir (talep "Reklam gösteriliyor…" ile reddedilir).
 
 ### 5.1 Pencere durumları (M8.6-10 sözleşmesi korunarak)
 
@@ -131,46 +147,77 @@ Oyuncu her durumda BİTİR / KAPAT / Hamurla al yollarına sahip.
 
 - Biçim: **uyarlanabilir sabit (anchored adaptive)**, ekran genişliği, ALT
   kenar, `anchor_to_safe_area = true` (nav bar / cutout içinde).
-- **Yüzeyler (v1): Ana Sayfa, Mağaza, Koleksiyon.** Oyun ekranı, sonuç
-  penceresi ve Harita banner DIŞI:
-  - *Oyun:* `GameplayLayout` BANNER dikişi (M8.6-02) hâlâ 0 px. Banner
-    koymak 16:9'da BOARD'u küçültüp kamera zoom'unu düşürür (parça/dokunma
-    hedefi küçülür); "gelir için zorlama" yok — gerçek retention/eCPM verisi
-    gelene kadar ertelendi. Dikiş duruyor, yeniden yazım gerekmez.
-  - *Harita:* level 1 düğümü + "OYNA" plakası + patika başı cover-fit
-    edilmiş zemin sanatının alt %12'sinde; alt pay ayırmak zemini yeniden
-    kırpmayı gerektirir. v1'de dışarıda, veriyle yeniden değerlendirilir.
+- **Yüzeyler (M8.9-02 owner kararı): Ana Sayfa, Harita, Mağaza, Koleksiyon,
+  oyun ekranı.** GİZLİ: sonuç ekranı (`Surface.RESULT`), tam ekran reklam
+  anları (SDK zaten kaplar), onboarding tamamlanmamış (yuva da yok).
+  Pencereler (Devam / Refill / Ayarlar / Mola / GÜNLÜK ÖDÜLLER) banner'ı
+  gizlemez; bütün `modal_shell` pencereleri banner'ın **üstündeki** alanda
+  ortalanır ve gövde tavanı `bottom_inset` ile hesaplanır — pencere altlığı
+  hiçbir zaman AdView'un altına girmez (`UiKit._seat_modal_above_banner`).
+  M8.9-01'in "Harita/oyun dışarıda" ertelemesi owner kararıyla kalktı.
+  - *Oyun:* `GameplayLayout` BANNER dikişi (M8.6-02) artık
+    `effective_banner_height(view) = max(test override, UiKit.bottom_inset)`
+    ile dolar: STRIP ve BOARD yukarı kayar, hiçbir kontrol/kap yuvaya girmez
+    (`gameplay_shell_test` seam kontrolleri). **Kompakt mod** (yuva varken
+    kalan yükseklik < 1240, yani 16:9): önce dekoratif aralıklar 8→4 / dip 10→6
+    (16 px), sonra kap ölçeği: 720×1280'de zoom 1,064 → 0,962 (−%10; T1 çapı
+    46,8 → 42,3 tuval px), A36'da (720×1560) L1–L4 kap genişlik sınırlı → değişim
+    0, L5+ 1,20 → 1,18. **Fizik, kap ölçüleri, FLOOR_Y, taşma çizgisi,
+    yarıçaplar, güç davranışı DEĞİŞMEDİ** — yalnız kamera/yerleşim.
+  - *Harita:* dünya dikdörtgeni yuva kadar kısalır (`_fit_world`). Cover
+    ölçeğiyle kale üst satırın altında VE level 1 OYNA plakası yuvanın
+    üstünde kalıyorsa (A36 ve uzun ekranlar) her şey aynen; 16:9'da iki uç
+    birlikte sığmaz (gerekli 1106 doku px, mevcut ~1087) → zemin dikeyde
+    %2,8 sıkıştırılır (atlas bölgesi + STRETCH_SCALE; gözle seçilmez,
+    düğümler aynı dönüşümle), kırpma iki ucu kurtaracak şekilde dağıtılır.
+    Yuva 0 iken eski cover yerleşimi birebir (map_ui_test 127).
 - **Yuva:** `MonetizationManager._compute_banner_slot()` açılışta bir kez
   `AdSize.getPortraitAnchoredAdaptiveBannerAdSize(genişlik)` yüksekliğini
   (dp) × yoğunluk × (720 / pencere genişliği) tuval pikseline çevirir ve
   `UiKit.set_banner_slot()`'a yazar (A36: 64 dp × 2.625 → 168 px → 112
-  tuval px; 16:9 720p telefonda ~112). Ana Sayfa / Mağaza / Koleksiyon alt
-  bütçesi `UiKit.bottom_inset(view) = safe_bottom + slot` (Ana Sayfa OYNA
-  yukarı çıkar, Mağaza/Koleksiyon kaydırma dip payı + Mağaza toast'u
-  yukarı). Yuva oturum boyunca SABİT: banner dolmasa da düzen zıplamaz,
-  boşken zemin görünür. Eklenti yoksa 0 (masaüstü düzeni birebir eski).
+  tuval px; 16:9 720p telefonda ~112). Alt bütçe `UiKit.bottom_inset(view)
+  = safe_bottom + slot` (Ana Sayfa OYNA yukarı, Mağaza/Koleksiyon kaydırma
+  dip payı + Mağaza toast'u yukarı, Harita dünyası, oyun STRIP/BOARD).
+  Yuva oturum boyunca SABİT: banner dolmasa da düzen zıplamaz, boşken zemin
+  görünür. Eklenti yoksa 0 (masaüstü düzeni birebir eski); **onboarding
+  tamamlanmamışsa 0** (tutorial tam düzen), tamamlanınca hesaplanır
+  (`set_onboarding_completed(true)` → `banner_slot_changed`).
 - **Yaşam döngüsü:** `set_surface()` her ekran geçişinde (Main `_show_tab`,
   `_start_level`, sonuç). `LOADED` banner yüzey dışında `hide`, yüzeye
   dönünce `show` (yeni yükleme yok); SDK'nın otomatik yenilemesi
   (`banner_ad_refreshed`) durumu değiştirmez. No-fill → 15/60/180/600 sn
   geri çekilme, en çok 6 deneme; sınır dolunca gezinme yeni istek açmaz.
   Uygulama öne dönünce senkron (çift gösterim yok). Yönetici silinirken
-  banner gizlenir, yuva sıfırlanır.
+  banner gizlenir, yuva sıfırlanır. Gezinme döngüsü (Ana Sayfa → Harita →
+  Mağaza → Koleksiyon → oyun → sonuç → Ana Sayfa) tek AdView, tek yükleme,
+  yalnız sonuçta hide (monetization_test).
 
 ## 7. Analitik olay dikişi (`AdEvents`)
 
 Sağlayıcı YOK (sonraki milestone). `AdEvents.emit(name, ctx)`; abone
-`subscribe(callable)`; son 200 olay bellekte.
+`subscribe(callable)`; son 200 olay bellekte. **28 olay:**
 
-Olaylar: `rewarded_requested` (oyuncu CTA), `rewarded_loaded`,
-`rewarded_load_failed`, `rewarded_showed`, `rewarded_impression`,
-`rewarded_earned`, `rewarded_dismissed`, `rewarded_show_failed`,
-`banner_loaded` (`refreshed` bayrağı), `banner_load_failed`,
-`banner_impression`, `banner_clicked`. Bağlam: `placement`
-(`revive` / `refill` / `preload`), refill'de `power` (kayıt anahtarı:
-`bomb` / `upgrade` / `shake` / `clear_small`), `ad_id`, `code`, `message`,
-`stale`, `surface`, `t_msec`. Firebase bilerek entegre edilmedi (rıza
-mimarisi gerektirmiyor).
+- Ödüllü: `rewarded_requested` (oyuncu CTA), `rewarded_loaded`,
+  `rewarded_load_failed`, `rewarded_showed`, `rewarded_impression`,
+  `rewarded_earned`, `rewarded_dismissed`, `rewarded_show_failed`. Bağlam:
+  `placement` (`revive` / `refill` / `daily_chest` / `daily_dough` /
+  `preload`), refill'de `power` (kayıt anahtarı), günlükte `day_key`,
+  `ad_id`, `code`, `message`, `stale`.
+- Banner: `banner_loaded` (`refreshed` bayrağı), `banner_load_failed`,
+  `banner_impression`, `banner_clicked` (+ `surface`).
+- Geçiş (M8.9-02): `interstitial_loaded`, `interstitial_load_failed`,
+  `interstitial_eligible`, `interstitial_showed`, `interstitial_impression`,
+  `interstitial_dismissed`, `interstitial_show_failed`,
+  `interstitial_skipped_not_ready` (`reason`: not_eligible / not_ready /
+  failed / expired / cooldown / rewarded_active / showing / consent /
+  disabled). Hepsinde `active_elapsed_sec`; gösterim yolunda `natural_break`
+  (`round_finish`).
+- Günlük (M8.9-02): `daily_popup_shown` (`auto`, `remaining`),
+  `daily_popup_closed`, `daily_free_chest_claimed`, `daily_ad_chest_requested`,
+  `daily_ad_chest_earned` (`remaining`), `daily_dough_requested`,
+  `daily_dough_earned`, `daily_chest_result` (`source`, `dough`, `skin`,
+  `rarity`, `skin_rolled`, `skin_exhausted`). Hepsinde `day_key`.
+- Ortak: `t_msec`. Firebase / analitik SDK bilerek entegre edilmedi.
 
 ## 8. Test ve üretim yapılandırması
 
@@ -182,12 +229,14 @@ mimarisi gerektirmiyor).
   (log: `SquishyAdsExport: paketlendi -> AdConfig(...)`). Export edilmiş
   build'de dosya yoksa `AdConfig` KAPALI kalır (test varsayılanına düşmez). **Şimdi:** `is_real=false`, Google örnek
   kimlikleri (app `…~3347511713`, rewarded `…/5224354917`, adaptive banner
-  `…/9214589741`). Eklentinin kendi varsayılan banner kimliği (`…/2014213617`)
-  Google'ın *katlanabilir* banner örneğidir, kullanılmıyor.
-- **Üretim adımı (owner):** AdMob konsolunda uygulama + 2 reklam birimi
-  (rewarded, banner) oluştur → `[Release]` anahtarlarını doldur →
+  `…/9214589741`, **interstitial `…/1033173712`** — M8.9-02). Eklentinin kendi
+  varsayılan banner kimliği (`…/2014213617`) Google'ın *katlanabilir* banner
+  örneğidir, kullanılmıyor.
+- **Üretim adımı (owner):** AdMob konsolunda uygulama + **3 reklam birimi**
+  (rewarded, banner, interstitial) oluştur → `[Release]` anahtarlarını doldur →
   `is_real=true`. `AdConfig.is_valid()` gerçek modda boş/örnek kimlik görürse
-  reklamı HİÇ başlatmaz (sessiz test kimliğine düşüş yok). Test cihazları:
+  (dört kimlikten herhangi biri) reklamı HİÇ başlatmaz (sessiz test kimliğine
+  düşüş yok). Test cihazları:
   `is_real=false` iken eklenti cihazın hash'ini otomatik test cihazı yapar;
   gerçek modda `Admob.test_device_hashed_ids` gerekir (henüz bağlı değil).
 - `[Debug] debug_geography = eea | regulated_us_state | other | disabled`
@@ -227,7 +276,11 @@ mimarisi gerektirmiyor).
 
 ## 10. Testler
 
-- `tools/monetization_test.tscn` — **181 kontrol**, internet/cihaz yok:
+- `tools/daily_rewards_test.tscn` (**111**) ve `tools/interstitial_test.tscn`
+  (**60**) — M8.9-02; kapsam DAILY_REWARDS §11.
+- `tools/monetization_test.tscn` — **191 kontrol** (M8.9-01: 181; M8.9-02: +
+  interstitial kimliği fail-closed, 28 olay, yeni banner yüzeyleri, onboarding
+  yuva, Harita düğüm/plaka/kale yuva geometrisi 128 px yuvada), internet/cihaz yok:
   yapılandırma korumaları; olay dikişi; kaynak taraması; rıza akışı
   (NOT_REQUIRED / REQUIRED+form / form hatası / form yok); rıza hataları
   (önceki durum, sınırlı deneme, talep üzerine yenileme); gizlilik
@@ -290,9 +343,9 @@ Kanıt: `build/qa_m8.9-01/device/DEVICE_GATE_NOTES.md` (yerel, gitignore'lu) +
 
 ## 11. Açık noktalar / owner kararları
 
-1. **AdMob hesabı:** uygulama kaydı (App ID), rewarded + banner reklam
-   birimleri, Privacy & messaging'de GDPR (ve gerekiyorsa US state) mesajı.
-   Bunlar olmadan üretim kimliği/rıza mesajı yok — bkz. §8.
+1. **AdMob hesabı:** uygulama kaydı (App ID), rewarded + banner + interstitial
+   reklam birimleri, Privacy & messaging'de GDPR (ve gerekiyorsa US state)
+   mesajı. Bunlar olmadan üretim kimliği/rıza mesajı yok — bkz. §8.
 2. **Kitle/COPPA:** PRIVACY_CONSENT §6.
 3. **Eklenti boşluğu (ÜRETİM ENGELİ):** v6.0 UMP'nin `canRequestAds()` /
    `getPrivacyOptionsRequirementStatus()` / `showPrivacyOptionsForm()`'unu
@@ -301,5 +354,21 @@ Kanıt: `build/qa_m8.9-01/device/DEVICE_GATE_NOTES.md` (yerel, gitignore'lu) +
    eklenti yaması (AAR yeniden derleme) ya da upstream PR kararı gerekiyor.
 4. ~~**Cihaz kapısı (A36, test reklamı)**~~ → **GEÇTİ (§12)**; EEA formu cihazda
    #120 yüzünden gösterilemedi.
-5. **Gameplay/Harita banner'ı:** veriyle yeniden değerlendirme (§6).
+5. ~~**Gameplay/Harita banner'ı**~~ → **M8.9-02'de owner kararıyla eklendi** (§6);
+   A36 cihaz kapısı bekliyor.
 6. **Next-Gen SDK geçişi:** eklentiye bağlı, v1 için gerekmez (§2).
+7. **M8.9-02 A36 cihaz kapısı (bekliyor):** gerçek test interstitial'ı doğal
+   molada (gösterim → sonuç sırası, saat sıfırlanması, bekleme), gerçek
+   banner Harita / oyun (kompakt mod, 1080×2340 yuva), günlük reklamlı
+   sandık / Hamur akışı, otomatik pencere, arka plan/öne dönüş, logcat.
+8. **İki günlük pencere** (giriş ödülü + GÜNLÜK ÖDÜLLER): DAILY_REWARDS §10.
+
+## 13. M8.9-02 masaüstü görsel inceleme (2026-09-22)
+
+`tools/daily_ads_shots.tscn` (yalnız pencereli): 720×1280 · 1080×1920 ·
+1080×2340 (A36 simülasyonu, `safe=61`), yuva 112 tuval px (magenta plaka
+yalnız araçta): Harita + yuva (level 1 / OYNA plakası ve kale mesafeleri
+stdout'ta), oyun + yuva (L4, kompakt mod ölçümleri), Mağaza günlük bölümü +
+yuva, GÜNLÜK ÖDÜLLER penceresi (hazır / karışık durum), reveal (yalnız Hamur
+/ Hamur + Common / Hamur + Legendary), yuvasız referanslar. Kanıt:
+`build/qa_m8.9-02/shots/` + `M8.9-02_QA_NOTES.md` (yerel, gitignore'lu).

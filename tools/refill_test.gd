@@ -54,6 +54,8 @@ class TestProvider extends RefCounted:
 
 
 func _ready() -> void:
+	# Otomatik GÜNLÜK ÖDÜLLER penceresi (M8.9-02) bu harness'in konusu değil.
+	DailyRewards.auto_popup_enabled = false
 	var args: PackedStringArray = OS.get_cmdline_user_args()
 	_shots = args.size() >= 1
 	if _shots:
