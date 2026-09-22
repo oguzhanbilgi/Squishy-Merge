@@ -1,13 +1,17 @@
-# DAILY_REWARDS.md — Günlük ödüller, geçiş reklamı ve onboarding dikişi (M8.9-02 / 02.1)
+# DAILY_REWARDS.md — Günlük ödüller, geçiş reklamı ve onboarding dikişi (M8.9-02 / 02.1 / 02.2)
 
 > Kanonik doküman (owner kararı, 2026-09-22). Reklam mimarisi
 > [ADS_SYSTEM.md](ADS_SYSTEM.md), rıza [PRIVACY_CONSENT.md](PRIVACY_CONSENT.md).
 > Kilitli sayılar GAME_DESIGN §5.4.1 / §5.7.3 / §11'de; burada uygulanma biçimi.
 >
-> **Durum:** uygulama + deterministik testler + masaüstü görsel inceleme +
-> TEST-reklam APK'sı tamam; **A36 cihaz kapısı henüz YOK** (owner/ChatGPT
-> incelemesi sonrası ayrı adım). Üretim engelleri (UMP sarmalayıcı boşluğu,
-> #120, COPPA, gerçek kimlikler) AÇIK — ADS_SYSTEM §11.
+> **Durum (2026-09-22): KAPANDI.** `M8.9-02` uygulaması + `M8.9-02.1` birleşik
+> günlük UX'i tamam; **`M8.9-02.2` Samsung A36 TEST-reklam cihaz kapısı GEÇTİ**
+> (ADS_SYSTEM §14), **owner görsel kontrolü PASS** (5/5), main entegrasyonu
+> **`9561a4c`** (ff-only, push edildi). TEST-reklam monetizasyon deneyimi
+> **DONDURULDU**. **Üretime hazır DEĞİL:** UMP sarmalayıcı boşluğu +
+> `debug_geography` #120, COPPA/TFCD/TFUA kitle kararı ve gerçek AdMob
+> kimlikleri (App ID + banner + ödüllü + geçiş) hâlâ AÇIK — ADS_SYSTEM §11.
+> M8.10 ilk gün kuralı (§9) yalnız dokümante, UYGULANMADI.
 
 ## 1. Dört bağımsız kota ailesi
 

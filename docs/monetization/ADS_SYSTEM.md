@@ -6,7 +6,8 @@
 > geçiş reklamı politikası ve onboarding dikişi: [DAILY_REWARDS.md](DAILY_REWARDS.md).
 >
 > **Durum (2026-09-22):** M8.9-01 temeli (ödüllü devam/refill + banner + UMP)
-> A36'da doğrulandı ve main'de (33b6382). **M8.9-02** (owner kararı): Harita +
+> A36'da doğrulandı ve main'de (33b6382); **M8.9-02 de main'de (9561a4c,
+> ff-only, push edildi).** **M8.9-02** (owner kararı): Harita +
 > oyun banner'ı, geçiş reklamı (900 sn aktif süre, yalnız round bitişi molası,
 > 60 sn tam ekran beklemesi), günlük ödüller (ücretsiz sandık 1/gün, reklamlı
 > sandık 2/gün, reklamlı +150 Hamur 1/gün), otomatik günlük pencere, Mağaza

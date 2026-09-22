@@ -1,8 +1,10 @@
 # PROJECT_STATUS.md — Squishy Merge, tam proje raporu
 
-**Son güncelleme:** 2026-09-09 · **Durum:** M0–M8 tamamlandı, M8.5
-(release/product stabilization) sürüyor, M9 (Android export) sırada ·
-**Branch:** `main`
+**Son güncelleme:** 2026-09-22 · **Durum:** M0–M8 tamamlandı; M8.5–M8.9
+(release/product stabilization: UI yeniden inşası, gameplay cilası, ses,
+AdMob monetizasyonu + günlük ödüller) main'de ve TEST reklamlarıyla A36'da
+doğrulandı; sırada M8.10 ilk açılış tutorial'ı, ardından M9 (Android export) ·
+**Branch:** `main` (9561a4c)
 
 ---
 
@@ -64,8 +66,9 @@ hedefliyor.
   refill'i + banner (Ana Sayfa / Harita / Mağaza / Koleksiyon / oyun) +
   **geçiş reklamı** (15 dk aktif süre, yalnız round bitişi molası, 60 sn
   bekleme) + **günlük ödüller** (ücretsiz sandık 1/gün, reklamlı sandık 2/gün,
-  reklamlı +150 Hamur 1/gün) — Google AdMob, `M8.9-01` (main'de) + `M8.9-02`
-  (dal, owner kararı) test reklamlarıyla entegre (docs/monetization/). App-open
+  reklamlı +150 Hamur 1/gün) — Google AdMob, `M8.9-01` ve `M8.9-02` **ikisi de
+  main'de** (33b6382 / 9561a4c) ve Samsung A36'da TEST reklamlarıyla doğrulandı
+  (docs/monetization/); üretim kimlikleri/hesap kurulumu ayrı adım. App-open
   / rewarded interstitial / mediation yok. IAP / Play Billing hâlâ yok.
 - **v1'de oyun içi mağaza VAR** ama gerçek para geçmiyor — "Hamur" adlı soft
   currency ile kozmetik skin alınıyor. Bu bir para sink'i, IAP değil.

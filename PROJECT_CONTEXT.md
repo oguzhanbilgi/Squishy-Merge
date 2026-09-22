@@ -858,9 +858,12 @@ alınacak — şimdi tahmin/vaat yok.
     ödüllü reklam ve arka planda saat durdu, yeni kayıtta tam bastırma, gün
     değişimi/geri saat, logcat temiz (E/godot 0), PSS 431–501 MB ilerleyen
     büyüme yok; owner görsel kontrolü 5/5 PASS; owner kaydı byte-identical.
-    Kanıt `build/qa_m8.9-02.2/` (yerel). Dal `task/034` push edildi, main'e
-    MERGE EDİLMEDİ (owner kararı bekliyor). M8.10 ilk gün kuralı yalnız
-    dokümante (DAILY_REWARDS §9).
+    Kanıt `build/qa_m8.9-02.2/` (yerel). **Main'e alındı (9561a4c, 2026-09-22,
+    ff-only, push edildi) — M8.9-02 KAPANDI, TEST-reklam monetizasyon deneyimi
+    DONDURULDU;** dal `task/034` duruyor. Entegrasyon kapısı ilk koşuda yeşil
+    (20 suite, `build/qa_m8.9-02_integration/`), main'den export edilen
+    TEST-reklam APK'sı cihaz kapısındakiyle birebir (`356b0501…`).
+    M8.10 ilk gün kuralı yalnız dokümante (DAILY_REWARDS §9), UYGULANMADI.
 - **Sırada: M8.6 — Visual Cohesion Rebuild** (ekranlar `UiKit`/`UiTokens`
   sistemine geçirilecek: ~~gameplay shell~~ ✅ → ~~home~~ ✅ → ~~map~~ ✅ →
   ~~shop~~ ✅ → ~~collection~~ ✅ main'de → ~~ikincil UI denetimi~~ ✅ →
@@ -873,8 +876,7 @@ alınacak — şimdi tahmin/vaat yok.
   kapısı~~ ✅ main'de (93aa25b) → ~~M8.9-01 AdMob temeli~~ ✅ → ~~M8.9-01.1 A36
   test-reklam kapısı~~ ✅ main'de (33b6382) → ~~M8.9-02 monetizasyon
   genişletmesi + günlük ödüller~~ ✅ + ~~02.1 birleşik günlük pencere~~ ✅ +
-  ~~02.2 A36 cihaz kapısı~~ ✅ dal `task/034` (push edildi, merge kararı
-  owner'da) →
+  ~~02.2 A36 cihaz kapısı~~ ✅ main'de (9561a4c) →
   M8.10 ilk açılış tutorial'ı (`onboarding_completed` dikişi hazır) →
   analitik sağlayıcı (`AdEvents`), ardından **M9 — Android export.**
   Ortam hazır (export template'leri, SDK,
@@ -982,9 +984,9 @@ alınacak — şimdi tahmin/vaat yok.
   shader/aura performans ölçümü M9'da.
 
 ## Next action
-Owner/ChatGPT: (1) `task/034` (M8.9-02 + 02.1 + 02.2 A36 kapısı GEÇTİ, push
-edildi) için **merge kararı** — cihaz kanıtı `build/qa_m8.9-02.2/device/`
-(38 kare, notlar), masaüstü çekimler `build/qa_m8.9-02/shots_cleanup/`;
+Owner/ChatGPT: (1) ~~`task/034` merge kararı~~ → **main'de (9561a4c)**;
+M8.9-02 kapandı, kanıt `build/qa_m8.9-02.2/device/` (38 kare, notlar) +
+`build/qa_m8.9-02_integration/`. Sıradaki karar başlıkları:
 (2) eklenti UMP boşluğu kararı — küçük AAR yaması (3
 sarmalayıcı + #120 `Number` düzeltmesi) mi, upstream PR mi (PRIVACY_CONSENT §4)
 — üretim öncesi şart; (3) COPPA / hedef kitle kararı (PRIVACY_CONSENT §6); (4)
