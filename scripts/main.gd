@@ -14,7 +14,6 @@ const COLLECTION_SCENE: PackedScene = preload("res://scenes/ui/collection_screen
 const SHOP_SCENE: PackedScene = preload("res://scenes/ui/shop_screen.tscn")
 const GAME_BOARD_SCENE: PackedScene = preload("res://scenes/game/game_board.tscn")
 const ROUND_RESULT_SCENE: PackedScene = preload("res://scenes/ui/round_result.tscn")
-const DAILY_POPUP_SCENE: PackedScene = preload("res://scenes/ui/daily_reward_popup.tscn")
 const DAILY_REWARDS_SCENE: PackedScene = preload("res://scenes/ui/daily_rewards_popup.tscn")
 const REVIVE_OFFER_SCENE: PackedScene = preload("res://scenes/ui/revive_offer.tscn")
 const POWER_REFILL_SCENE: PackedScene = preload("res://scenes/ui/power_refill.tscn")
@@ -27,11 +26,16 @@ const CHEST_INFO_SCENE: PackedScene = preload("res://scenes/ui/bonus_chest_info.
 const RESULT_DELAY: float = 0.8
 
 var _result: CanvasLayer
-var _daily: CanvasLayer
-## GÜNLÜK ÖDÜLLER penceresi (M8.9-02): ücretsiz sandık + reklamlı Hamur +
-## reklamlı sandık. Günlük giriş ödülü (`_daily`, GAME_DESIGN §5.4) ayrı ve
-## DEĞİŞMEDİ; ikisi aynı anda açılmaz (giriş ödülü kapanınca sıra buna gelir).
+## GÜNLÜK ÖDÜLLER penceresi (M8.9-02 / 02.1): oyuncunun TEK günlük ödül
+## penceresi — üstte günlük giriş ödülü (+15 / seri, GAME_DESIGN §5.4;
+## ödül `DailyReward.claim_if_new_day` ile pencereden ÖNCE yazılır, pencere
+## yalnız gösterir), altında ücretsiz sandık + reklamlı Hamur + reklamlı
+## sandık. Eski `DailyRewardPopup` (M8.6-08) kaldırıldı.
 var _daily_rewards: CanvasLayer
+## Son giriş ödülü işleminin görünümü (`DailyReward.view()` + az önce alındı /
+## seri kırıldı bilgisi). Pencere bunu yalnız gösterir; "az önce" bilgisi ilk
+## açılışta tüketilir (yeniden açılışta kutlama yok, ödül zaten bir kez).
+var _login_view: Dictionary = {}
 var _revive: CanvasLayer
 var _refill: CanvasLayer
 var _settings: CanvasLayer
@@ -158,10 +162,6 @@ func _ready() -> void:
 	for screen in _screens:
 		add_child(screen)
 
-	_daily = DAILY_POPUP_SCENE.instantiate()
-	_daily.closed.connect(_on_daily_closed)
-	add_child(_daily)
-
 	_daily_rewards = DAILY_REWARDS_SCENE.instantiate()
 	_daily_rewards.free_chest_requested.connect(_on_daily_free_chest_requested)
 	_daily_rewards.ad_dough_requested.connect(_on_daily_ad_dough_requested)
@@ -196,11 +196,11 @@ func _ready() -> void:
 	add_child(_chest_info)
 
 	_show_tab(0)
-	# Günlük ödüller (M8.9-02): görülen en yeni gün kayda işlenir (saat geri
-	# alma koruması), sonra günlük giriş ödülü; o kapanınca (ya da yoksa
-	# hemen) GÜNLÜK ÖDÜLLER penceresi günde bir kez.
+	# Günlük ödüller (M8.9-02 / 02.1): görülen en yeni gün kayda işlenir (saat
+	# geri alma koruması), günlük giriş ödülü BİR KEZ çözülür (onboarding
+	# bitmişse), sonra TEK pencere (GÜNLÜK ÖDÜLLER) günde bir kez.
 	DailyRewards.observe_day()
-	_check_daily_reward()
+	_resolve_daily_login()
 	_booted = true
 	_maybe_auto_open_daily_rewards()
 
@@ -332,9 +332,6 @@ func _notification(what: int) -> void:
 	if _chest_info != null and _chest_info.visible:
 		_chest_info.close_info()
 		return
-	if _daily != null and _daily.visible:
-		_daily.close_popup()
-		return
 	if _daily_rewards != null and _daily_rewards.visible:
 		_daily_rewards.close_popup()
 		return
@@ -400,18 +397,12 @@ func _on_collection_requested() -> void:
 	_show_tab(2)
 
 
-## Ana Sayfa'daki Günlük madalyonu: bugünkü ödül henüz alınmadıysa (nadir —
-## açılışta zaten alınır; cihaz tarihi ilerlemişse) AYNI claim yolu; alınmışsa
-## durum penceresi. Ödül mantığı DailyReward'da, burada değil.
+## Ana Sayfa'daki Günlük madalyonu (M8.9-02.1): GÜNLÜK ÖDÜLLER penceresini
+## açar (Mağaza kartıyla AYNI pencere/durum). Bugünkü giriş ödülü henüz
+## alınmadıysa (nadir — açılışta zaten alınır; cihaz tarihi ilerlemişse) aynı
+## claim yolu pencereden önce çalışır. Onboarding bitmeden hiçbir şey olmaz.
 func _on_daily_requested() -> void:
-	if DailyReward.is_claimable():
-		_check_daily_reward()
-		if _screens[0].has_method("refresh"):
-			_screens[0].refresh()
-		if not _daily.visible:
-			_daily.show_status(SaveManager.daily_streak())
-		return
-	_daily.show_status(SaveManager.daily_streak())
+	open_daily_rewards()
 
 
 ## Ana Sayfa'daki Bonus sandık madalyonu: kural + ilerleme penceresi
@@ -420,15 +411,30 @@ func _on_chest_requested() -> void:
 	_chest_info.open_info()
 
 
-## Günlük giriş ödülü (GAME_DESIGN.md §5.4). Günde bir kez, açılışta.
-func _check_daily_reward() -> void:
+## Günlük giriş ödülü (GAME_DESIGN.md §5.4): yetkili tek işlem
+## `DailyReward.claim_if_new_day` (günde bir kez; onboarding bitmeden
+## no-op). Sonuç değişmez görünüm olarak saklanır ve TEK pencerede
+## (GÜNLÜK ÖDÜLLER üst bölgesi) gösterilir; pencere ödül VERMEZ. Dönüş:
+## bu çağrıda +15 verildi mi.
+func _resolve_daily_login() -> bool:
 	var result: Dictionary = DailyReward.claim_if_new_day()
-	if result["claimed"]:
-		_daily.show_reward(result)
+	var view: Dictionary = DailyReward.view()
+	if bool(result["claimed"]):
+		view["just_claimed"] = true
+		view["streak_broken"] = bool(result["streak_broken"])
+		_refresh_shell_dough()
+	else:
+		# Daha önce alınmış ama henüz gösterilmemiş kutlama/uyarı korunur
+		# (açılışta çözülür, pencere sonra açılır); gösterilince tüketilir.
+		view["just_claimed"] = bool(_login_view.get("just_claimed", false))
+		view["streak_broken"] = bool(_login_view.get("streak_broken", false))
+	_login_view = view
+	return bool(result["claimed"])
 
 
-func _on_daily_closed() -> void:
-	_show_tab(_active_tab)
+## Test/araç kancası (eski `_check_daily_reward` adı): giriş ödülünü çözer.
+func _check_daily_reward() -> void:
+	_resolve_daily_login()
 
 
 # --- GÜNLÜK ÖDÜLLER (M8.9-02) — docs/monetization/DAILY_REWARDS.md ---
@@ -454,7 +460,7 @@ func _maybe_auto_open_daily_rewards() -> void:
 		return
 	if _board != null and is_instance_valid(_board):
 		return
-	if _result.visible or _daily.visible or _daily_rewards.visible \
+	if _result.visible or _daily_rewards.visible \
 			or (_settings != null and _settings.visible) or (_pause != null and _pause.visible) \
 			or (_chest_info != null and _chest_info.visible) or _revive.visible or _refill.visible:
 		return
@@ -475,7 +481,13 @@ func open_daily_rewards() -> void:
 
 func _open_daily_rewards_window(auto: bool) -> void:
 	_clear_daily_request()
-	_daily_rewards.open_popup(_daily_provider_ready(), _provider_note(), auto)
+	# Giriş ödülü pencereden ÖNCE çözülür (gün değiştiyse tam bir kez +15);
+	# pencere yalnız sonucu gösterir. "Az önce alındı" kutlaması tek sefer.
+	_resolve_daily_login()
+	var login: Dictionary = _login_view.duplicate()
+	_login_view["just_claimed"] = false
+	_login_view["streak_broken"] = false
+	_daily_rewards.open_popup(_daily_provider_ready(), _provider_note(), auto, login)
 	_ensure_rewarded()
 	AdEvents.emit(&"daily_popup_shown", {"day_key": DailyRewards.day_key(), "auto": auto,
 		"remaining": DailyRewards.state()["remaining_total"]})

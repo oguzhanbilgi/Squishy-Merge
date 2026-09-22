@@ -102,8 +102,6 @@ func _ready() -> void:
 	add_child(_main)
 	await get_tree().process_frame
 	await get_tree().process_frame
-	if _main._daily != null:
-		_main._daily.visible = false
 	_apply_showcase()
 	_apply_safe_top_to_shell()
 
@@ -303,72 +301,60 @@ const PILE_MEDIUM: Array = [[5, 3, 4, 2, 1], [2, 4, 1, 3], [3, 1, 2]]
 const PILE_DANGER: Array = [[7, 5, 6], [4, 6, 3, 5], [5, 2, 4, 1, 3], [1, 4, 2, 5, 2], [3, 1, 4, 1, 3, 2], [2, 3, 1, 2, 1]]
 
 
-# --- Günlük ödül -------------------------------------------------------------
+# --- Günlük ödül (M8.9-02.1: tek pencere GÜNLÜK ÖDÜLLER, giriş ödülü üstte) ---
 
-func _daily_result(streak: int, broken: bool) -> Dictionary:
-	return {"claimed": true, "streak": streak, "reward": DailyReward.DAILY_DOUGH, "streak_broken": broken}
+func _daily_login(streak: int, broken: bool, just_claimed: bool = false) -> Dictionary:
+	return {"streak": streak, "reward": DailyReward.DAILY_DOUGH, "claimed_today": true,
+		"just_claimed": just_claimed, "streak_broken": broken}
+
+
+func _open_daily(login: Dictionary) -> void:
+	_main._daily_rewards.open_popup(false, "", false, login)
 
 
 func _group_daily() -> void:
 	await _show_home()
-	_main._daily.show_reward(_daily_result(1, false))
+	_open_daily(_daily_login(1, false, true))
 	await _settle()
 	await _capture("daily_01_first_claim")
-	_main._daily.close_popup()
+	_main._daily_rewards.close_popup()
 	await _show_home()
 
-	_main._daily.show_reward(_daily_result(4, false))
+	_open_daily(_daily_login(4, false))
 	await _settle()
 	await _capture("daily_02_mid_streak")
-	_main._daily.close_popup()
+	_main._daily_rewards.close_popup()
 	await _show_home()
 
-	_main._daily.show_reward(_daily_result(1, true))
+	_open_daily(_daily_login(1, true, true))
 	await _settle()
 	await _capture("daily_03_streak_broken")
-	_main._daily.close_popup()
+	_main._daily_rewards.close_popup()
 	await _show_home()
 
-	_main._daily.show_reward(_daily_result(12, false))
+	_open_daily(_daily_login(12, false))
 	await _settle()
 	await _capture("daily_04_long_streak")
-	_main._daily.close_popup()
+	_main._daily_rewards.close_popup()
 	await _show_home()
 
-	# Alınmış durum: Ana Sayfa madalyonundan.
-	_main._daily.show_status(2)
+	# Alınmış durum: Ana Sayfa madalyonundan (gerçek yol; bugün alınmış).
+	_home().feature_button(&"daily").pressed.emit()
 	await _settle()
 	await _capture("daily_05_status_claimed")
-	_main._daily.close_popup()
-	await _show_home()
-
-	# M8.6-08: AL basışı (pres görseli) ve kutlama anı (bugünkü düğüm yıldız +
-	# pırıltı) — gerçek dokunuş olayıyla; pencere kutlamadan sonra kendi kapanır.
-	_main._daily.show_reward(_daily_result(4, false))
-	await _settle()
-	var claim: Button = _main._daily.cta_button()
-	var at: Vector2 = claim.get_global_rect().get_center()
-	_pointer(at, true)
-	await _settle(0.08)
-	await _capture("daily_07_claim_press")
-	_pointer(at, false)
-	await get_tree().create_timer(0.16).timeout
-	await _capture("daily_08_claim_success")
-	await _settle(0.6)
-	if _main._daily.visible:
-		_main._daily.close_popup()
+	_main._daily_rewards.close_popup()
 	await _show_home()
 
 	# GERÇEK açılış yolu (kayda yazar; çıkışta byte'ı geri konur): dün giriş
-	# yapılmış → main._check_daily_reward → DailyReward.claim_if_new_day.
+	# yapılmış → madalyon → DailyReward.claim_if_new_day → pencere (kutlama).
 	SaveManager.data["last_login_date"] = _yesterday()
 	_home().refresh()
 	await _settle()
 	await _capture("daily_06_launch_home_claimable")
-	_main._check_daily_reward()
+	_home().feature_button(&"daily").pressed.emit()
 	await _settle()
 	await _capture("daily_06_launch_real")
-	_main._daily.close_popup()
+	_main._daily_rewards.close_popup()
 	_apply_showcase()
 	await _show_home()
 

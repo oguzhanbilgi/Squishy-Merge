@@ -37,16 +37,16 @@ const VIEWS: Array[Vector2i] = [Vector2i(720, 1280), Vector2i(720, 1560), Vector
 const A36_SAFE_TOP: float = 61.0
 const RUNTIME_FILES: Array[String] = [
 	"res://scripts/ui/ui_kit.gd", "res://scripts/ui/streak_strip.gd",
-	"res://scripts/ui/settings_panel.gd", "res://scripts/ui/daily_reward_popup.gd",
+	"res://scripts/ui/settings_panel.gd", "res://scripts/ui/daily_rewards_popup.gd",
 	"res://scripts/ui/pause_menu.gd", "res://scripts/ui/bonus_chest_info.gd",
-	"res://scenes/ui/settings_panel.tscn", "res://scenes/ui/daily_reward_popup.tscn",
+	"res://scenes/ui/settings_panel.tscn", "res://scenes/ui/daily_rewards_popup.tscn",
 	"res://scenes/ui/pause_menu.tscn", "res://scenes/ui/bonus_chest_info.tscn",
 ]
 const FORBIDDEN: Array[String] = ["_visual_source", "layerlab_spike", "layerlab_casual_game", "unitypackage"]
 const LEGACY: Array[String] = ["panel_candy.png", "ModalPanel", "CandyButton", "UiPalette", "cta_button_normal"]
 const MIGRATED_SOURCES: Array[String] = [
-	"res://scripts/ui/settings_panel.gd", "res://scripts/ui/daily_reward_popup.gd",
-	"res://scenes/ui/settings_panel.tscn", "res://scenes/ui/daily_reward_popup.tscn",
+	"res://scripts/ui/settings_panel.gd", "res://scripts/ui/daily_rewards_popup.gd",
+	"res://scenes/ui/settings_panel.tscn", "res://scenes/ui/daily_rewards_popup.tscn",
 	"res://scripts/ui/pause_menu.gd", "res://scripts/ui/bonus_chest_info.gd",
 	# M8.6-10: Devam + Refill de tasindi.
 	"res://scripts/ui/revive_offer.gd", "res://scenes/ui/revive_offer.tscn",
@@ -89,7 +89,6 @@ func _ready() -> void:
 	add_child(_main)
 	await get_tree().process_frame
 	await get_tree().process_frame
-	_main._daily.visible = false
 
 	await _test_settings()
 	await _test_settings_sizes()
@@ -395,16 +394,18 @@ func _test_settings_sizes() -> void:
 # --- Günlük ---------------------------------------------------------------------
 
 func _test_daily() -> void:
-	print("-- Günlük ödül")
+	print("-- Günlük ödül (M8.9-02.1: tek pencere GÜNLÜK ÖDÜLLER, giriş ödülü üstte)")
 	await _resize(VIEWS[0])
 	_apply_showcase()
 	_main._show_tab(0)
 	await _settle(2)
-	var daily: CanvasLayer = _main._daily
+	var daily: CanvasLayer = _main._daily_rewards
 	var home: CanvasLayer = _main._screens[0]
 	var closed_count: Array = []
 	daily.closed.connect(func() -> void: closed_count.append(true))
-	_c("kapalı başlıyor, tek örnek", not daily.visible and _count_class(_main, "CanvasLayer", "DailyRewardPopup") == 1)
+	_c("kapalı başlıyor, tek örnek; eski DailyRewardPopup ağaçta YOK", not daily.visible
+		and _count_class(_main, "CanvasLayer", "DailyRewardsPopup") == 1
+		and _count_class(_main, "CanvasLayer", "DailyRewardPopup") == 0)
 
 	# Gerçek claim yolu: dün giriş yapılmış → Günlük madalyonu.
 	SaveManager.data["last_login_date"] = _yesterday()
@@ -413,84 +414,78 @@ func _test_daily() -> void:
 	var dough_before: int = SaveManager.dough()
 	_main._on_daily_requested()
 	await _settle(4)
-	_c("claim: +%d Hamur ve seri 3 TAM BİR KEZ (DailyReward.claim_if_new_day)" % DailyReward.DAILY_DOUGH,
+	_c("claim: +%d Hamur ve seri 3 TAM BİR KEZ (DailyReward.claim_if_new_day), pencereden ÖNCE" % DailyReward.DAILY_DOUGH,
 		SaveManager.dough() == dough_before + DailyReward.DAILY_DOUGH and SaveManager.daily_streak() == 3
 		and SaveManager.last_login_date() == Time.get_date_string_from_system())
-	_c("ödül penceresi açık: AL kahraman CTA (ButtonCTA), +15 HAMUR", daily.visible and daily.cta_text() == "AL"
-		and daily.cta_button().theme_type_variation == &"ButtonCTA"
-		and daily._reward.text == "+%d HAMUR" % DailyReward.DAILY_DOUGH)
+	_c("pencere açık: '3. GÜN', '+15 HAMUR', ALINDI çipi", daily.visible and daily.login_day_text() == "3. GÜN"
+		and daily.login_reward_text() == "+%d HAMUR" % DailyReward.DAILY_DOUGH and daily.login_chip_text() == daily.LOGIN_CLAIMED)
 	var strip: StreakStrip = daily.strip()
-	_c("seri şeridi: 7 düğüm; 1-2 alınmış, 3 bugün (kutlanmamış), 4-7 gelecek", strip.node_count() == 7
+	_c("seri şeridi: 7 düğüm; 1-2 alınmış, 3 bugün (az önce alındı → kutlandı), 4-7 gelecek", strip.node_count() == 7
 		and strip.node_state(0) == StreakStrip.State.CLAIMED and strip.node_state(1) == StreakStrip.State.CLAIMED
 		and strip.node_state(2) == StreakStrip.State.TODAY and strip.node_state(3) == StreakStrip.State.FUTURE
-		and strip.node_state(6) == StreakStrip.State.FUTURE and not strip.is_today_marked()
+		and strip.node_state(6) == StreakStrip.State.FUTURE and strip.is_today_marked()
 		and strip.plus_badge_text() == "")
-	_c("gün rozeti '3. GÜN', not yok", daily._day_label.text == "3. GÜN" and not daily._note.visible)
+	_c("seri kırılmadı: giriş notu yok", daily.login_note_text() == "")
 	var frame: Control = daily.frame()
 	var panel: Control = frame.get_meta(&"panel")
-	_c("gövde (kuyu, ödül, rozet, şerit) panelin içinde; AL çerçevede", _children_inside(frame.get_meta(&"body"), panel.get_global_rect())
-		and panel.get_global_rect().encloses(daily.cta_button().get_global_rect()))
-	_c("iskelet: tepelik + GÜNLÜK ÖDÜL + oturmuş X", frame.has_meta(&"topper")
-		and (frame.get_meta(&"heading") as Label).text == "GÜNLÜK ÖDÜL"
+	var hero: Control = frame.get_meta(&"hero")
+	_c("giriş bölgesi hero'da (sabit), şerit ve gövde kartları panelin içinde; KAPAT çerçevede",
+		hero.visible and hero.is_ancestor_of(strip) and _children_inside(hero, panel.get_global_rect())
+		and _children_inside(frame.get_meta(&"body"), panel.get_global_rect())
+		and panel.get_global_rect().encloses(daily.close_button().get_global_rect()))
+	_c("iskelet: kurdele GÜNLÜK ÖDÜLLER + oturmuş X", frame.get_meta(&"ribbon") != null
+		and ((frame.get_meta(&"ribbon") as PanelContainer).get_meta(&"title_label") as Label).text == "GÜNLÜK ÖDÜLLER"
 		and (frame.get_meta(&"close_button") as Button).has_meta(&"seat_ring"))
-	# AL: kutlama, ikinci mutasyon YOK, sonra kapanır.
+	# Kapat + yeniden aç: ikinci +15 YOK, kutlama tekrarlanmaz.
 	var file_after_claim: PackedByteArray = FileAccess.get_file_as_bytes(SaveManager.SAVE_PATH)
-	daily.cta_button().pressed.emit()
-	await get_tree().process_frame
-	_c("AL → bugünkü düğüm kutlandı (yıldız), pencere hâlâ açık (kısa kutlama)", strip.is_today_marked()
-		and daily.visible and daily.is_claim_pending())
-	daily.cta_button().pressed.emit()
+	daily.close_button().pressed.emit()
 	await _settle(1)
-	_c("AL kayda DOKUNMADI: Hamur, seri, tarih aynı; dosya aynı", SaveManager.dough() == dough_before + DailyReward.DAILY_DOUGH
-		and SaveManager.daily_streak() == 3 and FileAccess.get_file_as_bytes(SaveManager.SAVE_PATH) == file_after_claim)
-	await get_tree().create_timer(daily.CLAIM_CLOSE_DELAY + 0.25).timeout
-	await get_tree().process_frame
-	_c("kutlama sonrası pencere kapandı, closed 1 kez (çift basış tek kapanış)", not daily.visible and closed_count.size() == 1)
-	_c("kapanınca Ana Sayfa yenilendi: Hamur pill'i güncel, bildirim noktası yok",
-		_pill_text(home.dough_pill()) == str(dough_before + DailyReward.DAILY_DOUGH)
+	_c("KAPAT → kapandı, closed 1 kez, Ana Sayfa yenilendi (Hamur pill'i güncel, bildirim noktası yok)",
+		not daily.visible and closed_count.size() == 1
+		and _pill_text(home.dough_pill()) == str(dough_before + DailyReward.DAILY_DOUGH)
 		and not home.feature_button(&"daily").has_notification())
-	# İkinci claim engellenir: durum modu.
 	_main._on_daily_requested()
 	await _settle(2)
-	_c("ikinci claim YOK: durum penceresi ('aldın', TAMAM ButtonPrimary), Hamur aynı", daily.visible
-		and daily.cta_text() == "TAMAM" and daily.cta_button().theme_type_variation == &"ButtonPrimary"
-		and daily._reward.text.contains("aldın") and SaveManager.dough() == dough_before + DailyReward.DAILY_DOUGH)
-	_c("durum modunda bugünkü düğüm yıldızlı (alınmış), not 'yarın tekrar gel'", strip.is_today_marked()
-		and strip.node_state(2) == StreakStrip.State.TODAY and daily._note.visible
-		and daily._note.text.begins_with("Yarın"))
-	daily.cta_button().pressed.emit()
-	await get_tree().process_frame
-	_c("TAMAM → hemen kapandı", not daily.visible and closed_count.size() == 2)
-	# Otomatik açılış çift pencere üretmez.
+	_c("madalyondan yeniden açılış: ikinci +15 YOK, dosya aynı, ALINDI + bugün yıldızlı, seri 3", daily.visible
+		and SaveManager.dough() == dough_before + DailyReward.DAILY_DOUGH and SaveManager.daily_streak() == 3
+		and FileAccess.get_file_as_bytes(SaveManager.SAVE_PATH) == file_after_claim
+		and daily.login_chip_text() == daily.LOGIN_CLAIMED and strip.is_today_marked() and daily.login_day_text() == "3. GÜN")
+	daily.close_popup()
+	await _settle(1)
+	_c("KAPAT → hemen kapandı", not daily.visible and closed_count.size() == 2)
+	# Otomatik açılış yolu çift pencere üretmez / ikinci ödül vermez.
 	_main._check_daily_reward()
 	await get_tree().process_frame
 	_c("bugün alınmışken _check_daily_reward pencere AÇMAZ, ödül vermez", not daily.visible
 		and SaveManager.dough() == dough_before + DailyReward.DAILY_DOUGH)
 	# Vitrin durumları (kayda yazmaz): uzun seri, kırık seri.
-	daily.show_reward({"claimed": true, "streak": 12, "reward": DailyReward.DAILY_DOUGH, "streak_broken": false})
+	daily.open_popup(false, "", false, {"streak": 12, "reward": DailyReward.DAILY_DOUGH, "claimed_today": true,
+		"just_claimed": false, "streak_broken": false})
 	await _settle(2)
 	_c("uzun seri 12: 7. düğüm bugün, '+5' rozeti, '12. GÜN'", strip.node_state(6) == StreakStrip.State.TODAY
 		and strip.node_state(5) == StreakStrip.State.CLAIMED and strip.plus_badge_text() == "+5"
-		and daily._day_label.text == "12. GÜN")
-	_c("'+5' rozeti gövdenin içinde (kırpılmıyor)", (frame.get_meta(&"body_host") as Control).get_global_rect().encloses(
+		and daily.login_day_text() == "12. GÜN")
+	_c("'+5' rozeti panelin içinde (kırpılmıyor)", panel.get_global_rect().encloses(
 		strip.get_node("PlusBadge").get_global_rect()))
 	daily.close_popup()
-	daily.show_reward({"claimed": true, "streak": 1, "reward": DailyReward.DAILY_DOUGH, "streak_broken": true})
+	daily.open_popup(false, "", false, {"streak": 1, "reward": DailyReward.DAILY_DOUGH, "claimed_today": true,
+		"just_claimed": true, "streak_broken": true})
 	await _settle(2)
-	_c("kırık seri: 1. düğüm bugün, not LabelWarning 'Serin kırılmıştı…'", strip.node_state(0) == StreakStrip.State.TODAY
-		and strip.node_state(1) == StreakStrip.State.FUTURE and daily._note.visible
-		and daily._note.theme_type_variation == &"LabelWarning" and daily._note.text.begins_with("Serin"))
+	_c("kırık seri: 1. düğüm bugün (kutlandı), 2 gelecek, giriş notu 'Serin kırılmıştı…'",
+		strip.node_state(0) == StreakStrip.State.TODAY and strip.node_state(1) == StreakStrip.State.FUTURE
+		and strip.is_today_marked() and daily.login_note_text().begins_with("Serin"))
+	_c("vitrin açılışları kayda yazmadı", FileAccess.get_file_as_bytes(SaveManager.SAVE_PATH) == file_after_claim)
 	# Kapanış yolları: X, geri, karartma.
 	(frame.get_meta(&"close_button") as Button).pressed.emit()
 	await get_tree().process_frame
 	_c("X → kapandı", not daily.visible)
-	daily.show_status(4)
+	_main._on_daily_requested()
 	await _settle(2)
 	await _settle(18)
 	_main._notification(Node.NOTIFICATION_WM_GO_BACK_REQUEST)
 	await get_tree().process_frame
 	_c("Android geri → kapandı, Ana Sayfa (sekme 0)", not daily.visible and _main._active_tab == 0)
-	daily.show_status(4)
+	_main._on_daily_requested()
 	await _settle(4)
 	var dim_at := Vector2(360.0, 60.0)
 	_pointer(dim_at, true)
@@ -499,9 +494,10 @@ func _test_daily() -> void:
 	await _settle(2)
 	_c("karartma dokunuşu → kapandı; arkadaki üst satır ayarlar butonu AÇILMADI", not daily.visible
 		and not _main._settings.visible and _main._active_tab == 0)
-	# 540×960: yedi düğüm görünür ve panelde.
+	# 540×960: yedi düğüm görünür ve panelde, KAPAT çerçevede ve ekranda.
 	await _resize(Vector2i(540, 960))
-	daily.show_reward({"claimed": true, "streak": 4, "reward": DailyReward.DAILY_DOUGH, "streak_broken": false})
+	daily.open_popup(false, "", false, {"streak": 4, "reward": DailyReward.DAILY_DOUGH, "claimed_today": true,
+		"just_claimed": false, "streak_broken": false})
 	await _settle(4)
 	var all_visible: bool = true
 	for i in 7:
@@ -509,7 +505,7 @@ func _test_daily() -> void:
 		if not panel.get_global_rect().encloses(node.get_global_rect()) or node.size.x < 40.0:
 			all_visible = false
 	_c("540×960: 7 düğüm panelin içinde, her biri ≥ 40 tuval px (≥ 30 px fiziksel)", all_visible)
-	_c("540×960: AL çerçevede ve ekranda", panel.get_global_rect().encloses(daily.cta_button().get_global_rect())
+	_c("540×960: KAPAT çerçevede ve ekranda", panel.get_global_rect().encloses(daily.close_button().get_global_rect())
 		and Rect2(Vector2.ZERO, get_viewport().get_visible_rect().size).encloses(frame.get_global_rect()))
 	daily.close_popup()
 	await _resize(VIEWS[0])
@@ -643,11 +639,15 @@ func _test_sources() -> void:
 	var shop_src: String = FileAccess.get_file_as_string("res://scripts/ui/shop_screen.gd")
 	_c("Mağaza onayı hâlâ modal_frame + seat_modal_close (değişmedi)",
 		shop_src.contains("UiKit.modal_frame(\"Satın Al\"") and shop_src.contains("UiKit.seat_modal_close(_frame)"))
-	var daily_src: String = FileAccess.get_file_as_string("res://scripts/ui/daily_reward_popup.gd")
+	var daily_src: String = FileAccess.get_file_as_string("res://scripts/ui/daily_rewards_popup.gd")
 	var settings_src: String = FileAccess.get_file_as_string("res://scripts/ui/settings_panel.gd")
-	_c("Günlük penceresi kayda yazmıyor (add_dough / record_daily_login / save_game yok)",
+	_c("Günlük penceresi kayda yazmıyor (add_dough / record_daily_login / claim_if_new_day / save_game yok)",
 		not daily_src.contains("add_dough(") and not daily_src.contains("record_daily_login(")
-		and not daily_src.contains("save_game("))
+		and not daily_src.contains("claim_if_new_day(") and not daily_src.contains("save_game("))
+	_c("eski günlük penceresi (daily_reward_popup) repoda ve Main'de yok",
+		not FileAccess.file_exists("res://scripts/ui/daily_reward_popup.gd")
+		and not FileAccess.file_exists("res://scenes/ui/daily_reward_popup.tscn")
+		and not FileAccess.get_file_as_string("res://scripts/main.gd").contains("daily_reward_popup"))
 	_c("Ayarlar yalnız set_sfx_enabled / set_haptics_enabled yazıyor", settings_src.contains("SaveManager.set_sfx_enabled(")
 		and settings_src.contains("SaveManager.set_haptics_enabled(") and not settings_src.contains("save_game(")
 		and not settings_src.contains("add_dough("))

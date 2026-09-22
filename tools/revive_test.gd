@@ -639,7 +639,6 @@ func _scenario_main_flow() -> void:
 	var main: Node2D = MAIN_SCENE.instantiate()
 	add_child(main)
 	await get_tree().process_frame
-	main._daily.visible = false
 
 	var merges_before: int = int(SaveManager.data.get("total_merges", 0))
 	# Bot round'u kazanabilir; bu senaryonun olcmek istedigi fail yolu, o
@@ -844,7 +843,6 @@ func _scenario_deferred_merge_race() -> void:
 	var main: Node2D = MAIN_SCENE.instantiate()
 	add_child(main)
 	await get_tree().process_frame
-	main._daily.visible = false
 	var merges_before: int = int(SaveManager.data.get("total_merges", 0))
 	main._start_level(load("res://resources/levels/level_%02d.tres" % TEST_LEVEL))
 	await get_tree().process_frame

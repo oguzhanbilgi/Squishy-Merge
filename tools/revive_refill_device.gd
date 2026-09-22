@@ -71,8 +71,6 @@ func _ready() -> void:
 	add_child(_main)
 	await get_tree().process_frame
 	await get_tree().process_frame
-	if _main._daily != null:
-		_main._daily.visible = false
 	_apply_showcase()
 	SaveManager.save_game()
 	print("[qa] ready view=", _size)

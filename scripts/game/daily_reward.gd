@@ -1,17 +1,29 @@
 class_name DailyReward
 extends RefCounted
 ## Günlük giriş ödülü ve ardışık gün sayacı (GAME_DESIGN.md §5.4).
-## Sabit ödül, seri kırılınca sayaç sıfırlanır. v1'de Hamur'un harcanacağı
-## bir yer yok — bu sadece bir sayaç/gösterge, shop v1.1'de.
+## Sabit ödül, seri kırılınca sayaç sıfırlanır. Hamur mağazada harcanır
+## (§5.6); bu ödül GÜNLÜK ÖDÜLLER'in (§5.4.1: ücretsiz sandık / reklamlı
+## sandık / reklamlı +150) kotalarından tamamen AYRIDIR.
+##
+## M8.9-02.1: oyuncuya tek pencerede gösterilir (`DailyRewardsPopup` üst
+## bölgesi: "N. GÜN · +15 HAMUR · ALINDI" + seri şeridi); pencere yalnız
+## gösterir, ödülü YALNIZ `claim_if_new_day` (Main açılış / Günlük madalyonu
+## / Mağaza kartı yolunda, açılıştan ÖNCE) yazar. ONBOARDING KAPISI:
+## `onboarding_completed` false iken (tutorial bitmeden, M8.10) bu sınıf kaydı
+## HİÇ değiştirmez — ne Hamur ne seri ne tarih; gizli/geriye dönük ödül yok,
+## ilk giriş işlemi onboarding tamamlandıktan sonraki ilk çalışmada olur.
 
 ## GEÇİCİ değer — §5.2'deki Hamur oranlarıyla aynı gerekçe: v1.1 shop
 ## ekonomisi tasarlanınca gerçek bir değere göre revize edilecek.
 const DAILY_DOUGH: int = 15
 
 
-## Bugün ilk giriş ise ödülü verir ve seriyi ilerletir.
+## Bugün ilk giriş ise ödülü verir ve seriyi ilerletir. Onboarding
+## tamamlanmadıysa hiçbir şey yapmaz (kayıt mutasyonu YOK).
 ## Döner: {claimed, streak, reward, streak_broken}
 static func claim_if_new_day() -> Dictionary:
+	if not SaveManager.onboarding_completed():
+		return _result(false, SaveManager.daily_streak(), 0, false)
 	var today: String = Time.get_date_string_from_system()
 	var last: String = SaveManager.last_login_date()
 
@@ -38,9 +50,12 @@ static func claim_if_new_day() -> Dictionary:
 
 
 ## Bugün ödül alınabilir mi? YALNIZCA okur — `claim_if_new_day` ile aynı
-## kapılar (aynı gün → hayır; saat geri alınmış → hayır). Ana Sayfa'daki
-## Günlük madalyonunun bildirim noktası bunu gösterir (M8.6-03B).
+## kapılar (onboarding bitmemiş → hayır; aynı gün → hayır; saat geri alınmış
+## → hayır). Ana Sayfa'daki Günlük madalyonunun bildirim noktası bunu
+## gösterir (M8.6-03B).
 static func is_claimable() -> bool:
+	if not SaveManager.onboarding_completed():
+		return false
 	var today: String = Time.get_date_string_from_system()
 	var last: String = SaveManager.last_login_date()
 	if last == today:
@@ -48,6 +63,24 @@ static func is_claimable() -> bool:
 	if last == "":
 		return true
 	return days_between(last, today) >= 1
+
+
+## Bugünkü giriş ödülü zaten alınmış mı (yalnız okur; pencere durumu).
+static func claimed_today() -> bool:
+	return SaveManager.last_login_date() == Time.get_date_string_from_system()
+
+
+## Pencere için görünüm (yalnız okur, kayda dokunmaz):
+## {streak, reward, claimed_today, just_claimed=false, streak_broken=false}.
+## Main "az önce alındı" bilgisini claim sonucundan ekler.
+static func view() -> Dictionary:
+	return {
+		"streak": SaveManager.daily_streak(),
+		"reward": DAILY_DOUGH,
+		"claimed_today": claimed_today(),
+		"just_claimed": false,
+		"streak_broken": false,
+	}
 
 
 ## İki "YYYY-MM-DD" tarihi arasındaki gün farkı.

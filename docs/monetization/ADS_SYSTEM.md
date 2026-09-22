@@ -361,7 +361,8 @@ Kanıt: `build/qa_m8.9-01/device/DEVICE_GATE_NOTES.md` (yerel, gitignore'lu) +
    molada (gösterim → sonuç sırası, saat sıfırlanması, bekleme), gerçek
    banner Harita / oyun (kompakt mod, 1080×2340 yuva), günlük reklamlı
    sandık / Hamur akışı, otomatik pencere, arka plan/öne dönüş, logcat.
-8. **İki günlük pencere** (giriş ödülü + GÜNLÜK ÖDÜLLER): DAILY_REWARDS §10.
+8. ~~**İki günlük pencere**~~ → M8.9-02.1'de tek pencerede birleştirildi
+   (DAILY_REWARDS §6-§7).
 
 ## 13. M8.9-02 masaüstü görsel inceleme (2026-09-22)
 

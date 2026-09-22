@@ -656,8 +656,6 @@ func _interop() -> void:
 		add_child(_main)
 		await get_tree().process_frame
 		await get_tree().process_frame
-		if _main._daily != null:
-			_main._daily.visible = false
 	_finished_count = 0
 	_result_shown = 0
 	var unlocked_before: int = SaveManager.highest_level_unlocked()

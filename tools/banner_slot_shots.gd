@@ -122,8 +122,6 @@ func _make_main(fake: FakeAdBackend) -> void:
 	await get_tree().process_frame
 	await get_tree().process_frame
 	_main_script.ads_backend_override = null
-	if _main._daily != null:
-		_main._daily.visible = false
 	if _safe_top >= 0.0:
 		for screen in _main._screens:
 			if screen.has_method("_layout_with_safe_top"):

@@ -47,6 +47,7 @@ func _ready() -> void:
 	_test_loot()
 	await _test_shop_and_modal()
 	await _test_main_integration()
+	await _test_unified_login()
 	await _test_auto_popup_and_onboarding()
 
 	AdEvents.unsubscribe(_on_event)
@@ -375,7 +376,6 @@ func _test_shop_and_modal() -> void:
 	var main: Node2D = MAIN_SCENE.instantiate()
 	add_child(main)
 	await _settle(3)
-	main._daily.visible = false
 	var shop: CanvasLayer = main._screens[3]
 	main._show_tab(3)
 	await _settle(2)
@@ -480,7 +480,6 @@ func _test_main_integration() -> void:
 	add_child(main)
 	await _settle(3)
 	_main_script.ads_backend_override = null
-	main._daily.visible = false
 	var m: MonetizationManager = main._ads
 	m.set_process(false)
 	fake.complete_consent_update(true)
@@ -616,6 +615,201 @@ func _test_main_integration() -> void:
 	await _settle(2)
 
 
+# --- Birleşik günlük giriş ödülü (M8.9-02.1) --------------------------------------------------
+
+## Yerel takvimde bugünden `days` gün önce (DailyReward gerçek günü okur).
+func _days_ago(days: int) -> String:
+	var unix: int = Time.get_unix_time_from_datetime_string(Time.get_date_string_from_system() + "T12:00:00") - days * 86400
+	return Time.get_date_string_from_unix_time(unix).substr(0, 10)
+
+
+func _boot_main(fake: FakeAdBackend) -> Node2D:
+	_main_script.ads_backend_override = fake
+	var main: Node2D = MAIN_SCENE.instantiate()
+	add_child(main)
+	await _settle(3)
+	_main_script.ads_backend_override = null
+	return main
+
+
+func _test_unified_login() -> void:
+	print("-- birleşik günlük giriş ödülü: +15 tam bir kez, tek pencere, onboarding kapısı, bağımsızlık")
+	var today: String = Time.get_date_string_from_system()
+	DailyRewards.clock_override = DAY_A
+	DailyRewards.auto_popup_enabled = true
+	var fake := FakeAdBackend.new()
+	fake.status = AdBackend.ConsentStatus.NOT_REQUIRED
+
+	# 1) Mevcut oyuncu, yeni gün: dün giriş, seri 2.
+	_fresh_save(true, 100)
+	SaveManager.data["last_login_date"] = _days_ago(1)
+	SaveManager.data["daily_streak"] = 2
+	SaveManager.save_game()
+	var main: Node2D = await _boot_main(fake)
+	var popup: CanvasLayer = main._daily_rewards
+	_c("yeni gün açılışı: seri 2 -> 3 TAM BİR KEZ, +15 TAM BİR KEZ, tarih bugün", SaveManager.daily_streak() == 3
+		and SaveManager.dough() == 115 and SaveManager.last_login_date() == today)
+	_c("TEK pencere açıldı (GÜNLÜK ÖDÜLLER, auto); eski DailyRewardPopup ağaçta yok", popup.visible and popup.is_auto_opened()
+		and main.get_node_or_null("DailyRewardPopup") == null and not main.has_method("_on_daily_closed"))
+	_c("üst bölge: '3. GÜN', '+15 HAMUR', ALINDI, bugünkü düğüm kutlandı (yıldız), 7 düğüm", popup.login_day_text() == "3. GÜN"
+		and popup.login_reward_text() == "+15 HAMUR" and popup.login_chip_text() == popup.LOGIN_CLAIMED
+		and popup.strip().is_today_marked() and popup.strip().node_count() == 7
+		and popup.strip().node_state(2) == StreakStrip.State.TODAY and popup.strip().node_state(1) == StreakStrip.State.CLAIMED)
+	_c("üç kart gerçek durumda: ücretsiz HAZIR, sandık 2 / 2", popup.free_status_text() == popup.STATUS_READY
+		and popup.chest_status_text() == "2 / 2")
+	_c("kutlama tek sefer: pencere 'az önce alındı' ile açıldı, Main bayrağı tüketildi", popup._login["just_claimed"] == true
+		and main._login_view["just_claimed"] == false)
+	var bytes_after: PackedByteArray = FileAccess.get_file_as_bytes(SaveManager.SAVE_PATH)
+	popup.close_popup()
+	await _settle(2)
+	main._on_daily_requested()
+	await _settle(2)
+	_c("Ana Sayfa madalyonundan yeniden açılış: aynı pencere, +15 YOK, seri 3, dosya aynı, ALINDI", popup.visible
+		and not popup.is_auto_opened() and SaveManager.dough() == 115 and SaveManager.daily_streak() == 3
+		and FileAccess.get_file_as_bytes(SaveManager.SAVE_PATH) == bytes_after and popup.login_chip_text() == popup.LOGIN_CLAIMED)
+	popup.close_popup()
+	await _settle(2)
+	main._show_tab(3)
+	await _settle(2)
+	main._screens[3].daily_button().pressed.emit()
+	await _settle(2)
+	_c("Mağaza kartından yeniden açılış: aynı pencere/durum, +15 YOK", popup.visible and SaveManager.dough() == 115
+		and popup.login_day_text() == "3. GÜN" and popup.login_chip_text() == popup.LOGIN_CLAIMED
+		and popup.free_status_text() == popup.STATUS_READY)
+	popup.close_popup()
+	await _settle(2)
+	_c("Ana Sayfa bildirim noktası yok (bugün alındı), seri pill'i '3 günlük seri'", not main._screens[0].is_daily_claimable())
+	main.queue_free()
+	await _settle(2)
+
+	# 2) Aynı gün yeniden açılış: +15 yok, otomatik pencere yok (görüldü).
+	main = await _boot_main(fake)
+	popup = main._daily_rewards
+	_c("aynı gün yeniden açılış: +15 YOK, seri 3, otomatik pencere YOK", SaveManager.dough() == 115
+		and SaveManager.daily_streak() == 3 and not popup.visible)
+	main._on_daily_requested()
+	await _settle(2)
+	_c("elle açılış gün boyu mümkün (ALINDI, kutlama yok)", popup.visible and popup.login_chip_text() == popup.LOGIN_CLAIMED
+		and popup.strip().is_today_marked() and SaveManager.dough() == 115)
+	popup.close_popup()
+	main.queue_free()
+	await _settle(2)
+
+	# 3) Ertesi gün (simülasyon: dün giriş, popup görüldüğü gün başka): bir +15, bir otomatik pencere.
+	SaveManager.data["last_login_date"] = _days_ago(1)
+	var raw: Dictionary = SaveManager.data["daily_rewards"]
+	raw["popup_seen_day"] = DAY_BEFORE
+	SaveManager.data["daily_rewards"] = raw
+	SaveManager.save_game()
+	main = await _boot_main(fake)
+	popup = main._daily_rewards
+	_c("ertesi gün: seri 4, +15 bir kez (130), otomatik pencere bir kez", SaveManager.daily_streak() == 4
+		and SaveManager.dough() == 130 and popup.visible and popup.is_auto_opened() and popup.login_day_text() == "4. GÜN")
+	popup.close_popup()
+	await _settle(1)
+	main._show_tab(3)
+	main._show_tab(0)
+	await _settle(2)
+	_c("aynı gün tekrar otomatik açılmaz", not popup.visible)
+	main.queue_free()
+	await _settle(2)
+
+	# 4) Kırık seri: 3 gün önce giriş, seri 5 -> 1, not.
+	SaveManager.data["last_login_date"] = _days_ago(3)
+	SaveManager.data["daily_streak"] = 5
+	raw = SaveManager.data["daily_rewards"]
+	raw["popup_seen_day"] = DAY_BEFORE
+	SaveManager.data["daily_rewards"] = raw
+	SaveManager.save_game()
+	main = await _boot_main(fake)
+	popup = main._daily_rewards
+	_c("kırık seri: sayaç 1'e döndü, +15 bir kez (145), pencerede 'Serin kırılmıştı' notu, '1. GÜN'",
+		SaveManager.daily_streak() == 1 and SaveManager.dough() == 145 and popup.visible
+		and popup.login_note_text().begins_with("Serin") and popup.login_day_text() == "1. GÜN")
+	popup.close_popup()
+	await _settle(1)
+	main._on_daily_requested()
+	await _settle(2)
+	_c("yeniden açılışta kırık seri notu tekrarlanmaz (kutlama tek sefer), +15 yok", popup.login_note_text() == ""
+		and SaveManager.dough() == 145)
+	popup.close_popup()
+	main.queue_free()
+	await _settle(2)
+
+	# 5) Saat geri alınmış (son giriş 'yarın'): ödül YOK, seri aynı.
+	SaveManager.data["last_login_date"] = _days_ago(-1)
+	SaveManager.data["daily_streak"] = 6
+	SaveManager.save_game()
+	main = await _boot_main(fake)
+	popup = main._daily_rewards
+	_c("geri saat: +15 YOK, seri 6 aynı, tarih değişmedi (çift ödül yok)", SaveManager.dough() == 145
+		and SaveManager.daily_streak() == 6 and SaveManager.last_login_date() == _days_ago(-1))
+	if popup.visible:
+		popup.close_popup()
+	main.queue_free()
+	await _settle(2)
+
+	# 6) Bağımsızlık: giriş ödülü hiçbir kotayı tüketmez, kotalar giriş ödülünü etkilemez.
+	_fresh_save(true, 0)
+	SaveManager.data["last_login_date"] = _days_ago(1)
+	SaveManager.data["daily_streak"] = 1
+	SaveManager.save_game()
+	DailyRewards.auto_popup_enabled = false
+	main = await _boot_main(fake)
+	_c("giriş +15 sonrası: ücretsiz 1 / sandık 2 / Hamur 1 kotası dolu, refill 1/1", SaveManager.dough() == 15
+		and DailyRewards.state()["remaining_total"] == 4 and RewardedPolicy.remaining_today() == 1)
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 21
+	DailyRewards.set_rng(rng)
+	DailyRewards.claim_free_chest()
+	DailyRewards.grant_ad_chest(DAY_A)
+	DailyRewards.grant_ad_dough(DAY_A)
+	RewardedPolicy.grant(PowerUp.Type.SHAKE)
+	_c("günlük kotalar + refill tüketildikten sonra giriş ödülü durumu aynı (seri 2, bugün alınmış), ikinci +15 yok",
+		SaveManager.daily_streak() == 2 and DailyReward.claimed_today() and not DailyReward.is_claimable()
+		and not DailyReward.claim_if_new_day()["claimed"])
+	main._start_level(load("res://resources/levels/level_10.tres"))
+	await _settle(2)
+	_c("devam hakkı 2/round, giriş ödülünden bağımsız", main._board.revives_remaining() == 2)
+	main.abandon_run()
+	await _settle(2)
+	DailyRewards.set_rng(null)
+	main.queue_free()
+	await _settle(2)
+
+	# 7) Yeni oyuncu (onboarding false): giriş ödülü yolu KAPALI — kayıt mutasyonu yok.
+	_fresh_save(false, 0)
+	SaveManager.data["last_login_date"] = ""
+	SaveManager.data["daily_streak"] = 0
+	SaveManager.save_game()
+	DailyRewards.auto_popup_enabled = true
+	main = await _boot_main(fake)
+	popup = main._daily_rewards
+	_c("onboarding false: claim_if_new_day no-op — Hamur 0, seri 0, tarih boş; claimable değil", SaveManager.dough() == 0
+		and SaveManager.daily_streak() == 0 and SaveManager.last_login_date() == "" and not DailyReward.is_claimable()
+		and not DailyReward.claim_if_new_day()["claimed"])
+	_c("onboarding false: pencere yok, Home madalyonu bildirimsiz ve dokununca AÇMAZ", not popup.visible
+		and not main._screens[0].is_daily_claimable())
+	main._on_daily_requested()
+	await _settle(2)
+	_c("madalyon dokunuşu: pencere yok, Hamur 0", not popup.visible and SaveManager.dough() == 0)
+	main._show_tab(3)
+	await _settle(2)
+	_c("Mağaza günlük kartı gizli", not main._screens[3].daily_card().visible)
+	# Tutorial bitti (M8.10 sözleşmesi): ilk giriş işlemi ancak şimdi.
+	SaveManager.complete_onboarding()
+	main._ads.set_onboarding_completed(true)
+	main._check_daily_reward()
+	main._show_tab(0)
+	await _settle(2)
+	_c("onboarding true sonrası ilk çalışma: seri 1, +15 bir kez (geriye dönük ödül yok), pencere otomatik açıldı",
+		SaveManager.daily_streak() == 1 and SaveManager.dough() == 15 and popup.visible and popup.login_day_text() == "1. GÜN")
+	popup.close_popup()
+	main.queue_free()
+	await _settle(2)
+	DailyRewards.auto_popup_enabled = false
+
+
 # --- Otomatik pencere + onboarding -----------------------------------------------------------
 
 func _test_auto_popup_and_onboarding() -> void:
@@ -634,12 +828,10 @@ func _test_auto_popup_and_onboarding() -> void:
 	await _settle(3)
 	_main_script.ads_backend_override = null
 	var popup: CanvasLayer = main._daily_rewards
-	_c("açılış: günlük giriş ödülü penceresi ÖNCE, GÜNLÜK ÖDÜLLER henüz değil", main._daily.visible and not popup.visible
-		and DailyRewards.popup_due())
-	main._daily.close_popup()
-	await _settle(2)
-	_c("giriş ödülü kapandı -> GÜNLÜK ÖDÜLLER otomatik açıldı (auto), bugün görüldü işaretlendi", popup.visible
-		and popup.is_auto_opened() and SaveManager.daily_popup_seen_day() == DAY_A and not DailyRewards.popup_due())
+	_c("açılış: TEK pencere — GÜNLÜK ÖDÜLLER otomatik açıldı (auto), giriş ödülü içinde (ALINDI), eski pencere yok",
+		popup.visible and popup.is_auto_opened() and popup.login_chip_text() == popup.LOGIN_CLAIMED
+		and main.get_node_or_null("DailyRewardPopup") == null and SaveManager.last_login_date() == Time.get_date_string_from_system())
+	_c("bugün görüldü işaretlendi", SaveManager.daily_popup_seen_day() == DAY_A and not DailyRewards.popup_due())
 	_c("olay: daily_popup_shown auto=true", _events_named(&"daily_popup_shown").size() == 1
 		and _events_named(&"daily_popup_shown")[0]["auto"] == true)
 	var st: Dictionary = DailyRewards.state()
@@ -659,7 +851,6 @@ func _test_auto_popup_and_onboarding() -> void:
 	add_child(main)
 	await _settle(3)
 	_main_script.ads_backend_override = null
-	main._daily.visible = false
 	main._show_tab(0)
 	await _settle(2)
 	_c("aynı gün ikinci açılış: otomatik pencere yok, Mağaza'dan açılabilir", not main._daily_rewards.visible)
@@ -704,7 +895,6 @@ func _test_auto_popup_and_onboarding() -> void:
 	add_child(main)
 	await _settle(3)
 	_main_script.ads_backend_override = null
-	main._daily.visible = false
 	var m: MonetizationManager = main._ads
 	fake.complete_consent_update(true)
 	fake.complete_init()

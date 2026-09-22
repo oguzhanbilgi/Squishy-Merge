@@ -411,6 +411,14 @@ func name_text() -> String:
 	return _name_label.text if _name_label != null else ""
 
 
+## Kart içi notu gizler (M8.9-02.1: GÜNLÜK ÖDÜLLER reveal'i dar gövdede
+## "Koleksiyon'a eklendi"yi kartın altında tam genişlik yazar; kart kısalır,
+## hale için yan pay kalır). Round sonu kartlarında çağrılmaz.
+func hide_note() -> void:
+	if _note != null and is_instance_valid(_note):
+		_note.visible = false
+
+
 func note_text() -> String:
 	return _note.text if _note != null else ""
 

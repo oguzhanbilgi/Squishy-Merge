@@ -374,8 +374,6 @@ func _shot_shell() -> void:
 	await get_tree().process_frame
 	await get_tree().process_frame
 	# Günlük ödül popup'ı açıldıysa kapat — sekmeleri örtmesin.
-	if main._daily != null:
-		main._daily.visible = false
 
 	var names: Array[String] = ["07_ana_sayfa", "08_harita", "09_koleksiyon", "10_magaza"]
 	for tab in names.size():

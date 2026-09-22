@@ -1415,9 +1415,9 @@ squishy-merge/
 │   ├── main.tscn            # akış kontrolü (tek gerçek "sahne")
 │   ├── game/                # dumpling, game_board, pop_effect
 │   └── ui/                  # home_screen, level_select, collection_screen,
-│                            #   shop_screen, round_result, daily_reward_popup,
-│                            #   daily_rewards_popup (M8.9-02), settings_panel,
-│                            #   shell_backdrop (M8.5-10)
+│                            #   shop_screen, round_result, daily_rewards_popup
+│                            #   (M8.9-02; eski daily_reward_popup 02.1'de kalktı),
+│                            #   settings_panel, shell_backdrop (M8.5-10)
 ├── addons/AdmobPlugin/      # godot-admob v6.0 release (kaynak değişmedi) + android_export.cfg (M8.9-01)
 ├── addons/squishy_ads_export/ # proje export eklentisi: android_export.cfg'yi PCK'ye ekler + doğrular
 ├── scripts/
@@ -1468,7 +1468,7 @@ squishy-merge/
 | `game/drop_bag.gd` | Bag randomizer (§4.4). |
 | `game/chest_system.gd` / `chest_reward.gd` | Sandık kurası ve ödül nesnesi; `ChestReward.title/description/note` oyuncuya Türkçe (M8.6-09), iç ad `rarity_name` değişmedi. |
 | `game/shop.gd` | Fiyatlar ve satın alma. **Fiyat tune edilecek tek yer.** |
-| `game/daily_reward.gd` | Günlük GİRİŞ ödülü + streak (GAME_DESIGN §5.4; M8.9-02'de değişmedi). |
+| `game/daily_reward.gd` | Günlük GİRİŞ ödülü + streak (GAME_DESIGN §5.4; ekonomi değişmedi). M8.9-02.1: onboarding false iken `claim_if_new_day` / `is_claimable` no-op (kayıt mutasyonu yok); `claimed_today()` / `view()` pencere görünümü. |
 | `game/daily_rewards.gd` | `DailyRewards` (M8.9-02) — GÜNLÜK ÖDÜLLER modelinin tek yetkili noktası: yerel gün anahtarı + geri alma koruması, üç ayrı kota (ücretsiz sandık 1 / reklamlı sandık 2 / reklamlı +150 Hamur 1), tek transaction grant'ler, otomatik pencere işareti; RNG enjekte edilir. |
 | `game/daily_chest_loot.gd` / `daily_chest_reward.gd` | `DailyChestLoot` (DAILY reçetesi: +15 garanti, %30 skin, 60/25/12/3, sahip olunmayan skin, tükenmişse +15 bonus) + `DailyChestReward` (değişmez sonuç). Level sandığı reçetesi (`chest_system.gd`) DEĞİŞMEDİ. |
 | `game/pop_effect.gd` | Merge parçacık patlaması. |
@@ -1478,7 +1478,7 @@ squishy-merge/
 | script | işi |
 |---|---|
 | `main.gd` | Ekranlar (Ana Sayfa hub / Harita / Koleksiyon / Mağaza) ↔ oyun ↔ sonuç akışını bağlar. Kurallar burada DEĞİL. Alt sekme çubuğu M8.6-06'da kalktı. |
-| `ui/home_screen.gd` | Ana sayfa: logo, streak, Hamur, "Oyna". |
+| `ui/home_screen.gd` | Ana sayfa: logo, streak, Hamur, "Oyna"; Günlük madalyonu → GÜNLÜK ÖDÜLLER penceresi (M8.9-02.1). |
 | `ui/level_select.gd` | Harita: patika üstünde 10 düğüm + durumlar + açılış animasyonu + Sonsuz Mod kapısı (M8.5-12); banner yuvası varken dünya yuvanın üstünde biter (`_fit_world`, 16:9'da ≤ %4 dikey sıkıştırma — M8.9-02). |
 | `ui/map_trail.gd` | Düğümleri bağlayan programatik candy patika (Catmull-Rom + noktalar, tamamlanmış/gelecek). |
 | `ui/collection_screen.gd` | Koleksiyon (M8.6-06): `ScreenTopBar` + sabit vitrin (candy kaide üstünde büyük skin sanatı, tek eylem TAK / MAĞAZAYA GİT / TAKILI, N/20 pill'i) + kaydırılan 3 sütun galeri. Yalnız `SaveManager.equip_skin` yazar; satın alma yok. |
@@ -1499,8 +1499,8 @@ squishy-merge/
 | `ui/ui_kit.gd` | Production UI bileşen fabrikası (M8.6-01+): `modal_frame` (Mağaza onayı), **`modal_shell` iskelet v2** (kurdele/başlık+tepelik, oturmuş X, kaydırılan gövde + sabit altlık, tavan sistemi, `attach_dim_close`, `settings_row`) (M8.6-08). |
 | `ui/streak_strip.gd` | `StreakStrip` — Günlük ödül seri şeridi: 7 düğüm (alınmış / bugün / gelecek), bağlantı çizgileri, gün numaraları, "+N" rozeti (M8.6-08). |
 | `ui/settings_panel.gd` | Ayarlar penceresi (M8.6-08 yeniden kurulum, shell v2): ses efektleri, titreşim (M8.5-15), gizlilik (gövdede açılır, taşmaz; metin M8.9-01'de AdMob'u anlatır), **"Gizlilik seçenekleri" satırı yalnız UMP form sunuyorsa** (M8.9-01), sürüm; yalnız `set_sfx_enabled` / `set_haptics_enabled` yazar. |
-| `ui/daily_reward_popup.gd` | Günlük GİRİŞ ödülü penceresi (M8.6-08 yeniden kurulum, shell v2): yalnız gösterir; ödül `DailyReward.claim_if_new_day` ile Main yolunda yazılır; AL = kutlama → kapanış → Ana Sayfa yenileme. |
-| `ui/daily_rewards_popup.gd` | GÜNLÜK ÖDÜLLER penceresi (M8.9-02, shell v2 kurdele + X): üç seçenek kartı (ücretsiz sandık AÇ / +150 Hamur REKLAM İZLE / reklamlı sandık REKLAM İZLE), durum rozetleri, sağlayıcı notları, in-modal reveal (RewardGem → +N HAMUR → YENİ SKİN kartı, DEVAM). Ödül vermez, kayda yazmaz; yalnız sinyal. |
+| ~~`ui/daily_reward_popup.gd`~~ | **Silindi (M8.9-02.1):** M8.6-08 giriş ödülü penceresi; işlevi birleşik GÜNLÜK ÖDÜLLER penceresinin üst bölgesine taşındı (`StreakStrip` yeniden kullanılıyor). |
+| `ui/daily_rewards_popup.gd` | GÜNLÜK ÖDÜLLER penceresi (M8.9-02 / 02.1, shell v2 kurdele + X) — oyuncunun TEK günlük ödül penceresi: üst bölge "N. GÜN · +15 HAMUR · ALINDI" + seri şeridi (giriş ödülü pencereden önce `DailyReward` ile yazılmış gelir; ilk açılışta kutlama), üç seçenek kartı (ücretsiz sandık AÇ / +150 Hamur REKLAM İZLE / reklamlı sandık REKLAM İZLE), durum rozetleri, sağlayıcı notları, in-modal reveal (RewardGem → +N HAMUR → YENİ SKİN kartı hale payıyla, DEVAM). Ödül vermez, kayda yazmaz; yalnız sinyal. |
 | `ui/pause_menu.gd` / `ui/bonus_chest_info.gd` | Mola ve Bonus Sandık bilgi pencereleri — shell v2, oturmuş X (M8.6-08 cila; eylemler/kural değişmedi). |
 | ~~`ui/candy_button.gd`~~ | **Silindi (M8.6-10):** M8.5-08 candy pill CTA'ları; son kullanıcıları Devam + Refill `UiKit`e geçti. Dokuları (`cta_button_*`, `power_button_*`, `panel_candy.png`) ve M8.5 ikon klasörü (`ui/icons/`) de kaldırıldı. |
 | `ui/revive_offer.gd` | Devam (revive) teklifi (M8.6-10 production yeniden kurulum, shell v2 + tepelik): DEVAM HAKKI plakası (iki kalp, `icon_heart_revive`), DEVAM ET kahraman / BİTİR; sağlayıcı yokken CTA pasif + sebep; talep kilidi; yalnız sinyal yayar, hak vermez. |
@@ -1513,12 +1513,12 @@ squishy-merge/
 | `bot_runner.gd` + `bot_brain.gd` | **Headless denge testi.** Gerçek `GameBoard`'u gerçek fizikle oynatır. Bu projedeki tüm kazanma oranı ölçümlerinin kaynağı. |
 | `fake_ad_backend.gd` | `FakeAdBackend` — reklam SDK'sı test çifti (M8.9-01): çağrı sayar, her SDK olayı testten elle tetiklenir. Export dışı. |
 | `monetization_test.gd` + `.tscn` | **Headless monetizasyon testi** (M8.9-01/02, 191 kontrol): yapılandırma korumaları (interstitial kimliği fail-closed), olay dikişi (28), kaynak taraması, rıza akışı/hataları/gizlilik seçenekleri, ödüllü başarı + callback güvenliği (çift/geç/eski/iptal/yanlış güç) + hata/geri çekilme/zaman aşımı + arka plan, banner yuva/5 yüzey/gezinme/hata/onboarding, Main entegrasyonu (gerçek pencereler + board + kota + Ayarlar). Kaydı byte'ı geri koyar. |
-| `daily_rewards_test.gd` + `.tscn` | **Headless günlük ödüller testi** (M8.9-02, 111 kontrol): onboarding migration'ı, gün anahtarı (ileri/geri/aynı gün), üç kota + tek transaction + bağımsızlık, loot (4000 seed'li kura), Mağaza kartı + pencere + reveal, Main + sahte SDK (talep/çift/iptal/hata/gün değişimi), otomatik pencere, onboarding bastırması. Kaydı byte'ı geri koyar. |
+| `daily_rewards_test.gd` + `.tscn` | **Headless günlük ödüller testi** (M8.9-02/02.1, 134 kontrol): onboarding migration'ı, gün anahtarı (ileri/geri/aynı gün), üç kota + tek transaction + bağımsızlık, loot (4000 seed'li kura), Mağaza kartı + pencere + reveal, Main + sahte SDK (talep/çift/iptal/hata/gün değişimi), birleşik giriş ödülü (yeni gün / yeniden açılış / ertesi gün / kırık seri / geri saat / bağımsızlık / onboarding false no-op), otomatik pencere, onboarding bastırması. Kaydı byte'ı geri koyar. |
 | `interstitial_test.gd` + `.tscn` | **Headless geçiş reklamı testi** (M8.9-02, 60 kontrol): 899/900 saat, dışlanan anlar, doğal mola / hazır değil / gösterim → saat 0 / callback bir kez, 60 sn bekleme, ödüllü dışlaması, yükleme/gösterim hataları, onay zaman aşımı, süresi dolma, Main: sonuç tam bir kez. Kaydı byte'ı geri koyar. |
 | `daily_ads_shots.gd` + `.tscn` | **M8.9-02 düzen çekimleri** (pencereli): Harita/oyun + banner yuvası (orta ve yeni oyuncu), Mağaza günlük kartı, GÜNLÜK ÖDÜLLER penceresi (hazır/karışık), reveal (Hamur / Common / Legendary), yuvasız referanslar; ölçümler stdout'ta. `--headless` ile çalışmaz. |
 | `ui_shots.gd` + `ui_shots.tscn` | **Production UI kabuğu çekimleri** (M8.5-10): dört sekme, ayarlar, en kötü durum, oyun ekranı; üç ölçü. `--headless` ile çalışmaz. |
 | `ui_smoke_test.gd` + `ui_smoke_test.tscn` | **Headless UI davranış testi** (74 kontrol): ayar anahtarı, onay diyaloğu, geri tuşu, equip. |
-| `secondary_modal_ui_test.gd` + `.tscn` | **Headless ikincil pencere testi** (M8.6-08, 102 kontrol): shell v2 iskeleti (oturmuş X, gövde/altlık sınırları, tavan + kaydırma, karartma), Ayarlar (kanonik yazma yolu, taşma regresyonu 5 yapılandırma), Günlük (tek claim, AL mutasyonsuz, 7 düğüm, durum modu), Mola/Sandık (hiyerarşi, z-order, rota). Kaydı byte'ı geri koyar. |
+| `secondary_modal_ui_test.gd` + `.tscn` | **Headless ikincil pencere testi** (M8.6-08 / M8.9-02.1, 100 kontrol): shell v2 iskeleti (oturmuş X, gövde/altlık sınırları, tavan + kaydırma, karartma), Ayarlar (kanonik yazma yolu, taşma regresyonu 5 yapılandırma), Günlük = birleşik GÜNLÜK ÖDÜLLER (claim pencereden önce tam bir kez, üst bölge, yeniden açılış +15 yok, kapanış yolları, 540×960), Mola/Sandık (hiyerarşi, z-order, rota). Kaydı byte'ı geri koyar. |
 | `secondary_ui_shots.gd` + `.tscn` | **İkincil pencere çekimleri** (M8.6-07/08): 48 durum × pencere boyutu + A36 simülasyonu; `groups=` ile alt küme. `--headless` ile çalışmaz. |
 | `result_ui_test.gd` + `.tscn` | **Headless round sonu testi** (M8.6-09, 226 kontrol): yapı (eski iskelet yok, kayda yazma çağrısı yok), kazanma / kayıp / ödül kartları / dil taraması, 6 ödül taşma + sürükleme, kayıt güvenliği + gerçek kayıp yolu (teselli tam bir kez), rotalar + Android geri, L10 / Sonsuz, devam sırası, 5 yapılandırma, performans. Kaydı byte'ı geri koyar. |
 | `result_shots.gd` + `.tscn` | **Round sonu çekimleri** (M8.6-09): 31 kare (kazanma/kayıp, yıldızlar, 4 rarity Hamur + skin, geri düşüş, çoklu/5/6 ödül + kaydırma, L10, Sonsuz, retry/Harita basış) × pencere boyutu + A36; `only=` ile alt küme. `--headless` ile çalışmaz. |
@@ -1624,7 +1624,7 @@ verilmiyor:
 | 13 | Kazanma/kaybetme jingle'ı kulakla doğrulanmadı (M6 blokajı, hiç kapanmadı). | 🟡 Owner playtest'inde kontrol edilmeli. |
 | 15 | **AdMob eklentisi UMP boşluğu (M8.9-01) — ÜRETİM ENGELİ:** godot-admob v6.0 `canRequestAds` / `getPrivacyOptionsRequirementStatus` / `showPrivacyOptionsForm` sarmaz (SDK'dan türeyen eşdeğerler kullanılıyor, PRIVACY_CONSENT §4) VE `debug_geography` cihazda uygulanamıyor (upstream #120: Java `Integer` bekliyor, Godot `Long` gönderiyor; v7.0 kaynağında düzeltilmiş ama v7.0 Godot 4.7) → EEA rıza formu A36'da gösterilemedi. Üretim öncesi küçük AAR yaması ya da upstream PR. | 🔴 Owner/ChatGPT kararı. |
 | 17 | **Ödül callback'i reklam kapanmadan geliyor (A36 gözlemi, M8.9-01.1):** Godot AdActivity arkasında çalışmaya devam ettiği için `grant_revive` / `grant_rewarded_power` (ve M8.9-02 günlük reveal'i) reklam hâlâ üstteyken uygulanıyor; veri doğru ama "Devam!" flaşı, +1 pop ve MEDIUM titreşim reklamın arkasında oynuyor. İstenirse grant kapanışa ertelenebilir. | 🟡 UX; owner kararı, değişiklik yapılmadı. |
-| 18 | **İki günlük pencere (M8.9-02):** günlük GİRİŞ ödülü (M8.6-08, +15/streak) ve GÜNLÜK ÖDÜLLER (ücretsiz sandık / +150 / reklamlı sandık) günün ilk açılışında art arda açılıyor. Birleştirme (streak şeridi yeni pencereye, eski pencere emekli) ayrı karar. | 🟡 Owner kararı. |
+| 18 | **İki günlük pencere (M8.9-02):** günlük GİRİŞ ödülü (M8.6-08) ve GÜNLÜK ÖDÜLLER günün ilk açılışında art arda açılıyordu. | 🟢 **M8.9-02.1'de birleştirildi:** tek pencere, eski pencere silindi, giriş ödülü üst bölgede; onboarding false iken giriş işlemi de kapalı. |
 | 19 | **16:9'da oyun kabı banner ile −%10 (M8.9-02):** 720×1280'de kamera zoom 0,971 → 0,874 (T1 çapı 42,7 → 38,5 tuval px) — aralıklar daraltıldıktan sonra kalan tek kaldıraç. A36'da L1–L3 değişmez, L4+ ≤ −%6. Fizik değişmedi. | 🟡 Kabul edildi; cihazda okunurluk kontrolü A36 kapısında. |
 | 16 | **Gradle debug APK 102 MB** — `android_source` şablonunun debug `libgodot_android.so` 75 MB (strip'siz). Release/AAB'de küçülür; prebuilt debug 45 MB idi. | 🟢 Beklenen; M9'da release boyutu ölçülecek. |
 | 14 | **Gameplay/tooling RNG coupling.** Kamera sarsıntısı `_process` içinde `randf_range` çağırıyordu — görsel ama `drop_bag.shuffle()` ile aynı global RNG akışını tüketiyor ve fizik kareleri arasında değişken sayıda çalışıyordu; `bot_runner` tekrarlanamazdı. | 🟢 **M8.5-11'de kaldırıldı:** sarsıntı `_fx_rng` kullanıyor; global RNG'yi artık yalnızca drop bag tüketiyor. Bot hâlâ seed'siz (rastgele başlangıç); seedli harness istenirse `seed()` eklemek yeter, drop_bag'e dokunmak gerekmiyor. |

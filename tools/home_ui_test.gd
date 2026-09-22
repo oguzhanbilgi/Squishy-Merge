@@ -73,7 +73,6 @@ func _ready() -> void:
 	add_child(_main)
 	await get_tree().process_frame
 	await get_tree().process_frame
-	_main._daily.visible = false
 	var home: CanvasLayer = _main._screens[0]
 	_mascot_img = (home.HERO_ART as Texture2D).get_image()
 
@@ -173,22 +172,27 @@ func _ready() -> void:
 		and daily.notification_dot().visible)
 	_c("bildirim noktası pembe (ödül vurgusu), rozet yok", daily.badge_text().is_empty())
 	var dough_before: int = SaveManager.dough()
+	var unified: CanvasLayer = _main._daily_rewards
 	daily.pressed.emit()
 	await get_tree().process_frame
-	_c("Günlük madalyonu → ödül penceresi açıldı (gerçek claim yolu)", _main._daily.visible)
-	_c("claim DailyReward üzerinden: +%d Hamur, seri 3" % DailyReward.DAILY_DOUGH,
-		SaveManager.dough() == dough_before + DailyReward.DAILY_DOUGH and SaveManager.daily_streak() == 3)
-	_main._daily.close_popup()
+	_c("Günlük madalyonu → GÜNLÜK ÖDÜLLER penceresi açıldı (tek pencere, gerçek claim yolu)", unified.visible
+		and not unified.is_auto_opened())
+	_c("claim DailyReward üzerinden: +%d Hamur, seri 3; pencere '3. GÜN', '+15 HAMUR', ALINDI" % DailyReward.DAILY_DOUGH,
+		SaveManager.dough() == dough_before + DailyReward.DAILY_DOUGH and SaveManager.daily_streak() == 3
+		and unified.login_day_text() == "3. GÜN" and unified.login_reward_text() == "+%d HAMUR" % DailyReward.DAILY_DOUGH
+		and unified.login_chip_text() == unified.LOGIN_CLAIMED)
+	unified.close_popup()
 	await get_tree().process_frame
 	_c("kapanınca Ana Sayfa yenilendi: nokta yok, Hamur pill'i güncel", not daily.has_notification()
 		and _pill_text(home.dough_pill()) == str(dough_before + DailyReward.DAILY_DOUGH))
 	daily.pressed.emit()
 	await get_tree().process_frame
-	_c("alınmışken Günlük → durum penceresi ('aldın', TAMAM), ödül tekrar VERİLMEDİ", _main._daily.visible
-		and _main._daily._reward.text.contains("aldın") and _main._daily.cta_text() == "TAMAM"
+	_c("alınmışken Günlük → aynı pencere ALINDI durumu, ödül tekrar VERİLMEDİ", unified.visible
+		and unified.login_chip_text() == unified.LOGIN_CLAIMED and unified.strip().is_today_marked()
 		and SaveManager.dough() == dough_before + DailyReward.DAILY_DOUGH)
-	_main._daily.close_popup()
+	unified.close_popup()
 	await get_tree().process_frame
+	_c("eski DailyRewardPopup ağaçta YOK (tek günlük akış)", _main.get_node_or_null("DailyRewardPopup") == null)
 	_apply_showcase()
 	home.refresh()
 
@@ -263,7 +267,7 @@ func _ready() -> void:
 	_main._last_back_msec = -1000
 	daily.pressed.emit()
 	_main._notification(NOTIFICATION_WM_GO_BACK_REQUEST)
-	_c("günlük penceresi açıkken geri → pencere kapanır", not _main._daily.visible and _main._active_tab == 0)
+	_c("günlük penceresi açıkken geri → pencere kapanır", not _main._daily_rewards.visible and _main._active_tab == 0)
 	var main_src: String = FileAccess.get_file_as_string("res://scripts/main.gd")
 	_c("Ana Sayfa'da pencere yokken geri → quit (politika korunuyor)", main_src.contains("get_tree().quit()"))
 

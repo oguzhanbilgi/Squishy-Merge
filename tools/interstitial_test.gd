@@ -383,7 +383,6 @@ func _test_main_integration() -> void:
 	add_child(main)
 	await _settle(3)
 	_main_script.ads_backend_override = null
-	main._daily.visible = false
 	var m: MonetizationManager = main._ads
 	m.set_process(false)
 	fake.complete_consent_update(true)

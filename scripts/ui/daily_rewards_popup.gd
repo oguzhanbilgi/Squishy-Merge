@@ -1,9 +1,17 @@
 extends CanvasLayer
-## GÜNLÜK ÖDÜLLER penceresi (M8.9-02, owner kararı — docs/monetization/
-## DAILY_REWARDS.md §5). Üç günlük sistem tek pencerede, production dil
-## (`UiKit.modal_shell`, pembe kurdele, oturmuş X; Refill'in seçenek kartı
-## reçetesi):
+## GÜNLÜK ÖDÜLLER penceresi (M8.9-02 / 02.1, owner kararı — docs/monetization/
+## DAILY_REWARDS.md §5-§6). Oyuncunun TEK günlük ödül penceresi: üstte günlük
+## GİRİŞ ödülü (GAME_DESIGN §5.4, `DailyReward`), altında üç günlük sistem;
+## production dil (`UiKit.modal_shell`, pembe kurdele, oturmuş X; Refill'in
+## seçenek kartı reçetesi):
 ##
+##   ÜST (hero, sabit)    "N. GÜN" altın rozet · "+15 HAMUR" · ALINDI çipi ·
+##                        7 düğümlü seri şeridi (`StreakStrip`); az önce
+##                        alındıysa bugünkü düğüm kutlanır (`daily_reward`
+##                        cue'su), seri kırıldıysa uyarı notu. Ödül burada
+##                        VERİLMEZ: `DailyReward.claim_if_new_day` Main'de,
+##                        pencere açılmadan ÖNCE çalışır; bu alan yalnız sonucu
+##                        gösterir. Eski `DailyRewardPopup` (M8.6-08) kalktı.
 ##   A) ÜCRETSİZ SANDIK   pembe candy kuyuda owner sandığı · "Günde 1 · reklam
 ##                        yok" · HAZIR / ALINDI · nane AÇ
 ##   B) +150 HAMUR        altın kuyuda Hamur · "Reklam izle · Günde 1" ·
@@ -39,6 +47,17 @@ signal closed
 
 const RIBBON: String = "GÜNLÜK ÖDÜLLER"
 const MODAL_WIDTH: float = 560.0
+## Giriş ödülü üst bölgesi (M8.9-02.1).
+const LOGIN_DAY: String = "%d. GÜN"
+const LOGIN_REWARD: String = "+%d HAMUR"
+const LOGIN_CLAIMED: String = "ALINDI"
+const LOGIN_PENDING: String = "BUGÜN"
+const LOGIN_BROKEN_NOTE: String = "Serin kırılmıştı, sayaç sıfırlandı."
+const DOUGH_ART_SMALL: float = 30.0
+## Skin kartının halesi kartın dışına taşar (ResultRewardCard: −30/−26/−30/−34);
+## reveal'de kart bu paylarla sarılır — hale kırpılmaz (M8.9-02.1).
+const SKIN_CARD_MARGIN: Vector4 = Vector4(30.0, 26.0, 30.0, 34.0)
+const SKIN_CAPTION: String = "Koleksiyon'a eklendi"
 const CHEST_ART: Texture2D = preload("res://assets/visual/ui/chest_closed.png")
 const DOUGH_ART: Texture2D = preload("res://assets/visual/ui/icon_dough.png")
 const SPARKLE_ART: Texture2D = preload("res://assets/visual/ui/icon_star_filled.png")
@@ -92,6 +111,14 @@ var _reward: DailyChestReward = null
 var _auto_opened: bool = false
 
 var _frame: Control
+var _login_day: PanelContainer
+var _login_day_label: Label
+var _login_reward: Label
+var _login_chip: PanelContainer
+var _login_chip_label: Label
+var _strip: StreakStrip
+var _login_note: Label
+var _login: Dictionary = {}
 var _cards_host: VBoxContainer
 var _free_card: PanelContainer
 var _free_status: PanelContainer
@@ -116,6 +143,8 @@ var _gem: Control
 var _reveal_dough: Label
 var _reveal_note: Label
 var _reveal_skin_host: VBoxContainer
+var _reveal_skin_margin: MarginContainer
+var _reveal_skin_caption: Label
 var _skin_card: ResultRewardCard
 var _note: Label
 var _close: Button
@@ -131,6 +160,7 @@ func _ready() -> void:
 	_frame = UiKit.modal_shell(RIBBON, MODAL_WIDTH, &"ribbon", false, true)
 	_frame.name = "DailyRewardsShell"
 	_anchor.add_child(_frame)
+	_build_login_hero()
 	_build_cards()
 	_build_reveal()
 	_build_footer()
@@ -141,6 +171,54 @@ func _ready() -> void:
 
 
 # --- Kurulum ---------------------------------------------------------------------
+
+## Üst bölge: günlük giriş ödülü (sabit, kaydırılmaz). Satır: [N. GÜN] [Hamur
+## ikonu +15 HAMUR] [ALINDI]; altında seri şeridi; gerekirse uyarı notu.
+func _build_login_hero() -> void:
+	var hero: VBoxContainer = _frame.get_meta(&"hero")
+	hero.add_theme_constant_override("separation", UiTokens.SPACE_XS)
+	var row := HBoxContainer.new()
+	row.name = "LoginRow"
+	row.alignment = BoxContainer.ALIGNMENT_CENTER
+	row.add_theme_constant_override("separation", UiTokens.SPACE_MD)
+	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	hero.add_child(row)
+	_login_day = UiKit.badge(LOGIN_DAY % 1)
+	_login_day.name = "LoginDay"
+	_login_day_label = _login_day.get_child(0).get_child(0)
+	_login_day_label.add_theme_font_size_override("font_size", 17)
+	row.add_child(_login_day)
+	var reward_row := HBoxContainer.new()
+	reward_row.add_theme_constant_override("separation", 6)
+	reward_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	row.add_child(reward_row)
+	var coin := UiKit.art(DOUGH_ART, DOUGH_ART_SMALL)
+	coin.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
+	coin.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	reward_row.add_child(coin)
+	_login_reward = UiKit.label(LOGIN_REWARD % DailyReward.DAILY_DOUGH, &"LabelPrice")
+	_login_reward.name = "LoginReward"
+	_login_reward.add_theme_font_size_override("font_size", 30)
+	reward_row.add_child(_login_reward)
+	_login_chip = UiKit.badge(LOGIN_CLAIMED, &"LockBadge")
+	_login_chip.name = "LoginChip"
+	_login_chip_label = _login_chip.get_child(0).get_child(0)
+	_login_chip_label.add_theme_font_size_override("font_size", 14)
+	row.add_child(_login_chip)
+	_strip = StreakStrip.new()
+	_strip.name = "Streak"
+	_strip.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	hero.add_child(_strip)
+	_login_note = UiKit.label("", &"LabelWarning", HORIZONTAL_ALIGNMENT_CENTER)
+	_login_note.name = "LoginNote"
+	_login_note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_login_note.visible = false
+	hero.add_child(_login_note)
+	var gap := Control.new()
+	gap.custom_minimum_size = Vector2(0, UiTokens.SPACE_XS)
+	gap.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	hero.add_child(gap)
+
 
 func _build_cards() -> void:
 	var body: VBoxContainer = _frame.get_meta(&"body")
@@ -282,13 +360,30 @@ func _build_reveal() -> void:
 	_reveal_host.add_child(_reveal_note)
 	# Skin kartı gövde genişliğine yayılır (round sonuyla aynı: kart
 	# SIZE_EXPAND_FILL; ortalayıcı container kartı minimum genişliğe sıkıştırıp
-	# sağdan kırpıyordu).
+	# sağdan kırpıyordu). Kartın dışına taşan hale/gölge için kart
+	# SKIN_CARD_MARGIN paylarıyla sarılır (gövde kaydırma alanı kırpmasın);
+	# "Koleksiyon'a eklendi" kartın altında tam genişlik yazılır (dar kartta
+	# rozet satırı sıkışmasın).
 	_reveal_skin_host = VBoxContainer.new()
 	_reveal_skin_host.name = "RevealSkin"
+	_reveal_skin_host.add_theme_constant_override("separation", 0)
 	_reveal_skin_host.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_reveal_skin_host.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_reveal_skin_host.visible = false
 	_reveal_host.add_child(_reveal_skin_host)
+	_reveal_skin_margin = MarginContainer.new()
+	_reveal_skin_margin.name = "SkinCardMargin"
+	_reveal_skin_margin.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_reveal_skin_margin.add_theme_constant_override("margin_left", int(SKIN_CARD_MARGIN.x))
+	_reveal_skin_margin.add_theme_constant_override("margin_top", int(SKIN_CARD_MARGIN.y))
+	_reveal_skin_margin.add_theme_constant_override("margin_right", int(SKIN_CARD_MARGIN.z))
+	_reveal_skin_margin.add_theme_constant_override("margin_bottom", int(SKIN_CARD_MARGIN.w))
+	_reveal_skin_host.add_child(_reveal_skin_margin)
+	_reveal_skin_caption = UiKit.label(SKIN_CAPTION, &"LabelCaption", HORIZONTAL_ALIGNMENT_CENTER)
+	_reveal_skin_caption.name = "SkinCaption"
+	_reveal_skin_caption.add_theme_color_override("font_color", UiTokens.TEXT_TERTIARY)
+	_reveal_skin_caption.modulate.a = 0.0
+	_reveal_skin_host.add_child(_reveal_skin_caption)
 
 
 func _build_footer() -> void:
@@ -314,19 +409,49 @@ func _build_footer() -> void:
 
 ## Pencereyi kart görünümünde açar. `provider_ready`: ödüllü reklam ŞİMDİ
 ## gösterilebilir mi (Main söyler); `provider_note`: değilse kartlarda yazan
-## gerçek sebep. `auto`: otomatik günlük açılış (olay bağlamı).
-func open_popup(provider_ready: bool, provider_note: String = "", auto: bool = false) -> void:
+## gerçek sebep. `auto`: otomatik günlük açılış (olay bağlamı). `login`:
+## günlük giriş ödülü görünümü (`DailyReward.view()` + Main'in
+## `just_claimed` / `streak_broken` bilgisi) — ödül ZATEN yazılmış gelir.
+func open_popup(provider_ready: bool, provider_note: String = "", auto: bool = false,
+		login: Dictionary = {}) -> void:
 	_auto_opened = auto
 	_pending_kind = ""
 	_free_sent = false
 	_end_reveal(false)
 	_note.text = ""
 	_note.visible = false
+	var just_claimed: bool = _apply_login(login)
 	refresh(provider_ready, provider_note)
 	visible = true
 	UiKit.modal_relayout(_frame)
 	UiMotion.modal_open(_frame, _dim)
-	AudioManager.play(&"ui_modal_open")
+	if just_claimed:
+		# Az önce alınan giriş ödülü: neşeli cue + bugünkü düğüm kutlanır.
+		AudioManager.play(&"daily_reward")
+		_strip.mark_today()
+		UiMotion.pop(_login_reward, 1.12)
+	else:
+		AudioManager.play(&"ui_modal_open")
+
+
+## Giriş ödülü üst bölgesini kurar; "az önce alındı" ise true döner.
+func _apply_login(login: Dictionary) -> bool:
+	_login = login.duplicate() if not login.is_empty() else DailyReward.view()
+	var streak: int = int(_login.get("streak", 0))
+	var claimed: bool = bool(_login.get("claimed_today", false))
+	var just_claimed: bool = bool(_login.get("just_claimed", false)) and claimed
+	_login_day_label.text = LOGIN_DAY % maxi(streak, 1)
+	_login_reward.text = LOGIN_REWARD % int(_login.get("reward", DailyReward.DAILY_DOUGH))
+	_login_chip_label.text = LOGIN_CLAIMED if claimed else LOGIN_PENDING
+	_login_chip.theme_type_variation = &"LockBadge" if claimed else &"Badge"
+	_login_chip_label.theme_type_variation = &"LabelBadgeOnDark" if claimed else &"LabelBadge"
+	_login_chip_label.add_theme_font_size_override("font_size", 14)
+	# Kutlama açılışta oynar (mark_today); zaten alınmışsa bugün yıldızlı.
+	_strip.set_streak(streak, claimed and not just_claimed)
+	var broken: bool = bool(_login.get("streak_broken", false))
+	_login_note.text = LOGIN_BROKEN_NOTE if broken else ""
+	_login_note.visible = broken
+	return just_claimed
 
 
 ## Kartların durumunu kanonik modelden (`DailyRewards.state()`) tazeler.
@@ -444,6 +569,12 @@ func is_auto_opened() -> bool:
 	return _auto_opened
 
 
+## Giriş ödülü bölgesi (yalnız görünüm; Main claim sonucunu verir).
+func set_login(login: Dictionary) -> void:
+	_apply_login(login)
+	UiKit.modal_relayout(_frame)
+
+
 # --- Butonlar ------------------------------------------------------------------------
 
 func _on_free_pressed() -> void:
@@ -514,10 +645,12 @@ func _start_reveal(reward: DailyChestReward) -> void:
 	_gem.modulate.a = 0.0
 	_gem_host.add_child(_gem)
 	_reveal_skin_host.visible = false
+	_reveal_skin_caption.modulate.a = 0.0
 	if reward.has_skin():
 		_skin_card = ResultRewardCard.create(reward.as_skin_chest_reward())
 		_skin_card.name = "SkinCard"
-		_reveal_skin_host.add_child(_skin_card)
+		_skin_card.hide_note()
+		_reveal_skin_margin.add_child(_skin_card)
 		_reveal_skin_host.visible = true
 	_reveal_host.visible = true
 	UiKit.modal_relayout(_frame)
@@ -571,6 +704,7 @@ func _show_skin() -> void:
 	t.tween_callback(func() -> void:
 		if _skin_card != null and is_instance_valid(_skin_card):
 			_skin_card.open())
+	t.tween_property(_reveal_skin_caption, "modulate:a", 1.0, 0.2)
 	var rarity: int = _reward.rarity if _reward != null else int(SkinData.Rarity.COMMON)
 	AudioManager.play_reward(rarity)
 	match rarity:
@@ -687,3 +821,31 @@ func gem() -> Control:
 
 func cards_host() -> Control:
 	return _cards_host
+
+
+func login_day_text() -> String:
+	return _login_day_label.text
+
+
+func login_reward_text() -> String:
+	return _login_reward.text
+
+
+func login_chip_text() -> String:
+	return _login_chip_label.text
+
+
+func login_note_text() -> String:
+	return _login_note.text if _login_note.visible else ""
+
+
+func strip() -> StreakStrip:
+	return _strip
+
+
+func skin_card_margin() -> MarginContainer:
+	return _reveal_skin_margin
+
+
+func skin_caption() -> Label:
+	return _reveal_skin_caption

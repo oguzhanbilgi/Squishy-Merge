@@ -25,7 +25,7 @@ extends Node
 ##   godot --path . res://tools/type_shots.tscn -- <cikti_klasoru> [GxY]
 
 const GAME_BOARD_SCENE: PackedScene = preload("res://scenes/game/game_board.tscn")
-const DAILY_SCENE: PackedScene = preload("res://scenes/ui/daily_reward_popup.tscn")
+const DAILY_SCENE: PackedScene = preload("res://scenes/ui/daily_rewards_popup.tscn")
 const MAIN_SCENE: PackedScene = preload("res://scenes/main.tscn")
 const POWER_REFILL_SCENE: PackedScene = preload("res://scenes/ui/power_refill.tscn")
 
@@ -141,12 +141,13 @@ func _shot_glyphs() -> void:
 
 # --- 2) Gunluk odul penceresi ---
 
-## Seri 4: dort dolu, uc bos nokta. Sayacin iki rengi de tek karede.
+## Seri 4: GUNLUK ODULLER penceresi (M8.9-02.1: giris odulu ust bolgede).
 func _shot_daily() -> void:
 	var popup: CanvasLayer = DAILY_SCENE.instantiate()
 	add_child(popup)
 	await get_tree().process_frame
-	popup.show_reward({"reward": 15, "streak": 4, "streak_broken": false})
+	popup.open_popup(false, "", false, {"streak": 4, "reward": 15, "claimed_today": true,
+		"just_claimed": false, "streak_broken": false})
 	# Pencere 0.2 sn'lik fade+scale ile aciliyor (M8.5-10); bitmesini bekle.
 	await get_tree().create_timer(0.35).timeout
 	await get_tree().process_frame
@@ -182,8 +183,6 @@ func _shot_worst_case_tabs() -> void:
 	add_child(main)
 	await get_tree().process_frame
 	await get_tree().process_frame
-	if main._daily != null:
-		main._daily.visible = false
 
 	var names: Array[String] = ["t04_en_kotu_ana_sayfa", "t05_en_kotu_harita",
 		"t06_en_kotu_koleksiyon", "t07_en_kotu_magaza"]

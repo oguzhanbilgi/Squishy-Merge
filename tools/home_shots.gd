@@ -12,7 +12,7 @@ extends Node
 ##   06_feature_pressed  Koleksiyon madalyonu basılı (button_down)
 ##   07_play_pressed     OYNA basılı
 ##   08_settings         Ayarlar penceresi Ana Sayfa üstünde
-##   09_daily_modal      Günlük ödül durum penceresi (madalyondan)
+##   09_daily_modal      GÜNLÜK ÖDÜLLER penceresi (madalyondan; giriş ödülü ALINDI üstte)
 ##   10_chest_modal      Bonus sandık bilgi penceresi (madalyondan)
 ##
 ## KAYIT: 05 için gerçek claim yolu koşar (kayda yazar). Araç kayıt
@@ -60,8 +60,6 @@ func _ready() -> void:
 	add_child(_main)
 	await get_tree().process_frame
 	await get_tree().process_frame
-	if _main._daily != null:
-		_main._daily.visible = false
 	if _safe_top >= 0.0:
 		_home()._layout_with_safe_top(_safe_top)
 
@@ -82,7 +80,7 @@ func _ready() -> void:
 	# Gerçek claim yolu: madalyon → main → DailyReward (kayda yazar, sonda geri konur).
 	_home().feature_button(&"daily").pressed.emit()
 	await _settle()
-	_main._daily.close_popup()
+	_main._daily_rewards.close_popup()
 	await _show_home()
 	await _capture("05_daily_claimed")
 
@@ -238,7 +236,7 @@ func _shot_daily_modal() -> void:
 	_home().feature_button(&"daily").pressed.emit()
 	await _settle()
 	await _capture("09_daily_modal")
-	_main._daily.close_popup()
+	_main._daily_rewards.close_popup()
 	await _show_home()
 
 

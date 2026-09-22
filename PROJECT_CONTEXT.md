@@ -831,9 +831,16 @@ alınacak — şimdi tahmin/vaat yok.
     119, revive 120, skin 30, home_ui 207, shop_ui 213, collection_ui 164,
     secondary_modal 102, ui_foundation 165, map_ui 127, bot L3 2/2). Görsel:
     `tools/daily_ads_shots` 3 boyut (build/qa_m8.9-02/). **Fizik, ekonomi,
-    level sandığı, ses/titreşim, kayıt anlamı DEĞİŞMEDİ.** Sıradaki: owner/ChatGPT
-    incelemesi → A36 cihaz kapısı (ayrı adım). Not: giriş ödülü + GÜNLÜK ÖDÜLLER
-    iki pencere art arda (birleştirme owner kararı, DAILY_REWARDS §10).
+    level sandığı, ses/titreşim, kayıt anlamı DEĞİŞMEDİ.**
+    **02.1 (owner kararı, aynı dal):** giriş ödülü + GÜNLÜK ÖDÜLLER **tek
+    pencere** — eski `DailyRewardPopup` üründen/repodan kaldırıldı; giriş
+    ödülü (+15/seri, ekonomi aynı) pencereden ÖNCE tek işlemle çözülüp üst
+    bölgede "N. GÜN · +15 HAMUR · ALINDI" + seri şeridi olarak gösteriliyor
+    (kapat/aç ikinci +15 yok); Ana Sayfa madalyonu ve Mağaza kartı aynı
+    pencere; onboarding false iken `DailyReward.claim_if_new_day` kaydı HİÇ
+    değiştirmiyor (Hamur/seri/tarih); Legendary reveal halesi kırpılmıyor.
+    daily_rewards_test 134, secondary_modal 100, home_ui 208; tam gate yeşil.
+    Sıradaki: owner/ChatGPT incelemesi → A36 cihaz kapısı (ayrı adım).
 - **Sırada: M8.6 — Visual Cohesion Rebuild** (ekranlar `UiKit`/`UiTokens`
   sistemine geçirilecek: ~~gameplay shell~~ ✅ → ~~home~~ ✅ → ~~map~~ ✅ →
   ~~shop~~ ✅ → ~~collection~~ ✅ main'de → ~~ikincil UI denetimi~~ ✅ →
@@ -845,7 +852,8 @@ alınacak — şimdi tahmin/vaat yok.
   onaylı seslerin entegrasyonu~~ ✅ dal `task/032` → ~~M8.8-02.1 A36 cihaz
   kapısı~~ ✅ main'de (93aa25b) → ~~M8.9-01 AdMob temeli~~ ✅ → ~~M8.9-01.1 A36
   test-reklam kapısı~~ ✅ main'de (33b6382) → ~~M8.9-02 monetizasyon
-  genişletmesi + günlük ödüller~~ ✅ dal `task/034` (A36 kapısı bekliyor) →
+  genişletmesi + günlük ödüller~~ ✅ + ~~02.1 birleşik günlük pencere~~ ✅ dal
+  `task/034` (A36 kapısı bekliyor) →
   M8.10 ilk açılış tutorial'ı (`onboarding_completed` dikişi hazır) →
   analitik sağlayıcı (`AdEvents`), ardından **M9 — Android export.**
   Ortam hazır (export template'leri, SDK,
@@ -953,13 +961,12 @@ alınacak — şimdi tahmin/vaat yok.
   shader/aura performans ölçümü M9'da.
 
 ## Next action
-Owner/ChatGPT: (1) `task/034` (M8.9-02) incelemesi — masaüstü çekimler
-`build/qa_m8.9-02/shots/` — sonra A36 test-reklam cihaz kapısı (geçiş reklamı
-doğal molada, Harita/oyun banner'ı, günlük reklamlı akış) ve merge kararı;
-(2) iki günlük pencere (giriş ödülü + GÜNLÜK ÖDÜLLER) birleştirilsin mi
-(DAILY_REWARDS §10); (3) eklenti UMP boşluğu kararı — küçük AAR yaması (3
+Owner/ChatGPT: (1) `task/034` (M8.9-02 + 02.1) incelemesi — masaüstü çekimler
+`build/qa_m8.9-02/shots_cleanup/` — sonra A36 test-reklam cihaz kapısı (geçiş
+reklamı doğal molada, Harita/oyun banner'ı, birleşik günlük pencere + reklamlı
+akış) ve merge kararı; (2) eklenti UMP boşluğu kararı — küçük AAR yaması (3
 sarmalayıcı + #120 `Number` düzeltmesi) mi, upstream PR mi (PRIVACY_CONSENT §4)
-— üretim öncesi şart; (4) COPPA / hedef kitle kararı (PRIVACY_CONSENT §6); (5)
+— üretim öncesi şart; (3) COPPA / hedef kitle kararı (PRIVACY_CONSENT §6); (4)
 AdMob hesabı: uygulama kaydı, rewarded + banner + interstitial reklam birimi,
 Privacy & messaging GDPR mesajı → `android_export.cfg [Release]`. Sonra M8.10
 ilk açılış tutorial'ı (`complete_onboarding` sözleşmesi), analitik sağlayıcı

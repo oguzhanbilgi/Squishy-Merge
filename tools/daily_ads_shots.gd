@@ -15,8 +15,10 @@ extends Node
 ##   01b_map_slot_fresh     Harita + yuva, yeni oyuncu (level 1 SIRADAKİ: OYNA plakası + hale yuvanın üstünde)
 ##   02_gameplay_slot       L4 oyun + yuva (kompakt mod 16:9'da)
 ##   03_shop_daily_slot     Mağaza üstü: GÜNLÜK ÖDÜLLER kartı + yuva
-##   04_daily_modal_ready   pencere: hepsi HAZIR (sağlayıcı hazır)
+##   04_daily_first_open    ilk uygun açılış: giriş ödülü az önce alındı (3. GÜN +15, kutlama), kartlar hazır
+##   04b_daily_modal_ready  yeniden açılış: giriş ALINDI, üç kart HAZIR (sağlayıcı hazır)
 ##   05_daily_modal_mixed   pencere: ücretsiz ALINDI, sandık 1 / 2, Hamur reklam hazırlanıyor
+##   05b_daily_all_done     pencere: hepsi alındı (ALINDI / ALINDI / BUGÜNLÜK BİTTİ)
 ##   06_reveal_dough        reveal: yalnız +15 Hamur
 ##   07_reveal_common       reveal: +15 Hamur + Common skin
 ##   08_reveal_legendary    reveal: +15 Hamur + Legendary skin
@@ -115,11 +117,23 @@ func _ready() -> void:
 	await _settle()
 	await _show_tab(3)
 	await _capture("03_shop_daily_slot")
-	# Pencere: hepsi hazır.
 	var popup: CanvasLayer = _main._daily_rewards
+	# İlk uygun açılış (M8.9-02.1): dün giriş yapılmış, seri 2 → madalyon →
+	# GERÇEK claim (+15, seri 3; kayıt sonda geri konur) → tek pencere, kutlama.
+	await _show_tab(0)
+	SaveManager.data["last_login_date"] = _yesterday()
+	SaveManager.data["daily_streak"] = 2
+	_main._screens[0].refresh()
+	_main._on_daily_requested()
+	await _settle()
+	await _capture("04_daily_first_open")
+	popup.close_popup()
+	await _settle()
+	# Yeniden açılış: giriş ödülü ALINDI, üç kart hazır.
+	await _show_tab(3)
 	_main.open_daily_rewards()
 	await _settle()
-	await _capture("04_daily_modal_ready")
+	await _capture("04b_daily_modal_ready")
 	# Karışık durum: ücretsiz alındı (gerçek transaction, sonda geri konur),
 	# sandık 1 / 2, Hamur reklamı hazır değil.
 	popup.close_popup()
@@ -132,6 +146,14 @@ func _ready() -> void:
 	await _settle()
 	await _capture("05_daily_modal_mixed")
 	_main._ads._rewarded_state = MonetizationManager.RewardedState.READY
+	popup.close_popup()
+	await _settle()
+	# Hepsi bitti: ALINDI / ALINDI / BUGÜNLÜK BİTTİ.
+	DailyRewards.grant_ad_chest(DailyRewards.day_key())
+	DailyRewards.grant_ad_dough(DailyRewards.day_key())
+	_main.open_daily_rewards()
+	await _settle()
+	await _capture("05b_daily_all_done")
 	popup.close_popup()
 	await _settle()
 	# Reveal'ler (sunum).
@@ -172,6 +194,12 @@ func _ready() -> void:
 	get_tree().quit()
 
 
+## Yerel takvimde "dün" (DailyReward gerçek günü okur).
+func _yesterday() -> String:
+	var unix: int = Time.get_unix_time_from_datetime_string(Time.get_date_string_from_system() + "T12:00:00") - 86400
+	return Time.get_date_string_from_unix_time(unix).substr(0, 10)
+
+
 func _reward(dough: int, skin: SkinData, rarity: int) -> DailyChestReward:
 	var reward := DailyChestReward.new()
 	reward.source = "free"
@@ -195,8 +223,6 @@ func _make_main(fake: FakeAdBackend) -> void:
 	await get_tree().process_frame
 	await get_tree().process_frame
 	_main_script.ads_backend_override = null
-	if _main._daily != null:
-		_main._daily.visible = false
 	if _safe_top >= 0.0:
 		for screen in _main._screens:
 			if screen.has_method("_layout_with_safe_top"):

@@ -407,9 +407,15 @@ tier'lara uygulanır.
 - Ödül miktarı: **15 Hamur** — §5.2'deki oranlarla aynı gerekçeyle GEÇİCİ
 - Seri kırılırsa sayaç sıfırlanır — bu v1.1 reklam/monetizasyon kapısını
   açar ama v1'de sadece görüntülenir, işlevsel bir ödeme yok
-- **M8.9-02:** günlük giriş ödülü DEĞİŞMEDİ; üstüne ayrı bir GÜNLÜK ÖDÜLLER
-  sistemi geldi (§5.4.1). İki pencere art arda açılır (giriş ödülü önce);
-  birleştirme owner kararı (docs/monetization/DAILY_REWARDS.md §10).
+- **M8.9-02 / 02.1 (owner kararı, KİLİTLİ):** giriş ödülü ekonomisi
+  DEĞİŞMEDİ (+15, seri ilerleme/sıfırlama, geri saat koruması, günde tam bir
+  kez). Oyuncuya **TEK günlük ödül penceresi** var: GÜNLÜK ÖDÜLLER (§5.4.1)
+  üst bölgesinde "N. GÜN · +15 HAMUR · ALINDI" + seri şeridi olarak
+  gösterilir; eski ayrı giriş ödülü penceresi kaldırıldı. Ödül pencereden
+  ÖNCE tek işlemle (`DailyReward.claim_if_new_day`) yazılır; pencere yalnız
+  gösterir, kapatıp açmak ikinci +15 vermez. **Onboarding tamamlanmadan
+  (tutorial, M8.10) giriş ödülü işlemi HİÇ çalışmaz** — Hamur, seri, tarih
+  değişmez; ilk işlem tutorial bitince sistemin ilk çalışmasında.
 
 ### 5.4.1 Günlük ödüller — GÜNLÜK ÖDÜLLER (M8.9-02, owner kararı, KİLİTLİ)
 
@@ -445,11 +451,14 @@ Sonuç: skin yok **+15** · yeni skin **+15 + skin** · kura tuttu/tükendi **+3
 yeniden kura çekmez. Değerler `DailyChestLoot` / `DailyRewards` sabitlerinde,
 veri odaklı tek yer.
 
-**Pencere ve giriş:** "GÜNLÜK ÖDÜLLER" penceresi günde bir kez otomatik açılır
-(onboarding tamamsa, kabuk ekranında; kapatmak ödül tüketmez, yalnız "bugün
-görüldü") ve Mağaza'nın en üstündeki GÜNLÜK ÖDÜLLER kartından gün boyu
-yeniden açılır. Durumlar: HAZIR / ALINDI / REKLAM HAZIRLANIYOR / 2 / 2 · 1 / 2 /
-BUGÜNLÜK BİTTİ. Ayrıntı: docs/monetization/DAILY_REWARDS.md.
+**Pencere ve giriş:** "GÜNLÜK ÖDÜLLER" TEK penceredir: üstte günlük giriş
+ödülü (§5.4: "N. GÜN · +15 HAMUR · ALINDI" + seri şeridi; ödül pencereden
+önce yazılmış gelir), altında üç kart. Günde bir kez otomatik açılır
+(onboarding tamamsa, kabuk ekranında; kapatmak hiçbir ödülü tüketmez, yalnız
+"bugün görüldü") ve Ana Sayfa Günlük madalyonu ile Mağaza'nın en üstündeki
+GÜNLÜK ÖDÜLLER kartından gün boyu yeniden açılır (ikisi AYNI pencere/durum).
+Durumlar: HAZIR / ALINDI / REKLAM HAZIRLANIYOR / 2 / 2 · 1 / 2 / BUGÜNLÜK
+BİTTİ. Ayrıntı: docs/monetization/DAILY_REWARDS.md.
 
 ### 5.5 Level haritası
 - Level'lar bir yol üzerinde sıralı düğümler; kilitli level bulanık/gri,
@@ -1085,7 +1094,9 @@ dikeyde ≤ %4 sıkıştırılır, düğümler aynı dönüşümle).
 Kayıt alanı `onboarding_completed`: yeni kayıt **false**, eski kayıt ilerleme
 kanıtıyla (level > 1 / yıldız / merge / sonsuz rekoru / açılmış skin) **true**.
 false iken: banner yok (tam düzen), geçiş reklamı yok (saat durur), otomatik
-günlük pencere ve Mağaza günlük kartı yok, ödüllü devam/refill sunumu yok.
+günlük pencere ve Mağaza günlük kartı yok, Ana Sayfa Günlük madalyonu
+pencere açmaz, **günlük giriş ödülü işlemi çalışmaz (kayıt mutasyonu yok)**,
+ödüllü devam/refill sunumu yok.
 Tutorial (M8.10) bitince `SaveManager.complete_onboarding()` (tek yazma) +
 `MonetizationManager.set_onboarding_completed(true)`; sonrasında reklamlar ve
 günlük pencere uygun olur. Tutorial UX'i bu milestone'da YOK.

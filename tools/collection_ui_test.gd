@@ -98,7 +98,6 @@ func _ready() -> void:
 	add_child(_main)
 	await get_tree().process_frame
 	await get_tree().process_frame
-	_main._daily.visible = false
 	var screen: CanvasLayer = _main._screens[2]
 	var shop: CanvasLayer = _main._screens[3]
 	var home: CanvasLayer = _main._screens[0]

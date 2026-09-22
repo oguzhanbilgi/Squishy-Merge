@@ -145,8 +145,6 @@ func _make_main(backend: AdBackend) -> void:
 	await get_tree().process_frame
 	await get_tree().process_frame
 	_main_script.ads_backend_override = null
-	if _main._daily != null:
-		_main._daily.visible = false
 	_finished_count = 0
 
 

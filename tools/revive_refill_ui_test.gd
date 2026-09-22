@@ -111,7 +111,6 @@ func _ready() -> void:
 	add_child(_main)
 	await get_tree().process_frame
 	await get_tree().process_frame
-	_main._daily.visible = false
 
 	await _test_revive_structure()
 	await _test_revive_states()

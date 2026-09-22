@@ -200,8 +200,6 @@ func _ready() -> void:
 	add_child(main)
 	await get_tree().process_frame
 	await get_tree().process_frame
-	if main._daily != null:
-		main._daily.visible = false
 	main._start_level(load("res://resources/levels/level_02.tres"))
 	await get_tree().process_frame
 	await get_tree().process_frame

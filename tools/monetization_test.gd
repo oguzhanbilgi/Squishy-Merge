@@ -824,7 +824,6 @@ func _test_main_integration() -> void:
 	add_child(_main)
 	await _settle(3)
 	_main_script.ads_backend_override = null
-	_main._daily.visible = false
 	var m: MonetizationManager = _main._ads
 	_c("Main yöneticiyi yarattı ve sağlayıcı olarak taktı", m != null and _main._rewarded_provider == m
 		and m.get_parent() == _main)

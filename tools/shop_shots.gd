@@ -66,8 +66,6 @@ func _ready() -> void:
 	add_child(_main)
 	await get_tree().process_frame
 	await get_tree().process_frame
-	if _main._daily != null:
-		_main._daily.visible = false
 	if _safe_top >= 0.0:
 		_shop()._layout_with_safe_top(_safe_top)
 		_main._screens[0]._layout_with_safe_top(_safe_top)

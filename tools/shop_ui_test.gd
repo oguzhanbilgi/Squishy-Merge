@@ -101,7 +101,6 @@ func _ready() -> void:
 	add_child(_main)
 	await get_tree().process_frame
 	await get_tree().process_frame
-	_main._daily.visible = false
 	var shop: CanvasLayer = _main._screens[3]
 	var theme: Theme = ThemeDB.get_project_theme()
 

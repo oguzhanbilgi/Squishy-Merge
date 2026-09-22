@@ -79,8 +79,6 @@ func _boot_main() -> void:
 	add_child(_main)
 	await get_tree().process_frame
 	await get_tree().process_frame
-	if _main._daily != null:
-		_main._daily.visible = false
 
 
 func _show_tab(tab: int) -> void:

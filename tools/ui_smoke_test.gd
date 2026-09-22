@@ -38,7 +38,6 @@ func _ready() -> void:
 	add_child(main)
 	await get_tree().process_frame
 	await get_tree().process_frame
-	if main._daily != null: main._daily.visible = false
 	SaveManager.data["dough"] = 1000
 	# Sekmeler
 	for t in 4:

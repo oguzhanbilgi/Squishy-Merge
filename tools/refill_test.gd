@@ -140,7 +140,6 @@ func _make_main(with_provider: bool = false) -> void:
 	_main = MAIN_SCENE.instantiate()
 	add_child(_main)
 	await get_tree().process_frame
-	_main._daily.visible = false
 	_provider = null
 	if with_provider:
 		_provider = TestProvider.new()
