@@ -7,9 +7,11 @@
 > Kilitli oyun sayıları GAME_DESIGN.md'de; burada onboarding akışı ve
 > onun günlük/reklam yaşam döngüsüne dikişi.
 >
-> **Durum (2026-09-22):** `task/035-first-run-tutorial` dalında UYGULANDI,
-> masaüstü testleri + görsel QA tamam. **Cihaz kapısı (A36) HENÜZ
-> ÇALIŞTIRILMADI**, main'e birleştirilmedi, push edilmedi.
+> **Durum (2026-09-22): A36 CİHAZ KAPISI GEÇTİ.** `task/035-first-run-tutorial`
+> dalında uygulandı, masaüstü kapısı yeşil, **Samsung A36 (SM-A366B / Android
+> 16) üstünde GERÇEK DOKUNUŞLA doğrulandı** (§13), **owner görsel kontrolü PASS
+> (5/5)**. Dal push edildi; **main'e BİRLEŞTİRİLMEDİ** (owner kararı bekliyor).
+> Üretim engelleri değişmedi (§13 sonu).
 
 ## 1. Ne çözüyor
 
@@ -374,9 +376,86 @@ ikinci +15 YOK, ikinci pencere YOK.
 - **`tools/tutorial_shots.tscn`** — üç boyutta (720×1280, 1080×1920,
   1080×2340 → tuval 720×1280 / 720×1280 / 720×1560) adım çekimleri.
 
+## 12.1 A36 cihaz kapısı (M8.10.1, 2026-09-22) — GEÇTİ
+
+SM-A366B · Android 16 / SDK 36 · `A366BXXSCCZH1` · 1080×2340 @ 450 dpi ·
+120/60 Hz · centik üst payı 92 fiziksel px · WiFi · pil %97 · 25 °C.
+İki APK aynı ağaçtan (`23eaa6f`): üretim biçimli TEST-reklam APK'sı
+(`tools/*` HARİÇ) ve ayrı QA paketi (`…squishymerge.qa`, sürücü
+`tools/ads_device.tscn`). Owner telefon kaydı başta yedeklendi, sonda
+**byte-identical** geri kondu.
+
+**Gerçek ilk açılış (üretim paketi, kayıt dosyası silinmiş):** doğrudan
+Level 1 tutorial'ı; Ana Sayfa yok, Harita yok, günlük pencere yok, banner
+yok, **UMP/rıza log satırı SIFIR**, godot hatası sıfır.
+
+**Gerçek dokunuşla akış:** BAŞLA → uçtan (ekran x=150) sürükle/bırak →
+CLAMP parçayı güvenli banda aldı, duvara yapışmadı → parça doğdu, **girdi
+kilitlendi ve adım GÖZLEM penceresi boyunca bekledi** (doğuş karesinde
+"oturdu" saymadı) → MATCH_DROP + altın halka + cyan SNAP kılavuzu →
+hedeften UZAĞA (ekran x=800) bırakma yine hizalandı → **GERÇEK T1+T1 → T2,
+skor 50, merge sayacı 1**, T2 board'da kaldı → hedef / tehlike / güçler
+spot'ları (üçünde de hedef görünür, kart hedefi örtmüyor, güç stoğu
+değişmedi) → Hazırsın.
+
+**Tamamlanma (DEVAM) sonrası diskte:** `onboarding_completed=true`,
+`onboarding_completed_day=2026-09-22`, `last_seen_day_key=2026-09-22`;
+buna karşılık `last_login_date=""`, `daily_streak=0`, `dough=0`,
+`day_key=""`, `popup_seen_day=""`, üç kota da dokunulmamış,
+`powerup_starter_granted` değişmedi.
+
+**Round ortası (kritik):** tamamlanmadan sonra aynı round'da dört parça
+daha bırakıldı — **banner yuvası 0, kap geometrisi birebir aynı, UMP
+sıfır**. Kabuğa dönüşte (Ana Menüye Dön → Harita) **UMP satırları 0 → 16**
+oldu (`IABTCF_gdprApplies=0`, TR/EEA dışı → NOT_REQUIRED), SDK başladı,
+**test banner'ı doğru ayrılmış yuvayla** göründü, geçiş reklamı READY.
+Üç Ana Sayfa↔Harita turu + arka plan/öne dönüş **ikinci bir rıza
+güncellemesi üretmedi** (16'da kaldı).
+
+**Aynı gün günlük bastırması:** otomatik pencere yok, Ana Sayfa madalyonu
+**noktasız** ve dokunuşa yanıtsız, Mağaza GÜNLÜK ÖDÜLLER bölümü gizli,
+`daily_open` hiçbir şey açmadı; kayıtta tek bir alan bile değişmedi.
+
+**Ertesi gün (QA efektif gün enjeksiyonu; cihaz saati DEĞİŞTİRİLMEDİ):**
++15 tam bir kez (0 → 15), seri 0 → 1, **tek otomatik pencere**, üç kota da
+tam; aynı gün yeniden açılışta ikinci +15/pencere yok. Sonraki günde seri
+1 → 2 ve kotalar yenilendi. **Saat geri alma:** efektif gün görülen en
+yeni günde kaldı — ikinci ödül yok, bastırma geri gelmedi, **tutorial
+yeniden başlamadı**.
+
+**Yarıda kapanma:** MATCH_DROP'ta force-stop → yeniden açılışta tutorial
+**baştan (WELCOME)**, `onboarding_completed` hâlâ false, tamamlanma günü
+yazılmamış, günlük mutasyonu ve reklam açılışı yok.
+
+**ATLA ve Android geri:** geri tuşu "Eğitimi bırakmak mı istiyorsun?"
+onayını açtı (DEVAM ET / ATLA); uygulamadan çıkılmadı, monetize Ana
+Sayfa'ya düşülmedi. DEVAM ET adıma döndü; ATLA **aynı kanonik tamamlanma
+yolundan** geçti (onboarding true + gün bir kez, aynı gün bastırması, round
+ortasında banner/UMP yok).
+
+**Mevcut oyuncu güvenliği:** `onboarding_completed=true` + gün boş kayıt →
+tutorial YOK, normal Ana Sayfa, günlük normal (4. GÜN, +15 alındı, kotalar
+taze), banner var. **Eski kayıt (onboarding anahtarı HİÇ YOK, ilerleme
+kanıtı var)** → migration true, tutorial YOK, tamamlanma günü BOŞ kaldı,
+ilk gün bastırması UYGULANMADI. **Onboarded oyuncu Level 1'i tekrar
+oynadı:** `tutorial_pose` yok, "sürükle • bırak" yok, overlay yok, girdi
+anında normal, nişan sınırsız, banner normal.
+
+**Çalışma zamanı:** logcat'te 0 SCRIPT ERROR / 0 E-godot / 0 FATAL / 0 ANR
+/ 0 tombstone / 0 eksik `res://` / 0 pencere-aktivite sızıntısı (yalnız
+Google SDK'sının chromium WebView uyarıları). PSS 475 MB (M8.9 aralığında),
+düğüm sayısı 3175 → 3179, **orphan 0**, statik bellek 81,1 → 81,7 MB,
+kabuk geçişinden sonra da sabit; tamamlanınca `TutorialOverlay` kapandı.
+
+**Owner görsel kontrolü: PASS (5/5)** — karşılama, ilk bırakma yönergesi,
+eşleştirme yönergesi, hedef/tehlike/güçler coach mark'ları, Hazırsın.
+
+Kanıt: `build/qa_m8.10.1/` (yerel; çekimler + notlar).
+
 ## 13. Açık noktalar
 
-1. **A36 cihaz kapısı ÇALIŞTIRILMADI** — bu milestone masaüstünde kapandı.
+1. ~~A36 cihaz kapısı~~ → **GEÇTİ (M8.10.1, 2026-09-22; §12.1)**, owner
+   görsel kontrolü PASS. Main'e birleştirme kararı owner'da.
 2. Üretim engelleri değişmedi (ADS_SYSTEM §11): UMP sarmalayıcı boşluğu +
    `debug_geography` #120, COPPA/TFCD/TFUA kitle kararı, gerçek AdMob
    kimlikleri (App ID + banner + ödüllü + geçiş).

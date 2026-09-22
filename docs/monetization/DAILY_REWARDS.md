@@ -5,7 +5,11 @@
 > Kilitli sayılar GAME_DESIGN §5.4.1 / §5.7.3 / §11'de; burada uygulanma biçimi.
 >
 > **M8.10 GÜNCELLEMESİ (2026-09-22):** §9'daki ilk gün kuralı artık
-> **UYGULANDI** (`task/035-first-run-tutorial`, main'e birleştirilmedi).
+> **UYGULANDI ve A36'da DOĞRULANDI** (`task/035-first-run-tutorial`, push
+> edildi; main'e birleştirilmedi). Cihazda: tamamlanma gününde +15/seri/
+> pencere/üç kota/Mağaza bölümü/Ana Sayfa madalyonu kapalı ve kayıtta tek
+> alan değişmiyor; ertesi gün +15 tam bir kez, seri 1, tek pencere, tam
+> kotalar; saat geri alınınca ikinci ödül yok.
 > Kanonik anlatım [../TUTORIAL_SYSTEM.md](../TUTORIAL_SYSTEM.md); bu dosyadaki
 > kotalar, loot reçetesi, pencere UX'i ve geçiş reklamı politikası DEĞİŞMEDİ.
 >
@@ -255,9 +259,9 @@ değişirse pencere kabuğa dönünce açılır (oyun ortasında asla).
    `build/qa_m8.9-02.2/device/` (yerel).
 4. Üretim engelleri değişmedi: UMP sarmalayıcı boşluğu + #120, COPPA/TFCD/
    TFUA, gerçek AdMob kimlikleri (interstitial birimi dahil: artık 3 birim).
-5. ~~**M8.10 ilk gün kuralı**~~ → **UYGULANDI** (§9,
-   [../TUTORIAL_SYSTEM.md](../TUTORIAL_SYSTEM.md)); A36 cihaz kapısı henüz
-   çalıştırılmadı.
+5. ~~**M8.10 ilk gün kuralı**~~ → **UYGULANDI + A36 kapısı GEÇTİ**
+   (M8.10.1, 2026-09-22; §9, [../TUTORIAL_SYSTEM.md](../TUTORIAL_SYSTEM.md)
+   §12.1). Main'e birleştirme kararı owner'da.
 
 ## 11. Testler
 

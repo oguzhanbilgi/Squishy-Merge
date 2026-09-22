@@ -1667,9 +1667,10 @@ verilmiyor:
 5. ~~İki günlük pencere kararı~~ → M8.9-02.1'de birleştirildi (§7 #18).
 6. **Analitik sağlayıcı** — `AdEvents` dikişine bağlanır (28 olay hazır).
 7. Eklenti UMP boşluğu kararı (§7 #15).
-8. ~~M8.10 ilk açılış tutorial'ı~~ → **UYGULANDI** (dal
-   `task/035-first-run-tutorial`, base `d72fde5`) — §9'a bakın. **A36 cihaz
-   kapısı ÇALIŞTIRILMADI; main'e birleştirilmedi, push edilmedi.**
+8. ~~M8.10 ilk açılış tutorial'ı~~ → **UYGULANDI + A36 KAPISI GEÇTİ**
+   (dal `task/035-first-run-tutorial`, base `d72fde5`, push edildi) —
+   aşağıya ve `docs/TUTORIAL_SYSTEM.md` §12.1'e bakın. **Main'e
+   birleştirilmedi; merge kararı owner'da.**
 
 ### M8.10 — İlk açılış tutorial'ı + ilk gün kuralı
 
@@ -1732,8 +1733,28 @@ olarak kaybettiriyordu) → ayrı `_consent_started` bayrağı.
 `tools/tutorial_shots.tscn` 3 boyut × 10 durum, her adımda "kart hedefi
 örtmüyor" ölçümü.
 
-**Açık:** A36 cihaz kapısı çalıştırılmadı; tutorial metinleri yalnız Türkçe;
-üretim engelleri (UMP sarmalayıcı, COPPA, gerçek AdMob kimlikleri) değişmedi.
+**A36 cihaz kapısı (M8.10.1, 2026-09-22): GEÇTİ.** SM-A366B / Android 16 /
+1080×2340; aynı ağaçtan üretim biçimli TEST-reklam APK'sı + ayrı QA paketi.
+Gerçek dokunuşla ilk açılış → gerçek T1+T1 → T2 merge'i → coach mark'lar →
+tamamlanma; tamamlanmada diske yalnız iki alan + `last_seen_day_key`; round
+ortasında banner yuvası 0 ve UMP 0; kabuğa dönüşte UMP 0 → 16 ve banner
+göründü; aynı gün günlük tam bastırma, ertesi gün +15/seri 1/tek pencere,
+saat geri alınca ikinci ödül yok; yarıda kapanma WELCOME'dan baştan; ATLA ve
+Android geri kanonik yoldan; mevcut/eski oyuncu tutorial görmedi; logcat
+temiz, orphan 0, PSS 475 MB; **owner görsel kontrolü PASS (5/5)**. Cihazda
+runtime defekti YOK. Owner telefon kaydı byte-identical geri kondu.
+Kanıt: `build/qa_m8.10.1/DEVICE_GATE_NOTES.md`.
+
+**Bir olay kaydedildi (üretim kodu DEĞİL, araç kullanımı):** geri yükleme
+yolu doğrulanırken `run-as PKG sh -c 'cat /sdcard/… > files/…'` denendi;
+`run-as` /sdcard'ı okuyamadığı için yönlendirme hedefi okuma başarısız
+olmadan önce SIFIRLADI ve owner telefon kaydı 0 bayta düştü. Doğrulanmış
+yedekten anında geri yüklendi (md5 eşleşti, veri kaybı yok). Kalan tüm
+yazmalar stdin + `base64 -d` ile yapıldı. Kural artık notlarda.
+
+**Açık:** tutorial metinleri yalnız Türkçe; üretim engelleri (UMP
+sarmalayıcı + #120, COPPA/TFCD/TFUA, gerçek AdMob kimlikleri) değişmedi —
+tutorial kapısının geçmesi bunları kapatmaz.
 
 ### M9 — Android export
 

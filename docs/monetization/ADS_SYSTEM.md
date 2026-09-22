@@ -3,7 +3,14 @@
      kaldırılmadı: `_ads_enabled()` hâlâ izin + SDK istiyor, yani ilk reklam
      talebinden ÖNCE akış mutlaka çalışıyor. Ayrıca tutorial'dan doğan ilk
      Level 1 round'unun ortasında banner yuvası açılmıyor (bir sonraki güvenli
-     kabuk/round geçişinde açılıyor). Ayrıntı: ../TUTORIAL_SYSTEM.md §8. -->
+     kabuk/round geçişinde açılıyor). Ayrıntı: ../TUTORIAL_SYSTEM.md §8.
+
+     A36'DA DOĞRULANDI (M8.10.1, 2026-09-22): tutorial boyunca ve
+     tamamlanmadan sonraki round boyunca UMP log satiri SIFIR; kabuga
+     donuste 0 -> 16 satir (IABTCF_gdprApplies=0, TR/EEA disi ->
+     NOT_REQUIRED), SDK basladi, test banner'i dogru yuvayla gorundu.
+     Uc Ana Sayfa<->Harita turu + arka plan/on plan IKINCI bir riza
+     guncellemesi uretmedi. -->
 
 # ADS_SYSTEM.md — AdMob reklam sistemi (M8.9-01 / M8.9-02)
 

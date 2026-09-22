@@ -1135,4 +1135,8 @@ başlar: seri 1. gün, +15, tek otomatik pencere, tam kotalar. Tek yetkili
 kapı `Onboarding.daily_rewards_unlocked()`; kontrol modeldedir, UI'da değil.
 **Monetizasyonun açılması ≠ günlük ödüllerin açılması** — aynı gün reklamlar
 çalışabilir, günlük sistem ertesi güne kadar kapalı kalır.
-Ayrıntı: [docs/TUTORIAL_SYSTEM.md](docs/TUTORIAL_SYSTEM.md).
+**A36 cihaz kapısı GEÇTİ (M8.10.1, 2026-09-22):** gerçek dokunuşla ilk
+açılış, gerçek T1+T1 → T2 merge'i, aynı gün bastırması, ertesi gün
+aktivasyonu, round ortasında banner/UMP yok, güvenli kabuk geçişinde
+aktivasyon; owner görsel kontrolü PASS (5/5).
+Ayrıntı: [docs/TUTORIAL_SYSTEM.md](docs/TUTORIAL_SYSTEM.md) §12.1.

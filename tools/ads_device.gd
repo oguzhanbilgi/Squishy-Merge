@@ -43,6 +43,14 @@ extends Node
 ##   inter_block              hazır geçiş reklamını at + döngüyü bitmiş say (hazır değil yolu)
 ##   fake_iload ok|fail · fake_ishowed · fake_ishow_fail · fake_idismiss
 ##   bitir                    Devam penceresinde BİTİR (kod yolu; cihazda gerçek dokunuş tercih)
+##
+## M8.10.1 (ilk açılış tutorial'ı — yalnız QA):
+##   tut_advance              coach kartının ana CTA'sı (kod yolu; cihazda
+##                            GERÇEK DOKUNUŞ tercih — `tutorial:` satırındaki
+##                            cta= dikdörtgenine `adb input tap`)
+##   tut_skip                 ATLA · tut_back  Android geri (tutorial onayı)
+##   savedump                 kayıt alanlarını ham JSON olarak yaz
+##                            (`user://qa_save.txt`) — ilk gün kanıtı
 
 const MAIN_SCENE: PackedScene = preload("res://scenes/main.tscn")
 const CMD_PATH: String = "user://qa_cmd.txt"
@@ -377,6 +385,19 @@ func _handle(line: String) -> void:
 			if await _fake_ishow_pending():
 				_fake_ishow_done = _fake.interstitial_shows.size()
 				_fake.emit_interstitial_dismissed(_fake.interstitial_shows[-1])
+		"tut_advance":
+			if _main._tutorial != null:
+				_main._tutorial.advance()
+		"tut_skip":
+			if _main._tutorial != null:
+				_main._tutorial.skip()
+		"tut_back":
+			_main._notification(Node.NOTIFICATION_WM_GO_BACK_REQUEST)
+		"savedump":
+			var f := FileAccess.open("user://qa_save.txt", FileAccess.WRITE)
+			if f != null:
+				f.store_string(JSON.stringify(SaveManager.data, "\t"))
+				f.close()
 		"bitir":
 			_main.decline_revive()
 			await _settle()
@@ -428,6 +449,27 @@ func _idle_probe(seconds: float) -> void:
 	var m1: float = Performance.get_monitor(Performance.MEMORY_STATIC) / 1048576.0
 	_idle = "idle %.0fs: nodes %d->%d orphans %d static_mb %.1f->%.1f fps %d..%d" % [
 		seconds, n0, n1, int(Performance.get_monitor(Performance.OBJECT_ORPHAN_NODE_COUNT)), m0, m1, fps_min, fps_max]
+
+
+## Board'daki canli parcalarin tier listesi (tutorial kanitlari icin).
+func _tiers_of(board: Node2D) -> String:
+	if board == null or not is_instance_valid(board):
+		return "-"
+	var out: Array[int] = []
+	for piece: Dumpling in board.live_dumplings():
+		out.append(piece.tier)
+	out.sort()
+	return str(out)
+
+
+## Tuval dikdortgenini EKRAN pikseline cevirir (tutorial spot hedefi).
+func _rect_from(r: Rect2) -> String:
+	if r.size == Vector2.ZERO:
+		return "-"
+	var xf: Transform2D = get_viewport().get_screen_transform()
+	var a: Vector2 = xf * r.position
+	var b: Vector2 = xf * r.end
+	return "px[%d,%d-%d,%d]" % [int(a.x), int(a.y), int(b.x), int(b.y)]
 
 
 func _rect_px(control: Control) -> String:
@@ -504,6 +546,33 @@ func _write_state(label: String) -> void:
 		str(dp.dough_button().disabled), str(dp.chest_button().disabled), dp.pending_kind(), dp.reveal_dough_text(),
 		_rect_px(dp.free_button()), _rect_px(dp.dough_button()), _rect_px(dp.chest_button()),
 		_rect_px(dp.continue_button()), _rect_px(dp.close_button()), _rect_px(dp.frame().get_meta(&"close_button"))])
+	# --- Tutorial (M8.10.1) ---
+	var tc: TutorialController = _main._tutorial
+	var ov: TutorialOverlay = _main._tutorial_overlay
+	var tb: Node2D = _main._board
+	lines.append("tutorial: step=%s active=%s back_prompt=%s overlay=%s title='%s' body='%s' deferred=%s board={locked=%s paused=%s queue=%d guide_x=%.0f pieces=%d tiers=%s} rects: cta=%s cta_alt=%s skip=%s card=%s target=%s" % [
+		tc.step_name() if tc != null else "-", str(tc != null and tc.is_active()),
+		str(tc != null and tc.is_back_prompt_open()), str(ov != null and ov.is_open()),
+		ov.title_text() if ov != null else "-", ov.body_text() if ov != null else "-",
+		str(_main._monetization_deferred),
+		str(tb != null and tb.is_tutorial_input_locked()),
+		str(tb != null and tb.is_tutorial_paused()),
+		tb.tutorial_queue_size() if tb != null else -1,
+		tb.tutorial_guide_screen_x() if tb != null else -1.0,
+		tb.live_dumplings().size() if tb != null else -1,
+		_tiers_of(tb),
+		_rect_px(ov.cta_button()) if ov != null else "-",
+		_rect_px(ov.cta_alt_button()) if ov != null else "-",
+		_rect_px(ov.skip_button()) if ov != null else "-",
+		_rect_from(ov.card_rect()) if ov != null and ov.is_open() else "-",
+		_rect_from(ov.target_rect()) if ov != null else "-"])
+	lines.append("gamestate: score=%d merges=%d starter=%s powerups=%s" % [
+		GameState.score, GameState.merge_count,
+		str(SaveManager.data.get("powerup_starter_granted", false)),
+		str(SaveManager.data.get("powerups", {}))])
+	lines.append("onboardingday: completed=%s day='%s' unlocked=%s suppressed=%s" % [
+		str(SaveManager.onboarding_completed()), SaveManager.onboarding_completed_day(),
+		str(Onboarding.daily_rewards_unlocked()), str(Onboarding.is_first_day_suppressed())])
 	var shop: CanvasLayer = _main._screens[3]
 	lines.append("shop: daily_card_visible=%s status='%s' rects: open=%s" % [str(shop.daily_card().visible),
 		shop.daily_status_text(), _rect_px(shop.daily_button())])

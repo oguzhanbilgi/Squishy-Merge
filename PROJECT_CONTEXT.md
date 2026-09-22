@@ -891,6 +891,35 @@ alınacak — şimdi tahmin/vaat yok.
     `tools/tutorial_test` (149), `tools/tutorial_shots`. **Durum: masaüstü
     testleri + görsel QA tamam; A36 cihaz kapısı ÇALIŞTIRILMADI, main'e
     birleştirilmedi, push edilmedi.** Doküman: `docs/TUTORIAL_SYSTEM.md`.
+  - `M8.10.1` ✅ **A36 ilk açılış tutorial'ı cihaz kapısı GEÇTİ**
+    (2026-09-22; TUTORIAL_SYSTEM §12.1). SM-A366B / Android 16 / 1080×2340,
+    aynı ağaçtan iki APK (üretim biçimli TEST-reklam + ayrı QA paketi).
+    **Gerçek dokunuşla:** silinmiş kayıtla açılış doğrudan Level 1
+    tutorial'ına girdi (Ana Sayfa/Harita/günlük/banner/UMP yok, log'da rıza
+    satırı SIFIR); uçtan sürüklemede CLAMP çalıştı; parça doğduğunda adım
+    gözlem penceresi boyunca bekledi (doğuş karesinde "oturdu" saymadı);
+    hedeften uzağa bırakılan ikinci T1 hizalandı ve **gerçek T1+T1 → T2**
+    (skor 50, merge 1) oldu; üç coach mark hedefi örtmeden vurguladı.
+    Tamamlanmada diske YALNIZ iki alan + `last_seen_day_key` yazıldı
+    (giriş tarihi/seri/Hamur/üç kota/`popup_seen_day` dokunulmadı). Round
+    ortasında dört drop daha: **banner yuvası 0, geometri aynı, UMP 0**;
+    kabuğa dönüşte UMP **0 → 16** (TR/EEA dışı → NOT_REQUIRED), SDK açıldı,
+    test banner'ı doğru yuvayla geldi; üç Ana Sayfa↔Harita turu + arka
+    plan/öne dönüş ikinci rıza güncellemesi üretmedi. Aynı gün günlük tam
+    bastırma (madalyon noktasız ve yanıtsız, Mağaza bölümü gizli, kayıt
+    değişmedi); ertesi gün +15 bir kez + seri 1 + tek pencere + tam kotalar;
+    saat geri alınınca ikinci ödül/bastırma/tutorial yok. Yarıda force-stop
+    → WELCOME'dan baştan, onboarding false. ATLA ve Android geri kanonik
+    yoldan; geri onayı monetize Ana Sayfa'ya düşürmedi. Mevcut oyuncu ve
+    eski kayıt migration'ı tutorial görmedi (tamamlanma günü BOŞ kaldı);
+    onboarded Level 1 tekrarında hiçbir tutorial öğesi yok. Logcat temiz
+    (0 SCRIPT ERROR / E-godot / FATAL / ANR / tombstone / sızıntı), PSS
+    475 MB, düğüm 3175 → 3179, orphan 0. **Owner görsel kontrolü PASS
+    (5/5).** Owner telefon kaydı byte-identical geri kondu (916 B, md5
+    `53df9bee…`); QA paketi kaldırıldı. Cihazda runtime defekti YOK —
+    üretim kodu değişmedi. Cihazdan sonra masaüstü kapısı yeniden yeşil
+    (20 suite + 2 bot). **Dal push edildi; main'e BİRLEŞTİRİLMEDİ.**
+    Kanıt: `build/qa_m8.10.1/` (yerel).
 - **Sırada: M8.6 — Visual Cohesion Rebuild** (ekranlar `UiKit`/`UiTokens`
   sistemine geçirilecek: ~~gameplay shell~~ ✅ → ~~home~~ ✅ → ~~map~~ ✅ →
   ~~shop~~ ✅ → ~~collection~~ ✅ main'de → ~~ikincil UI denetimi~~ ✅ →
@@ -904,8 +933,9 @@ alınacak — şimdi tahmin/vaat yok.
   test-reklam kapısı~~ ✅ main'de (33b6382) → ~~M8.9-02 monetizasyon
   genişletmesi + günlük ödüller~~ ✅ + ~~02.1 birleşik günlük pencere~~ ✅ +
   ~~02.2 A36 cihaz kapısı~~ ✅ main'de (9561a4c) →
-  ~~M8.10 ilk açılış tutorial'ı + ilk gün kuralı~~ ✅ dal
-  `task/035-first-run-tutorial` (masaüstü tamam, A36 kapısı BEKLİYOR) →
+  ~~M8.10 ilk açılış tutorial'ı + ilk gün kuralı~~ ✅ + ~~M8.10.1 A36 cihaz
+  kapısı~~ ✅ dal `task/035-first-run-tutorial` (push edildi, main'e merge
+  kararı owner'da) →
   analitik sağlayıcı (`AdEvents` / `TutorialEvents`), ardından
   **M9 — Android export.**
   Ortam hazır (export template'leri, SDK,
@@ -1020,10 +1050,10 @@ M8.9-02 kapandı, kanıt `build/qa_m8.9-02.2/device/` (38 kare, notlar) +
 sarmalayıcı + #120 `Number` düzeltmesi) mi, upstream PR mi (PRIVACY_CONSENT §4)
 — üretim öncesi şart; (3) COPPA / hedef kitle kararı (PRIVACY_CONSENT §6); (4)
 AdMob hesabı: uygulama kaydı, rewarded + banner + interstitial reklam birimi,
-Privacy & messaging GDPR mesajı → `android_export.cfg [Release]`. (5) **M8.10
-`task/035-first-run-tutorial` A36 cihaz kapısı + merge kararı** — ilk açılış
-tutorial'ı ve ilk gün günlük kuralı masaüstünde bitti, cihazda
-doğrulanmadı (`docs/TUTORIAL_SYSTEM.md`). Sonra analitik sağlayıcı
+Privacy & messaging GDPR mesajı → `android_export.cfg [Release]`. (5)
+~~M8.10 A36 cihaz kapısı~~ → **GEÇTİ (M8.10.1, 2026-09-22)**, owner görsel
+kontrolü PASS; **`task/035-first-run-tutorial` main'e merge kararı owner'da**
+(`docs/TUTORIAL_SYSTEM.md` §12.1, kanıt `build/qa_m8.10.1/`). Sonra analitik sağlayıcı
 (`AdEvents` / `TutorialEvents` dikişine), ardından M9 Android export (adaptive icon,
 `config/icon`, release keystore, Gradle preset her makinede).
 Ayrıntılı liste: PROJECT_STATUS.md §8.
