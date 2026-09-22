@@ -1516,6 +1516,7 @@ squishy-merge/
 | `daily_rewards_test.gd` + `.tscn` | **Headless günlük ödüller testi** (M8.9-02/02.1, 134 kontrol): onboarding migration'ı, gün anahtarı (ileri/geri/aynı gün), üç kota + tek transaction + bağımsızlık, loot (4000 seed'li kura), Mağaza kartı + pencere + reveal, Main + sahte SDK (talep/çift/iptal/hata/gün değişimi), birleşik giriş ödülü (yeni gün / yeniden açılış / ertesi gün / kırık seri / geri saat / bağımsızlık / onboarding false no-op), otomatik pencere, onboarding bastırması. Kaydı byte'ı geri koyar. |
 | `interstitial_test.gd` + `.tscn` | **Headless geçiş reklamı testi** (M8.9-02, 60 kontrol): 899/900 saat, dışlanan anlar, doğal mola / hazır değil / gösterim → saat 0 / callback bir kez, 60 sn bekleme, ödüllü dışlaması, yükleme/gösterim hataları, onay zaman aşımı, süresi dolma, Main: sonuç tam bir kez. Kaydı byte'ı geri koyar. |
 | `daily_ads_shots.gd` + `.tscn` | **M8.9-02 düzen çekimleri** (pencereli): Harita/oyun + banner yuvası (orta ve yeni oyuncu), Mağaza günlük kartı, GÜNLÜK ÖDÜLLER penceresi (hazır/karışık), reveal (Hamur / Common / Legendary), yuvasız referanslar; ölçümler stdout'ta. `--headless` ile çalışmaz. |
+| `ads_device.gd` + `.tscn` | **Reklam cihaz kapısı sürücüsü** (M8.9-01.1 / M8.9-02.2): gerçek `main.tscn`'i gerçek ya da sahte arka uçla kurar, `user://qa_cmd.txt` komut kanalı + `user://qa_state.txt` durum dosyası (reklam/ödüllü/geçiş/banner/günlük/pencere/harita/oyun dikdörtgenleri ekran px, son olaylar). M8.9-02.2 QA komutları: onboarding, login, dailyq, dayclock, fresh, relaunch, daily_open/close/reveal, clock (aktif süre enjeksiyonu), inter_block, fake_i*. **Yalnız ayrı QA paketinde** (`…squishymerge.qa`); üretim export'u `tools/*` hariç — üretim sabitlerine dokunmaz. |
 | `ui_shots.gd` + `ui_shots.tscn` | **Production UI kabuğu çekimleri** (M8.5-10): dört sekme, ayarlar, en kötü durum, oyun ekranı; üç ölçü. `--headless` ile çalışmaz. |
 | `ui_smoke_test.gd` + `ui_smoke_test.tscn` | **Headless UI davranış testi** (74 kontrol): ayar anahtarı, onay diyaloğu, geri tuşu, equip. |
 | `secondary_modal_ui_test.gd` + `.tscn` | **Headless ikincil pencere testi** (M8.6-08 / M8.9-02.1, 100 kontrol): shell v2 iskeleti (oturmuş X, gövde/altlık sınırları, tavan + kaydırma, karartma), Ayarlar (kanonik yazma yolu, taşma regresyonu 5 yapılandırma), Günlük = birleşik GÜNLÜK ÖDÜLLER (claim pencereden önce tam bir kez, üst bölge, yeniden açılış +15 yok, kapanış yolları, 540×960), Mola/Sandık (hiyerarşi, z-order, rota). Kaydı byte'ı geri koyar. |
@@ -1648,16 +1649,22 @@ verilmiyor:
 3. ~~**A36 test reklamı cihaz kapısı**~~ → **GEÇTİ (M8.9-01.1, 2026-09-21)**;
    rıza formu #120 yüzünden gösterilemedi (yukarıda §7 #15), uçak modu owner'ın
    günlük telefonunda denenmedi (gerçek no-fill + masaüstü testleri kapsıyor).
-4. **M8.9-02 A36 cihaz kapısı** — geçiş reklamı doğal molada (gerçek test
-   interstitial'ı, gösterim → sonuç sırası, 60 sn bekleme), Harita/oyun
-   banner'ı (kompakt mod okunurluğu), günlük reklamlı sandık/Hamur akışı,
-   otomatik pencere, arka plan/öne dönüş, logcat; owner/ChatGPT incelemesi
-   sonrası.
-5. İki günlük pencere kararı (§7 #18).
+4. ~~**M8.9-02 A36 cihaz kapısı**~~ → **GEÇTİ (M8.9-02.2, 2026-09-22;
+   ADS_SYSTEM §14):** gerçek test interstitial'ı doğal molada (gösterim →
+   sonuç bir kez, saat yalnız SDK gösteriminde sıfır, 60 sn bekleme; uygun
+   değil / bekleme / hazır değil / gösterim hatası yollarında sonuç hemen),
+   Harita/oyun banner'ı, günlük reklamlı sandık ×2 + +150 + ücretsiz sandık,
+   otomatik pencere tam bir kez, onboarding false bastırması, gün değişimi,
+   arka plan, logcat temiz, PSS düz; owner görsel kontrolü 5/5 PASS. Cihazda
+   erişilemeyen tek yol: test ödüllü reklamında ödülden önce kapatma (Google
+   test yaratıcısı ~8 sn'de ödül verip öncesinde kapatma göstermiyor) — sahte
+   arka uçla kapsandı. `task/034` push edildi, **main'e merge kararı owner'da.**
+5. ~~İki günlük pencere kararı~~ → M8.9-02.1'de birleştirildi (§7 #18).
 6. **Analitik sağlayıcı** — `AdEvents` dikişine bağlanır (28 olay hazır).
 7. Eklenti UMP boşluğu kararı (§7 #15).
 8. M8.10 ilk açılış tutorial'ı — `onboarding_completed` sözleşmesi
-   (DAILY_REWARDS §9).
+   (DAILY_REWARDS §9) + **ilk gün kuralı** (tutorial gününde otomatik günlük
+   pencere yok; owner kararı, yalnız dokümante).
 
 ### M9 — Android export
 

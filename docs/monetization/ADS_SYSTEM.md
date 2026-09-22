@@ -11,8 +11,8 @@
 > 60 sn tam ekran beklemesi), günlük ödüller (ücretsiz sandık 1/gün, reklamlı
 > sandık 2/gün, reklamlı +150 Hamur 1/gün), otomatik günlük pencere, Mağaza
 > girişi, `onboarding_completed` dikişi — deterministik testler + masaüstü
-> görsel inceleme + TEST-reklam APK'sı tamam; **A36 cihaz kapısı henüz YOK**
-> (ayrı adım). **Üretime hazır DEĞİL:** eklentinin UMP yüzeyi (PRIVACY_CONSENT
+> görsel inceleme + TEST-reklam APK'sı + **A36 cihaz kapısı GEÇTİ (M8.9-02.2,
+> §14)**. **Üretime hazır DEĞİL:** eklentinin UMP yüzeyi (PRIVACY_CONSENT
 > §4) + #120, COPPA/kitle kararı (§6) açık; üretim kimliği YOK (artık 3 birim).
 
 ## 1. Kapsam (v1 monetizasyon planı)
@@ -355,14 +355,18 @@ Kanıt: `build/qa_m8.9-01/device/DEVICE_GATE_NOTES.md` (yerel, gitignore'lu) +
 4. ~~**Cihaz kapısı (A36, test reklamı)**~~ → **GEÇTİ (§12)**; EEA formu cihazda
    #120 yüzünden gösterilemedi.
 5. ~~**Gameplay/Harita banner'ı**~~ → **M8.9-02'de owner kararıyla eklendi** (§6);
-   A36 cihaz kapısı bekliyor.
+   A36'da doğrulandı (§14).
 6. **Next-Gen SDK geçişi:** eklentiye bağlı, v1 için gerekmez (§2).
-7. **M8.9-02 A36 cihaz kapısı (bekliyor):** gerçek test interstitial'ı doğal
-   molada (gösterim → sonuç sırası, saat sıfırlanması, bekleme), gerçek
-   banner Harita / oyun (kompakt mod, 1080×2340 yuva), günlük reklamlı
-   sandık / Hamur akışı, otomatik pencere, arka plan/öne dönüş, logcat.
+7. ~~**M8.9-02 A36 cihaz kapısı**~~ → **GEÇTİ (M8.9-02.2, §14).** Cihazda
+   erişilemeyen tek yol: gerçek test ödüllü reklamında "ödülden ÖNCE kapatma"
+   (Google test yaratıcıları ödülü ~8–9 sn'de veriyor ve öncesinde kapatma
+   kontrolü göstermiyor) — sahte arka uçla cihazda ve masaüstünde kapsandı.
 8. ~~**İki günlük pencere**~~ → M8.9-02.1'de tek pencerede birleştirildi
    (DAILY_REWARDS §6-§7).
+9. **Üretim engelleri (değişmedi):** UMP sarmalayıcı boşluğu + #120 (madde 3),
+   COPPA/TFCD/TFUA kitle kararı (PRIVACY_CONSENT §6), gerçek App ID + banner +
+   ödüllü + interstitial kimlikleri (4 değer, §8). Bunlar kapanmadan `is_real`
+   açılmaz.
 
 ## 13. M8.9-02 masaüstü görsel inceleme (2026-09-22)
 
@@ -373,3 +377,74 @@ stdout'ta), oyun + yuva (L4, kompakt mod ölçümleri), Mağaza günlük bölüm
 yuva, GÜNLÜK ÖDÜLLER penceresi (hazır / karışık durum), reveal (yalnız Hamur
 / Hamur + Common / Hamur + Legendary), yuvasız referanslar. Kanıt:
 `build/qa_m8.9-02/shots/` + `M8.9-02_QA_NOTES.md` (yerel, gitignore'lu).
+
+## 14. A36 günlük ödüller + genişletilmiş reklam cihaz kapısı (M8.9-02.2, 2026-09-22) — GEÇTİ
+
+Kanıt: `build/qa_m8.9-02.2/device/DEVICE_GATE_NOTES.md` (yerel, gitignore'lu) +
+38 kare (Q01–Q31 QA paketi, P01–P07 üretim paketi) + `logcat_gate*.txt` +
+`qa_events_session1.txt`; APK taramaları `build/qa_m8.9-02.2/export/`. Sürücü:
+`tools/ads_device.tscn` (QA paketi `…squishymerge.qa`, M8.9-02.2 komutları:
+onboarding / login / dailyq / dayclock / fresh / relaunch / daily_open / daily_reveal
+/ clock / inter_block / fake_i*), üretim paketi `tools/*` HARİÇ (aynı ağaç 6bfa97f;
+üretim APK'sı byte-identical yeniden üretildi: sha256 `356b0501…18c5`).
+
+- **Cihaz:** SM-A366B / Android 16 / 1080×2340 / yoğunluk 450 / üst inset 92, alt 0
+  / 120 Hz; TR → rıza NOT_REQUIRED, form yok. Owner kaydı (671 B, md5 `942aa5c3…`)
+  yalnız yedeklendi ve byte-identical geri kondu; tüm günlük / tarih / onboarding /
+  kota / ekonomi mutasyonları QA paketinin kendi veri dizininde.
+- **Birleşik günlük pencere:** mevcut oyuncu (giriş dün, seri 2, kotalar sıfır)
+  açılışta **tam bir kez** otomatik pencere; giriş +15 tam bir kez (seri 3,
+  "3. GÜN · +15 HAMUR · ALINDI", şerit 3. gün); kapat → gezin → yeniden açılmadı;
+  Ana Sayfa madalyonu ve Mağaza kartı AYNI pencereyi açtı, ikinci +15 yok.
+  Üretim paketinde eski biçimli kayıt (anahtar yok, level 11) migration ile aynı
+  akışı verdi (500→515).
+- **Ücretsiz sandık:** çift dokunuş → tek transaction (+15), reveal, kota ALINDI
+  kalıcı; pasif dokunuş hiçbir şey yapmadı. **Reklamlı sandık ×2:** gerçek test
+  ödüllü reklam, `earned` reklam hâlâ üstteyken → her biri tam bir kez (+15;
+  ikincisinde gerçek skin kurası tuttu: common_05), 2/2 → BUGÜNLÜK BİTTİ, üçüncü
+  istek imkânsız. **+150:** tam +150, ALINDI, sandık kotasına dokunmadı, ikinci
+  istek imkânsız. Refill kotası (1/gün) ve devam hakkı (round başına 2) bağımsız.
+  Efsanevi reveal (QA deterministik sunum): hale pencerenin içinde, banner ile
+  çakışma yok.
+- **Banner:** Harita (yeni oyuncu Level 1 OYNA plakası altı 2024 px, banner üstü
+  2170,5 px → 146 px pay; kale başlığın altında; tekdüze kaplama, sıkıştırma yok)
+  ve oyun (banner 1080×170 px en altta, şerit 2048–2147, kap tabanı şeridin
+  üstünde, HUD/güç yuvaları en üstte); sol/orta/sağ bırakma + bir güç kullanımı
+  gerçek dokunuşlarla Godot'a ulaştı, AdView dokunuş çalmadı. Yaşam döngüsü
+  Home→Map→Oyun→Sonuç→Home→Mağaza→Koleksiyon→Map (+ döngü): tek AdView / aynı
+  kimlik, sonuçta gizli, yeniden yükleme yok, sıçrama yok, sızıntı yok.
+- **Geçiş reklamı (gerçek test birimi):** 892 sn → uygun değil; gerçek saniyelerle
+  900,003 → `interstitial_eligible`; kabukta ve oyun sırasında gösterim YOK; doğal
+  molada (devam kararı → BİTİR) **gerçek test interstitial'ı** → kapanış → Sonuç
+  tam bir kez; saat yalnız SDK gösterimi başlayınca 0'a döndü (`showed`
+  940,3 → `impression` 0,0); bekleme 60 sn; iki kez tekrarlandı. Uygun değil /
+  bekleme (ödüllü devam kapanışı sonrası, uygunluk korundu) / hazır değil
+  (`inter_block` → FAILED, talep üzerine yeniden yükleme) yollarında Sonuç HEMEN.
+  Gösterim hatası (sahte arka uç, 5 sn onay zaman aşımı): Sonuç bir kez, saat
+  sıfırlanmadı, uygunluk korundu, geç `show_failed` `stale=true`; toparlanma:
+  sonraki molada gösterim → kapanış → Sonuç bir kez. Ödüllü reklam sırasında saat
+  dondu (930,6 → 930,6); arka planda 25 sn sayılmadı; asla iki tam ekran reklam.
+- **Onboarding false (yeni kayıt):** otomatik pencere yok, +15 yok, seri 0, yuva 0
+  + banner yok (5 yüzey), interstitial yüklemesi yok, saat 0,0, Mağaza kartı gizli,
+  ödüllü devam/refill "kullanılamıyor"; `onboarding 1` sonrası yüklemeler ve saat
+  başladı, giriş 1. GÜN +15 bir kez, pencere bir kez (M8.10 ilk gün kuralı yalnız
+  dokümante: DAILY_REWARDS §9).
+- **Gün değişimi (QA sahte gün):** A günü tümü alınmış → B günü kotalar bir kez
+  sıfırlandı + pencere bir kez; geri alınmış sahte gün → anahtar B'de kaldı, ikinci
+  sıfırlama yok, `clock_behind` notu.
+- **Logcat (558 177 satır):** SCRIPT ERROR 0 · FATAL 0 · ANR 0 · tombstone 0 ·
+  res:// eksik 0 · pencere sızıntısı 0 · **E/godot 0** (M8.9-01'deki banner sökme
+  hatası gitti); E/Ads yalnız Google'ın kendi JS konsol satırı; W/Ads bilinen
+  (Firebase yok, test app settings). **PSS:** QA 484–501 MB (3 gerçek ödüllü + 2
+  gerçek interstitial + 5 round + gezinme döngüsü), boşta 15 sn düğüm/statik sabit;
+  üretim 431 → 501 MB; ilerleyen büyüme yok (M8.9-01 bandı).
+- **Owner görsel kontrolü:** Harita+banner, oyun+banner, GÜNLÜK ÖDÜLLER penceresi,
+  Efsanevi reveal, round sonu geçiş reklamı → **PASS (beşi de)**.
+- **Olaylar (owner'ın günlük telefonu):** bildirim paneli, WhatsApp VoIP araması
+  ve iki heads-up; hiçbirinde giriş yapılmadı. Samsung One UI heads-up'ları
+  `EdgeLightingWindow`'da çiziyor (NotificationShade değil): kişisel heads-up
+  içeren tek kare anında silindi, `dev.sh check` artık EdgeLighting/HeadsUp/
+  Toast/Bubble pencerelerini de engel sayıyor (harness notu).
+- **Gameplay dondurulmuş:** fizik / merge / güç / sandık kodu değişmedi (kapı
+  yalnız `tools/ads_device.gd` + doküman commit'i ekledi).
+

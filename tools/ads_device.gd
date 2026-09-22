@@ -30,6 +30,19 @@ extends Node
 ##   fake_consent ok|fail · fake_init · fake_load ok|fail · fake_show_fail
 ##   fake_earned · fake_dismiss · fake_banner ok|fail
 ##   ensure                   MonetizationManager.ensure_rewarded()
+##
+## M8.9-02.2 (günlük ödüller / geçiş reklamı / onboarding — yalnız QA):
+##   onboarding 0|1           kayıt + yönetici onboarding bayrağı
+##   login DAYS_AGO STREAK    giriş ödülü durumu (gerçek yerel güne göre; -1 = yarın)
+##   dailyq FREE ADCHESTS DOUGH [POPUP_SEEN]  bugünkü günlük kotalar (0|1, 0..2, 0|1, 0|1)
+##   dayclock YYYY-MM-DD|none DailyRewards.clock_override (cihaz saati DEĞİŞMEZ)
+##   fresh                    yeni oyuncu kaydı (onboarding false) + Main yeniden
+##   relaunch                 Main'i aynı arka uçla yeniden kur (uygulama açılışı gibi)
+##   daily_open · daily_close · daily_reveal none|SKIN_ID [RARITY]   (reveal = yalnız sunum)
+##   clock SECONDS            aktif süre saatine saniye enjekte (_tick_active)
+##   inter_block              hazır geçiş reklamını at + döngüyü bitmiş say (hazır değil yolu)
+##   fake_iload ok|fail · fake_ishowed · fake_ishow_fail · fake_idismiss
+##   bitir                    Devam penceresinde BİTİR (kod yolu; cihazda gerçek dokunuş tercih)
 
 const MAIN_SCENE: PackedScene = preload("res://scenes/main.tscn")
 const CMD_PATH: String = "user://qa_cmd.txt"
@@ -45,6 +58,8 @@ var _idle: String = "-"
 var _last: String = "-"
 var _finished_count: int = 0
 var _event_log: PackedStringArray = PackedStringArray()
+## Sahte arka uçta sonlandırılmış (dismiss/show_fail) geçiş gösterimi sayısı.
+var _fake_ishow_done: int = 0
 
 
 func _ready() -> void:
@@ -71,7 +86,8 @@ func _ready() -> void:
 
 func _on_event(name: StringName, event: Dictionary) -> void:
 	var extra: Array[String] = []
-	for key in ["placement", "power", "ad_id", "code", "message", "stale", "earned", "refreshed", "surface", "reward_type", "amount", "cancelled"]:
+	for key in ["placement", "power", "ad_id", "code", "message", "stale", "earned", "refreshed", "surface", "reward_type", "amount", "cancelled",
+			"natural_break", "reason", "eligible", "active_elapsed_sec", "day_key", "auto", "dough", "pending", "remaining", "kind", "source", "skin", "cooldown_sec"]:
 		if event.has(key):
 			extra.append("%s=%s" % [key, str(event[key])])
 	_event_log.append("%s %s %s" % [Time.get_time_string_from_system(), name, " ".join(extra)])
@@ -131,6 +147,15 @@ func _apply_showcase() -> void:
 	SaveManager.data["powerup_starter_granted"] = true
 	SaveManager.data["rewarded_power_date"] = ""
 	SaveManager.data["rewarded_power_grants"] = 0
+	# M8.9-02: mevcut (migrate edilmiş) oyuncu; günlük kotalar taze.
+	SaveManager.data["onboarding_completed"] = true
+	SaveManager.data["daily_rewards"] = SaveManager.DAILY_REWARDS_DEFAULT.duplicate()
+
+
+## Yerel takvimde bugünden `days` gün önce (negatif = ileri).
+func _days_ago(days: int) -> String:
+	var unix: int = Time.get_unix_time_from_datetime_string(Time.get_date_string_from_system() + "T12:00:00") - days * 86400
+	return Time.get_date_string_from_unix_time(unix).substr(0, 10)
 
 
 func _make_main(backend: AdBackend) -> void:
@@ -220,6 +245,7 @@ func _handle(line: String) -> void:
 			if kind == "fake":
 				_fake = FakeAdBackend.new()
 				_fake.status = AdBackend.ConsentStatus.NOT_REQUIRED
+				_fake_ishow_done = 0
 				_backend_kind = "fake"
 				await _make_main(_fake)
 			else:
@@ -263,10 +289,130 @@ func _handle(line: String) -> void:
 				_last = "fake_banner -> %s" % _fake.complete_banner_load(parts.size() > 1 and parts[1] == "ok")
 		"idle":
 			await _idle_probe(float(parts[1]) if parts.size() > 1 else 15.0)
+		# --- M8.9-02.2 ---
+		"onboarding":
+			var done: bool = parts.size() > 1 and parts[1] == "1"
+			if done:
+				SaveManager.complete_onboarding()
+			else:
+				SaveManager.data["onboarding_completed"] = false
+				SaveManager.save_game()
+			if _ads() != null:
+				_ads().set_onboarding_completed(done)
+			_main._show_tab(_main._active_tab)
+			await _settle()
+		"login":
+			var days: int = int(parts[1]) if parts.size() > 1 else 1
+			SaveManager.data["last_login_date"] = _days_ago(days) if days < 999 else ""
+			SaveManager.data["daily_streak"] = int(parts[2]) if parts.size() > 2 else 0
+			SaveManager.save_game()
+			_main._show_tab(_main._active_tab)
+			await _settle()
+		"dailyq":
+			var raw: Dictionary = SaveManager.DAILY_REWARDS_DEFAULT.duplicate()
+			var key: String = DailyRewards.day_key()
+			raw["day_key"] = key
+			raw["free_chest_claimed"] = parts.size() > 1 and parts[1] == "1"
+			raw["ad_chests_claimed"] = int(parts[2]) if parts.size() > 2 else 0
+			raw["dough_ad_claimed"] = parts.size() > 3 and parts[3] == "1"
+			raw["popup_seen_day"] = key if (parts.size() > 4 and parts[4] == "1") else ""
+			raw["last_seen_day_key"] = SaveManager.daily_last_seen_day_key()
+			SaveManager.data["daily_rewards"] = raw
+			SaveManager.save_game()
+			_main._show_tab(_main._active_tab)
+			await _settle()
+		"dayclock":
+			DailyRewards.clock_override = "" if (parts.size() < 2 or parts[1] == "none") else parts[1]
+			DailyRewards.observe_day()
+			_main._show_tab(_main._active_tab)
+			await _settle()
+		"fresh":
+			SaveManager.data = SaveManager.DEFAULT_DATA.duplicate(true)
+			SaveManager.data["powerup_starter_granted"] = false
+			SaveManager._grant_starter_powerups()
+			SaveManager.save_game()
+			await _remake_current()
+		"relaunch":
+			await _remake_current()
+		"daily_open":
+			_main.open_daily_rewards()
+			await _settle()
+		"daily_close":
+			_main._daily_rewards.close_popup()
+			await _settle()
+		"daily_reveal":
+			var reward := DailyChestReward.new()
+			reward.source = "free"
+			reward.day_key = DailyRewards.day_key()
+			reward.base_dough = DailyChestLoot.GUARANTEED_DOUGH
+			if parts.size() > 1 and parts[1] != "none":
+				reward.skin = SkinLibrary.find(StringName(parts[1]))
+				reward.skin_rolled = reward.skin != null
+				reward.rarity = int(reward.skin.rarity) if reward.skin != null else -1
+			if not _main._daily_rewards.visible:
+				_main.open_daily_rewards()
+				await _settle()
+			_main._daily_rewards.show_reveal(reward)
+			await _settle()
+		"clock":
+			if _ads() != null:
+				_ads()._tick_active(float(parts[1]) if parts.size() > 1 else 0.0)
+		"inter_block":
+			if _ads() != null:
+				_ads()._cancel_timer(_ads()._interstitial_retry_timer)
+				_ads()._interstitial_retry_timer = null
+				_ads()._discard_ready_interstitial()
+				_ads()._interstitial_attempts = MonetizationManager.INTERSTITIAL_MAX_ATTEMPTS
+				_ads()._interstitial_last_attempt_msec = Time.get_ticks_msec()
+				_ads()._set_interstitial_state(MonetizationManager.InterstitialState.FAILED)
+		"fake_iload":
+			if _fake != null:
+				_last = "fake_iload -> %s" % _fake.complete_interstitial_load(parts.size() > 1 and parts[1] == "ok")
+		"fake_ishowed":
+			if await _fake_ishow_pending():
+				_fake.emit_interstitial_showed(_fake.interstitial_shows[-1])
+		"fake_ishow_fail":
+			if await _fake_ishow_pending():
+				_fake_ishow_done = _fake.interstitial_shows.size()
+				_fake.emit_interstitial_show_failed(_fake.interstitial_shows[-1])
+		"fake_idismiss":
+			if await _fake_ishow_pending():
+				_fake_ishow_done = _fake.interstitial_shows.size()
+				_fake.emit_interstitial_dismissed(_fake.interstitial_shows[-1])
+		"bitir":
+			_main.decline_revive()
+			await _settle()
 		_:
 			print("[qa] bilinmeyen komut: ", line)
 	await get_tree().process_frame
 	_write_state(line)
+
+
+## Sahte arka uçta bir geçiş reklamı gösterim isteği bekler (round bitişi
+## RESULT_DELAY sonrası ister); yoksa false.
+func _fake_ishow_pending() -> bool:
+	if _fake == null:
+		return false
+	for i in 30:
+		if _fake.interstitial_shows.size() > _fake_ishow_done:
+			return true
+		await get_tree().create_timer(0.1).timeout
+	_last = "fake_ishow: gösterim isteği YOK"
+	return false
+
+
+## Main'i mevcut arka uç türüyle yeniden kurar (uygulama açılışı: _ready →
+## observe_day → giriş ödülü → otomatik pencere).
+func _remake_current() -> void:
+	if _backend_kind == "fake":
+		_fake = FakeAdBackend.new()
+		_fake.status = AdBackend.ConsentStatus.NOT_REQUIRED
+		_fake_ishow_done = 0
+		await _make_main(_fake)
+	else:
+		var real: AdmobBackend = AdmobBackend.create(AdConfig.load_project())
+		_fake = null
+		await _make_main(real)
 
 
 func _idle_probe(seconds: float) -> void:
@@ -315,28 +461,54 @@ func _write_state(label: String) -> void:
 			str(backend.is_consent_form_available()) if backend != null else "-",
 			str(ads.privacy_options_required()), ads.consent_attempts(), str(ads.has_pending_consent_retry())])
 		var req: Dictionary = ads.request_info()
-		lines.append("rewarded: state=%s ready=%s note='%s' attempts=%d retry=%s request={active=%s id=%d kind=%s type=%d token=%d ad_id=%s earned=%s cancelled=%s}" % [
+		lines.append("rewarded: state=%s ready=%s note='%s' attempts=%d retry=%s request={active=%s id=%d kind=%s type=%d token=%d day=%s ad_id=%s earned=%s cancelled=%s}" % [
 			MonetizationManager.RewardedState.keys()[ads.rewarded_state()], str(ads.is_rewarded_ready()),
 			ads.rewarded_note(), ads.rewarded_attempts(), str(ads.has_pending_rewarded_retry()),
 			str(req["active"]), req["id"], MonetizationManager.RewardedKind.keys()[req["kind"]], req["type"],
-			req["token"], req["ad_id"], str(req["earned"]), str(req["cancelled"])])
+			req["token"], str(req["day_key"]), req["ad_id"], str(req["earned"]), str(req["cancelled"])])
+		lines.append("interstitial: state=%s ready=%s ready_id=%s showing_id=%s eligible=%s active=%.1f cooldown=%.1f attempts=%d retry=%s shows=%d break_pending=%s onboarding=%s interval=%.0f cooldown_const=%.0f" % [
+			MonetizationManager.InterstitialState.keys()[ads.interstitial_state()], str(ads.is_interstitial_ready()),
+			ads.interstitial_ready_id(), ads.interstitial_showing_id(), str(ads.interstitial_eligible()),
+			ads.active_elapsed_sec(), ads.fullscreen_cooldown_sec(), ads.interstitial_attempts(),
+			str(ads.has_pending_interstitial_retry()), ads.interstitial_shows(), str(ads.break_pending()),
+			str(ads.onboarding_completed()), MonetizationManager.INTERSTITIAL_INTERVAL_SEC,
+			MonetizationManager.FULLSCREEN_AD_COOLDOWN_SEC])
 		lines.append("banner: state=%s ad_id=%s surface=%s slot_px=%d attempts=%d retry=%s uikit_slot=%d" % [
 			MonetizationManager.BannerState.keys()[ads.banner_state()], ads.banner_ad_id(),
 			MonetizationManager.Surface.keys()[ads.surface()], int(ads.banner_slot_px()), ads.banner_attempts(),
 			str(ads.has_pending_banner_retry()), int(UiKit.banner_slot())])
 		if _fake != null:
-			lines.append("fake: init=%d consent_updates=%d loads=%d shows=%s pending=%s banner_loads=%d banner_shows=%d hides=%d" % [
+			lines.append("fake: init=%d consent_updates=%d loads=%d shows=%s pending=%s banner_loads=%d banner_shows=%d hides=%d iloads=%d ishows=%s ipending=%s" % [
 				_fake.init_calls, _fake.consent_update_calls, _fake.rewarded_loads, str(_fake.rewarded_shows),
-				str(_fake.pending_rewarded), _fake.banner_loads, _fake.banner_shows.size(), _fake.banner_hides.size()])
+				str(_fake.pending_rewarded), _fake.banner_loads, _fake.banner_shows.size(), _fake.banner_hides.size(),
+				_fake.interstitial_loads, str(_fake.interstitial_shows), str(_fake.pending_interstitial)])
 	var b: Node2D = _board()
 	lines.append("board: exists=%s fail_pending=%s revives_used=%d remaining=%d refill_pending=%s finished=%s finished_count=%d tab=%d" % [
 		str(b != null), str(b != null and b.is_fail_pending()), b.revives_used() if b != null else -1,
 		b.revives_remaining() if b != null else -1, str(b != null and b.is_refill_pending()),
 		str(b != null and b.is_finished()), _finished_count, _main._active_tab])
-	lines.append("save: dough=%d stock=%s quota_remaining=%d grants_today=%d date=%s refill_token=%d pending_type=%d" % [
+	lines.append("save: dough=%d stock=%s quota_remaining=%d grants_today=%d date=%s refill_token=%d pending_type=%d onboarding=%s" % [
 		SaveManager.dough(), str(SaveManager.data.get("powerups", {})), RewardedPolicy.remaining_today(),
 		RewardedPolicy.grants_today(), str(SaveManager.data.get("rewarded_power_date", "")),
-		_main._refill_pending_token, _main._refill_pending_type])
+		_main._refill_pending_token, _main._refill_pending_type, str(SaveManager.onboarding_completed())])
+	var ds: Dictionary = DailyRewards.state()
+	lines.append("daily: day=%s clock_override='%s' last_seen=%s free_claimed=%s ad_chests=%d dough_ad=%s remaining=%d popup_seen=%s popup_due=%s clock_behind=%s login: date=%s streak=%d claimed_today=%s claimable=%s pending={kind=%s token=%d day=%s}" % [
+		ds["day_key"], DailyRewards.clock_override, ds["last_seen_day_key"], str(ds["free_chest_claimed"]),
+		ds["ad_chests_claimed"], str(ds["dough_ad_claimed"]), ds["remaining_total"], ds["popup_seen_day"],
+		str(DailyRewards.popup_due()), str(ds["clock_behind"]), SaveManager.last_login_date(),
+		SaveManager.daily_streak(), str(DailyReward.claimed_today()), str(DailyReward.is_claimable()),
+		_main._daily_pending_kind, _main._daily_pending_token, _main._daily_pending_day])
+	var dp: CanvasLayer = _main._daily_rewards
+	lines.append("dailypopup: visible=%s auto=%s revealing=%s login='%s|%s|%s' note='%s' free='%s' dough='%s' chest='%s' dough_note='%s' chest_note='%s' footnote='%s' free_disabled=%s dough_disabled=%s chest_disabled=%s pending=%s reveal_dough='%s' rects: free=%s dough=%s chest=%s continue=%s close=%s x=%s" % [
+		str(dp.visible), str(dp.is_auto_opened()), str(dp.is_revealing()), dp.login_day_text(), dp.login_reward_text(),
+		dp.login_chip_text(), dp.login_note_text(), dp.free_status_text(), dp.dough_status_text(), dp.chest_status_text(),
+		dp.dough_note_text(), dp.chest_note_text(), dp.note_text(), str(dp.free_button().disabled),
+		str(dp.dough_button().disabled), str(dp.chest_button().disabled), dp.pending_kind(), dp.reveal_dough_text(),
+		_rect_px(dp.free_button()), _rect_px(dp.dough_button()), _rect_px(dp.chest_button()),
+		_rect_px(dp.continue_button()), _rect_px(dp.close_button()), _rect_px(dp.frame().get_meta(&"close_button"))])
+	var shop: CanvasLayer = _main._screens[3]
+	lines.append("shop: daily_card_visible=%s status='%s' rects: open=%s" % [str(shop.daily_card().visible),
+		shop.daily_status_text(), _rect_px(shop.daily_button())])
 	var rv: CanvasLayer = _main._revive
 	var rf: CanvasLayer = _main._refill
 	lines.append("revive: visible=%s text='%s' cta_disabled=%s pending=%s provider_ready=%s note='%s' rects: continue=%s decline=%s" % [
@@ -352,7 +524,18 @@ func _write_state(label: String) -> void:
 		_rect_px(st.privacy_options_button()), _rect_px(st._close)])
 	lines.append("result: visible=%s pause: %s" % [str(_main._result.visible), str(_main._pause.visible)])
 	var home: CanvasLayer = _main._screens[0]
-	lines.append("home: play=%s settings=%s" % [_rect_px(home._play), _rect_px(home._settings_button)])
+	lines.append("home: play=%s settings=%s daily_medal=%s daily_dot=%s" % [_rect_px(home._play), _rect_px(home._settings_button),
+		_rect_px(home.feature_button(&"daily")), str(home.is_daily_claimable())])
+	var mapscr: CanvasLayer = _main._screens[1]
+	if mapscr.nodes().size() > 0:
+		var n1: Control = mapscr.nodes()[0]
+		lines.append("map: world=%s scale=%s crop=%.1f node1=%s plaque1=%s endless=%s" % [str(mapscr.world_rect()),
+			str(mapscr.world_scale()), mapscr.crop_top(), _rect_px(n1), _rect_px(n1._plaque), _rect_px(mapscr.endless_node())])
+	if b != null:
+		var lay: Dictionary = b.layout()
+		lines.append("gameplay: compact=%s zoom=%.3f board=%s banner=%s strip=%s seam=%s slot0=%s slot3=%s" % [str(lay.get("compact", false)),
+			b._camera_zoom, str(lay["board"]), str(lay["banner"]), _rect_px(b._hud.strip), _rect_px(b._hud.banner_seam),
+			_rect_px(b._hud.power_bar.slot(0)), _rect_px(b._hud.power_bar.slot(3))])
 	lines.append("last: %s" % _last)
 	lines.append("idle: %s" % _idle)
 	var tail: int = mini(_event_log.size(), 14)

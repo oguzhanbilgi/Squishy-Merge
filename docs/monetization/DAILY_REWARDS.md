@@ -207,6 +207,14 @@ değişirse pencere kabuğa dönünce açılır (oyun ortasında asla).
   (tek yazma, geri alınmaz) + `MonetizationManager.set_onboarding_completed(true)`
   → yuva hesaplanır, banner/ödüllü/geçiş yüklemeleri başlar, günlük pencere
   ve Mağaza kartı görünür. Tutorial UX'i bu milestone'da YOK.
+- **M8.10 ilk gün kuralı (owner kararı, YALNIZ DOKÜMAN — M8.9-02.2'de
+  uygulanmadı):** yeni oyuncu tutorial'ı bitirdiği takvim gününde günlük
+  pencere OTOMATİK açılmaz; otomatik günlük ödüller `complete_onboarding`
+  gününden SONRAKİ ilk uygun yerel günde başlar. Bugünkü davranış (cihazda
+  doğrulandı): `complete_onboarding` anında giriş +15 ve pencere hemen bir
+  kez gelir. Uygulama M8.10 tutorial işiyle birlikte; muhtemel dikiş:
+  `complete_onboarding` günün anahtarını `popup_seen_day` olarak yazar
+  (giriş +15 / kotalar o gün yine erişilebilir mi — owner kararı bekliyor).
 - **false iken bastırılanlar:** banner (yuva 0 — tam eski düzen, Harita ve
   oyun dahil), geçiş reklamı (yükleme yok, saat durur), otomatik günlük
   pencere, Mağaza GÜNLÜK ÖDÜLLER bölümü (gizli; pencere de açılmaz), Ana
@@ -222,10 +230,16 @@ değişirse pencere kabuğa dönünce açılır (oyun ortasında asla).
    tek pencere, eski giriş ödülü penceresi kaldırıldı (§6-§7).
 2. **Ödül callback'i reklam kapanmadan geliyor** (A36 gözlemi, ADS_SYSTEM §12):
    günlük reveal de reklam hâlâ üstteyken başlayabilir; veri doğru.
-3. A36 cihaz kapısı: gerçek test interstitial'ı doğal molada, gerçek banner
-   Harita/oyun, günlük reklamlı akış, arka plan/öne dönüş.
+3. ~~A36 cihaz kapısı~~ → **GEÇTİ (M8.9-02.2, 2026-09-22; ADS_SYSTEM §14):**
+   otomatik pencere tam bir kez + giriş +15 tam bir kez, madalyon/Mağaza aynı
+   pencere, ücretsiz sandık çift dokunuş tek transaction, gerçek test ödüllü
+   reklamla 2 sandık (biri gerçek skin kurası) + +150, kotalar bağımsız, gün
+   değişimi ve geri saat, onboarding false bastırması, gerçek test
+   interstitial'ı doğal molada. Owner görsel kontrolü PASS. Kanıt
+   `build/qa_m8.9-02.2/device/` (yerel).
 4. Üretim engelleri değişmedi: UMP sarmalayıcı boşluğu + #120, COPPA/TFCD/
    TFUA, gerçek AdMob kimlikleri (interstitial birimi dahil: artık 3 birim).
+5. **M8.10 ilk gün kuralı** (§9) — doküman; tutorial ile uygulanacak.
 
 ## 11. Testler
 
@@ -260,3 +274,10 @@ değişirse pencere kabuğa dönünce açılır (oyun ortasında asla).
 - `tools/monetization_test.tscn` — **191 kontrol** (yeni yüzeyler, interstitial
   kimliği fail-closed, 28 olay, onboarding yuva).
 - Görsel: `tools/daily_ads_shots.tscn` (§ ADS_SYSTEM §13).
+- Cihaz: `tools/ads_device.tscn` (QA paketi) — M8.9-02.2 komutları: `onboarding
+  0|1`, `login DAYS_AGO STREAK`, `dailyq FREE ADCHESTS DOUGH [SEEN]`, `dayclock
+  YYYY-MM-DD|none`, `fresh`, `relaunch`, `daily_open/close`, `daily_reveal
+  none|SKIN_ID` (yalnız sunum), `clock SEC`, `inter_block`, `fake_iload/ishowed/
+  ishow_fail/idismiss`; durum satırları `interstitial:` `daily:` `dailypopup:`
+  `shop:` `map:` `gameplay:`. Yalnız QA paketinde (üretim export'u `tools/*`
+  hariç).

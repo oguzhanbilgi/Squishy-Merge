@@ -1100,3 +1100,7 @@ pencere açmaz, **günlük giriş ödülü işlemi çalışmaz (kayıt mutasyonu
 Tutorial (M8.10) bitince `SaveManager.complete_onboarding()` (tek yazma) +
 `MonetizationManager.set_onboarding_completed(true)`; sonrasında reklamlar ve
 günlük pencere uygun olur. Tutorial UX'i bu milestone'da YOK.
+**İlk gün kuralı (owner kararı, M8.10'da uygulanacak — M8.9-02.2'de yalnız
+dokümante):** yeni oyuncu tutorial'ı bitirdiği takvim gününde günlük pencere
+OTOMATİK açılmaz; otomatik günlük ödüller tutorial gününden SONRAKİ ilk uygun
+yerel günde başlar (bugünkü kod: tamamlanma anında bir kez açılır).

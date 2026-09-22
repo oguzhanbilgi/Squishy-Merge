@@ -840,7 +840,27 @@ alınacak — şimdi tahmin/vaat yok.
     pencere; onboarding false iken `DailyReward.claim_if_new_day` kaydı HİÇ
     değiştirmiyor (Hamur/seri/tarih); Legendary reveal halesi kırpılmıyor.
     daily_rewards_test 134, secondary_modal 100, home_ui 208; tam gate yeşil.
-    Sıradaki: owner/ChatGPT incelemesi → A36 cihaz kapısı (ayrı adım).
+    **A36 cihaz kapısı (M8.9-02.2, 2026-09-22) GEÇTİ, runtime değişmedi:**
+    SM-A366B / Android 16 / 1080×2340 / 120 Hz, resmî Google TEST kimlikleri,
+    üretim APK'sı 6bfa97f ağacından byte-identical (`356b0501…`), ayrı QA
+    paketi (`tools/ads_device` + M8.9-02.2 QA komutları; üretimde yok).
+    Doğrulanan: otomatik GÜNLÜK ÖDÜLLER penceresi açılışta TAM BİR KEZ + giriş
+    +15 tam bir kez (madalyon/Mağaza aynı pencere, ikinci +15 yok), ücretsiz
+    sandık çift dokunuş tek transaction, gerçek test ödüllü reklamla 2 sandık
+    (biri gerçek skin kurası) + +150 tam, kotalar ALINDI/BUGÜNLÜK BİTTİ ve
+    refill/devam'dan bağımsız, Efsanevi reveal halesi pencerede, Harita banner'ı
+    (Level 1 OYNA plakası banner'ın 146 px üstünde) ve oyun banner'ı (hiçbir
+    etkileşimli öğeyi örtmüyor, dokunuşlar Godot'a ulaştı), banner yaşam
+    döngüsü tek AdView / sonuçta gizli, **gerçek test interstitial'ı doğal
+    molada** (900 sn → uygun; BİTİR → reklam → kapanış → Sonuç bir kez; saat
+    yalnız SDK gösteriminde sıfırlandı; 60 sn bekleme; uygun değil / bekleme /
+    hazır değil / gösterim hatası yollarında Sonuç hemen, uygunluk korundu),
+    ödüllü reklam ve arka planda saat durdu, yeni kayıtta tam bastırma, gün
+    değişimi/geri saat, logcat temiz (E/godot 0), PSS 431–501 MB ilerleyen
+    büyüme yok; owner görsel kontrolü 5/5 PASS; owner kaydı byte-identical.
+    Kanıt `build/qa_m8.9-02.2/` (yerel). Dal `task/034` push edildi, main'e
+    MERGE EDİLMEDİ (owner kararı bekliyor). M8.10 ilk gün kuralı yalnız
+    dokümante (DAILY_REWARDS §9).
 - **Sırada: M8.6 — Visual Cohesion Rebuild** (ekranlar `UiKit`/`UiTokens`
   sistemine geçirilecek: ~~gameplay shell~~ ✅ → ~~home~~ ✅ → ~~map~~ ✅ →
   ~~shop~~ ✅ → ~~collection~~ ✅ main'de → ~~ikincil UI denetimi~~ ✅ →
@@ -852,8 +872,9 @@ alınacak — şimdi tahmin/vaat yok.
   onaylı seslerin entegrasyonu~~ ✅ dal `task/032` → ~~M8.8-02.1 A36 cihaz
   kapısı~~ ✅ main'de (93aa25b) → ~~M8.9-01 AdMob temeli~~ ✅ → ~~M8.9-01.1 A36
   test-reklam kapısı~~ ✅ main'de (33b6382) → ~~M8.9-02 monetizasyon
-  genişletmesi + günlük ödüller~~ ✅ + ~~02.1 birleşik günlük pencere~~ ✅ dal
-  `task/034` (A36 kapısı bekliyor) →
+  genişletmesi + günlük ödüller~~ ✅ + ~~02.1 birleşik günlük pencere~~ ✅ +
+  ~~02.2 A36 cihaz kapısı~~ ✅ dal `task/034` (push edildi, merge kararı
+  owner'da) →
   M8.10 ilk açılış tutorial'ı (`onboarding_completed` dikişi hazır) →
   analitik sağlayıcı (`AdEvents`), ardından **M9 — Android export.**
   Ortam hazır (export template'leri, SDK,
@@ -927,8 +948,8 @@ alınacak — şimdi tahmin/vaat yok.
   alınabiliyor (100/120/160/180) ve stok 0 refill penceresi çalışıyor.
   Ödüllü kota **1/gün** olarak kilitli ama **AdMob SDK yok** — reklam CTA'sı
   sağlayıcı bağlanana kadar pasif. Gerçek para Güç Paketi hâlâ YOK.
-- **Ödüllü reklam sağlayıcısı BAĞLI (M8.9-01, A36'da TEST reklamıyla
-  doğrulandı; M8.9-02 genişletmesi cihazda henüz değil):** `MonetizationManager`
+- **Ödüllü reklam sağlayıcısı BAĞLI (M8.9-01 ve M8.9-02 genişletmesi A36'da
+  TEST reklamıyla doğrulandı):** `MonetizationManager`
   Main'e `set_rewarded_provider` ile takılıyor; Devam/Refill/GÜNLÜK ÖDÜLLER
   CTA'ları yalnız yüklü reklam varken aktif. **ÜRETİM ENGELLERİ (açık):** (A)
   eklenti v6.0 UMP `canRequestAds` / `getPrivacyOptionsRequirementStatus` /
@@ -961,10 +982,10 @@ alınacak — şimdi tahmin/vaat yok.
   shader/aura performans ölçümü M9'da.
 
 ## Next action
-Owner/ChatGPT: (1) `task/034` (M8.9-02 + 02.1) incelemesi — masaüstü çekimler
-`build/qa_m8.9-02/shots_cleanup/` — sonra A36 test-reklam cihaz kapısı (geçiş
-reklamı doğal molada, Harita/oyun banner'ı, birleşik günlük pencere + reklamlı
-akış) ve merge kararı; (2) eklenti UMP boşluğu kararı — küçük AAR yaması (3
+Owner/ChatGPT: (1) `task/034` (M8.9-02 + 02.1 + 02.2 A36 kapısı GEÇTİ, push
+edildi) için **merge kararı** — cihaz kanıtı `build/qa_m8.9-02.2/device/`
+(38 kare, notlar), masaüstü çekimler `build/qa_m8.9-02/shots_cleanup/`;
+(2) eklenti UMP boşluğu kararı — küçük AAR yaması (3
 sarmalayıcı + #120 `Number` düzeltmesi) mi, upstream PR mi (PRIVACY_CONSENT §4)
 — üretim öncesi şart; (3) COPPA / hedef kitle kararı (PRIVACY_CONSENT §6); (4)
 AdMob hesabı: uygulama kaydı, rewarded + banner + interstitial reklam birimi,
