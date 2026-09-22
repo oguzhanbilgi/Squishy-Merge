@@ -458,7 +458,9 @@ Kanıt: `build/qa_m8.10.1/` (yerel; çekimler + notlar).
 
 1. ~~A36 cihaz kapısı~~ → **GEÇTİ (M8.10.1, 2026-09-22; §12.1)**, owner
    görsel kontrolü PASS. Main'e birleştirme kararı owner'da.
-2. Üretim engelleri değişmedi (ADS_SYSTEM §11): UMP sarmalayıcı boşluğu +
-   `debug_geography` #120, COPPA/TFCD/TFUA kitle kararı, gerçek AdMob
-   kimlikleri (App ID + banner + ödüllü + geçiş).
+2. Üretim engelleri (ADS_SYSTEM §11): ~~UMP sarmalayıcı boşluğu +
+   `debug_geography` #120~~ (M9-01'de kodda kapandı, cihaz kapısı bekliyor),
+   COPPA/TFCD/TFUA kitle kararı, gerçek AdMob kimlikleri (App ID + banner +
+   ödüllü + geçiş). M9-01 tutorial'a ve onboarding rıza ertelemesine DOKUNMADI
+   (`tutorial_test` 199/199, latch testleri aynen).
 3. Tutorial metinleri yalnız Türkçe (v1 kapsamı; lokalizasyon non-goal).

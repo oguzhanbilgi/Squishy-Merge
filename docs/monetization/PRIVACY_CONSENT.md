@@ -1,20 +1,31 @@
-# PRIVACY_CONSENT.md — UMP rıza akışı ve gizlilik (M8.9-01)
+# PRIVACY_CONSENT.md — UMP rıza akışı ve gizlilik (M8.9-01 → M9-01)
 
-> Kanonik doküman. Reklam mimarisi: [ADS_SYSTEM.md](ADS_SYSTEM.md).
-> Kaynaklar (2026-09-21'de okundu): developers.google.com/admob/android/privacy,
-> …/privacy/api/reference/…/ConsentInformation, …/quick-start, …/test-ads,
-> …/deprecation; eklenti kaynağı `godot-admob` v6.0 (`AdmobPlugin.java`).
+> Kanonik doküman. Reklam mimarisi: [ADS_SYSTEM.md](ADS_SYSTEM.md); kitle /
+> COPPA: [AUDIENCE_DECISION.md](AUDIENCE_DECISION.md); Play hazırlığı:
+> [../ANDROID_RELEASE_CHECKLIST.md](../ANDROID_RELEASE_CHECKLIST.md).
+> Kaynaklar (2026-09-21 / 2026-09-22'de okundu): developers.google.com/admob/android/privacy,
+> …/privacy/api/reference/…/ConsentInformation, …/ConsentDebugSettings.DebugGeography,
+> …/privacy/release-notes, …/test-ads; eklenti kaynağı `godot-admob` v6.0.
+>
+> **M9-01 (2026-09-22):** eklenti boşluğu KODDA KAPANDI. `godot-admob` v6.0'a
+> küçük, deterministik bir yama (tools/admob_plugin) UMP'nin resmî
+> `canRequestAds()` / `getPrivacyOptionsRequirementStatus()` /
+> `showPrivacyOptionsForm()` çağrılarını ekledi ve `debug_geography` #120
+> hatasını (Long/Integer) düzeltti. İzin kapısı artık resmî `canRequestAds()`;
+> gizlilik seçenekleri resmî durum + resmî form. **Cihazda doğrulanmadı** —
+> M9-01'de telefon/ADB yok; EEA / NOT_EEA cihaz kapısı planı §8.
 
 ## 1. İlke
 
 - **SDK durumu tek gerçek.** Kendi GDPR/rıza önbelleğimiz yok; kayıt
-  dosyasına rıza yazılmaz. Google'ın uyarısı aynen uygulanır: "We don't
-  recommend that you check consent status in another way, such as the cache
-  in your app or a previously saved consent string."
-- Her uygulama açılışında `requestConsentInfoUpdate` (eklenti:
-  `update_consent_info`). Form gerekiyorsa SDK'nın formu gösterilir; reklam
-  yalnız izinden sonra istenir; Mobile Ads SDK **rıza tamamlanmadan
-  başlatılmaz** (Google: "ensure you do so before initializing").
+  dosyasına rıza yazılmaz. Google'ın uyarısı aynen uygulanır: rıza durumunu
+  uygulamanın önbelleğinden ya da saklanan rıza dizgesinden okuma.
+- Her uygulama açılışında (onboarding bittikten sonra, M8.10)
+  `requestConsentInfoUpdate` (eklenti: `update_consent_info`). Form
+  gerekiyorsa SDK'nın formu gösterilir; ardından **karar UMP
+  `canRequestAds()`'indir** (M9-01). Mobile Ads SDK ancak `canRequestAds()`
+  true iken başlatılır ve **her reklam yüklemesinden hemen önce yeniden
+  sorulur** (`MonetizationManager._request_permitted`).
 - Sonsuz bekleme yok: oyun rızayı beklemez, pencerelerde reklam CTA'sı
   pasif + gerçek sebep ("hazırlanıyor" / "şu anda kullanılamıyor").
 
@@ -24,128 +35,141 @@
 |---|---|---|
 | `UNAVAILABLE` | arka uç yok (masaüstü / eklenti yok / yapılandırma geçersiz) | hayır |
 | `CONSENT_CHECKING` | `update_consent_info` cevap bekliyor | hayır |
-| `CONSENT_FORM` | SDK "REQUIRED" dedi, form yükleniyor/gösteriliyor | hayır |
-| `ADS_ALLOWED` | `NOT_REQUIRED` ya da `OBTAINED` | evet → SDK başlatılır |
-| `ADS_NOT_ALLOWED` | `REQUIRED` (form yok / hata) ya da `UNKNOWN` | hayır; sınırlı yeniden deneme |
-| `ERROR_WITH_PREVIOUS_STATE` | update hatası, SDK'nın önceki oturumdan taşıdığı durum izin veriyor | evet |
+| `CONSENT_FORM` | SDK "REQUIRED" + form var: form yükleniyor/gösteriliyor | hayır |
+| `ADS_ALLOWED` | güncelleme başarılı ve `canRequestAds()` true | evet → SDK başlatılır |
+| `ADS_NOT_ALLOWED` | `canRequestAds()` false (rıza gerekli/alınmadı, form yok, önceki durum yok) | hayır; sınırlı yeniden deneme |
+| `ERROR_WITH_PREVIOUS_STATE` | güncelleme HATASI ama `canRequestAds()` true (önceki oturumun rızası) | evet |
 
-`ERROR_WITH_PREVIOUS_STATE` Google'ın ConsentInformation referansına dayanır:
-`getConsentStatus()` "defaults to the previous session's value until
-requestConsentInfoUpdate completes successfully", ve rehber "If an error
-occurs during the consent gathering process, check if you can request ads.
-The UMP SDK uses the consent status from the previous app session."
+`ERROR_WITH_PREVIOUS_STATE` Google'ın rehberine dayanır: hata olursa yine
+`canRequestAds()`'e bakılır; UMP önceki oturumun rıza durumunu kullanır. Yani
+**geçici bir ağ hatası geçerli bir önceki rızayı silmez** (testle:
+`monetization_test` "update HATASI + önceki geçerli rıza").
 
-Yeniden deneme: hata/izinsizlikte 30 s ve 120 s sonra birer güncelleme;
-sonra yalnız pencere açılışında (devam/refill) ve en az 20 s aralıkla bir
-güncelleme daha (ağ dönmüş olabilir). Spam yok.
+Yeniden deneme (M8.9 aynen): hata/izinsizlikte 30 s ve 120 s sonra birer
+güncelleme; sonra yalnız pencere açılışında (devam/refill/günlük) ve en az
+20 s aralıkla bir güncelleme daha. Spam yok. Kullanıcının gizlilik
+seçenekleri formunda verdiği ret için otomatik yeniden deneme YOK.
 
-## 3. Akış (eklenti API'siyle)
+## 3. Akış (eklenti API'siyle, M9-01)
 
 ```
 update_consent_info()
-  ├─ consent_info_updated ──► get_consent_status()
-  │      NOT_REQUIRED/OBTAINED → ADS_ALLOWED → initialize()
-  │      REQUIRED + is_consent_form_available() → load_consent_form()
-  │           ├─ consent_form_loaded → show_consent_form()
-  │           │      └─ consent_form_dismissed(err) → durum yeniden okunur
-  │           │            OBTAINED/NOT_REQUIRED → ADS_ALLOWED → initialize()
-  │           │            REQUIRED (hata/kapatma) → ADS_NOT_ALLOWED (+deneme)
-  │           └─ consent_form_failed_to_load → ADS_NOT_ALLOWED (+deneme)
-  │      REQUIRED + form yok / UNKNOWN → ADS_NOT_ALLOWED (+deneme)
-  └─ consent_info_update_failed ──► get_consent_status() (önceki oturum)
-         izin veriyorsa ERROR_WITH_PREVIOUS_STATE → initialize(); değilse ADS_NOT_ALLOWED
+  ├─ consent_info_updated
+  │      REQUIRED + is_consent_form_available() → load_consent_form → show_consent_form
+  │           └─ consent_form_dismissed / consent_form_failed_to_load → can_request_ads()
+  │      aksi hâlde → can_request_ads()
+  │           true  → ADS_ALLOWED → initialize()   (canRequestAds yeniden sorulur)
+  │           false → ADS_NOT_ALLOWED (+ sınırlı deneme)
+  └─ consent_info_update_failed → can_request_ads()   (form DENENMEZ)
+         true → ERROR_WITH_PREVIOUS_STATE → initialize();  false → ADS_NOT_ALLOWED (+ deneme)
+initialization_completed → her yükleme (ödüllü / geçiş / banner) ÖNCESİ can_request_ads()
+   false çıkarsa istek gitmez, durum ADS_NOT_ALLOWED (banner gizlenir)
 ```
 
-Test modunda (`is_real=false`) eklenti cihazın hash'ini UMP test cihazı
-olarak ekler; `android_export.cfg` → `[Debug] debug_geography` (örn. `eea`)
-ile bölge zorlanması AMAÇLANDI ama **v6.0'da çalışmıyor**: Java tarafı
-(`ConsentConfiguration.java`) değeri `instanceof Integer` ile kontrol ediyor,
-Godot GDScript int'ini `Long` olarak geçiriyor → `Invalid debug_geography
-type: Long` → coğrafya yok sayılır (A36 kapısında görüldü; upstream issue #120,
-2026-06-01, açık; v7.0 kaynağında `instanceof Number` ile düzeltilmiş ama v7.0
-Godot 4.7 hedefli). Sonuç: gerçek EEA cihazı olmadan rıza formu cihazda
-gösterilemiyor.
+Google ayrıca `requestConsentInfoUpdate()` çağrısından hemen sonra, önceki
+oturumun rızasıyla SDK'yı paralel başlatmaya izin veriyor. **Bilerek
+yapılmadı:** güncellemenin sonucu (başarı ya da hata) birkaç saniye içinde
+geliyor ve M8.9/M8.10'da cihazda doğrulanmış sıra korunuyor; hata yolu zaten
+önceki rızayı kullanıyor.
 
-## 4. Eklenti boşluğu: `canRequestAds` ve gizlilik seçenekleri
+Test modunda (DEBUG build) eklenti cihazın hash'ini UMP test cihazı olarak
+ekler (emülatörler otomatik test cihazıdır); `[Debug] debug_geography` yalnız
+**DEBUG build'de** uygulanır (M9-01: release'te `AdConfig` coğrafyayı daima
+boşaltır, eklenti cephesi `is_real` iken ve Java tarafı gerçek modda yok sayar
+— üç kilit). v6.0'daki #120 hatası (Java `instanceof Integer`, Godot `Long`
+gönderir → coğrafya sessizce yok sayılır) yama ile düzeldi (`instanceof Number`).
 
-`godot-admob` v6.0 sarmalayıcısı UMP'nin üç yeni API'sini sunmuyor:
-`canRequestAds()`, `getPrivacyOptionsRequirementStatus()`,
-`showPrivacyOptionsForm()` (ve `loadAndShowConsentFormIfRequired()`).
-Uygulanan eşdeğerler — hepsi SDK'dan türetilir, hiçbiri icat değildir:
+## 4. Eklenti: resmî UMP çağrıları (M9-01) ve geri düşüş
 
-| gereken | eşdeğer | dayanak |
+`addons/AdmobPlugin` = upstream v6.0 + `tools/admob_plugin/0001-…patch`
+(deterministik yeniden derleme ve doğrulama: `tools/admob_plugin/README.md`,
+`addons/AdmobPlugin/VERSION.md`). Upstream'de (v6.0, v7.0, `main`; 2026-09-22)
+bu üç çağrı YOK; #120 yalnız v7.0'da (Godot 4.7 hedefli) düzeltilmiş.
+
+| gereken (UMP) | eklenti (yamalı) | yönetici kullanımı |
 |---|---|---|
-| `canRequestAds()` | `update_consent_info` çağrıldıktan sonra `get_consent_status() ∈ {NOT_REQUIRED, OBTAINED}` | Referans: "Once requestConsentInfoUpdate is called, this method returns true when getConsentStatus returns NOT_REQUIRED or OBTAINED." Birebir aynı tanım. |
-| `loadAndShowConsentFormIfRequired()` | `REQUIRED and is_consent_form_available()` → `load_consent_form` → `show_consent_form` | UMP'nin eski (2.0) rehberindeki açık akış; aynı SDK metotları. |
-| `getPrivacyOptionsRequirementStatus() == REQUIRED` | rıza güncellemesi yapıldı **ve** `is_consent_form_available()` | GDPR/TCF mesajı yalnız düzenlenen bölgede form sunar; rıza alındıktan sonra form "değiştirmek için" kullanılabilir kalır (UMP 2.0 rehberi: OBTAINED iken formu yeniden sunma). Düzenlenmeyen bölgede form yok → satır gizli. |
-| `showPrivacyOptionsForm()` | `load_consent_form` → `show_consent_form` → kapanışta durum yeniden okunur; izin kalkarsa banner gizlenir, ödüllü "hazır" sayılmaz | aynı SDK formu |
+| `ConsentInformation.canRequestAds()` | `can_request_ads()` | izin kararı + SDK başlatma + her yükleme öncesi |
+| `getPrivacyOptionsRequirementStatus()` | `get_privacy_options_requirement_status()` → `"REQUIRED"`/`"NOT_REQUIRED"`/`"UNKNOWN"` | Ayarlar'daki "Gizlilik seçenekleri" satırı yalnız REQUIRED iken |
+| `UserMessagingPlatform.showPrivacyOptionsForm()` | `show_privacy_options_form()` → `privacy_options_form_dismissed` | satırın "Aç" butonu; kapanınca `canRequestAds()` yeniden |
+| `debug_geography` (int) | `instanceof Number` | yalnız DEBUG build |
 
-**Cihaz kapısı bulgusu (M8.9-01.1):** aynı Java dosyasındaki `debug_geography`
-Long/Integer hatası (#120) yüzünden EEA formu A36'da gösterilemedi; TR
-coğrafyasında NOT_REQUIRED → ADS_ALLOWED → SDK init sırası ve "Gizlilik
-seçenekleri" satırının gizli kalması doğrulandı. Eklentinin
-`load_consent_form` / `show_consent_form` / `consent_form_dismissed` yolu cihazda
-HİÇ çalışmadı; yalnız masaüstü sahte arka uç testleriyle kapsanıyor.
+**Geri düşüş (yamasız eklenti):** `AdmobBackend.has_privacy_api()` false
+dönerse (yamalı AAR'ın kaydettiği `privacy_options_form_dismissed` sinyali
+yoksa) yönetici M8.9'un SDK'dan türettiği eşdeğere düşer ve uyarı basar:
+`canRequestAds` ≡ güncelleme sonrası durum NOT_REQUIRED/OBTAINED (Google'ın
+tanımının kendisi); gizlilik seçenekleri ≡ güncelleme yapıldı + form var;
+form ≡ `load_consent_form` + `show_consent_form`. Release kapısı yamasız
+AAR'la yüklenebilir AAB üretmez (AAR SHA-256 kontrolü).
 
-**Açık nokta (unverified):** ABD eyalet düzenlemesi (CPRA vb.) mesajında
-UMP `getConsentStatus()` NOT_REQUIRED döner ve gizlilik seçenekleri
-yalnız `getPrivacyOptionsRequirementStatus()` ile REQUIRED olur;
-`isConsentFormAvailable()`'ın bu mesaj için true dönüp dönmediği cihazda
-doğrulanmadı. Bugünkü kapsam (Türkiye + AB odaklı v1) için GDPR eşdeğeri
-yeterli. Kesin çözüm seçenekleri (owner/ChatGPT kararı):
-
-1. Eklentiye üç küçük `@UsedByGodot` metot (`can_request_ads`,
-   `get_privacy_options_requirement_status`, `show_privacy_options_form`) +
-   #120 için `instanceof Number` düzeltmesini ekleyip AAR'ı v6.0 kaynağından
-   derlemek (fork; Gradle + JDK 17 + Android SDK bu makinede var) — bilerek
-   YAPILMADI (özel Android köprüsü / fork onayı gerekir). **Üretim öncesi
-   önerilen yol** — hem doğru privacy-options davranışı hem de rıza formunun
-   cihazda test edilebilmesi için.
-2. Aynı değişiklikleri upstream'e PR olarak göndermek ve 4.6 uyumlu bir
-   sürüm beklemek (v7.0 yalnız Godot 4.7).
-3. Mevcut eşdeğerle devam — v1 testleri için yeterli; ÜRETİM için 1 ya da 2
-   şart (Google'ın rehberi `getPrivacyOptionsRequirementStatus`'ü zorunlu
-   giriş noktası kararının kaynağı sayıyor).
+M8.9'un açık noktası kapandı: ABD eyalet mesajında rıza NOT_REQUIRED iken
+gizlilik seçenekleri REQUIRED olabiliyor — türetme bunu göremiyordu; resmî
+durum görüyor (`monetization_test` "ABD eyalet mesajı").
 
 ## 5. Ayarlar penceresi
 
-- **Gizlilik metni** güncellendi (eski metin "reklam yok" diyordu, artık
-  yanlış olurdu): hesap/sunucu/analitik yok; ilerleme cihazda; ödüllü,
-  banner ve geçiş (tam ekran) reklamları için Google AdMob (M8.9-02'de geçiş
-  reklamı eklendi); reklam SDK'sı reklam kimliği gibi cihaz verilerini
-  Google'ın politikasına göre işleyebilir; uygulama içi satın alma yok.
-  Metin `SettingsPanel.PRIVACY_TEXT` — kod ile aynı gerçeği anlatır.
-- **"Gizlilik seçenekleri" satırı** (`UiKit.settings_row("lock", …)` + "Aç"
-  butonu) yalnız `MonetizationManager.privacy_options_required()` true iken
-  görünür; sinyalle güncellenir. Görünmüyorsa yer de tutmaz (ayırıcı dahil).
-  Tasarım değişmedi (M8.6-08 kabuğu, aynı satır bileşeni).
+- **Gizlilik metni** (`SettingsPanel.PRIVACY_TEXT`, değişmedi): hesap/sunucu/
+  analitik yok; ilerleme cihazda; ödüllü, banner ve geçiş reklamları için
+  Google AdMob; reklam SDK'sı reklam kimliği gibi cihaz verilerini Google'ın
+  politikasına göre işleyebilir; uygulama içi satın alma yok. Bu bir ÖZET;
+  Play'in istediği tam gizlilik politikası değildir (§6).
+- **"Gizlilik seçenekleri" satırı** (`lock`): yalnız
+  `MonetizationManager.privacy_options_required()` true iken görünür — M9-01:
+  UMP `getPrivacyOptionsRequirementStatus() == REQUIRED`. "Aç" →
+  `showPrivacyOptionsForm()`. Google: REQUIRED iken görünür bir giriş noktası
+  ZORUNLU, değilse gizli.
+- **"Gizlilik politikası" satırı** (`help`, M9-01, YENİ ama bugün GİZLİ):
+  project.godot `squishy/privacy/policy_url` bir `https://` adresiyse görünür,
+  "Aç" → `OS.shell_open(url)`. Boşken satır hiç görünmez (sahte bağlantı yok).
+  URL owner'da; release kapısı boş/https-dışı URL'le yüklenebilir AAB
+  üretmez. Görsel olarak cihazda henüz görülmedi (URL yok).
 
-## 6. Owner / ChatGPT politika kararları (bekliyor)
+## 6. Owner / Play politika kararları
 
-Kod tahmin ETMEDİ; eklenti/SDK varsayılanlarında bırakıldı:
-
-| ayar | şimdi | soru |
+| konu | durum | nerede |
 |---|---|---|
-| `setTagForChildDirectedTreatment` (COPPA, TFCD) | UNSPECIFIED | Play Console "Hedef kitle ve içerik" beyanı ne olacak? Uygulama çocuklara yönelik mi, karma mı, 13+ mi? Çocuklara yönelik/karma ise TFCD=TRUE + Families politikası (kişiselleştirilmiş reklam yok, sertifikalı ağlar); 13+ ise FALSE. Proje dokümanı "casual geniş kitle" diyor, çocuk hedefi belirtmiyor — açık karar gerek. |
-| `setTagForUnderAgeOfConsent` (TFUA, AB) | UNSPECIFIED | Aynı kararın AB karşılığı. Google 25.3.0'da her ikisini tek `setAgeRestrictedTreatment()` altında topladı (eklenti 24.9.0'da eski API). |
-| `max_ad_content_rating` | **G** (eklenti varsayılanı; en muhafazakâr) | Kawaii tema için uygun görünüyor; onaylanmalı. |
-| Privacy & messaging | yok | AdMob konsolunda GDPR mesajı (zorunlu, AB/UK/CH) + gerekirse US state mesajı; "Gizlilik seçenekleri" davranışı buna bağlı (§4). |
-| Reklam birimleri | yok (yalnız Google test birimleri) | rewarded + adaptive banner + **interstitial** (M8.9-02) — üç birim; onboarding bitmeden hiçbir reklam istenmez (DAILY_REWARDS §9). |
-| Play Data safety | yok (M10) | GMA SDK'nın veri beyanı + AD_ID izni; WAKE_LOCK/FOREGROUND_SERVICE geçişli bağımlılıklardan (ADS_SYSTEM §9). |
-| Gizlilik politikası URL'i | yok (M10) | Metin AdMob kullanımını ve reklam kimliğini anmalı. |
+| Kitle / COPPA / TFCD / TFUA / içerik derecesi | **KARAR BEKLİYOR** | [AUDIENCE_DECISION.md](AUDIENCE_DECISION.md) |
+| AdMob Privacy & messaging: GDPR (EEA/UK/CH) mesajı | owner, AdMob konsolu — kişiselleştirilmiş reklam için sertifikalı CMP (UMP) mesajı gerekli; mesaj yoksa bu bölgelerde sınırlı reklam | checklist §E |
+| ABD eyalet mesajı | isteğe bağlı araç (yasal uyum owner'da); yoksa sınırlı veri işleme seçeneği | checklist §E |
+| Gerçek reklam birimleri (App ID + 3 birim) | owner, AdMob konsolu | ADS_SYSTEM §8 |
+| Gizlilik politikası URL'i | owner barındırır (Play: konsolda VE uygulama içinde) | checklist §B, §5 |
+| Play Data safety | owner, Play Console | [../DATA_SAFETY_INVENTORY.md](../DATA_SAFETY_INVENTORY.md) |
 
-## 7. Cihaz kapısı sonrası durum (M8.9-01.1, A36, 2026-09-21)
+## 7. Cihaz doğrulama durumu
 
-Doğrulandı: TR'de `NOT_REQUIRED` → `ADS_ALLOWED` → SDK init sırası; rıza
-çözülmeden reklam istenmedi; Ayarlar'da gizlilik satırı gizli; gerçek SDK ile
-ödül→kapanış sinyal sırası (ödül önce, reklam hâlâ üstteyken), arka plana
-gidip dönüşte tek kapanış; banner nav bar üstü hizası (inset B=0, jest
-gezinme) ve yuva ölçüsü (168 px ↔ 169,5 px).
+**M8.9-01.1 (A36, TR):** `NOT_REQUIRED` → `ADS_ALLOWED` → SDK init sırası;
+rıza çözülmeden reklam istenmedi; Ayarlar'da gizlilik satırı gizli; ödül →
+kapanış sinyal sırası; banner yuvası. **M8.10.1:** onboarding'e kadar UMP 0
+satır, kabukta tek güncelleme.
 
-Doğrulanmadı / doğrulanamaz (üretim engeli olarak açık):
-- Gerçek UMP formu ve `consent_form_dismissed` sonrası durum — v6.0 #120
-  (debug_geography uygulanamıyor); gerçek EEA cihazı yok.
-- Uçak modunda `consent_info_update_failed` → önceki durum — owner'ın günlük
-  telefonunda ağ kapatılmadı; masaüstü sahte testlerle kapsanıyor.
-- `getPrivacyOptionsRequirementStatus` eşdeğerinin ABD eyalet mesajıyla
-  davranışı (§4).
+**M9-01 (masaüstü, deterministik):** `canRequestAds` kapısı, hata + önceki
+rıza, hata + rıza yok, form sonrası karar, istek öncesi yeniden sorgu (kayma),
+her karede sorulmama, gizlilik seçenekleri resmî durum/form/ret/yeniden
+izin/form hatası, ABD eyalet mesajı, yamasız geri düşüş, debug coğrafyası üç
+kilidi, AAR bytecode'unda yeni çağrılar (`monetization_test`,
+`release_config_test`).
+
+**Cihazda HENÜZ doğrulanmadı (M9-01'de telefon/ADB yok):** gerçek EEA formu,
+gerçek `canRequestAds()` değerleri, gerçek gizlilik seçenekleri formu, yamalı
+AAR'ın cihazda yüklenmesi. Plan §8.
+
+## 8. EEA / NOT_EEA cihaz kapısı planı (owner onayıyla, sonraki adım)
+
+Telefonun gerçek coğrafyası DEĞİŞMEZ: DEBUG build'de UMP debug coğrafyası +
+test cihazı (eklenti cihazın hash'ini otomatik ekler; emülatörde de çalışır).
+Sürücü: `tools/ads_device.tscn` (ayrı QA paketi, `…squishymerge.qa`, owner
+kaydına dokunmaz) — durum satırı `ump: api=… can_request_ads=…
+privacy_status=…`, `ads: state=… privacy_required=…`.
+
+| adım | komut | beklenen |
+|---|---|---|
+| 1 | `reset_consent` → `remake real eea` | Google örnek uygulamasının GDPR formu açılır; `ads: state=CONSENT_FORM` |
+| 2 | formda "Kabul" | `consent_form_dismissed` → `can_request_ads=true` → `ADS_ALLOWED`, SDK init, test banner/ödüllü |
+| 3 | `reset_consent` → `remake real eea` → formda "Reddet"/"Yönet" | `can_request_ads` UMP'nin verdiği değer; reklam kararı ona göre (sınırlı reklam) |
+| 4 | Ayarlar | `privacy_status=REQUIRED` → "Gizlilik seçenekleri" satırı GÖRÜNÜR |
+| 5 | satır → Aç (gerçek dokunuş) ya da `privacy` | gizlilik seçenekleri formu açılır; kapanınca `can_request_ads` yeniden okunur |
+| 6 | `reset_consent` → `remake real not_eea` | form YOK, `NOT_REQUIRED`, `privacy_status=NOT_REQUIRED`, satır GİZLİ, reklam izinli |
+| 7 | `remake real` (coğrafya yok, TR) | M8.9 davranışı aynen |
+| 8 | üretim biçimli TEST-reklam APK'sı | yamalı AAR yüklü (`api=true`), logcat'te `Invalid debug_geography` YOK |
+
+Kısıt: yalnız Google test kimlikleri; canlı reklama tıklama yok; owner'ın
+günlük telefonunda güvenlik kontrolleri (A36 kapı kuralları) ve kayıt yedeği.

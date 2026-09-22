@@ -257,8 +257,11 @@ değişirse pencere kabuğa dönünce açılır (oyun ortasında asla).
    değişimi ve geri saat, onboarding false bastırması, gerçek test
    interstitial'ı doğal molada. Owner görsel kontrolü PASS. Kanıt
    `build/qa_m8.9-02.2/device/` (yerel).
-4. Üretim engelleri değişmedi: UMP sarmalayıcı boşluğu + #120, COPPA/TFCD/
-   TFUA, gerçek AdMob kimlikleri (interstitial birimi dahil: artık 3 birim).
+4. Üretim engelleri: ~~UMP sarmalayıcı boşluğu + #120~~ (M9-01'de kodda
+   kapandı, cihaz kapısı bekliyor), COPPA/TFCD/TFUA (AUDIENCE_DECISION.md),
+   gerçek AdMob kimlikleri (interstitial birimi dahil: 3 birim) — tam liste
+   ../ANDROID_RELEASE_CHECKLIST.md. Kotalar / loot / pencere / geçiş politikası
+   M9-01'de DEĞİŞMEDİ.
 5. ~~**M8.10 ilk gün kuralı**~~ → **UYGULANDI + A36 kapısı GEÇTİ**
    (M8.10.1, 2026-09-22; §9, [../TUTORIAL_SYSTEM.md](../TUTORIAL_SYSTEM.md)
    §12.1). Main'e birleştirme kararı owner'da.

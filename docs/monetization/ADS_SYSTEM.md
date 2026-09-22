@@ -21,7 +21,18 @@
 >
 > **Durum (2026-09-22):** M8.9-01 temeli (ödüllü devam/refill + banner + UMP)
 > A36'da doğrulandı ve main'de (33b6382); **M8.9-02 de main'de (9561a4c,
-> ff-only, push edildi).** **M8.9-02** (owner kararı): Harita +
+> ff-only, push edildi).**
+>
+> **M9-01 (2026-09-22, dal `task/036-production-release-readiness`, main'e
+> alınmadı):** eklentinin UMP boşluğu + #120 KODDA kapandı (v6.0 + yama,
+> deterministik yeniden derleme — `tools/admob_plugin/`); izin kapısı UMP
+> `canRequestAds()` (SDK başlatma + her yükleme öncesi); gizlilik seçenekleri
+> resmî durum/form; kimlikleri BUILD TÜRÜ seçer (debug = yalnız Google test,
+> release = dört gerçek kimlik, fail-closed); `[Audience]` dikişi; release
+> kapısı + pipeline (`tools/release/`, §9). **Hâlâ üretime hazır DEĞİL:**
+> kitle kararı, gerçek kimlikler, upload anahtarı, paket kimliği, gizlilik
+> politikası URL'i owner'da; yamalı AAR cihazda henüz doğrulanmadı
+> (PRIVACY_CONSENT §8). **M8.9-02** (owner kararı): Harita +
 > oyun banner'ı, geçiş reklamı (900 sn aktif süre, yalnız round bitişi molası,
 > 60 sn tam ekran beklemesi), günlük ödüller (ücretsiz sandık 1/gün, reklamlı
 > sandık 2/gün, reklamlı +150 Hamur 1/gün), otomatik günlük pencere, Mağaza
@@ -53,7 +64,7 @@ kaldı; skinler asla reklam/paraya bağlı değil.
 |---|---|
 | Eklenti | `godot-sdk-integrations/godot-admob` **v6.0** (2026-02-01), tag commit `90e3c616ea3c680e3875c31e6bcccffbebbe9d3b` |
 | Lisans | MIT (`addons/AdmobPlugin/LICENSE`) |
-| Kurulum | AssetLib ile aynı release zip'i (`AdmobPlugin-Android-v6.0.zip`, SHA-256 `9ec26002…973f24`) `addons/AdmobPlugin/` altına kopyalandı, kaynak DEĞİŞTİRİLMEDİ; ayrıntı `addons/AdmobPlugin/VERSION.md` |
+| Kurulum | AssetLib ile aynı release zip'i (`AdmobPlugin-Android-v6.0.zip`, SHA-256 `9ec26002…973f24`) `addons/AdmobPlugin/` altına kopyalandı (M8.9-01). **M9-01:** tek kaynak yaması `tools/admob_plugin/0001-ump-privacy-options-and-debug-geography.patch` (3 dosya, +73/−2: `can_request_ads` / `get_privacy_options_requirement_status` / `show_privacy_options_form` + #120 `instanceof Number`); iki AAR + `Admob.gd` upstream derleme betikleriyle yeniden üretildi (`build_patched_plugin.sh verify` → BYTE-IDENTICAL); ayrıntı `addons/AdmobPlugin/VERSION.md` |
 | Godot uyumu | eklenti `godot-lib 4.6.stable` ile derlendi; v7.0 (2026-05-27) **Godot 4.7 beta1** hedefli ve bakımcı issue #122'de "4.6.x için v6.0 kullanın" diyor → v6.0 |
 | Google Mobile Ads SDK | `com.google.android.gms:play-services-ads:24.9.0` (eklentinin export'ta eklediği Maven bağımlılığı). Google'ın "Mobile Ads SDK (Legacy)" hattı; 24.x **Supported**, deprecation 2027-06-30, sunset 2028-06-30 (deprecation sayfası) |
 | UMP SDK | `com.google.android.ump:user-messaging-platform:3.2.0` (play-services-ads-api 24.9.0 POM'undan geçişli) |
@@ -104,17 +115,20 @@ AdConfig (scripts/ads/ad_config.gd)  — android_export.cfg → is_real + kimlik
 Özet (ayrıntı PRIVACY_CONSENT.md):
 
 ```
-_ready → CONSENT_CHECKING (update_consent_info)
-   ├─ NOT_REQUIRED / OBTAINED ─────────────────────→ ADS_ALLOWED → MobileAds.initialize
-   ├─ REQUIRED + form var → CONSENT_FORM (load→show) → kapanış → durum yeniden okunur
-   ├─ REQUIRED + form yok / UNKNOWN ────────────────→ ADS_NOT_ALLOWED (+ sınırlı yeniden deneme)
-   └─ update HATASI → SDK'nın önceki oturum durumu:
-        izin veriyorsa ERROR_WITH_PREVIOUS_STATE (reklam istenir), vermiyorsa ADS_NOT_ALLOWED
-initialization_completed → sdk_ready → ödüllü önyükleme + banner senkronu
+onboarding tamam (M8.10) → CONSENT_CHECKING (update_consent_info)
+   ├─ REQUIRED + form var → CONSENT_FORM (load→show) → kapanış → canRequestAds()
+   ├─ başarı → canRequestAds() true → ADS_ALLOWED → MobileAds.initialize
+   │           canRequestAds() false → ADS_NOT_ALLOWED (+ sınırlı yeniden deneme)
+   └─ update HATASI → canRequestAds() (önceki oturumun rızası):
+        true → ERROR_WITH_PREVIOUS_STATE (reklam istenir), false → ADS_NOT_ALLOWED
+initialization_completed → sdk_ready → ödüllü + geçiş önyükleme + banner senkronu
+her yükleme (ödüllü / geçiş / banner) ve SDK başlatma ÖNCESİ canRequestAds() yeniden
 ```
 
-Reklam yalnız `ads_allowed() and sdk_ready` iken istenir. Oyun rızayı
-BEKLEMEZ (spinner yok): Ana Sayfa normal açılır, form üstte belirir.
+M9-01: karar resmî UMP `canRequestAds()` (yamalı eklenti); eklenti sunmuyorsa
+M8.9 türetmesi + uyarı (PRIVACY_CONSENT §4). Reklam yalnız `ads_allowed() and
+sdk_ready` iken VE istek anında `canRequestAds()` true iken istenir. Oyun
+rızayı BEKLEMEZ (spinner yok): Ana Sayfa normal açılır, form üstte belirir.
 
 ## 5. Ödüllü reklam durum makinesi
 
@@ -247,17 +261,36 @@ Sağlayıcı YOK (sonraki milestone). `AdEvents.emit(name, ctx)`; abone
   `…/9214589741`, **interstitial `…/1033173712`** — M8.9-02). Eklentinin kendi
   varsayılan banner kimliği (`…/2014213617`) Google'ın *katlanabilir* banner
   örneğidir, kullanılmıyor.
+- **M9-01 — kimlikleri BUILD TÜRÜ seçer** (`AdConfig.current_build_type()` =
+  `OS.is_debug_build()`; elle çevrilen bayrak değil):
+  - **DEBUG build** (editör, headless testler, debug APK, QA paketi): YALNIZ
+    `[Debug]` Google örnek kimlikleri. Orada Google örnek yayıncısı
+    (`ca-app-pub-3940256099942544`) dışında bir kimlik varsa yapılandırma
+    GEÇERSİZ → reklam yok. Debug/QA build'i hiçbir koşulda canlı birim
+    isteyemez; `[General] is_real=true` olsa bile.
+  - **RELEASE build:** YALNIZ `[Release]` + `is_real=true`. Dört kimlik de
+    dolu, biçimli (`ca-app-pub-<16>~<10>` / `…/<10>`), Google örneği değil, aynı
+    yayıncıdan, birim kimlikleri birbirinden farklı olmalı; tek sorun bile →
+    GEÇERSİZ → `AdmobBackend.create` null → reklam HİÇ yok (fail-closed; test
+    kimliğine sessiz düşüş yok).
+  - Tek doğrulayıcı `AdConfig.problems()`; export anında
+    `addons/squishy_ads_export` export'un türüyle doğrular; release kapısı
+    (§9) aynı listeyi OWNER engeli olarak raporlar.
 - **Üretim adımı (owner):** AdMob konsolunda uygulama + **3 reklam birimi**
-  (rewarded, banner, interstitial) oluştur → `[Release]` anahtarlarını doldur →
-  `is_real=true`. `AdConfig.is_valid()` gerçek modda boş/örnek kimlik görürse
-  (dört kimlikten herhangi biri) reklamı HİÇ başlatmaz (sessiz test kimliğine
-  düşüş yok). Test cihazları:
-  `is_real=false` iken eklenti cihazın hash'ini otomatik test cihazı yapar;
-  gerçek modda `Admob.test_device_hashed_ids` gerekir (henüz bağlı değil).
-- `[Debug] debug_geography = eea | regulated_us_state | other | disabled`
-  (yalnız test modunda; A36 kapısında rıza formunu görmek için `eea`).
-- Kitle/içerik: `max_ad_content_rating = G`; TFCD / TFUA **UNSPECIFIED** —
-  owner politika kararı bekliyor (PRIVACY_CONSENT §6).
+  (rewarded, banner, interstitial) → `[Release]` dört anahtar → `is_real=true`.
+  Kimlikler sır değildir (her APK'da görünür). Manifest `APPLICATION_ID`'yi
+  eklentinin export kancası `is_real`'e göre seçer: debug export'ta
+  `is_real=true` ise gerçek App ID + test birimleri (Google'ın geliştirme
+  önerisi), release export'ta gerçek App ID.
+- `[Debug] debug_geography = eea | not_eea | regulated_us_state | other |
+  disabled` — **yalnız DEBUG build'de uygulanır** (`effective_debug_geography()`;
+  release'te daima boş; eklenti cephesi `is_real` iken ve Java tarafı gerçek
+  modda da yok sayar). `not_eea` → UMP `OTHER` (NOT_EEA 3.1'de kullanımdan
+  kalktı). QA kancası: `tools/ads_device` `remake real eea|not_eea`
+  (`AdConfig.set_debug_geography`, release'te reddedilir).
+- **Kitle/içerik (M9-01 `[Audience]`):** `decision=""`, TFCD / TFUA
+  `unspecified` (gönderilmez), `max_ad_content_rating = G` — M8.9 değerleri,
+  owner kararı bekliyor ([AUDIENCE_DECISION.md](AUDIENCE_DECISION.md)).
 
 ## 9. Android / export
 
@@ -288,10 +321,32 @@ Sağlayıcı YOK (sonraki milestone). `AdEvents.emit(name, ctx)`; abone
   `build/squishy_merge_m8.9-01_testads_debug.apk` (yerel, gitignore'lu), 1267
   girdi, `assets/addons/AdmobPlugin/android_export.cfg` paketli, `scripts/ads/*.gdc`
   ve eklenti `.gdc`'leri içinde; sızıntı 0.
+- **M9-01 release hattı** (ayrıntı [../ANDROID_RELEASE_CHECKLIST.md](../ANDROID_RELEASE_CHECKLIST.md)):
+  yerel presetler `Android` (debug TEST-reklam APK, değişmedi) · `Android
+  Release AAB` (imzalı AAB, anahtar yalnız `GODOT_ANDROID_KEYSTORE_RELEASE_*`
+  ortam değişkenlerinden) · `Android AAB NOT FOR UPLOAD` (imzasız); tek
+  kaynaklar project.godot `[squishy]` (paket kimliği, versionCode, gizlilik
+  URL'i) + `application/config/version` (versionName). Kapı
+  `tools/release/release_readiness.gd` (tek doğrulayıcı) üç yerden:
+  `tools/release/release_android.sh check|aab|non-publishable-aab|debug-apk`,
+  `addons/squishy_release` (Godot release export'unda engel varsa Gradle'ı
+  kendini anlatan çözülemeyen bir bağımlılıkla bilerek düşürür — Godot 4.6.3'te
+  export eklentisi export'u veto edemiyor) ve `tools/release_config_test`.
+  Çıktı taraması `tools/release/scan_artifact.py`.
 
 ## 10. Testler
 
-- `tools/daily_rewards_test.tscn` (**111**) ve `tools/interstitial_test.tscn`
+- **M9-01:** `tools/monetization_test.tscn` **248** (222 → +26: `canRequestAds`
+  kapısı — durum yerine SDK, mesaj yok, hata + önceki rıza, hata + rıza yok,
+  form sonrası karar, istek öncesi yeniden sorgu/kayma, her karede sorulmama;
+  gizlilik seçenekleri resmî durum/form/ret/yeniden izin/form hatası/geç sinyal,
+  ABD eyalet mesajı, yamasız geri düşüş; build türü yapılandırması) ve yeni
+  `tools/release_config_test.tscn` **106** (debug/release kimlik kuralları,
+  debug coğrafyası kilitleri + EEA/NOT_EEA kancaları, kitle eşlemesi,
+  ReleaseReadiness kuralları + bugünkü proje BLOCKED, sır hijyeni, UMP
+  sarmalayıcıları arayüz düzeyinde, commit edilmiş AAR bytecode'u, gizlilik
+  politikası satırı).
+- `tools/daily_rewards_test.tscn` (**111** → M8.10'da 179) ve `tools/interstitial_test.tscn`
   (**60**) — M8.9-02; kapsam DAILY_REWARDS §11.
 - `tools/monetization_test.tscn` — **191 kontrol** (M8.9-01: 181; M8.9-02: +
   interstitial kimliği fail-closed, 28 olay, yeni banner yüzeyleri, onboarding
@@ -362,11 +417,11 @@ Kanıt: `build/qa_m8.9-01/device/DEVICE_GATE_NOTES.md` (yerel, gitignore'lu) +
    reklam birimleri, Privacy & messaging'de GDPR (ve gerekiyorsa US state)
    mesajı. Bunlar olmadan üretim kimliği/rıza mesajı yok — bkz. §8.
 2. **Kitle/COPPA:** PRIVACY_CONSENT §6.
-3. **Eklenti boşluğu (ÜRETİM ENGELİ):** v6.0 UMP'nin `canRequestAds()` /
-   `getPrivacyOptionsRequirementStatus()` / `showPrivacyOptionsForm()`'unu
-   sarmaz VE `debug_geography` cihazda uygulanamıyor (upstream #120, Long/Integer);
-   eşdeğer türetme ve seçenekler PRIVACY_CONSENT §4. Üretim öncesi küçük bir
-   eklenti yaması (AAR yeniden derleme) ya da upstream PR kararı gerekiyor.
+3. ~~**Eklenti boşluğu (ÜRETİM ENGELİ)**~~ → **M9-01'de KODDA KAPANDI:** v6.0 +
+   küçük yama (üç UMP çağrısı + #120), AAR deterministik yeniden derlendi,
+   yönetici resmî değerleri kullanıyor (PRIVACY_CONSENT §4). **Açık kalan:**
+   yamalı AAR'ın cihaz kapısı (EEA / NOT_EEA / gizlilik seçenekleri formu —
+   PRIVACY_CONSENT §8) ve yamanın upstream'e PR olarak gönderilmesi (owner kararı).
 4. ~~**Cihaz kapısı (A36, test reklamı)**~~ → **GEÇTİ (§12)**; EEA formu cihazda
    #120 yüzünden gösterilemedi.
 5. ~~**Gameplay/Harita banner'ı**~~ → **M8.9-02'de owner kararıyla eklendi** (§6);
@@ -378,10 +433,13 @@ Kanıt: `build/qa_m8.9-01/device/DEVICE_GATE_NOTES.md` (yerel, gitignore'lu) +
    kontrolü göstermiyor) — sahte arka uçla cihazda ve masaüstünde kapsandı.
 8. ~~**İki günlük pencere**~~ → M8.9-02.1'de tek pencerede birleştirildi
    (DAILY_REWARDS §6-§7).
-9. **Üretim engelleri (değişmedi):** UMP sarmalayıcı boşluğu + #120 (madde 3),
-   COPPA/TFCD/TFUA kitle kararı (PRIVACY_CONSENT §6), gerçek App ID + banner +
-   ödüllü + interstitial kimlikleri (4 değer, §8). Bunlar kapanmadan `is_real`
-   açılmaz.
+9. **Üretim engelleri (M9-01 sonrası):** ~~UMP sarmalayıcı boşluğu + #120~~
+   (kodda kapandı, cihaz kapısı bekliyor), COPPA/TFCD/TFUA kitle kararı
+   ([AUDIENCE_DECISION.md](AUDIENCE_DECISION.md)), gerçek App ID + banner +
+   ödüllü + interstitial kimlikleri (4 değer, §8), kalıcı paket kimliği, upload
+   anahtarı, gizlilik politikası URL'i. Release kapısı bunlar kapanmadan
+   yüklenebilir AAB üretmez; tam liste
+   [../ANDROID_RELEASE_CHECKLIST.md](../ANDROID_RELEASE_CHECKLIST.md).
 
 ## 13. M8.9-02 masaüstü görsel inceleme (2026-09-22)
 

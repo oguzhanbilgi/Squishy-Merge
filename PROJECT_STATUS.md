@@ -1666,7 +1666,8 @@ verilmiyor:
    arka uçla kapsandı. `task/034` push edildi, **main'e merge kararı owner'da.**
 5. ~~İki günlük pencere kararı~~ → M8.9-02.1'de birleştirildi (§7 #18).
 6. **Analitik sağlayıcı** — `AdEvents` dikişine bağlanır (28 olay hazır).
-7. Eklenti UMP boşluğu kararı (§7 #15).
+7. ~~Eklenti UMP boşluğu kararı (§7 #15)~~ → **M9-01'de yama + deterministik
+   AAR yeniden derlemesiyle kodda kapandı** (aşağıda M9); cihaz kapısı bekliyor.
 8. ~~M8.10 ilk açılış tutorial'ı~~ → **KAPANDI: uygulandı, A36 kapısı
    GEÇTİ, main'e alındı `3fb2945`** (ff-only, push edildi, 2026-09-22;
    base `d72fde5`). Dal `task/035-first-run-tutorial` duruyor. Ayrıntı
@@ -1759,13 +1760,77 @@ tutorial kapısının geçmesi bunları kapatmaz.
 
 ### M9 — Android export
 
+**M9-01 — production release hazırlığı (kod tarafı) TAMAM (2026-09-22, dal
+`task/036-production-release-readiness`, base `5a3a0f0`, main'e alınmadı,
+telefon/ADB yok).** Ne yapıldı ve neden:
+
+- **Eklenti UMP boşluğu (ÜRETİM ENGELİ A/B) kodda kapandı.** Denetim:
+  vendored v6.0 AAR'ı `javap` ile açıldı — `can_request_ads` /
+  `get_privacy_options_requirement_status` / `show_privacy_options_form` yok,
+  `ConsentConfiguration` `instanceof Integer` (#120). Upstream v7.0 ve `main`
+  da üç çağrıyı sunmuyor (yalnız #120 düzeltilmiş; v7.0 Godot 4.7 hedefli).
+  Karar: v6.0'a **minimum yama** (3 dosya, +73/−2) ve upstream derleme
+  betikleriyle yeniden derleme. Deterministiklik kanıtı: yamasız v6.0 bu
+  makinede derlenince `classes.jar`/`R.txt`/`res` upstream release AAR'larıyla
+  birebir (fark yalnız AGP'nin Windows'ta CRLF yazdığı manifest satır sonları);
+  yamalı derleme üç bağımsız koşuda BYTE-IDENTICAL. `tools/admob_plugin/`
+  (yama, `build_patched_plugin.sh baseline|verify|install`,
+  `aar_equivalence.py`), `addons/AdmobPlugin/VERSION.md`.
+- **Rıza semantiği:** izin kararı resmî `canRequestAds()` (SDK başlatma + her
+  yükleme öncesi yeniden), güncelleme hatasında önceki oturumun rızası korunur
+  (`ERROR_WITH_PREVIOUS_STATE`), gizlilik seçenekleri resmî durum/form;
+  eklenti yamasızsa uyarılı M8.9 türetmesi. M8.9 geri çekilme / talep üzerine
+  tazeleme / M8.10 erteleme latch'i aynen.
+- **Kimlik seçimi build türüne bağlandı** (eskiden elle çevrilen `is_real`):
+  debug build yalnız Google test kimlikleri (canlı birim imkânsız), release
+  build dört gerçek kimlik + `is_real=true` (biçim, yayıncı, tekrar, Google
+  örneği kontrolleri), aksi hâlde fail-closed. Debug coğrafyası yalnız debug
+  build (üç kilit); EEA / NOT_EEA QA kancaları `tools/ads_device`.
+- **Kitle dikişi** `android_export.cfg [Audience]` — karar YOK, değerler M8.9
+  (TFCD/TFUA gönderilmez, G). Tahmin edilmedi: docs/monetization/AUDIENCE_DECISION.md.
+- **Release kapısı** — Godot 4.6.3'te export eklentisi export'u veto edemiyor
+  (`_get_export_option_warning` yalnız mesaj ekler; kaynaktan doğrulandı),
+  bu yüzden: (1) pipeline `tools/release/release_android.sh` export'tan ÖNCE
+  `release_check.tscn` ile reddeder, (2) `addons/squishy_release` Godot release
+  export'unu çözülemeyen, kendini anlatan bir Gradle bağımlılığıyla bilerek
+  düşürür (doğrulandı: 21 sn, AAB yok), (3) runtime release build geçersiz
+  yapılandırmada reklamı hiç başlatmaz. Tek doğrulayıcı
+  `tools/release/release_readiness.gd`. İsteğe bağlı İMZASIZ `NOT_FOR_UPLOAD`
+  release biçimli AAB modu (hat doğrulaması).
+- **Tek sürüm kaynağı:** versionName = `application/config/version` (0.8.5;
+  presetler `version/name` boş), versionCode = project.godot
+  `squishy/release/android_version_code` (1); paket kimliği kararı
+  `squishy/release/android_package_id` (BOŞ = owner kararı bekliyor);
+  gizlilik politikası URL'i `squishy/privacy/policy_url` (Ayarlar'da satır,
+  URL verilene kadar gizli).
+- **Yerel presetler** (gitignore'lu, `preset.0` "Android" BAYT BAYT aynı
+  bırakıldı, yedek `build/qa_m9-01/presets/`): "Android Release AAB" (imzalı;
+  anahtar yalnız `GODOT_ANDROID_KEYSTORE_RELEASE_*` ortam değişkenlerinden) +
+  "Android AAB NOT FOR UPLOAD" (imzasız); ikisi de editör-yalnız eklentileri
+  export dışı tutuyor.
+- **Testler:** `release_config_test` 106 (yeni), `monetization_test` 222 → 248;
+  tam regresyon: tutorial 199, daily 179, interstitial 60, audio 117, feedback
+  129, shell 147, ui_smoke 74, result_ui 226, revive_refill_ui 266, economy 100,
+  refill 119, revive 120, skin 30, home_ui 208, map_ui 127, shop_ui 213,
+  collection_ui 164, secondary_modal 100, ui_foundation 165, bot L3 2/2 —
+  0 SCRIPT ERROR, owner masaüstü kaydı byte-identical (859 B, md5 47f9027d…).
+- **Çıktılar** (`build/release/`, yerel): TEST-reklam debug APK
+  `squishy_merge_0.8.5_vc1_testads_debug.apk` (102,3 MB — Gradle debug
+  `.so`'ları strip'siz; Google test kimlikleri manifest + yapılandırmada,
+  sızıntı 0; yalnız editör-eklenti betikleri paketli çünkü owner'ın `preset.0`
+  exclude listesi değiştirilmedi) + `NOT_FOR_UPLOAD_…_unsigned.aab` (47,7 MB,
+  imzasız, arm64, targetSdk 36, `allowBackup=false`, sızıntı 0). **Upload-ready
+  AAB üretilmedi** — kapı BLOCKED (paket kimliği, AdMob kimlikleri, kitle,
+  gizlilik URL'i, upload anahtarı). Liste: docs/ANDROID_RELEASE_CHECKLIST.md,
+  veri envanteri docs/DATA_SAFETY_INVENTORY.md.
+
 **Ortam neredeyse hazır** (§2'deki tabloya bakın). Godot, export
 template'leri, Android SDK, NDK, JDK 17 ve debug keystore mevcut.
 **M8.9-01'den itibaren export Gradle build ister** (`gradle_build/
 use_gradle_build=true`, `android/build/` şablonu `--install-android-build-
 template` ile; her makinede ayrı).
 
-**Yapılacaklar:**
+**Yapılacaklar (M9 ilk listesi — M9-01 durumu satır sonlarında):**
 
 1. **`export_presets.cfg` oluştur** (Android preset). Dosya gitignore'lu,
    yani her makinede ayrı kurulacak.
@@ -1780,9 +1845,13 @@ template` ile; her makinede ayrı).
    | `launcher_icons/main_192x192` | `res://assets/visual/icon/launcher_main_192.png` |
 
 4. **`project.godot`'taki `config/icon`'u değiştir** — hâlâ Godot robotu.
+   (M9-01 notu: yalnız masaüstü/editör ikonu; Android launcher/adaptive
+   ikonları presetten geliyor ve doğrulandı.)
 5. **Release/upload keystore oluştur.** Şu an sadece debug var.
    **Şifre asla dosyaya/commit'e yazılmayacak**, owner'ın yerel makinesinde
    kalacak (`*.keystore`, `*.jks`, `keystore.properties` zaten gitignore'lu).
+   (M9-01: bilerek OLUŞTURULMADI — owner adımı, komut ve kurallar
+   docs/ANDROID_RELEASE_CHECKLIST.md §4; pipeline ortam değişkeni bekliyor.)
 6. **Debug APK al, gerçek cihazda/emulatörde aç.** Crash olmamalı.
 7. Dokunmatik girdiyi gerçek cihazda doğrula — bot girdi yolunu hiç
    kullanmıyor (`_set_aim`'i doğrudan çağırıyor), yani **sürükle-bırak

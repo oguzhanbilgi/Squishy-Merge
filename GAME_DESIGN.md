@@ -1073,9 +1073,11 @@ kuralları değişmez.
 
 ## 12. Geçiş (interstitial) reklamı, banner yüzeyleri ve onboarding dikişi (M8.9-02, owner kararı)
 
-> **STATUS:** test reklamıyla bağlı, deterministik testli, masaüstü görsel
-> inceleme yapıldı; **A36 cihaz kapısı bekliyor**. Üretim engelleri (UMP
-> sarmalayıcı boşluğu, COPPA, gerçek kimlikler) açık — docs/monetization/.
+> **STATUS:** test reklamıyla bağlı, deterministik testli; A36 cihaz kapısı
+> GEÇTİ (M8.9-02.2). M9-01: UMP sarmalayıcı boşluğu kodda kapandı; üretim
+> engelleri (kitle/COPPA kararı, gerçek kimlikler, paket kimliği, upload
+> anahtarı, gizlilik politikası) açık — docs/ANDROID_RELEASE_CHECKLIST.md.
+> Bu bölümdeki kilitli kurallar M9-01'de DEĞİŞMEDİ.
 
 ### 12.1 Banner yüzeyleri (KİLİTLİ)
 GÖSTER: Ana Sayfa, Harita, Mağaza, Koleksiyon, oyun ekranı. GİZLE: sonuç ekranı,

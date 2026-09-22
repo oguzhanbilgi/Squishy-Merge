@@ -921,6 +921,35 @@ alınacak — şimdi tahmin/vaat yok.
     üretim kodu değişmedi. Cihazdan sonra masaüstü kapısı yeniden yeşil
     (20 suite + 2 bot). **Dal push edildi; main'e BİRLEŞTİRİLMEDİ.**
     Kanıt: `build/qa_m8.10.1/` (yerel).
+  - `M9-01` ✅ **Android production release hazırlığı — kod tarafı** (dal
+    `task/036-production-release-readiness`, base `5a3a0f0`; **main'e
+    alınmadı**; telefon/ADB YOK; oyun/UI/tutorial/ekonomi DEĞİŞMEDİ). (1)
+    **AdMob eklentisi UMP yaması:** upstream v6.0/v7.0/main UMP
+    `canRequestAds` / `getPrivacyOptionsRequirementStatus` /
+    `showPrivacyOptionsForm`'u sunmuyor; v6.0'a 3 dosyalık yama (+ #120
+    `debug_geography` Long düzeltmesi), AAR'lar deterministik yeniden
+    derlendi (`tools/admob_plugin/`: yamasız derleme upstream AAR'larıyla
+    sınıf sınıf aynı, yamalı derleme 3 kez BYTE-IDENTICAL). (2) **Rıza:** izin
+    kapısı resmî `canRequestAds()` (SDK başlatma + her yükleme öncesi),
+    güncelleme hatasında önceki oturumun rızası korunur, gizlilik seçenekleri
+    resmî durum + resmî form, yamasız eklentiye uyarılı geri düşüş. (3)
+    **Kimlikleri build türü seçer:** debug = yalnız Google test (canlı birim
+    imkânsız), release = dört gerçek kimlik + `is_real=true`, aksi hâlde
+    fail-closed; debug coğrafyası yalnız debug build (EEA / NOT_EEA QA
+    kancaları). (4) `[Audience]` dikişi (TFCD/TFUA/derece — owner kararı
+    bekliyor, değerler M8.9'daki gibi). (5) **Release kapısı** (`tools/release/`:
+    tek doğrulayıcı `ReleaseReadiness`, `release_android.sh check|aab|
+    non-publishable-aab|debug-apk`, `addons/squishy_release` export'u Gradle'da
+    bilerek düşürür) + tek sürüm kaynağı (project.godot `[squishy]`) + Ayarlar
+    "Gizlilik politikası" satırı (URL verilene kadar gizli). Testler:
+    `release_config_test` 106 (yeni), `monetization_test` 222 → 248, tam
+    regresyon yeşil (21 suite + bot L3 2/2, 0 SCRIPT ERROR, owner kaydı
+    byte-identical). Çıktılar: TEST-reklam debug APK (Google test kimlikleri,
+    sızıntı 0) + İMZASIZ `NOT_FOR_UPLOAD` release biçimli AAB (hat doğrulaması,
+    Play'e yüklenemez). **Upload-ready AAB YOK — kapı BLOCKED:** paket kimliği,
+    gerçek AdMob kimlikleri, kitle kararı, gizlilik politikası URL'i, upload
+    anahtarı owner'da. Dokümanlar: `docs/ANDROID_RELEASE_CHECKLIST.md`,
+    `docs/DATA_SAFETY_INVENTORY.md`, `docs/monetization/AUDIENCE_DECISION.md`.
 - **Sırada: M8.6 — Visual Cohesion Rebuild** (ekranlar `UiKit`/`UiTokens`
   sistemine geçirilecek: ~~gameplay shell~~ ✅ → ~~home~~ ✅ → ~~map~~ ✅ →
   ~~shop~~ ✅ → ~~collection~~ ✅ main'de → ~~ikincil UI denetimi~~ ✅ →
@@ -935,10 +964,12 @@ alınacak — şimdi tahmin/vaat yok.
   genişletmesi + günlük ödüller~~ ✅ + ~~02.1 birleşik günlük pencere~~ ✅ +
   ~~02.2 A36 cihaz kapısı~~ ✅ main'de (9561a4c) →
   ~~M8.10 ilk açılış tutorial'ı + ilk gün kuralı~~ ✅ + ~~M8.10.1 A36 cihaz
-  kapısı~~ ✅ dal `task/035-first-run-tutorial` (push edildi, main'e merge
-  kararı owner'da) →
-  analitik sağlayıcı (`AdEvents` / `TutorialEvents`), ardından
-  **M9 — Android export.**
+  kapısı~~ ✅ main'de (5a3a0f0) →
+  ~~**M9-01** production release hazırlığı (kod)~~ ✅ dal `task/036` (push
+  edildi, main'e alınmadı) → owner kararları (paket kimliği, kitle, AdMob
+  hesabı + kimlikler, upload anahtarı, gizlilik politikası) + EEA/NOT_EEA cihaz
+  kapısı → yüklenebilir AAB → **M10 — Play kapalı test.** Analitik sağlayıcı
+  (`AdEvents` / `TutorialEvents`) hâlâ ayrı karar.
   Ortam hazır (export template'leri, SDK,
   NDK, JDK 17, debug keystore mevcut, ETC2/ASTC import açık, iş
   makinesinde debug `export_presets.cfg` var — gitignore'lu, her makinede
@@ -1013,13 +1044,14 @@ alınacak — şimdi tahmin/vaat yok.
 - **Ödüllü reklam sağlayıcısı BAĞLI (M8.9-01 ve M8.9-02 genişletmesi A36'da
   TEST reklamıyla doğrulandı):** `MonetizationManager`
   Main'e `set_rewarded_provider` ile takılıyor; Devam/Refill/GÜNLÜK ÖDÜLLER
-  CTA'ları yalnız yüklü reklam varken aktif. **ÜRETİM ENGELLERİ (açık):** (A)
-  eklenti v6.0 UMP `canRequestAds` / `getPrivacyOptionsRequirementStatus` /
-  `showPrivacyOptionsForm` sarmıyor (SDK'dan türeyen eşdeğerler); (B)
-  `debug_geography` cihazda uygulanamıyor (upstream #120, Long/Integer) → EEA
-  formu cihazda test edilemedi; (C) COPPA/TFCD/TFUA + kitle kararı; (D) gerçek
-  AdMob kimlikleri yok (App ID + rewarded + banner + interstitial). Bkz.
-  docs/monetization/PRIVACY_CONSENT.md §4/§6, ADS_SYSTEM §11.
+  CTA'ları yalnız yüklü reklam varken aktif. **ÜRETİM ENGELLERİ:** ~~(A)
+  eklenti UMP sarmalayıcı boşluğu~~ ve ~~(B) `debug_geography` #120~~ →
+  **M9-01'de kodda kapandı** (yamalı AAR; EEA/NOT_EEA cihaz kapısı bekliyor,
+  PRIVACY_CONSENT §8); (C) COPPA/TFCD/TFUA + kitle kararı (AUDIENCE_DECISION);
+  (D) gerçek AdMob kimlikleri yok (App ID + rewarded + banner + interstitial);
+  (E) kalıcı paket kimliği, upload anahtarı, gizlilik politikası URL'i. Release
+  kapısı bunlar kapanmadan yüklenebilir AAB üretmez —
+  docs/ANDROID_RELEASE_CHECKLIST.md.
 - **Tipografi TAMAM (M8.5-09), production UI kabuğu TAMAM (M8.5-10):**
   bütün production ekranlar aynı font ailesinde ve aynı tasarım
   sisteminde (zemin/yüzey/kart/CTA/seçili/pasif katmanları, candy modal,
@@ -1044,6 +1076,14 @@ alınacak — şimdi tahmin/vaat yok.
   shader/aura performans ölçümü M9'da.
 
 ## Next action
+**M9-01 sonrası (2026-09-22):** owner/ChatGPT kararları — (a) `task/036`
+incelemesi + main'e alma kararı; (b) kalıcı paket kimliği; (c) kitle kararı
+(AUDIENCE_DECISION §5); (d) Play Developer + AdMob hesapları, 3 reklam birimi,
+GDPR mesajı → `[Release]` kimlikleri; (e) upload anahtarı (owner oluşturur,
+checklist §4); (f) gizlilik politikası metni + barındırma → URL; (g) EEA /
+NOT_EEA cihaz kapısı onayı (PRIVACY_CONSENT §8); (h) mağaza varlıkları. Tam
+liste: docs/ANDROID_RELEASE_CHECKLIST.md. Aşağıdaki eski liste tarihseldir.
+
 Owner/ChatGPT: (1) ~~`task/034` merge kararı~~ → **main'de (9561a4c)**;
 M8.9-02 kapandı, kanıt `build/qa_m8.9-02.2/device/` (38 kare, notlar) +
 `build/qa_m8.9-02_integration/`. Sıradaki karar başlıkları:
