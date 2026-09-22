@@ -133,6 +133,25 @@ var _config: AdConfig = null
 
 var _state: AdsState = AdsState.UNAVAILABLE
 var _consent_checked: bool = false
+## Rıza akışının İLK BAŞLATMASI yapıldı mı (M8.10 §18) — bir LATCH, durum
+## makinesi DEĞİL. Rızanın kendi durumu zaten `AdsState`'te modelleniyor
+## (CONSENT_CHECKING = uçuşta, ADS_ALLOWED / ADS_NOT_ALLOWED /
+## ERROR_WITH_PREVIOUS_STATE = çözülmüş) ve yeniden deneme sayacı
+## `_consent_attempts`'te; bu bayrak yalnız "kick-off oldu mu" sorusunu
+## yanıtlar.
+##
+## NEDEN: `_consent_attempts` BAŞARIDA sıfırlanıyor (`_resolve_consent`), bu
+## yüzden "akış başladı mı" sorusuna cevap veremez. Onboarding tamamlanınca
+## `set_onboarding_completed(true)` ikinci bir `request_consent_update`
+## gönderiyordu; bu durumu CONSENT_CHECKING'e düşürüp izni GEÇİCİ OLARAK
+## kaybettiriyor ve yüklemeleri engelliyordu (M8.10'da yakalandı).
+##
+## NEYİ BASTIRMAZ (M8.9 davranışı aynen korunuyor): planlı yeniden denemeler
+## (`_on_consent_retry`) ve talep üzerine tazeleme (`ensure_rewarded`,
+## ADS_NOT_ALLOWED + ON_DEMAND aralığı) `_start_consent()`'i DOĞRUDAN çağırır
+## — latch onları görmez. Yeni uygulama açılışı = yeni yönetici örneği =
+## latch yeniden false.
+var _consent_kickoff_done: bool = false
 var _consent_attempts: int = 0
 var _consent_last_attempt_msec: int = -1000000
 var _consent_retry_timer: SceneTreeTimer = null
@@ -215,7 +234,11 @@ func _ready() -> void:
 	_compute_banner_slot()
 	print_verbose("MonetizationManager: %s, %s" % [_backend.backend_name(),
 		_config.describe() if _config != null else "config yok"])
-	_start_consent()
+	# Rıza (UMP) ONBOARDING'DEN SONRA (M8.10 §18): tutorial sırasında ekranı
+	# bir gizlilik formu kaplamaz. Rıza şartı KALDIRILMADI, yalnız ertelendi —
+	# `_ads_enabled()` hâlâ izin + SDK istiyor, yani ilk reklam talebinden
+	# ÖNCE rıza akışı mutlaka çalışır.
+	_maybe_start_consent()
 
 
 func _exit_tree() -> void:
@@ -343,6 +366,9 @@ func set_onboarding_completed(done: bool) -> void:
 		return
 	_compute_banner_slot()
 	if done:
+		# Tutorial bitti: rıza akışı ŞİMDİ başlar (açılışta ertelenmişti),
+		# ardından yüklemeler.
+		_maybe_start_consent()
 		_preload_rewarded()
 		_preload_interstitial()
 	rewarded_availability_changed.emit()
@@ -362,9 +388,25 @@ func _set_state(state: AdsState) -> void:
 
 # --- Rıza (UMP) -----------------------------------------------------------------
 
+## Rıza akışının TEK kick-off noktası: onboarding tamamlanana kadar başlamaz
+## ve bir kez başladıysa yeniden başlatılmaz. Yalnız `_ready()` ve
+## `set_onboarding_completed(true)` çağırır; yeniden denemeler ve talep
+## üzerine tazeleme bu kapıdan GEÇMEZ (bkz. `_consent_kickoff_done`).
+func _maybe_start_consent() -> void:
+	if not _onboarding_completed or _consent_kickoff_done:
+		return
+	_start_consent()
+
+
+## Rıza akışı bu yönetici örneğinde hiç başlatıldı mı (testler + teşhis).
+func consent_started() -> bool:
+	return _consent_kickoff_done
+
+
 func _start_consent() -> void:
 	_cancel_timer(_consent_retry_timer)
 	_consent_retry_timer = null
+	_consent_kickoff_done = true
 	_consent_attempts += 1
 	_consent_last_attempt_msec = Time.get_ticks_msec()
 	_set_state(AdsState.CONSENT_CHECKING)

@@ -87,6 +87,8 @@ func _ready() -> void:
 	await _test_rewarded_failures()
 	await _test_rewarded_lifecycle_edges()
 	await _test_banner()
+	await _test_onboarding_consent_defer()
+	await _test_consent_kickoff_latch()
 	await _test_main_integration()
 
 	AdEvents.unsubscribe(_on_event)
@@ -792,6 +794,170 @@ func _test_banner() -> void:
 	await _free_manager(m)
 
 
+# --- Onboarding: rıza (UMP) ve reklam açılışı ertelemesi (M8.10 §18) --------------
+#
+# Tutorial sırasında ekranı bir gizlilik formu KAPLAMAMALI. Rıza şartı
+# kaldırılmıyor, yalnız erteleniyor: ilk reklam talebinden ÖNCE mutlaka
+# çalışıyor.
+
+func _test_onboarding_consent_defer() -> void:
+	print("-- onboarding: rıza + reklam açılışı ertelemesi (M8.10)")
+	var fake := FakeAdBackend.new()
+	fake.status = AdBackend.ConsentStatus.REQUIRED
+	fake.form_available = true
+	var m: MonetizationManager = MonetizationManager.create(fake, AdConfig.test_defaults())
+	# Main açılışta bunu AĞACA GİRMEDEN önce veriyor (yuva ekranlardan önce).
+	m.set_onboarding_completed(false)
+	add_child(m)
+	await _settle(2)
+	_c("onboarding false: UMP güncellemesi HİÇ istenmedi", not m.consent_started()
+		and fake.consent_update_calls == 0)
+	_c("onboarding false: rıza formu yüklenmedi/gösterilmedi",
+		fake.consent_form_loads == 0 and fake.consent_form_shows == 0)
+	_c("onboarding false: SDK başlatılmadı", fake.init_calls == 0 and not m.sdk_ready())
+	_c("onboarding false: hiçbir reklam yüklenmedi", fake.rewarded_loads == 0
+		and fake.interstitial_loads == 0 and fake.banner_loads == 0)
+	_c("onboarding false: yuva 0", m.banner_slot_px() == 0.0)
+	m._tick_active(1000.0)
+	_c("onboarding false: aktif süre saati durdu",
+		m.active_elapsed_sec() == 0.0 and not m.interstitial_eligible())
+	_c("onboarding false: reklam gösterilemez (izin + SDK yok)", not m.is_rewarded_ready())
+
+	# Tutorial bitti: rıza akışı ŞİMDİ başlar ve reklamdan ÖNCE tamamlanır.
+	m.set_onboarding_completed(true)
+	await _settle(1)
+	_c("onboarding true: UMP güncellemesi tam bir kez istendi",
+		m.consent_started() and fake.consent_update_calls == 1)
+	_c("rıza gelmeden hâlâ reklam yüklenmiyor", fake.rewarded_loads == 0
+		and fake.banner_loads == 0 and fake.interstitial_loads == 0)
+	fake.complete_consent_update(true)
+	await _settle(1)
+	_c("rıza gerekli -> form yüklendi", fake.consent_form_loads == 1)
+	fake.complete_form_load(true)
+	await _settle(1)
+	_c("form gösterildi", fake.consent_form_shows == 1)
+	_c("form ekrandayken reklam yok ve saat saymıyor", m.consent_form_covering()
+		and fake.rewarded_loads == 0)
+	fake.dismiss_form(AdBackend.ConsentStatus.OBTAINED)
+	await _settle(2)
+	_c("rıza alındı -> SDK başlatıldı", fake.init_calls == 1)
+	fake.complete_init()
+	m.set_surface(MonetizationManager.Surface.HOME)
+	await _settle(1)
+	_c("rıza + SDK + onboarding: yüklemeler başladı", fake.rewarded_loads == 1
+		and fake.interstitial_loads == 1 and fake.banner_loads == 1)
+	_c("yuva artık hesaplandı", m.banner_slot_px() > 0.0)
+
+	# İkinci kez true: rıza akışı YENİDEN başlatılmaz.
+	m.set_onboarding_completed(true)
+	await _settle(1)
+	_c("aynı değer yeniden verilince rıza tekrar istenmez", fake.consent_update_calls == 1)
+	await _free_manager(m)
+	UiKit.set_banner_slot(0.0)
+
+
+# --- Rıza kick-off latch'i: M8.9 yeniden deneme davranışı BOZULMADI (M8.10) -------
+#
+# M8.10, rıza akışının onboarding'e kadar başlamamasını istiyor. Bunun için
+# eklenen `_consent_kickoff_done` LATCH'i YALNIZ kick-off noktalarını
+# (`_ready`, `set_onboarding_completed(true)`) kapatır. Aşağıdaki kontroller
+# M8.9'un yeniden deneme / geri çekilme / talep üzerine tazeleme yollarının
+# latch tarafından BASTIRILMADIĞINI deterministik olarak kanıtlıyor.
+
+func _test_consent_kickoff_latch() -> void:
+	print("-- rıza kick-off latch'i (M8.10) — M8.9 yeniden deneme yolları korunuyor")
+
+	# 1) onboarding false -> SIFIR güncelleme, latch kapalı.
+	var fake := FakeAdBackend.new()
+	fake.status = AdBackend.ConsentStatus.NOT_REQUIRED
+	var m: MonetizationManager = MonetizationManager.create(fake, AdConfig.test_defaults())
+	m.set_onboarding_completed(false)
+	add_child(m)
+	await _settle(2)
+	_c("onboarding false: sıfır consent update, latch kapalı",
+		fake.consent_update_calls == 0 and not m.consent_started())
+	# Yüzey/öne dönüş/pencere açılışı onboarding false iken de tetiklemez.
+	for surface in [MonetizationManager.Surface.HOME, MonetizationManager.Surface.MAP,
+			MonetizationManager.Surface.GAMEPLAY, MonetizationManager.Surface.SHOP]:
+		m.set_surface(surface as MonetizationManager.Surface)
+	m._notification(Node.NOTIFICATION_APPLICATION_RESUMED)
+	m.ensure_rewarded()
+	await _settle(1)
+	_c("onboarding false: sekme/öne dönüş/pencere açılışı da tetiklemez",
+		fake.consent_update_calls == 0 and fake.consent_form_loads == 0)
+
+	# 2) İlk güvenli aktivasyon -> TAM BİR rıza akışı.
+	m.set_onboarding_completed(true)
+	await _settle(1)
+	_c("ilk aktivasyon: tam bir consent update, latch açıldı",
+		fake.consent_update_calls == 1 and m.consent_started())
+
+	# 3) Başarılı güncellemeden SONRA: aynı çalışmada ikinci gereksiz update YOK.
+	fake.complete_consent_update(true)
+	fake.complete_init()
+	await _settle(1)
+	_c("başarı -> ADS_ALLOWED", m.ads_allowed() and m.sdk_ready())
+	for i in 3:
+		for surface in [MonetizationManager.Surface.HOME, MonetizationManager.Surface.MAP,
+				MonetizationManager.Surface.COLLECTION, MonetizationManager.Surface.SHOP,
+				MonetizationManager.Surface.GAMEPLAY, MonetizationManager.Surface.RESULT]:
+			m.set_surface(surface as MonetizationManager.Surface)
+		m._notification(Node.NOTIFICATION_APPLICATION_PAUSED)
+		m._notification(Node.NOTIFICATION_APPLICATION_RESUMED)
+		m.ensure_rewarded()
+	m.set_onboarding_completed(false)
+	m.set_onboarding_completed(true)
+	await _settle(2)
+	_c("başarıdan sonra sekme/öne dönüş/pencere/onboarding tekrarları İKİNCİ update göndermez",
+		fake.consent_update_calls == 1)
+	_c("izin korundu (ikinci update durumu CONSENT_CHECKING'e düşürmedi)",
+		m.ads_allowed() and m.ads_state() == MonetizationManager.AdsState.ADS_ALLOWED)
+	await _free_manager(m)
+
+	# 4) Yeni uygulama açılışı = yeni yönetici örneği -> açılış güncellemesi YİNE olur.
+	var fake2 := FakeAdBackend.new()
+	fake2.status = AdBackend.ConsentStatus.NOT_REQUIRED
+	var m2: MonetizationManager = _make_manager(fake2)
+	await _settle(1)
+	_c("yeni yönetici örneği: açılış rıza güncellemesi yeniden yapılır",
+		fake2.consent_update_calls == 1 and m2.consent_started())
+	await _free_manager(m2)
+
+	# 5) HATA yolu: latch yeniden denemeleri BASTIRMAZ (M8.9 davranışı).
+	var fake3 := FakeAdBackend.new()
+	fake3.status = AdBackend.ConsentStatus.UNKNOWN
+	var m3: MonetizationManager = _make_manager(fake3)
+	_c("hata öncesi latch açık (kick-off yapıldı)", m3.consent_started())
+	fake3.complete_consent_update(false)
+	_c("update hatası -> ADS_NOT_ALLOWED + planlı yeniden deneme",
+		m3.ads_state() == MonetizationManager.AdsState.ADS_NOT_ALLOWED
+		and m3.has_pending_consent_retry())
+	# 6a) Talep üzerine tazeleme spam yapmaz. Ölçüm HEMEN denemenin ardından:
+	# aradaki her bekleme ON_DEMAND aralığını (ölçekte 0,04 sn) zaten doldurur.
+	m3.ensure_rewarded()
+	_c("aralık dolmadan talep üzerine update SPAM'lemez (latch'ten bağımsız)",
+		fake3.consent_update_calls == 1)
+	await _wait(MonetizationManager.CONSENT_RETRY_DELAYS[0])
+	_c("latch AÇIKKEN 1. planlı yeniden deneme gitti (bastırma YOK)",
+		fake3.consent_update_calls == 2 and m3.consent_started())
+	fake3.complete_consent_update(false)
+	await _wait(MonetizationManager.CONSENT_RETRY_DELAYS[1])
+	_c("latch AÇIKKEN 2. planlı yeniden deneme gitti", fake3.consent_update_calls == 3)
+	fake3.complete_consent_update(false)
+	await _wait(MonetizationManager.CONSENT_RETRY_DELAYS[1])
+	_c("yeniden denemeler M8.9'daki gibi SINIRLI (3'te durur)",
+		fake3.consent_update_calls == 3 and not m3.has_pending_consent_retry())
+	# 6b) Sınır dolduktan SONRA bile talep üzerine tazeleme çalışır (ağ dönüşü).
+	m3.ensure_rewarded()
+	_c("latch AÇIKKEN aralık geçince talep üzerine update gitti (ağ dönüşü)",
+		fake3.consent_update_calls == 4)
+	fake3.status = AdBackend.ConsentStatus.NOT_REQUIRED
+	fake3.complete_consent_update(true)
+	_c("kurtarma tamam: izin + SDK", m3.ads_allowed() and fake3.init_calls == 1)
+	await _free_manager(m3)
+	UiKit.set_banner_slot(0.0)
+
+
 # --- Main entegrasyonu -----------------------------------------------------------
 
 func _test_main_integration() -> void:
@@ -867,7 +1033,6 @@ func _test_main_integration() -> void:
 		and is_equal_approx((_main._board.layout()["banner"] as Rect2).size.y, slot)
 		and _main._board.board_screen_rect().end.y <= (_main._board.layout()["banner"] as Rect2).position.y)
 	var board: Node2D = _main._board
-	board._dismiss_tutorial()
 	var finished: Array[int] = [0]
 	board.round_finished.connect(func(_won: bool) -> void: finished[0] += 1)
 	var offer: CanvasLayer = _main._revive
@@ -943,7 +1108,6 @@ func _test_main_integration() -> void:
 	_main._start_level(load(LEVEL_10))
 	await _settle(2)
 	board = _main._board
-	board._dismiss_tutorial()
 	var refill: CanvasLayer = _main._refill
 	_c("ön koşul: ödüllü hazır", m.is_rewarded_ready())
 	board._on_power_refill_requested(int(PowerUp.Type.BOMB))
