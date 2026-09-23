@@ -49,15 +49,15 @@ AAB yok).
 | 14 | **İçerik derecelendirme (IARC)** | 🟣 | Her yeni uygulama için zorunlu anket; reklamlar derecelendirmeye uygun olmalı (AdMob en yüksek derece G). |
 | 15 | **Uygulama erişimi (App access)** | 🟣 | Giriş/hesap yok, özel erişim gerektiren içerik yok → "tüm işlevler özel erişim olmadan kullanılabilir" beyanı (owner doğrular). |
 | 16 | **Mağaza girişi** | 🟠🟣 | Kısa açıklama (≤80), tam açıklama (≤4000), kategori (ör. Oyun → Bulmaca; owner seçer), iletişim e-postası, grafikler (#7, #8). Dil(ler) owner'ın. |
-| 17 | **Kapalı test kanalı + test kullanıcıları** | 🟣🔵 | Yeni kişisel geliştirici hesabı: üretime erişimden önce **en az 12 test kullanıcısı, 14 gün kesintisiz** katılım (erken ayrılan sayılmaz); sonra üretim erişimi başvurusu. |
+| 17 | **Kapalı test kanalı + test kullanıcıları** | 🟣🔵 | Şart KOŞULLU: **13 Kasım 2023'ten sonra açılmış kişisel (personal) Play geliştirici hesapları** üretime erişimden önce en az 12 test kullanıcısının 14 gün kesintisiz katıldığı bir kapalı test yapmalı (erken ayrılan sayılmaz), sonra üretim erişimi başvurusu. Hesabın türü ve gerçek durumu **Play Console'da kontrol edilmeli** — kuruluş (organization) hesabı ya da daha eski hesap için şart farklı olabilir. |
 | 18 | **Gerçek AdMob kimlikleri** | 🟠🔵 | AdMob'da uygulama + 3 reklam birimi (ödüllü, uyarlanabilir banner, geçiş) → `android_export.cfg [Release]` dört kimlik + `is_real=true`. Kapı biçim/yayıncı/tekrar/Google-örneği kontrollerini yapar. |
-| 19 | **UMP / rıza (EEA)** | ✅🔵 | Kod: resmî `canRequestAds` + gizlilik seçenekleri (yamalı eklenti). Owner: AdMob Privacy & messaging'de **GDPR mesajı** (EEA/UK/CH'de kişiselleştirilmiş reklam için sertifikalı CMP gerekli; yoksa sınırlı reklam), isteğe bağlı ABD eyalet mesajı. **Cihazda EEA/NOT_EEA kapısı bekliyor** (PRIVACY_CONSENT §8). |
+| 19 | **UMP / rıza (EEA)** | ✅🔵 | Kod: resmî `canRequestAds` + gizlilik seçenekleri (yamalı eklenti). Owner: AdMob Privacy & messaging'de **GDPR mesajı** (EEA/UK/CH'de kişiselleştirilmiş reklam için sertifikalı CMP gerekli; yoksa sınırlı reklam), isteğe bağlı ABD eyalet mesajı. EEA / NOT_EEA / gizlilik seçenekleri akışı **emülatörde doğrulandı** (M9-01.1, ek kanıt); **Samsung A36 gerçek cihaz kanıtı hâlâ bekliyor** (telefon bağlı değildi — PRIVACY_CONSENT §7–§8). |
 | 20 | **Mimari** | ✅🟠 | Yalnız **arm64-v8a** (Play 64-bit şartı karşılanır). `armeabi-v7a` eklemek (eski 32-bit telefonlar) owner kararı; AAB bölünmüş teslimatla 64-bit indirmeyi büyütmez ama test yükü getirir. |
 | 21 | **İzinler** | ✅ | VIBRATE (oyun), INTERNET, ACCESS_NETWORK_STATE, AD_ID ×2, ACCESS_ADSERVICES_AD_ID/ATTRIBUTION/TOPICS, WAKE_LOCK, FOREGROUND_SERVICE, `…DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION` — hepsi GMA/eklenti/androidx kaynaklı (debug APK + AAB `aapt2` ile aynı liste). Tehlikeli (runtime) izin yok. |
-| 22 | **Android geliştirici doğrulaması / paket kaydı** | 🔵 | Araştırma notu (Play Console Help, 2026-09-22): Play paketlerinin **2026-09-30'a kadar** Android geliştirici doğrulamasına kayıtlı olması isteniyor; Google Play uygulamalarını mümkünse otomatik kaydediyor; bildirim yalnız kimlik doğrulaması tamamlanmış hesaplara. Hesap henüz açılmadığı için owner Play Console'da kontrol etmeli (ayrıntılar **UNVERIFIED** — hesap sayfası esas). |
+| 22 | **Android geliştirici doğrulaması / paket kaydı** | 🔵 | **Düzeltildi (M9-01.1):** 30 Eylül 2026, herkese uygulanan bir son tarih DEĞİL; **ilk bölgesel uygulama dalgası** — Brezilya, Endonezya, Singapur ve Tayland'da, katılımcı mağazalardan (Google Play dahil) kurulan uygulamalar için, Android 7+ sertifikalı cihazlarda. **2027'de** tüm sertifikalı cihazlara genişliyor. Google Play uygulamaların ~%99'unu **otomatik kaydediyor**; kalanlar Play Console'dan elle kaydediliyor (developer.android.com/developer-verification). Yayımlanmamış bu uygulama için bugün ayrı bir işlem yok: hesap açılıp uygulama oluşturulunca owner kayıt durumunu Play Console'da kontrol eder. |
 | 23 | **Google Play Developer hesabı** | 🔵 | Açılmadı / kimlik doğrulaması bekliyor (PROJECT_CONTEXT). Diğer bütün Play maddelerinin önkoşulu. |
 | 24 | **AdMob hesabı / ödeme profili / app-ads.txt** | 🔵 | AdMob hesabı + ödeme profili owner'da. app-ads.txt (geliştirici web sitesinde) AdMob'un önerdiği doğrulama — web sitesi gizlilik politikasıyla aynı yer olabilir (zorunluluk ayrıntısı **UNVERIFIED**). |
-| 25 | **SDK sürümü** | 🟠 | GMA 24.9.0 "legacy/maintenance" hattında (destek 2027-06-30'a kadar); Google'ın Data safety beyanı yalnız en yeni sürümü (25.5.0) anlatıyor. SDK yükseltmesi eklentiye bağlı — ayrı karar/milestone. |
+| 25 | **SDK sürümü (teknik borç)** | 🟠 | Bugün **GMA 24.9.0 legacy** (destek **2027-06-30**'a kadar). TFCD/TFUA'nın yerine geçen **TFAT** (`setAgeRestrictedTreatment`) legacy **25.3.0+**'da; Google'ın bugün tercih ettiği Android SDK'sı **GMA Next-Gen**. Data safety beyanı yalnız en yeni sürümü (25.5.0) anlatıyor. Kapalı test için kendiliğinden engel DEĞİL; eklenti güncellemesine bağlı ayrı bir modernizasyon milestone'u (AUDIENCE_DECISION §2.1). M9-01.1'de geçiş yapılmadı. |
 
 ## 3. Owner girdileri gelince: yüklenebilir AAB
 
@@ -73,7 +73,8 @@ AAB yok).
 5. `tools/release/release_android.sh check` → **UPLOAD_CANDIDATE** görülmeli.
 6. `tools/release/release_android.sh aab` → `build/release/squishy_merge_<ver>_vc<code>_release.aab`
    + `.scan.json` (sızıntı, manifest, paketlenen yapılandırma).
-7. Önce Play **dahili test**, sonra kapalı test (≥12 kişi / 14 gün).
+7. Önce Play **dahili test**, sonra kapalı test (13 Kasım 2023 sonrası açılmış
+   kişisel hesapta ≥12 kişi / 14 gün — hesabın durumu Play Console'da).
 
 Debug TEST-reklam APK her zaman: `tools/release/release_android.sh debug-apk`
 (yalnız Google test kimlikleri; debug build canlı birim isteyemez).

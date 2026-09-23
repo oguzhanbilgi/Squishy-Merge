@@ -1824,6 +1824,16 @@ telefon/ADB yok).** Ne yapıldı ve neden:
   gizlilik URL'i, upload anahtarı). Liste: docs/ANDROID_RELEASE_CHECKLIST.md,
   veri envanteri docs/DATA_SAFETY_INVENTORY.md.
 
+**M9-01.1 — UMP / gizlilik cihaz kapısı (2026-09-23): A36 BEKLİYOR.** Samsung A36
+oturum boyunca adb'de görünmedi; gerçek cihaz kanıtı çalıştırılamadı (emülatör
+owner kuralı gereği yerine geçmez). Ek kanıt olarak Pixel_8 emülatöründe (Android 16)
+yamalı AAR, üç yeni JNI çağrısı, #120, NOT_EEA / EEA formu, gizlilik seçenekleri formu
+(tek callback) ve onboarding ertelemesi doğrulandı; Vulkan'lı QA build'i x86_64
+emülatörde ARM çevirisiyle çizemediği için emülatöre özel GL Compatibility varyantı
+kullanıldı. Politika dokümanları düzeltildi (TFAT, koşullu 12 test kullanıcısı, 30 Eylül
+bölgesel doğrulama dalgası). Masaüstü regresyon yeşil; release kapısı yalnız
+OWNER/CONFIG. Ayrıntı PRIVACY_CONSENT §7, `build/qa_m9-01.1/DEVICE_GATE_NOTES.md`.
+
 **Ortam neredeyse hazır** (§2'deki tabloya bakın). Godot, export
 template'leri, Android SDK, NDK, JDK 17 ve debug keystore mevcut.
 **M8.9-01'den itibaren export Gradle build ister** (`gradle_build/
@@ -1881,7 +1891,7 @@ yürütülmeli.
 | 10 | Data safety formu | ❌ |
 | 11 | İçerik derecelendirme anketi (IARC) | ❌ |
 | 12 | Hedef kitle + içerik beyanı | ❌ |
-| 13 | Kapalı test track'i + en az 12 test kullanıcısı (yeni hesaplar için Google'ın şartı) | ❌ |
+| 13 | Kapalı test track'i + en az 12 test kullanıcısı / 14 gün (yalnız 13 Kasım 2023 sonrası açılmış KİŞİSEL hesaplar için Google'ın şartı; hesabın durumu Play Console'da kontrol edilir) | ❌ |
 
 > **Not:** Google, 2023 sonrası açılan bireysel geliştirici hesapları için
 > production'a çıkmadan önce **kapalı testte 12 test kullanıcısıyla 14 gün**

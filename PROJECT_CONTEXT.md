@@ -950,6 +950,19 @@ alınacak — şimdi tahmin/vaat yok.
     gerçek AdMob kimlikleri, kitle kararı, gizlilik politikası URL'i, upload
     anahtarı owner'da. Dokümanlar: `docs/ANDROID_RELEASE_CHECKLIST.md`,
     `docs/DATA_SAFETY_INVENTORY.md`, `docs/monetization/AUDIENCE_DECISION.md`.
+  - `M9-01.1` ⛔ **UMP / gizlilik cihaz kapısı — A36 BEKLİYOR** (2026-09-23,
+    aynı dal): Samsung A36 oturum boyunca adb'de görünmedi → gerçek cihaz kanıtı
+    ÇALIŞTIRILAMADI. Yapılanlar: politika doküman düzeltmeleri (TFCD/TFUA
+    kullanımdan kalktı → TFAT / `setAgeRestrictedTreatment`, GMA 25.3.0+; proje
+    24.9.0'da, destek 2027-06-30 — kapalı test için engel değil, teknik borç;
+    12 test kullanıcısı / 14 gün şartı yalnız 13 Kasım 2023 sonrası kişisel
+    hesaplar için; 30 Eylül 2026 Android geliştirici doğrulaması yalnız ilk
+    bölgesel dalga), QA harness `ump_raw` + gizlilik callback sayacı, QA paketi
+    `48c9672` çalışma zamanıyla, **ek kanıt olarak emülatörde** (Android 16) yamalı
+    AAR + üç JNI çağrısı + #120 + NOT_EEA + EEA formu + gizlilik seçenekleri formu
+    + onboarding ertelemesi doğrulandı (logcat temiz); masaüstü regresyon yeşil,
+    release kapısı yalnız OWNER/CONFIG engelli. Emülatör A36'nın yerine geçmez.
+    Notlar: `build/qa_m9-01.1/DEVICE_GATE_NOTES.md`.
 - **Sırada: M8.6 — Visual Cohesion Rebuild** (ekranlar `UiKit`/`UiTokens`
   sistemine geçirilecek: ~~gameplay shell~~ ✅ → ~~home~~ ✅ → ~~map~~ ✅ →
   ~~shop~~ ✅ → ~~collection~~ ✅ main'de → ~~ikincil UI denetimi~~ ✅ →

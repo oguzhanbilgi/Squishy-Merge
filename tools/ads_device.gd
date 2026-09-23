@@ -33,6 +33,15 @@ extends Node
 ##                            sonra `remake real eea` = rıza formu yeniden
 ##   privacy                  Ayarlar → Gizlilik seçenekleri → Aç ile aynı yol (M9-01)
 ##   (durum satırı `ump:` api / can_request_ads / privacy_status — M9-01)
+##
+## M9-01.1 (UMP / gizlilik cihaz kapısı — yalnız QA):
+##   ump_raw [all|show]       yamalı eklentinin yeni JNI çağrılarını DOĞRUDAN çağırır
+##                            (yönetici kapısı atlanır): can_request_ads /
+##                            get_privacy_options_requirement_status / (show →)
+##                            show_privacy_options_form — cihazda çalışma + Variant
+##                            dönüşümü kanıtı; sonuç `last:` satırında
+##   (`ump:` satırı: privacy_dismissals = arka ucun privacy_options_form_dismissed
+##    sinyali kaç kez geldi + son code/message; `settings:` satırı: policy_row)
 ##   fake_consent ok|fail · fake_init · fake_load ok|fail · fake_show_fail
 ##   fake_earned · fake_dismiss · fake_banner ok|fail
 ##   ensure                   MonetizationManager.ensure_rewarded()
@@ -74,6 +83,10 @@ var _finished_count: int = 0
 var _event_log: PackedStringArray = PackedStringArray()
 ## Sahte arka uçta sonlandırılmış (dismiss/show_fail) geçiş gösterimi sayısı.
 var _fake_ishow_done: int = 0
+## M9-01.1: arka ucun `privacy_options_form_dismissed` sinyali (her Main kurulumunda
+## yeniden bağlanır) — "callback tam bir kez" kanıtı.
+var _privacy_dismissals: int = 0
+var _privacy_last: String = "-"
 
 
 func _ready() -> void:
@@ -185,6 +198,15 @@ func _make_main(backend: AdBackend) -> void:
 	await get_tree().process_frame
 	_main_script.ads_backend_override = null
 	_finished_count = 0
+	var ads: MonetizationManager = _ads()
+	if ads != null and ads.backend() != null:
+		ads.backend().privacy_options_form_dismissed.connect(_on_privacy_form_dismissed)
+
+
+func _on_privacy_form_dismissed(code: int, message: String) -> void:
+	_privacy_dismissals += 1
+	_privacy_last = "code=%d message=%s" % [code, message]
+	_on_event(&"privacy_options_form_dismissed", {"code": code, "message": message})
 
 
 func _hook_finished() -> void:
@@ -282,6 +304,21 @@ func _handle(line: String) -> void:
 			# yolu; cihazda gerçek dokunuş tercih — `settings:` satırındaki satır).
 			if _ads() != null:
 				_last = "privacy -> %s" % str(_ads().show_privacy_options())
+		"ump_raw":
+			# M9-01.1: yamalı AAR'ın yeni JNI çağrıları DOĞRUDAN (yönetici kapısı
+			# atlanır) — cihazda çalışma + Variant dönüşümü kanıtı.
+			var raw_ads: MonetizationManager = _ads()
+			var raw: AdBackend = raw_ads.backend() if raw_ads != null else null
+			if raw == null or not (raw is AdmobBackend):
+				_last = "ump_raw: gerçek arka uç yok"
+			elif parts.size() > 1 and parts[1] == "show":
+				raw.show_privacy_options_form()
+				_last = "ump_raw show_privacy_options_form çağrıldı (dismissals önce=%d)" % _privacy_dismissals
+			else:
+				_last = "ump_raw api=%s can_request_ads=%s privacy_status=%s consent=%s form_available=%s" % [
+					str(raw.has_privacy_api()), str(raw.can_request_ads()),
+					AdBackend.PrivacyOptionsStatus.keys()[raw.privacy_options_status()],
+					AdBackend.ConsentStatus.keys()[raw.consent_status()], str(raw.is_consent_form_available())]
 		"ensure":
 			if _ads() != null:
 				_ads().ensure_rewarded()
@@ -515,10 +552,10 @@ func _write_state(label: String) -> void:
 			str(ads.privacy_options_required()), ads.consent_attempts(), str(ads.has_pending_consent_retry())])
 		# M9-01: UMP resmî değerleri (yamalı eklenti) — EEA / NOT_EEA kapısı bunları okur.
 		var papi: bool = backend != null and backend.has_privacy_api()
-		lines.append("ump: api=%s can_request_ads=%s privacy_status=%s uses_api=%s" % [str(papi),
+		lines.append("ump: api=%s can_request_ads=%s privacy_status=%s uses_api=%s privacy_dismissals=%d privacy_last='%s'" % [str(papi),
 			str(backend.can_request_ads()) if papi else "-",
 			AdBackend.PrivacyOptionsStatus.keys()[backend.privacy_options_status()] if papi else "-",
-			str(ads.uses_privacy_api())])
+			str(ads.uses_privacy_api()), _privacy_dismissals, _privacy_last])
 		var req: Dictionary = ads.request_info()
 		lines.append("rewarded: state=%s ready=%s note='%s' attempts=%d retry=%s request={active=%s id=%d kind=%s type=%d token=%d day=%s ad_id=%s earned=%s cancelled=%s}" % [
 			MonetizationManager.RewardedState.keys()[ads.rewarded_state()], str(ads.is_rewarded_ready()),
@@ -605,8 +642,9 @@ func _write_state(label: String) -> void:
 		str(rf._ad.disabled), rf.ad_note_text(), str(rf._dough.disabled), rf.note_text(), str(rf.is_request_pending()),
 		_rect_px(rf._ad), _rect_px(rf._dough), _rect_px(rf._close), _rect_px(rf.close_button())])
 	var st: CanvasLayer = _main._settings
-	lines.append("settings: visible=%s privacy_row=%s rects: privacy_btn=%s close=%s" % [
+	lines.append("settings: visible=%s privacy_row=%s policy_row=%s policy_url='%s' rects: privacy_btn=%s close=%s" % [
 		str(st.visible), str(st.privacy_options_row() != null and st.privacy_options_row().visible),
+		str(st.privacy_policy_row() != null and st.privacy_policy_row().visible), st.privacy_policy_url(),
 		_rect_px(st.privacy_options_button()), _rect_px(st._close)])
 	lines.append("result: visible=%s pause: %s" % [str(_main._result.visible), str(_main._pause.visible)])
 	var home: CanvasLayer = _main._screens[0]

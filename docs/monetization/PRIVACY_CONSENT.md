@@ -148,9 +148,28 @@ izin/form hatası, ABD eyalet mesajı, yamasız geri düşüş, debug coğrafyas
 kilidi, AAR bytecode'unda yeni çağrılar (`monetization_test`,
 `release_config_test`).
 
-**Cihazda HENÜZ doğrulanmadı (M9-01'de telefon/ADB yok):** gerçek EEA formu,
-gerçek `canRequestAds()` değerleri, gerçek gizlilik seçenekleri formu, yamalı
-AAR'ın cihazda yüklenmesi. Plan §8.
+**M9-01.1 (2026-09-23) — EK KANIT, emülatör (Pixel_8 AVD, Android 16 / API 36,
+Google Play servisleri):** yamalı AAR yüklendi (`api=true`), üç yeni JNI çağrısı
+çalıştı, `showPrivacyOptionsForm` gerekli değilken tek callback verdi (`code=3
+"Privacy options form is not required."`); #120 düzeldi (`Setting debug geography
+to: 4` / `… to: 1`, `Invalid debug_geography` 0); NOT_EEA → NOT_REQUIRED,
+`canRequestAds` true, test banner/ödüllü/geçiş hazır; EEA → Google'ın örnek GDPR
+formu göründü, form açıkken `canRequestAds` false + SDK başlatılmadı + 0 reklam
+yüklemesi, "Consent" → OBTAINED / true / privacy REQUIRED, ardından `initialize()`
+ve her yükleme öncesi yeniden `canRequestAds()`; Ayarlar'da "Gizlilik seçenekleri"
+satırı yalnız REQUIRED iken, "Gizlilik politikası" satırı yok (URL yok); Aç →
+yerel `show_privacy_options_form()` → Google'ın formu → "Do not consent" → callback
+tam bir kez, SDK OBTAINED + `canRequestAds` true (TCF seçimi var → sınırlı reklam) →
+izin SDK'yı izledi; onboarding ertelemesi aynen (tutorial ve Level 1 round'u
+boyunca 0 rıza çağrısı, banner sıçraması yok, kabukta tek çağrı). Logcat: 0
+SCRIPT ERROR / JNI / ClassCast / IllegalArgument / NoSuchMethod / FATAL / ANR.
+Not: Vulkan'lı üretim biçimli QA build'i x86_64 emülatörde (ARM çevirisiyle)
+ekrana çizemediği için emülatöre ÖZEL GL Compatibility varyantı kullanıldı —
+çalışma zamanı kodu aynı. Ayrıntı: `build/qa_m9-01.1/DEVICE_GATE_NOTES.md`.
+
+**Gerçek cihazda HENÜZ doğrulanmadı:** Samsung A36 bu oturum boyunca adb'de hiç
+görünmedi. Owner kuralı gereği emülatör gerçek cihaz kanıtının YERİNE geçmez —
+yamalı native eklentinin A36 kanıtı (§8) hâlâ bekliyor.
 
 ## 8. EEA / NOT_EEA cihaz kapısı planı (owner onayıyla, sonraki adım)
 

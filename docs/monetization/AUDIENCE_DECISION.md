@@ -49,7 +49,25 @@ unspecified, derece G").
 - Google, Mobile Ads SDK **25.3.0**'da (2026-05-21) bu iki etiketi tek
   `setAgeRestrictedTreatment()` (CHILD / TEEN / UNSPECIFIED) altında topladı ve
   eskileri kullanımdan kaldırdı. Bu projenin SDK'sı **24.9.0** (eklenti v6.0'a
-  bağlı), dolayısıyla eski iki etiket hâlâ doğru araç.
+  bağlı), dolayısıyla eski iki etiket hâlâ doğru araç. Güncel durum ve teknik
+  borç notu: §2.1.
+
+### 2.1 Güncel Google durumu (Eylül 2026, M9-01.1 düzeltmesi)
+
+- **TFCD ve TFUA kullanımdan kaldırıldı (deprecated).** Yerine geçen:
+  **TFAT — Tag for Age Treatment**, API'si `setAgeRestrictedTreatment()`
+  (`AgeRestrictedTreatment.CHILD` / `TEEN` / `UNSPECIFIED`); Google Mobile Ads
+  SDK (Legacy) reklam isteğine `tfat` parametresini ekliyor
+  (developers.google.com/admob/android/targeting, son güncelleme 2026-09-21).
+- TFAT **GMA legacy 25.3.0** ile geldi. Bu proje **GMA 24.9.0**'da kalıyor,
+  çünkü Godot 4.6 uyumlu eklenti (godot-admob v6.0) o sürüme sabit; 24.x hattı
+  **2027-06-30'a kadar destekleniyor** (deprecation sayfası).
+- Sonuç: TFAT'a geçiş bu kapalı test milestone'u için **kendiliğinden bir engel
+  DEĞİL** — 24.9.0'da TFCD/TFUA hâlâ çalışan araçlar. Ama **belgelenmiş bir
+  modernizasyon maddesi**: SDK 25.3.0+ (ya da Google'ın bugün tercih ettiği
+  **GMA Next-Gen SDK**) eklentinin güncellenmesini gerektiriyor; o gün
+  `[Audience]` değerleri TFAT'a eşlenecek. Bu teknik borç sessizce kapatılmadı;
+  M9-01.1 cihaz kapısında GMA / Next-Gen geçişi **YAPILMADI**.
 
 ## 3. Play Console "Hedef kitle ve içerik" ile ilişki
 
