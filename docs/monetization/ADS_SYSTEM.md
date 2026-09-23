@@ -434,7 +434,7 @@ Kanıt: `build/qa_m8.9-01/device/DEVICE_GATE_NOTES.md` (yerel, gitignore'lu) +
 8. ~~**İki günlük pencere**~~ → M8.9-02.1'de tek pencerede birleştirildi
    (DAILY_REWARDS §6-§7).
 9. **Üretim engelleri (M9-01 sonrası):** ~~UMP sarmalayıcı boşluğu + #120~~
-   (kodda kapandı, cihaz kapısı bekliyor), COPPA/TFCD/TFUA kitle kararı
+   (kodda kapandı; A36 cihaz kapısı M9-01.1'de GEÇTİ — PRIVACY_CONSENT §7), COPPA/TFCD/TFUA kitle kararı
    ([AUDIENCE_DECISION.md](AUDIENCE_DECISION.md)), gerçek App ID + banner +
    ödüllü + interstitial kimlikleri (4 değer, §8), kalıcı paket kimliği, upload
    anahtarı, gizlilik politikası URL'i. Release kapısı bunlar kapanmadan

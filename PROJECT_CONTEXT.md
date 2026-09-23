@@ -950,9 +950,23 @@ alınacak — şimdi tahmin/vaat yok.
     gerçek AdMob kimlikleri, kitle kararı, gizlilik politikası URL'i, upload
     anahtarı owner'da. Dokümanlar: `docs/ANDROID_RELEASE_CHECKLIST.md`,
     `docs/DATA_SAFETY_INVENTORY.md`, `docs/monetization/AUDIENCE_DECISION.md`.
-  - `M9-01.1` ⛔ **UMP / gizlilik cihaz kapısı — A36 BEKLİYOR** (2026-09-23,
-    aynı dal): Samsung A36 oturum boyunca adb'de görünmedi → gerçek cihaz kanıtı
-    ÇALIŞTIRILAMADI. Yapılanlar: politika doküman düzeltmeleri (TFCD/TFUA
+  - `M9-01.1` ✅ **UMP / gizlilik cihaz kapısı — Samsung A36 GEÇTİ, runtime
+    değişmedi** (2026-09-23, aynı dal; PRIVACY_CONSENT §7). SM-A366B / Android 16,
+    `368c60d` çalışma zamanıyla ayrı QA paketi, Google test kimlikleri, gerçek
+    dokunuş, her coğrafya yolu yeni süreçte: yamalı AAR + üç JNI çağrısı çalıştı;
+    #120 (`Setting debug geography to: 4` / `1`, geçersiz 0); NOT_EEA → NOT_REQUIRED
+    + `canRequestAds` true + SDK + test reklamları; EEA → Google formu, form açıkken
+    `canRequestAds` false + SDK init 0 + reklam yüklemesi 0, "Consent" → OBTAINED /
+    true / REQUIRED → ancak sonra SDK; Ayarlar → "Gizlilik seçenekleri — Aç" →
+    yerel `showPrivacyOptionsForm` → "Do not consent" → callback tam bir kez, SDK
+    OBTAINED + true → yönetici SDK'yı izledi; "Gizlilik politikası" satırı gizli
+    (URL yok); soğuk açılışta yeni oyuncu + EEA: tutorial ve tutorial'dan doğan
+    Level 1 boyunca 0 rıza çağrısı / yuva 0 / geometri aynı, ilk güvenli kabukta
+    (Harita) tam bir başlatma, sonra 4 kabuk geçişi + arka plan/öne dönüşte ikinci
+    başlatma yok, tek AdView; logcat temiz (6 süreç). Tek değişiklik QA harness'ı
+    (`tools/ads_device.gd` soğuk açılış seçeneği). Masaüstü regresyon yeşil,
+    release kapısı yalnız OWNER/CONFIG. Kanıt: `build/qa_m9-01.1/A36_DEVICE_GATE.md`.
+    İlk deneme (aynı gün, telefon adb'de görünmedi → BLOCKED): politika doküman düzeltmeleri (TFCD/TFUA
     kullanımdan kalktı → TFAT / `setAgeRestrictedTreatment`, GMA 25.3.0+; proje
     24.9.0'da, destek 2027-06-30 — kapalı test için engel değil, teknik borç;
     12 test kullanıcısı / 14 gün şartı yalnız 13 Kasım 2023 sonrası kişisel
@@ -960,9 +974,8 @@ alınacak — şimdi tahmin/vaat yok.
     bölgesel dalga), QA harness `ump_raw` + gizlilik callback sayacı, QA paketi
     `48c9672` çalışma zamanıyla, **ek kanıt olarak emülatörde** (Android 16) yamalı
     AAR + üç JNI çağrısı + #120 + NOT_EEA + EEA formu + gizlilik seçenekleri formu
-    + onboarding ertelemesi doğrulandı (logcat temiz); masaüstü regresyon yeşil,
-    release kapısı yalnız OWNER/CONFIG engelli. Emülatör A36'nın yerine geçmez.
-    Notlar: `build/qa_m9-01.1/DEVICE_GATE_NOTES.md`.
+    + onboarding ertelemesi doğrulandı (logcat temiz; ek tarihçe — emülatör A36'nın
+    yerine geçmedi). Notlar: `build/qa_m9-01.1/DEVICE_GATE_NOTES.md`.
 - **Sırada: M8.6 — Visual Cohesion Rebuild** (ekranlar `UiKit`/`UiTokens`
   sistemine geçirilecek: ~~gameplay shell~~ ✅ → ~~home~~ ✅ → ~~map~~ ✅ →
   ~~shop~~ ✅ → ~~collection~~ ✅ main'de → ~~ikincil UI denetimi~~ ✅ →
@@ -979,9 +992,9 @@ alınacak — şimdi tahmin/vaat yok.
   ~~M8.10 ilk açılış tutorial'ı + ilk gün kuralı~~ ✅ + ~~M8.10.1 A36 cihaz
   kapısı~~ ✅ main'de (5a3a0f0) →
   ~~**M9-01** production release hazırlığı (kod)~~ ✅ dal `task/036` (push
-  edildi, main'e alınmadı) → owner kararları (paket kimliği, kitle, AdMob
-  hesabı + kimlikler, upload anahtarı, gizlilik politikası) + EEA/NOT_EEA cihaz
-  kapısı → yüklenebilir AAB → **M10 — Play kapalı test.** Analitik sağlayıcı
+  edildi, main'e alınmadı) → ~~M9-01.1 EEA/NOT_EEA A36 cihaz kapısı~~ ✅ →
+  owner kararları (paket kimliği, kitle, AdMob hesabı + kimlikler, upload
+  anahtarı, gizlilik politikası) → yüklenebilir AAB → **M10 — Play kapalı test.** Analitik sağlayıcı
   (`AdEvents` / `TutorialEvents`) hâlâ ayrı karar.
   Ortam hazır (export template'leri, SDK,
   NDK, JDK 17, debug keystore mevcut, ETC2/ASTC import açık, iş
@@ -1059,8 +1072,8 @@ alınacak — şimdi tahmin/vaat yok.
   Main'e `set_rewarded_provider` ile takılıyor; Devam/Refill/GÜNLÜK ÖDÜLLER
   CTA'ları yalnız yüklü reklam varken aktif. **ÜRETİM ENGELLERİ:** ~~(A)
   eklenti UMP sarmalayıcı boşluğu~~ ve ~~(B) `debug_geography` #120~~ →
-  **M9-01'de kodda kapandı** (yamalı AAR; EEA/NOT_EEA cihaz kapısı bekliyor,
-  PRIVACY_CONSENT §8); (C) COPPA/TFCD/TFUA + kitle kararı (AUDIENCE_DECISION);
+  **M9-01'de kodda kapandı** (yamalı AAR; EEA/NOT_EEA cihaz kapısı M9-01.1'de
+  A36'da GEÇTİ, PRIVACY_CONSENT §7); (C) COPPA/TFCD/TFUA + kitle kararı (AUDIENCE_DECISION);
   (D) gerçek AdMob kimlikleri yok (App ID + rewarded + banner + interstitial);
   (E) kalıcı paket kimliği, upload anahtarı, gizlilik politikası URL'i. Release
   kapısı bunlar kapanmadan yüklenebilir AAB üretmez —
@@ -1089,13 +1102,15 @@ alınacak — şimdi tahmin/vaat yok.
   shader/aura performans ölçümü M9'da.
 
 ## Next action
-**M9-01 sonrası (2026-09-22):** owner/ChatGPT kararları — (a) `task/036`
+**M9-01.1 sonrası (2026-09-23):** A36 UMP / gizlilik cihaz kapısı GEÇTİ
+(`task/036`, main'e alınmadı). Owner/ChatGPT kararları — (a) `task/036`
 incelemesi + main'e alma kararı; (b) kalıcı paket kimliği; (c) kitle kararı
 (AUDIENCE_DECISION §5); (d) Play Developer + AdMob hesapları, 3 reklam birimi,
 GDPR mesajı → `[Release]` kimlikleri; (e) upload anahtarı (owner oluşturur,
-checklist §4); (f) gizlilik politikası metni + barındırma → URL; (g) EEA /
-NOT_EEA cihaz kapısı onayı (PRIVACY_CONSENT §8); (h) mağaza varlıkları. Tam
-liste: docs/ANDROID_RELEASE_CHECKLIST.md. Aşağıdaki eski liste tarihseldir.
+checklist §4); (f) gizlilik politikası metni + barındırma → URL;
+~~(g) EEA / NOT_EEA cihaz kapısı (PRIVACY_CONSENT §8)~~ ✅ M9-01.1; (h) mağaza
+varlıkları. Tam liste: docs/ANDROID_RELEASE_CHECKLIST.md. Aşağıdaki eski liste
+tarihseldir.
 
 Owner/ChatGPT: (1) ~~`task/034` merge kararı~~ → **main'de (9561a4c)**;
 M8.9-02 kapandı, kanıt `build/qa_m8.9-02.2/device/` (38 kare, notlar) +

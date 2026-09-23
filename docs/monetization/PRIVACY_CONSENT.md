@@ -12,8 +12,9 @@
 > `canRequestAds()` / `getPrivacyOptionsRequirementStatus()` /
 > `showPrivacyOptionsForm()` çağrılarını ekledi ve `debug_geography` #120
 > hatasını (Long/Integer) düzeltti. İzin kapısı artık resmî `canRequestAds()`;
-> gizlilik seçenekleri resmî durum + resmî form. **Cihazda doğrulanmadı** —
-> M9-01'de telefon/ADB yok; EEA / NOT_EEA cihaz kapısı planı §8.
+> gizlilik seçenekleri resmî durum + resmî form. M9-01'de telefon/ADB yoktu;
+> **M9-01.1'de (2026-09-23) gerçek Samsung A36'da doğrulandı — GEÇTİ, runtime
+> değişmedi** (§7; plan §8).
 
 ## 1. İlke
 
@@ -167,11 +168,48 @@ Not: Vulkan'lı üretim biçimli QA build'i x86_64 emülatörde (ARM çevirisiyl
 ekrana çizemediği için emülatöre ÖZEL GL Compatibility varyantı kullanıldı —
 çalışma zamanı kodu aynı. Ayrıntı: `build/qa_m9-01.1/DEVICE_GATE_NOTES.md`.
 
-**Gerçek cihazda HENÜZ doğrulanmadı:** Samsung A36 bu oturum boyunca adb'de hiç
-görünmedi. Owner kuralı gereği emülatör gerçek cihaz kanıtının YERİNE geçmez —
-yamalı native eklentinin A36 kanıtı (§8) hâlâ bekliyor.
+O oturumda Samsung A36 adb'de hiç görünmedi; owner kuralı gereği emülatör gerçek
+cihaz kanıtının YERİNE geçmedi (kapı BLOCKED kaydedildi). Yukarıdaki emülatör
+kanıtı ek tarihçe olarak duruyor.
 
-## 8. EEA / NOT_EEA cihaz kapısı planı (owner onayıyla, sonraki adım)
+**M9-01.1 — GERÇEK CİHAZ, Samsung A36 (2026-09-23): GEÇTİ, runtime değişmedi.**
+SM-A366B / Android 16 (SDK 36, BP4A…CCZH1) / 1080×2340 / yoğunluk 450. `368c60d`
+çalışma zamanıyla ayrı QA paketi (`…squishymerge.qa`, yalnız Google test kimlikleri,
+`is_real=false`); her coğrafya yolu YENİ süreçte, Mobile Ads SDK hiç başlatılmamışken
+(`pm clear` = UMP sıfırlama + QA açılış seçeneği `qa_boot.txt`); bütün dokunuşlar
+gerçek. Bulgular:
+- **Yamalı AAR:** `api=true`, yönetici resmî yolda; `canRequestAds`,
+  `getPrivacyOptionsRequirementStatus`, `showPrivacyOptionsForm` A36'da çalıştı
+  (TR, gerekli değilken tek callback `code=3 "Privacy options form is not required."`);
+  JNI / Variant / ClassCast / NoSuchMethod hatası 0.
+- **#120:** `update_consent_info(… debug_geography=4 …)` → Java `Setting debug geography
+  to: 4` (NOT_EEA → OTHER) ve `… to: 1` (EEA); `Invalid debug_geography` 0. Test modunda
+  Java cihazın kendi hash'ini test cihazı olarak ekliyor — gerçek telefonda da çalışıyor.
+- **NOT_EEA:** NOT_REQUIRED, `canRequestAds` true, gizlilik NOT_REQUIRED → SDK init → test
+  banner / ödüllü / geçiş hazır. Ayarlar'da "Gizlilik seçenekleri" ve "Gizlilik politikası"
+  satırı YOK.
+- **EEA:** Google'ın örnek GDPR formu gerçek A36'da; form açıkken `canRequestAds` false,
+  SDK başlatılmadı, eklentide `initialize()` 0 ve `load_*` 0 (GMA `Ads` satırı 0).
+  "Consent" → OBTAINED / `canRequestAds` true / gizlilik REQUIRED → ANCAK ondan sonra
+  `initialize()`, her yükleme öncesi `can_request_ads(): true`.
+- **Gizlilik seçenekleri (gerçek UI):** Ayarlar → "Gizlilik seçenekleri — Aç" (URL boş →
+  "Gizlilik politikası" satırı yok) → yerel `show_privacy_options_form()` (consent form
+  yolu değil) → Google formu → "Do not consent" → callback TAM BİR KEZ (`code=0`) → SDK:
+  OBTAINED + `canRequestAds` true + REQUIRED → yönetici SDK'yı izledi (sınırlı reklam).
+  İlk EEA formunda "Do not consent" da aynı sonucu verdi (`CONSENT_SIGNAL_SUFFICIENT`).
+- **Onboarding ertelemesi (soğuk açılış, yeni oyuncu + EEA):** tutorial boyunca ve
+  tutorial'dan doğan Level 1 round'unda (gerçek T1+T1 → T2, sonra dört drop, level
+  kazanıldı) `update_consent_info` 0, form yok, banner yuvası 0, kap geometrisi aynı;
+  arka plan/öne dönüş güvenli. İlk güvenli kabukta (Harita) TAM BİR rıza başlatması →
+  EEA formu → Consent → banner Harita'da. Sonra 4 kabuk geçişi + arka plan/öne dönüş:
+  ikinci başlatma yok, tek AdView, düğüm 2992 → 2992, orphan 0.
+- **Logcat** (yalnız QA süreçleri, 6 süreç, 18 360 satır): SCRIPT ERROR / E-godot /
+  AndroidRuntime / FATAL / ANR / ClassCast / IllegalArgument / NoSuchMethod / JNI /
+  pencere sızıntısı / `Invalid debug_geography` → 0. PSS 365–506 MB, büyüme yok.
+Owner'ın üretim paketine ve kaydına dokunulmadı (paket meta verisi önce/sonra aynı), QA
+paketi kaldırıldı. Ayrıntı: `build/qa_m9-01.1/A36_DEVICE_GATE.md` (yerel).
+
+## 8. EEA / NOT_EEA cihaz kapısı planı (M9-01.1'de A36'da UYGULANDI — GEÇTİ)
 
 Telefonun gerçek coğrafyası DEĞİŞMEZ: DEBUG build'de UMP debug coğrafyası +
 test cihazı (eklenti cihazın hash'ini otomatik ekler; emülatörde de çalışır).

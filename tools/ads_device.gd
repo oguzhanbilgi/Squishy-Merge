@@ -66,8 +66,17 @@ extends Node
 ##   tut_skip                 ATLA · tut_back  Android geri (tutorial onayı)
 ##   savedump                 kayıt alanlarını ham JSON olarak yaz
 ##                            (`user://qa_save.txt`) — ilk gün kanıtı
+##
+## M9-01.1 A36 (soğuk açılış — yalnız QA):
+##   `user://qa_boot.txt` = "[fresh] [geo=eea|not_eea|...]" → bir SONRAKİ
+##   uygulama açılışı: `fresh` vitrin yerine yeni oyuncu kaydı (onboarding
+##   false; tutorial + rıza ertelemesi), `geo=` Main'in İLK arka ucu debug
+##   coğrafyasıyla (yalnız DEBUG build) — yeni süreçte, Mobile Ads SDK henüz
+##   hiç başlatılmamışken EEA / NOT_EEA kanıtı (öncesinde `pm clear` = UMP
+##   sıfırlama). Dosya açılışta okunur ve silinir.
 
 const MAIN_SCENE: PackedScene = preload("res://scenes/main.tscn")
+const BOOT_PATH: String = "user://qa_boot.txt"
 const CMD_PATH: String = "user://qa_cmd.txt"
 const STATE_PATH: String = "user://qa_state.txt"
 const EVENTS_PATH: String = "user://qa_events.txt"
@@ -94,10 +103,26 @@ func _ready() -> void:
 	AdEvents.subscribe(_on_event)
 	await get_tree().process_frame
 	await get_tree().process_frame
-	_apply_showcase()
+	var boot: String = FileAccess.get_file_as_string(BOOT_PATH).strip_edges() if FileAccess.file_exists(BOOT_PATH) else ""
+	_remove(BOOT_PATH)
+	var boot_words: PackedStringArray = boot.split(" ", false)
+	if boot_words.has("fresh"):
+		_apply_fresh()
+	else:
+		_apply_showcase()
 	SaveManager.save_game()
-	await _make_main(null)
-	print("[qa] ready view=", DisplayServer.window_get_size())
+	var boot_backend: AdmobBackend = null
+	for word in boot_words:
+		if word.begins_with("geo="):
+			var config: AdConfig = AdConfig.load_project()
+			if config.set_debug_geography(word.substr(4)):
+				boot_backend = AdmobBackend.create(config)
+				if boot_backend != null:
+					_backend_kind = "real geo=%s rewarded=%s" % [config.effective_debug_geography(), config.rewarded_id]
+			else:
+				_last = "boot: debug coğrafyası reddedildi (%s)" % word
+	await _make_main(boot_backend)
+	print("[qa] ready view=", DisplayServer.window_get_size(), " boot=", boot if boot != "" else "showcase")
 	_write_state("ready")
 	while true:
 		await get_tree().create_timer(POLL).timeout
@@ -177,6 +202,14 @@ func _apply_showcase() -> void:
 	# M8.9-02: mevcut (migrate edilmiş) oyuncu; günlük kotalar taze.
 	SaveManager.data["onboarding_completed"] = true
 	SaveManager.data["daily_rewards"] = SaveManager.DAILY_REWARDS_DEFAULT.duplicate()
+
+
+## Yeni oyuncu kaydı (QA paketinin KENDİ kaydı): onboarding false, başlangıç
+## güçleri bir kez — `fresh` komutu ve soğuk açılış (`qa_boot.txt`) ortak.
+func _apply_fresh() -> void:
+	SaveManager.data = SaveManager.DEFAULT_DATA.duplicate(true)
+	SaveManager.data["powerup_starter_granted"] = false
+	SaveManager._grant_starter_powerups()
 
 
 ## Yerel takvimde bugünden `days` gün önce (negatif = ileri).
@@ -383,9 +416,7 @@ func _handle(line: String) -> void:
 			_main._show_tab(_main._active_tab)
 			await _settle()
 		"fresh":
-			SaveManager.data = SaveManager.DEFAULT_DATA.duplicate(true)
-			SaveManager.data["powerup_starter_granted"] = false
-			SaveManager._grant_starter_powerups()
+			_apply_fresh()
 			SaveManager.save_game()
 			await _remake_current()
 		"relaunch":

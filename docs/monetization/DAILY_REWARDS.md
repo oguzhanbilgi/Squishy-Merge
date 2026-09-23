@@ -258,7 +258,7 @@ değişirse pencere kabuğa dönünce açılır (oyun ortasında asla).
    interstitial'ı doğal molada. Owner görsel kontrolü PASS. Kanıt
    `build/qa_m8.9-02.2/device/` (yerel).
 4. Üretim engelleri: ~~UMP sarmalayıcı boşluğu + #120~~ (M9-01'de kodda
-   kapandı, cihaz kapısı bekliyor), COPPA/TFCD/TFUA (AUDIENCE_DECISION.md),
+   kapandı; A36 cihaz kapısı M9-01.1'de GEÇTİ), COPPA/TFCD/TFUA (AUDIENCE_DECISION.md),
    gerçek AdMob kimlikleri (interstitial birimi dahil: 3 birim) — tam liste
    ../ANDROID_RELEASE_CHECKLIST.md. Kotalar / loot / pencere / geçiş politikası
    M9-01'de DEĞİŞMEDİ.

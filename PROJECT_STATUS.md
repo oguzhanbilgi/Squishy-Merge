@@ -1667,7 +1667,8 @@ verilmiyor:
 5. ~~İki günlük pencere kararı~~ → M8.9-02.1'de birleştirildi (§7 #18).
 6. **Analitik sağlayıcı** — `AdEvents` dikişine bağlanır (28 olay hazır).
 7. ~~Eklenti UMP boşluğu kararı (§7 #15)~~ → **M9-01'de yama + deterministik
-   AAR yeniden derlemesiyle kodda kapandı** (aşağıda M9); cihaz kapısı bekliyor.
+   AAR yeniden derlemesiyle kodda kapandı** (aşağıda M9); cihaz kapısı M9-01.1'de
+   Samsung A36'da GEÇTİ (2026-09-23).
 8. ~~M8.10 ilk açılış tutorial'ı~~ → **KAPANDI: uygulandı, A36 kapısı
    GEÇTİ, main'e alındı `3fb2945`** (ff-only, push edildi, 2026-09-22;
    base `d72fde5`). Dal `task/035-first-run-tutorial` duruyor. Ayrıntı
@@ -1824,9 +1825,30 @@ telefon/ADB yok).** Ne yapıldı ve neden:
   gizlilik URL'i, upload anahtarı). Liste: docs/ANDROID_RELEASE_CHECKLIST.md,
   veri envanteri docs/DATA_SAFETY_INVENTORY.md.
 
-**M9-01.1 — UMP / gizlilik cihaz kapısı (2026-09-23): A36 BEKLİYOR.** Samsung A36
-oturum boyunca adb'de görünmedi; gerçek cihaz kanıtı çalıştırılamadı (emülatör
-owner kuralı gereği yerine geçmez). Ek kanıt olarak Pixel_8 emülatöründe (Android 16)
+**M9-01.1 — UMP / gizlilik cihaz kapısı (2026-09-23): Samsung A36 GEÇTİ, runtime
+değişmedi.** İkinci oturumda A36 (SM-A366B / Android 16) bağlıydı. `368c60d` çalışma
+zamanıyla ayrı QA paketi (`…squishymerge.qa`, Google test kimlikleri); QA harness'ına
+tek ekleme `tools/ads_device.gd` soğuk açılış seçeneği (`user://qa_boot.txt` = `[fresh]
+[geo=…]`) — her coğrafya / onboarding yolu YENİ süreçte, Mobile Ads SDK hiç
+başlatılmamışken ölçüldü (`pm clear` = UMP sıfırlama). Neden böyle: süreç içi `remake`
+SDK'yı önceki adımdan başlatılmış bırakıyordu; "form çözülmeden SDK başlamaz" ancak temiz
+süreçte kanıtlanabilir. Sonuç: yamalı AAR'ın üç JNI çağrısı çalıştı; #120 (`Setting debug
+geography to: 4` / `1`, geçersiz 0 — Java test modunda cihazın hash'ini kendisi ekliyor);
+NOT_EEA → NOT_REQUIRED + `canRequestAds` true + SDK + test reklamları; EEA → Google formu,
+form açıkken `canRequestAds` false + eklentide `initialize()` 0 + `load_*` 0, "Consent" →
+OBTAINED / true / REQUIRED → ancak sonra SDK; Ayarlar → "Gizlilik seçenekleri — Aç" →
+yerel `showPrivacyOptionsForm` → "Do not consent" → callback tam bir kez, SDK OBTAINED +
+true (sınırlı reklam) → yönetici SDK'yı izledi; "Gizlilik politikası" satırı gizli;
+soğuk açılışta yeni oyuncu + EEA: tutorial (gerçek T1+T1 → T2) ve tutorial'dan doğan Level
+1 boyunca 0 rıza çağrısı, yuva 0, geometri aynı; ilk güvenli kabukta (Harita) tam bir
+başlatma; sonra 4 kabuk geçişi + arka plan/öne dönüş: ikinci başlatma yok, tek AdView,
+düğüm sabit, orphan 0. Logcat (6 QA süreci) temiz. Kurulumdan hemen sonra telefon ekran
+zaman aşımıyla kilitlendi — girdi durdu, owner açana kadar salt-okunur beklendi.
+Owner'ın üretim paketine dokunulmadı. Ayrıntı PRIVACY_CONSENT §7,
+`build/qa_m9-01.1/A36_DEVICE_GATE.md`.
+
+İlk deneme (aynı gün): Samsung A36 oturum boyunca adb'de görünmedi; gerçek cihaz kanıtı
+çalıştırılamadı (emülatör owner kuralı gereği yerine geçmez). Ek kanıt olarak Pixel_8 emülatöründe (Android 16)
 yamalı AAR, üç yeni JNI çağrısı, #120, NOT_EEA / EEA formu, gizlilik seçenekleri formu
 (tek callback) ve onboarding ertelemesi doğrulandı; Vulkan'lı QA build'i x86_64
 emülatörde ARM çevirisiyle çizemediği için emülatöre özel GL Compatibility varyantı

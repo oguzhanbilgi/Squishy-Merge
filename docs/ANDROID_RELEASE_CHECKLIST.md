@@ -4,7 +4,9 @@
 > DEĞİL.** Kodda yapılabilecek her şey M9-01'de kapandı (✅); release kapısı
 > (`tools/release/release_android.sh check`) bugün **BLOCKED**: 11 engel,
 > hepsi owner / hesap kararı (§1). Play Console'a hiçbir şey yüklenmedi,
-> hiçbir form doldurulmadı.
+> hiçbir form doldurulmadı. **M9-01.1 (2026-09-23):** yamalı UMP eklentisinin
+> EEA / NOT_EEA / gizlilik seçenekleri cihaz kapısı gerçek Samsung A36'da
+> **GEÇTİ** (runtime değişmedi; #19, §5) — kapı çıktısı aynı: CODE 0, 11 OWNER/CONFIG.
 >
 > Kategoriler: ✅ **CODE COMPLETE** · 🟠 **OWNER ACTION** · 🟣 **PLAY CONSOLE
 > ACTION** · 🔵 **EXTERNAL ACCOUNT ACTION**. Kaynak: Google resmî sayfaları
@@ -51,7 +53,7 @@ AAB yok).
 | 16 | **Mağaza girişi** | 🟠🟣 | Kısa açıklama (≤80), tam açıklama (≤4000), kategori (ör. Oyun → Bulmaca; owner seçer), iletişim e-postası, grafikler (#7, #8). Dil(ler) owner'ın. |
 | 17 | **Kapalı test kanalı + test kullanıcıları** | 🟣🔵 | Şart KOŞULLU: **13 Kasım 2023'ten sonra açılmış kişisel (personal) Play geliştirici hesapları** üretime erişimden önce en az 12 test kullanıcısının 14 gün kesintisiz katıldığı bir kapalı test yapmalı (erken ayrılan sayılmaz), sonra üretim erişimi başvurusu. Hesabın türü ve gerçek durumu **Play Console'da kontrol edilmeli** — kuruluş (organization) hesabı ya da daha eski hesap için şart farklı olabilir. |
 | 18 | **Gerçek AdMob kimlikleri** | 🟠🔵 | AdMob'da uygulama + 3 reklam birimi (ödüllü, uyarlanabilir banner, geçiş) → `android_export.cfg [Release]` dört kimlik + `is_real=true`. Kapı biçim/yayıncı/tekrar/Google-örneği kontrollerini yapar. |
-| 19 | **UMP / rıza (EEA)** | ✅🔵 | Kod: resmî `canRequestAds` + gizlilik seçenekleri (yamalı eklenti). Owner: AdMob Privacy & messaging'de **GDPR mesajı** (EEA/UK/CH'de kişiselleştirilmiş reklam için sertifikalı CMP gerekli; yoksa sınırlı reklam), isteğe bağlı ABD eyalet mesajı. EEA / NOT_EEA / gizlilik seçenekleri akışı **emülatörde doğrulandı** (M9-01.1, ek kanıt); **Samsung A36 gerçek cihaz kanıtı hâlâ bekliyor** (telefon bağlı değildi — PRIVACY_CONSENT §7–§8). |
+| 19 | **UMP / rıza (EEA)** | ✅🔵 | Kod: resmî `canRequestAds` + gizlilik seçenekleri (yamalı eklenti). Owner: AdMob Privacy & messaging'de **GDPR mesajı** (EEA/UK/CH'de kişiselleştirilmiş reklam için sertifikalı CMP gerekli; yoksa sınırlı reklam), isteğe bağlı ABD eyalet mesajı. EEA / NOT_EEA / gizlilik seçenekleri akışı önce emülatörde (ek kanıt), sonra **gerçek Samsung A36'da doğrulandı — GEÇTİ** (M9-01.1, 2026-09-23: yamalı AAR, #120, form öncesi 0 reklam isteği, gizlilik seçenekleri tek callback, onboarding ertelemesi; logcat temiz — PRIVACY_CONSENT §7). |
 | 20 | **Mimari** | ✅🟠 | Yalnız **arm64-v8a** (Play 64-bit şartı karşılanır). `armeabi-v7a` eklemek (eski 32-bit telefonlar) owner kararı; AAB bölünmüş teslimatla 64-bit indirmeyi büyütmez ama test yükü getirir. |
 | 21 | **İzinler** | ✅ | VIBRATE (oyun), INTERNET, ACCESS_NETWORK_STATE, AD_ID ×2, ACCESS_ADSERVICES_AD_ID/ATTRIBUTION/TOPICS, WAKE_LOCK, FOREGROUND_SERVICE, `…DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION` — hepsi GMA/eklenti/androidx kaynaklı (debug APK + AAB `aapt2` ile aynı liste). Tehlikeli (runtime) izin yok. |
 | 22 | **Android geliştirici doğrulaması / paket kaydı** | 🔵 | **Düzeltildi (M9-01.1):** 30 Eylül 2026, herkese uygulanan bir son tarih DEĞİL; **ilk bölgesel uygulama dalgası** — Brezilya, Endonezya, Singapur ve Tayland'da, katılımcı mağazalardan (Google Play dahil) kurulan uygulamalar için, Android 7+ sertifikalı cihazlarda. **2027'de** tüm sertifikalı cihazlara genişliyor. Google Play uygulamaların ~%99'unu **otomatik kaydediyor**; kalanlar Play Console'dan elle kaydediliyor (developer.android.com/developer-verification). Yayımlanmamış bu uygulama için bugün ayrı bir işlem yok: hesap açılıp uygulama oluşturulunca owner kayıt durumunu Play Console'da kontrol eder. |
@@ -103,9 +105,9 @@ keytool -genkeypair -v -keystore "<repo DIŞINDA güvenli bir yol>/squishy-merge
 
 ## 5. Kapalı testten önce önerilen cihaz kapıları (owner onayıyla)
 
-1. **EEA / NOT_EEA rıza + gizlilik seçenekleri** — yamalı AAR'ın ilk cihaz
+1. ~~**EEA / NOT_EEA rıza + gizlilik seçenekleri** — yamalı AAR'ın ilk cihaz
    doğrulaması (PRIVACY_CONSENT §8; debug build, telefonun coğrafyası
-   değişmez).
+   değişmez).~~ ✅ **M9-01.1'de Samsung A36'da GEÇTİ** (2026-09-23, PRIVACY_CONSENT §7).
 2. **Release adayı duman testi** — imzalı AAB Play dahili test kanalından
    yüklenip açılış/tutorial/reklam (gerçek kimliklerle canlı reklam: yalnız
    izleme, TIKLAMA YOK; ya da AdMob test cihazı kaydı).
