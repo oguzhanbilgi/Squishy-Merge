@@ -3,7 +3,7 @@ extends Node
 ## kullanılmaz. `--headless` İLE ÇALIŞTIRILAMAZ (ekran görüntüsü).
 ##
 ## Gerçek GameBoard + production HUD, deterministik yığınlar:
-##   tutorial (L1) / empty / medium / heavy / armed (seçili güç) / zero (stok 0) / danger /
+##   level1 (L1) / empty / medium / heavy / armed (seçili güç) / zero (stok 0) / danger /
 ##   endless / skin_sade / skin_rare / skin_legendary
 ##
 ## KAYIT: SaveManager.data yalnızca BELLEKTE değiştirilir (stok, takılı
@@ -131,8 +131,8 @@ func _pile(rows: Array) -> void:
 
 
 func _shot_empty() -> void:
-	await _make_board("res://resources/levels/level_01.tres", true)
-	await _capture("00_tutorial_l1")
+	await _make_board("res://resources/levels/level_01.tres")
+	await _capture("00_level1")
 	await _make_board()
 	GameState.add_score(0)
 	await _capture("01_empty")
