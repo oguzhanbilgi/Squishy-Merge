@@ -118,7 +118,7 @@ case "$MODE" in
 		{
 			echo "NOT FOR UPLOAD — Squishy Merge ${VERSION_NAME} (versionCode ${VERSION_CODE})"
 			echo "İmzasız, release biçimli AAB; yalnız pipeline doğrulaması (Gradle release, AAB yapısı,"
-			echo "arm64, manifest, boyut, sızıntı taraması). Geçici paket kimliği ve Google TEST reklam"
+			echo "arm64, manifest, boyut, sızıntı taraması). Google TEST reklam"
 			echo "yapılandırması içerir; release build'de reklamlar fail-closed KAPALI. Play Console'a"
 			echo "YÜKLENEMEZ ve yüklenmemelidir. Rapor: $(basename "$AAB").scan.json"
 		} > "$AAB.NOT_FOR_UPLOAD.txt"

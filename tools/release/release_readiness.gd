@@ -15,6 +15,12 @@ extends RefCounted
 ##
 ## GİZLİLİK: anahtar deposu şifresi / takma adı yalnız "dolu mu" diye bakılır,
 ## hiçbir yere yazılmaz.
+##
+## Paket kimlikleri (owner kararı, 2026-09-24): üretim / Play = project.godot
+## `squishy/release/android_package_id` (com.obappstudio.squishymerge); QA / test
+## (debug TEST-reklam APK'sı, cihaz harness'ları) = üretim + QA_PACKAGE_SUFFIX
+## (com.obappstudio.squishymerge.qa). QA kimliği asla release olamaz; üretim
+## kimliğiyle yapılan debug export'u raporda uyarı verir (cihazda Play sürümüyle çakışır).
 
 const CATEGORY_OWNER: String = "OWNER"
 const CATEGORY_CONFIG: String = "CONFIG"
@@ -35,6 +41,8 @@ const SETTING_VERSION_NAME: String = "application/config/version"
 ## com.godot.game Godot'un varsayılanı).
 const TEMPORARY_PACKAGE_PREFIXES: Array[String] = ["com.example.", "com.godot.", "org.godotengine."]
 const PACKAGE_PATTERN: String = "^[a-zA-Z][a-zA-Z0-9_]*(\\.[a-zA-Z][a-zA-Z0-9_]*)+$"
+## QA / test paketi = kalıcı kimlik + bu sonek; üretimle ÇAKIŞMAZ, release olamaz.
+const QA_PACKAGE_SUFFIX: String = ".qa"
 ## Play hedef API şartı (yeni uygulama + güncelleme, 2026-08-31'den beri).
 const MIN_TARGET_SDK: int = 36
 ## Godot 4.6.3 Gradle şablonunun varsayılanı (android/build/config.gradle).
@@ -62,19 +70,28 @@ static func evaluate(inputs: Dictionary) -> Dictionary:
 	var blockers: Array[Dictionary] = []
 	var notes: PackedStringArray = PackedStringArray()
 	var build: String = String(inputs.get("build", "release"))
-	if build != "release":
-		notes.append("debug export'u: release kapısı uygulanmaz (yalnız Google test kimlikleri, AdConfig DEBUG kuralları)")
-		return {"status": STATUS_DEBUG, "blockers": blockers, "notes": notes}
-
-	# 1) Uygulama kimliği (Play'de KALICI — owner kararı).
 	var canonical: String = String(inputs.get("canonical_package_id", "")).strip_edges()
 	var package_id: String = String(inputs.get("package_id", "")).strip_edges()
+	if build != "release":
+		notes.append("debug export'u: release kapısı uygulanmaz (yalnız Google test kimlikleri, AdConfig DEBUG kuralları)")
+		if not canonical.is_empty() and package_id == canonical:
+			notes.append("UYARI: debug/test export'u ÜRETİM kimliğiyle ('%s') — cihazda Play sürümüyle çakışır; QA/test kimliği '%s'"
+				% [canonical, qa_package_id(canonical)])
+		return {"status": STATUS_DEBUG, "blockers": blockers, "notes": notes}
+
+	# 1) Uygulama kimliği (Play'de KALICI — owner kararı). QA / test kimliği
+	#    release olamaz: QA paketleri üretimle çakışmamalı.
 	if canonical.is_empty():
 		_add(blockers, CATEGORY_OWNER, "kalıcı uygulama kimliği (package id) seçilmedi — project.godot %s boş" % SETTING_PACKAGE_ID)
 	elif not _valid_package(canonical):
 		_add(blockers, CATEGORY_OWNER, "project.godot %s geçersiz ya da geçici: '%s'" % [SETTING_PACKAGE_ID, canonical])
+	elif _is_qa_package(canonical):
+		_add(blockers, CATEGORY_OWNER, "project.godot %s bir QA kimliği ('%s') — üretim kimliği '%s' ile bitemez"
+			% [SETTING_PACKAGE_ID, canonical, QA_PACKAGE_SUFFIX])
 	if not _valid_package(package_id):
 		_add(blockers, CATEGORY_CONFIG, "preset package/unique_name geçersiz ya da geçici: '%s'" % package_id)
+	elif _is_qa_package(package_id):
+		_add(blockers, CATEGORY_CONFIG, "preset package/unique_name QA / test kimliği: '%s' — QA paketi release olamaz" % package_id)
 	elif not canonical.is_empty() and package_id != canonical:
 		_add(blockers, CATEGORY_CONFIG, "preset package/unique_name '%s' ≠ project.godot '%s'" % [package_id, canonical])
 
@@ -207,8 +224,17 @@ static func report(result: Dictionary, title: String) -> String:
 	return "\n".join(lines)
 
 
+## QA / test kimliği: kalıcı kimlik + QA_PACKAGE_SUFFIX (com.obappstudio.squishymerge.qa).
+static func qa_package_id(canonical: String) -> String:
+	return canonical.strip_edges() + QA_PACKAGE_SUFFIX
+
+
 static func _add(blockers: Array[Dictionary], category: String, message: String) -> void:
 	blockers.append({"category": category, "message": message})
+
+
+static func _is_qa_package(value: String) -> bool:
+	return value.ends_with(QA_PACKAGE_SUFFIX)
 
 
 static func _valid_package(value: String) -> bool:

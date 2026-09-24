@@ -1,7 +1,7 @@
 extends Node
 ## M8.9-01.1 — A36 AdMob TEST-AD cihaz kapısı sürücüsü. Dev aracı; üretim
 ## APK'sında YOK (`tools/*` preset dışında), ayrı QA paketiyle
-## (`…squishymerge.qa`) yüklenir ve kendi veri dizininde çalışır (owner
+## (`com.obappstudio.squishymerge.qa`) yüklenir ve kendi veri dizininde çalışır (owner
 ## kaydına dokunamaz).
 ##
 ## Gerçek `main.tscn` + gerçek `MonetizationManager` + gerçek AdmobBackend

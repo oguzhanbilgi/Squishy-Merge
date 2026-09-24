@@ -11,6 +11,9 @@
 > ağaç `2fd8a72`); kapı entegre main'de yeniden koşuldu — aynı çıktı (CODE 0 ·
 > OWNER 10 · CONFIG 1), `aab` reddedildi, AAB üretilmedi. Kalan her madde owner /
 > hesap / yapılandırma kararı.
+> **Paket kimliği KİLİTLENDİ (owner kararı, 2026-09-24):** üretim / Play =
+> `com.obappstudio.squishymerge`; QA / test = `com.obappstudio.squishymerge.qa`
+> (#1). Kapı artık **CODE 0 · OWNER 9 · CONFIG 0** (§1) — paket satırları kapandı.
 >
 > Kategoriler: ✅ **CODE COMPLETE** · 🟠 **OWNER ACTION** · 🟣 **PLAY CONSOLE
 > ACTION** · 🔵 **EXTERNAL ACCOUNT ACTION**. Kaynak: Google resmî sayfaları
@@ -18,17 +21,20 @@
 
 ## 1. Bugünkü release kapısı çıktısı
 
+2026-09-24, paket kimliği kararından sonra (`tools/release/release_android.sh check`):
+
 ```
 == release_check 'Android Release AAB': BLOCKED ==
-  [OWNER]  kalıcı uygulama kimliği (package id) seçilmedi — project.godot squishy/release/android_package_id boş
-  [CONFIG] preset package/unique_name geçersiz ya da geçici: 'com.example.squishymerge'
   [OWNER]  AdMob: release build ama [General] is_real=false (üretim kimlikleri onaylanmadı)
   [OWNER]  AdMob: [Release] app_id / rewarded_id / banner_id / interstitial_id boş (4)
   [OWNER]  kitle kararı yok (android_export.cfg [Audience] decision — AUDIENCE_DECISION.md)
   [OWNER]  gizlilik politikası URL'i yok (project.godot squishy/privacy/policy_url)
   [OWNER]  upload anahtar deposu verilmedi / takma adı-şifresi verilmedi (2)
-  bilgi: paket='com.example.squishymerge' versionCode=1 versionName='0.8.5' format=AAB arm64=true targetSdk=36
+  bilgi: paket='com.obappstudio.squishymerge' versionCode=1 versionName='0.8.5' format=AAB arm64=true targetSdk=36
 ```
+
+Önceki çıktıdaki iki paket satırı (`[OWNER]` kimlik seçilmedi · `[CONFIG]` preset
+`com.example.squishymerge`) karar + preset güncellemesiyle kapandı.
 
 `tools/release/release_android.sh aab` bu durumda export'u ÇALIŞTIRMADAN
 reddeder (çıkış 2). Pipeline dışından yapılan bir Godot release export'unu da
@@ -39,12 +45,12 @@ AAB yok).
 
 | # | madde | kat. | durum |
 |---|---|---|---|
-| 1 | **Kalıcı paket kimliği** (applicationId) | 🟠 | Bugün geçici `com.example.squishymerge`. Play'de paket adı **kalıcıdır**, ilk yüklemeden sonra değişmez, silinse de yeniden kullanılamaz. Owner seçer → project.godot `squishy/release/android_package_id` + yerel release presetinin `package/unique_name`'i (kapı ikisinin eşit olmasını ister). `com.example.*` Play'de reddedilir (resmî belgede açık ifade **UNVERIFIED**, yaygın bilinen Console hatası). Biçim: en az iki bölüm, harfle başlar, harf/rakam/alt çizgi. |
+| 1 | **Kalıcı paket kimliği** (applicationId) | ✅ | **KARAR (owner, 2026-09-24): `com.obappstudio.squishymerge`** → project.godot `squishy/release/android_package_id` + yerel release presetlerinin ("Android Release AAB", "Android AAB NOT FOR UPLOAD") `package/unique_name`'i (kapı ikisinin eşit olmasını ister; preset her makinede ayrı güncellenir, eşit değilse CONFIG engeli). **QA / test = `com.obappstudio.squishymerge.qa`**: debug TEST-reklam preset'i ("Android") + cihaz harness paketleri — üretimle çakışmaz; kapı `.qa` kimliğini release'te reddeder, üretim kimliğiyle debug export'u raporda UYARI verir. Play'de paket adı **kalıcıdır**, ilk yüklemeden sonra değişmez, silinse de yeniden kullanılamaz. Eski geçici `com.example.squishymerge` kaldırıldı (`com.example.*` Play'de reddedilir — resmî belgede açık ifade **UNVERIFIED**). |
 | 2 | **Play App Signing + upload anahtarı** | 🟠🟣 | Yeni uygulamalar için Play App Signing zorunlu (Google uygulama imza anahtarını üretir/saklar). Owner bir **upload anahtarı** oluşturur (§4) — Claude oluşturmadı. Şifre asla dosyaya/commit'e yazılmaz; export anında yalnız ortam değişkeni. |
 | 3 | **Hedef API** | ✅ | targetSdk **36** (Godot 4.6.3 şablonu; Play şartı 2026-08-31'den beri 36), minSdk 24, compileSdk 36. Kapı <36'yı reddeder. |
-| 4 | **AAB** | ✅ | Release = yalnız AAB (kapı APK'yı reddeder). Release biçimli AAB hattı doğrulandı: `NOT_FOR_UPLOAD_squishy_merge_0.8.5_vc1_unsigned.aab` — 47,7 MB, İMZASIZ (META-INF yok), arm64-v8a, versionCode 1 / 0.8.5, `debuggable` yok, `allowBackup=false`, oyun dosyaları install-time asset pack'te (741), sızıntı 0, yamalı eklenti dex'te, Google test yapılandırması (release'te reklam fail-closed KAPALI). **Play'e yüklenemez.** |
+| 4 | **AAB** | ✅ | Release = yalnız AAB (kapı APK'yı reddeder). Release biçimli AAB hattı doğrulandı: `NOT_FOR_UPLOAD_squishy_merge_0.8.5_vc1_unsigned.aab` — 47,7 MB, İMZASIZ (META-INF yok), arm64-v8a, versionCode 1 / 0.8.5, `debuggable` yok, `allowBackup=false`, oyun dosyaları install-time asset pack'te (741), sızıntı 0, yamalı eklenti dex'te, Google test yapılandırması (release'te reklam fail-closed KAPALI). **Play'e yüklenemez.** **2026-09-24 paket kararından sonra yeniden üretildi:** manifest paketi `com.obappstudio.squishymerge`, 47,7 MB, arm64, 741 oyun dosyası, yamalı eklenti dex'te, tarama 0 uyarı / 0 hata; aynı gün TEST-reklam debug APK'sının paketi `com.obappstudio.squishymerge.qa` (kanıt `build/qa_m9-package-id/`, yerel). |
 | 5 | **Uygulama adı** | ✅🟠 | Cihazda "Squishy Merge" (project `config/name`). Mağaza adı (≤30 karakter) owner'ın Play girişinde. |
-| 6 | **Sürüm kodu / adı** | ✅🟠 | Tek kaynak: versionName = project.godot `application/config/version` (**0.8.5**; presetlerde `version/name` BOŞ kalmalı), versionCode = project.godot `squishy/release/android_version_code` (**1**). Kapı presetle eşitliği ister. Her Play yüklemesinde owner versionCode'u +1 artırır (azalamaz). Debug ayrımı: `debuggable=true`, dosya adı `_testads_debug.apk`, Google test reklamlarının kendi "Test Ad" etiketi, kapı raporu DEBUG. |
+| 6 | **Sürüm kodu / adı** | ✅🟠 | Tek kaynak: versionName = project.godot `application/config/version` (**0.8.5**; presetlerde `version/name` BOŞ kalmalı), versionCode = project.godot `squishy/release/android_version_code` (**1**). Kapı presetle eşitliği ister. Her Play yüklemesinde owner versionCode'u +1 artırır (azalamaz). Debug ayrımı: paket `com.obappstudio.squishymerge.qa` (QA / test), `debuggable=true`, dosya adı `_testads_debug.apk`, Google test reklamlarının kendi "Test Ad" etiketi, kapı raporu DEBUG. |
 | 7 | **İkon / adaptive icon** | ✅🟠 | `launcher_main_192` (192²) + adaptive ön/arka plan (432²) üç presette bağlı, manifest ikonu doğrulandı. Eksik: Play mağaza ikonu **512×512 PNG** (owner varlığı). Opsiyonel: Android 13 tek renk (monochrome) ikon. `config/icon` hâlâ `icon.svg` — yalnız masaüstü/editör; Android'i etkilemez. |
 | 8 | **Feature graphic / ekran görüntüleri** | 🟠 | Feature graphic **1024×500** ve en az 2 telefon ekran görüntüsü YOK. `tools/*_shots` araçları kare üretir; mağaza seçimi owner'ın. |
 | 9 | **Gizlilik politikası URL'i** | 🟠🟣 | Play: HER uygulama için zorunlu, hem Play Console alanında hem **uygulama içinde** (bağlantı ya da metin). Sayfa herkese açık, PDF değil, bölgeye kapalı değil; geliştiriciyi adlandırmalı, erişilen/toplanan/paylaşılan veriyi (AdMob dahil), saklama ve silmeyi anlatmalı. Kod hazır: Ayarlar → "Gizlilik politikası" satırı URL verilince görünür (§5 PRIVACY_CONSENT). Owner metni yazar, **barındırır**, `squishy/privacy/policy_url`'e `https://` adresini koyar. Claude URL uydurmadı/barındırmadı. |
@@ -67,10 +73,13 @@ AAB yok).
 
 ## 3. Owner girdileri gelince: yüklenebilir AAB
 
-1. project.godot `[squishy]`: `release/android_package_id="<kalıcı kimlik>"`,
-   `privacy/policy_url="https://…"`; gerekirse `release/android_version_code`.
-2. Yerel `export_presets.cfg` → "Android Release AAB": `package/unique_name` =
-   aynı kimlik (versionCode aynı sayı; `version/name` BOŞ).
+1. project.godot `[squishy]`: ~~`release/android_package_id`~~ ✅
+   `com.obappstudio.squishymerge` (2026-09-24); `privacy/policy_url="https://…"`;
+   gerekirse `release/android_version_code`.
+2. Yerel `export_presets.cfg` (her makinede): "Android Release AAB" + "Android AAB
+   NOT FOR UPLOAD" `package/unique_name` = `com.obappstudio.squishymerge`, "Android"
+   (debug TEST-reklam) = `com.obappstudio.squishymerge.qa` — iş makinesinde yapıldı
+   (2026-09-24); versionCode aynı sayı; `version/name` BOŞ.
 3. `addons/AdmobPlugin/android_export.cfg`: `[Release]` dört kimlik,
    `[General] is_real=true`, `[Audience]` kararı (AUDIENCE_DECISION §5).
 4. Upload anahtarı ortam değişkenleri (yalnız o kabuk oturumu; dosyaya yazma):

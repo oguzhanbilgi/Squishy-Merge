@@ -7,9 +7,9 @@ extends Node
 ##     dört gerçek kimlik + is_real=true ister
 ##   - debug coğrafyası üretimde (RELEASE) imkânsız; DEBUG'da EEA / NOT_EEA kancaları
 ##   - kitle (TFCD / TFUA / içerik derecesi) değerleri ve eşlemesi
-##   - ReleaseReadiness kuralları (paket kimliği, sürüm tek kaynağı, AAB, arm64,
-##     hedef API, reklam, kitle, gizlilik URL'i, yamalı eklenti, upload anahtarı,
-##     NON_PUBLISHABLE) + bu projenin bugünkü durumu (BLOCKED)
+##   - ReleaseReadiness kuralları (paket kimliği + QA kimliği ayrımı, sürüm tek
+##     kaynağı, AAB, arm64, hedef API, reklam, kitle, gizlilik URL'i, yamalı eklenti,
+##     upload anahtarı, NON_PUBLISHABLE) + bu projenin bugünkü durumu (BLOCKED)
 ##   - şifre / takma ad raporlara sızmaz
 ##   - UMP sarmalayıcıları arayüz düzeyinde (AdBackend / FakeAdBackend / Admob.gd
 ##     cephesi / AdmobBackend eşlemeleri) + commit edilmiş AAR'ların bytecode'u
@@ -294,6 +294,13 @@ static func _blocked_by(result: Dictionary, category: String, needle: String) ->
 	return false
 
 
+static func _notes_have(result: Dictionary, needle: String) -> bool:
+	for note in result["notes"]:
+		if String(note).contains(needle):
+			return true
+	return false
+
+
 func _test_release_gate_rules() -> void:
 	print("-- ReleaseReadiness: kurallar tek tek")
 	var good: Dictionary = _gate({})
@@ -308,6 +315,12 @@ func _test_release_gate_rules() -> void:
 	_c("preset paket ≠ project.godot -> CONFIG", _blocked_by(_gate({"package_id": "com.squishy.other"}), "CONFIG", "≠"))
 	_c("geçersiz paket biçimi -> engel", _gate({"package_id": "squishy", "canonical_package_id": "squishy"})["status"]
 		== ReleaseReadiness.STATUS_BLOCKED)
+	var qa: String = ReleaseReadiness.qa_package_id("com.squishy.merge")
+	_c("QA / test kimliği = kalıcı kimlik + .qa", qa == "com.squishy.merge.qa")
+	_c("preset QA kimliğiyle release -> CONFIG (QA paketi release olamaz)", _blocked_by(_gate({"package_id": qa}),
+		"CONFIG", "QA / test kimliği"))
+	_c("kanonik QA kimliği -> OWNER (üretim kimliği .qa ile bitemez)", _blocked_by(_gate({"canonical_package_id": qa,
+		"package_id": qa}), "OWNER", "QA kimliği"))
 	_c("versionCode ≠ tek kaynak -> CONFIG", _blocked_by(_gate({"version_code": 2}), "CONFIG", "version/code"))
 	_c("tek kaynak versionCode < 1 -> CONFIG", _blocked_by(_gate({"canonical_version_code": 0, "version_code": 0}),
 		"CONFIG", "< 1"))
@@ -349,9 +362,13 @@ func _test_release_gate_rules() -> void:
 		"export_path": "build/release/squishy_merge.aab"})["status"] == ReleaseReadiness.STATUS_BLOCKED)
 	_c("istek yokken imzasız + işaretli yol yine BLOCKED (sessiz geçiş yok)", _gate({"signed": false,
 		"export_path": "build/release/NOT_FOR_UPLOAD_x.aab"})["status"] == ReleaseReadiness.STATUS_BLOCKED)
-	var debug: Dictionary = _gate({"build": "debug", "canonical_package_id": "", "package_id": "com.example.squishymerge.qa"})
-	_c("debug export'u: kapı uygulanmaz (DEBUG, engel yok — QA paketleri serbest)",
-		debug["status"] == ReleaseReadiness.STATUS_DEBUG and debug["blockers"].is_empty())
+	var debug: Dictionary = _gate({"build": "debug", "package_id": qa})
+	_c("debug export'u (QA kimliği): kapı uygulanmaz (DEBUG, engel yok, uyarı yok — QA paketleri serbest)",
+		debug["status"] == ReleaseReadiness.STATUS_DEBUG and debug["blockers"].is_empty() and not _notes_have(debug, "UYARI"))
+	var debug_prod: Dictionary = _gate({"build": "debug"})
+	_c("debug export'u ÜRETİM kimliğiyle: DEBUG kalır (build düşmez) ama rapor UYARI verir (Play sürümüyle çakışır)",
+		debug_prod["status"] == ReleaseReadiness.STATUS_DEBUG and debug_prod["blockers"].is_empty()
+		and _notes_have(debug_prod, "ÜRETİM kimliğiyle"))
 	var text: String = ReleaseReadiness.report(_gate({"canonical_package_id": ""}), "t")
 	_c("rapor: durum + kategori etiketleri + checklist notu", text.contains("BLOCKED") and text.contains("[OWNER]")
 		and text.contains("ANDROID_RELEASE_CHECKLIST"))
@@ -361,23 +378,29 @@ func _test_release_gate_rules() -> void:
 
 func _test_current_project_state() -> void:
 	print("-- bu proje bugün: tek kaynaklar + BLOCKED (upload-ready DEĞİL)")
-	_c("project.godot: paket kimliği kararı yok (boş), versionCode 1, versionName 0.8.5, gizlilik URL'i yok",
-		String(ProjectSettings.get_setting(ReleaseReadiness.SETTING_PACKAGE_ID, "x")) == ""
+	var canonical: String = String(ProjectSettings.get_setting(ReleaseReadiness.SETTING_PACKAGE_ID, ""))
+	_c("project.godot: paket kimliği com.obappstudio.squishymerge (owner kararı, kalıcı), versionCode 1, versionName 0.8.5, gizlilik URL'i yok",
+		canonical == "com.obappstudio.squishymerge"
 		and int(ProjectSettings.get_setting(ReleaseReadiness.SETTING_VERSION_CODE, 0)) == 1
 		and String(ProjectSettings.get_setting(ReleaseReadiness.SETTING_VERSION_NAME, "")) == "0.8.5"
 		and String(ProjectSettings.get_setting(ReleaseReadiness.SETTING_PRIVACY_URL, "x")) == "")
+	_c("QA / test kimliği com.obappstudio.squishymerge.qa — üretimden ayrı",
+		ReleaseReadiness.qa_package_id(canonical) == "com.obappstudio.squishymerge.qa"
+		and ReleaseReadiness.qa_package_id(canonical) != canonical)
 	var preset: Dictionary = {"name": "Android Release AAB", "export_path": "build/release/squishy_merge.aab",
-		"options": {"package/unique_name": "com.example.squishymerge", "version/code": 1, "version/name": "",
+		"options": {"package/unique_name": "com.obappstudio.squishymerge", "version/code": 1, "version/name": "",
 			"gradle_build/export_format": 1, "architectures/arm64-v8a": true, "gradle_build/target_sdk": "",
 			"package/signed": true}}
 	var inputs: Dictionary = ReleaseReadiness.project_inputs(preset, "release")
 	var result: Dictionary = ReleaseReadiness.evaluate(inputs)
 	print(ReleaseReadiness.report(result, "bugünkü proje"))
 	_c("bugünkü proje BLOCKED", result["status"] == ReleaseReadiness.STATUS_BLOCKED)
-	_c("engeller: paket kimliği + AdMob + kitle + gizlilik URL'i + upload anahtarı (hepsi OWNER)",
-		_blocked_by(result, "OWNER", "package id") and _blocked_by(result, "OWNER", "AdMob")
-		and _blocked_by(result, "OWNER", "kitle") and _blocked_by(result, "OWNER", "gizlilik")
-		and _blocked_by(result, "OWNER", "upload"))
+	_c("paket kimliği engeli YOK: kanonik geçerli + release preset'i eşit; CONFIG engeli yok",
+		not _blocked_by(result, "OWNER", "package id") and not _blocked_by(result, "OWNER", ReleaseReadiness.SETTING_PACKAGE_ID)
+		and not _has_category(result, "CONFIG"))
+	_c("kalan engeller: AdMob + kitle + gizlilik URL'i + upload anahtarı (hepsi OWNER)",
+		_blocked_by(result, "OWNER", "AdMob") and _blocked_by(result, "OWNER", "kitle")
+		and _blocked_by(result, "OWNER", "gizlilik") and _blocked_by(result, "OWNER", "upload"))
 	_c("CODE engeli YOK: yamalı eklenti AAR'ı + cephe yerinde", inputs["plugin_release_aar_sha256"]
 		== ReleaseReadiness.PATCHED_RELEASE_AAR_SHA256 and bool(inputs["plugin_facade_patched"])
 		and not _has_category(result, "CODE"))

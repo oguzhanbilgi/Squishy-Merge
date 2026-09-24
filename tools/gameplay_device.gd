@@ -1,7 +1,7 @@
 extends "res://tools/gameplay_audit_shots.gd"
 ## M8.7-02.1 — A36 cihaz kapısı sürücüsü (merge / güç efekt dili). Dev aracı;
 ## üretim APK'sında YOK (`tools/*` preset dışında), AYRI bir QA paketiyle
-## (`com.example.squishymerge.qa`) yüklenir ve kendi veri dizininde çalışır —
+## (`com.obappstudio.squishymerge.qa`) yüklenir ve kendi veri dizininde çalışır —
 ## owner kaydına dokunamaz.
 ##
 ## Denetim harness'inin (gameplay_audit_shots) senaryolarını CİHAZDA komutla

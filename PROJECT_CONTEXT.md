@@ -73,8 +73,10 @@ alınacak — şimdi tahmin/vaat yok.
 [Current release blockers](#current-release-blockers) +
 [Next action](#next-action); aşağıdaki "Milestone tarihçesi" değil.
 
-- **Repo:** `main == origin/main == ef1053f`. Aktif kod görevi YOK;
-  `task/014`…`task/037` dallarının hepsi main'de (referans için duruyor).
+- **Repo:** `main == origin/main == 96e71c0` (ef1053f + kanonik durum doküman
+  senkronu). Kalıcı paket kimliği değişikliği `task/038-final-package-id` dalında —
+  main'e alınması owner onayı bekliyor. `task/014`…`task/037` dallarının hepsi
+  main'de (referans için duruyor).
   Main'e bilerek girmeyen iki dal: `task/m8.6-03-home` (reddedildi, asla
   birleştirilmez) ve `task/ui-layerlab-style-spike` (seçilen parçaları
   M8.6-01'de promote edildi).
@@ -101,9 +103,15 @@ alınacak — şimdi tahmin/vaat yok.
 - **Runtime DONDURULDU:** gameplay (M8.7-02), ses/titreşim (M8.8-02),
   TEST-reklam monetizasyonu (M8.9-01/02), ilk açılış (M8.10), rıza/release
   kodu (M9-01/01.1). Gerçek bir blokaj çıkmadıkça açılmaz; cila için açılmaz.
-- **Release kapısı** (`tools/release/release_android.sh check`, `ef1053f`
-  üzerinde 2026-09-24'te yeniden koşuldu): **BLOCKED — CODE 0 · OWNER 10 ·
-  CONFIG 1.** İmzalı / Play'e yüklenebilir AAB üretilmedi.
+- **Kalıcı paket kimliği KİLİTLENDİ (owner kararı, 2026-09-24):** üretim / Play
+  = `com.obappstudio.squishymerge` (project.godot `squishy/release/android_package_id`
+  + yerel release presetleri); QA / test = `com.obappstudio.squishymerge.qa` (debug
+  TEST-reklam APK'sı + cihaz harness'ları) — üretimle çakışmaz. Release kapısı
+  `.qa` kimliğini release'te reddeder; eski geçici `com.example.squishymerge`
+  kaldırıldı. Runtime'da paket kimliği okunmaz (gameplay değişmedi).
+- **Release kapısı** (`tools/release/release_android.sh check`, paket kararından
+  sonra, 2026-09-24): **BLOCKED — CODE 0 · OWNER 9 · CONFIG 0.** İmzalı /
+  Play'e yüklenebilir AAB üretilmedi.
 
 ## Current release blockers
 
@@ -111,9 +119,10 @@ Bugün açık olan maddelerin tamamı — adımlar ve ayrıntı:
 [docs/ANDROID_RELEASE_CHECKLIST.md](docs/ANDROID_RELEASE_CHECKLIST.md).
 
 **OWNER / ACCOUNT / CONFIG**
-1. **Kalıcı Android paket kimliği** — project.godot
-   `squishy/release/android_package_id` + yerel release preset'i (bugün geçici
-   `com.example.squishymerge`; Play'de ilk yüklemeden sonra değişmez).
+1. ~~**Kalıcı Android paket kimliği**~~ ✅ **KARAR (2026-09-24):
+   `com.obappstudio.squishymerge`** (QA / test: `com.obappstudio.squishymerge.qa`).
+   Play'de ilk yüklemeden sonra değişmez; diğer makinelerde yerel preset'ler elle
+   güncellenir (checklist §3).
 2. **Kitle / hedef yaş grupları kararı** — `android_export.cfg [Audience]`
    (docs/monetization/AUDIENCE_DECISION.md §5).
 3. **Gizlilik politikası metni + herkese açık HTTPS URL'i** — project.godot
@@ -131,8 +140,8 @@ Bugün açık olan maddelerin tamamı — adımlar ve ayrıntı:
    512×512 ikon, 1024×500 feature graphic, ekran görüntüleri, mağaza metinleri,
    Data safety, IARC, hedef kitle + reklam beyanı, kapalı test kanalı.
 
-Release kapısı 1–8'i denetler (bugün OWNER 10 + CONFIG 1; CONFIG = preset'teki
-geçici paket adı, madde 1 ile kapanır); 9 kodla denetlenemez.
+Release kapısı 1–8'i denetler (bugün OWNER 9 · CONFIG 0 — madde 1 kapandı);
+9 kodla denetlenemez.
 
 **CODE blockers: 0** — bugünkü genel kitle / 13+ yolu için (AUDIENCE_DECISION
 seçenek A: ek kod yok). B (13 altı dahil karma) ya da C (yalnız çocuk)
@@ -150,8 +159,8 @@ TFCD, AD_ID çıkarma, SDK başlatma sırası); kapı o zamana kadar CODE engeli
 
 **OWNER RELEASE DECISIONS — ilk gerçek imzalı üretim AAB'sinden ÖNCE.** Sıra:
 
-1. Kalıcı paket kimliği
-2. Kitle / hedef yaş grupları
+1. ~~Kalıcı paket kimliği~~ ✅ `com.obappstudio.squishymerge` (2026-09-24)
+2. **Kitle / hedef yaş grupları** ← sıradaki karar
 3. Gizlilik politikası (metin + HTTPS URL)
 4. Upload anahtarı
 5. Gerçek AdMob kimlikleri (App ID + Banner + Rewarded + Interstitial)

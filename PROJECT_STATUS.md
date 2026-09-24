@@ -5,12 +5,15 @@
 AdMob TEST-reklam monetizasyonu + günlük ödüller, ilk açılış tutorial'ı)
 tamamlandı ve main'de; M9-01 production release hazırlığı (kod) tamamlandı,
 M9-01.1 Samsung A36 UMP/gizlilik cihaz kapısı GEÇTİ; `task/037` shell_shots
-bakım düzeltmesi main'de. Runtime / gameplay / TEST-reklam temeli donduruldu;
-release kapısı yalnız OWNER/CONFIG engelli (CODE 0 · OWNER 10 · CONFIG 1).
-Sırada: **owner release kararları** (paket kimliği → kitle → gizlilik
-politikası → upload anahtarı → gerçek AdMob kimlikleri → mağaza varlıkları /
-Play Console), sonra ilk imzalı üretim AAB'si ve M10 (Play kapalı test) ·
-**Branch:** `main` (`ef1053f` == origin/main)
+bakım düzeltmesi main'de. Runtime / gameplay / TEST-reklam temeli donduruldu.
+**Kalıcı paket kimliği kilitlendi (owner, 2026-09-24):** üretim / Play
+`com.obappstudio.squishymerge`, QA / test `com.obappstudio.squishymerge.qa`;
+release kapısı yalnız OWNER engelli (CODE 0 · OWNER 9 · CONFIG 0). Sırada:
+**kalan owner release kararları** (kitle → gizlilik politikası → upload
+anahtarı → gerçek AdMob kimlikleri → mağaza varlıkları / Play Console), sonra
+ilk imzalı üretim AAB'si ve M10 (Play kapalı test) ·
+**Branch:** `main` (`96e71c0` == origin/main); paket kimliği değişikliği
+`task/038-final-package-id` dalında (main'e alınması owner onayı bekliyor)
 
 > Güncel engel listesi ve sıradaki adımın kanonik yeri: `PROJECT_CONTEXT.md` →
 > Current state / Current release blockers / Next action. Aşağıdaki tarihçe
@@ -1880,6 +1883,23 @@ GMA 24.9.0, UMP 3.2.0, yamalı v6.0 AAR'ları (sha256 e3ac9a6b… / 90d35992…)
 yalnız Google test kimlikleri, release = fail-closed; TFAT / GMA güncellemesi teknik borç
 olarak duruyor. Dal `task/036` korunuyor; `task/037` (shell_shots) ayrı, sonra. Kanıt
 `build/qa_m9-integration/` (yerel).
+
+**Kalıcı paket kimliği (owner kararı, 2026-09-24; dal `task/038-final-package-id`, main
+`96e71c0` üzerine).** Üretim / Play = `com.obappstudio.squishymerge` — project.godot
+`squishy/release/android_package_id` + yerel "Android Release AAB" / "Android AAB NOT FOR
+UPLOAD" presetleri. QA / test = `com.obappstudio.squishymerge.qa` — debug TEST-reklam
+preset'i ("Android") ve cihaz harness paketleri. Neden: owner kuralı "QA/test paketleri
+üretimle asla çakışmaz"; aynı kimlikli debug-imzalı bir APK, Play'den kurulmuş üretim
+sürümüyle aynı cihazda imza çakışması verir. Kapı (`ReleaseReadiness`): `.qa` kimliği
+release'te engel (kanonik → OWNER, preset → CONFIG), üretim kimliğiyle debug export'u
+raporda UYARI (debug build'i düşürmez). Runtime paket kimliğini okumaz — gameplay /
+ekonomi / reklam davranışı değişmedi. `release_config_test` 106 → 112; kapı BLOCKED —
+CODE 0 · OWNER 9 · CONFIG 0. Pipeline kanıtı: TEST-reklam debug APK manifest paketi
+`com.obappstudio.squishymerge.qa`, İMZASIZ NOT_FOR_UPLOAD AAB `com.obappstudio.squishymerge`
+(ikisi de tarama PASS; `build/qa_m9-package-id/`, yerel). Owner'ın A36'sındaki eski
+`com.example.squishymerge` kurulumu (kendi kaydıyla) dokunulmadı; yeni kimlikler ayrı
+uygulama olarak kurulur. Eski `build/qa_*/device` QA betikleri `com.example…` varsayar —
+yeniden kullanılırsa paket adı güncellenmeli.
 
 **Ortam neredeyse hazır** (§2'deki tabloya bakın). Godot, export
 template'leri, Android SDK, NDK, JDK 17 ve debug keystore mevcut.

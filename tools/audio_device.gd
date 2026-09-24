@@ -1,6 +1,6 @@
 extends "res://tools/gameplay_device.gd"
 ## M8.8-02.1 — A36 production ses + titreşim cihaz kapısı sürücüsü. Dev aracı;
-## üretim APK'sında YOK, AYRI bir QA paketiyle (`com.example.squishymerge.qa`,
+## üretim APK'sında YOK, AYRI bir QA paketiyle (`com.obappstudio.squishymerge.qa`,
 ## kendi veri dizini) yüklenir — owner kaydına dokunamaz.
 ##
 ## M8.7-02.1 sürücüsünün (gerçek board, komut döngüsü, gerçek titreşim, perf)

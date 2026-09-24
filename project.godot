@@ -55,6 +55,6 @@ textures/vram_compression/import_etc2_astc=true
 
 [squishy]
 
-release/android_package_id=""
+release/android_package_id="com.obappstudio.squishymerge"
 release/android_version_code=1
 privacy/policy_url=""

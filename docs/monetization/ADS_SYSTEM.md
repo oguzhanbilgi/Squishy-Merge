@@ -30,8 +30,8 @@
 > resmî durum/form; kimlikleri BUILD TÜRÜ seçer (debug = yalnız Google test,
 > release = dört gerçek kimlik, fail-closed); `[Audience]` dikişi; release
 > kapısı + pipeline (`tools/release/`, §9). **Hâlâ üretime hazır DEĞİL:**
-> kitle kararı, gerçek kimlikler, upload anahtarı, paket kimliği, gizlilik
-> politikası URL'i owner'da. Yamalı AAR'ın EEA / NOT_EEA / gizlilik seçenekleri
+> kitle kararı, gerçek kimlikler, upload anahtarı, gizlilik politikası URL'i
+> owner'da (paket kimliği 2026-09-24'te kilitlendi: `com.obappstudio.squishymerge`). Yamalı AAR'ın EEA / NOT_EEA / gizlilik seçenekleri
 > akışı Samsung A36'da doğrulandı (M9-01.1, PRIVACY_CONSENT §7). **M8.9-02** (owner kararı): Harita +
 > oyun banner'ı, geçiş reklamı (900 sn aktif süre, yalnız round bitişi molası,
 > 60 sn tam ekran beklemesi), günlük ödüller (ücretsiz sandık 1/gün, reklamlı
@@ -322,8 +322,9 @@ Sağlayıcı YOK (sonraki milestone). `AdEvents.emit(name, ctx)`; abone
   girdi, `assets/addons/AdmobPlugin/android_export.cfg` paketli, `scripts/ads/*.gdc`
   ve eklenti `.gdc`'leri içinde; sızıntı 0.
 - **M9-01 release hattı** (ayrıntı [../ANDROID_RELEASE_CHECKLIST.md](../ANDROID_RELEASE_CHECKLIST.md)):
-  yerel presetler `Android` (debug TEST-reklam APK, değişmedi) · `Android
-  Release AAB` (imzalı AAB, anahtar yalnız `GODOT_ANDROID_KEYSTORE_RELEASE_*`
+  yerel presetler `Android` (debug TEST-reklam APK, paket
+  `com.obappstudio.squishymerge.qa`) · `Android Release AAB` (imzalı AAB, paket
+  `com.obappstudio.squishymerge`, anahtar yalnız `GODOT_ANDROID_KEYSTORE_RELEASE_*`
   ortam değişkenlerinden) · `Android AAB NOT FOR UPLOAD` (imzasız); tek
   kaynaklar project.godot `[squishy]` (paket kimliği, versionCode, gizlilik
   URL'i) + `application/config/version` (versionName). Kapı
@@ -436,8 +437,9 @@ Kanıt: `build/qa_m8.9-01/device/DEVICE_GATE_NOTES.md` (yerel, gitignore'lu) +
 9. **Üretim engelleri (M9-01 sonrası):** ~~UMP sarmalayıcı boşluğu + #120~~
    (kodda kapandı; A36 cihaz kapısı M9-01.1'de GEÇTİ — PRIVACY_CONSENT §7), COPPA/TFCD/TFUA kitle kararı
    ([AUDIENCE_DECISION.md](AUDIENCE_DECISION.md)), gerçek App ID + banner +
-   ödüllü + interstitial kimlikleri (4 değer, §8), kalıcı paket kimliği, upload
-   anahtarı, gizlilik politikası URL'i. Release kapısı bunlar kapanmadan
+   ödüllü + interstitial kimlikleri (4 değer, §8), ~~kalıcı paket kimliği~~
+   (✅ `com.obappstudio.squishymerge`, 2026-09-24), upload anahtarı, gizlilik
+   politikası URL'i. Release kapısı bunlar kapanmadan
    yüklenebilir AAB üretmez; tam liste
    [../ANDROID_RELEASE_CHECKLIST.md](../ANDROID_RELEASE_CHECKLIST.md).
 
