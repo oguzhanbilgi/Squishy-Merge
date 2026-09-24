@@ -1,10 +1,21 @@
 # PROJECT_STATUS.md — Squishy Merge, tam proje raporu
 
-**Son güncelleme:** 2026-09-22 · **Durum:** M0–M8 tamamlandı; M8.5–M8.9
+**Son güncelleme:** 2026-09-24 · **Durum:** M0–M8 tamamlandı; M8.5–M8.10
 (release/product stabilization: UI yeniden inşası, gameplay cilası, ses,
-AdMob monetizasyonu + günlük ödüller) main'de ve TEST reklamlarıyla A36'da
-doğrulandı; sırada M8.10 ilk açılış tutorial'ı, ardından M9 (Android export) ·
-**Branch:** `main` (9561a4c)
+AdMob TEST-reklam monetizasyonu + günlük ödüller, ilk açılış tutorial'ı)
+tamamlandı ve main'de; M9-01 production release hazırlığı (kod) tamamlandı,
+M9-01.1 Samsung A36 UMP/gizlilik cihaz kapısı GEÇTİ; `task/037` shell_shots
+bakım düzeltmesi main'de. Runtime / gameplay / TEST-reklam temeli donduruldu;
+release kapısı yalnız OWNER/CONFIG engelli (CODE 0 · OWNER 10 · CONFIG 1).
+Sırada: **owner release kararları** (paket kimliği → kitle → gizlilik
+politikası → upload anahtarı → gerçek AdMob kimlikleri → mağaza varlıkları /
+Play Console), sonra ilk imzalı üretim AAB'si ve M10 (Play kapalı test) ·
+**Branch:** `main` (`ef1053f` == origin/main)
+
+> Güncel engel listesi ve sıradaki adımın kanonik yeri: `PROJECT_CONTEXT.md` →
+> Current state / Current release blockers / Next action. Aşağıdaki tarihçe
+> ve §7–§8 yazıldıkları anın durumunu anlatır; oradaki bazı "açık" maddeler
+> sonraki milestone'larda kapandı.
 
 ---
 

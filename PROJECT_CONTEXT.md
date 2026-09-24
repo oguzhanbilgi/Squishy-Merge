@@ -3,6 +3,14 @@
 > Bu dosya **kısa ve güncel durumu** tutar. Tarihçe, kararların gerekçeleri,
 > asset envanteri ve ayrıntılı kalan iş listesi için:
 > **[PROJECT_STATUS.md](PROJECT_STATUS.md)** — bu dosya oraya dönüşmesin.
+>
+> **Bugünün kanonik durumu yalnız şu üç bölümdedir:**
+> [Current state](#current-state) · [Current release blockers](#current-release-blockers)
+> · [Next action](#next-action). **Milestone tarihçesi**, **Blokaj notları
+> (TARİHSEL)** ve **Eski Next action notları (TARİHSEL)** her maddeyi yazıldığı
+> anın durumuyla korur — oradaki "pending / YOK / bekliyor" ifadeleri bugünün
+> durumu değildir. Tarihçeden sonra gelen **Quality gates**, **Project-specific
+> invariants** ve **Repo notes** güncel ve geçerlidir.
 
 ## Product
 Fizik tabanlı (Suika Game / watermelon-game tarzı) squishy dumpling
@@ -60,36 +68,142 @@ alınacak — şimdi tahmin/vaat yok.
 - GitHub: https://github.com/oguzhanbilgi/Squishy-Merge
 
 ## Current state
+
+**Kanonik durum — 2026-09-24.** Bugünün gerçeği bu bölüm +
+[Current release blockers](#current-release-blockers) +
+[Next action](#next-action); aşağıdaki "Milestone tarihçesi" değil.
+
+- **Repo:** `main == origin/main == ef1053f`. Aktif kod görevi YOK;
+  `task/014`…`task/037` dallarının hepsi main'de (referans için duruyor).
+  Main'e bilerek girmeyen iki dal: `task/m8.6-03-home` (reddedildi, asla
+  birleştirilmez) ve `task/ui-layerlab-style-spike` (seçilen parçaları
+  M8.6-01'de promote edildi).
 - **M0–M8 tamamlandı.** Oyun uçtan uca oynanabilir: 10 level + sonsuz mod,
   sandık/koleksiyon/mağaza, günlük ödül, Home hub + `ScreenTopBar` gezinmesi
   (M8.5'in 4 sekmeli alt çubuğu M8.6-06'da kalktı), owner'ın görsel
   asset'leri entegre.
-- **Şimdi: M8.5 — release/product stabilization.**
+- **M8.5–M8.10 tamamlandı** — release/product stabilization (production UI
+  yeniden inşası, final skin sanatı, gameplay cilası, production ses +
+  titreşim, AdMob TEST-reklam monetizasyonu + günlük ödüller) ve ilk açılış
+  onboarding'i (M8.10 tutorial + ilk gün kuralı). Cihaz kapısı gerektiren her
+  iş Samsung A36'da geçti; hepsi main'de.
+- **M9-01 production release hazırlığı (kod tarafı) tamamlandı** — yamalı
+  godot-admob v6.0 AAR (UMP `canRequestAds` / gizlilik seçenekleri / #120),
+  reklam kimliğini build türü seçer (debug = yalnız Google test; release =
+  gerçek kimlikler, eksikse fail-closed), `[Audience]` dikişi, release kapısı +
+  pipeline (`tools/release/`), tek sürüm kaynağı (project.godot `[squishy]`).
+- **M9-01.1 Samsung A36 UMP / gizlilik cihaz kapısı GEÇTİ** (2026-09-23,
+  runtime değişmedi): EEA / NOT_EEA / gizlilik seçenekleri formu gerçek
+  cihazda (PRIVACY_CONSENT §7). M9-01 + M9-01.1 main'e ff-only alındı
+  (2026-09-24, A36 doğrulanmış ağaç `2fd8a72`).
+- **`task/037` shell_shots bakım düzeltmesi tamamlandı** — `ef1053f`, yalnız
+  dev harness (`tools/shell_shots.gd`), main'e ff-only (2026-09-24).
+- **Runtime DONDURULDU:** gameplay (M8.7-02), ses/titreşim (M8.8-02),
+  TEST-reklam monetizasyonu (M8.9-01/02), ilk açılış (M8.10), rıza/release
+  kodu (M9-01/01.1). Gerçek bir blokaj çıkmadıkça açılmaz; cila için açılmaz.
+- **Release kapısı** (`tools/release/release_android.sh check`, `ef1053f`
+  üzerinde 2026-09-24'te yeniden koşuldu): **BLOCKED — CODE 0 · OWNER 10 ·
+  CONFIG 1.** İmzalı / Play'e yüklenebilir AAB üretilmedi.
+
+## Current release blockers
+
+Bugün açık olan maddelerin tamamı — adımlar ve ayrıntı:
+[docs/ANDROID_RELEASE_CHECKLIST.md](docs/ANDROID_RELEASE_CHECKLIST.md).
+
+**OWNER / ACCOUNT / CONFIG**
+1. **Kalıcı Android paket kimliği** — project.godot
+   `squishy/release/android_package_id` + yerel release preset'i (bugün geçici
+   `com.example.squishymerge`; Play'de ilk yüklemeden sonra değişmez).
+2. **Kitle / hedef yaş grupları kararı** — `android_export.cfg [Audience]`
+   (docs/monetization/AUDIENCE_DECISION.md §5).
+3. **Gizlilik politikası metni + herkese açık HTTPS URL'i** — project.godot
+   `squishy/privacy/policy_url` + Play Console alanı.
+4. **Upload anahtarı** — owner oluşturur (checklist §4); yalnız ortam
+   değişkeniyle verilir, dosyaya/commit'e yazılmaz.
+5. **Gerçek AdMob App ID**
+6. **Gerçek Banner kimliği**
+7. **Gerçek Rewarded kimliği**
+8. **Gerçek Interstitial kimliği** — 5–8: AdMob hesabı + uygulama kaydı (GDPR
+   mesajı dahil, PRIVACY_CONSENT §6) → `android_export.cfg [Release]` +
+   `[General] is_real=true`.
+9. **Play / mağaza varlıkları ve Play Console kurulumu** — geliştirici hesabı +
+   kimlik doğrulaması (son bilinen durum: açılmadı / bekliyor), uygulama kaydı,
+   512×512 ikon, 1024×500 feature graphic, ekran görüntüleri, mağaza metinleri,
+   Data safety, IARC, hedef kitle + reklam beyanı, kapalı test kanalı.
+
+Release kapısı 1–8'i denetler (bugün OWNER 10 + CONFIG 1; CONFIG = preset'teki
+geçici paket adı, madde 1 ile kapanır); 9 kodla denetlenemez.
+
+**CODE blockers: 0** — bugünkü genel kitle / 13+ yolu için (AUDIENCE_DECISION
+seçenek A: ek kod yok). B (13 altı dahil karma) ya da C (yalnız çocuk)
+seçilirse önce ayrı bir kod milestone'u gerekir (yaş ekranı, istek başına
+TFCD, AD_ID çıkarma, SDK başlatma sırası); kapı o zamana kadar CODE engeli verir.
+
+**Technical debt** — engel DEĞİL, kapalı test hazırlığını durdurmaz:
+- Google Mobile Ads **24.9.0** (legacy) ve eski yaş işleme yolu (TFCD/TFUA);
+  24.x desteği 2027-06-30'a kadar.
+- **TFAT** (`setAgeRestrictedTreatment`, GMA 25.3.0+) / GMA Next-Gen geçişi
+  sonraya belgelendi — eklenti güncellemesine bağlı ayrı iş
+  (AUDIENCE_DECISION §2.1, checklist #25).
+
+## Next action
+
+**OWNER RELEASE DECISIONS — ilk gerçek imzalı üretim AAB'sinden ÖNCE.** Sıra:
+
+1. Kalıcı paket kimliği
+2. Kitle / hedef yaş grupları
+3. Gizlilik politikası (metin + HTTPS URL)
+4. Upload anahtarı
+5. Gerçek AdMob kimlikleri (App ID + Banner + Rewarded + Interstitial)
+6. Play Store varlıkları / Play Console alanları
+
+Her madde owner girdisi ister; hiçbiri tahmin edilmez ya da uydurulmaz. A (13+)
+yolunda repoda yalnız yapılandırma değişir (checklist §3); B/C seçilirse önce
+ayrı kod milestone'u (yukarıda). İmzalı AAB yalnız
+`tools/release/release_android.sh check` **UPLOAD_CANDIDATE** dedikten sonra
+üretilir → Play dahili test → **M10 — Play kapalı test.**
+
+## Milestone tarihçesi (TARİHSEL)
+
+> **Tarihçe — güncel durum DEĞİL.** Her madde yazıldığı anın durumunu anlatır
+> ve öyle korunuyor. "pending", "YOK", "bekliyor", "merge izni bekliyor",
+> "main'e birleştirilmedi", "telefon/ADB yok" gibi ifadeler o an doğruydu;
+> buradaki milestone'ların HEPSİ sonradan kapandı ve main'de (bilinçli
+> istisna: reddedilen `M8.6-03`). Bugün için yukarıdaki üç bölüme bak.
+
+- **M8.5 → M9-01.1 — release/product stabilization, onboarding ve release
+  hazırlığı** *(eski başlık: "Şimdi: M8.5 — release/product stabilization";
+  zincirin tamamı tamamlandı)*
   - `M8.5-01` ✅ sandık ödül modeli %30 skin / %70 Hamur olarak kilitlendi,
     simulator production ile eşitlendi.
   - `M8.5-02` ✅ skin equip altyapısı: kazan → koleksiyonda seç → kaydet →
     oyunda uygulan döngüsü çalışıyor. **functional equip complete / final
     skin art pending** — skin renkleri hâlâ placeholder, bkz.
-    `SKIN_ART_AUDIT.md`.
+    `SKIN_ART_AUDIT.md`. *(Sonra kapandı: final skin sanatı M8.5-14.)*
   - `M8.5-03` ✅ dört tüketilebilir güç (Bomba / Büyütücü / Sarsıntı /
     Temizleyici), kalıcı envanter, hedefleme modu, stok-0 refill kancası.
     **functional power-ups complete / final power-up art pending** —
-    ikonlar geçici, bkz. GAME_DESIGN §10.
+    ikonlar geçici, bkz. GAME_DESIGN §10. *(Sonra kapandı: gerçek güç
+    ikonları + efektleri M8.5-08.)*
   - `M8.5-04` ✅ iki aşamalı devam (revive) altyapısı: taşma artık round'u
     doğrudan bitirmiyor, round başına 2 devam hakkı sunuluyor
     (FAIL → Devam #1 → FAIL → Devam #2 → FAIL → kesin kayıp). Board
     donduruluyor, devam edilince taşma bandı temizlenip 1.5 sn koruma
     açılıyor. **revive foundation complete / real rewarded ad pending** —
     AdMob YOK, buton yalnızca sinyal yayıyor, bkz. GAME_DESIGN §11.
+    *(Sonra kapandı: AdMob ödüllü devam M8.9-01, A36'da TEST reklamıyla
+    doğrulandı.)*
   - `M8.5-05` ✅ güç mağazası: dört güç Hamur ile alınabiliyor, fiyatlar
     simülasyonla seçildi (Sarsıntı 100 / Bomba 120 / Temizleyici 160 /
     Büyütücü 180). Yoğun oyuncunun 90 günlük Hamur fazlası 50.025 → 335.
     Satın almalar tek transaction. **Hamur mağazası tamam / rewarded refill
-    ve IAP pending** — bkz. GAME_DESIGN §5.7.
+    ve IAP pending** — bkz. GAME_DESIGN §5.7. *(Sonra: ödüllü refill
+    M8.9-01'de bağlandı; IAP v1'de yok — non-goal.)*
   - `M8.5-06` ✅ stok 0 refill akışı: oyun içi refill penceresi (reklam / Hamur),
     board refill sırasında donuyor, günlük ödüllü kota **1/gün (dört gücün
     toplamı)** olarak kilitlendi ve token'lı callback güvenliği eklendi.
     **UX + kota hazır / AdMob SDK pending** — bkz. GAME_DESIGN §5.7.3.
+    *(Sonra kapandı: M8.9-01.)*
   - `M8.5-07` ✅ oyun ekranı görsel pası: owner'ın kullanılmayan candy
     zemini oyun arkasına (karartılmış) ve candy paneli iki oyun içi
     pencereye bağlandı, kap duvarları pastel oldu, dört gücün efektleri
@@ -172,7 +286,9 @@ alınacak — şimdi tahmin/vaat yok.
     `docs/AUDIO_ASSET_REQUIREMENTS.md`. Android titreşimi cihazda
     doğrulanmadı (M9). **Fizik, ekonomi, skin, harita, kayıt semantiği
     DEĞİŞMEDİ** (yalnız `haptics_enabled` alanı eklendi). Ayrıntı:
-    `docs/AUDIO_AUDIT.md`, PROJECT_STATUS §4.18.
+    `docs/AUDIO_AUDIT.md`, PROJECT_STATUS §4.18. *(Sonra kapandı: geçici
+    örnekler M8.8-02'de production seslerle değişti, owner hoparlör PASS;
+    titreşim A36'da doğrulandı — M8.8-02.1.)*
   - `M8.5-16` ✅ ertelenmiş merge / round bitişi yarışı: aynı fizik
     adımında istenen merge (`_resolve_merge` call_deferred) round kesin
     bittikten ve `main._on_round_finished` merge_count'u örnekledikten
@@ -287,7 +403,8 @@ alınacak — şimdi tahmin/vaat yok.
     kusur — punch-hole bandı dikişi — `flip_v` ile kapatıldı; rotalar,
     kilitli/sıradaki/tamamlanmış/Sonsuz durumları, açılış animasyonu ve
     logcat cihazda temiz (build/qa_m8.6-04/device/). Ayrıntı: UI_VISUAL_SYSTEM §15.
-  - `M8.6-05` 🔶 production **Mağaza** (PRE-DEVICE VISUAL REVIEW, dal
+  - `M8.6-05` 🔶 → ✅ *(sonra: A36 kapısı geçti, main'e alındı `589377b`)*
+    production **Mağaza** (PRE-DEVICE VISUAL REVIEW, dal
     `task/023-shop-production-ui`, main af3af5c üzerine): eski koyu satır
     listesi / neon pill / alt sekme çubuğu kalktı; dikey casual-game dükkânı:
     `ScreenTopBar` (geri → Ana Sayfa · pembe "MAĞAZA" · Hamur pill'i **"+"
@@ -376,6 +493,7 @@ alınacak — şimdi tahmin/vaat yok.
     yeniden doğrulandı. Gözlem (değişmedi): Mağaza SATIN AL'dan başlayan
     sürükleme kaydırmıyor → 06.3 `dbf9127` ile kapatıldı (Mağaza maddesi).
     Push edildi; **merge izni bekliyor** (`build/qa_m8.6-06/device/`).
+    *(Sonra main'e alındı: `0d248f4`.)*
     Ayrıntı: UI_VISUAL_SYSTEM §17.
   - `M8.6-07` ✅ **ikincil UI denetimi** (dal `task/025-secondary-ui-audit`,
     main 0d248f4 üzerine, yalnız araç + doküman; yeniden tasarım YOK, telefon/ADB
@@ -429,6 +547,7 @@ alınacak — şimdi tahmin/vaat yok.
     logcat 0 SCRIPT ERROR / 0 E godot / 0 FATAL / 0 ANR, owner cihaz kaydı
     byte-identical geri kondu; cihaza özel kusur YOK, runtime değişmedi.
     Dal push edildi — **merge izni bekliyor** (`build/qa_m8.6-08/device/`).
+    *(Sonra main'e alındı: `2f74a3d`.)*
     Ayrıntı: UI_VISUAL_SYSTEM §19.
   - `M8.6-09` ✅ **production Round sonu / level tamam / kayıp / ödül reveal**
     (DEVICE VERIFIED, dal `task/027-production-round-result`, main
@@ -526,6 +645,7 @@ alınacak — şimdi tahmin/vaat yok.
     logcat 0/0/0/0; owner kaydı gate boyunca hiç yüklenmedi ve byte-identical geri kondu.
     Cihaza özel kusur YOK. Dal push edildi — **merge izni bekliyor**
     (`build/qa_m8.6-10/device/DEVICE_GATE_NOTES.md`). Ayrıntı: UI_VISUAL_SYSTEM §21.
+    *(Sonra main'e alındı: `fd5dfab`.)*
   - `M8.7-01` ✅ **final gameplay experience denetimi** (dal
     `task/029-final-gameplay-audit`, main fd5dfab üzerine; YALNIZ araç +
     doküman, runtime/fizik/ekonomi/UI DEĞİŞMEDİ, telefon/ADB YOK):
@@ -614,6 +734,7 @@ alınacak — şimdi tahmin/vaat yok.
     merge karesi ~23 ms (120 Hz'de 2–3 vsync) her iki build'de var — polish
     değil, ileride optimizasyon adayı. Dal push edildi — **merge izni
     bekliyor** (`build/qa_m8.7-02/device/DEVICE_GATE_NOTES.md`).
+    *(Sonra main'e alındı: `0abd22b`.)*
   - `M8.8-01` ✅ **production ses kaynak denetimi + aday paleti** (dal
     `task/031-production-audio-audit`, main 0abd22b üzerine; YALNIZ Python
     araç + doküman, runtime/`AudioManager`/`Haptics`/GameBoard/`project.godot`
@@ -720,7 +841,7 @@ alınacak — şimdi tahmin/vaat yok.
     129, shell 147, ui_smoke 74, result_ui 226, revive_refill_ui 266, economy 100, refill 119,
     revive 120, skin 30, bot L3 2/2; masaüstü kaydı byte-identical). Kanıt
     `build/qa_m8.8-02/device/DEVICE_GATE_NOTES.md`. Dal push edildi — **main'e merge
-    edilmedi** (owner kararı bekliyor).
+    edilmedi** (owner kararı bekliyor). *(Sonra main'e alındı: `93aa25b`.)*
   - `M8.9-01` ✅ **AdMob monetizasyon temeli — ödüllü devam + ödüllü refill +
     banner + UMP rıza** (dal `task/033-admob-monetization-foundation`, main
     93aa25b üzerine; TEST REKLAMI, telefon/ADB YOK, push/merge YOK). Araştırma:
@@ -786,6 +907,8 @@ alınacak — şimdi tahmin/vaat yok.
     upstream PR kararı gerek; (b) COPPA/TFCD/TFUA + kitle kararı; (c) AdMob hesabı
     (App ID, 2 reklam birimi, Privacy & messaging mesajı) — üretim kimliği yok.
     Kanonik: `docs/monetization/ADS_SYSTEM.md` §12, `PRIVACY_CONSENT.md` §4/§7.
+    *(Sonra: (a) M9-01'de kodda kapandı, M9-01.1'de A36'da doğrulandı; (b)–(c)
+    bugün [Current release blockers](#current-release-blockers) içinde.)*
     **Main'e alındı (33b6382, 2026-09-21, ff-only, push edildi) — M8.9-01 KAPANDI,
     test-reklam temeli DONDURULDU.**
   - `M8.9-02` ✅ **monetizasyon genişletmesi + günlük ödüller** (dal
@@ -864,7 +987,7 @@ alınacak — şimdi tahmin/vaat yok.
     (20 suite, `build/qa_m8.9-02_integration/`), main'den export edilen
     TEST-reklam APK'sı cihaz kapısındakiyle birebir (`356b0501…`).
     M8.10 ilk gün kuralı yalnız dokümante (DAILY_REWARDS §9), UYGULANMADI.
-  - `M8.10` ⏳ **İlk açılış tutorial'ı + ilk gün günlük kuralı** (dal
+  - `M8.10` ⏳ → ✅ **İlk açılış tutorial'ı + ilk gün günlük kuralı** (dal
     `task/035-first-run-tutorial`, base `d72fde5`). **Gerçekten yeni oyuncu**
     (`onboarding_completed == false`) açılışta doğrudan GERÇEK Level 1
     tutorial'ına giriyor — Ana Sayfa/Harita yolculuğu yok, reklam yok, UMP
@@ -920,6 +1043,7 @@ alınacak — şimdi tahmin/vaat yok.
     `53df9bee…`); QA paketi kaldırıldı. Cihazda runtime defekti YOK —
     üretim kodu değişmedi. Cihazdan sonra masaüstü kapısı yeniden yeşil
     (20 suite + 2 bot). **Dal push edildi; main'e BİRLEŞTİRİLMEDİ.**
+    *(Sonra main'e alındı: `3fb2945`.)*
     Kanıt: `build/qa_m8.10.1/` (yerel).
   - `M9-01` ✅ **Android production release hazırlığı — kod tarafı** (dal
     `task/036-production-release-readiness`, base `5a3a0f0`; **M9-01.1 ile
@@ -978,14 +1102,15 @@ alınacak — şimdi tahmin/vaat yok.
     AAR + üç JNI çağrısı + #120 + NOT_EEA + EEA formu + gizlilik seçenekleri formu
     + onboarding ertelemesi doğrulandı (logcat temiz; ek tarihçe — emülatör A36'nın
     yerine geçmedi). Notlar: `build/qa_m9-01.1/DEVICE_GATE_NOTES.md`.
-- **Sırada: M8.6 — Visual Cohesion Rebuild** (ekranlar `UiKit`/`UiTokens`
+- **Yol haritası izi** *(eski başlık: "Sırada: M8.6 — Visual Cohesion
+  Rebuild"; zincirin tamamı tamamlandı)* (ekranlar `UiKit`/`UiTokens`
   sistemine geçirilecek: ~~gameplay shell~~ ✅ → ~~home~~ ✅ → ~~map~~ ✅ →
   ~~shop~~ ✅ → ~~collection~~ ✅ main'de → ~~ikincil UI denetimi~~ ✅ →
   ~~M8.6-08 shell v2 + Ayarlar + Günlük~~ ✅ main'de → ~~M8.6-09 Round
   sonu~~ ✅ main'de → ~~M8.6-10 Devam/Refill~~ ✅ main'de (fd5dfab) →
   ~~M8.7-01 gameplay denetimi~~ ✅ dal `task/029` → ~~M8.7-02 gameplay
   cilası~~ ✅ dal `task/030`, A36 kapısı GEÇTİ, main'e merge izni
-  bekliyor) → ~~M8.8-01 ses kaynak denetimi~~ ✅ dal `task/031` → ~~M8.8-02
+  bekliyor → *sonra main'de (0abd22b)*) → ~~M8.8-01 ses kaynak denetimi~~ ✅ dal `task/031` → ~~M8.8-02
   onaylı seslerin entegrasyonu~~ ✅ dal `task/032` → ~~M8.8-02.1 A36 cihaz
   kapısı~~ ✅ main'de (93aa25b) → ~~M8.9-01 AdMob temeli~~ ✅ → ~~M8.9-01.1 A36
   test-reklam kapısı~~ ✅ main'de (33b6382) → ~~M8.9-02 monetizasyon
@@ -1003,7 +1128,7 @@ alınacak — şimdi tahmin/vaat yok.
   makinesinde debug `export_presets.cfg` var — gitignore'lu, her makinede
   ayrı); eksik olan kalıcı paket adı ve release/upload keystore (uzun
   ekran HUD düzeni M8.6-02'de çözüldü). Paralel owner işi: `tools/audio_qa.tscn` ile sesleri dinleyip
-  final örnekleri sağlamak.
+  final örnekleri sağlamak. *(Sonra kapandı: owner dinleme seçimleri M8.8-01/02.)*
 - **Sonra: M10 — Play Store submission / kapalı test.**
 
 ## Quality gates
@@ -1058,10 +1183,16 @@ alınacak — şimdi tahmin/vaat yok.
 - `_audio_source/` gitignore'lu — Kenney'den yeniden indirilebilir.
 - `export_presets.cfg` gitignore'lu; her makinede ayrı kurulur.
 
-## Current blockers
+## Blokaj notları (TARİHSEL)
+
+> Eski "Current blockers" bölümü — maddeler yazıldıkları anın durumudur;
+> bazıları sonra kapandı. **Güncel liste:
+> [Current release blockers](#current-release-blockers).**
+
 - **Google Play Developer hesabı** henüz açılmadı / kimlik doğrulaması
   bekliyor (owner tarafından paralel yürütülmeli — bu repo işiyle ilgisiz).
-  M10'u bloke ediyor, M9'u etmiyor.
+  M10'u bloke ediyor, M9'u etmiyor. *(Güncel: Current release blockers,
+  madde 9.)*
 - **Geç oyun Hamur enflasyonu ÇÖZÜLDÜ (M8.5-05):** güç mağazası ikinci ve
   tekrarlanabilir sink oldu. Skin fiyatlarına, sandık oranlarına ve Hamur
   gelir kaynaklarına dokunulmadı — hâlâ owner kararına açıklar.
@@ -1069,6 +1200,8 @@ alınacak — şimdi tahmin/vaat yok.
   alınabiliyor (100/120/160/180) ve stok 0 refill penceresi çalışıyor.
   Ödüllü kota **1/gün** olarak kilitli ama **AdMob SDK yok** — reklam CTA'sı
   sağlayıcı bağlanana kadar pasif. Gerçek para Güç Paketi hâlâ YOK.
+  *(Sonra: AdMob M8.9-01'de bağlandı — sonraki madde. Gerçek para Güç Paketi /
+  IAP v1'de yok.)*
 - **Ödüllü reklam sağlayıcısı BAĞLI (M8.9-01 ve M8.9-02 genişletmesi A36'da
   TEST reklamıyla doğrulandı):** `MonetizationManager`
   Main'e `set_rewarded_provider` ile takılıyor; Devam/Refill/GÜNLÜK ÖDÜLLER
@@ -1096,19 +1229,25 @@ alınacak — şimdi tahmin/vaat yok.
 - **Ses örnekleri GEÇİCİ (M8.5-15):** sistem hazır, 22 sentez + 5 Kenney
   örnek kulakla doğrulanmadı; final örnekler owner'dan bekleniyor
   (`docs/AUDIO_ASSET_REQUIREMENTS.md`). Titreşim Android'de cihazda
-  doğrulanmadı.
+  doğrulanmadı. *(Sonra kapandı: M8.8-02 production sesler + owner hoparlör
+  PASS; titreşim A36'da doğrulandı — M8.8-02.1.)*
 - **Skin sanatı TAMAM (M8.5-14):** 20 final önizleme bağlı, gameplay
   render production. Kalan tek sanat borcu opsiyonel: Epic/Legendary
   önizlemelerindeki özel aksesuar/ifadeler gameplay tier'larında yok
   (tier başına overlay art gerekir, bkz. SKIN_ART_AUDIT §4). Android'de
   shader/aura performans ölçümü M9'da.
 
-## Next action
+## Eski Next action notları (TARİHSEL)
+
+> Önceki "Next action" metinleri — yazıldıkları anın durumu. **Güncel sıradaki
+> adım: [Next action](#next-action).**
+
 **M9-01 / M9-01.1 main'e alındı (2026-09-24, ff-only; A36 doğrulanmış ağaç
 `2fd8a72`) — M9-01 production release hazırlığı ve M9-01.1 UMP / gizlilik cihaz
 kapısı KAPANDI.** Entegre main'de kapı yeniden yeşil, release kapısı yalnız
 OWNER/CONFIG engelli (CODE 0). Ayrı iş: `task/037` (shell_shots düzeltmesi) bu
-entegrasyondan sonra ele alınacak. Kalan yalnız owner/hesap kararları —
+entegrasyondan sonra ele alınacak *(→ yapıldı: `ef1053f`, main'e ff-only,
+2026-09-24)*. Kalan yalnız owner/hesap kararları —
 ~~(a) `task/036` main kararı~~ ✅; (b) kalıcı paket kimliği; (c) kitle kararı
 (AUDIENCE_DECISION §5); (d) Play Developer + AdMob hesapları, 3 reklam birimi,
 GDPR mesajı → `[Release]` kimlikleri; (e) upload anahtarı (owner oluşturur,
