@@ -1762,8 +1762,8 @@ tutorial kapısının geçmesi bunları kapatmaz.
 ### M9 — Android export
 
 **M9-01 — production release hazırlığı (kod tarafı) TAMAM (2026-09-22, dal
-`task/036-production-release-readiness`, base `5a3a0f0`, main'e alınmadı,
-telefon/ADB yok).** Ne yapıldı ve neden:
+`task/036-production-release-readiness`, base `5a3a0f0`, telefon/ADB yok; M9-01.1 A36
+kapısıyla birlikte 2026-09-24'te main'e ff-only alındı — aşağıda).** Ne yapıldı ve neden:
 
 - **Eklenti UMP boşluğu (ÜRETİM ENGELİ A/B) kodda kapandı.** Denetim:
   vendored v6.0 AAR'ı `javap` ile açıldı — `can_request_ads` /
@@ -1855,6 +1855,20 @@ emülatörde ARM çevirisiyle çizemediği için emülatöre özel GL Compatibil
 kullanıldı. Politika dokümanları düzeltildi (TFAT, koşullu 12 test kullanıcısı, 30 Eylül
 bölgesel doğrulama dalgası). Masaüstü regresyon yeşil; release kapısı yalnız
 OWNER/CONFIG. Ayrıntı PRIVACY_CONSENT §7, `build/qa_m9-01.1/DEVICE_GATE_NOTES.md`.
+
+**Main entegrasyonu (2026-09-24): M9-01 + M9-01.1 main'e ff-only alındı — ikisi de
+KAPANDI.** `5a3a0f0` → A36 doğrulanmış ağaç `2fd8a72` (4 commit: 93bff62, 48c9672,
+368c60d, 2fd8a72; merge / squash / rebase yok); `main^{tree}` ==
+`task/036^{tree}` — main, A36 kapısını ve masaüstü kapısını geçen ağacın ta kendisi
+(çalışma zamanı 93bff62'den beri değişmedi). Bu yüzden A36 kapısı yinelenmedi. Entegre
+main'de: release_config 106, monetization 248, tutorial 199, daily_rewards 179,
+interstitial 60 + tam regresyon (16 suite) + bot L3 2/2 — 0 FAIL, 0 SCRIPT ERROR; owner
+masaüstü kaydı byte-identical. Release kapısı BLOCKED yalnız OWNER/CONFIG (CODE 0 ·
+OWNER 10 · CONFIG 1), `aab` reddedildi (AAB üretilmedi). Kilitler aynen: Godot 4.6.3,
+GMA 24.9.0, UMP 3.2.0, yamalı v6.0 AAR'ları (sha256 e3ac9a6b… / 90d35992…), debug =
+yalnız Google test kimlikleri, release = fail-closed; TFAT / GMA güncellemesi teknik borç
+olarak duruyor. Dal `task/036` korunuyor; `task/037` (shell_shots) ayrı, sonra. Kanıt
+`build/qa_m9-integration/` (yerel).
 
 **Ortam neredeyse hazır** (§2'deki tabloya bakın). Godot, export
 template'leri, Android SDK, NDK, JDK 17 ve debug keystore mevcut.

@@ -23,23 +23,23 @@
 > A36'da doğrulandı ve main'de (33b6382); **M8.9-02 de main'de (9561a4c,
 > ff-only, push edildi).**
 >
-> **M9-01 (2026-09-22, dal `task/036-production-release-readiness`, main'e
-> alınmadı):** eklentinin UMP boşluğu + #120 KODDA kapandı (v6.0 + yama,
+> **M9-01 (2026-09-22, dal `task/036-production-release-readiness`; M9-01.1 A36
+> kapısıyla birlikte 2026-09-24'te main'e ff-only alındı):** eklentinin UMP boşluğu + #120 KODDA kapandı (v6.0 + yama,
 > deterministik yeniden derleme — `tools/admob_plugin/`); izin kapısı UMP
 > `canRequestAds()` (SDK başlatma + her yükleme öncesi); gizlilik seçenekleri
 > resmî durum/form; kimlikleri BUILD TÜRÜ seçer (debug = yalnız Google test,
 > release = dört gerçek kimlik, fail-closed); `[Audience]` dikişi; release
 > kapısı + pipeline (`tools/release/`, §9). **Hâlâ üretime hazır DEĞİL:**
 > kitle kararı, gerçek kimlikler, upload anahtarı, paket kimliği, gizlilik
-> politikası URL'i owner'da; yamalı AAR cihazda henüz doğrulanmadı
-> (PRIVACY_CONSENT §8). **M8.9-02** (owner kararı): Harita +
+> politikası URL'i owner'da. Yamalı AAR'ın EEA / NOT_EEA / gizlilik seçenekleri
+> akışı Samsung A36'da doğrulandı (M9-01.1, PRIVACY_CONSENT §7). **M8.9-02** (owner kararı): Harita +
 > oyun banner'ı, geçiş reklamı (900 sn aktif süre, yalnız round bitişi molası,
 > 60 sn tam ekran beklemesi), günlük ödüller (ücretsiz sandık 1/gün, reklamlı
 > sandık 2/gün, reklamlı +150 Hamur 1/gün), otomatik günlük pencere, Mağaza
 > girişi, `onboarding_completed` dikişi — deterministik testler + masaüstü
 > görsel inceleme + TEST-reklam APK'sı + **A36 cihaz kapısı GEÇTİ (M8.9-02.2,
-> §14)**. **Üretime hazır DEĞİL:** eklentinin UMP yüzeyi (PRIVACY_CONSENT
-> §4) + #120, COPPA/kitle kararı (§6) açık; üretim kimliği YOK (artık 3 birim).
+> §14)**. **Üretime hazır DEĞİL:** ~~eklentinin UMP yüzeyi (PRIVACY_CONSENT
+> §4) + #120~~ (M9-01'de kapandı, M9-01.1'de A36'da doğrulandı), COPPA/kitle kararı (§6) açık; üretim kimliği YOK (artık 3 birim).
 
 ## 1. Kapsam (v1 monetizasyon planı)
 

@@ -922,8 +922,9 @@ alınacak — şimdi tahmin/vaat yok.
     (20 suite + 2 bot). **Dal push edildi; main'e BİRLEŞTİRİLMEDİ.**
     Kanıt: `build/qa_m8.10.1/` (yerel).
   - `M9-01` ✅ **Android production release hazırlığı — kod tarafı** (dal
-    `task/036-production-release-readiness`, base `5a3a0f0`; **main'e
-    alınmadı**; telefon/ADB YOK; oyun/UI/tutorial/ekonomi DEĞİŞMEDİ). (1)
+    `task/036-production-release-readiness`, base `5a3a0f0`; **M9-01.1 ile
+    birlikte 2026-09-24'te main'e ff-only alındı**; M9-01 oturumunda
+    telefon/ADB YOK; oyun/UI/tutorial/ekonomi DEĞİŞMEDİ). (1)
     **AdMob eklentisi UMP yaması:** upstream v6.0/v7.0/main UMP
     `canRequestAds` / `getPrivacyOptionsRequirementStatus` /
     `showPrivacyOptionsForm`'u sunmuyor; v6.0'a 3 dosyalık yama (+ #120
@@ -951,7 +952,8 @@ alınacak — şimdi tahmin/vaat yok.
     anahtarı owner'da. Dokümanlar: `docs/ANDROID_RELEASE_CHECKLIST.md`,
     `docs/DATA_SAFETY_INVENTORY.md`, `docs/monetization/AUDIENCE_DECISION.md`.
   - `M9-01.1` ✅ **UMP / gizlilik cihaz kapısı — Samsung A36 GEÇTİ, runtime
-    değişmedi** (2026-09-23, aynı dal; PRIVACY_CONSENT §7). SM-A366B / Android 16,
+    değişmedi** (2026-09-23, aynı dal; 2026-09-24'te main'e ff-only alındı;
+    PRIVACY_CONSENT §7). SM-A366B / Android 16,
     `368c60d` çalışma zamanıyla ayrı QA paketi, Google test kimlikleri, gerçek
     dokunuş, her coğrafya yolu yeni süreçte: yamalı AAR + üç JNI çağrısı çalıştı;
     #120 (`Setting debug geography to: 4` / `1`, geçersiz 0); NOT_EEA → NOT_REQUIRED
@@ -991,9 +993,9 @@ alınacak — şimdi tahmin/vaat yok.
   ~~02.2 A36 cihaz kapısı~~ ✅ main'de (9561a4c) →
   ~~M8.10 ilk açılış tutorial'ı + ilk gün kuralı~~ ✅ + ~~M8.10.1 A36 cihaz
   kapısı~~ ✅ main'de (5a3a0f0) →
-  ~~**M9-01** production release hazırlığı (kod)~~ ✅ dal `task/036` (push
-  edildi, main'e alınmadı) → ~~M9-01.1 EEA/NOT_EEA A36 cihaz kapısı~~ ✅ →
-  owner kararları (paket kimliği, kitle, AdMob hesabı + kimlikler, upload
+  ~~**M9-01** production release hazırlığı (kod)~~ ✅ + ~~M9-01.1 EEA/NOT_EEA
+  A36 cihaz kapısı~~ ✅ main'de (A36 doğrulanmış ağaç `2fd8a72`, ff-only,
+  2026-09-24) → owner kararları (paket kimliği, kitle, AdMob hesabı + kimlikler, upload
   anahtarı, gizlilik politikası) → yüklenebilir AAB → **M10 — Play kapalı test.** Analitik sağlayıcı
   (`AdEvents` / `TutorialEvents`) hâlâ ayrı karar.
   Ortam hazır (export template'leri, SDK,
@@ -1102,9 +1104,12 @@ alınacak — şimdi tahmin/vaat yok.
   shader/aura performans ölçümü M9'da.
 
 ## Next action
-**M9-01.1 sonrası (2026-09-23):** A36 UMP / gizlilik cihaz kapısı GEÇTİ
-(`task/036`, main'e alınmadı). Owner/ChatGPT kararları — (a) `task/036`
-incelemesi + main'e alma kararı; (b) kalıcı paket kimliği; (c) kitle kararı
+**M9-01 / M9-01.1 main'e alındı (2026-09-24, ff-only; A36 doğrulanmış ağaç
+`2fd8a72`) — M9-01 production release hazırlığı ve M9-01.1 UMP / gizlilik cihaz
+kapısı KAPANDI.** Entegre main'de kapı yeniden yeşil, release kapısı yalnız
+OWNER/CONFIG engelli (CODE 0). Ayrı iş: `task/037` (shell_shots düzeltmesi) bu
+entegrasyondan sonra ele alınacak. Kalan yalnız owner/hesap kararları —
+~~(a) `task/036` main kararı~~ ✅; (b) kalıcı paket kimliği; (c) kitle kararı
 (AUDIENCE_DECISION §5); (d) Play Developer + AdMob hesapları, 3 reklam birimi,
 GDPR mesajı → `[Release]` kimlikleri; (e) upload anahtarı (owner oluşturur,
 checklist §4); (f) gizlilik politikası metni + barındırma → URL;

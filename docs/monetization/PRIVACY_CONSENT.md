@@ -14,7 +14,7 @@
 > hatasını (Long/Integer) düzeltti. İzin kapısı artık resmî `canRequestAds()`;
 > gizlilik seçenekleri resmî durum + resmî form. M9-01'de telefon/ADB yoktu;
 > **M9-01.1'de (2026-09-23) gerçek Samsung A36'da doğrulandı — GEÇTİ, runtime
-> değişmedi** (§7; plan §8).
+> değişmedi** (§7; plan §8); M9-01 + M9-01.1 2026-09-24'te main'e ff-only alındı.
 
 ## 1. İlke
 

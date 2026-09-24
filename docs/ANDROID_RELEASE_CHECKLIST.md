@@ -7,6 +7,10 @@
 > hiçbir form doldurulmadı. **M9-01.1 (2026-09-23):** yamalı UMP eklentisinin
 > EEA / NOT_EEA / gizlilik seçenekleri cihaz kapısı gerçek Samsung A36'da
 > **GEÇTİ** (runtime değişmedi; #19, §5) — kapı çıktısı aynı: CODE 0, 11 OWNER/CONFIG.
+> **Main (2026-09-24):** M9-01 + M9-01.1 main'e ff-only alındı (A36 doğrulanmış
+> ağaç `2fd8a72`); kapı entegre main'de yeniden koşuldu — aynı çıktı (CODE 0 ·
+> OWNER 10 · CONFIG 1), `aab` reddedildi, AAB üretilmedi. Kalan her madde owner /
+> hesap / yapılandırma kararı.
 >
 > Kategoriler: ✅ **CODE COMPLETE** · 🟠 **OWNER ACTION** · 🟣 **PLAY CONSOLE
 > ACTION** · 🔵 **EXTERNAL ACCOUNT ACTION**. Kaynak: Google resmî sayfaları
