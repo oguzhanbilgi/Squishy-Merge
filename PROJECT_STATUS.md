@@ -1,6 +1,6 @@
 # PROJECT_STATUS.md — Squishy Merge, tam proje raporu
 
-**Son güncelleme:** 2026-09-24 · **Durum:** M0–M8 tamamlandı; M8.5–M8.10
+**Son güncelleme:** 2026-09-25 · **Durum:** M0–M8 tamamlandı; M8.5–M8.10
 (release/product stabilization: UI yeniden inşası, gameplay cilası, ses,
 AdMob TEST-reklam monetizasyonu + günlük ödüller, ilk açılış tutorial'ı)
 tamamlandı ve main'de; M9-01 production release hazırlığı (kod) tamamlandı,
@@ -12,8 +12,8 @@ release kapısı yalnız OWNER engelli (CODE 0 · OWNER 9 · CONFIG 0). Sırada:
 **kalan owner release kararları** (kitle → gizlilik politikası → upload
 anahtarı → gerçek AdMob kimlikleri → mağaza varlıkları / Play Console), sonra
 ilk imzalı üretim AAB'si ve M10 (Play kapalı test) ·
-**Branch:** `main` (`96e71c0` == origin/main); paket kimliği değişikliği
-`task/038-final-package-id` dalında (main'e alınması owner onayı bekliyor)
+**Branch:** `main` == origin/main — `task/038-final-package-id` (`fd91074`, kalıcı
+paket kimliği) ff-only alındı (2026-09-25)
 
 > Güncel engel listesi ve sıradaki adımın kanonik yeri: `PROJECT_CONTEXT.md` →
 > Current state / Current release blockers / Next action. Aşağıdaki tarihçe

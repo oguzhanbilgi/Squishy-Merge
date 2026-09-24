@@ -69,14 +69,14 @@ alınacak — şimdi tahmin/vaat yok.
 
 ## Current state
 
-**Kanonik durum — 2026-09-24.** Bugünün gerçeği bu bölüm +
+**Kanonik durum — 2026-09-25.** Bugünün gerçeği bu bölüm +
 [Current release blockers](#current-release-blockers) +
 [Next action](#next-action); aşağıdaki "Milestone tarihçesi" değil.
 
-- **Repo:** `main == origin/main == 96e71c0` (ef1053f + kanonik durum doküman
-  senkronu). Kalıcı paket kimliği değişikliği `task/038-final-package-id` dalında —
-  main'e alınması owner onayı bekliyor. `task/014`…`task/037` dallarının hepsi
-  main'de (referans için duruyor).
+- **Repo:** `main == origin/main` (2026-09-25): `task/038-final-package-id`
+  (`fd91074`, kalıcı paket kimliği) main'e ff-only alındı; üstünde yalnız bu
+  durum doküman commit'i. Aktif kod görevi YOK; `task/014`…`task/038` dallarının
+  hepsi main'de (referans için duruyor).
   Main'e bilerek girmeyen iki dal: `task/m8.6-03-home` (reddedildi, asla
   birleştirilmez) ve `task/ui-layerlab-style-spike` (seçilen parçaları
   M8.6-01'de promote edildi).
