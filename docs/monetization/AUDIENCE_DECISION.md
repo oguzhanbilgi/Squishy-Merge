@@ -13,6 +13,13 @@
 >   ayrı bir OWNER / uyum engeli ("UYUM:"); stratejiler A–D belgelendi,
 >   hiçbiri seçilmedi.
 >
+> - **TASK/040 (2026-09-25, `task/040-global-teen-compliance` dalında):** fizibilite,
+>   karar tablosu ve güncel strateji listesi →
+>   [GLOBAL_TEEN_AD_TREATMENT.md](GLOBAL_TEEN_AD_TREATMENT.md). TEEN, Godot 4.6.3 +
+>   GMA 25.3.0'da A36'da kanıtlandı (yalnız spike); strateji hâlâ owner kararı.
+>   Play Age Signals reklam kararında KULLANILMAZ. Yeni bulgu: üretim eklentisi
+>   RequestConfiguration'ı hiç uygulamıyor (derece G etkin değil) → kapıda CODE.
+>
 > Karardan önceki durum (2026-09-22): kod kararı tahmin etmedi; sevimli / kawaii
 > sanat tek başına "çocuklara yönelik" ya da "13+" demek için yeterli sayılmadı.
 >
@@ -79,14 +86,19 @@ Tek kaynak: `addons/AdmobPlugin/android_export.cfg` → `[Audience]`
 | `decision` | `"general_13_plus"` (owner kararı, 2026-09-25; öncesi `""`) | yalnız release kapısı (+ `AdConfig.describe()` log satırı) | genel "kitle kararı yok" engeli YOK, kapı raporunda bilgi notu; 13–17 için ayrı OWNER "UYUM:" engeli (§2.2). Boş olsaydı OWNER, karma / çocuk olsaydı CODE engeli |
 | `tag_for_child_directed_treatment` (TFCD, COPPA) | `unspecified` | Mobile Ads `RequestConfiguration` | **gönderilmez** — Google'a hiçbir şey söylenmez (TEEN işlemi DEĞİL) |
 | `tag_for_under_age_of_consent` (TFUA) | `unspecified` | `RequestConfiguration` + UMP `ConsentRequestParameters` | **gönderilmez** (eklenti yalnız UNSPECIFIED değilse ekler; TEEN işlemi DEĞİL) |
-| `max_ad_content_rating` | `G` | `RequestConfiguration` | yalnız "genel izleyici" reklamları (en muhafazakâr) |
+| `max_ad_content_rating` | `G` | `RequestConfiguration` | yalnız "genel izleyici" reklamları (en muhafazakâr) — **TASK/040: FİİLEN ETKİN DEĞİL**, üretim eklentisi RequestConfiguration'ı hiç uygulamıyor ([GLOBAL_TEEN_AD_TREATMENT §C4](GLOBAL_TEEN_AD_TREATMENT.md); kapıda CODE) |
 | kişiselleştirme | SDK varsayılanı | — | EEA/UK/CH'de UMP rızasına göre; rıza yoksa sınırlı reklam |
 | `AD_ID` izni | manifest'te VAR | Google Mobile Ads SDK + eklenti manifest birleştirmesi | reklam kimliği okunabilir |
 
 Uygulanma sırası: eklenti `RequestConfiguration`'ı Mobile Ads SDK başlatması
 **bittiğinde** (`initialization_completed`) kurar; bizim yönetici ilk reklam
-yüklemesini ancak bu sinyalden SONRA yapar. Yani bugünkü değerler (G) her reklam
-isteğinden önce etkin. Çocuğa yönelik / karma kitle seçilirse bu sıra
+yüklemesini ancak bu sinyalden SONRA yapar. ~~Yani bugünkü değerler (G) her reklam
+isteğinden önce etkin.~~ **Düzeltme (TASK/040, A36 kanıtı):** bu çağrı Godot 4.6'da
+`ClassCastException` ile sessizce başarısız oluyor (Long / Object[] → `(int)` /
+`(String[])`) — değerler, derece G dahil, hiç uygulanmıyor. Ayrıca Google
+yapılandırmanın SDK başlatılmadan **önce** ayarlanmasını istiyor; eklenti
+başlatmadan sonra uyguluyor (spike'ta `configure_before_initialize` ile çözüldü).
+Ayrıntı [GLOBAL_TEEN_AD_TREATMENT §C4](GLOBAL_TEEN_AD_TREATMENT.md). Çocuğa yönelik / karma kitle seçilirse bu sıra
 değişmeli (etiket SDK başlatmadan ÖNCE) — §4'teki ek işlerin parçası (ikisi de
 seçilmedi, §0). §2.2'deki genç reklam işlemi stratejileri de bu sırayı
 etkileyebilir.
@@ -146,6 +158,15 @@ da derece T) onu kaldırmaz; boş karar OWNER, karma / çocuk CODE.
   geçişinde / teknik borç" ifadesi bu maddeyle düzeltildi.*
 
 ### 2.2 13–17 genç reklam işlemi / yargı bölgesi uyumu — AÇIK (üretim yayınından önce)
+
+> **TASK/040 (2026-09-25):** güncel ve kanonik strateji listesi, karar tablosu ve
+> A36 fizibilite kanıtı [GLOBAL_TEEN_AD_TREATMENT.md](GLOBAL_TEEN_AD_TREATMENT.md)
+> §D–§G'de. Orada etiketler: **A** herkes için TEEN · **B** uygulamanın yaş bandı ·
+> **C** UNSPECIFIED + dış hukuki belirleme · **D** eski TRUE etiketleri (REDDEDİLDİ —
+> CHILD'a eşleniyor) · **E** ürünü 18+'ya çevirmek (seçilmedi). Aşağıdaki tablo
+> task/039 etiketleriyle: A → A, B → B, C → E, D → C. TEEN davranışı (AdMob Help):
+> kişiselleştirilmiş reklam + yeniden pazarlama kapalı, gençler için reklam sunma
+> korumaları. Hâlâ hiçbir strateji SEÇİLMEDİ.
 
 **Durum:** ürün kitlesi kararından (§0, KAPALI) **AYRI**, **AÇIK** bir owner /
 uyum kararı. Release kapısında ayrı OWNER engeli ("UYUM: 13–17 genç reklam
@@ -257,8 +278,10 @@ genç reklam işlemi için ayrı OWNER "UYUM:" engeli verir (§2.2).
 
 ## 6. Karardan sonra da değişmeyenler (2026-09-25)
 
-- Reklam istekleri: TFCD/TFUA gönderilmez, derece G (M8.9 davranışı; 13+
-  kararı değiştirmedi — bu TEEN işlemi değildir, §2.2).
+- Reklam istekleri: TFCD/TFUA gönderilmez, derece G yapılandırılmış (M8.9
+  davranışı; 13+ kararı değiştirmedi — bu TEEN işlemi değildir, §2.2). **TASK/040:**
+  yapılandırma üretim eklentisinde hiç uygulanmıyor → derece G fiilen etkin değil
+  (GLOBAL_TEEN_AD_TREATMENT §C4, kapıda CODE).
 - Play'e yüklenebilir AAB üretilmez — genel kitle engeli kalktı; release
   kapısı 13–17 uyum engeli (§2.2) ve kalan owner maddeleri (gerçek AdMob
   kimlikleri, gizlilik politikası URL'i, upload anahtarı) yüzünden BLOCKED.

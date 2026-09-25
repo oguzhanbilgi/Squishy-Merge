@@ -32,6 +32,10 @@ extends RefCounted
 ## engeli ("UYUM:"). GMA 24.9.0'ın TFCD/TFUA yolunda TFAT TEEN'in karşılığı yok;
 ## TFCD/TFUA/derece değerleri bunu ÇÖZMEZ. Strateji seçilip uygulanana kadar engel
 ## yapılandırmayla kapanmaz (AUDIENCE_DECISION.md §2.2 — seçim + uygulama ayrı görev).
+##
+## Bilinen eklenti kusurları (TASK/040, Samsung A36 kanıtı): onaylı release AAR'ında
+## kodla düzeltilmesi gereken bir kusur kayıtlıysa CODE engeli (KNOWN_PLUGIN_DEFECTS,
+## AAR SHA-256'sına göre; girdi yoksa SHA'dan türetilir — fail-closed).
 
 const CATEGORY_OWNER: String = "OWNER"
 const CATEGORY_CONFIG: String = "CONFIG"
@@ -65,6 +69,15 @@ const NON_PUBLISHABLE_MARKER: String = "NOT_FOR_UPLOAD"
 const PATCHED_RELEASE_AAR: String = "res://addons/AdmobPlugin/bin/release/AdmobPlugin-release.aar"
 const PATCHED_RELEASE_AAR_SHA256: String = "90d359921f10bc6618ed63b9ea97cdba5afcbdfbb8cb72fe264834e5bf478284"
 const PATCHED_FACADE: String = "res://addons/AdmobPlugin/Admob.gd"
+## Onaylı yamalı AAR'lardaki bilinen kusurlar (release AAR SHA-256 → CODE engeli metni).
+## TASK/040 A36 kanıtı (2026-09-25): Godot 4.6 Dictionary int'lerini java.lang.Long, dizileri
+## Object[] olarak geçiriyor; v6.0 AdmobConfiguration'ın `(int)` / `(String[])` dönüşümleri
+## ClassCastException atıyor ve MobileAds.setRequestConfiguration() HİÇ çağrılmıyor (Godot
+## istisnayı sessizce yutuyor). Düzeltilmiş derleme onaylanınca PATCHED_RELEASE_AAR_SHA256
+## yeni SHA'ya geçer; bu kayıt eski SHA için kalır.
+const KNOWN_PLUGIN_DEFECTS: Dictionary = {
+	"90d359921f10bc6618ed63b9ea97cdba5afcbdfbb8cb72fe264834e5bf478284": "addons/AdmobPlugin release AAR'ı RequestConfiguration'ı HİÇ uygulamıyor (Godot 4.6 Long / Object[] → Java (int) / (String[]) dönüşümü ClassCastException) — max_ad_content_rating G, TFCD / TFUA ve test cihazları etkin DEĞİL; düzeltilmiş eklenti derlemesi gerekli (GLOBAL_TEEN_AD_TREATMENT.md §C4)",
+}
 ## Kitle kararlarından bu sürümde kodu HAZIR olan (AUDIENCE_DECISION.md).
 const IMPLEMENTED_AUDIENCE_DECISIONS: Array[String] = ["general_13_plus"]
 ## 13–17 yaş kullanıcıları da hedefleyen kitle kararları: bunlarda genç reklam
@@ -80,8 +93,8 @@ const TEEN_TREATMENT_BLOCKER: String = "UYUM: 13–17 genç reklam işlemi / yar
 ## keystore_path_set, keystore_exists, keystore_is_debug, keystore_user_set,
 ## keystore_password_set, ad_config (AdConfig, RELEASE türünde yüklenmiş),
 ## privacy_policy_url, plugin_release_aar_sha256, plugin_facade_patched,
-## teen_ad_treatment_resolved (yoksa false = engel), non_publishable_requested,
-## export_path.
+## teen_ad_treatment_resolved (yoksa false = engel), plugin_known_defects (Array; yoksa
+## AAR SHA'sından türetilir), non_publishable_requested, export_path.
 static func evaluate(inputs: Dictionary) -> Dictionary:
 	var blockers: Array[Dictionary] = []
 	var notes: PackedStringArray = PackedStringArray()
@@ -167,6 +180,10 @@ static func evaluate(inputs: Dictionary) -> Dictionary:
 		_add(blockers, CATEGORY_CODE, "addons/AdmobPlugin release AAR yamalı derleme değil (tools/admob_plugin)")
 	if not bool(inputs.get("plugin_facade_patched", false)):
 		_add(blockers, CATEGORY_CODE, "addons/AdmobPlugin/Admob.gd yamalı cephe değil")
+	var defects: Array = inputs.get("plugin_known_defects",
+		known_plugin_defects(String(inputs.get("plugin_release_aar_sha256", ""))))
+	for defect in defects:
+		_add(blockers, CATEGORY_CODE, String(defect))
 
 	# 7) İmza: upload anahtarı (Play App Signing) — yalnız varlık, sır okunmaz.
 	var signed: bool = bool(inputs.get("signed", true))
@@ -209,6 +226,7 @@ static func project_inputs(preset: Dictionary, build: String) -> Dictionary:
 		or not String(options.get("keystore/release_password", "")).is_empty()
 	var keystore_abs: String = ProjectSettings.globalize_path(keystore) if not keystore.is_empty() else ""
 	var facade: String = FileAccess.get_file_as_string(PATCHED_FACADE) if FileAccess.file_exists(PATCHED_FACADE) else ""
+	var aar_sha: String = FileAccess.get_sha256(PATCHED_RELEASE_AAR) if FileAccess.file_exists(PATCHED_RELEASE_AAR) else ""
 	return {
 		"build": build,
 		"preset_name": String(preset.get("name", "")),
@@ -230,7 +248,8 @@ static func project_inputs(preset: Dictionary, build: String) -> Dictionary:
 		"keystore_password_set": password_set,
 		"ad_config": AdConfig.load_file(AdConfig.CONFIG_PATH, AdConfig.BuildType.RELEASE),
 		"privacy_policy_url": String(ProjectSettings.get_setting(SETTING_PRIVACY_URL, "")),
-		"plugin_release_aar_sha256": FileAccess.get_sha256(PATCHED_RELEASE_AAR) if FileAccess.file_exists(PATCHED_RELEASE_AAR) else "",
+		"plugin_release_aar_sha256": aar_sha,
+		"plugin_known_defects": known_plugin_defects(aar_sha),
 		"plugin_facade_patched": facade.contains("func has_privacy_options_api()") and facade.contains("func show_privacy_options_form()"),
 		# 13–17 genç reklam işlemi stratejisi bugün SEÇİLMEDİ (AUDIENCE_DECISION §2.2):
 		# kayıt / uygulama yok → daima false. Strateji seçilince ayrı görevde bağlanır.
@@ -249,6 +268,11 @@ static func report(result: Dictionary, title: String) -> String:
 	for note in result["notes"]:
 		lines.append("  not: %s" % note)
 	return "\n".join(lines)
+
+
+## Verilen release AAR SHA-256'sı için kayıtlı bilinen kusurlar (CODE engeli metinleri).
+static func known_plugin_defects(aar_sha256: String) -> Array:
+	return [KNOWN_PLUGIN_DEFECTS[aar_sha256]] if KNOWN_PLUGIN_DEFECTS.has(aar_sha256) else []
 
 
 ## QA / test kimliği: kalıcı kimlik + QA_PACKAGE_SUFFIX (com.obappstudio.squishymerge.qa).

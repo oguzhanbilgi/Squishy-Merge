@@ -11,14 +11,19 @@ bakım düzeltmesi main'de. Runtime / gameplay / TEST-reklam temeli donduruldu.
 **Hedef kitle kararı (owner, 2026-09-25 — FİNAL):** 13+ genel kitle, 13 yaş
 altı için tasarlanmadı (Play 13–15 / 16–17 / 18+; `[Audience]
 decision=general_13_plus`, reklam istekleri değişmedi) — ürün kitlesi KAPALI;
-**13–17 genç reklam işlemi / yargı bölgesi uyumu AÇIK** (üretimden önce,
-AUDIENCE_DECISION §2.2). Release kapısı yalnız OWNER engelli (CODE 0 · OWNER 9
-· CONFIG 0). Sırada: **kalan owner release kararları** (13–17 genç reklam
-işlemi stratejisi → gizlilik politikası → upload anahtarı → gerçek AdMob
-kimlikleri → mağaza varlıkları / Play Console), sonra ilk imzalı üretim AAB'si
-ve M10 (Play kapalı test) ·
-**Branch:** `main` == origin/main — `task/039-target-audience` (`4d3268c` +
-`fa20369`, hedef kitle kararı + politika düzeltmesi) ff-only alındı (2026-09-25)
+**13–17 genç reklam işlemi / yargı bölgesi uyumu AÇIK** (üretimden önce).
+**TASK/040 (dalda):** dünya geneli dağıtım owner kararı; GMA 25.3.0 TEEN Godot
+4.6.3'te Samsung A36'da kanıtlandı (spike, üretime alınmadı); Play Age Signals
+reklam kararında KULLANILMAZ; strateji karar tablosu
+docs/monetization/GLOBAL_TEEN_AD_TREATMENT.md. Yeni bulgu: üretim eklentisi
+RequestConfiguration'ı hiç uygulamıyor (derece G etkin değil) → release kapısı
+CODE 1 · OWNER 9 · CONFIG 0. Sırada: **13–17 strateji kararı (owner)** + eklenti
+RequestConfiguration düzeltmesi (ayrı kod görevi) → gizlilik politikası →
+upload anahtarı → gerçek AdMob kimlikleri → mağaza varlıkları / Play Console,
+sonra ilk imzalı üretim AAB'si ve M10 (Play kapalı test) ·
+**Branch:** `main` == origin/main — `task/039-target-audience` ff-only alındı
+(2026-09-25); TASK/040 `task/040-global-teen-compliance` dalında (main'e alınması
+owner onayı bekliyor)
 
 > Güncel engel listesi ve sıradaki adımın kanonik yeri: `PROJECT_CONTEXT.md` →
 > Current state / Current release blockers / Next action. Aşağıdaki tarihçe
@@ -1944,6 +1949,33 @@ kaldırmaz, bugün yapılandırmayla kapanmaz (`teen_ad_treatment_resolved = fal
 boşalırsa OWNER, karma / çocuk yazılırsa CODE (fail-closed). `release_config_test` 112 →
 118 → 123; kapı BLOCKED — CODE 0 · OWNER 9 · CONFIG 0; `aab` reddedildi. Yaş ekranı, GMA
 yükseltmesi, reklam değişikliği YOK; runtime kodu yine değişmedi.
+
+**TASK/040 — dünya geneli 13+ genç reklam işlemi fizibilitesi (2026-09-25; dal
+`task/040-global-teen-compliance`, main `4ef7793` üzerine; main'e alınması owner onayı
+bekliyor).** Owner kararları: dünya geneli dağıtım, 13+ ürün kitlesi (kapalı). Resmî
+kaynaklar (Play hedef kitle / Families / Play Age Signals şartları ve politikası, AdMob TFAT,
+GMA + UMP sürüm notları, godot-admob) okundu: TEEN = kişiselleştirilmiş reklam + yeniden
+pazarlama kapalı + gençlere reklam sunma korumaları; ilk TEEN-yetenekli sürüm GMA 25.3.0
+(ikili javap ile doğrulandı: 24.9.0–25.2.0'da sınıf yok); TFCD/TFUA TRUE → CHILD, TEEN'in
+karşılığı yok; Age Signals verisi reklam / pazarlama / profilleme / analitik için KULLANILAMAZ
+(mimari kısıt, testle kilitli). godot-admob v7.0 Godot 4.7 istiyor ve TFAT içermiyor →
+Godot 4.6.3'te tek yol vendored v6.0 yaması. Spike: `tools/admob_plugin/0002-spike-gma25-
+age-restricted-treatment.patch` (GMA 25.3.0 + UMP 4.0.0, TFAT, başlatma öncesi yapılandırma,
+TFAT_DIAG tanı dikişi) + `build_patched_plugin.sh spike` (deterministik; addons'a KURMAZ) +
+`spike_qa_export.sh` (yalnız QA paketi, üretim dosyaları SHA-256 ile geri konur) + ads_device
+`teen` / `tfat` / `tfat_diag`. Samsung A36 kapısı GEÇTİ: TEEN MobileAds başlatılmadan önce
+ve her reklam yüklemesinde; UMP 4.0.0 EEA formu, canRequestAds kapısı, gizlilik seçenekleri
+(tek geri çağrı), banner / ödüllü / geçiş, arka plan / ön plan, orphan 0, logcat temiz;
+NOT_EEA koşusunda UNSPECIFIED ≠ TEEN gösterildi. **Yeni bulgu:** Godot 4.6 Dictionary
+int'lerini Long, dizileri Object[] geçiriyor; v6.0 AdmobConfiguration'ın `(int)` /
+`(String[])` dönüşümleri ClassCastException atıyor → üretim eklentisi RequestConfiguration'ı
+HİÇ uygulamıyor (derece G etkin değil; M9 logları da doğruluyor). Spike'ta düzeltildi, üretim
+AAR'ı değişmedi → kapı CODE engeli (`KNOWN_PLUGIN_DEFECTS`). Stratejiler A (herkes için TEEN)
+/ B (uygulamanın yaş bandı) / C (UNSPECIFIED + hukuki belirleme) karar tablosuyla belgelendi,
+D (eski TRUE etiketleri) reddedildi, E (18+) seçilmedi; teknik öneri A'nın yolu (en basit, en
+düşük risk) — hukuki belirleme ve iş dengesi owner'da. `release_config_test` 123 → 130 (denetim) → 132 (spike);
+monetization 248, interstitial 60, daily_rewards 179, tutorial 199 (yeşil); kapı BLOCKED —
+CODE 1 · OWNER 9 · CONFIG 0. Ayrıntı docs/monetization/GLOBAL_TEEN_AD_TREATMENT.md.
 
 **Ortam neredeyse hazır** (§2'deki tabloya bakın). Godot, export
 template'leri, Android SDK, NDK, JDK 17 ve debug keystore mevcut.

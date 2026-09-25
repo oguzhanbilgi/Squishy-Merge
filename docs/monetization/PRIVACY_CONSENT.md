@@ -128,7 +128,7 @@ durum görüyor (`monetization_test` "ABD eyalet mesajı").
 
 | konu | durum | nerede |
 |---|---|---|
-| Kitle / COPPA / TFCD / TFUA / içerik derecesi | **Ürün kitlesi KARARI (owner, 2026-09-25):** 13+ genel kitle (Play 13–15 / 16–17 / 18+), `general_13_plus`; TFCD / TFUA `unspecified`, derece G — değişmedi. **13–17 genç reklam işlemi / yargı bölgesi uyumu AÇIK** — üretimden önce çözülmeli: 13–15 / 16–17 bazı yerlerde çocuk sayılabilir, GMA 24.9.0 TFAT `TEEN` gönderemez, `unspecified` TEEN değil. Karar yerel rıza / reklam kurallarını geçersiz kılmaz; bugünkü UMP akışı TFUA `unspecified` ile çalışır (yaşa özel işlem yok) | [AUDIENCE_DECISION.md](AUDIENCE_DECISION.md) §0, §2.2 |
+| Kitle / COPPA / TFCD / TFUA / içerik derecesi | **Ürün kitlesi KARARI (owner, 2026-09-25):** 13+ genel kitle (Play 13–15 / 16–17 / 18+), `general_13_plus`; TFCD / TFUA `unspecified`, derece G — değişmedi. **13–17 genç reklam işlemi / yargı bölgesi uyumu AÇIK** — üretimden önce çözülmeli: 13–15 / 16–17 bazı yerlerde çocuk sayılabilir, GMA 24.9.0 TFAT `TEEN` gönderemez, `unspecified` TEEN değil. Karar yerel rıza / reklam kurallarını geçersiz kılmaz; bugünkü UMP akışı TFUA `unspecified` ile çalışır (yaşa özel işlem yok). TASK/040: strateji karar tablosu + TEEN fizibilitesi (A36); Play Age Signals reklam kararında KULLANILMAZ | [AUDIENCE_DECISION.md](AUDIENCE_DECISION.md) §0, §2.2 · [GLOBAL_TEEN_AD_TREATMENT.md](GLOBAL_TEEN_AD_TREATMENT.md) |
 | AdMob Privacy & messaging: GDPR (EEA/UK/CH) mesajı | owner, AdMob konsolu — kişiselleştirilmiş reklam için sertifikalı CMP (UMP) mesajı gerekli; mesaj yoksa bu bölgelerde sınırlı reklam | checklist §E |
 | ABD eyalet mesajı | isteğe bağlı araç (yasal uyum owner'da); yoksa sınırlı veri işleme seçeneği | checklist §E |
 | Gerçek reklam birimleri (App ID + 3 birim) | owner, AdMob konsolu | ADS_SYSTEM §8 |
@@ -208,6 +208,17 @@ gerçek. Bulgular:
   pencere sızıntısı / `Invalid debug_geography` → 0. PSS 365–506 MB, büyüme yok.
 Owner'ın üretim paketine ve kaydına dokunulmadı (paket meta verisi önce/sonra aynı), QA
 paketi kaldırıldı. Ayrıntı: `build/qa_m9-01.1/A36_DEVICE_GATE.md` (yerel).
+
+**TASK/040 (2026-09-25) — UMP 4.0.0 ile SPIKE (üretim değil), Samsung A36: GEÇTİ.**
+GMA 25.3.0 bağımlılığı UMP'yi 3.2.0'dan **4.0.0**'a taşıyor. Kullandığımız UMP
+sınıflarının public API'si 3.2.0 → 4.0.0 arasında yalnız ekleme aldı
+(`setConsentSyncId`); `DebugGeography` değerleri aynı; UMP minSdk 21 → 23 (proje 24).
+Yamalı sarmalayıcı (canRequestAds / getPrivacyOptionsRequirementStatus /
+showPrivacyOptionsForm / #120) yeniden derlemeden sonra A36'da aynı sözleşmeyi verdi:
+EEA formu → Consent → OBTAINED; form öncesi `canRequestAds` false, başlatma ve yükleme
+0; gizlilik seçenekleri formu gerçek dokunuşla → Do not consent → geri çağrı tam bir kez,
+sınırlı reklam; NOT_EEA → NOT_REQUIRED; `update_consent_info` tek sefer. Üretim hâlâ
+UMP 3.2.0. Ayrıntı [GLOBAL_TEEN_AD_TREATMENT.md](GLOBAL_TEEN_AD_TREATMENT.md) §C5.
 
 ## 8. EEA / NOT_EEA cihaz kapısı planı (M9-01.1'de A36'da UYGULANDI — GEÇTİ)
 

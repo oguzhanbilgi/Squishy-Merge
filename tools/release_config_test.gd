@@ -66,6 +66,7 @@ func _ready() -> void:
 	_test_secret_hygiene()
 	_test_wrapper_interface()
 	_test_patched_binaries()
+	_test_teen_treatment_boundaries()
 	await _test_privacy_policy_row()
 
 	for key in KEYSTORE_ENV:
@@ -285,8 +286,10 @@ func _test_audience() -> void:
 
 # --- ReleaseReadiness kuralları ------------------------------------------------------
 
-## "Her şey tamam" girdileri. `teen_ad_treatment_resolved = true` GELECEĞİ modeller
-## (13–17 genç reklam işlemi stratejisi seçilmiş + uygulanmış); bugünkü projede false.
+## "Her şey tamam" girdileri. `teen_ad_treatment_resolved = true` ve
+## `plugin_known_defects = []` GELECEĞİ modeller (13–17 genç reklam işlemi stratejisi
+## seçilmiş + uygulanmış; RequestConfiguration kusuru düzeltilmiş eklenti derlemesi);
+## bugünkü projede ikisi de açık.
 func _good_inputs() -> Dictionary:
 	return {
 		"build": "release", "preset_name": "Android Release AAB",
@@ -297,7 +300,7 @@ func _good_inputs() -> Dictionary:
 		"keystore_password_set": true, "ad_config": _cfg(_real_release(), AdConfig.BuildType.RELEASE),
 		"privacy_policy_url": "https://squishy.invalid/privacy",
 		"plugin_release_aar_sha256": ReleaseReadiness.PATCHED_RELEASE_AAR_SHA256, "plugin_facade_patched": true,
-		"teen_ad_treatment_resolved": true,
+		"teen_ad_treatment_resolved": true, "plugin_known_defects": [],
 		"non_publishable_requested": false, "export_path": "build/release/squishy_merge.aab",
 	}
 
@@ -395,6 +398,13 @@ func _test_release_gate_rules() -> void:
 	_c("yamasız eklenti AAR'ı -> CODE; yamasız cephe -> CODE",
 		_blocked_by(_gate({"plugin_release_aar_sha256": "526516f93b1e29a6749b0293d86649bb7a6971603258a62e109dfd65afb36789"}),
 			"CODE", "AAR") and _blocked_by(_gate({"plugin_facade_patched": false}), "CODE", "Admob.gd"))
+	_c("bilinen eklenti kusuru -> CODE (tek engel; TASK/040)", _blocked_by(_gate({"plugin_known_defects": ["kusur-X"]}), "CODE", "kusur-X")
+		and _gate({"plugin_known_defects": ["kusur-X"]})["blockers"].size() == 1)
+	var defect_inputs: Dictionary = _good_inputs()
+	defect_inputs.erase("plugin_known_defects")
+	_c("kusur girdisi yoksa AAR SHA'sından türetilir (fail-closed): onaylı M9 AAR -> CODE RequestConfiguration",
+		_blocked_by(ReleaseReadiness.evaluate(defect_inputs), "CODE", "RequestConfiguration")
+		and ReleaseReadiness.known_plugin_defects("0000").is_empty())
 	_c("imzasız preset -> CONFIG (Play'e yüklenemez)", _blocked_by(_gate({"signed": false}), "CONFIG", "imzasız"))
 	_c("upload anahtarı yok / dosya yok / debug anahtarı / takma ad-şifre yok -> OWNER",
 		_blocked_by(_gate({"keystore_path_set": false}), "OWNER", "verilmedi")
@@ -459,11 +469,16 @@ func _test_current_project_state() -> void:
 	for blocker: Dictionary in result["blockers"]:
 		if blocker["category"] == "OWNER":
 			owner_blockers += 1
-	_c("bugün tam 9 engel, hepsi OWNER (AdMob 5 + gizlilik URL'i 1 + upload anahtarı 2 + 13–17 uyum 1)",
-		owner_blockers == 9 and result["blockers"].size() == 9)
-	_c("CODE engeli YOK: yamalı eklenti AAR'ı + cephe yerinde", inputs["plugin_release_aar_sha256"]
-		== ReleaseReadiness.PATCHED_RELEASE_AAR_SHA256 and bool(inputs["plugin_facade_patched"])
-		and not _has_category(result, "CODE"))
+	var code_blockers: int = 0
+	for blocker: Dictionary in result["blockers"]:
+		if blocker["category"] == "CODE":
+			code_blockers += 1
+	_c("bugün tam 10 engel: OWNER 9 (AdMob 5 + gizlilik URL'i 1 + upload anahtarı 2 + 13–17 uyum 1) + CODE 1",
+		owner_blockers == 9 and code_blockers == 1 and result["blockers"].size() == 10)
+	_c("tek CODE engeli bilinen RequestConfiguration kusuru (TASK/040 A36); yamalı AAR + cephe yerinde",
+		inputs["plugin_release_aar_sha256"] == ReleaseReadiness.PATCHED_RELEASE_AAR_SHA256
+		and bool(inputs["plugin_facade_patched"]) and inputs["plugin_known_defects"].size() == 1
+		and _blocked_by(result, "CODE", "RequestConfiguration"))
 	_c("sürüm tek kaynağı: preset versionCode 1 = project.godot 1, versionName boş → 0.8.5",
 		int(inputs["version_code"]) == int(inputs["canonical_version_code"]) and inputs["version_name_preset"] == "")
 
@@ -563,7 +578,11 @@ func _test_patched_binaries() -> void:
 		inner.open(TMP_JAR)
 		var plugin_class: PackedByteArray = inner.read_file("org/godotengine/plugin/admob/AdmobPlugin.class")
 		var consent_class: PackedByteArray = inner.read_file("org/godotengine/plugin/admob/model/ConsentConfiguration.class")
+		var config_class: PackedByteArray = inner.read_file("org/godotengine/plugin/admob/model/AdmobConfiguration.class")
 		inner.close()
+		_c("%s AdmobConfiguration.class Number / Object[] güvenli dönüşüm İÇERMİYOR — TASK/040 bilinen kusuru bu AAR'da (kapı CODE)" % kind,
+			not config_class.is_empty() and not _class_has(config_class, "java/lang/Number")
+			and _class_has(config_class, "java/lang/Integer"))
 		_c("%s AdmobPlugin.class: can_request_ads / get_privacy_options_requirement_status / show_privacy_options_form / sinyal" % kind,
 			not jar.is_empty() and _class_has(plugin_class, "can_request_ads")
 			and _class_has(plugin_class, "get_privacy_options_requirement_status")
@@ -580,6 +599,51 @@ func _test_patched_binaries() -> void:
 		and script.contains("PATCH_SHA256=\"%s\"" % patch_sha))
 	_c("GMA / UMP sürümleri değişmedi (24.9.0 / eklentinin bağımlılık listesi)",
 		FileAccess.get_file_as_string("res://addons/AdmobPlugin/AdmobPlugin.gd").contains("com.google.android.gms:play-services-ads:24.9.0"))
+
+
+# --- TASK/040: 13–17 genç reklam işlemi sınırları -------------------------------------
+
+## Kodla denetlenebilen TASK/040 kuralları (docs/monetization/GLOBAL_TEEN_AD_TREATMENT.md):
+## Play Age Signals hiçbir reklam / runtime koduna bağlı değil; GMA 25.3.0 TEEN spike'ı
+## üretim eklentisine GİRMEDİ; genç işlemi engeli yapılandırmayla kapanmıyor; spike
+## yalnız yama + QA araçları olarak duruyor.
+func _test_teen_treatment_boundaries() -> void:
+	print("-- TASK/040: genç reklam işlemi sınırları (Age Signals YOK, spike üretime girmedi)")
+	var hits: PackedStringArray = PackedStringArray()
+	for root in ["res://scripts", "res://addons"]:
+		for path in _files_under(root, ["gd", "cfg", "tscn", "tres"]):
+			var lower: String = FileAccess.get_file_as_string(path).to_lower()
+			for needle in ["agesignals", "age_signals", "age-signals", "agesignalsmanager"]:
+				if lower.contains(needle):
+					hits.append("%s (%s)" % [path, needle])
+	var project_text: String = FileAccess.get_file_as_string("res://project.godot").to_lower()
+	_c("Play Age Signals reklam / runtime koduna BAĞLI DEĞİL: scripts/ + addons/ + project.godot içinde yok %s" % str(hits),
+		hits.is_empty() and not project_text.contains("age-signals") and not project_text.contains("agesignals"))
+	var facade: String = FileAccess.get_file_as_string("res://addons/AdmobPlugin/Admob.gd")
+	var model: String = FileAccess.get_file_as_string("res://addons/AdmobPlugin/model/AdmobConfig.gd")
+	var ads_src: String = ""
+	for path in _files_under("res://scripts/ads", ["gd"]):
+		ads_src += FileAccess.get_file_as_string(path)
+	_c("üretim eklentisi GMA 24.9.0 kaldı: facade / model / scripts/ads içinde age_restricted_treatment YOK (spike üretime girmedi)",
+		not facade.contains("age_restricted_treatment") and not model.contains("AgeRestrictedTreatment")
+		and not ads_src.contains("age_restricted_treatment")
+		and FileAccess.get_file_as_string("res://addons/AdmobPlugin/AdmobPlugin.gd").contains("play-services-ads:24.9.0"))
+	var gate_src: String = FileAccess.get_file_as_string("res://tools/release/release_readiness.gd")
+	_c("kapı genç işlemi engelini kapatmıyor: project_inputs teen_ad_treatment_resolved = false, true yazılı değil",
+		gate_src.contains("\"teen_ad_treatment_resolved\": false,") and not gate_src.contains("\"teen_ad_treatment_resolved\": true"))
+
+
+static func _files_under(root: String, extensions: Array) -> PackedStringArray:
+	var out: PackedStringArray = PackedStringArray()
+	var dir := DirAccess.open(root)
+	if dir == null:
+		return out
+	for file in dir.get_files():
+		if extensions.has(file.get_extension()):
+			out.append(root.path_join(file))
+	for sub in dir.get_directories():
+		out.append_array(_files_under(root.path_join(sub), extensions))
+	return out
 
 
 ## Sınıf dosyası sabit havuzundaki UTF-8 adlar (NUL içerdiği için bayt araması).

@@ -44,6 +44,18 @@ No other class, resource, dependency or version changed (the rebuild differs
 from the unpatched build only in `AdmobPlugin*.class` — line numbers shift in
 the anonymous inner classes — and `ConsentConfiguration.class`).
 
+## Known defect (TASK/040, Samsung A36, 2026-09-25) — release gate CODE blocker
+
+The committed AARs never apply `RequestConfiguration`: Godot 4.6 passes the facade's
+dictionary ints as `java.lang.Long` and arrays as `Object[]`, while v6.0
+`AdmobConfiguration` reads them with `(int)` / `(String[])` casts, so
+`createRequestConfiguration()` throws `ClassCastException` (swallowed by Godot) and
+`MobileAds.setRequestConfiguration()` is never reached — max ad content rating **G**,
+TFCD / TFUA and test device ids are NOT in effect. Fixed in the feasibility-only
+`tools/admob_plugin/0002-…patch` (Number / Object[]-safe reads); these production
+binaries are unchanged. `tools/release/release_readiness.gd` `KNOWN_PLUGIN_DEFECTS`
+reports it as CODE until a fixed build replaces this release AAR.
+
 ## Rebuild / verify
 
 `tools/admob_plugin/README.md`. In short, from the repo root:

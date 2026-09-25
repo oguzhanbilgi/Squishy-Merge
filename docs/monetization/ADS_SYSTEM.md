@@ -299,6 +299,14 @@ Sağlayıcı YOK (sonraki milestone). `AdEvents.emit(name, ctx)`; abone
   gönderemez): 13–17 genç reklam işlemi / yargı bölgesi uyumu AÇIK, üretimden
   önce çözülmeli (AUDIENCE_DECISION §2.2; release kapısında ayrı OWNER `UYUM:`
   satırı).
+- **TASK/040 bulgusu — RequestConfiguration hiç uygulanmıyor (kapıda CODE):**
+  facade'ın `set_request_configuration` Dictionary'si Java'ya Long / Object[] olarak
+  geliyor; vendored v6.0 `AdmobConfiguration`'ın `(int)` / `(String[])` dönüşümleri
+  ClassCastException atıyor ve Godot istisnayı yutuyor → `max_ad_content_rating = G`
+  (ve TFCD / TFUA / test cihazları) **fiilen etkin değil** (A36 kanıtı + M9 logları).
+  Spike yamasında düzeltildi; üretim AAR'ı değişmedi. Ayrıntı ve strateji karar
+  tablosu: [GLOBAL_TEEN_AD_TREATMENT.md](GLOBAL_TEEN_AD_TREATMENT.md). **Play Age
+  Signals reklam kararında KULLANILMAZ.**
 
 ## 9. Android / export
 
@@ -453,6 +461,11 @@ Kanıt: `build/qa_m8.9-01/device/DEVICE_GATE_NOTES.md` (yerel, gitignore'lu) +
    politikası URL'i. Release kapısı bunlar kapanmadan
    yüklenebilir AAB üretmez; tam liste
    [../ANDROID_RELEASE_CHECKLIST.md](../ANDROID_RELEASE_CHECKLIST.md).
+10. **TASK/040 (2026-09-25, `task/040-global-teen-compliance` dalında):** GMA 25.3.0
+    (UMP 4.0.0) + TEEN, Godot 4.6.3'te vendored v6.0 yamasıyla derlendi ve Samsung
+    A36'da çalıştı (spike; üretim eklentisi GMA 24.9.0 kaldı). Yeni **CODE** engeli:
+    üretim eklentisi RequestConfiguration'ı hiç uygulamıyor (checklist #27). Strateji
+    kararı (A / B / C) owner'da — [GLOBAL_TEEN_AD_TREATMENT.md](GLOBAL_TEEN_AD_TREATMENT.md).
 
 ## 13. M8.9-02 masaüstü görsel inceleme (2026-09-22)
 
