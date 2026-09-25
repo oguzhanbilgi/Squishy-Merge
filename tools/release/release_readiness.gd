@@ -22,11 +22,16 @@ extends RefCounted
 ## (com.obappstudio.squishymerge.qa). QA kimliği asla release olamaz; üretim
 ## kimliğiyle yapılan debug export'u raporda uyarı verir (cihazda Play sürümüyle çakışır).
 ##
-## Kitle (owner kararı, 2026-09-25 — FİNAL): 13+ genel kitle, 13 yaş altı için
-## tasarlanmadı → android_export.cfg [Audience] decision = general_13_plus (Play
-## hedef yaş grupları 13–15 / 16–17 / 18+). Kapı fail-closed kalır: karar boşsa
-## OWNER, kodu olmayan karar (karma / çocuk) CODE engeli; hazır karar yalnız
-## rapora bilgi notu düşer (docs/monetization/AUDIENCE_DECISION.md §0).
+## Ürün kitlesi (owner kararı, 2026-09-25 — FİNAL, KAPALI): 13+ genel kitle, 13 yaş
+## altı için tasarlanmadı → android_export.cfg [Audience] decision = general_13_plus
+## (Play hedef yaş grupları 13–15 / 16–17 / 18+). Kapı fail-closed kalır: karar boşsa
+## OWNER, kodu olmayan karar (karma / çocuk) CODE engeli; hazır karar rapora bilgi
+## notu düşer (docs/monetization/AUDIENCE_DECISION.md §0).
+## Ondan AYRI (düzeltme, 2026-09-25): 13–17'yi de hedefleyen kitlede genç reklam
+## işlemi / yargı bölgesi uyum stratejisi AÇIK bir owner / uyum kararı → ayrı OWNER
+## engeli ("UYUM:"). GMA 24.9.0'ın TFCD/TFUA yolunda TFAT TEEN'in karşılığı yok;
+## TFCD/TFUA/derece değerleri bunu ÇÖZMEZ. Strateji seçilip uygulanana kadar engel
+## yapılandırmayla kapanmaz (AUDIENCE_DECISION.md §2.2 — seçim + uygulama ayrı görev).
 
 const CATEGORY_OWNER: String = "OWNER"
 const CATEGORY_CONFIG: String = "CONFIG"
@@ -62,6 +67,10 @@ const PATCHED_RELEASE_AAR_SHA256: String = "90d359921f10bc6618ed63b9ea97cdba5afc
 const PATCHED_FACADE: String = "res://addons/AdmobPlugin/Admob.gd"
 ## Kitle kararlarından bu sürümde kodu HAZIR olan (AUDIENCE_DECISION.md).
 const IMPLEMENTED_AUDIENCE_DECISIONS: Array[String] = ["general_13_plus"]
+## 13–17 yaş kullanıcıları da hedefleyen kitle kararları: bunlarda genç reklam
+## işlemi / yargı bölgesi uyum stratejisi ayrıca çözülmeli (AUDIENCE_DECISION.md §2.2).
+const TEEN_AUDIENCE_DECISIONS: Array[String] = ["general_13_plus", "mixed_audience"]
+const TEEN_TREATMENT_BLOCKER: String = "UYUM: 13–17 genç reklam işlemi / yargı bölgesi uyum stratejisi çözülmedi (TFAT TEEN'in GMA 24.9.0 TFCD/TFUA yolunda karşılığı yok; unspecified ≠ TEEN) — AUDIENCE_DECISION.md §2.2"
 
 
 ## Kuralları uygular. `inputs` anahtarları: build ("release"|"debug"),
@@ -71,7 +80,8 @@ const IMPLEMENTED_AUDIENCE_DECISIONS: Array[String] = ["general_13_plus"]
 ## keystore_path_set, keystore_exists, keystore_is_debug, keystore_user_set,
 ## keystore_password_set, ad_config (AdConfig, RELEASE türünde yüklenmiş),
 ## privacy_policy_url, plugin_release_aar_sha256, plugin_facade_patched,
-## non_publishable_requested, export_path.
+## teen_ad_treatment_resolved (yoksa false = engel), non_publishable_requested,
+## export_path.
 static func evaluate(inputs: Dictionary) -> Dictionary:
 	var blockers: Array[Dictionary] = []
 	var notes: PackedStringArray = PackedStringArray()
@@ -137,9 +147,13 @@ static func evaluate(inputs: Dictionary) -> Dictionary:
 		elif not IMPLEMENTED_AUDIENCE_DECISIONS.has(ads.audience_decision):
 			_add(blockers, CATEGORY_CODE, "kitle kararı '%s' ek uygulama istiyor (Families: yaş ekranı / AD_ID / TFCD) — henüz kodda yok" % ads.audience_decision)
 		else:
-			notes.append("kitle kararı: %s (TFCD=%s, TFUA=%s, en yüksek reklam derecesi %s) — AUDIENCE_DECISION.md §0"
+			notes.append("ürün kitlesi kararı: %s (TFCD=%s, TFUA=%s, en yüksek reklam derecesi %s — bunlar TEEN işlemi DEĞİL) — AUDIENCE_DECISION.md §0"
 				% [ads.audience_decision, ads.tag_for_child_directed_treatment, ads.tag_for_under_age_of_consent,
 					ads.max_ad_content_rating])
+		# Ürün kitlesinden AYRI uyum kararı: etiket değerleri (hangisi olursa olsun)
+		# genç işlemi yerine geçmez; engeli yalnız çözülmüş bir strateji kaldırır.
+		if TEEN_AUDIENCE_DECISIONS.has(ads.audience_decision) and not bool(inputs.get("teen_ad_treatment_resolved", false)):
+			_add(blockers, CATEGORY_OWNER, TEEN_TREATMENT_BLOCKER)
 
 	# 5) Gizlilik politikası (Play: konsolda VE uygulama içinde).
 	var url: String = String(inputs.get("privacy_policy_url", "")).strip_edges()
@@ -218,6 +232,9 @@ static func project_inputs(preset: Dictionary, build: String) -> Dictionary:
 		"privacy_policy_url": String(ProjectSettings.get_setting(SETTING_PRIVACY_URL, "")),
 		"plugin_release_aar_sha256": FileAccess.get_sha256(PATCHED_RELEASE_AAR) if FileAccess.file_exists(PATCHED_RELEASE_AAR) else "",
 		"plugin_facade_patched": facade.contains("func has_privacy_options_api()") and facade.contains("func show_privacy_options_form()"),
+		# 13–17 genç reklam işlemi stratejisi bugün SEÇİLMEDİ (AUDIENCE_DECISION §2.2):
+		# kayıt / uygulama yok → daima false. Strateji seçilince ayrı görevde bağlanır.
+		"teen_ad_treatment_resolved": false,
 		"non_publishable_requested": OS.get_environment(NON_PUBLISHABLE_ENV) == "1",
 		"export_path": String(preset.get("export_path", "")),
 	}

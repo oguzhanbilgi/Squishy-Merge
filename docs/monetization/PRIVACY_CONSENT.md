@@ -128,7 +128,7 @@ durum görüyor (`monetization_test` "ABD eyalet mesajı").
 
 | konu | durum | nerede |
 |---|---|---|
-| Kitle / COPPA / TFCD / TFUA / içerik derecesi | **KARAR (owner, 2026-09-25):** 13+ genel kitle (Play 13–15 / 16–17 / 18+), `general_13_plus`; TFCD / TFUA `unspecified`, derece G — değişmedi. Karar yerel rıza / reklam kurallarını geçersiz kılmaz; EEA/UK/CH rızası yukarıdaki UMP akışıyla | [AUDIENCE_DECISION.md](AUDIENCE_DECISION.md) §0 |
+| Kitle / COPPA / TFCD / TFUA / içerik derecesi | **Ürün kitlesi KARARI (owner, 2026-09-25):** 13+ genel kitle (Play 13–15 / 16–17 / 18+), `general_13_plus`; TFCD / TFUA `unspecified`, derece G — değişmedi. **13–17 genç reklam işlemi / yargı bölgesi uyumu AÇIK** — üretimden önce çözülmeli: 13–15 / 16–17 bazı yerlerde çocuk sayılabilir, GMA 24.9.0 TFAT `TEEN` gönderemez, `unspecified` TEEN değil. Karar yerel rıza / reklam kurallarını geçersiz kılmaz; bugünkü UMP akışı TFUA `unspecified` ile çalışır (yaşa özel işlem yok) | [AUDIENCE_DECISION.md](AUDIENCE_DECISION.md) §0, §2.2 |
 | AdMob Privacy & messaging: GDPR (EEA/UK/CH) mesajı | owner, AdMob konsolu — kişiselleştirilmiş reklam için sertifikalı CMP (UMP) mesajı gerekli; mesaj yoksa bu bölgelerde sınırlı reklam | checklist §E |
 | ABD eyalet mesajı | isteğe bağlı araç (yasal uyum owner'da); yoksa sınırlı veri işleme seçeneği | checklist §E |
 | Gerçek reklam birimleri (App ID + 3 birim) | owner, AdMob konsolu | ADS_SYSTEM §8 |

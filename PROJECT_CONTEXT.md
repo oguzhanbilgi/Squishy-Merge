@@ -113,18 +113,25 @@ alınacak — şimdi tahmin/vaat yok.
   TEST-reklam APK'sı + cihaz harness'ları) — üretimle çakışmaz. Release kapısı
   `.qa` kimliğini release'te reddeder; eski geçici `com.example.squishymerge`
   kaldırıldı. Runtime'da paket kimliği okunmaz (gameplay değişmedi).
-- **Hedef kitle KARARI (owner, 2026-09-25 — FİNAL):** 13+ genel kitle, 13 yaş
-  altı için tasarlanmadı. Play hedef yaş grupları **13–15 · 16–17 · 18+** (5 ve
-  altı / 6–8 / 9–12 SEÇİLMEZ → Families uygulanmaz); `android_export.cfg
+- **Ürün kitlesi KARARI (owner, 2026-09-25 — FİNAL, KAPALI):** 13+ genel kitle,
+  13 yaş altı için tasarlanmadı ve pazarlanmaz. Play hedef yaş grupları
+  **13–15 · 16–17 · 18+** (5 ve altı / 6–8 / 9–12 SEÇİLMEZ); `android_export.cfg
   [Audience] decision = general_13_plus`. TFCD / TFUA (`unspecified`) ve en
   yüksek reklam derecesi (G) DEĞİŞMEDİ — reklam istekleri aynı; yaş ekranı,
   çocuğa yönelik reklam mantığı, Families yeniden tasarımı YOK; runtime kodu
-  değişmedi. 13–15 / 16–17 bazı yargı bölgelerinde çocuk / reşit olmayan
-  sayılabilir — karar yerel rıza / reklam kurallarını geçersiz kılmaz
+  değişmedi. Bu "Families hiçbir yerde uygulanmaz" demek DEĞİL: Google'a göre
+  13–15 / 16–17 bazı yerlerde çocuk sayılabilir; dağıtılan bölgelere göre
+  Families / çocuk gizliliği / reklam yükümlülükleri değerlendirilir. Karar
+  yerel rıza / reklam kurallarını geçersiz kılmaz
   ([AUDIENCE_DECISION §0](docs/monetization/AUDIENCE_DECISION.md)).
-- **Release kapısı** (`tools/release/release_android.sh check`, kitle kararından
-  sonra, 2026-09-25): **BLOCKED — CODE 0 · OWNER 8 · CONFIG 0.** İmzalı /
-  Play'e yüklenebilir AAB üretilmedi (`aab` reddediyor).
+- **13–17 genç reklam işlemi / yargı bölgesi uyumu: AÇIK** (üretim yayınından
+  önce; ürün kitlesinden AYRI). GMA 24.9.0 TFAT `TEEN` gönderemez ve
+  `unspecified` TEEN demek değil; stratejiler A–D belgelendi, hiçbiri seçilmedi
+  ([AUDIENCE_DECISION §2.2](docs/monetization/AUDIENCE_DECISION.md)).
+- **Release kapısı** (`tools/release/release_android.sh check`, kitle kararı +
+  politika düzeltmesinden sonra, 2026-09-25): **BLOCKED — CODE 0 · OWNER 9 ·
+  CONFIG 0** (OWNER'lardan biri ayrı 13–17 uyum satırı). İmzalı / Play'e
+  yüklenebilir AAB üretilmedi (`aab` reddediyor).
 
 ## Current release blockers
 
@@ -137,41 +144,49 @@ Bugün açık olan maddelerin tamamı — adımlar ve ayrıntı:
    Play'de ilk yüklemeden sonra değişmez; diğer makinelerde yerel preset'ler elle
    güncellenir (checklist §3).
 2. ~~**Kitle / hedef yaş grupları kararı**~~ ✅ **KARAR (2026-09-25): 13+ genel
-   kitle** — Play hedef yaş grupları 13–15 · 16–17 · 18+ (13 altı seçilmez);
-   `android_export.cfg [Audience] decision = general_13_plus`
+   kitle** (ürün kitlesi KAPALI) — Play hedef yaş grupları 13–15 · 16–17 · 18+
+   (13 altı seçilmez); `android_export.cfg [Audience] decision = general_13_plus`
    (docs/monetization/AUDIENCE_DECISION.md §0). Konsoldaki "Hedef kitle ve
-   içerik" formu hesap açılınca bu kararla doldurulur (madde 9).
-3. **Gizlilik politikası metni + herkese açık HTTPS URL'i** — project.godot
+   içerik" formu hesap açılınca bu kararla doldurulur (madde 10).
+3. **13–17 genç reklam işlemi / yargı bölgesi uyum stratejisi** — AÇIK, üretim
+   yayınından önce çözülmeli; ürün kitlesinden AYRI OWNER / uyum kararı. GMA
+   24.9.0 TFAT `TEEN` gönderemez, `unspecified` TEEN değil; stratejiler A–D
+   belgelendi, seçilmedi (AUDIENCE_DECISION §2.2, checklist #26).
+4. **Gizlilik politikası metni + herkese açık HTTPS URL'i** — project.godot
    `squishy/privacy/policy_url` + Play Console alanı.
-4. **Upload anahtarı** — owner oluşturur (checklist §4); yalnız ortam
+5. **Upload anahtarı** — owner oluşturur (checklist §4); yalnız ortam
    değişkeniyle verilir, dosyaya/commit'e yazılmaz.
-5. **Gerçek AdMob App ID**
-6. **Gerçek Banner kimliği**
-7. **Gerçek Rewarded kimliği**
-8. **Gerçek Interstitial kimliği** — 5–8: AdMob hesabı + uygulama kaydı (GDPR
+6. **Gerçek AdMob App ID**
+7. **Gerçek Banner kimliği**
+8. **Gerçek Rewarded kimliği**
+9. **Gerçek Interstitial kimliği** — 6–9: AdMob hesabı + uygulama kaydı (GDPR
    mesajı dahil, PRIVACY_CONSENT §6) → `android_export.cfg [Release]` +
    `[General] is_real=true`.
-9. **Play / mağaza varlıkları ve Play Console kurulumu** — geliştirici hesabı +
-   kimlik doğrulaması (son bilinen durum: açılmadı / bekliyor), uygulama kaydı,
-   512×512 ikon, 1024×500 feature graphic, ekran görüntüleri, mağaza metinleri,
-   Data safety, IARC, hedef kitle formu (karar: madde 2) + reklam beyanı,
-   kapalı test kanalı.
+10. **Play / mağaza varlıkları ve Play Console kurulumu** — geliştirici hesabı +
+    kimlik doğrulaması (son bilinen durum: açılmadı / bekliyor), uygulama kaydı,
+    512×512 ikon, 1024×500 feature graphic, ekran görüntüleri, mağaza metinleri,
+    Data safety, IARC, hedef kitle formu (karar: madde 2) + reklam beyanı,
+    kapalı test kanalı.
 
-Release kapısı 1–8'i denetler (bugün OWNER 8 · CONFIG 0 — madde 1 ve 2
-kapandı); 9 kodla denetlenemez.
+Release kapısı 1–9'u denetler (bugün OWNER 9 · CONFIG 0 — madde 1 ve 2
+kapandı, madde 3 ayrı `UYUM:` satırı); 10 kodla denetlenemez.
 
 **CODE blockers: 0** — owner 13+ genel kitleyi seçti (AUDIENCE_DECISION seçenek
-A: ek kod yok). B (13 altı dahil karma) ve C (yalnız çocuk) seçilmedi; kapı
-onları hâlâ CODE engeliyle reddeder (fail-closed), boş karar yine OWNER engeli.
+A: ürün kararı için ek kod yok). B (13 altı dahil karma) ve C (yalnız çocuk)
+seçilmedi; kapı onları hâlâ CODE engeliyle reddeder (fail-closed), boş karar
+yine OWNER engeli. 13–17 genç reklam işlemi (madde 3) bugün CODE değil OWNER /
+uyum engeli: uygulama seçilecek stratejiye bağlı (strateji A/B kod ister, D
+kayıt — AUDIENCE_DECISION §2.2).
 
 **Technical debt** — engel DEĞİL, kapalı test hazırlığını durdurmaz:
 - Google Mobile Ads **24.9.0** (legacy) ve eski yaş işleme yolu (TFCD/TFUA);
   24.x desteği 2027-06-30'a kadar.
 - **TFAT** (`setAgeRestrictedTreatment`, GMA 25.3.0+) / GMA Next-Gen geçişi
   sonraya belgelendi — eklenti güncellemesine bağlı ayrı iş
-  (AUDIENCE_DECISION §2.1, checklist #25). 13+ kararı bunu değiştirmedi;
-  TFAT'taki `TEEN` işleminin eski etiketlerde karşılığı yok — 13–17 yaş için
-  değerlendirme o geçişte.
+  (AUDIENCE_DECISION §2.1, checklist #25); task/039'da yapılmadı. **Düzeltme
+  (2026-09-25):** SDK geçişinin kendisi teknik borç olarak kalır, ama 13–17
+  genç reklam işlemi artık yalnız teknik borç DEĞİL — yukarıda madde 3 (OWNER /
+  uyum, AÇIK); SDK geçişi ancak seçilen strateji gerektirirse iş olur.
 
 ## Next action
 
@@ -179,13 +194,17 @@ onları hâlâ CODE engeliyle reddeder (fail-closed), boş karar yine OWNER enge
 
 1. ~~Kalıcı paket kimliği~~ ✅ `com.obappstudio.squishymerge` (2026-09-24)
 2. ~~Kitle / hedef yaş grupları~~ ✅ 13+ genel kitle — 13–15 / 16–17 / 18+ (2026-09-25)
-3. **Gizlilik politikası (metin + HTTPS URL)** ← sıradaki karar
-4. Upload anahtarı
-5. Gerçek AdMob kimlikleri (App ID + Banner + Rewarded + Interstitial)
-6. Play Store varlıkları / Play Console alanları
+3. **13–17 genç reklam işlemi / yargı bölgesi uyum stratejisi** (strateji A–D,
+   AUDIENCE_DECISION §2.2) ← sıradaki karar
+4. Gizlilik politikası (metin + HTTPS URL)
+5. Upload anahtarı
+6. Gerçek AdMob kimlikleri (App ID + Banner + Rewarded + Interstitial)
+7. Play Store varlıkları / Play Console alanları
 
-Her madde owner girdisi ister; hiçbiri tahmin edilmez ya da uydurulmaz. Kalan
-maddelerde repoda yalnız yapılandırma değişir (checklist §3). İmzalı AAB yalnız
+Her madde owner girdisi ister; hiçbiri tahmin edilmez ya da uydurulmaz.
+Gizlilik politikası, upload anahtarı ve AdMob kimliklerinde repoda yalnız
+yapılandırma değişir (checklist §3); 13–17 stratejisi A ya da B seçilirse kod
+ister. İmzalı AAB yalnız
 `tools/release/release_android.sh check` **UPLOAD_CANDIDATE** dedikten sonra
 üretilir → Play dahili test → **M10 — Play kapalı test.**
 
@@ -1189,8 +1208,9 @@ maddelerde repoda yalnız yapılandırma değişir (checklist §3). İmzalı AAB
   "yürümeye başlayan çocuklar için" / "okul öncesi" (*for kids / children's
   game / for toddlers / preschool*) diye anlatmaz, 13 yaş altına bilerek
   pazarlamaz. Kawaii / şeker / sevimli sanat kalır — yalnız sevimli olduğu
-  için yeniden tasarlanmaz. Yaş ekranı ve çocuğa yönelik reklam mantığı YOK
-  (AUDIENCE_DECISION §0)
+  için yeniden tasarlanmaz. Yaş ekranı ve çocuğa yönelik reklam mantığı bugün
+  YOK; 13–17 genç reklam işlemi stratejisi AÇIK (AUDIENCE_DECISION §2.2) — hiçbir
+  seçenek owner kararı olmadan uygulanmaz
 - Görsel asset üretimi owner'da — Claude Code final art üretmez.
   Owner kaynakları `_visual_source/` altında ARŞİV; runtime yalnızca
   `assets/visual/` altındaki türevleri okur. Türetme betiği:

@@ -100,6 +100,6 @@
 | Aktarımda şifreli mi? | SDK trafiği TLS (Google beyanı); oyun ağ kullanmıyor | — |
 | Kullanıcı silme isteyebilir mi? | oyun verisi yalnız cihazda (kaldırınca silinir); reklam verisi Google'da | ifade owner'ın |
 | Toplama isteğe bağlı mı? | EEA/UK/CH'de UMP rızası; diğer bölgelerde reklam için gerekli | owner |
-| Reklam kimliği beyanı | uygulama reklam kimliğini kullanıyor (GMA, `AD_ID` izni) | Play "Advertising ID" formu — kitle kararı 13+ (2026-09-25): `AD_ID` izni kalır (yalnız çocuklara yönelik kitlede çıkarılırdı, AUDIENCE_DECISION §3); formun cevabı owner'ın |
+| Reklam kimliği beyanı | uygulama reklam kimliğini kullanıyor (GMA, `AD_ID` izni) | Play "Advertising ID" formu — ürün kitlesi 13+ (2026-09-25): `AD_ID` izni bugün kalıyor (yalnız çocuklara yönelik kitlede çıkarılırdı, AUDIENCE_DECISION §3); 13–17 genç reklam işlemi / yargı bölgesi uyumu AÇIK (§2.2) ve reklam kimliği kullanımını etkileyebilir; formun cevabı owner'ın |
 | "Contains ads" | **Evet** (banner, ödüllü, geçiş) | Play "Ads" beyanı |
 | Hesap oluşturma | Yok | — |

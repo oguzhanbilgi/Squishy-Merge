@@ -30,9 +30,10 @@
 > resmî durum/form; kimlikleri BUILD TÜRÜ seçer (debug = yalnız Google test,
 > release = dört gerçek kimlik, fail-closed); `[Audience]` dikişi; release
 > kapısı + pipeline (`tools/release/`, §9). **Hâlâ üretime hazır DEĞİL:**
-> gerçek kimlikler, upload anahtarı, gizlilik politikası URL'i owner'da (paket
-> kimliği 2026-09-24'te kilitlendi: `com.obappstudio.squishymerge`; kitle kararı
-> 2026-09-25: 13+ genel kitle, `general_13_plus` — [AUDIENCE_DECISION.md](AUDIENCE_DECISION.md) §0). Yamalı AAR'ın EEA / NOT_EEA / gizlilik seçenekleri
+> 13–17 genç reklam işlemi / yargı bölgesi uyum stratejisi, gerçek kimlikler,
+> upload anahtarı, gizlilik politikası URL'i owner'da (paket kimliği
+> 2026-09-24'te kilitlendi: `com.obappstudio.squishymerge`; ürün kitlesi
+> kararı 2026-09-25: 13+ genel kitle, `general_13_plus` — [AUDIENCE_DECISION.md](AUDIENCE_DECISION.md) §0; 13–17 uyumu AÇIK — §2.2). Yamalı AAR'ın EEA / NOT_EEA / gizlilik seçenekleri
 > akışı Samsung A36'da doğrulandı (M9-01.1, PRIVACY_CONSENT §7). **M8.9-02** (owner kararı): Harita +
 > oyun banner'ı, geçiş reklamı (900 sn aktif süre, yalnız round bitişi molası,
 > 60 sn tam ekran beklemesi), günlük ödüller (ücretsiz sandık 1/gün, reklamlı
@@ -40,7 +41,7 @@
 > girişi, `onboarding_completed` dikişi — deterministik testler + masaüstü
 > görsel inceleme + TEST-reklam APK'sı + **A36 cihaz kapısı GEÇTİ (M8.9-02.2,
 > §14)**. **Üretime hazır DEĞİL:** ~~eklentinin UMP yüzeyi (PRIVACY_CONSENT
-> §4) + #120~~ (M9-01'de kapandı, M9-01.1'de A36'da doğrulandı), ~~COPPA/kitle kararı (§6) açık~~ (2026-09-25: 13+ genel kitle); üretim kimliği YOK (artık 3 birim).
+> §4) + #120~~ (M9-01'de kapandı, M9-01.1'de A36'da doğrulandı), ~~COPPA/kitle kararı (§6) açık~~ (2026-09-25: ürün kitlesi 13+ KAPALI; 13–17 genç reklam işlemi / yargı bölgesi uyumu AÇIK — AUDIENCE_DECISION §2.2); üretim kimliği YOK (artık 3 birim).
 
 ## 1. Kapsam (v1 monetizasyon planı)
 
@@ -294,7 +295,10 @@ Sağlayıcı YOK (sonraki milestone). `AdEvents.emit(name, ctx)`; abone
   16–17 / 18+ ([AUDIENCE_DECISION.md](AUDIENCE_DECISION.md) §0). TFCD / TFUA
   `unspecified` (gönderilmez), `max_ad_content_rating = G` — M8.9 değerleri;
   karar bunları DEĞİŞTİRMEDİ (reklam istekleri aynı, yaş ekranı / çocuğa yönelik
-  reklam mantığı yok).
+  reklam mantığı yok). Bu değerler **TEEN işlemi DEĞİL** (24.9.0 TFAT `TEEN`
+  gönderemez): 13–17 genç reklam işlemi / yargı bölgesi uyumu AÇIK, üretimden
+  önce çözülmeli (AUDIENCE_DECISION §2.2; release kapısında ayrı OWNER `UYUM:`
+  satırı).
 
 ## 9. Android / export
 
@@ -421,9 +425,10 @@ Kanıt: `build/qa_m8.9-01/device/DEVICE_GATE_NOTES.md` (yerel, gitignore'lu) +
 1. **AdMob hesabı:** uygulama kaydı (App ID), rewarded + banner + interstitial
    reklam birimleri, Privacy & messaging'de GDPR (ve gerekiyorsa US state)
    mesajı. Bunlar olmadan üretim kimliği/rıza mesajı yok — bkz. §8.
-2. ~~**Kitle/COPPA**~~ → **KARAR (owner, 2026-09-25):** 13+ genel kitle,
-   `general_13_plus`; TFCD / TFUA / derece değişmedi (AUDIENCE_DECISION §0,
-   PRIVACY_CONSENT §6).
+2. **Kitle/COPPA:** ürün kitlesi ✅ **KARAR (owner, 2026-09-25):** 13+ genel
+   kitle, `general_13_plus`; TFCD / TFUA / derece değişmedi (TEEN değil).
+   **13–17 genç reklam işlemi / yargı bölgesi uyumu AÇIK** — üretimden önce
+   (AUDIENCE_DECISION §2.2, PRIVACY_CONSENT §6).
 3. ~~**Eklenti boşluğu (ÜRETİM ENGELİ)**~~ → **M9-01'de KODDA KAPANDI:** v6.0 +
    küçük yama (üç UMP çağrısı + #120), AAR deterministik yeniden derlendi,
    yönetici resmî değerleri kullanıyor (PRIVACY_CONSENT §4). **Açık kalan:**
@@ -441,8 +446,8 @@ Kanıt: `build/qa_m8.9-01/device/DEVICE_GATE_NOTES.md` (yerel, gitignore'lu) +
 8. ~~**İki günlük pencere**~~ → M8.9-02.1'de tek pencerede birleştirildi
    (DAILY_REWARDS §6-§7).
 9. **Üretim engelleri (M9-01 sonrası):** ~~UMP sarmalayıcı boşluğu + #120~~
-   (kodda kapandı; A36 cihaz kapısı M9-01.1'de GEÇTİ — PRIVACY_CONSENT §7), ~~COPPA/TFCD/TFUA kitle kararı~~
-   (✅ 13+ genel kitle, 2026-09-25 — [AUDIENCE_DECISION.md](AUDIENCE_DECISION.md) §0), gerçek App ID + banner +
+   (kodda kapandı; A36 cihaz kapısı M9-01.1'de GEÇTİ — PRIVACY_CONSENT §7), COPPA/TFCD/TFUA kitle kararı
+   (ürün kitlesi ✅ 13+, 2026-09-25; 13–17 genç reklam işlemi / yargı bölgesi uyumu AÇIK — [AUDIENCE_DECISION.md](AUDIENCE_DECISION.md) §2.2), gerçek App ID + banner +
    ödüllü + interstitial kimlikleri (4 değer, §8), ~~kalıcı paket kimliği~~
    (✅ `com.obappstudio.squishymerge`, 2026-09-24), upload anahtarı, gizlilik
    politikası URL'i. Release kapısı bunlar kapanmadan

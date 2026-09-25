@@ -14,10 +14,12 @@
 > **Paket kimliği KİLİTLENDİ (owner kararı, 2026-09-24):** üretim / Play =
 > `com.obappstudio.squishymerge`; QA / test = `com.obappstudio.squishymerge.qa`
 > (#1). Kapı artık **CODE 0 · OWNER 9 · CONFIG 0** (§1) — paket satırları kapandı.
-> **Hedef kitle KARARI (owner, 2026-09-25 — FİNAL):** 13+ genel kitle, 13 yaş
-> altı için tasarlanmadı — Play hedef yaş grupları 13–15 / 16–17 / 18+ (#13);
-> `[Audience] decision=general_13_plus`, reklam istekleri değişmedi. Kapı artık
-> **CODE 0 · OWNER 8 · CONFIG 0** (§1) — kitle satırı kapandı.
+> **Hedef kitle KARARI (owner, 2026-09-25 — FİNAL, ürün kitlesi KAPALI):** 13+
+> genel kitle, 13 yaş altı için tasarlanmadı — Play hedef yaş grupları 13–15 /
+> 16–17 / 18+ (#13); `[Audience] decision=general_13_plus`, reklam istekleri
+> değişmedi. Genel "kitle kararı yok" satırı kapandı; yerine ürün kitlesinden
+> AYRI bir OWNER / uyum satırı geldi: **13–17 genç reklam işlemi / yargı bölgesi
+> uyumu AÇIK** (#26). Kapı: **CODE 0 · OWNER 9 · CONFIG 0** (§1).
 >
 > Kategoriler: ✅ **CODE COMPLETE** · 🟠 **OWNER ACTION** · 🟣 **PLAY CONSOLE
 > ACTION** · 🔵 **EXTERNAL ACCOUNT ACTION**. Kaynak: Google resmî sayfaları
@@ -25,23 +27,27 @@
 
 ## 1. Bugünkü release kapısı çıktısı
 
-2026-09-25, kitle kararından sonra (`tools/release/release_android.sh check`):
+2026-09-25, kitle kararı + politika düzeltmesinden sonra (`tools/release/release_android.sh check`):
 
 ```
 == release_check 'Android Release AAB': BLOCKED ==
   [OWNER]  AdMob: release build ama [General] is_real=false (üretim kimlikleri onaylanmadı)
   [OWNER]  AdMob: [Release] app_id / rewarded_id / banner_id / interstitial_id boş (4)
+  [OWNER]  UYUM: 13–17 genç reklam işlemi / yargı bölgesi uyum stratejisi çözülmedi (TFAT TEEN'in GMA 24.9.0 TFCD/TFUA yolunda karşılığı yok; unspecified ≠ TEEN) — AUDIENCE_DECISION.md §2.2
   [OWNER]  gizlilik politikası URL'i yok (project.godot squishy/privacy/policy_url)
   [OWNER]  upload anahtar deposu verilmedi / takma adı-şifresi verilmedi (2)
-  not: kitle kararı: general_13_plus (TFCD=unspecified, TFUA=unspecified, en yüksek reklam derecesi G) — AUDIENCE_DECISION.md §0
+  not: ürün kitlesi kararı: general_13_plus (TFCD=unspecified, TFUA=unspecified, en yüksek reklam derecesi G — bunlar TEEN işlemi DEĞİL) — AUDIENCE_DECISION.md §0
   bilgi: paket='com.obappstudio.squishymerge' versionCode=1 versionName='0.8.5' format=AAB arm64=true targetSdk=36
 ```
 
-Önceki çıktıdaki kitle satırı (`[OWNER] kitle kararı yok …`) owner'ın 13+
-kararıyla kapandı (2026-09-25); iki paket satırı (`[OWNER]` kimlik seçilmedi ·
-`[CONFIG]` preset `com.example.squishymerge`) 2026-09-24'te karar + preset
-güncellemesiyle kapanmıştı. Kapı hâlâ fail-closed: kitle kararı boşalırsa
-OWNER, karma / çocuk kararı yazılırsa CODE engeli döner.
+Önceki çıktıdaki genel kitle satırı (`[OWNER] kitle kararı yok …`) owner'ın 13+
+kararıyla kapandı (2026-09-25); yerine ürün kitlesinden AYRI `[OWNER] UYUM:`
+satırı geldi — 13–17 genç reklam işlemi stratejisi seçilip uygulanana kadar
+kalır, hiçbir TFCD / TFUA / derece değeri onu kaldırmaz (#26). İki paket
+satırı (`[OWNER]` kimlik seçilmedi · `[CONFIG]` preset
+`com.example.squishymerge`) 2026-09-24'te karar + preset güncellemesiyle
+kapanmıştı. Kapı hâlâ fail-closed: kitle kararı boşalırsa OWNER, karma / çocuk
+kararı yazılırsa CODE engeli döner.
 
 `tools/release/release_android.sh aab` bu durumda export'u ÇALIŞTIRMADAN
 reddeder (çıkış 2). Pipeline dışından yapılan bir Godot release export'unu da
@@ -63,8 +69,8 @@ AAB yok).
 | 9 | **Gizlilik politikası URL'i** | 🟠🟣 | Play: HER uygulama için zorunlu, hem Play Console alanında hem **uygulama içinde** (bağlantı ya da metin). Sayfa herkese açık, PDF değil, bölgeye kapalı değil; geliştiriciyi adlandırmalı, erişilen/toplanan/paylaşılan veriyi (AdMob dahil), saklama ve silmeyi anlatmalı. Kod hazır: Ayarlar → "Gizlilik politikası" satırı URL verilince görünür (§5 PRIVACY_CONSENT). Owner metni yazar, **barındırır**, `squishy/privacy/policy_url`'e `https://` adresini koyar. Claude URL uydurmadı/barındırmadı. |
 | 10 | **Data safety** | 🟣 | Girdiler: [DATA_SAFETY_INVENTORY.md](DATA_SAFETY_INVENTORY.md) (cevap değil). Oyun verisi yalnız cihazda; Google Mobile Ads SDK üçüncü taraf verisi beyan edilmeli. |
 | 11 | **Reklam beyanı ("Contains ads")** | 🟣 | **Evet** (banner, ödüllü, geçiş). Yanlış beyan askıya alma sebebi. |
-| 12 | **Reklam kimliği (AD_ID) beyanı** | 🟣 | Uygulama reklam kimliğini kullanıyor (GMA `AD_ID` izni). Konsol formunun ayrıntısı **UNVERIFIED**. İzin yalnız çocuklara yönelik (C) kitlede çıkarılırdı; 13+ kararıyla (#13) **kalıyor** (AUDIENCE_DECISION §3). |
-| 13 | **Hedef kitle ve içerik** | ✅🟣 | **KARAR (owner, 2026-09-25 — FİNAL): 13+ genel kitle, 13 yaş altı için tasarlanmadı.** Play Console hedef yaş grupları: **13–15, 16–17, 18+ SEÇİLİR**; 5 ve altı, 6–8, 9–12 **SEÇİLMEZ** → Families politikası uygulanmaz. Repoda: `android_export.cfg [Audience] decision=general_13_plus` (kapı kabul eder). TFCD/TFUA gönderilmez, derece G — **değişmedi**; yaş ekranı / çocuğa yönelik reklam mantığı yok. 13–15 ve 16–17 bazı yargı bölgelerinde çocuk / reşit olmayan sayılabilir — karar yerel rıza / reklam kurallarını geçersiz kılmaz. Konsol formu owner'da (hesap açılınca); formdaki diğer sorular bu kararla cevaplanmadı. Ayrıntı: [monetization/AUDIENCE_DECISION.md](monetization/AUDIENCE_DECISION.md) §0. |
+| 12 | **Reklam kimliği (AD_ID) beyanı** | 🟣 | Uygulama reklam kimliğini kullanıyor (GMA `AD_ID` izni). Konsol formunun ayrıntısı **UNVERIFIED**. Bugün izin **kalıyor** (yalnız çocuklara yönelik (C) kitlede çıkarılırdı, AUDIENCE_DECISION §3); 13–17 uyum stratejisi (#26) reklam kimliği kullanımını etkileyebilir. |
+| 13 | **Hedef kitle ve içerik** | ✅🟣 | **KARAR (owner, 2026-09-25 — FİNAL, ürün kitlesi KAPALI): 13+ genel kitle, 13 yaş altı için tasarlanmadı ve pazarlanmaz.** Play Console hedef yaş grupları: **13–15, 16–17, 18+ SEÇİLİR**; 5 ve altı, 6–8, 9–12 **SEÇİLMEZ**. Bu, "Families hiçbir yerde uygulanmaz" demek **DEĞİL**: Google'a göre 13–15 ve 16–17 bazı yerlerde çocuk sayılabilir ve 21 yaş altını hedefleyen uygulama yerel hukuku değerlendirmeli — dağıtılan bölgelere göre Families / çocuk gizliliği / reklam yükümlülükleri değerlendirilir (#26). Repoda: `android_export.cfg [Audience] decision=general_13_plus` (kapı kabul eder). TFCD/TFUA gönderilmez, derece G — **değişmedi**, TEEN işlemi DEĞİL; yaş ekranı / çocuğa yönelik reklam mantığı yok. Karar yerel rıza / reklam kurallarını geçersiz kılmaz. Konsol formu owner'da (hesap açılınca); formdaki diğer sorular bu kararla cevaplanmadı. Ayrıntı: [monetization/AUDIENCE_DECISION.md](monetization/AUDIENCE_DECISION.md) §0. |
 | 14 | **İçerik derecelendirme (IARC)** | 🟣 | Her yeni uygulama için zorunlu anket; reklamlar derecelendirmeye uygun olmalı (AdMob en yüksek derece G). |
 | 15 | **Uygulama erişimi (App access)** | 🟣 | Giriş/hesap yok, özel erişim gerektiren içerik yok → "tüm işlevler özel erişim olmadan kullanılabilir" beyanı (owner doğrular). |
 | 16 | **Mağaza girişi** | 🟠🟣 | Kısa açıklama (≤80), tam açıklama (≤4000), kategori (ör. Oyun → Bulmaca; owner seçer), iletişim e-postası, grafikler (#7, #8). Dil(ler) owner'ın. **Kitle kuralı (#13):** "çocuklar için" / "çocuk oyunu" / "yürümeye başlayan çocuklar için" / "okul öncesi" (*for kids / children's game / for toddlers / preschool*) gibi ifadeler yok, 13 yaş altına bilerek pazarlama yok; kawaii sanat kalır. Google: 13 altı için tasarlanmamış bir uygulamanın girişi aksini düşündüren öğeler (çocuksu animasyon, genç karakterler) içerirse uygulama reddedilebilir. |
@@ -76,7 +82,8 @@ AAB yok).
 | 22 | **Android geliştirici doğrulaması / paket kaydı** | 🔵 | **Düzeltildi (M9-01.1):** 30 Eylül 2026, herkese uygulanan bir son tarih DEĞİL; **ilk bölgesel uygulama dalgası** — Brezilya, Endonezya, Singapur ve Tayland'da, katılımcı mağazalardan (Google Play dahil) kurulan uygulamalar için, Android 7+ sertifikalı cihazlarda. **2027'de** tüm sertifikalı cihazlara genişliyor. Google Play uygulamaların ~%99'unu **otomatik kaydediyor**; kalanlar Play Console'dan elle kaydediliyor (developer.android.com/developer-verification). Yayımlanmamış bu uygulama için bugün ayrı bir işlem yok: hesap açılıp uygulama oluşturulunca owner kayıt durumunu Play Console'da kontrol eder. |
 | 23 | **Google Play Developer hesabı** | 🔵 | Açılmadı / kimlik doğrulaması bekliyor (PROJECT_CONTEXT). Diğer bütün Play maddelerinin önkoşulu. |
 | 24 | **AdMob hesabı / ödeme profili / app-ads.txt** | 🔵 | AdMob hesabı + ödeme profili owner'da. app-ads.txt (geliştirici web sitesinde) AdMob'un önerdiği doğrulama — web sitesi gizlilik politikasıyla aynı yer olabilir (zorunluluk ayrıntısı **UNVERIFIED**). |
-| 25 | **SDK sürümü (teknik borç)** | 🟠 | Bugün **GMA 24.9.0 legacy** (destek **2027-06-30**'a kadar). TFCD/TFUA'nın yerine geçen **TFAT** (`setAgeRestrictedTreatment`) legacy **25.3.0+**'da; Google'ın bugün tercih ettiği Android SDK'sı **GMA Next-Gen**. Data safety beyanı yalnız en yeni sürümü (25.5.0) anlatıyor. Kapalı test için kendiliğinden engel DEĞİL; eklenti güncellemesine bağlı ayrı bir modernizasyon milestone'u (AUDIENCE_DECISION §2.1). M9-01.1'de geçiş yapılmadı. 13+ kararı (2026-09-25) bu borcu değiştirmedi; TFAT'taki `TEEN` işleminin eski TFCD/TFUA'da karşılığı yok — 13–17 yaş için değerlendirme o milestone'da. |
+| 25 | **SDK sürümü (teknik borç)** | 🟠 | Bugün **GMA 24.9.0 legacy** (destek **2027-06-30**'a kadar). TFCD/TFUA'nın yerine geçen **TFAT** (`setAgeRestrictedTreatment`) legacy **25.3.0+**'da; Google'ın bugün tercih ettiği Android SDK'sı **GMA Next-Gen**. Data safety beyanı yalnız en yeni sürümü (25.5.0) anlatıyor. SDK geçişinin kendisi eklenti güncellemesine bağlı ayrı bir modernizasyon işi (AUDIENCE_DECISION §2.1); M9-01.1'de ve task/039'da **YAPILMADI**. **Düzeltme (2026-09-25):** 24.9.0 TFAT `TEEN` gönderemez, bu yüzden 13–17 genç reklam işlemi yalnız teknik borç DEĞİL — ayrı, AÇIK bir release-uyum kararı (#26); SDK geçişi ancak seçilen strateji gerektirirse iş olur. |
+| 26 | **13–17 genç reklam işlemi / yargı bölgesi uyumu** | 🟠 | **AÇIK — üretim yayınından önce çözülmeli.** Kapıda ayrı `[OWNER] UYUM:` satırı; bu açıkken yüklenebilir AAB (kapalı test yüklemesi dahil) üretilmez. Ürün kitlesi kararından (#13) AYRI. GMA 24.9.0 TFAT `TEEN` gönderemez (`TEEN`'in eski TFCD/TFUA'da karşılığı yok); bugünkü `unspecified` / `unspecified` / G TEEN işlemi DEĞİL, uyum bunlardan iddia edilmez. Stratejiler (belgelendi, **seçilmedi**): A) `TEEN` gönderebilen GMA / eklenti yolu, B) yaş / yaş bandı düzeneği, C) owner açıkça seçerse ileride başka ürün konumu, D) gerçek yayın bölgeleri için UNSPECIFIED'in yeterli olduğuna karar veren hukuki inceleme — [AUDIENCE_DECISION §2.2](monetization/AUDIENCE_DECISION.md). task/039'da yaş ekranı / GMA yükseltmesi / reklam değişikliği YOK. |
 
 ## 3. Owner girdileri gelince: yüklenebilir AAB
 
@@ -89,7 +96,8 @@ AAB yok).
    (2026-09-24); versionCode aynı sayı; `version/name` BOŞ.
 3. `addons/AdmobPlugin/android_export.cfg`: `[Release]` dört kimlik,
    `[General] is_real=true`; ~~`[Audience]` kararı~~ ✅ `decision=general_13_plus`
-   (2026-09-25, AUDIENCE_DECISION §0).
+   (2026-09-25, AUDIENCE_DECISION §0). 13–17 genç reklam işlemi stratejisi (#26)
+   seçilip ayrı bir görevde uygulanmalı — kapının `UYUM:` satırı ancak o zaman kalkar.
 4. Upload anahtarı ortam değişkenleri (yalnız o kabuk oturumu; dosyaya yazma):
    `GODOT_ANDROID_KEYSTORE_RELEASE_PATH`, `GODOT_ANDROID_KEYSTORE_RELEASE_USER`,
    `GODOT_ANDROID_KEYSTORE_RELEASE_PASSWORD`.

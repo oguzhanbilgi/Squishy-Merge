@@ -10,11 +10,13 @@ bakım düzeltmesi main'de. Runtime / gameplay / TEST-reklam temeli donduruldu.
 `com.obappstudio.squishymerge`, QA / test `com.obappstudio.squishymerge.qa`.
 **Hedef kitle kararı (owner, 2026-09-25 — FİNAL):** 13+ genel kitle, 13 yaş
 altı için tasarlanmadı (Play 13–15 / 16–17 / 18+; `[Audience]
-decision=general_13_plus`, reklam istekleri değişmedi); release kapısı yalnız
-OWNER engelli (CODE 0 · OWNER 8 · CONFIG 0). Sırada: **kalan owner release
-kararları** (gizlilik politikası → upload anahtarı → gerçek AdMob kimlikleri →
-mağaza varlıkları / Play Console), sonra ilk imzalı üretim AAB'si ve M10 (Play
-kapalı test) ·
+decision=general_13_plus`, reklam istekleri değişmedi) — ürün kitlesi KAPALI;
+**13–17 genç reklam işlemi / yargı bölgesi uyumu AÇIK** (üretimden önce,
+AUDIENCE_DECISION §2.2). Release kapısı yalnız OWNER engelli (CODE 0 · OWNER 9
+· CONFIG 0). Sırada: **kalan owner release kararları** (13–17 genç reklam
+işlemi stratejisi → gizlilik politikası → upload anahtarı → gerçek AdMob
+kimlikleri → mağaza varlıkları / Play Console), sonra ilk imzalı üretim AAB'si
+ve M10 (Play kapalı test) ·
 **Branch:** `main` == origin/main == `3bc6377` — `task/038-final-package-id`
 (`fd91074`) ff-only alındı (2026-09-25); hedef kitle kararı
 `task/039-target-audience` dalında (main'e alınması owner onayı bekliyor)
@@ -1671,9 +1673,9 @@ verilmiyor:
    `addons/AdmobPlugin/android_export.cfg [Release]` + `is_real=true` (yalnız
    release adımında).
 2. **Owner/ChatGPT: kitle politikası** — Play "Hedef kitle" beyanı ↔ TFCD /
-   TFUA / içerik derecesi (PRIVACY_CONSENT §6). *(Sonra kapandı: owner kararı
-   2026-09-25 — 13+ genel kitle, `general_13_plus`; TFCD/TFUA/derece değişmedi.
-   Aşağıda M9.)*
+   TFUA / içerik derecesi (PRIVACY_CONSENT §6). *(Ürün kitlesi sonra kapandı:
+   owner kararı 2026-09-25 — 13+ genel kitle, `general_13_plus`; TFCD/TFUA/derece
+   değişmedi. 13–17 genç reklam işlemi / yargı bölgesi uyumu AÇIK — aşağıda M9.)*
 3. ~~**A36 test reklamı cihaz kapısı**~~ → **GEÇTİ (M8.9-01.1, 2026-09-21)**;
    rıza formu #120 yüzünden gösterilemedi (yukarıda §7 #15), uçak modu owner'ın
    günlük telefonunda denenmedi (gerçek no-fill + masaüstü testleri kapsıyor).
@@ -1914,22 +1916,35 @@ yeniden kullanılırsa paket adı güncellenmeli.
 **Hedef kitle kararı (owner kararı, 2026-09-25 — FİNAL; dal `task/039-target-audience`,
 main `3bc6377` üzerine).** Squishy Merge 13+ genel kitleye yönelik bir casual oyun; 13 yaş
 altı çocuklar için tasarlanmadı ve onlara pazarlanmaz. Play hedef yaş grupları 13–15 /
-16–17 / 18+ seçilir; 5 ve altı / 6–8 / 9–12 seçilmez → Google Play Families politikası
-uygulanmaz. Repoda kayıt: `android_export.cfg [Audience] decision = general_13_plus` +
-AUDIENCE_DECISION §0. Neden yalnız bu alan: seçenek A'nın kodu M9-01'den beri hazır; TFCD /
-TFUA (`unspecified`, gönderilmez) ve en yüksek reklam derecesi (G) karar tarafından
-DEĞİŞTİRİLMEDİ — reklam istekleri M8.9'dan beri aynı. Yaş ekranı, 13 altına özel reklam
-mantığı, Families yeniden tasarımı ve GMA / TFAT geçişi YAPILMADI (GMA 24.9.0 / UMP 3.2.0
-aynen; TFAT teknik borç — TFAT'taki `TEEN` işleminin eski etiketlerde karşılığı yok, 13–17
-yaş için değerlendirme o geçişte). Hukuki not: 13–15 ve 16–17 yaş kullanıcılar bazı yargı
-bölgelerinde çocuk / reşit olmayan sayılabilir; karar yerel rıza / reklam işleme
-kurallarını geçersiz kılmaz. Mağaza kuralı: "çocuklar için / çocuk oyunu / yürümeye
-başlayan çocuklar için / okul öncesi" yok, 13 altına pazarlama yok; kawaii sanat kalır.
-Kapı (`ReleaseReadiness`): kitle OWNER satırı düştü, A kararı rapora bilgi notu olarak
-düşüyor; karar boşalırsa OWNER, karma / çocuk yazılırsa CODE engeli (fail-closed).
-`release_config_test` 112 → 118; kapı BLOCKED — CODE 0 · OWNER 8 · CONFIG 0; `aab`
-reddedildi. Runtime kodu değişmedi (`decision` yalnız kapıda ve `AdConfig.describe()` log
+16–17 / 18+ seçilir; 5 ve altı / 6–8 / 9–12 seçilmez. Repoda kayıt: `android_export.cfg
+[Audience] decision = general_13_plus` + AUDIENCE_DECISION §0. Neden yalnız bu alan: seçenek
+A'nın kodu M9-01'den beri hazır; TFCD / TFUA (`unspecified`, gönderilmez) ve en yüksek reklam
+derecesi (G) karar tarafından DEĞİŞTİRİLMEDİ — reklam istekleri M8.9'dan beri aynı. Yaş
+ekranı, 13 altına özel reklam mantığı, Families yeniden tasarımı ve GMA / TFAT geçişi
+YAPILMADI (GMA 24.9.0 / UMP 3.2.0 aynen). Mağaza kuralı: "çocuklar için / çocuk oyunu /
+yürümeye başlayan çocuklar için / okul öncesi" yok, 13 altına pazarlama yok; kawaii sanat
+kalır. Runtime kodu değişmedi (`decision` yalnız kapıda ve `AdConfig.describe()` log
 satırında okunuyor). Play Console'a hiçbir şey girilmedi.
+
+**Politika düzeltmesi (aynı gün, main'e alınmadan önce, `task/039` ikinci commit).** İlk
+commit'teki (`4d3268c`) iki sonuç fazla kesindi ve düzeltildi: (1) "13 altı grup seçilmedi →
+Families uygulanmaz" DENEMEZ — Google'ın hedef kitle sayfasına göre 13–15 ve 16–17 bazı
+yerlerde çocuk sayılabilir ve 21 yaş altını hedefleyen uygulama yerel hukuku değerlendirmeli;
+dağıtılan bölgelere göre Families / çocuk gizliliği / reklam yükümlülükleri değerlendirilir.
+(2) TFAT yalnız "sonraki teknik borç" DEĞİL: GMA 24.9.0 TFAT `TEEN` gönderemez, `TEEN`'in
+eski TFCD / TFUA'da karşılığı yok ve `unspecified` TEEN demek değil — 13–17 genç reklam
+işlemi / yargı bölgesi uyum stratejisi üretim yayınından önce çözülmesi gereken AÇIK bir
+release-uyum kararı. Stratejiler (A: TEEN gönderebilen GMA / eklenti yolu, B: yaş / yaş bandı
+düzeneği, C: owner açıkça seçerse ileride başka ürün konumu, D: gerçek yayın bölgeleri için
+UNSPECIFIED'in yeterli olduğuna karar veren hukuki inceleme) AUDIENCE_DECISION §2.2'de
+belgelendi, hiçbiri seçilmedi / uygulanmadı. Ürün kitlesi kararı KAPALI kaldı. Kapı
+(`ReleaseReadiness`): genel "kitle kararı yok" satırı yok (A kararı rapora bilgi notu —
+etiketlerin TEEN olmadığını söylüyor); 13–17'yi de hedefleyen kitlede (general_13_plus,
+mixed_audience) ayrı `[OWNER] UYUM:` satırı — hiçbir TFCD / TFUA / derece değeri onu
+kaldırmaz, bugün yapılandırmayla kapanmaz (`teen_ad_treatment_resolved = false`); karar
+boşalırsa OWNER, karma / çocuk yazılırsa CODE (fail-closed). `release_config_test` 112 →
+118 → 123; kapı BLOCKED — CODE 0 · OWNER 9 · CONFIG 0; `aab` reddedildi. Yaş ekranı, GMA
+yükseltmesi, reklam değişikliği YOK; runtime kodu yine değişmedi.
 
 **Ortam neredeyse hazır** (§2'deki tabloya bakın). Godot, export
 template'leri, Android SDK, NDK, JDK 17 ve debug keystore mevcut.

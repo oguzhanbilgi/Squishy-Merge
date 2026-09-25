@@ -6,8 +6,10 @@ extends Node
 ##   - RELEASE build boş / Google test / biçimsiz / eksik / karışık kimliği REDDEDER,
 ##     dört gerçek kimlik + is_real=true ister
 ##   - debug coğrafyası üretimde (RELEASE) imkânsız; DEBUG'da EEA / NOT_EEA kancaları
-##   - kitle: owner kararı 13+ genel kitle (general_13_plus, 2026-09-25); TFCD / TFUA /
-##     içerik derecesi değerleri (karar değiştirmedi) ve SDK eşlemesi
+##   - kitle: ürün kitlesi owner kararı 13+ genel kitle (general_13_plus, 2026-09-25,
+##     KAPALI); TFCD / TFUA / içerik derecesi değerleri (karar değiştirmedi) ve SDK
+##     eşlemesi — bunlar TEEN işlemi DEĞİL: 13–17 genç reklam işlemi / yargı bölgesi
+##     uyumu ayrı, AÇIK bir OWNER ("UYUM:") engeli
 ##   - ReleaseReadiness kuralları (paket kimliği + QA kimliği ayrımı, sürüm tek
 ##     kaynağı, AAB, arm64, hedef API, reklam, kitle, gizlilik URL'i, yamalı eklenti,
 ##     upload anahtarı, NON_PUBLISHABLE) + bu projenin bugünkü durumu (BLOCKED)
@@ -236,19 +238,25 @@ func _test_debug_geography() -> void:
 # --- Kitle ---------------------------------------------------------------------------
 
 func _test_audience() -> void:
-	print("-- kitle: owner kararı 13+ genel kitle (general_13_plus, 2026-09-25) + TFCD / TFUA / içerik derecesi")
+	print("-- kitle: ürün kitlesi 13+ (general_13_plus, KAPALI) + TFCD / TFUA / içerik derecesi (TEEN işlemi DEĞİL)")
 	var project := AdConfig.load_project()
-	_c("owner kararı kayıtlı: decision general_13_plus (13+ genel kitle; Play 13–15 / 16–17 / 18+), yapılandırma geçerli",
+	_c("ürün kitlesi seçili: decision general_13_plus (13+ genel kitle; Play 13–15 / 16–17 / 18+), yapılandırma geçerli",
 		project.audience_decision == "general_13_plus" and project.is_valid())
-	_c("karar reklam etiketlerini DEĞİŞTİRMEDİ: TFCD/TFUA unspecified, derece G (M8.9 değerleri)",
+	_c("reklam etiketleri korunuyor: TFCD unspecified, TFUA unspecified, derece G (M8.9 değerleri)",
 		project.tag_for_child_directed_treatment == "unspecified"
 		and project.tag_for_under_age_of_consent == "unspecified" and project.max_ad_content_rating == "G")
-	_c("projenin değerleri SDK'ya aynen: TFCD/TFUA UNSPECIFIED (gönderilmez), derece G — çocuğa yönelik reklam etiketi yok",
+	_c("projenin değerleri SDK'ya aynen: TFCD/TFUA UNSPECIFIED (gönderilmez — TEEN DEĞİL), derece G",
 		AdmobBackend._tfcd(project.tag_for_child_directed_treatment) == AdmobConfig.TagForChildDirectedTreatment.UNSPECIFIED
 		and AdmobBackend._tfua(project.tag_for_under_age_of_consent) == AdmobConfig.TagForUnderAgeOfConsent.UNSPECIFIED
 		and AdmobBackend._content_rating(project.max_ad_content_rating) == AdmobConfig.ContentRating.G)
+	var plugin_api: String = FileAccess.get_file_as_string("res://addons/AdmobPlugin/Admob.gd") \
+		+ FileAccess.get_file_as_string("res://addons/AdmobPlugin/model/AdmobConfig.gd")
+	_c("GMA 24.9.0 yolu TEEN ifade edemez: TFCD/TFUA enumlarında TEEN yok, eklentide AgeRestrictedTreatment API'si yok, bağımlılık 24.9.0 (TFAT 25.3.0+)",
+		not AdmobConfig.TagForChildDirectedTreatment.has("TEEN") and not AdmobConfig.TagForUnderAgeOfConsent.has("TEEN")
+		and not plugin_api.contains("AgeRestrictedTreatment") and not plugin_api.to_lower().contains("age_restricted_treatment")
+		and FileAccess.get_file_as_string("res://addons/AdmobPlugin/AdmobPlugin.gd").contains("com.google.android.gms:play-services-ads:24.9.0"))
 	var release_project := AdConfig.load_file(AdConfig.CONFIG_PATH, AdConfig.BuildType.RELEASE)
-	_c("RELEASE yüklemesinde de general_13_plus; kararın kodu hazır (kapı bunu engel saymaz), [Audience] sorunu yok",
+	_c("RELEASE yüklemesinde de general_13_plus; ürün kitlesinin kodu hazır (CODE engeli yok), [Audience] sorunu yok",
 		release_project.audience_decision == "general_13_plus"
 		and ReleaseReadiness.IMPLEMENTED_AUDIENCE_DECISIONS.has(release_project.audience_decision)
 		and _problem_count(release_project, "Audience") == 0 and _problem_count(release_project, "tag_for") == 0
@@ -277,6 +285,8 @@ func _test_audience() -> void:
 
 # --- ReleaseReadiness kuralları ------------------------------------------------------
 
+## "Her şey tamam" girdileri. `teen_ad_treatment_resolved = true` GELECEĞİ modeller
+## (13–17 genç reklam işlemi stratejisi seçilmiş + uygulanmış); bugünkü projede false.
 func _good_inputs() -> Dictionary:
 	return {
 		"build": "release", "preset_name": "Android Release AAB",
@@ -287,6 +297,7 @@ func _good_inputs() -> Dictionary:
 		"keystore_password_set": true, "ad_config": _cfg(_real_release(), AdConfig.BuildType.RELEASE),
 		"privacy_policy_url": "https://squishy.invalid/privacy",
 		"plugin_release_aar_sha256": ReleaseReadiness.PATCHED_RELEASE_AAR_SHA256, "plugin_facade_patched": true,
+		"teen_ad_treatment_resolved": true,
 		"non_publishable_requested": false, "export_path": "build/release/squishy_merge.aab",
 	}
 
@@ -347,15 +358,38 @@ func _test_release_gate_rules() -> void:
 		and _gate({"target_sdk": "36"})["status"] == ReleaseReadiness.STATUS_UPLOAD_CANDIDATE)
 	_c("reklam yapılandırması geçersiz (test kimlikleri) -> OWNER AdMob engelleri",
 		_blocked_by(_gate({"ad_config": AdConfig.load_file(AdConfig.CONFIG_PATH, AdConfig.BuildType.RELEASE)}), "OWNER", "AdMob"))
-	_c("kitle kararı yok -> OWNER", _blocked_by(_gate({"ad_config": _cfg(_real_release({"Audience": {"decision": ""}}),
-		AdConfig.BuildType.RELEASE)}), "OWNER", "kitle kararı yok"))
-	_c("mixed_audience / child_directed -> CODE (Families uygulaması henüz yok)",
-		_blocked_by(_gate({"ad_config": _cfg(_real_release({"Audience": {"decision": "mixed_audience"}}),
-			AdConfig.BuildType.RELEASE)}), "CODE", "mixed_audience")
-		and _blocked_by(_gate({"ad_config": _cfg(_real_release({"Audience": {"decision": "child_directed"}}),
-			AdConfig.BuildType.RELEASE)}), "CODE", "child_directed"))
-	_c("general_13_plus -> kitle engeli yok; rapor notu kararı ve etiketleri gösterir",
-		_notes_have(good, "kitle kararı: general_13_plus (TFCD=unspecified, TFUA=unspecified, en yüksek reklam derecesi G)"))
+	var no_decision: Dictionary = _gate({"ad_config": _cfg(_real_release({"Audience": {"decision": ""}}),
+		AdConfig.BuildType.RELEASE), "teen_ad_treatment_resolved": false})
+	_c("kitle kararı yok -> OWNER (UYUM satırı eklenmez: kitle bilinmiyor)",
+		_blocked_by(no_decision, "OWNER", "kitle kararı yok") and not _blocked_by(no_decision, "OWNER", "UYUM:"))
+	var mixed: Dictionary = _gate({"ad_config": _cfg(_real_release({"Audience": {"decision": "mixed_audience"}}),
+		AdConfig.BuildType.RELEASE), "teen_ad_treatment_resolved": false})
+	var child: Dictionary = _gate({"ad_config": _cfg(_real_release({"Audience": {"decision": "child_directed"}}),
+		AdConfig.BuildType.RELEASE), "teen_ad_treatment_resolved": false})
+	_c("fail-closed: mixed_audience -> CODE + ayrı UYUM (13–17 de hedefte); child_directed -> CODE, UYUM yok (yalnız 13 altı)",
+		_blocked_by(mixed, "CODE", "mixed_audience") and _blocked_by(mixed, "OWNER", "UYUM:")
+		and _blocked_by(child, "CODE", "child_directed") and not _blocked_by(child, "OWNER", "UYUM:"))
+	_c("general_13_plus -> ürün kitlesi engeli yok; rapor notu kararı, etiketleri ve TEEN olmadıklarını gösterir",
+		_notes_have(good, "ürün kitlesi kararı: general_13_plus (TFCD=unspecified, TFUA=unspecified, en yüksek reklam derecesi G — bunlar TEEN işlemi DEĞİL)"))
+	var teen: Dictionary = _gate({"teen_ad_treatment_resolved": false})
+	_c("general_13_plus + genç reklam işlemi çözülmedi -> TEK engel: ayrı OWNER UYUM (13–17); 'kitle kararı yok' yok, CODE yok",
+		_blocked_by(teen, "OWNER", ReleaseReadiness.TEEN_TREATMENT_BLOCKER) and teen["blockers"].size() == 1
+		and not _blocked_by(teen, "OWNER", "kitle kararı yok") and not _has_category(teen, "CODE"))
+	var legacy_inputs: Dictionary = _good_inputs()
+	legacy_inputs.erase("teen_ad_treatment_resolved")
+	_c("teen_ad_treatment_resolved girdisi yoksa -> fail-closed: UYUM engeli",
+		_blocked_by(ReleaseReadiness.evaluate(legacy_inputs), "OWNER", "UYUM:"))
+	var tags_not_teen: bool = true
+	for tags: Dictionary in [
+			{"tag_for_child_directed_treatment": "unspecified", "tag_for_under_age_of_consent": "unspecified", "max_ad_content_rating": "G"},
+			{"tag_for_child_directed_treatment": "false", "tag_for_under_age_of_consent": "false", "max_ad_content_rating": "G"},
+			{"tag_for_child_directed_treatment": "true", "tag_for_under_age_of_consent": "true", "max_ad_content_rating": "G"},
+			{"tag_for_child_directed_treatment": "unspecified", "tag_for_under_age_of_consent": "unspecified", "max_ad_content_rating": "T"}]:
+		var tagged: Dictionary = _gate({"ad_config": _cfg(_real_release({"Audience": tags}), AdConfig.BuildType.RELEASE),
+			"teen_ad_treatment_resolved": false})
+		tags_not_teen = tags_not_teen and _blocked_by(tagged, "OWNER", "UYUM:")
+	_c("etiketler TEEN yerine geçmez: TFCD/TFUA unspecified, false, true ya da derece T (Teen İÇERİK derecesi) -> UYUM engeli kalır",
+		tags_not_teen)
 	_c("gizlilik politikası URL'i yok -> OWNER; http -> OWNER", _blocked_by(_gate({"privacy_policy_url": ""}), "OWNER", "gizlilik")
 		and _blocked_by(_gate({"privacy_policy_url": "http://squishy.invalid"}), "OWNER", "https"))
 	_c("yamasız eklenti AAR'ı -> CODE; yamasız cephe -> CODE",
@@ -416,15 +450,17 @@ func _test_current_project_state() -> void:
 	_c("kalan engeller: AdMob + gizlilik URL'i + upload anahtarı (hepsi OWNER)",
 		_blocked_by(result, "OWNER", "AdMob") and _blocked_by(result, "OWNER", "gizlilik")
 		and _blocked_by(result, "OWNER", "upload"))
-	_c("kitle engeli YOK (owner kararı 13+, ne OWNER ne CODE); rapor kararı gösteriyor",
-		not _blocked_by(result, "OWNER", "kitle") and not _blocked_by(result, "CODE", "kitle")
-		and _notes_have(result, "kitle kararı: general_13_plus"))
+	_c("ürün kitlesi engeli YOK (general_13_plus: ne 'kitle kararı yok' OWNER ne CODE); rapor kararı gösteriyor",
+		not _blocked_by(result, "OWNER", "kitle kararı yok") and not _blocked_by(result, "CODE", "kitle kararı")
+		and _notes_have(result, "ürün kitlesi kararı: general_13_plus"))
+	_c("ayrı OWNER UYUM engeli VAR: 13–17 genç reklam işlemi / yargı bölgesi stratejisi AÇIK (project_inputs: çözülmedi)",
+		not bool(inputs["teen_ad_treatment_resolved"]) and _blocked_by(result, "OWNER", ReleaseReadiness.TEEN_TREATMENT_BLOCKER))
 	var owner_blockers: int = 0
 	for blocker: Dictionary in result["blockers"]:
 		if blocker["category"] == "OWNER":
 			owner_blockers += 1
-	_c("bugün tam 8 engel, hepsi OWNER (AdMob 5 + gizlilik URL'i 1 + upload anahtarı 2) — kitle satırı düştü",
-		owner_blockers == 8 and result["blockers"].size() == 8)
+	_c("bugün tam 9 engel, hepsi OWNER (AdMob 5 + gizlilik URL'i 1 + upload anahtarı 2 + 13–17 uyum 1)",
+		owner_blockers == 9 and result["blockers"].size() == 9)
 	_c("CODE engeli YOK: yamalı eklenti AAR'ı + cephe yerinde", inputs["plugin_release_aar_sha256"]
 		== ReleaseReadiness.PATCHED_RELEASE_AAR_SHA256 and bool(inputs["plugin_facade_patched"])
 		and not _has_category(result, "CODE"))
