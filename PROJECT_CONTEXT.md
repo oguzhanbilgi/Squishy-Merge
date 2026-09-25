@@ -22,6 +22,9 @@ karakterleri, ASMR/rahatlatıcı his.
 ## User
 Casual mobil oyun oynayan geniş kitle; özellikle merge/idle/ASMR-cozy oyun
 sevenler. Kısa oturumlarla (30–90 sn round) oynamayı tercih eden kullanıcı.
+**Hedef kitle (owner kararı, 2026-09-25 — FİNAL): 13+ genel kitle; 13 yaş altı
+çocuklar için tasarlanmadı ve onlara pazarlanmaz** (Play hedef yaş grupları
+13–15 / 16–17 / 18+ — [AUDIENCE_DECISION.md](docs/monetization/AUDIENCE_DECISION.md) §0).
 
 ## Business model
 - **Soft-launch öncesi monetizasyon planı (owner kararı, M8.9):** ödüllü
@@ -73,10 +76,11 @@ alınacak — şimdi tahmin/vaat yok.
 [Current release blockers](#current-release-blockers) +
 [Next action](#next-action); aşağıdaki "Milestone tarihçesi" değil.
 
-- **Repo:** `main == origin/main` (2026-09-25): `task/038-final-package-id`
-  (`fd91074`, kalıcı paket kimliği) main'e ff-only alındı; üstünde yalnız bu
-  durum doküman commit'i. Aktif kod görevi YOK; `task/014`…`task/038` dallarının
-  hepsi main'de (referans için duruyor).
+- **Repo:** `main == origin/main == 3bc6377` (2026-09-25): `task/038-final-package-id`
+  (`fd91074`, kalıcı paket kimliği) main'e ff-only alındı; üstünde yalnız durum
+  doküman commit'i. Hedef kitle kararı `task/039-target-audience` dalında —
+  main'e alınması owner onayı bekliyor. `task/014`…`task/038` dallarının hepsi
+  main'de (referans için duruyor).
   Main'e bilerek girmeyen iki dal: `task/m8.6-03-home` (reddedildi, asla
   birleştirilmez) ve `task/ui-layerlab-style-spike` (seçilen parçaları
   M8.6-01'de promote edildi).
@@ -109,9 +113,18 @@ alınacak — şimdi tahmin/vaat yok.
   TEST-reklam APK'sı + cihaz harness'ları) — üretimle çakışmaz. Release kapısı
   `.qa` kimliğini release'te reddeder; eski geçici `com.example.squishymerge`
   kaldırıldı. Runtime'da paket kimliği okunmaz (gameplay değişmedi).
-- **Release kapısı** (`tools/release/release_android.sh check`, paket kararından
-  sonra, 2026-09-24): **BLOCKED — CODE 0 · OWNER 9 · CONFIG 0.** İmzalı /
-  Play'e yüklenebilir AAB üretilmedi.
+- **Hedef kitle KARARI (owner, 2026-09-25 — FİNAL):** 13+ genel kitle, 13 yaş
+  altı için tasarlanmadı. Play hedef yaş grupları **13–15 · 16–17 · 18+** (5 ve
+  altı / 6–8 / 9–12 SEÇİLMEZ → Families uygulanmaz); `android_export.cfg
+  [Audience] decision = general_13_plus`. TFCD / TFUA (`unspecified`) ve en
+  yüksek reklam derecesi (G) DEĞİŞMEDİ — reklam istekleri aynı; yaş ekranı,
+  çocuğa yönelik reklam mantığı, Families yeniden tasarımı YOK; runtime kodu
+  değişmedi. 13–15 / 16–17 bazı yargı bölgelerinde çocuk / reşit olmayan
+  sayılabilir — karar yerel rıza / reklam kurallarını geçersiz kılmaz
+  ([AUDIENCE_DECISION §0](docs/monetization/AUDIENCE_DECISION.md)).
+- **Release kapısı** (`tools/release/release_android.sh check`, kitle kararından
+  sonra, 2026-09-25): **BLOCKED — CODE 0 · OWNER 8 · CONFIG 0.** İmzalı /
+  Play'e yüklenebilir AAB üretilmedi (`aab` reddediyor).
 
 ## Current release blockers
 
@@ -123,8 +136,11 @@ Bugün açık olan maddelerin tamamı — adımlar ve ayrıntı:
    `com.obappstudio.squishymerge`** (QA / test: `com.obappstudio.squishymerge.qa`).
    Play'de ilk yüklemeden sonra değişmez; diğer makinelerde yerel preset'ler elle
    güncellenir (checklist §3).
-2. **Kitle / hedef yaş grupları kararı** — `android_export.cfg [Audience]`
-   (docs/monetization/AUDIENCE_DECISION.md §5).
+2. ~~**Kitle / hedef yaş grupları kararı**~~ ✅ **KARAR (2026-09-25): 13+ genel
+   kitle** — Play hedef yaş grupları 13–15 · 16–17 · 18+ (13 altı seçilmez);
+   `android_export.cfg [Audience] decision = general_13_plus`
+   (docs/monetization/AUDIENCE_DECISION.md §0). Konsoldaki "Hedef kitle ve
+   içerik" formu hesap açılınca bu kararla doldurulur (madde 9).
 3. **Gizlilik politikası metni + herkese açık HTTPS URL'i** — project.godot
    `squishy/privacy/policy_url` + Play Console alanı.
 4. **Upload anahtarı** — owner oluşturur (checklist §4); yalnız ortam
@@ -138,37 +154,38 @@ Bugün açık olan maddelerin tamamı — adımlar ve ayrıntı:
 9. **Play / mağaza varlıkları ve Play Console kurulumu** — geliştirici hesabı +
    kimlik doğrulaması (son bilinen durum: açılmadı / bekliyor), uygulama kaydı,
    512×512 ikon, 1024×500 feature graphic, ekran görüntüleri, mağaza metinleri,
-   Data safety, IARC, hedef kitle + reklam beyanı, kapalı test kanalı.
+   Data safety, IARC, hedef kitle formu (karar: madde 2) + reklam beyanı,
+   kapalı test kanalı.
 
-Release kapısı 1–8'i denetler (bugün OWNER 9 · CONFIG 0 — madde 1 kapandı);
-9 kodla denetlenemez.
+Release kapısı 1–8'i denetler (bugün OWNER 8 · CONFIG 0 — madde 1 ve 2
+kapandı); 9 kodla denetlenemez.
 
-**CODE blockers: 0** — bugünkü genel kitle / 13+ yolu için (AUDIENCE_DECISION
-seçenek A: ek kod yok). B (13 altı dahil karma) ya da C (yalnız çocuk)
-seçilirse önce ayrı bir kod milestone'u gerekir (yaş ekranı, istek başına
-TFCD, AD_ID çıkarma, SDK başlatma sırası); kapı o zamana kadar CODE engeli verir.
+**CODE blockers: 0** — owner 13+ genel kitleyi seçti (AUDIENCE_DECISION seçenek
+A: ek kod yok). B (13 altı dahil karma) ve C (yalnız çocuk) seçilmedi; kapı
+onları hâlâ CODE engeliyle reddeder (fail-closed), boş karar yine OWNER engeli.
 
 **Technical debt** — engel DEĞİL, kapalı test hazırlığını durdurmaz:
 - Google Mobile Ads **24.9.0** (legacy) ve eski yaş işleme yolu (TFCD/TFUA);
   24.x desteği 2027-06-30'a kadar.
 - **TFAT** (`setAgeRestrictedTreatment`, GMA 25.3.0+) / GMA Next-Gen geçişi
   sonraya belgelendi — eklenti güncellemesine bağlı ayrı iş
-  (AUDIENCE_DECISION §2.1, checklist #25).
+  (AUDIENCE_DECISION §2.1, checklist #25). 13+ kararı bunu değiştirmedi;
+  TFAT'taki `TEEN` işleminin eski etiketlerde karşılığı yok — 13–17 yaş için
+  değerlendirme o geçişte.
 
 ## Next action
 
 **OWNER RELEASE DECISIONS — ilk gerçek imzalı üretim AAB'sinden ÖNCE.** Sıra:
 
 1. ~~Kalıcı paket kimliği~~ ✅ `com.obappstudio.squishymerge` (2026-09-24)
-2. **Kitle / hedef yaş grupları** ← sıradaki karar
-3. Gizlilik politikası (metin + HTTPS URL)
+2. ~~Kitle / hedef yaş grupları~~ ✅ 13+ genel kitle — 13–15 / 16–17 / 18+ (2026-09-25)
+3. **Gizlilik politikası (metin + HTTPS URL)** ← sıradaki karar
 4. Upload anahtarı
 5. Gerçek AdMob kimlikleri (App ID + Banner + Rewarded + Interstitial)
 6. Play Store varlıkları / Play Console alanları
 
-Her madde owner girdisi ister; hiçbiri tahmin edilmez ya da uydurulmaz. A (13+)
-yolunda repoda yalnız yapılandırma değişir (checklist §3); B/C seçilirse önce
-ayrı kod milestone'u (yukarıda). İmzalı AAB yalnız
+Her madde owner girdisi ister; hiçbiri tahmin edilmez ya da uydurulmaz. Kalan
+maddelerde repoda yalnız yapılandırma değişir (checklist §3). İmzalı AAB yalnız
 `tools/release/release_android.sh check` **UPLOAD_CANDIDATE** dedikten sonra
 üretilir → Play dahili test → **M10 — Play kapalı test.**
 
@@ -1167,6 +1184,13 @@ ayrı kod milestone'u (yukarıda). İmzalı AAB yalnız
   ve bu dört Kenney ışık dokusunu toplamsal `fx_light_additive.tres` ile
   çizer; onaylı RewardGem/round_result dosyaları olduğu gibi (normal
   karışım) kullanır. PNG'leri yeniden adlandırma/düzenleme YOK
+- **Hedef kitle 13+ (owner kararı, 2026-09-25):** mağaza girişi, açıklamalar,
+  grafikler ve pazarlama Squishy Merge'i "çocuklar için" / "çocuk oyunu" /
+  "yürümeye başlayan çocuklar için" / "okul öncesi" (*for kids / children's
+  game / for toddlers / preschool*) diye anlatmaz, 13 yaş altına bilerek
+  pazarlamaz. Kawaii / şeker / sevimli sanat kalır — yalnız sevimli olduğu
+  için yeniden tasarlanmaz. Yaş ekranı ve çocuğa yönelik reklam mantığı YOK
+  (AUDIENCE_DECISION §0)
 - Görsel asset üretimi owner'da — Claude Code final art üretmez.
   Owner kaynakları `_visual_source/` altında ARŞİV; runtime yalnızca
   `assets/visual/` altındaki türevleri okur. Türetme betiği:

@@ -7,13 +7,17 @@ tamamlandı ve main'de; M9-01 production release hazırlığı (kod) tamamlandı
 M9-01.1 Samsung A36 UMP/gizlilik cihaz kapısı GEÇTİ; `task/037` shell_shots
 bakım düzeltmesi main'de. Runtime / gameplay / TEST-reklam temeli donduruldu.
 **Kalıcı paket kimliği kilitlendi (owner, 2026-09-24):** üretim / Play
-`com.obappstudio.squishymerge`, QA / test `com.obappstudio.squishymerge.qa`;
-release kapısı yalnız OWNER engelli (CODE 0 · OWNER 9 · CONFIG 0). Sırada:
-**kalan owner release kararları** (kitle → gizlilik politikası → upload
-anahtarı → gerçek AdMob kimlikleri → mağaza varlıkları / Play Console), sonra
-ilk imzalı üretim AAB'si ve M10 (Play kapalı test) ·
-**Branch:** `main` == origin/main — `task/038-final-package-id` (`fd91074`, kalıcı
-paket kimliği) ff-only alındı (2026-09-25)
+`com.obappstudio.squishymerge`, QA / test `com.obappstudio.squishymerge.qa`.
+**Hedef kitle kararı (owner, 2026-09-25 — FİNAL):** 13+ genel kitle, 13 yaş
+altı için tasarlanmadı (Play 13–15 / 16–17 / 18+; `[Audience]
+decision=general_13_plus`, reklam istekleri değişmedi); release kapısı yalnız
+OWNER engelli (CODE 0 · OWNER 8 · CONFIG 0). Sırada: **kalan owner release
+kararları** (gizlilik politikası → upload anahtarı → gerçek AdMob kimlikleri →
+mağaza varlıkları / Play Console), sonra ilk imzalı üretim AAB'si ve M10 (Play
+kapalı test) ·
+**Branch:** `main` == origin/main == `3bc6377` — `task/038-final-package-id`
+(`fd91074`) ff-only alındı (2026-09-25); hedef kitle kararı
+`task/039-target-audience` dalında (main'e alınması owner onayı bekliyor)
 
 > Güncel engel listesi ve sıradaki adımın kanonik yeri: `PROJECT_CONTEXT.md` →
 > Current state / Current release blockers / Next action. Aşağıdaki tarihçe
@@ -63,7 +67,10 @@ dumpling birleştirme oyunu. Üstten kaba düşen dumpling'ler aynı tier'da
 - **Oturum:** 30-90 saniyelik kısa round'lar
 
 **Hedef kitle:** casual mobil oyun oynayan geniş kitle; özellikle merge/idle/
-ASMR-cozy oyun sevenler, kısa oturumları tercih edenler.
+ASMR-cozy oyun sevenler, kısa oturumları tercih edenler. **Owner kararı
+(2026-09-25, FİNAL): 13+ genel kitle** — 13 yaş altı çocuklar için tasarlanmadı
+ve onlara pazarlanmaz; Play hedef yaş grupları 13–15 / 16–17 / 18+
+(docs/monetization/AUDIENCE_DECISION.md §0).
 
 **Çözmeye çalıştığı boşluk:** mevcut merge oyunlarının çoğu ya karmaşık
 grid-tabanlı sistemler (fazla UI/kural) ya da zayıf duyusal geri bildirim
@@ -1664,7 +1671,9 @@ verilmiyor:
    `addons/AdmobPlugin/android_export.cfg [Release]` + `is_real=true` (yalnız
    release adımında).
 2. **Owner/ChatGPT: kitle politikası** — Play "Hedef kitle" beyanı ↔ TFCD /
-   TFUA / içerik derecesi (PRIVACY_CONSENT §6).
+   TFUA / içerik derecesi (PRIVACY_CONSENT §6). *(Sonra kapandı: owner kararı
+   2026-09-25 — 13+ genel kitle, `general_13_plus`; TFCD/TFUA/derece değişmedi.
+   Aşağıda M9.)*
 3. ~~**A36 test reklamı cihaz kapısı**~~ → **GEÇTİ (M8.9-01.1, 2026-09-21)**;
    rıza formu #120 yüzünden gösterilemedi (yukarıda §7 #15), uçak modu owner'ın
    günlük telefonunda denenmedi (gerçek no-fill + masaüstü testleri kapsıyor).
@@ -1803,6 +1812,7 @@ kapısıyla birlikte 2026-09-24'te main'e ff-only alındı — aşağıda).** Ne
   build (üç kilit); EEA / NOT_EEA QA kancaları `tools/ads_device`.
 - **Kitle dikişi** `android_export.cfg [Audience]` — karar YOK, değerler M8.9
   (TFCD/TFUA gönderilmez, G). Tahmin edilmedi: docs/monetization/AUDIENCE_DECISION.md.
+  *(Sonra: owner kararı 2026-09-25 — `general_13_plus`, aşağıda.)*
 - **Release kapısı** — Godot 4.6.3'te export eklentisi export'u veto edemiyor
   (`_get_export_option_warning` yalnız mesaj ekler; kaynaktan doğrulandı),
   bu yüzden: (1) pipeline `tools/release/release_android.sh` export'tan ÖNCE
@@ -1901,6 +1911,26 @@ CODE 0 · OWNER 9 · CONFIG 0. Pipeline kanıtı: TEST-reklam debug APK manifest
 uygulama olarak kurulur. Eski `build/qa_*/device` QA betikleri `com.example…` varsayar —
 yeniden kullanılırsa paket adı güncellenmeli.
 
+**Hedef kitle kararı (owner kararı, 2026-09-25 — FİNAL; dal `task/039-target-audience`,
+main `3bc6377` üzerine).** Squishy Merge 13+ genel kitleye yönelik bir casual oyun; 13 yaş
+altı çocuklar için tasarlanmadı ve onlara pazarlanmaz. Play hedef yaş grupları 13–15 /
+16–17 / 18+ seçilir; 5 ve altı / 6–8 / 9–12 seçilmez → Google Play Families politikası
+uygulanmaz. Repoda kayıt: `android_export.cfg [Audience] decision = general_13_plus` +
+AUDIENCE_DECISION §0. Neden yalnız bu alan: seçenek A'nın kodu M9-01'den beri hazır; TFCD /
+TFUA (`unspecified`, gönderilmez) ve en yüksek reklam derecesi (G) karar tarafından
+DEĞİŞTİRİLMEDİ — reklam istekleri M8.9'dan beri aynı. Yaş ekranı, 13 altına özel reklam
+mantığı, Families yeniden tasarımı ve GMA / TFAT geçişi YAPILMADI (GMA 24.9.0 / UMP 3.2.0
+aynen; TFAT teknik borç — TFAT'taki `TEEN` işleminin eski etiketlerde karşılığı yok, 13–17
+yaş için değerlendirme o geçişte). Hukuki not: 13–15 ve 16–17 yaş kullanıcılar bazı yargı
+bölgelerinde çocuk / reşit olmayan sayılabilir; karar yerel rıza / reklam işleme
+kurallarını geçersiz kılmaz. Mağaza kuralı: "çocuklar için / çocuk oyunu / yürümeye
+başlayan çocuklar için / okul öncesi" yok, 13 altına pazarlama yok; kawaii sanat kalır.
+Kapı (`ReleaseReadiness`): kitle OWNER satırı düştü, A kararı rapora bilgi notu olarak
+düşüyor; karar boşalırsa OWNER, karma / çocuk yazılırsa CODE engeli (fail-closed).
+`release_config_test` 112 → 118; kapı BLOCKED — CODE 0 · OWNER 8 · CONFIG 0; `aab`
+reddedildi. Runtime kodu değişmedi (`decision` yalnız kapıda ve `AdConfig.describe()` log
+satırında okunuyor). Play Console'a hiçbir şey girilmedi.
+
 **Ortam neredeyse hazır** (§2'deki tabloya bakın). Godot, export
 template'leri, Android SDK, NDK, JDK 17 ve debug keystore mevcut.
 **M8.9-01'den itibaren export Gradle build ister** (`gradle_build/
@@ -1957,7 +1987,7 @@ yürütülmeli.
 | 9 | **Gizlilik politikası URL'i** — Play zorunlu tutuyor. Oyun veri toplamıyor (backend yok, analitik yok) ama yine de bir sayfa gerekiyor. | ❌ |
 | 10 | Data safety formu | ❌ |
 | 11 | İçerik derecelendirme anketi (IARC) | ❌ |
-| 12 | Hedef kitle + içerik beyanı | ❌ |
+| 12 | Hedef kitle + içerik beyanı — karar ✅ (2026-09-25: 13+ → 13–15 / 16–17 / 18+); konsol formu owner'da | ❌ |
 | 13 | Kapalı test track'i + en az 12 test kullanıcısı / 14 gün (yalnız 13 Kasım 2023 sonrası açılmış KİŞİSEL hesaplar için Google'ın şartı; hesabın durumu Play Console'da kontrol edilir) | ❌ |
 
 > **Not:** Google, 2023 sonrası açılan bireysel geliştirici hesapları için

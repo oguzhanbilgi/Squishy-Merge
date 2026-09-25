@@ -21,6 +21,12 @@ extends RefCounted
 ## (debug TEST-reklam APK'sı, cihaz harness'ları) = üretim + QA_PACKAGE_SUFFIX
 ## (com.obappstudio.squishymerge.qa). QA kimliği asla release olamaz; üretim
 ## kimliğiyle yapılan debug export'u raporda uyarı verir (cihazda Play sürümüyle çakışır).
+##
+## Kitle (owner kararı, 2026-09-25 — FİNAL): 13+ genel kitle, 13 yaş altı için
+## tasarlanmadı → android_export.cfg [Audience] decision = general_13_plus (Play
+## hedef yaş grupları 13–15 / 16–17 / 18+). Kapı fail-closed kalır: karar boşsa
+## OWNER, kodu olmayan karar (karma / çocuk) CODE engeli; hazır karar yalnız
+## rapora bilgi notu düşer (docs/monetization/AUDIENCE_DECISION.md §0).
 
 const CATEGORY_OWNER: String = "OWNER"
 const CATEGORY_CONFIG: String = "CONFIG"
@@ -130,6 +136,10 @@ static func evaluate(inputs: Dictionary) -> Dictionary:
 			_add(blockers, CATEGORY_OWNER, "kitle kararı yok (android_export.cfg [Audience] decision — AUDIENCE_DECISION.md)")
 		elif not IMPLEMENTED_AUDIENCE_DECISIONS.has(ads.audience_decision):
 			_add(blockers, CATEGORY_CODE, "kitle kararı '%s' ek uygulama istiyor (Families: yaş ekranı / AD_ID / TFCD) — henüz kodda yok" % ads.audience_decision)
+		else:
+			notes.append("kitle kararı: %s (TFCD=%s, TFUA=%s, en yüksek reklam derecesi %s) — AUDIENCE_DECISION.md §0"
+				% [ads.audience_decision, ads.tag_for_child_directed_treatment, ads.tag_for_under_age_of_consent,
+					ads.max_ad_content_rating])
 
 	# 5) Gizlilik politikası (Play: konsolda VE uygulama içinde).
 	var url: String = String(inputs.get("privacy_policy_url", "")).strip_edges()
