@@ -17,9 +17,8 @@ AUDIENCE_DECISION §2.2). Release kapısı yalnız OWNER engelli (CODE 0 · OWNE
 işlemi stratejisi → gizlilik politikası → upload anahtarı → gerçek AdMob
 kimlikleri → mağaza varlıkları / Play Console), sonra ilk imzalı üretim AAB'si
 ve M10 (Play kapalı test) ·
-**Branch:** `main` == origin/main == `3bc6377` — `task/038-final-package-id`
-(`fd91074`) ff-only alındı (2026-09-25); hedef kitle kararı
-`task/039-target-audience` dalında (main'e alınması owner onayı bekliyor)
+**Branch:** `main` == origin/main — `task/039-target-audience` (`4d3268c` +
+`fa20369`, hedef kitle kararı + politika düzeltmesi) ff-only alındı (2026-09-25)
 
 > Güncel engel listesi ve sıradaki adımın kanonik yeri: `PROJECT_CONTEXT.md` →
 > Current state / Current release blockers / Next action. Aşağıdaki tarihçe

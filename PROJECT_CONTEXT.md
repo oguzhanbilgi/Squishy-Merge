@@ -76,11 +76,10 @@ alınacak — şimdi tahmin/vaat yok.
 [Current release blockers](#current-release-blockers) +
 [Next action](#next-action); aşağıdaki "Milestone tarihçesi" değil.
 
-- **Repo:** `main == origin/main == 3bc6377` (2026-09-25): `task/038-final-package-id`
-  (`fd91074`, kalıcı paket kimliği) main'e ff-only alındı; üstünde yalnız durum
-  doküman commit'i. Hedef kitle kararı `task/039-target-audience` dalında —
-  main'e alınması owner onayı bekliyor. `task/014`…`task/038` dallarının hepsi
-  main'de (referans için duruyor).
+- **Repo:** `main == origin/main` (2026-09-25): `task/039-target-audience`
+  (`4d3268c` hedef kitle kararı + `fa20369` politika düzeltmesi) main'e ff-only
+  alındı; üstünde yalnız bu durum doküman commit'i. Aktif kod görevi YOK;
+  `task/014`…`task/039` dallarının hepsi main'de (referans için duruyor).
   Main'e bilerek girmeyen iki dal: `task/m8.6-03-home` (reddedildi, asla
   birleştirilmez) ve `task/ui-layerlab-style-spike` (seçilen parçaları
   M8.6-01'de promote edildi).
