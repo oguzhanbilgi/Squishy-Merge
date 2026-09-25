@@ -1,0 +1,340 @@
+diff --git a/addon/src/Admob.gd b/addon/src/Admob.gd
+index 30eea5f..791b57a 100644
+--- a/addon/src/Admob.gd
++++ b/addon/src/Admob.gd
+@@ -96,6 +96,9 @@ const MAXIMUM_CACHE_SIZE: int = 1000
+ ## TFUA is a technical parameter to indicate that a user is under the digital age of consent in the European Economic Area (EEA), the UK, and Switzerland.
+ @export var under_age_of_consent: AdmobConfig.TagForUnderAgeOfConsent = AdmobConfig.TagForUnderAgeOfConsent.UNSPECIFIED: set = set_under_age_of_consent
+ 
++## TASK/040 spike: age treatment (GMA 25.3.0+ TFAT). UNSPECIFIED = legacy TFCD/TFUA path.
++@export var age_restricted_treatment: AdmobConfig.AgeRestrictedTreatment = AdmobConfig.AgeRestrictedTreatment.UNSPECIFIED: set = set_age_restricted_treatment
++
+ ## A configuration option that controls the use of first-party IDs for tracking user interactions.
+ @export var first_party_id_enabled: bool = true: set = set_first_party_id_enabled
+ 
+@@ -108,6 +111,10 @@ const MAXIMUM_CACHE_SIZE: int = 1000
+ ## Whether the plugin should automatically apply the configuration after initialization has been completed.
+ @export var auto_configure_on_initialize: bool = true
+ 
++## TASK/040 spike: also apply the request configuration BEFORE MobileAds.initialize(), so the
++## age treatment is already in place when the SDK starts (not only after initialization).
++@export var configure_before_initialize: bool = false
++
+ @export_group("Global Settings", "global_")
+ 
+ ## Sets the ads' audio volume. Minimum value is 0.0 and maximum value is 1.0.
+@@ -483,9 +490,20 @@ func initialize() -> void:
+ 	if _plugin_singleton == null:
+ 		Admob.log_error("%s plugin not initialized" % PLUGIN_SINGLETON_NAME)
+ 	else:
++		if configure_before_initialize:
++			set_request_configuration()
+ 		_plugin_singleton.initialize()
+ 
+ 
++## TASK/040 spike: the native SDK's CURRENT RequestConfiguration (age treatment, TFCD, TFUA,
++## max rating, personalization state, SDK version) read back from MobileAds.
++func get_request_configuration_diagnostics() -> Dictionary:
++	if _plugin_singleton == null:
++		Admob.log_error("%s plugin not initialized" % PLUGIN_SINGLETON_NAME)
++		return {}
++	return _plugin_singleton.get_request_configuration_diagnostics()
++
++
+ func get_initialization_status() -> InitializationStatus:
+ 	var __status: InitializationStatus
+ 
+@@ -513,6 +531,10 @@ func set_under_age_of_consent(a_value: AdmobConfig.TagForUnderAgeOfConsent) -> v
+ 	under_age_of_consent = a_value
+ 
+ 
++func set_age_restricted_treatment(a_value: AdmobConfig.AgeRestrictedTreatment) -> void:
++	age_restricted_treatment = a_value
++
++
+ func set_first_party_id_enabled(a_value: bool) -> void:
+ 	first_party_id_enabled = a_value
+ 
+@@ -577,6 +599,7 @@ func create_request_configuration() -> AdmobConfig:
+ 			.set_max_ad_content_rating(max_ad_content_rating)
+ 			.set_child_directed_treatment(child_directed)
+ 			.set_under_age_of_consent(under_age_of_consent)
++			.set_age_restricted_treatment(age_restricted_treatment)
+ 			.set_first_party_id_enabled(first_party_id_enabled)
+ 			.set_personalization_state(personalization_state))
+ 
+@@ -589,6 +612,7 @@ func set_request_configuration(a_config: AdmobConfig = null) -> void:
+ 					.set_max_ad_content_rating(max_ad_content_rating)
+ 					.set_child_directed_treatment(child_directed)
+ 					.set_under_age_of_consent(under_age_of_consent)
++					.set_age_restricted_treatment(age_restricted_treatment)
+ 					.set_first_party_id_enabled(first_party_id_enabled)
+ 					.set_personalization_state(personalization_state))
+ 
+diff --git a/addon/src/model/AdmobConfig.gd b/addon/src/model/AdmobConfig.gd
+index 3234c83..7fa3f68 100644
+--- a/addon/src/model/AdmobConfig.gd
++++ b/addon/src/model/AdmobConfig.gd
+@@ -23,6 +23,14 @@ enum TagForUnderAgeOfConsent {
+ 	TRUE = 1 ## Indicates that you want the ad request to be handled in a manner suitable for users under the age of consent within the EEA, the UK, and Switzerland.
+ }
+ 
++## TASK/040 spike: GMA 25.3.0+ RequestConfiguration.Builder.setAgeRestrictedTreatment()
++## (AgeRestrictedTreatment.UNSPECIFIED / CHILD / TEEN). UNSPECIFIED keeps the legacy TFCD/TFUA path.
++enum AgeRestrictedTreatment {
++	UNSPECIFIED = 0, ## AgeRestrictedTreatment.UNSPECIFIED (SDK default).
++	CHILD = 1, ## AgeRestrictedTreatment.CHILD.
++	TEEN = 2 ## AgeRestrictedTreatment.TEEN.
++}
++
+ enum PersonalizationState {
+ 	DEFAULT = 0, ## By default, the SDK will attempt to serve personalized ads based on the user's past behavior and interests.
+ 	ENABLED = 1, ## Indicates that the Google Mobile Ads SDK is authorized to serve ads that are tailored to the user based on past activity and collected data.
+@@ -33,6 +41,7 @@ const DATA_KEY_IS_REAL: String = "is_real"
+ const DATA_KEY_MAX_AD_CONTENT_RATING: String = "max_ad_content_rating"
+ const DATA_KEY_CHILD_DIRECTED_TREATMENT: String = "tag_for_child_directed_treatment"
+ const DATA_KEY_UNDER_AGE_OF_CONSENT: String = "tag_for_under_age_of_consent"
++const DATA_KEY_AGE_RESTRICTED_TREATMENT: String = "age_restricted_treatment"
+ const DATA_KEY_FIRST_PARTY_ID_ENABLED: String = "first_party_id_enabled"
+ const DATA_KEY_PERSONALIZATION_STATE: String = "personalization_state"
+ const DATA_KEY_TEST_DEVICE_IDS = "test_device_ids"
+@@ -61,6 +70,11 @@ func set_child_directed_treatment(a_value: TagForChildDirectedTreatment) -> Admo
+ 	return self
+ 
+ 
++func set_age_restricted_treatment(a_value: AgeRestrictedTreatment) -> AdmobConfig:
++	_data[DATA_KEY_AGE_RESTRICTED_TREATMENT] = a_value
++	return self
++
++
+ func set_under_age_of_consent(a_value: TagForUnderAgeOfConsent) -> AdmobConfig:
+ 	_data[DATA_KEY_UNDER_AGE_OF_CONSENT] = a_value
+ 	return self
+diff --git a/android/src/main/java/org/godotengine/plugin/admob/AdmobPlugin.java b/android/src/main/java/org/godotengine/plugin/admob/AdmobPlugin.java
+index 2a47015..e0f757f 100644
+--- a/android/src/main/java/org/godotengine/plugin/admob/AdmobPlugin.java
++++ b/android/src/main/java/org/godotengine/plugin/admob/AdmobPlugin.java
+@@ -24,6 +24,8 @@ import com.google.android.gms.ads.AdError;
+ import com.google.android.gms.ads.AdSize;
+ import com.google.android.gms.ads.LoadAdError;
+ import com.google.android.gms.ads.MobileAds;
++import com.google.android.gms.ads.RequestConfiguration;
++import com.google.android.gms.ads.VersionInfo;
+ import com.google.android.gms.ads.ResponseInfo;
+ import com.google.android.gms.ads.initialization.InitializationStatus;
+ import com.google.android.gms.ads.initialization.OnInitializationCompleteListener;
+@@ -251,6 +253,7 @@ public class AdmobPlugin extends GodotPlugin {
+ 	@UsedByGodot
+ 	public void initialize() {
+ 		Log.d(LOG_TAG, "initialize()");
++		logRequestConfiguration("initialize:before_MobileAds.initialize");
+ 
+ 		bannerAdIdSequence = 0;
+ 		nativeAdIdSequence = 0;
+@@ -284,6 +287,7 @@ public class AdmobPlugin extends GodotPlugin {
+ 							}
+ 						}
+ 
++						logRequestConfiguration("initialize:onInitializationComplete");
+ 						isInitialized = true;
+ 						emitSignal(SIGNAL_INITIALIZATION_COMPLETED, new AdmobStatus(initializationStatus).buildRawData());
+ 					}
+@@ -295,8 +299,49 @@ public class AdmobPlugin extends GodotPlugin {
+ 	@UsedByGodot
+ 	public void set_request_configuration(Dictionary configData) {
+ 		Log.d(LOG_TAG, "set_request_configuration()");
+-		AdmobConfiguration config = new AdmobConfiguration(configData);
+-		MobileAds.setRequestConfiguration(config.createRequestConfiguration(activity));
++		StringBuilder types = new StringBuilder();
++		for (String key : configData.keySet()) {
++			Object value = configData.get(key);
++			types.append(key).append('=').append(value == null ? "null" : value.getClass().getSimpleName()).append(' ');
++		}
++		Log.i(LOG_TAG, "TFAT_DIAG set_request_configuration value types: " + types);
++		try {
++			AdmobConfiguration config = new AdmobConfiguration(configData);
++			MobileAds.setRequestConfiguration(config.createRequestConfiguration(activity));
++			logRequestConfiguration("set_request_configuration:applied");
++		} catch (RuntimeException e) {
++			Log.e(LOG_TAG, "TFAT_DIAG set_request_configuration FAILED: " + e, e);
++		}
++	}
++
++	/**
++	 * TASK/040 spike: the SDK's CURRENT RequestConfiguration, read back from
++	 * MobileAds.getRequestConfiguration() (local SDK state, not a network capture).
++	 */
++	private static Dictionary buildRequestConfigurationDiagnostics() {
++		RequestConfiguration current = MobileAds.getRequestConfiguration();
++		Dictionary dict = new Dictionary();
++		dict.put("age_restricted_treatment", String.valueOf(current.getAgeRestrictedTreatment()));
++		dict.put("tag_for_child_directed_treatment", current.getTagForChildDirectedTreatment());
++		dict.put("tag_for_under_age_of_consent", current.getTagForUnderAgeOfConsent());
++		dict.put("max_ad_content_rating", String.valueOf(current.getMaxAdContentRating()));
++		dict.put("personalization_state", String.valueOf(current.getPublisherPrivacyPersonalizationState()));
++		dict.put("test_device_ids", current.getTestDeviceIds().size());
++		VersionInfo version = MobileAds.getVersion();
++		dict.put("sdk_version", version.getMajorVersion() + "." + version.getMinorVersion() + "." + version.getMicroVersion());
++		return dict;
++	}
++
++	private void logRequestConfiguration(String where) {
++		Log.i(LOG_TAG, "TFAT_DIAG " + where + " " + buildRequestConfigurationDiagnostics() + " initialized=" + isInitialized);
++	}
++
++	@UsedByGodot
++	public Dictionary get_request_configuration_diagnostics() {
++		Dictionary dict = buildRequestConfigurationDiagnostics();
++		dict.put("initialized", isInitialized);
++		Log.i(LOG_TAG, "TFAT_DIAG get_request_configuration_diagnostics " + dict);
++		return dict;
+ 	}
+ 
+ 	@UsedByGodot
+@@ -381,6 +426,7 @@ public class AdmobPlugin extends GodotPlugin {
+ 	public void load_banner_ad(Dictionary adData) {
+ 		if (isInitialized) {
+ 			Log.d(LOG_TAG, "load_banner_ad()");
++			logRequestConfiguration("load_banner_ad");
+ 
+ 			LoadAdRequest loadAdRequest = new LoadAdRequest(adData);
+ 			if (loadAdRequest.isValid()) {
+@@ -555,6 +601,7 @@ public class AdmobPlugin extends GodotPlugin {
+ 	public void load_interstitial_ad(Dictionary adData) {
+ 		if (isInitialized) {
+ 			Log.d(LOG_TAG, "load_interstitial_ad()");
++			logRequestConfiguration("load_interstitial_ad");
+ 
+ 			LoadAdRequest loadAdRequest = new LoadAdRequest(adData);
+ 			if (loadAdRequest.isValid()) {
+@@ -642,6 +689,7 @@ public class AdmobPlugin extends GodotPlugin {
+ 	public void load_rewarded_ad(Dictionary adData) {
+ 		if (isInitialized) {
+ 			Log.d(LOG_TAG, "load_rewarded_ad()");
++			logRequestConfiguration("load_rewarded_ad");
+ 
+ 			LoadAdRequest loadAdRequest = new LoadAdRequest(adData);
+ 			if (loadAdRequest.isValid()) {
+diff --git a/android/src/main/java/org/godotengine/plugin/admob/model/AdmobConfiguration.java b/android/src/main/java/org/godotengine/plugin/admob/model/AdmobConfiguration.java
+index fbc71a1..c202ef0 100644
+--- a/android/src/main/java/org/godotengine/plugin/admob/model/AdmobConfiguration.java
++++ b/android/src/main/java/org/godotengine/plugin/admob/model/AdmobConfiguration.java
+@@ -9,6 +9,7 @@ import android.provider.Settings;
+ import android.util.Log;
+ 
+ import com.google.android.gms.ads.AdRequest;
++import com.google.android.gms.ads.AgeRestrictedTreatment;
+ import com.google.android.gms.ads.MobileAds;
+ import com.google.android.gms.ads.RequestConfiguration;
+ import com.google.android.gms.ads.identifier.AdvertisingIdClient;
+@@ -33,6 +34,7 @@ public class AdmobConfiguration {
+ 	private static String MAX_AD_CONTENT_RATING_PROPERTY = "max_ad_content_rating";
+ 	private static String CHILD_DIRECTED_TREATMENT_PROPERTY = "tag_for_child_directed_treatment";
+ 	private static String UNDER_AGE_OF_CONSENT_PROPERTY = "tag_for_under_age_of_consent";
++	private static String AGE_RESTRICTED_TREATMENT_PROPERTY = "age_restricted_treatment";
+ 	private static String FIRST_PARTY_ID_ENABLED_PROPERTY = "first_party_id_enabled";
+ 	private static String PERSONALIZATION_STATE_PROPERTY = "personalization_state";
+ 	private static String TEST_DEVICE_IDS_PROPERTY = "test_device_ids";
+@@ -51,12 +53,29 @@ public class AdmobConfiguration {
+ 		return (String) _data.get(MAX_AD_CONTENT_RATING_PROPERTY);
+ 	}
+ 
++	// TASK/040 spike: Godot 4.6 passes Dictionary ints as java.lang.Long. The upstream
++	// `(int) _data.get(...)` casts (checkcast Integer) threw ClassCastException, so
++	// MobileAds.setRequestConfiguration() was never reached (same idea as upstream 953df5e).
++	private int toInt(String key, int fallback) {
++		Object value = _data.get(key);
++		return (value instanceof Number) ? ((Number) value).intValue() : fallback;
++	}
++
+ 	public int getChildDirectedTreatment() {
+-		return (int) _data.get(CHILD_DIRECTED_TREATMENT_PROPERTY);
++		return toInt(CHILD_DIRECTED_TREATMENT_PROPERTY, RequestConfiguration.TAG_FOR_CHILD_DIRECTED_TREATMENT_UNSPECIFIED);
+ 	}
+ 
+ 	public int getUnderAgeOfConsent() {
+-		return (int) _data.get(UNDER_AGE_OF_CONSENT_PROPERTY);
++		return toInt(UNDER_AGE_OF_CONSENT_PROPERTY, RequestConfiguration.TAG_FOR_UNDER_AGE_OF_CONSENT_UNSPECIFIED);
++	}
++
++	// TASK/040 spike: 0 UNSPECIFIED, 1 CHILD, 2 TEEN (Godot may pass Long or Integer).
++	public AgeRestrictedTreatment getAgeRestrictedTreatment() {
++		switch (toInt(AGE_RESTRICTED_TREATMENT_PROPERTY, 0)) {
++			case 1: return AgeRestrictedTreatment.CHILD;
++			case 2: return AgeRestrictedTreatment.TEEN;
++			default: return AgeRestrictedTreatment.UNSPECIFIED;
++		}
+ 	}
+ 
+ 	public boolean getFirstPartyIdEnabled() {
+@@ -64,11 +83,25 @@ public class AdmobConfiguration {
+ 	}
+ 
+ 	public int getPublisherPrivacyPersonalizationState() {
+-		return (int) _data.get(PERSONALIZATION_STATE_PROPERTY);
++		return toInt(PERSONALIZATION_STATE_PROPERTY, 0);
+ 	}
+ 
++	// TASK/040 spike: Godot 4.6 passes GDScript arrays as Object[] (not String[]); the upstream
++	// `(String[])` cast threw ClassCastException (A36 logcat, 2026-09-25).
+ 	public String[] getTestDeviceIds() {
+-		return (String[]) _data.get(TEST_DEVICE_IDS_PROPERTY);
++		Object value = _data.get(TEST_DEVICE_IDS_PROPERTY);
++		if (value instanceof String[]) {
++			return (String[]) value;
++		}
++		if (value instanceof Object[]) {
++			Object[] raw = (Object[]) value;
++			String[] ids = new String[raw.length];
++			for (int i = 0; i < raw.length; i++) {
++				ids[i] = String.valueOf(raw[i]);
++			}
++			return ids;
++		}
++		return new String[0];
+ 	}
+ 
+ 	public RequestConfiguration createRequestConfiguration(Activity activity) {
+@@ -77,11 +110,24 @@ public class AdmobConfiguration {
+ 		if (_data.containsKey(MAX_AD_CONTENT_RATING_PROPERTY))
+ 			builder.setMaxAdContentRating(getMaxContentRating());
+ 
+-		if (_data.containsKey(CHILD_DIRECTED_TREATMENT_PROPERTY))
+-			builder.setTagForChildDirectedTreatment(getChildDirectedTreatment());
+-
+-		if (_data.containsKey(UNDER_AGE_OF_CONSENT_PROPERTY))
+-			builder.setTagForUnderAgeOfConsent(getUnderAgeOfConsent());
++		// TASK/040 spike (GMA 25.3.0+): setAgeRestrictedTreatment() replaces the deprecated
++		// TFCD/TFUA tags, which have no TEEN equivalent. UNSPECIFIED keeps the legacy path
++		// byte-for-byte (TFCD/TFUA as before, TFAT setter not called).
++		AgeRestrictedTreatment ageTreatment = _data.containsKey(AGE_RESTRICTED_TREATMENT_PROPERTY)
++				? getAgeRestrictedTreatment() : AgeRestrictedTreatment.UNSPECIFIED;
++		if (ageTreatment == AgeRestrictedTreatment.UNSPECIFIED) {
++			if (_data.containsKey(CHILD_DIRECTED_TREATMENT_PROPERTY))
++				builder.setTagForChildDirectedTreatment(getChildDirectedTreatment());
++
++			if (_data.containsKey(UNDER_AGE_OF_CONSENT_PROPERTY))
++				builder.setTagForUnderAgeOfConsent(getUnderAgeOfConsent());
++		}
++		AgeRestrictedTreatment currentTreatment = MobileAds.getRequestConfiguration().getAgeRestrictedTreatment();
++		if (ageTreatment != AgeRestrictedTreatment.UNSPECIFIED
++				|| (currentTreatment != null && currentTreatment != AgeRestrictedTreatment.UNSPECIFIED)) {
++			builder.setAgeRestrictedTreatment(ageTreatment);
++			Log.d(LOG_TAG, "ageRestrictedTreatment: " + ageTreatment);
++		}
+ 
+ 		if (_data.containsKey(FIRST_PARTY_ID_ENABLED_PROPERTY)) {
+ 			// Note: Android RequestConfiguration does not have a direct equivalent for iOS's setPublisherFirstPartyIDEnabled.
+diff --git a/common/gradle/libs.versions.toml b/common/gradle/libs.versions.toml
+index cfbed04..4d3f38e 100644
+--- a/common/gradle/libs.versions.toml
++++ b/common/gradle/libs.versions.toml
+@@ -8,7 +8,7 @@ minSdk = "24"
+ buildTools = "35.0.0"
+ appcompat = "1.7.1"
+ lifecycle = "2.8.3"
+-playads = "24.9.0"
++playads = "25.3.0"
+ 
+ [libraries]
+ androidx-appcompat = { module = "androidx.appcompat:appcompat", version.ref = "appcompat" }

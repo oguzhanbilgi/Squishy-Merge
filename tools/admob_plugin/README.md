@@ -69,6 +69,25 @@ Linux/macOS'ta derlenen AAR'ın SHA-256'sı Windows'takinden yalnız manifest
 satır sonları yüzünden farklı çıkar; `verify` bunu `aar_equivalence.py` ile
 "EQUIVALENT" olarak kabul eder, başka her farkta durur.
 
+## TASK/040 — GMA 25.3.0 TEEN fizibilite spike'ı (ÜRETİM DEĞİL)
+
+| dosya | ne |
+|---|---|
+| `0002-spike-gma25-age-restricted-treatment.patch` | 0001'in ÜSTÜNE: `playads` 24.9.0 → **25.3.0** (UMP 4.0.0 geçişli), `AgeRestrictedTreatment` (TFAT) desteği, facade'da `age_restricted_treatment` + `configure_before_initialize` (yapılandırma MobileAds.initialize ÖNCESİ), `AdmobConfiguration` dönüşüm düzeltmesi (Godot 4.6 Long / Object[]), `TFAT_DIAG` tanı logları + `get_request_configuration_diagnostics()` |
+| `build_patched_plugin.sh spike` | v6.0 + 0001 + 0002 → `build/admob_plugin_spike/out/spike/` (AAR'lar + üretilen addon); **`addons/AdmobPlugin`'e ASLA kurmaz**; yama SHA-256'sı betikte sabit; aynı girdiyle iki derleme bayt-aynı |
+| `spike_qa_export.sh` + `spike_qa_preset.py` | `tools/ads_device` QA sürücüsünü yalnız `com.obappstudio.squishymerge.qa` paketiyle, spike eklentisiyle export eder; `project.godot` / `export_presets.cfg` / `addons/AdmobPlugin` yalnız export süresince değişir ve SHA-256 ile birebir geri konur (değiştirilmiş dosya varsa başlamaz) |
+
+QA sürücüsü: `qa_boot.txt` içinde `teen` → TEEN + başlatma öncesi yapılandırma;
+`tfat teen|child|unspecified [apply]`, `tfat_diag`, durum satırı `tfat:`. Samsung A36
+kanıtı ve karar tablosu: `docs/monetization/GLOBAL_TEEN_AD_TREATMENT.md`.
+**Play Age Signals hiçbir reklam koduna bağlanmaz.**
+
+**Üretim eklentisindeki bilinen kusur (spike'ın bulgusu):** v6.0 `AdmobConfiguration`
+`(int)` / `(String[])` dönüşümleri Godot 4.6'nın Long / Object[] değerlerinde
+ClassCastException atıyor → üretim AAR'ı (`90d35992…`) RequestConfiguration'ı hiç
+uygulamıyor; release kapısı bunu CODE engeli olarak gösterir
+(`ReleaseReadiness.KNOWN_PLUGIN_DEFECTS`). Düzeltme 0002'de; üretime alınması ayrı görev.
+
 ## Eklentiyi güncellerken
 
 Yeni bir release zip'ini `addons/AdmobPlugin/` üstüne KOPYALAMA — yama

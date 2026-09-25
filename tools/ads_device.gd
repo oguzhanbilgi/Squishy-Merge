@@ -74,6 +74,16 @@ extends Node
 ##   coğrafyasıyla (yalnız DEBUG build) — yeni süreçte, Mobile Ads SDK henüz
 ##   hiç başlatılmamışken EEA / NOT_EEA kanıtı (öncesinde `pm clear` = UMP
 ##   sıfırlama). Dosya açılışta okunur ve silinir.
+##
+## TASK/040 (GMA 25.3.0 TEEN fizibilitesi — yalnız QA ve yalnız SPIKE eklentisiyle,
+## `tools/admob_plugin/build_patched_plugin.sh spike`; üretim eklentisinde (GMA 24.9.0)
+## bu komutlar "desteklenmiyor" der, hiçbir şey değiştirmez):
+##   `qa_boot.txt` içinde `teen` → ilk arka uçta age_restricted_treatment = TEEN +
+##   configure_before_initialize = true (yapılandırma MobileAds.initialize ÖNCESİ uygulanır)
+##   tfat teen|child|unspecified [apply]   facade özelliği (apply: hemen set_request_configuration)
+##   tfat_diag                SDK'nın o anki RequestConfiguration'ı (native geri okuma, TFAT_DIAG)
+##   (durum satırı `tfat:`)
+## Play Age Signals'a hiçbir bağlantı YOK: yaş işlemi yalnız bu QA komutlarıyla seçilir.
 
 const MAIN_SCENE: PackedScene = preload("res://scenes/main.tscn")
 const BOOT_PATH: String = "user://qa_boot.txt"
@@ -96,6 +106,10 @@ var _fake_ishow_done: int = 0
 ## yeniden bağlanır) — "callback tam bir kez" kanıtı.
 var _privacy_dismissals: int = 0
 var _privacy_last: String = "-"
+## TASK/040: QA-only TEEN spike (ints, not the spike facade's enum — this file must also
+## parse with the production GMA 24.9.0 facade, which has no age treatment).
+const TFAT_VALUES: Dictionary = {"unspecified": 0, "child": 1, "teen": 2}
+var _tfat_boot: String = "-"
 
 
 func _ready() -> void:
@@ -122,6 +136,11 @@ func _ready() -> void:
 			else:
 				_last = "boot: debug coğrafyası reddedildi (%s)" % word
 	await _make_main(boot_backend)
+	if boot_words.has("teen"):
+		# TASK/040: TEEN before MobileAds.initialize (the manager initializes only after
+		# the async UMP update; the native TFAT_DIAG log proves the order).
+		_tfat_boot = _tfat_set("teen", false, true)
+		_last = "boot teen: %s" % _tfat_boot
 	print("[qa] ready view=", DisplayServer.window_get_size(), " boot=", boot if boot != "" else "showcase")
 	_write_state("ready")
 	while true:
@@ -352,6 +371,14 @@ func _handle(line: String) -> void:
 					str(raw.has_privacy_api()), str(raw.can_request_ads()),
 					AdBackend.PrivacyOptionsStatus.keys()[raw.privacy_options_status()],
 					AdBackend.ConsentStatus.keys()[raw.consent_status()], str(raw.is_consent_form_available())]
+		"tfat":
+			# TASK/040 (QA only, spike plugin): tfat teen|child|unspecified [apply]
+			var word: String = parts[1] if parts.size() > 1 else "teen"
+			_last = "tfat: %s" % _tfat_set(word, parts.size() > 2 and parts[2] == "apply", false)
+		"tfat_diag":
+			var diag_facade: Object = _admob_facade()
+			_last = "tfat_diag: %s" % (str(diag_facade.call("get_request_configuration_diagnostics"))
+				if _tfat_supported(diag_facade) else "desteklenmiyor (üretim eklentisi / arka uç yok)")
 		"ensure":
 			if _ads() != null:
 				_ads().ensure_rewarded()
@@ -501,6 +528,37 @@ func _fake_ishow_pending() -> bool:
 	return false
 
 
+## TASK/040: gerçek arka ucun eklenti düğümü (Admob facade) — dinamik erişim, çünkü yaş
+## işlemi yalnız SPIKE facade'ında var.
+func _admob_facade() -> Object:
+	var ads: MonetizationManager = _ads()
+	if ads == null or not (ads.backend() is AdmobBackend):
+		return null
+	return (ads.backend() as AdmobBackend)._admob
+
+
+func _tfat_supported(facade: Object) -> bool:
+	return facade != null and is_instance_valid(facade) and "age_restricted_treatment" in facade \
+		and facade.has_method("get_request_configuration_diagnostics")
+
+
+## Facade'ın yaş işlemini ayarlar; `before_init` = configure_before_initialize,
+## `apply_now` = hemen set_request_configuration(). Sonuç tek satır özet.
+func _tfat_set(word: String, apply_now: bool, before_init: bool) -> String:
+	var facade: Object = _admob_facade()
+	if not _tfat_supported(facade):
+		return "desteklenmiyor (üretim eklentisi / arka uç yok)"
+	if not TFAT_VALUES.has(word):
+		return "bilinmeyen değer %s" % word
+	facade.set("age_restricted_treatment", int(TFAT_VALUES[word]))
+	if before_init:
+		facade.set("configure_before_initialize", true)
+	if apply_now:
+		facade.call("set_request_configuration")
+	return "facade=%s before_init=%s applied=%s sdk_ready=%s" % [word, str(facade.get("configure_before_initialize")),
+		str(apply_now), str(_ads().sdk_ready())]
+
+
 ## Main'i mevcut arka uç türüyle yeniden kurar (uygulama açılışı: _ready →
 ## observe_day → giriş ödülü → otomatik pencere).
 func _remake_current() -> void:
@@ -587,6 +645,14 @@ func _write_state(label: String) -> void:
 			str(backend.can_request_ads()) if papi else "-",
 			AdBackend.PrivacyOptionsStatus.keys()[backend.privacy_options_status()] if papi else "-",
 			str(ads.uses_privacy_api()), _privacy_dismissals, _privacy_last])
+		# TASK/040: TEEN spike (yalnız spike eklentisi) — facade değeri + native geri okuma.
+		var tfat_facade: Object = _admob_facade()
+		if _tfat_supported(tfat_facade):
+			lines.append("tfat: supported=true boot='%s' facade_treatment=%s before_init=%s native=%s" % [_tfat_boot,
+				str(tfat_facade.get("age_restricted_treatment")), str(tfat_facade.get("configure_before_initialize")),
+				str(tfat_facade.call("get_request_configuration_diagnostics"))])
+		else:
+			lines.append("tfat: supported=false (üretim eklentisi GMA 24.9.0 — TEEN yok)")
 		var req: Dictionary = ads.request_info()
 		lines.append("rewarded: state=%s ready=%s note='%s' attempts=%d retry=%s request={active=%s id=%d kind=%s type=%d token=%d day=%s ad_id=%s earned=%s cancelled=%s}" % [
 			MonetizationManager.RewardedState.keys()[ads.rewarded_state()], str(ads.is_rewarded_ready()),

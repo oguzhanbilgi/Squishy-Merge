@@ -631,6 +631,17 @@ func _test_teen_treatment_boundaries() -> void:
 	var gate_src: String = FileAccess.get_file_as_string("res://tools/release/release_readiness.gd")
 	_c("kapı genç işlemi engelini kapatmıyor: project_inputs teen_ad_treatment_resolved = false, true yazılı değil",
 		gate_src.contains("\"teen_ad_treatment_resolved\": false,") and not gate_src.contains("\"teen_ad_treatment_resolved\": true"))
+	var spike_patch: String = "res://tools/admob_plugin/0002-spike-gma25-age-restricted-treatment.patch"
+	var build_script: String = FileAccess.get_file_as_string("res://tools/admob_plugin/build_patched_plugin.sh")
+	var patch_text: String = FileAccess.get_file_as_string(spike_patch)
+	_c("spike yaması (GMA 25.3.0 + setAgeRestrictedTreatment + TFAT_DIAG) yalnız `spike` modunda, SHA-256 betikte sabit",
+		patch_text.contains("+playads = \"25.3.0\"") and patch_text.contains("builder.setAgeRestrictedTreatment(ageTreatment)")
+		and patch_text.contains("TFAT_DIAG")
+		and build_script.contains("SPIKE_PATCH_SHA256=\"%s\"" % FileAccess.get_sha256(spike_patch))
+		and build_script.contains("NOT installed; addons/AdmobPlugin stays GMA 24.9.0"))
+	var harness: Script = load("res://tools/ads_device.gd")
+	_c("QA sürücüsü (tools/ads_device.gd) üretim facade'ıyla derlenir; TEEN kancaları dinamik (yalnız spike eklentisinde çalışır)",
+		harness != null and FileAccess.get_file_as_string("res://tools/ads_device.gd").contains("\"age_restricted_treatment\" in facade"))
 
 
 static func _files_under(root: String, extensions: Array) -> PackedStringArray:

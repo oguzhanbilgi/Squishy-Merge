@@ -9,6 +9,11 @@
 #                                                        generated Admob.gd into addons/AdmobPlugin
 #   tools/admob_plugin/build_patched_plugin.sh baseline  rebuild UNPATCHED v6.0 and prove it equals
 #                                                        the upstream v6.0 release AARs (toolchain check)
+#   tools/admob_plugin/build_patched_plugin.sh spike     TASK/040 FEASIBILITY ONLY: v6.0 + 0001 + 0002
+#                                                        (GMA 25.3.0 / UMP 4.0.0 + age-restricted
+#                                                        treatment + diagnostics) into
+#                                                        build/admob_plugin_spike/out/spike — NEVER
+#                                                        installed into addons/AdmobPlugin
 #
 # Nothing is installed system-wide: the JDK and Android SDK are the ones the
 # Godot editor already uses, Gradle is the project's own Godot 4.6.3 Android
@@ -18,13 +23,21 @@
 set -euo pipefail
 
 MODE="${1:-verify}"
-case "$MODE" in verify|install|baseline) ;; *) echo "usage: $0 [verify|install|baseline]"; exit 64 ;; esac
+case "$MODE" in verify|install|baseline|spike) ;; *) echo "usage: $0 [verify|install|baseline|spike]"; exit 64 ;; esac
 
 REPO="$(cd "$(dirname "$0")/../.." && pwd)"
 HERE="$REPO/tools/admob_plugin"
 PLUGIN="$REPO/addons/AdmobPlugin"
-WORK="${SQUISHY_PLUGIN_WORK:-$REPO/build/admob_plugin}"
+if [ "$MODE" = "spike" ]; then
+	WORK="${SQUISHY_PLUGIN_WORK:-$REPO/build/admob_plugin_spike}"
+else
+	WORK="${SQUISHY_PLUGIN_WORK:-$REPO/build/admob_plugin}"
+fi
 PATCH="$HERE/0001-ump-privacy-options-and-debug-geography.patch"
+# TASK/040 feasibility spike (not production): GMA 25.3.0 (+ UMP 4.0.0 transitively),
+# AgeRestrictedTreatment (TFAT) + a TFAT_DIAG diagnostic seam. Applied only in `spike` mode.
+SPIKE_PATCH="$HERE/0002-spike-gma25-age-restricted-treatment.patch"
+SPIKE_PATCH_SHA256="e54c22713539d2fe0bce0ad019a12733ca498eb3da297f65b83022da0be8b036"
 
 UPSTREAM_URL="https://github.com/godot-sdk-integrations/godot-admob.git"
 PINNED_COMMIT="90e3c616ea3c680e3875c31e6bcccffbebbe9d3b"   # tag v6.0 ("Upgraded to Godot 4.6 (#89)")
@@ -100,6 +113,12 @@ if [ "$MODE" != "baseline" ]; then
 	git -C "$SRC" apply "$PATCH"
 	say "patch: $(basename "$PATCH") $PATCH_SHA256"
 fi
+if [ "$MODE" = "spike" ]; then
+	[ "$(sha "$SPIKE_PATCH")" = "$SPIKE_PATCH_SHA256" ] || die "spike patch SHA-256 changed — update SPIKE_PATCH_SHA256 deliberately"
+	git -C "$SRC" apply --check "$SPIKE_PATCH"
+	git -C "$SRC" apply "$SPIKE_PATCH"
+	say "spike patch: $(basename "$SPIKE_PATCH") $SPIKE_PATCH_SHA256 (FEASIBILITY ONLY)"
+fi
 
 # Build environment only (no source change): installed build-tools, local godot-lib
 # (the upstream downloadGodotAar task is skipped when the file exists).
@@ -121,6 +140,22 @@ GEN="$SRC/addon/build/output/AdmobPlugin"
 tr -d '\r' <"$GEN/Admob.gd" >"$OUT/Admob.gd"   # the repo stores LF (.gitattributes)
 say "built debug   $(sha "$OUT/AdmobPlugin-debug.aar")"
 say "built release $(sha "$OUT/AdmobPlugin-release.aar")"
+
+if [ "$MODE" = "spike" ]; then
+	# Feasibility output only: the two AARs + the whole generated addon (Admob.gd, model/,
+	# AdmobPlugin.gd with the GMA 25.3.0 dependency). Nothing is copied into addons/.
+	mkdir -p "$OUT/addon"
+	(cd "$GEN" && find . -type f) | while IFS= read -r rel; do
+		mkdir -p "$OUT/addon/$(dirname "$rel")"
+		case "$rel" in
+			*.gd|*.cfg) tr -d '\r' <"$GEN/$rel" >"$OUT/addon/$rel" ;;   # the repo stores LF
+			*) cp "$GEN/$rel" "$OUT/addon/$rel" ;;                        # binary (icon.png)
+		esac
+	done
+	grep -q 'com.google.android.gms:play-services-ads:25.3.0' "$OUT/addon/AdmobPlugin.gd" || die "spike: generated AdmobPlugin.gd does not declare GMA 25.3.0"
+	say "SPIKE BUILD OK -> $OUT (NOT installed; addons/AdmobPlugin stays GMA 24.9.0 / UMP 3.2.0)"
+	exit 0
+fi
 
 PY="${PYTHON:-$(command -v python3 || command -v python || true)}"
 [ -n "$PY" ] || die "python not found (needed for aar_equivalence.py)"
