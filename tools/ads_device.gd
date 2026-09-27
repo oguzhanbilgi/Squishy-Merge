@@ -16,7 +16,7 @@ extends Node
 ##
 ## Komutlar:
 ##   state · quit · events · idle S
-##   tab N                    0 Ana Sayfa · 1 Harita · 2 Koleksiyon · 3 Mağaza
+##   tab N                    0 Ana Sayfa · 1 Harita · 2 Koleksiyon · 3 Mağaza · 4 Profil (TASK/044)
 ##   level N                  level'ı başlat (tutorial kapalı)
 ##   fail                     board'u fail-pending'e al → gerçek Devam penceresi
 ##   refill bomb|upgrade|shake|clear
@@ -802,8 +802,12 @@ func _write_state(label: String) -> void:
 	lines.append("restricted: visible=%s exit=%s quit_requests=%d" % [str(rs.visible), _rect_px(rs.exit_button()), _main.quit_requests])
 	lines.append("result: visible=%s pause: %s" % [str(_main._result.visible), str(_main._pause.visible)])
 	var home: CanvasLayer = _main._screens[0]
-	lines.append("home: play=%s settings=%s daily_medal=%s daily_dot=%s" % [_rect_px(home._play), _rect_px(home._settings_button),
+	lines.append("home: play=%s profile=%s daily_medal=%s daily_dot=%s" % [_rect_px(home._play), _rect_px(home._avatar_button),
 		_rect_px(home.feature_button(&"daily")), str(home.is_daily_claimable())])
+	# TASK/044: Ayarlar'a gerçek dokunuş yolu Ana Sayfa avatarı → Profil dişlisi.
+	var profile: CanvasLayer = _main._screens[4]
+	lines.append("profile: visible=%s gear=%s back=%s" % [str(profile.visible), _rect_px(profile.settings_button()),
+		_rect_px(profile.top_bar().back_button())])
 	var mapscr: CanvasLayer = _main._screens[1]
 	if mapscr.nodes().size() > 0:
 		var n1: Control = mapscr.nodes()[0]

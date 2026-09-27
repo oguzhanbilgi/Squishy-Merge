@@ -1394,6 +1394,8 @@ func _finish_upgrade(target: Dumpling) -> void:
 
 	var upgraded := _spawn_dumpling(new_tier, at)
 	upgraded.linear_velocity = velocity
+	# Profil istatistiği (TASK/044): oluşturulan tier; skor / merge / sandık YOK.
+	GameState.note_tier_created(new_tier)
 	# Normal merge'den daha güçlü squash: dönüşüm "büyüdü" diye okunmalı.
 	upgraded.play_squash(0.34, 0.26)
 

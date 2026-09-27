@@ -11,7 +11,7 @@ extends Node
 ##   05_daily_claimed    Günlük madalyonundan alındıktan sonra (nokta yok)
 ##   06_feature_pressed  Koleksiyon madalyonu basılı (button_down)
 ##   07_play_pressed     OYNA basılı
-##   08_settings         Ayarlar penceresi Ana Sayfa üstünde
+##   08_settings         Ayarlar penceresi Profil üstünde (TASK/044: dişli çark Profil'de)
 ##   09_daily_modal      GÜNLÜK ÖDÜLLER penceresi (madalyondan; giriş ödülü ALINDI üstte)
 ##   10_chest_modal      Bonus sandık bilgi penceresi (madalyondan)
 ##
@@ -229,11 +229,14 @@ func _mouse(at: Vector2, down: bool) -> void:
 
 
 func _shot_settings() -> void:
-	_main.open_settings()
+	_home().profile_button().pressed.emit()
+	await _settle()
+	_main._screens[4].settings_button().pressed.emit()
 	await _settle()
 	await _capture("08_settings")
 	_main.close_settings()
 	await _settle()
+	await _show_home()
 
 
 func _shot_daily_modal() -> void:

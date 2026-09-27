@@ -10,6 +10,8 @@ extends Control
 ##   SAĞ    `UiKit.home_pill(Hamur, değer, "+")` → `add_pressed` (Mağaza);
 ##          Mağaza'nın kendisinde "+" YOK (`with_add = false`, M8.6-05): pill
 ##          yalnız bakiye gösterir — kendine giden ölü bir rota olmasın.
+##          `action_icon` verilirse (TASK/044 Profil: "settings") pill YERİNE
+##          aynı 56 px `UiKit.home_icon_button` → `action_pressed`.
 ##
 ## Sekme çubuğu göçü (UI_VISUAL_SYSTEM §14.4): her ikincil ekran bu satırı
 ## alınca alt çubuk o ekranda kalkar. Mağaza/Koleksiyon kendi işlerinde.
@@ -18,6 +20,8 @@ extends Control
 
 signal back_pressed
 signal add_pressed
+## Sağ ikon butonu (yalnız `action_icon` ile kurulduysa; Profil → Ayarlar).
+signal action_pressed
 
 const ROW_HEIGHT: float = 56.0
 const TOP_MARGIN: float = 14.0
@@ -32,22 +36,31 @@ const DOUGH_ART: Texture2D = preload("res://assets/visual/ui/icon_dough.png")
 var _back: Button
 var _ribbon: PanelContainer
 var _pill: Control
+var _action: Button
 var _safe_top: float = 0.0
 
 
-func _init(title: String = "", with_add: bool = true) -> void:
+func _init(title: String = "", with_add: bool = true, action_icon: String = "") -> void:
 	name = "TopBar"
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_back = UiKit.home_icon_button("back", ROW_HEIGHT)
 	_back.name = "Back"
 	_back.pressed.connect(func() -> void: back_pressed.emit())
 	add_child(_back)
-	_pill = UiKit.home_pill(DOUGH_ART, "0", with_add, ROW_HEIGHT)
-	_pill.name = "DoughPill"
-	if with_add:
-		(_pill.get_meta(&"add_button") as Button).pressed.connect(func() -> void: add_pressed.emit())
-	_pill.minimum_size_changed.connect(_relayout)
-	add_child(_pill)
+	if not action_icon.is_empty():
+		_action = UiKit.home_icon_button(action_icon, ROW_HEIGHT)
+		_action.name = "Action"
+		_action.pressed.connect(func() -> void: action_pressed.emit())
+		add_child(_action)
+		# Sağ uç bir ikon butonu: pill ile aynı yer (ölçü sabit ROW_HEIGHT kare).
+		_pill = _action
+	else:
+		_pill = UiKit.home_pill(DOUGH_ART, "0", with_add, ROW_HEIGHT)
+		_pill.name = "DoughPill"
+		if with_add:
+			(_pill.get_meta(&"add_button") as Button).pressed.connect(func() -> void: add_pressed.emit())
+		_pill.minimum_size_changed.connect(_relayout)
+		add_child(_pill)
 	_ribbon = UiKit.header_ribbon(title)
 	_ribbon.name = "Title"
 	_ribbon.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -81,6 +94,8 @@ func _relayout() -> void:
 	_back.position = Vector2(SIDE_MARGIN, top)
 	_back.size = Vector2(ROW_HEIGHT, ROW_HEIGHT)
 	var pill_size: Vector2 = _pill.custom_minimum_size
+	if _action != null:
+		pill_size = Vector2(ROW_HEIGHT, ROW_HEIGHT)
 	_pill.size = pill_size
 	_pill.position = Vector2(w - SIDE_MARGIN - pill_size.x, top + (ROW_HEIGHT - pill_size.y) * 0.5)
 	# Kurdele: içerik genişliği (min 200), ekran ortasında; sağ pill ile
@@ -102,6 +117,8 @@ func set_title(text: String) -> void:
 
 
 func set_value(text: String, pop: bool = false) -> void:
+	if _action != null:
+		return
 	UiKit.set_pill_value(_pill, text, pop)
 
 
@@ -112,6 +129,11 @@ func back_button() -> Button:
 ## Nane "+" (Mağaza kısayolu); `with_add = false` kurulduysa null.
 func add_button() -> Button:
 	return _pill.get_meta(&"add_button") if _pill.has_meta(&"add_button") else null
+
+
+## Sağ ikon butonu (`action_icon` ile kurulduysa), yoksa null.
+func action_button() -> Button:
+	return _action
 
 
 func pill() -> Control:

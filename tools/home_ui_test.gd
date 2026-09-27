@@ -3,16 +3,18 @@ extends Node
 ##
 ##   godot --headless --audio-driver Dummy --path . res://tools/home_ui_test.tscn
 ##
-## Kontroller: production bileşenler doğru variation'da (ButtonHomeIcon
-## "oturmuş" ayarlar, PanelHomePill seri/Hamur + ButtonHomeAdd, tek ButtonCTA
+## Kontroller: production bileşenler doğru variation'da (üst-sol PROFİL
+## avatarı — TASK/044, Ana Sayfa'da ayarlar butonu YOK —, PanelHomePill
+## seri/Hamur + ButtonHomeAdd, tek ButtonCTA
 ## OYNA, ButtonHomePill level pill'i + altın rozet, dört
-## HomeFeatureButton/ButtonFeature); üst satır hizası (ayarlar / seri / Hamur
+## HomeFeatureButton/ButtonFeature); üst satır hizası (avatar / seri / Hamur
 ## ortak optik merkez, ±3 px); yeni oyuncuda seri asla "0" değil; SIRADAKİ
 ## yazımı (Home + gameplay HUD kaynağı); sandık bilgisi ödül durumunu
 ## değiştirmez; Ana
 ## Sayfa'da sekme çubuğu GİZLİ, harita içeriği YOK; rotalar (OYNA/plaka →
 ## Harita, Koleksiyon → Koleksiyon, Mağaza ve Hamur "+" → Mağaza, Günlük →
-## günlük penceresi, Sandık → sandık bilgisi → OYNA → Harita, ayarlar);
+## günlük penceresi, Sandık → sandık bilgisi → OYNA → Harita, avatar →
+## Profil → dişli çark → Ayarlar);
 ## veri gösterimleri üç kayıt durumunda (orta / yeni / sonsuz) + günlük
 ## alınabilir/alınmış; 720x1280, 1560, 1440, 1600 (+ A36 payı) tuvalinde
 ## hiçbir kontrol çakışmıyor, madalyonlar maskotun OPAK pikselleriyle ve
@@ -81,8 +83,15 @@ func _ready() -> void:
 	_mascot_img = (home.HERO_ART as Texture2D).get_image()
 
 	print("-- bileşenler")
-	_c("ayarlar butonu ButtonHomeIcon (oturmuş Home varyantı, yüz + dudak)", home.settings_button().theme_type_variation == &"ButtonHomeIcon"
-		and home.settings_button().has_meta(&"face"))
+	_c("üst-sol PROFİL girişi AvatarButton (56 px yuvarlak candy madalyon, dokunma alır)", home.profile_button() is AvatarButton
+		and home.profile_button().custom_minimum_size == Vector2(56.0, 56.0)
+		and home.profile_button().mouse_filter == Control.MOUSE_FILTER_STOP)
+	_c("Ana Sayfa'da ayarlar butonu YOK (TASK/044: Ayarlar Profil'in dişli çarkında)", home.find_child("Settings", true, false) == null
+		and not home.has_method("settings_button") and not home.has_signal("settings_pressed")
+		and _count_variation(home, &"ButtonHomeIcon") == 0)
+	_c("avatar = vitrinin ilk parçası (rare_02), Rare mavi halka", home.profile_button().entry() != null
+		and home.profile_button().entry().id == &"rare_02" and home.profile_button().ring_color() == UiTokens.RARITY_RARE
+		and home.profile_button().art_texture() == SkinEntry.find(&"rare_02").art_texture())
 	_c("seri pill'i PanelHomePill (HUD v5 lavanta, koyu cip değil) + owner alev", (home.streak_pill().get_meta(&"pill") as PanelContainer).theme_type_variation == &"PanelHomePill")
 	var add: Button = home.dough_pill().get_meta(&"add_button")
 	_c("Hamur pill'i PanelHomePill + nane yuvarlak '+' (ButtonHomeAdd, 48)", (home.dough_pill().get_meta(&"pill") as PanelContainer).theme_type_variation == &"PanelHomePill"
@@ -156,6 +165,9 @@ func _ready() -> void:
 	_c("Level 1, 0/30", home._level_title.text == "Level 1" and home._level_stars.text == "0/30" and home._level_badge_label.text == "1")
 	_c("koleksiyon 0/20, halka 0, varsayılan dumpling", collection.badge_text() == "0/20" and collection.progress() == 0.0
 		and collection._art.texture == home.DUMPLING_VISUAL.TEXTURES[0])
+	_c("vitrin boş → avatar kanonik Squishy (varsayılan, lavanta halka)", home.profile_button().entry().is_default()
+		and home.profile_button().art_texture() == SkinEntry.PREVIEW_BASE_TEXTURE
+		and home.profile_button().ring_color() == UiTokens.LAVENDER_DEEP)
 	_c("sandık 0/75", chest.badge_text() == "0/75" and chest.progress() == 0.0)
 
 	print("-- veri (sonsuz açık)")
@@ -165,6 +177,8 @@ func _ready() -> void:
 		and not home._level_badge_label.visible and home._level_crown.custom_minimum_size.x >= 30.0
 		and home._level_title.text == "Rekor 12 480" and home._level_caption.text == "SONSUZ MOD" and home._level_stars.text == "30/30")
 	_c("koleksiyon 20/20 dolu", collection.badge_text() == "20/20" and is_equal_approx(collection.progress(), 1.0))
+	_c("avatar Legendary vitrin başı (legendary_02), altın halka", home.profile_button().entry().id == &"legendary_02"
+		and home.profile_button().ring_color() == UiTokens.GOLD)
 	_c("Hamur 99999, seri '365 günlük seri'", _pill_text(home.dough_pill()) == "99999" and _pill_text(home.streak_pill()) == "365 günlük seri")
 
 	print("-- günlük ödül durumu")
@@ -247,10 +261,15 @@ func _ready() -> void:
 	_main._chest_info.play_button().pressed.emit()
 	_c("sandık penceresi OYNA → kapanır, Harita", not _main._chest_info.visible and _main._active_tab == 1)
 	_main._show_tab(0)
-	home.settings_button().pressed.emit()
-	_c("ayarlar butonu pencereyi açıyor", _main._settings.visible)
+	home.profile_button().pressed.emit()
+	var profile: CanvasLayer = _main._screens[4]
+	_c("avatar → Profil (ekran 4, yalnız Profil görünür)", _main._active_tab == 4 and profile.visible and not home.visible)
+	profile.settings_button().pressed.emit()
+	_c("Profil dişli çarkı → Ayarlar (Main'in tek SettingsPanel'i)", _main._settings.visible and _main._active_tab == 4)
 	_main.close_settings()
-	_c("ayarlar kapandı", not _main._settings.visible)
+	_c("ayarlar kapandı, Profil'de kalındı", not _main._settings.visible and _main._active_tab == 4 and profile.visible)
+	profile.top_bar().back_button().pressed.emit()
+	_c("Profil geri → Ana Sayfa", _main._active_tab == 0 and home.visible and not profile.visible)
 	_c("Ana Sayfa ekranı hareket ediyor (process açık)", home.is_processing())
 	_main._show_tab(1)
 	_c("gizliyken hareket durur", not home.is_processing())
@@ -272,6 +291,16 @@ func _ready() -> void:
 	daily.pressed.emit()
 	_main._notification(NOTIFICATION_WM_GO_BACK_REQUEST)
 	_c("günlük penceresi açıkken geri → pencere kapanır", not _main._daily_rewards.visible and _main._active_tab == 0)
+	_main._last_back_msec = -1000
+	_main._show_tab(4)
+	_main._notification(NOTIFICATION_WM_GO_BACK_REQUEST)
+	_c("Profil'de geri → Ana Sayfa", _main._active_tab == 0 and home.visible and not _main._screens[4].visible)
+	_main._last_back_msec = -1000
+	_main._show_tab(4)
+	_main._screens[4].settings_button().pressed.emit()
+	_main._notification(NOTIFICATION_WM_GO_BACK_REQUEST)
+	_c("Profil'den açılan Ayarlar'da geri → Ayarlar kapanır, Profil'de kalınır", not _main._settings.visible and _main._active_tab == 4)
+	_main._show_tab(0)
 	var main_src: String = FileAccess.get_file_as_string("res://scripts/main.gd")
 	_c("Ana Sayfa'da pencere yokken geri → quit (politika korunuyor)", main_src.contains("get_tree().quit()"))
 
@@ -458,22 +487,22 @@ func _check_layout(home: CanvasLayer, view: Vector2, safe_top: float, window_tag
 		and mascot_rect.position.x >= 0.0 and mascot_rect.end.x <= 720.0)
 	_c("%s maskot baskın (≥ 480 px yüksek)" % tag, mascot_rect.size.y >= 480.0)
 	var logo_rect: Rect2 = home.logo().get_global_rect()
-	var settings_rect: Rect2 = home.settings_button().get_global_rect()
-	_c("%s logo üst satırın altında, madalyonların ve maskotun üstünde" % tag, logo_rect.position.y >= settings_rect.end.y - 1.0
+	var avatar_rect: Rect2 = home.profile_button().get_global_rect()
+	_c("%s logo üst satırın altında, madalyonların ve maskotun üstünde" % tag, logo_rect.position.y >= avatar_rect.end.y - 1.0
 		and logo_rect.end.y <= home.feature_button(&"daily").get_global_rect().position.y + 1.0
 		and logo_rect.end.y <= mascot_rect.position.y + 1.0)
-	_c("%s üst satır güvenli payın altında" % tag, settings_rect.position.y >= safe_top + home.TOP_MARGIN - 1.0)
+	_c("%s üst satır güvenli payın altında" % tag, avatar_rect.position.y >= safe_top + home.TOP_MARGIN - 1.0)
 	var streak_rect: Rect2 = home.streak_pill().get_global_rect()
 	var dough_rect: Rect2 = home.dough_pill().get_global_rect()
-	_c("%s ayarlar / seri / Hamur ortak optik merkez (±3 px), aynı satır" % tag,
-		absf(settings_rect.get_center().y - streak_rect.get_center().y) <= 3.0
-		and absf(settings_rect.get_center().y - dough_rect.get_center().y) <= 3.0
-		and absf(settings_rect.size.y - streak_rect.size.y) <= 2.0 and absf(settings_rect.size.y - dough_rect.size.y) <= 2.0)
-	_c("%s sol/sağ iç pay simetrik (ayarlar sol = Hamur sağ), seri ayarların sağında" % tag,
-		absf(settings_rect.position.x - (720.0 - dough_rect.end.x)) <= 1.0
-		and streak_rect.position.x >= settings_rect.end.x + 8.0 and streak_rect.end.x < dough_rect.position.x - 8.0)
-	_c("%s ayarlar butonu 56 px, boyalı yüz + dudak dikdörtgenin içinde" % tag, settings_rect.size == Vector2(56.0, 56.0)
-		and (home.settings_button().get_meta(&"face") as Control).get_global_rect().end.y <= settings_rect.end.y)
+	_c("%s avatar / seri / Hamur ortak optik merkez (±3 px), aynı satır" % tag,
+		absf(avatar_rect.get_center().y - streak_rect.get_center().y) <= 3.0
+		and absf(avatar_rect.get_center().y - dough_rect.get_center().y) <= 3.0
+		and absf(avatar_rect.size.y - streak_rect.size.y) <= 2.0 and absf(avatar_rect.size.y - dough_rect.size.y) <= 2.0)
+	_c("%s sol/sağ iç pay simetrik (avatar sol = Hamur sağ), seri avatarın sağında" % tag,
+		absf(avatar_rect.position.x - (720.0 - dough_rect.end.x)) <= 1.0
+		and streak_rect.position.x >= avatar_rect.end.x + 8.0 and streak_rect.end.x < dough_rect.position.x - 8.0)
+	_c("%s avatar 56 px, halkası seri pill'ine değmiyor (≥ 6 px görsel boşluk)" % tag, avatar_rect.size == Vector2(56.0, 56.0)
+		and streak_rect.position.x - (avatar_rect.end.x + 56.0 * 0.07) >= 6.0)
 	var medallions_safe: bool = true
 	for key in FEATURES:
 		if not screen.encloses(home.feature_button(key).visual_rect()):

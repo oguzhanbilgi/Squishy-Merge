@@ -2,7 +2,8 @@ extends CanvasLayer
 ## Ana Sayfa — oyun hub'ı (M8.6-03B). Casual mobil oyun lobisi: kart/sekme
 ## yığını DEĞİL, bölgeler (zone) ve yüzen özellik madalyonları.
 ##
-##   ÜST      "oturmuş" ayarlar (UiKit.home_icon_button) + seri pill'i (sol) ·
+##   ÜST      PROFİL avatarı (`AvatarButton`, TASK/044 — eski ayarlar butonunun
+##            yeri; Ayarlar artık Profil'in dişli çarkında) + seri pill'i (sol) ·
 ##            Hamur pill'i + nane "+" → Mağaza (sağ) — HUD v5 dili lavanta
 ##            glossy pill'ler (UiKit.home_pill), 56 px tek satır; cihaz üst
 ##            güvenli payı satırı aşağı iter
@@ -26,7 +27,8 @@ extends CanvasLayer
 ## (testle kilitli).
 
 signal play_pressed
-signal settings_pressed
+## Üst satır avatarı (TASK/044) → Profil (Ayarlar Profil'in dişli çarkında).
+signal profile_requested
 signal shop_requested
 signal collection_requested
 signal map_requested
@@ -114,7 +116,7 @@ const CTA_PULSE: float = 0.015
 const CTA_PERIOD: float = 1.9
 const CHEST_FLOAT: float = 3.0
 
-var _settings_button: Button
+var _avatar_button: AvatarButton
 var _streak_pill: Control
 var _dough_pill: Control
 var _logo: TextureRect
@@ -188,13 +190,13 @@ func _tune_backdrop() -> void:
 
 
 func _build_top() -> void:
-	# Ayarlar: boyalı sınırı dikdörtgene oturan Home varyantı (HUD v5 köşe
-	# butonu btn_bevel_soft'un pişmiş gölgesi yüzünden halkanın içinde
-	# "yüzüyordu" — bkz. UiKit.home_icon_button).
-	_settings_button = UiKit.home_icon_button("settings", BAR_HEIGHT)
-	_settings_button.name = "Settings"
-	_settings_button.pressed.connect(func() -> void: settings_pressed.emit())
-	_root.add_child(_settings_button)
+	# Profil girişi (TASK/044): geleneksel üst-sol avatar; aynı 56 px satır.
+	# Eski ayarlar butonu burada DEĞİL — Ayarlar Profil'in dişli çarkında (tek
+	# SettingsPanel, mantık kopyalanmadı); oyun içi ayarlar HUD'da kaldı.
+	_avatar_button = AvatarButton.new(BAR_HEIGHT)
+	_avatar_button.name = "Profile"
+	_avatar_button.pressed.connect(func() -> void: profile_requested.emit())
+	_root.add_child(_avatar_button)
 	_streak_pill = UiKit.home_pill(UiIcons.FLAME, "", false, BAR_HEIGHT)
 	_streak_pill.name = "StreakPill"
 	_streak_pill.minimum_size_changed.connect(_layout)
@@ -447,8 +449,8 @@ func _layout() -> void:
 
 	# ÜST satır.
 	var top_y: float = safe_top + TOP_MARGIN
-	_settings_button.position = Vector2(SIDE_MARGIN, top_y)
-	_settings_button.size = Vector2(BAR_HEIGHT, BAR_HEIGHT)
+	_avatar_button.position = Vector2(SIDE_MARGIN, top_y)
+	_avatar_button.size = Vector2(BAR_HEIGHT, BAR_HEIGHT)
 	# Pill'ler ayarlarla aynı yükseklikte (56) tek satır: optik merkezler aynı.
 	var streak_size: Vector2 = _streak_pill.custom_minimum_size
 	_streak_pill.size = streak_size
@@ -631,6 +633,8 @@ func refresh() -> void:
 		_level_caption.text = "SIRADAKİ"
 		_level_title.text = "Level %d" % next_level
 
+	_avatar_button.refresh()
+
 	var collection: HomeFeatureButton = _features[&"collection"]
 	var owned: int = SkinEntry.owned_count()
 	var catalog: int = SkinLibrary.total_count()
@@ -665,8 +669,9 @@ func play_button() -> Button:
 	return _play
 
 
-func settings_button() -> Button:
-	return _settings_button
+## Profil girişi (üst-sol avatar).
+func profile_button() -> AvatarButton:
+	return _avatar_button
 
 
 func level_button() -> Button:

@@ -54,8 +54,8 @@ func _ready() -> void:
 	await get_tree().process_frame
 	await get_tree().process_frame
 	SaveManager.data["dough"] = 1000
-	# Sekmeler
-	for t in 4:
+	# Sekmeler (TASK/044: 4 = Profil)
+	for t in 5:
 		main._show_tab(t)
 		await get_tree().process_frame
 		_c("sekme %d gorunur" % t, main._screens[t].visible and main._active_tab == t)

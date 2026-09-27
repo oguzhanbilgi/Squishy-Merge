@@ -1,5 +1,5 @@
 extends Node2D
-## Akış kontrolü: ekranlar (Ana Sayfa hub / Harita / Koleksiyon / Mağaza) ->
+## Akış kontrolü: ekranlar (Ana Sayfa hub / Harita / Koleksiyon / Mağaza / Profil) ->
 ## oyun -> sonuç -> ekranlar. Oyun kuralları GameBoard'da, ilerleme
 ## SaveManager'da, ödül kurası ChestSystem'de, fiyatlar Shop'ta; burada
 ## sadece bunlar birbirine bağlanıyor.
@@ -7,11 +7,14 @@ extends Node2D
 ## Gezinme (M8.6): Ana Sayfa hub (madalyonlar + OYNA); Harita / Koleksiyon /
 ## Mağaza kendi `ScreenTopBar`'ıyla (geri -> Ana Sayfa). Eski M8.5-10 alt
 ## sekme çubuğu M8.6-06 ile tamamen kalktı (UI_VISUAL_SYSTEM §14.4).
+## Profil (TASK/044): Ana Sayfa'nın sol üst avatarından; Ayarlar'a Profil'in
+## dişli çarkından (aynı tek `SettingsPanel`), oyun içi HUD yolu değişmedi.
 
 const HOME_SCENE: PackedScene = preload("res://scenes/ui/home_screen.tscn")
 const LEVEL_SELECT_SCENE: PackedScene = preload("res://scenes/ui/level_select.tscn")
 const COLLECTION_SCENE: PackedScene = preload("res://scenes/ui/collection_screen.tscn")
 const SHOP_SCENE: PackedScene = preload("res://scenes/ui/shop_screen.tscn")
+const PROFILE_SCENE: PackedScene = preload("res://scenes/ui/profile_screen.tscn")
 const GAME_BOARD_SCENE: PackedScene = preload("res://scenes/game/game_board.tscn")
 const ROUND_RESULT_SCENE: PackedScene = preload("res://scenes/ui/round_result.tscn")
 const DAILY_REWARDS_SCENE: PackedScene = preload("res://scenes/ui/daily_rewards_popup.tscn")
@@ -125,13 +128,16 @@ var _result_seq: int = 0
 ## sırasındaki _show_tab günlük giriş ödülünün önüne geçmesin).
 var _booted: bool = false
 var _current_level: LevelData
-## Ekran indeksi -> ekran: 0 Ana Sayfa, 1 Harita, 2 Koleksiyon, 3 Mağaza.
+## Ekran indeksi -> ekran: 0 Ana Sayfa, 1 Harita, 2 Koleksiyon, 3 Mağaza,
+## 4 Profil (TASK/044).
 var _screens: Array[CanvasLayer] = []
 var _active_tab: int = 0
 ## Ekran indeksi -> reklam yüzeyi (banner yalnız yöneticinin izin verdiği
-## yüzeylerde; Harita v1'de banner dışı — ADS_SYSTEM §6).
+## yüzeylerde; Harita v1'de banner dışı — ADS_SYSTEM §6). Profil reklam yüzeyi
+## DEĞİL (Surface.NONE — TASK/044 yeni reklam yüzeyi açmaz).
 const TAB_SURFACES: Array[int] = [MonetizationManager.Surface.HOME, MonetizationManager.Surface.MAP,
-	MonetizationManager.Surface.COLLECTION, MonetizationManager.Surface.SHOP]
+	MonetizationManager.Surface.COLLECTION, MonetizationManager.Surface.SHOP,
+	MonetizationManager.Surface.NONE]
 
 
 func _ready() -> void:
@@ -169,7 +175,8 @@ func _ready() -> void:
 
 	var home: CanvasLayer = HOME_SCENE.instantiate()
 	home.play_pressed.connect(_on_play_pressed)
-	home.settings_pressed.connect(open_settings)
+	# TASK/044: sol üst avatar -> Profil (Ayarlar artık Profil'in dişli çarkında).
+	home.profile_requested.connect(_on_profile_requested)
 	# Home hub (M8.6-03B): yuzen ozellik madalyonlari ve level plakasi.
 	home.map_requested.connect(_on_play_pressed)
 	home.shop_requested.connect(_on_shop_requested)
@@ -192,7 +199,14 @@ func _ready() -> void:
 	shop.home_requested.connect(_on_home_requested)
 	# Magaza GUNLUK ODULLER karti (M8.9-02): ayni pencere, gun boyu acilabilir.
 	shop.daily_rewards_requested.connect(open_daily_rewards)
-	_screens = [home, select, album, shop]
+	var profile: CanvasLayer = PROFILE_SCENE.instantiate()
+	# Profil (TASK/044): geri -> Ana Sayfa, dişli çark -> Ayarlar (tek panel),
+	# vitrin yuvası / KOLEKSİYONA GİT -> Koleksiyon (dolu yuva: o parçanın detayı).
+	profile.home_requested.connect(_on_home_requested)
+	profile.settings_requested.connect(open_settings)
+	profile.collection_requested.connect(_on_collection_requested)
+	profile.collectible_requested.connect(_on_collectible_requested)
+	_screens = [home, select, album, shop, profile]
 	for screen in _screens:
 		add_child(screen)
 
@@ -694,9 +708,22 @@ func _on_shop_skin_requested(skin_id: StringName) -> void:
 	_screens[3].focus_skin(skin_id)
 
 
-## Ana Sayfa'daki Koleksiyon madalyonu.
+## Ana Sayfa'daki Koleksiyon madalyonu; Profil'in boş vitrin yuvası ve
+## KOLEKSİYONA GİT'i.
 func _on_collection_requested() -> void:
 	_show_tab(2)
+
+
+## Ana Sayfa'nın sol üst avatarı (TASK/044): Profil.
+func _on_profile_requested() -> void:
+	_show_tab(4)
+
+
+## Profil'in dolu vitrin yuvası (TASK/044): Koleksiyon açılır ve o parçanın
+## detayı gösterilir (vitrin eylemleri yalnız orada; Profil kayda yazmaz).
+func _on_collectible_requested(skin_id: StringName) -> void:
+	_show_tab(2)
+	_screens[2].open_detail(skin_id)
 
 
 ## Ana Sayfa'daki Günlük madalyonu (M8.9-02.1): GÜNLÜK ÖDÜLLER penceresini
@@ -1257,6 +1284,9 @@ func _on_round_finished(won: bool) -> void:
 		SaveManager.complete_level(_current_level.level_number)
 		SaveManager.record_stars(_current_level.level_number, stars)
 	var newly_unlocked: bool = SaveManager.highest_level_unlocked() > unlocked_before
+	# Profil sayaçları (TASK/044): round başına TAM bir kez, burada — terk edilen
+	# round (abandon_run / yeniden başlat) bu yola girmez, sayılmaz.
+	SaveManager.record_round_finished(GameState.highest_tier_created)
 
 	var rewards: Array[ChestReward] = _collect_rewards(won, merges)
 

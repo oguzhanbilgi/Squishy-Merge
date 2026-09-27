@@ -93,7 +93,7 @@ func _show_tab(tab: int) -> void:
 # --- Dort sekme ---
 
 func _shot_tabs(suffix: String) -> void:
-	var names: Array[String] = ["01_home", "02_map", "03_collection", "04_shop"]
+	var names: Array[String] = ["01_home", "02_map", "03_collection", "04_shop", "05_profile"]
 	for tab in names.size():
 		await _show_tab(tab)
 		await _capture(names[tab] + suffix + ".png")
@@ -142,7 +142,9 @@ func _shot_shop_scrolled(suffix: String) -> void:
 # --- Ayarlar (yalnizca AFTER agacinda var) ---
 
 func _shot_settings() -> void:
-	await _show_tab(0)
+	# TASK/044: oyuncu Ayarlar'a Profil'in dişli çarkından ulaşır (Profil yoksa
+	# — eski ağaç — Ana Sayfa üstünde).
+	await _show_tab(4 if _main._screens.size() > 4 else 0)
 	if not _main.has_method("open_settings"):
 		print("ayarlar yok (BEFORE agaci) — atlandi")
 		return
