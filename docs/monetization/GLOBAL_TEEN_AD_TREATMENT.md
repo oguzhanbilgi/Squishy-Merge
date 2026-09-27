@@ -13,6 +13,13 @@
 > seçenekleri çalışıyor) — yalnız spike, üretime alınmadı (§C). **Yeni bulgu:**
 > bugünkü üretim eklentisi RequestConfiguration'ı hiç uygulamıyor → derece G etkin
 > değil; kapı artık bunu **CODE** engeli olarak gösteriyor (§C4).
+>
+> **TASK/041 (2026-09-27; dal `task/041-fix-request-configuration`, main'e alınması owner
+> onayı bekliyor):** §C4 kusuru **KAPANDI** — yalnız dönüşüm düzeltmesi üretime alındı
+> (yama `0002`, GMA 24.9.0 / UMP 3.2.0 aynı; TFAT / TEEN YOK); Samsung A36'da derece G,
+> TFCD / TFUA `-1` ve test cihazları ilk reklam yüklemesinden önce uygulanıyor; kapı
+> CODE 0 · OWNER 9 · CONFIG 0 ([ADS_SYSTEM §15](ADS_SYSTEM.md)). Spike yaması `0003`
+> olarak 0002'nin üstüne taşındı. **13–17 genç reklam işlemi stratejisi (§D) HÂLÂ AÇIK.**
 
 ## ⚠ Mimari kısıt — Play Age Signals reklam kararında KULLANILMAZ
 
@@ -148,7 +155,9 @@ yüzeyi. **Bu üretim geçişi izni DEĞİL**; üretime geçilecekse 25.3.x ↔ 
 | Kotlin ≥ 2.1.0 (GMA 24.1.0'dan beri) | şablon 2.1.21 ✅ | ✅ |
 
 **C3 · Derleme.** `tools/admob_plugin/build_patched_plugin.sh spike` = v6.0 +
-`0001` (M9 UMP yaması) + `0002-spike-gma25-age-restricted-treatment.patch`,
+`0001` (M9 UMP yaması) + `0002-spike-gma25-age-restricted-treatment.patch` *(TASK/041'de
+`0003-…` olarak yeniden adlandırıldı ve üretim `0002`'nin üstüne taşındı; bu bölümdeki kanıt
+eski adlı yamaya aittir)*,
 projenin Godot 4.6.3 şablon Gradle'ı (8.11.1, AGP 8.6.1) → **BAŞARILI**,
 yalnız kullanımdan kalkma uyarıları; aynı girdiyle iki bağımsız derleme
 bayt-aynı. Çıktı `build/admob_plugin_spike/out/spike/` — `addons/AdmobPlugin`'e
@@ -178,7 +187,8 @@ yalnız export süresince değişir ve SHA-256 ile birebir geri konur).
   TFCD / TFUA `unspecified` zaten SDK varsayılanı (fark yok); test cihazı kaydı
   (yalnız debug) etkin değil; ileride seçilecek **herhangi** bir yaş işlemi / etiket
   değeri de bu yol düzelmeden uygulanmaz.
-- **Spike düzeltmesi (0002):** Number-güvenli int okuma + `Object[]` → `String[]`
+- **Spike düzeltmesi (0002)** *(spike yaması bugün `0003`; dönüşüm düzeltmesi TASK/041'de
+  üretim `0002`'ye taşındı)*: Number-güvenli int okuma + `Object[]` → `String[]`
   dönüşümü + hata/tip loglama → A36'da `set_request_configuration:applied
   {… max_ad_content_rating=G, test_device_ids=3, age_restricted_treatment=TEEN}`.
   Upstream 953df5e aynı Long sorununu `((Long) x).intValue()` ile düzeltmiş.
@@ -186,7 +196,10 @@ yalnız export süresince değişir ve SHA-256 ile birebir geri konur).
   Release kapısı bunu **CODE** engeli olarak raporlar (`ReleaseReadiness.KNOWN_PLUGIN_DEFECTS`,
   AAR SHA-256'sına bağlı; girdi yoksa SHA'dan türetilir — fail-closed). Düzeltilmiş
   derleme + M9 UMP/gizlilik cihaz regresyonu ayrı görev (hangi strateji seçilirse
-  seçilsin gerekli).
+  seçilsin gerekli). *(Sonra kapandı: TASK/041, 2026-09-27 — üretim yaması `0002`
+  (yalnız dönüşüm düzeltmesi + hata logu + SDK geri okuması, GMA 24.9.0), yeni AAR
+  `14c745e9…`, M9 UMP / gizlilik / reklam regresyonu A36'da GEÇTİ; eski SHA kayıtta
+  kalır — [ADS_SYSTEM §15](ADS_SYSTEM.md).)*
 
 **C5 · Cihaz kanıtı (Samsung A36, 2026-09-25) — GEÇTİ.** SM-A366B / Android 16;
 yalnız QA paketi `com.obappstudio.squishymerge.qa` (kapı için kuruldu, sonra
@@ -263,7 +276,8 @@ için dayanak **vermiyor** (Play: yerel hukuku değerlendir; AdMob: hukuk
 danışmanına danış). `UNSPECIFIED` TEEN DEĞİLDİR. Engel ancak gerçek yayın
 bölgelerini kapsayan belgelenmiş bir hukuki inceleme ile kapanabilir.
 **Not:** bugünkü üretim eklentisinde RequestConfiguration zaten uygulanmıyor
-(§C4) — C seçilse bile bu hata düzeltilmeli.
+(§C4) — C seçilse bile bu hata düzeltilmeli. *(Sonra kapandı: TASK/041 — C'nin
+teknik ön koşulu artık üretimde; engeli kapatacak olan hukuki belirleme hâlâ açık.)*
 
 **Strateji D — eski TRUE etiketleri TEEN yerine (REDDEDİLDİ, kanıtla).**
 Google'ın geçiş tablosu TFCD `TRUE` ve TFUA `TRUE`'yu **CHILD**'a eşliyor, TEEN'e
@@ -289,8 +303,8 @@ bir oran bu dokümanda kullanılmadı; gerçek trafik olmadan **ölçülemez**.
 
 | | **A · herkes için TEEN** | **B · uygulamanın yaş bandı** | **C · UNSPECIFIED + dış hukuki belirleme** |
 |---|---|---|---|
-| Teknik olarak mümkün mü? | EVET — A36'da kanıtlandı | EVET (TEEN yolu aynı; yaş ekranı yazılmadı) | EVET (bugünkü yol; §C4 düzeltmesi gerekli) |
-| Godot / eklenti işi | 0002'nin üretime alınması (GMA 25.3.0, TFAT, dönüşüm düzeltmesi, başlatma öncesi yapılandırma) + `[Audience]` alanı + kapı + M9 cihaz/gizlilik regresyonu | A'nın hepsi + yaş bandı ekranı + kayıt alanı + istek başına işlem + tutorial / rıza sırası + testler | GMA değişmez; yalnız dönüşüm düzeltmesi + hukuki kayıt |
+| Teknik olarak mümkün mü? | EVET — A36'da kanıtlandı | EVET (TEEN yolu aynı; yaş ekranı yazılmadı) | EVET (bugünkü yol; §C4 düzeltmesi gerekli — TASK/041'de yapıldı) |
+| Godot / eklenti işi | 0002'nin üretime alınması (GMA 25.3.0, TFAT, dönüşüm düzeltmesi, başlatma öncesi yapılandırma) + `[Audience]` alanı + kapı + M9 cihaz/gizlilik regresyonu *(TASK/041'den beri: dönüşüm düzeltmesi üretimde; kalan = spike `0003`'ün üretime alınması)* | A'nın hepsi + yaş bandı ekranı + kayıt alanı + istek başına işlem + tutorial / rıza sırası + testler | GMA değişmez; yalnız dönüşüm düzeltmesi + hukuki kayıt *(dönüşüm düzeltmesi TASK/041'de yapıldı; kalan = hukuki kayıt)* |
 | Yaş verisi toplanıyor mu? | HAYIR | EVET (kendi beyanı: 13–17 / 18+) | HAYIR |
 | UX sürtünmesi | yok | yeni ekran (ilk reklamdan önce) | yok |
 | 18+ için kişiselleştirilmiş reklam | HAYIR (herkese TEEN) | EVET (rıza denetimli) | EVET (rıza denetimli) |
@@ -306,9 +320,10 @@ bir oran bu dokümanda kullanılmadı; gerçek trafik olmadan **ölçülemez**.
 ## G. Teknik öneri (hukuki belirleme ve iş kararı DEĞİL)
 
 **Teknik öneri:** önce §C4'teki RequestConfiguration kusurunu düzelten eklenti
-derlemesini üretime al (her strateji için gerekli — C dahil); owner TEEN'i
+derlemesini üretime al (her strateji için gerekli — C dahil) *(yapıldı: TASK/041)*; owner TEEN'i
 seçerse bunu kanıtlanmış GMA 25.3.0 yoluyla (0002: TFAT + dönüşüm düzeltmesi +
-başlatma öncesi yapılandırma) yap. A / B / C arasında teknik olarak en basit ve en
+başlatma öncesi yapılandırma — *TASK/041'den beri spike `0003`, dönüşüm düzeltmesi üretim
+`0002`'de*) yap. A / B / C arasında teknik olarak en basit ve en
 düşük riskli uygulama **A**: Godot 4.6.3'te A36'da kanıtlandı, yaş verisi ve yeni
 UI gerektirmiyor, Age Signals'a ihtiyaç yok ve B'nin de altyapısı (B = A'nın yolu +
 yaş bandı).

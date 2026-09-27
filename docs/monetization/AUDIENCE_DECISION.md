@@ -19,6 +19,8 @@
 >   GMA 25.3.0'da A36'da kanıtlandı (yalnız spike); strateji hâlâ owner kararı.
 >   Play Age Signals reklam kararında KULLANILMAZ. Yeni bulgu: üretim eklentisi
 >   RequestConfiguration'ı hiç uygulamıyor (derece G etkin değil) → kapıda CODE.
+>   *(Sonra kapandı: TASK/041, 2026-09-27, dalda — derece G / TFCD / TFUA A36'da ilk
+>   reklam yüklemesinden önce uygulanıyor; değerler değişmedi; 13–17 stratejisi hâlâ AÇIK.)*
 >
 > Karardan önceki durum (2026-09-22): kod kararı tahmin etmedi; sevimli / kawaii
 > sanat tek başına "çocuklara yönelik" ya da "13+" demek için yeterli sayılmadı.
@@ -86,7 +88,7 @@ Tek kaynak: `addons/AdmobPlugin/android_export.cfg` → `[Audience]`
 | `decision` | `"general_13_plus"` (owner kararı, 2026-09-25; öncesi `""`) | yalnız release kapısı (+ `AdConfig.describe()` log satırı) | genel "kitle kararı yok" engeli YOK, kapı raporunda bilgi notu; 13–17 için ayrı OWNER "UYUM:" engeli (§2.2). Boş olsaydı OWNER, karma / çocuk olsaydı CODE engeli |
 | `tag_for_child_directed_treatment` (TFCD, COPPA) | `unspecified` | Mobile Ads `RequestConfiguration` | **gönderilmez** — Google'a hiçbir şey söylenmez (TEEN işlemi DEĞİL) |
 | `tag_for_under_age_of_consent` (TFUA) | `unspecified` | `RequestConfiguration` + UMP `ConsentRequestParameters` | **gönderilmez** (eklenti yalnız UNSPECIFIED değilse ekler; TEEN işlemi DEĞİL) |
-| `max_ad_content_rating` | `G` | `RequestConfiguration` | yalnız "genel izleyici" reklamları (en muhafazakâr) — **TASK/040: FİİLEN ETKİN DEĞİL**, üretim eklentisi RequestConfiguration'ı hiç uygulamıyor ([GLOBAL_TEEN_AD_TREATMENT §C4](GLOBAL_TEEN_AD_TREATMENT.md); kapıda CODE) |
+| `max_ad_content_rating` | `G` | `RequestConfiguration` | yalnız "genel izleyici" reklamları (en muhafazakâr) — **TASK/040: FİİLEN ETKİN DEĞİL**, üretim eklentisi RequestConfiguration'ı hiç uygulamıyor ([GLOBAL_TEEN_AD_TREATMENT §C4](GLOBAL_TEEN_AD_TREATMENT.md); kapıda CODE) *(sonra kapandı: TASK/041 — A36 geri okuması `max_ad_content_rating=G`, ilk yüklemeden önce)* |
 | kişiselleştirme | SDK varsayılanı | — | EEA/UK/CH'de UMP rızasına göre; rıza yoksa sınırlı reklam |
 | `AD_ID` izni | manifest'te VAR | Google Mobile Ads SDK + eklenti manifest birleştirmesi | reklam kimliği okunabilir |
 
@@ -98,7 +100,10 @@ isteğinden önce etkin.~~ **Düzeltme (TASK/040, A36 kanıtı):** bu çağrı G
 `(String[])`) — değerler, derece G dahil, hiç uygulanmıyor. Ayrıca Google
 yapılandırmanın SDK başlatılmadan **önce** ayarlanmasını istiyor; eklenti
 başlatmadan sonra uyguluyor (spike'ta `configure_before_initialize` ile çözüldü).
-Ayrıntı [GLOBAL_TEEN_AD_TREATMENT §C4](GLOBAL_TEEN_AD_TREATMENT.md). Çocuğa yönelik / karma kitle seçilirse bu sıra
+Ayrıntı [GLOBAL_TEEN_AD_TREATMENT §C4](GLOBAL_TEEN_AD_TREATMENT.md). *(Sonra kapandı:
+TASK/041 — dönüşüm düzeltildi; A36'da yapılandırma her süreçte ilk reklam yüklemesinden
+önce uygulanıyor (sıra değişmedi: SDK hazır → yapılandırma → yüklemeler). Başlatma
+ÖNCESİ uygulama TEEN / TFAT geçişine bırakıldı — [ADS_SYSTEM §15](ADS_SYSTEM.md).)* Çocuğa yönelik / karma kitle seçilirse bu sıra
 değişmeli (etiket SDK başlatmadan ÖNCE) — §4'teki ek işlerin parçası (ikisi de
 seçilmedi, §0). §2.2'deki genç reklam işlemi stratejileri de bu sırayı
 etkileyebilir.

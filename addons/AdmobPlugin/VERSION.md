@@ -90,6 +90,16 @@ there. `0002` fixes both for the GMA 24.9.0 production path;
 (`PATCHED_RELEASE_AAR_SHA256`) and keeps the old SHA in `KNOWN_PLUGIN_DEFECTS`
 (CODE if that AAR ever returns).
 
+**Device proof (Samsung A36, 2026-09-27, QA package only):** with these AARs every
+process logs `set_request_configuration(): applied max_ad_content_rating=G
+tag_for_child_directed_treatment=-1 tag_for_under_age_of_consent=-1
+personalization_state=DEFAULT test_device_ids=3` before its first ad load; the SDK's
+"…setTestDeviceIds… to get test ads on this device" hint is gone; UMP EEA / NOT_EEA /
+privacy options, banner / rewarded / interstitial and background/foreground regress
+clean; the QA APK's dex identities are `play-services-ads@@24.9.0` and
+`user-messaging-platform@@3.2.0` with no TFAT class. Details:
+`docs/monetization/ADS_SYSTEM.md` §15.
+
 ## Rebuild / verify
 
 `tools/admob_plugin/README.md`. In short, from the repo root:

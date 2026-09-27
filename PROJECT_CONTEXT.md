@@ -78,8 +78,10 @@ alınacak — şimdi tahmin/vaat yok.
 
 - **Repo:** `main == origin/main` (2026-09-27): `task/040-global-teen-compliance`
   (`025214a` denetim + `e152986` spike araçları) main'e ff-only alındı; üstünde
-  yalnız bu durum doküman commit'i. Aktif kod görevi YOK; `task/014`…`task/040`
-  dallarının hepsi main'de (referans için duruyor).
+  yalnız bir durum doküman commit'i (`ee01841`). `task/014`…`task/040` dallarının
+  hepsi main'de (referans için duruyor). **Aktif kod görevi:**
+  `task/041-fix-request-configuration` (RequestConfiguration düzeltmesi + A36
+  kapısı) — dalda, push edildi; main'e alınması owner onayı bekliyor.
   Main'e bilerek girmeyen iki dal: `task/m8.6-03-home` (reddedildi, asla
   birleştirilmez) ve `task/ui-layerlab-style-spike` (seçilen parçaları
   M8.6-01'de promote edildi).
@@ -136,15 +138,21 @@ alınacak — şimdi tahmin/vaat yok.
   paketi); üretim eklentisi GMA 24.9.0 / UMP 3.2.0 kaldı. **Play Age Signals
   reklam kararında KULLANILMAZ** (Age Signals şartları reklam / pazarlama /
   profilleme / analitiği yasaklıyor).
-- **Yeni bulgu (TASK/040, A36 kanıtı):** üretim eklentisi RequestConfiguration'ı
-  **hiç uygulamıyor** (Godot 4.6 Long / Object[] → v6.0 `(int)` / `(String[])`
-  dönüşümü ClassCastException, sessizce yutuluyor) → **derece G etkin değil**,
-  TFCD / TFUA / test cihazları uygulanmıyor. Spike'ta düzeltildi; üretim
-  düzeltmesi ayrı görev → kapıda CODE engeli.
-- **Release kapısı** (`tools/release/release_android.sh check`, TASK/040 bulgusundan
-  sonra; main'de yeniden koşuldu 2026-09-27): **BLOCKED — CODE 1 · OWNER 9 · CONFIG 0** (CODE =
-  RequestConfiguration kusuru; OWNER'lardan biri ayrı 13–17 uyum satırı). İmzalı /
-  Play'e yüklenebilir AAB üretilmedi (`aab` reddediyor).
+- **RequestConfiguration kusuru: KAPANDI (TASK/041, A36 kanıtı 2026-09-27; dalda).**
+  TASK/040 bulgusu: üretim eklentisi RequestConfiguration'ı hiç uygulamıyordu (Godot
+  4.6 Long / Object[] → v6.0 `(int)` / `(String[])` dönüşümü ClassCastException,
+  sessizce yutuluyordu) → derece G, TFCD / TFUA, test cihazları etkin değildi.
+  TASK/041: üretim yaması `0002` (Number / Object[]-güvenli okuma + hata logu + SDK
+  geri okuması) + yeni AAR'lar (iki temiz derleme bayt-aynı); A36'da her süreçte
+  `applied max_ad_content_rating=G tag_for_child_directed_treatment=-1
+  tag_for_under_age_of_consent=-1 … test_device_ids=3` İLK reklam yüklemesinden
+  ÖNCE; UMP EEA / NOT_EEA / gizlilik seçenekleri, banner / ödüllü / geçiş, yaşam
+  döngüsü, logcat temiz. **Üretim yığını değişmedi: GMA 24.9.0 / UMP 3.2.0** (TFAT /
+  TEEN yok, GMA 25 geçişi yok).
+- **Release kapısı** (`tools/release/release_android.sh check`, TASK/041 dalında
+  2026-09-27): **BLOCKED — CODE 0 · OWNER 9 · CONFIG 0** (onaylı AAR = düzeltilmiş
+  derleme; eski kusurlu AAR SHA'sı gelirse yine CODE; OWNER'lardan biri ayrı 13–17
+  uyum satırı). İmzalı / Play'e yüklenebilir AAB üretilmedi (`aab` reddediyor).
 
 ## Current release blockers
 
@@ -185,14 +193,16 @@ Bugün açık olan maddelerin tamamı — adımlar ve ayrıntı:
     kapalı test kanalı.
 
 Release kapısı 1–9'u denetler (bugün OWNER 9 · CONFIG 0 — madde 1 ve 2
-kapandı, madde 3 ayrı `UYUM:` satırı; artı TASK/040'ın CODE 1 satırı, aşağıda);
-10 kodla denetlenemez.
+kapandı, madde 3 ayrı `UYUM:` satırı; TASK/040'ın CODE satırı TASK/041'de kapandı,
+aşağıda); 10 kodla denetlenemez.
 
-**CODE blockers: 1** (TASK/040) — **eklenti RequestConfiguration kusuru**:
-onaylı M9 release AAR'ı yapılandırmayı hiç uygulamıyor (derece G etkin değil;
-checklist #27, GLOBAL_TEEN_AD_TREATMENT §C4). Düzeltilmiş eklenti derlemesi + M9
-cihaz/gizlilik regresyonu ayrı görev; kapı SHA'ya bağlı bilinen-kusur kaydıyla
-fail-closed. Ürün kitlesi için ek kod yok (13+ = AUDIENCE_DECISION seçenek A);
+**CODE blockers: 0** (TASK/041 dalında, 2026-09-27; main'e alınması owner onayı
+bekliyor). TASK/040'ın **eklenti RequestConfiguration kusuru** (onaylı M9 release
+AAR'ı yapılandırmayı hiç uygulamıyordu — checklist #27, GLOBAL_TEEN_AD_TREATMENT §C4)
+**KAPANDI**: düzeltilmiş eklenti derlemesi (v6.0 + 0001 + 0002, GMA 24.9.0 / UMP
+3.2.0) + Samsung A36 M9 cihaz/gizlilik regresyonu geçti. Kapı artık düzeltilmiş AAR'ın
+SHA'sını onaylar; eski kusurlu SHA bilinen-kusur kaydında kalır (geri gelirse CODE),
+tanınmayan her SHA da CODE — fail-closed. Ürün kitlesi için ek kod yok (13+ = AUDIENCE_DECISION seçenek A);
 karma / yalnız çocuk kararları hâlâ CODE ile reddedilir, boş karar OWNER.
 13–17 genç reklam işlemi (madde 3) CODE değil OWNER / uyum engeli: uygulama
 seçilecek stratejiye bağlı (A/B kod ister, C hukuki kayıt).
@@ -217,8 +227,10 @@ seçilecek stratejiye bağlı (A/B kod ister, C hukuki kayıt).
 3. **13–17 genç reklam işlemi / yargı bölgesi uyum stratejisi** — A / B / C
    karar tablosu [GLOBAL_TEEN_AD_TREATMENT §F](docs/monetization/GLOBAL_TEEN_AD_TREATMENT.md)
    (TASK/040 fizibilitesi tamam; hukuki belirleme + iş dengesi owner'da) ← sıradaki karar
-   - Kod tarafında her stratejiden bağımsız: **eklenti RequestConfiguration
-     düzeltmesi** (CODE engeli, checklist #27) — owner onayıyla ayrı görev.
+   - ~~Kod tarafında her stratejiden bağımsız: eklenti RequestConfiguration
+     düzeltmesi~~ ✅ TASK/041 (A36 kanıtı; dalda, main'e alınması owner onayı
+     bekliyor). Seçilecek strateji TEEN gerektirirse GMA 25.3+ üretim geçişi yine
+     ayrı görev.
 4. Gizlilik politikası (metin + HTTPS URL)
 5. Upload anahtarı
 6. Gerçek AdMob kimlikleri (App ID + Banner + Rewarded + Interstitial)

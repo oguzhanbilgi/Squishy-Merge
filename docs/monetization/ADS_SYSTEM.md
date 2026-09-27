@@ -42,6 +42,13 @@
 > görsel inceleme + TEST-reklam APK'sı + **A36 cihaz kapısı GEÇTİ (M8.9-02.2,
 > §14)**. **Üretime hazır DEĞİL:** ~~eklentinin UMP yüzeyi (PRIVACY_CONSENT
 > §4) + #120~~ (M9-01'de kapandı, M9-01.1'de A36'da doğrulandı), ~~COPPA/kitle kararı (§6) açık~~ (2026-09-25: ürün kitlesi 13+ KAPALI; 13–17 genç reklam işlemi / yargı bölgesi uyumu AÇIK — AUDIENCE_DECISION §2.2); üretim kimliği YOK (artık 3 birim).
+>
+> **TASK/041 (2026-09-27, dal `task/041-fix-request-configuration`; main'e alınması
+> owner onayı bekliyor):** TASK/040'ın RequestConfiguration kusuru **KAPANDI** —
+> üretim yaması `0002` (Godot 4.6 Long / Object[]-güvenli okuma + hata logu + SDK
+> geri okuması); Samsung A36'da derece G, TFCD / TFUA `-1` ve (debug) test cihazları
+> İLK reklam yüklemesinden önce uygulanıyor; yığın GMA 24.9.0 / UMP 3.2.0, TFAT / TEEN
+> yok (§15). Release kapısı CODE 0 · OWNER 9 · CONFIG 0.
 
 ## 1. Kapsam (v1 monetizasyon planı)
 
@@ -66,7 +73,7 @@ kaldı; skinler asla reklam/paraya bağlı değil.
 |---|---|
 | Eklenti | `godot-sdk-integrations/godot-admob` **v6.0** (2026-02-01), tag commit `90e3c616ea3c680e3875c31e6bcccffbebbe9d3b` |
 | Lisans | MIT (`addons/AdmobPlugin/LICENSE`) |
-| Kurulum | AssetLib ile aynı release zip'i (`AdmobPlugin-Android-v6.0.zip`, SHA-256 `9ec26002…973f24`) `addons/AdmobPlugin/` altına kopyalandı (M8.9-01). **M9-01:** tek kaynak yaması `tools/admob_plugin/0001-ump-privacy-options-and-debug-geography.patch` (3 dosya, +73/−2: `can_request_ads` / `get_privacy_options_requirement_status` / `show_privacy_options_form` + #120 `instanceof Number`); iki AAR + `Admob.gd` upstream derleme betikleriyle yeniden üretildi (`build_patched_plugin.sh verify` → BYTE-IDENTICAL); ayrıntı `addons/AdmobPlugin/VERSION.md` |
+| Kurulum | AssetLib ile aynı release zip'i (`AdmobPlugin-Android-v6.0.zip`, SHA-256 `9ec26002…973f24`) `addons/AdmobPlugin/` altına kopyalandı (M8.9-01). **M9-01:** tek kaynak yaması `tools/admob_plugin/0001-ump-privacy-options-and-debug-geography.patch` (3 dosya, +73/−2: `can_request_ads` / `get_privacy_options_requirement_status` / `show_privacy_options_form` + #120 `instanceof Number`); iki AAR + `Admob.gd` upstream derleme betikleriyle yeniden üretildi (`build_patched_plugin.sh verify` → BYTE-IDENTICAL); **TASK/041:** ikinci üretim yaması `0002-fix-request-configuration-value-types.patch` (yalnız Java: RequestConfiguration değer dönüşümü, §15), AAR'lar v6.0 + 0001 + 0002'den yeniden derlendi; ayrıntı `addons/AdmobPlugin/VERSION.md` |
 | Godot uyumu | eklenti `godot-lib 4.6.stable` ile derlendi; v7.0 (2026-05-27) **Godot 4.7 beta1** hedefli ve bakımcı issue #122'de "4.6.x için v6.0 kullanın" diyor → v6.0 |
 | Google Mobile Ads SDK | `com.google.android.gms:play-services-ads:24.9.0` (eklentinin export'ta eklediği Maven bağımlılığı). Google'ın "Mobile Ads SDK (Legacy)" hattı; 24.x **Supported**, deprecation 2027-06-30, sunset 2028-06-30 (deprecation sayfası) |
 | UMP SDK | `com.google.android.ump:user-messaging-platform:3.2.0` (play-services-ads-api 24.9.0 POM'undan geçişli) |
@@ -306,7 +313,8 @@ Sağlayıcı YOK (sonraki milestone). `AdEvents.emit(name, ctx)`; abone
   (ve TFCD / TFUA / test cihazları) **fiilen etkin değil** (A36 kanıtı + M9 logları).
   Spike yamasında düzeltildi; üretim AAR'ı değişmedi. Ayrıntı ve strateji karar
   tablosu: [GLOBAL_TEEN_AD_TREATMENT.md](GLOBAL_TEEN_AD_TREATMENT.md). **Play Age
-  Signals reklam kararında KULLANILMAZ.**
+  Signals reklam kararında KULLANILMAZ.** *(Sonra kapandı: TASK/041 üretim yaması
+  0002 + yeni AAR'lar; A36'da derece G / TFCD / TFUA / test cihazları uygulanıyor — §15.)*
 
 ## 9. Android / export
 
@@ -464,7 +472,8 @@ Kanıt: `build/qa_m8.9-01/device/DEVICE_GATE_NOTES.md` (yerel, gitignore'lu) +
 10. **TASK/040 (2026-09-25; main'de 2026-09-27):** GMA 25.3.0
     (UMP 4.0.0) + TEEN, Godot 4.6.3'te vendored v6.0 yamasıyla derlendi ve Samsung
     A36'da çalıştı (spike; üretim eklentisi GMA 24.9.0 kaldı). Yeni **CODE** engeli:
-    üretim eklentisi RequestConfiguration'ı hiç uygulamıyor (checklist #27). Strateji
+    üretim eklentisi RequestConfiguration'ı hiç uygulamıyor (checklist #27)
+    *(sonra kapandı: TASK/041, §15)*. Strateji
     kararı (A / B / C) owner'da — [GLOBAL_TEEN_AD_TREATMENT.md](GLOBAL_TEEN_AD_TREATMENT.md).
 
 ## 13. M8.9-02 masaüstü görsel inceleme (2026-09-22)
@@ -546,4 +555,79 @@ onboarding / login / dailyq / dayclock / fresh / relaunch / daily_open / daily_r
   Toast/Bubble pencerelerini de engel sayıyor (harness notu).
 - **Gameplay dondurulmuş:** fizik / merge / güç / sandık kodu değişmedi (kapı
   yalnız `tools/ads_device.gd` + doküman commit'i ekledi).
+
+## 15. TASK/041 — üretim RequestConfiguration düzeltmesi + A36 kapısı (2026-09-27) — GEÇTİ
+
+**Kapsam:** yalnız TASK/040'ın CODE bulgusu. TEEN / TFAT, GMA 25 / UMP 4 üretim geçişi,
+yaş ekranı, gerçek kimlik, imza YOK; gameplay / ekonomi / UI / ses ve `scripts/` DEĞİŞMEDİ.
+Dal `task/041-fix-request-configuration`, main'e alınması owner onayı bekliyor.
+
+**Kök neden (TASK/040):** facade `set_request_configuration` sözlüğünü Java'ya
+TFCD / TFUA / kişiselleştirme = `java.lang.Long`, `test_device_ids` = `Object[]`
+(boş dizi bile), derece = `String`, `is_real` = `Boolean` olarak veriyor. v6.0
+`AdmobConfiguration` `(int)` (= `checkcast Integer`) ve `(String[])` ile okuyordu →
+`ClassCastException` → `MobileAds.setRequestConfiguration()` hiç çağrılmıyordu; Godot'un
+JNI köprüsü istisnayı log satırı bile basmadan yutuyordu (M9-01.1 üretim logları:
+`set_request_configuration()` girişinden sonra hiçbir şey, her yüklemede SDK'nın
+"setTestDeviceIds… to get test ads on this device" ipucu). Upstream v7.0 / `main`
+(4b4ddce) yalnız Long dönüşümlerini düzeltti; `(String[])` hâlâ orada.
+
+**Düzeltme (`tools/admob_plugin/0002-fix-request-configuration-value-types.patch`, yalnız
+Java, 2 dosya +93/−21):**
+
+| değer | v6.0 | 0002 |
+|---|---|---|
+| TFCD, TFUA, kişiselleştirme | `(int)` | `instanceof Number` → `intValue()` |
+| `test_device_ids` | `(String[])` | `Object[]` üzerinde döngü; yalnız boş olmayan `String` girdiler |
+| `is_real`, `first_party_id_enabled`, derece | kör dönüşüm | tip denetimi |
+| okunamayan değer | istisna → hiçbir şey uygulanmaz | `Invalid request configuration value '<anahtar>' …` (yalnız tip) + o ayar atlanır (SDK mevcut değerini korur); `is_real` okunamazsa gerçek sayılır |
+| `set_request_configuration()` istisnası | sessizce kaybolur | yakalanır: `request configuration NOT applied` + yığın izi |
+| kanıt | yok | SDK'dan geri okuma: `set_request_configuration(): applied max_ad_content_rating=… tag_for_child_directed_treatment=… tag_for_under_age_of_consent=… personalization_state=… test_device_ids=<sayı> sdk_initialized=…` |
+
+Değerler ve setter'lar aynı: derece **G**, TFCD / TFUA **unspecified (-1)**, kişiselleştirme
+DEFAULT, test cihazları yalnız `is_real=false` (DEBUG) iken (emülatör kimliği + cihazın hash'i +
+reklam kimliği — upstream mantığı; release'te bu dal hiç çalışmaz). 0002 API, GDScript, sürüm
+değiştirmez; TFAT / yaş işlemi içermez. TASK/040 spike'ı `0003` olarak 0002'nin üstüne taşındı.
+
+**Sıra (§5 — yeniden tasarım gerekmedi):** `MonetizationManager` SDK'yı yalnız
+`canRequestAds()` true iken başlatır → SDK hazır olunca facade ÖNCE
+`set_request_configuration()` çağırır, SONRA `initialization_completed` yayar → yönetici
+yüklemeleri yalnız `_sdk_ready` sonrası başlatır. Yani yapılandırma her zaman ilk reklam
+yüklemesinden önce uygulanıyor (`release_config_test` bunu kaynaktan kilitler; A36 logu
+zaman damgalarıyla gösterir): SDK'nın geri okuması ilk yükleme çağrısından önce G
+gösteriyor ve SDK'nın test cihazı ipucu ilk istekte bile çıkmıyor — aynı
+`setRequestConfiguration` çağrısı ilk istekte etkin. Yapılandırmayı `MobileAds.initialize`
+ÖNCESİNE almak (Google'ın önerdiği sıra; spike'taki `configure_before_initialize`) bu
+görevde yapılmadı — TEEN / TFAT geçişi seçilirse o görevde ele alınır.
+
+**Derleme / kapı / testler:** iki temiz derleme bayt-aynı (debug `40ae0592…`, release
+`14c745e9…`), `verify` OK; kapı düzeltilmiş AAR'ı onaylar, eski M9 SHA'sı
+`KNOWN_PLUGIN_DEFECTS`'te kalır → **CODE 0 · OWNER 9 · CONFIG 0** (13–17 `UYUM:` açık).
+`release_config_test` 132 → 150; monetization 248, interstitial 60, daily_rewards 179,
+tutorial 199 — hepsi yeşil, SCRIPT ERROR 0, owner kaydı bayt-aynı.
+
+**A36 cihaz kapısı (SM-A366B / Android 16, yalnız `com.obappstudio.squishymerge.qa`,
+Google TEST kimlikleri, reklama tıklanmadı, her dokunuş güvenlik kontrolünden geçti):**
+QA APK `7e1e378`'den, `b5d5bc85…`; dex kimlikleri `play-services-ads@@24.9.0`,
+`play-services-ads-api@@24.9.0`, `user-messaging-platform@@3.2.0` — 25.x / UMP 4.x /
+`AgeRestrictedTreatment` / TFAT dizgeleri YOK.
+
+| kontrol | sonuç |
+|---|---|
+| RequestConfiguration uygulandı + geri okuma | ✅ her süreçte bir kez `applied max_ad_content_rating=G tag_for_child_directed_treatment=-1 tag_for_under_age_of_consent=-1 personalization_state=DEFAULT test_device_ids=3`; `NOT applied` / `Invalid …` 0 |
+| test cihazları (DEBUG) | ✅ `test_device_ids=3`; SDK'nın "…to get test ads on this device" ipucu 0 (düzeltme öncesi her yüklemede) |
+| sıra | ✅ EEA: initialize 12:13:03.345 → applied 04.587 → ödüllü 04.590 / geçiş 04.592 / banner 04.594 (aynı iş parçacığı; uygulama 13 ms). NOT_EEA: applied 12:19:59.785 → ilk yükleme 59.788 |
+| UMP EEA | ✅ form; rızadan önce `can_request_ads=false`, `initialize()` 0, yükleme 0; Consent → OBTAINED → SDK + reklamlar |
+| UMP NOT_EEA | ✅ NOT_REQUIRED, form yok, gizlilik satırı gizli |
+| gizlilik seçenekleri | ✅ Ayarlar satırı → gerçek dokunuş → form → Do not consent → geri çağrı tam bir kez (code 0), `can_request_ads` true |
+| banner | ✅ Ana Sayfa'da görünür, GAMEPLAY'de aynı kimlik, RESULT'ta gizli; süreç başına `load_banner_ad()` 1 |
+| ödüllü | ✅ günlük +150: ödül bir kez (335 → 485), ✕, yeniden yükleme, 60 sn tam ekran beklemesi başladı |
+| geçiş | ✅ 900 sn + fail + BİTİR: round sonu molasında bir kez, ✕, Result bir kez, aktif saat sıfırlandı, bekleme yeniden başladı |
+| yaşam döngüsü | ✅ HOME → başlatıcı → yeniden açılış: aynı süreç, aynı banner; `initialize()` 1; boşta 15 sn düğüm 3014 → 3014, orphan 0 |
+| logcat (10 206 QA satırı + crash tamponu + sistem ANR) | ✅ ClassCast / FATAL / ANR / JNI / NoSuchMethod / SCRIPT ERROR / E-godot = 0 |
+
+QA paketi kapıdan sonra kaldırıldı; owner'ın `com.example.squishymerge` paketi (kayıt dahil)
+dokunulmadı (meta veri önce = sonra). Debug yolundaki upstream `Log.d` satırları reklam
+kimliğini ve cihaz hash'ini yazdığı için saklanan loglar redakte edildi. Yerel kanıt:
+`build/qa_041/` (`A36_DEVICE_GATE.md`, `device/`, `plugin/`, `tests/`).
 
