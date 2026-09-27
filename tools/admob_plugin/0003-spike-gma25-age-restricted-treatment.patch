@@ -111,19 +111,18 @@ index 3234c83..7fa3f68 100644
  	_data[DATA_KEY_UNDER_AGE_OF_CONSENT] = a_value
  	return self
 diff --git a/android/src/main/java/org/godotengine/plugin/admob/AdmobPlugin.java b/android/src/main/java/org/godotengine/plugin/admob/AdmobPlugin.java
-index 2a47015..e0f757f 100644
+index b6e65d5..cc1ca87 100644
 --- a/android/src/main/java/org/godotengine/plugin/admob/AdmobPlugin.java
 +++ b/android/src/main/java/org/godotengine/plugin/admob/AdmobPlugin.java
-@@ -24,6 +24,8 @@ import com.google.android.gms.ads.AdError;
- import com.google.android.gms.ads.AdSize;
+@@ -25,6 +25,7 @@ import com.google.android.gms.ads.AdSize;
  import com.google.android.gms.ads.LoadAdError;
  import com.google.android.gms.ads.MobileAds;
-+import com.google.android.gms.ads.RequestConfiguration;
+ import com.google.android.gms.ads.RequestConfiguration;
 +import com.google.android.gms.ads.VersionInfo;
  import com.google.android.gms.ads.ResponseInfo;
  import com.google.android.gms.ads.initialization.InitializationStatus;
  import com.google.android.gms.ads.initialization.OnInitializationCompleteListener;
-@@ -251,6 +253,7 @@ public class AdmobPlugin extends GodotPlugin {
+@@ -252,6 +253,7 @@ public class AdmobPlugin extends GodotPlugin {
  	@UsedByGodot
  	public void initialize() {
  		Log.d(LOG_TAG, "initialize()");
@@ -131,7 +130,7 @@ index 2a47015..e0f757f 100644
  
  		bannerAdIdSequence = 0;
  		nativeAdIdSequence = 0;
-@@ -284,6 +287,7 @@ public class AdmobPlugin extends GodotPlugin {
+@@ -285,6 +287,7 @@ public class AdmobPlugin extends GodotPlugin {
  							}
  						}
  
@@ -139,25 +138,24 @@ index 2a47015..e0f757f 100644
  						isInitialized = true;
  						emitSignal(SIGNAL_INITIALIZATION_COMPLETED, new AdmobStatus(initializationStatus).buildRawData());
  					}
-@@ -295,8 +299,49 @@ public class AdmobPlugin extends GodotPlugin {
+@@ -296,6 +299,12 @@ public class AdmobPlugin extends GodotPlugin {
  	@UsedByGodot
  	public void set_request_configuration(Dictionary configData) {
  		Log.d(LOG_TAG, "set_request_configuration()");
--		AdmobConfiguration config = new AdmobConfiguration(configData);
--		MobileAds.setRequestConfiguration(config.createRequestConfiguration(activity));
 +		StringBuilder types = new StringBuilder();
 +		for (String key : configData.keySet()) {
 +			Object value = configData.get(key);
 +			types.append(key).append('=').append(value == null ? "null" : value.getClass().getSimpleName()).append(' ');
 +		}
 +		Log.i(LOG_TAG, "TFAT_DIAG set_request_configuration value types: " + types);
-+		try {
-+			AdmobConfiguration config = new AdmobConfiguration(configData);
-+			MobileAds.setRequestConfiguration(config.createRequestConfiguration(activity));
-+			logRequestConfiguration("set_request_configuration:applied");
-+		} catch (RuntimeException e) {
-+			Log.e(LOG_TAG, "TFAT_DIAG set_request_configuration FAILED: " + e, e);
-+		}
+ 		// An exception thrown from here is swallowed by Godot's JNI bridge without any log line
+ 		// (Squishy Merge TASK/040): report it, and read the applied configuration back.
+ 		try {
+@@ -312,6 +321,37 @@ public class AdmobPlugin extends GodotPlugin {
+ 				+ " personalization_state=" + applied.getPublisherPrivacyPersonalizationState()
+ 				+ " test_device_ids=" + applied.getTestDeviceIds().size()
+ 				+ " sdk_initialized=" + isInitialized);
++		logRequestConfiguration("set_request_configuration:applied");
 +	}
 +
 +	/**
@@ -191,7 +189,7 @@ index 2a47015..e0f757f 100644
  	}
  
  	@UsedByGodot
-@@ -381,6 +426,7 @@ public class AdmobPlugin extends GodotPlugin {
+@@ -396,6 +436,7 @@ public class AdmobPlugin extends GodotPlugin {
  	public void load_banner_ad(Dictionary adData) {
  		if (isInitialized) {
  			Log.d(LOG_TAG, "load_banner_ad()");
@@ -199,7 +197,7 @@ index 2a47015..e0f757f 100644
  
  			LoadAdRequest loadAdRequest = new LoadAdRequest(adData);
  			if (loadAdRequest.isValid()) {
-@@ -555,6 +601,7 @@ public class AdmobPlugin extends GodotPlugin {
+@@ -570,6 +611,7 @@ public class AdmobPlugin extends GodotPlugin {
  	public void load_interstitial_ad(Dictionary adData) {
  		if (isInitialized) {
  			Log.d(LOG_TAG, "load_interstitial_ad()");
@@ -207,7 +205,7 @@ index 2a47015..e0f757f 100644
  
  			LoadAdRequest loadAdRequest = new LoadAdRequest(adData);
  			if (loadAdRequest.isValid()) {
-@@ -642,6 +689,7 @@ public class AdmobPlugin extends GodotPlugin {
+@@ -657,6 +699,7 @@ public class AdmobPlugin extends GodotPlugin {
  	public void load_rewarded_ad(Dictionary adData) {
  		if (isInitialized) {
  			Log.d(LOG_TAG, "load_rewarded_ad()");
@@ -216,7 +214,7 @@ index 2a47015..e0f757f 100644
  			LoadAdRequest loadAdRequest = new LoadAdRequest(adData);
  			if (loadAdRequest.isValid()) {
 diff --git a/android/src/main/java/org/godotengine/plugin/admob/model/AdmobConfiguration.java b/android/src/main/java/org/godotengine/plugin/admob/model/AdmobConfiguration.java
-index fbc71a1..c202ef0 100644
+index 8fba73a..6c85f54 100644
 --- a/android/src/main/java/org/godotengine/plugin/admob/model/AdmobConfiguration.java
 +++ b/android/src/main/java/org/godotengine/plugin/admob/model/AdmobConfiguration.java
 @@ -9,6 +9,7 @@ import android.provider.Settings;
@@ -235,86 +233,47 @@ index fbc71a1..c202ef0 100644
  	private static String FIRST_PARTY_ID_ENABLED_PROPERTY = "first_party_id_enabled";
  	private static String PERSONALIZATION_STATE_PROPERTY = "personalization_state";
  	private static String TEST_DEVICE_IDS_PROPERTY = "test_device_ids";
-@@ -51,12 +53,29 @@ public class AdmobConfiguration {
- 		return (String) _data.get(MAX_AD_CONTENT_RATING_PROPERTY);
+@@ -76,6 +78,16 @@ public class AdmobConfiguration {
+ 		return getInt(UNDER_AGE_OF_CONSENT_PROPERTY);
  	}
  
-+	// TASK/040 spike: Godot 4.6 passes Dictionary ints as java.lang.Long. The upstream
-+	// `(int) _data.get(...)` casts (checkcast Integer) threw ClassCastException, so
-+	// MobileAds.setRequestConfiguration() was never reached (same idea as upstream 953df5e).
-+	private int toInt(String key, int fallback) {
-+		Object value = _data.get(key);
-+		return (value instanceof Number) ? ((Number) value).intValue() : fallback;
-+	}
-+
- 	public int getChildDirectedTreatment() {
--		return (int) _data.get(CHILD_DIRECTED_TREATMENT_PROPERTY);
-+		return toInt(CHILD_DIRECTED_TREATMENT_PROPERTY, RequestConfiguration.TAG_FOR_CHILD_DIRECTED_TREATMENT_UNSPECIFIED);
- 	}
- 
- 	public int getUnderAgeOfConsent() {
--		return (int) _data.get(UNDER_AGE_OF_CONSENT_PROPERTY);
-+		return toInt(UNDER_AGE_OF_CONSENT_PROPERTY, RequestConfiguration.TAG_FOR_UNDER_AGE_OF_CONSENT_UNSPECIFIED);
-+	}
-+
 +	// TASK/040 spike: 0 UNSPECIFIED, 1 CHILD, 2 TEEN (Godot may pass Long or Integer).
 +	public AgeRestrictedTreatment getAgeRestrictedTreatment() {
-+		switch (toInt(AGE_RESTRICTED_TREATMENT_PROPERTY, 0)) {
++		Integer value = getInt(AGE_RESTRICTED_TREATMENT_PROPERTY);
++		switch (value != null ? value : 0) {
 +			case 1: return AgeRestrictedTreatment.CHILD;
 +			case 2: return AgeRestrictedTreatment.TEEN;
 +			default: return AgeRestrictedTreatment.UNSPECIFIED;
 +		}
- 	}
++	}
++
+ 	public Boolean getFirstPartyIdEnabled() {
+ 		Object value = _data.get(FIRST_PARTY_ID_ENABLED_PROPERTY);
+ 		if (value instanceof Boolean) {
+@@ -132,13 +144,26 @@ public class AdmobConfiguration {
+ 		if (maxAdContentRating != null)
+ 			builder.setMaxAdContentRating(maxAdContentRating);
  
- 	public boolean getFirstPartyIdEnabled() {
-@@ -64,11 +83,25 @@ public class AdmobConfiguration {
- 	}
- 
- 	public int getPublisherPrivacyPersonalizationState() {
--		return (int) _data.get(PERSONALIZATION_STATE_PROPERTY);
-+		return toInt(PERSONALIZATION_STATE_PROPERTY, 0);
- 	}
- 
-+	// TASK/040 spike: Godot 4.6 passes GDScript arrays as Object[] (not String[]); the upstream
-+	// `(String[])` cast threw ClassCastException (A36 logcat, 2026-09-25).
- 	public String[] getTestDeviceIds() {
--		return (String[]) _data.get(TEST_DEVICE_IDS_PROPERTY);
-+		Object value = _data.get(TEST_DEVICE_IDS_PROPERTY);
-+		if (value instanceof String[]) {
-+			return (String[]) value;
-+		}
-+		if (value instanceof Object[]) {
-+			Object[] raw = (Object[]) value;
-+			String[] ids = new String[raw.length];
-+			for (int i = 0; i < raw.length; i++) {
-+				ids[i] = String.valueOf(raw[i]);
-+			}
-+			return ids;
-+		}
-+		return new String[0];
- 	}
- 
- 	public RequestConfiguration createRequestConfiguration(Activity activity) {
-@@ -77,11 +110,24 @@ public class AdmobConfiguration {
- 		if (_data.containsKey(MAX_AD_CONTENT_RATING_PROPERTY))
- 			builder.setMaxAdContentRating(getMaxContentRating());
- 
--		if (_data.containsKey(CHILD_DIRECTED_TREATMENT_PROPERTY))
--			builder.setTagForChildDirectedTreatment(getChildDirectedTreatment());
+-		Integer childDirectedTreatment = _data.containsKey(CHILD_DIRECTED_TREATMENT_PROPERTY) ? getChildDirectedTreatment() : null;
+-		if (childDirectedTreatment != null)
+-			builder.setTagForChildDirectedTreatment(childDirectedTreatment);
 -
--		if (_data.containsKey(UNDER_AGE_OF_CONSENT_PROPERTY))
--			builder.setTagForUnderAgeOfConsent(getUnderAgeOfConsent());
+-		Integer underAgeOfConsent = _data.containsKey(UNDER_AGE_OF_CONSENT_PROPERTY) ? getUnderAgeOfConsent() : null;
+-		if (underAgeOfConsent != null)
+-			builder.setTagForUnderAgeOfConsent(underAgeOfConsent);
 +		// TASK/040 spike (GMA 25.3.0+): setAgeRestrictedTreatment() replaces the deprecated
 +		// TFCD/TFUA tags, which have no TEEN equivalent. UNSPECIFIED keeps the legacy path
 +		// byte-for-byte (TFCD/TFUA as before, TFAT setter not called).
 +		AgeRestrictedTreatment ageTreatment = _data.containsKey(AGE_RESTRICTED_TREATMENT_PROPERTY)
 +				? getAgeRestrictedTreatment() : AgeRestrictedTreatment.UNSPECIFIED;
 +		if (ageTreatment == AgeRestrictedTreatment.UNSPECIFIED) {
-+			if (_data.containsKey(CHILD_DIRECTED_TREATMENT_PROPERTY))
-+				builder.setTagForChildDirectedTreatment(getChildDirectedTreatment());
++			Integer childDirectedTreatment = _data.containsKey(CHILD_DIRECTED_TREATMENT_PROPERTY) ? getChildDirectedTreatment() : null;
++			if (childDirectedTreatment != null)
++				builder.setTagForChildDirectedTreatment(childDirectedTreatment);
 +
-+			if (_data.containsKey(UNDER_AGE_OF_CONSENT_PROPERTY))
-+				builder.setTagForUnderAgeOfConsent(getUnderAgeOfConsent());
++			Integer underAgeOfConsent = _data.containsKey(UNDER_AGE_OF_CONSENT_PROPERTY) ? getUnderAgeOfConsent() : null;
++			if (underAgeOfConsent != null)
++				builder.setTagForUnderAgeOfConsent(underAgeOfConsent);
 +		}
 +		AgeRestrictedTreatment currentTreatment = MobileAds.getRequestConfiguration().getAgeRestrictedTreatment();
 +		if (ageTreatment != AgeRestrictedTreatment.UNSPECIFIED

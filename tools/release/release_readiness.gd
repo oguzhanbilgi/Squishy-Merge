@@ -35,7 +35,9 @@ extends RefCounted
 ##
 ## Bilinen eklenti kusurları (TASK/040, Samsung A36 kanıtı): onaylı release AAR'ında
 ## kodla düzeltilmesi gereken bir kusur kayıtlıysa CODE engeli (KNOWN_PLUGIN_DEFECTS,
-## AAR SHA-256'sına göre; girdi yoksa SHA'dan türetilir — fail-closed).
+## AAR SHA-256'sına göre; girdi yoksa SHA'dan türetilir — fail-closed). TASK/041: onaylı
+## AAR artık RequestConfiguration'ı düzelten v6.0 + 0001 + 0002 derlemesi; eski kusurlu
+## M9 AAR'ının kaydı kalır (o AAR geri gelirse yine CODE).
 
 const CATEGORY_OWNER: String = "OWNER"
 const CATEGORY_CONFIG: String = "CONFIG"
@@ -65,16 +67,19 @@ const TEMPLATE_TARGET_SDK: int = 36
 const FORMAT_AAB: int = 1
 const NON_PUBLISHABLE_ENV: String = "SQUISHY_NON_PUBLISHABLE_RELEASE"
 const NON_PUBLISHABLE_MARKER: String = "NOT_FOR_UPLOAD"
-## Yamalı eklenti (tools/admob_plugin, addons/AdmobPlugin/VERSION.md).
+## Yamalı eklenti (tools/admob_plugin, addons/AdmobPlugin/VERSION.md). Onaylı release AAR =
+## godot-admob v6.0 + 0001 (UMP) + 0002 (RequestConfiguration dönüşümü, TASK/041); iki
+## bağımsız temiz derleme bayt-aynı (cihaz kanıtı: docs/monetization/ADS_SYSTEM.md).
+## Başka her SHA → CODE.
 const PATCHED_RELEASE_AAR: String = "res://addons/AdmobPlugin/bin/release/AdmobPlugin-release.aar"
-const PATCHED_RELEASE_AAR_SHA256: String = "90d359921f10bc6618ed63b9ea97cdba5afcbdfbb8cb72fe264834e5bf478284"
+const PATCHED_RELEASE_AAR_SHA256: String = "14c745e9d00dbcb582b4e890f5c8a95969f1a15f97a4dfb6e0107860624541a4"
 const PATCHED_FACADE: String = "res://addons/AdmobPlugin/Admob.gd"
-## Onaylı yamalı AAR'lardaki bilinen kusurlar (release AAR SHA-256 → CODE engeli metni).
+## Bilinen kusurlu yamalı AAR'lar (release AAR SHA-256 → CODE engeli metni).
 ## TASK/040 A36 kanıtı (2026-09-25): Godot 4.6 Dictionary int'lerini java.lang.Long, dizileri
 ## Object[] olarak geçiriyor; v6.0 AdmobConfiguration'ın `(int)` / `(String[])` dönüşümleri
 ## ClassCastException atıyor ve MobileAds.setRequestConfiguration() HİÇ çağrılmıyor (Godot
-## istisnayı sessizce yutuyor). Düzeltilmiş derleme onaylanınca PATCHED_RELEASE_AAR_SHA256
-## yeni SHA'ya geçer; bu kayıt eski SHA için kalır.
+## istisnayı sessizce yutuyor). TASK/041 düzeltilmiş derlemeyi onayladı
+## (PATCHED_RELEASE_AAR_SHA256); bu kayıt eski M9 SHA'sı için KALIR.
 const KNOWN_PLUGIN_DEFECTS: Dictionary = {
 	"90d359921f10bc6618ed63b9ea97cdba5afcbdfbb8cb72fe264834e5bf478284": "addons/AdmobPlugin release AAR'ı RequestConfiguration'ı HİÇ uygulamıyor (Godot 4.6 Long / Object[] → Java (int) / (String[]) dönüşümü ClassCastException) — max_ad_content_rating G, TFCD / TFUA ve test cihazları etkin DEĞİL; düzeltilmiş eklenti derlemesi gerekli (GLOBAL_TEEN_AD_TREATMENT.md §C4)",
 }

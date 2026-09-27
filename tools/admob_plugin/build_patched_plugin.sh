@@ -1,17 +1,22 @@
 #!/usr/bin/env bash
-# Squishy Merge (M9-01) — deterministic rebuild of the godot-admob v6.0 Android
-# plugin with the UMP privacy-options / debug-geography patch.
+# Squishy Merge (M9-01, TASK/041) — deterministic rebuild of the godot-admob v6.0 Android
+# plugin with the production patches: 0001 (UMP privacy options / debug geography) and
+# 0002 (RequestConfiguration value conversion for Godot 4.6 Long / Object[] values).
 #
-#   tools/admob_plugin/build_patched_plugin.sh verify    rebuild v6.0 + patch and prove the
+#   tools/admob_plugin/build_patched_plugin.sh verify    rebuild v6.0 + 0001 + 0002 and prove the
 #                                                        committed addons/AdmobPlugin files are
 #                                                        exactly that build (default)
+#   tools/admob_plugin/build_patched_plugin.sh build     rebuild v6.0 + 0001 + 0002 into
+#                                                        $WORK/out/build and print the SHA-256s —
+#                                                        installs and compares nothing (run twice
+#                                                        to prove reproducibility BEFORE install)
 #   tools/admob_plugin/build_patched_plugin.sh install   rebuild, then copy the two AARs and the
 #                                                        generated Admob.gd into addons/AdmobPlugin
 #   tools/admob_plugin/build_patched_plugin.sh baseline  rebuild UNPATCHED v6.0 and prove it equals
 #                                                        the upstream v6.0 release AARs (toolchain check)
 #   tools/admob_plugin/build_patched_plugin.sh spike     TASK/040 FEASIBILITY ONLY: v6.0 + 0001 + 0002
-#                                                        (GMA 25.3.0 / UMP 4.0.0 + age-restricted
-#                                                        treatment + diagnostics) into
+#                                                        + 0003 (GMA 25.3.0 / UMP 4.0.0 +
+#                                                        age-restricted treatment + diagnostics) into
 #                                                        build/admob_plugin_spike/out/spike — NEVER
 #                                                        installed into addons/AdmobPlugin
 #
@@ -23,7 +28,7 @@
 set -euo pipefail
 
 MODE="${1:-verify}"
-case "$MODE" in verify|install|baseline|spike) ;; *) echo "usage: $0 [verify|install|baseline|spike]"; exit 64 ;; esac
+case "$MODE" in verify|build|install|baseline|spike) ;; *) echo "usage: $0 [verify|build|install|baseline|spike]"; exit 64 ;; esac
 
 REPO="$(cd "$(dirname "$0")/../.." && pwd)"
 HERE="$REPO/tools/admob_plugin"
@@ -34,10 +39,15 @@ else
 	WORK="${SQUISHY_PLUGIN_WORK:-$REPO/build/admob_plugin}"
 fi
 PATCH="$HERE/0001-ump-privacy-options-and-debug-geography.patch"
+# TASK/041 production fix: AdmobConfiguration reads Godot 4.6 Long / Object[] values safely
+# (the v6.0 (int) / (String[]) casts threw, so RequestConfiguration was never applied).
+CONFIG_PATCH="$HERE/0002-fix-request-configuration-value-types.patch"
+CONFIG_PATCH_SHA256="bfa9fb450d86956c4326d47c4d930b86948c19961bef07ceed7145d94bf73b9d"
 # TASK/040 feasibility spike (not production): GMA 25.3.0 (+ UMP 4.0.0 transitively),
-# AgeRestrictedTreatment (TFAT) + a TFAT_DIAG diagnostic seam. Applied only in `spike` mode.
-SPIKE_PATCH="$HERE/0002-spike-gma25-age-restricted-treatment.patch"
-SPIKE_PATCH_SHA256="e54c22713539d2fe0bce0ad019a12733ca498eb3da297f65b83022da0be8b036"
+# AgeRestrictedTreatment (TFAT) + a TFAT_DIAG diagnostic seam, on top of 0001 + 0002.
+# Applied only in `spike` mode.
+SPIKE_PATCH="$HERE/0003-spike-gma25-age-restricted-treatment.patch"
+SPIKE_PATCH_SHA256="bef2911147abe11d3598491b3ed700ba01d1ed3caa923c8422964fc313518697"
 
 UPSTREAM_URL="https://github.com/godot-sdk-integrations/godot-admob.git"
 PINNED_COMMIT="90e3c616ea3c680e3875c31e6bcccffbebbe9d3b"   # tag v6.0 ("Upgraded to Godot 4.6 (#89)")
@@ -48,8 +58,8 @@ UPSTREAM_DEBUG_SHA256="388243802894363133814f9f8c0c9be61adc27b5911c1146048376870
 UPSTREAM_RELEASE_SHA256="526516f93b1e29a6749b0293d86649bb7a6971603258a62e109dfd65afb36789"
 # This build on Windows (AGP writes the AAR manifest with CRLF there; a Linux
 # build differs ONLY in those line endings — aar_equivalence.py accepts that).
-PATCHED_DEBUG_SHA256_WINDOWS="e3ac9a6b1492468928c037d4d21464310560c7b21c14c597fa4a567c23c6eb2d"
-PATCHED_RELEASE_SHA256_WINDOWS="90d359921f10bc6618ed63b9ea97cdba5afcbdfbb8cb72fe264834e5bf478284"
+PATCHED_DEBUG_SHA256_WINDOWS="40ae0592773a19045c6a97d1d7182347e1c6d026497ee574a58562b450109e2c"
+PATCHED_RELEASE_SHA256_WINDOWS="14c745e9d00dbcb582b4e890f5c8a95969f1a15f97a4dfb6e0107860624541a4"
 GODOT_TEMPLATE_VERSION="4.6.3.stable"
 BUILD_TOOLS="36.1.0"          # upstream pins 35.0.0; 36.1.0 is what Godot 4.6.3's template uses
 PLATFORM="android-35"         # upstream compileSdk 35
@@ -112,6 +122,10 @@ if [ "$MODE" != "baseline" ]; then
 	git -C "$SRC" apply --check "$PATCH"
 	git -C "$SRC" apply "$PATCH"
 	say "patch: $(basename "$PATCH") $PATCH_SHA256"
+	[ "$(sha "$CONFIG_PATCH")" = "$CONFIG_PATCH_SHA256" ] || die "0002 patch SHA-256 changed — update CONFIG_PATCH_SHA256 deliberately"
+	git -C "$SRC" apply --check "$CONFIG_PATCH"
+	git -C "$SRC" apply "$CONFIG_PATCH"
+	say "patch: $(basename "$CONFIG_PATCH") $CONFIG_PATCH_SHA256"
 fi
 if [ "$MODE" = "spike" ]; then
 	[ "$(sha "$SPIKE_PATCH")" = "$SPIKE_PATCH_SHA256" ] || die "spike patch SHA-256 changed — update SPIKE_PATCH_SHA256 deliberately"
@@ -173,15 +187,22 @@ if [ "$MODE" = "baseline" ]; then
 	exit 0
 fi
 
-[ "$(sha "$OUT/AdmobPlugin-debug.aar")" = "$PATCHED_DEBUG_SHA256_WINDOWS" ] \
-	&& [ "$(sha "$OUT/AdmobPlugin-release.aar")" = "$PATCHED_RELEASE_SHA256_WINDOWS" ] \
-	&& say "hashes match the recorded Windows build" \
-	|| say "hashes differ from the recorded Windows build — checking content equivalence"
+if [ "$(sha "$OUT/AdmobPlugin-debug.aar")" = "$PATCHED_DEBUG_SHA256_WINDOWS" ] \
+	&& [ "$(sha "$OUT/AdmobPlugin-release.aar")" = "$PATCHED_RELEASE_SHA256_WINDOWS" ]; then
+	say "hashes match the recorded Windows build"
+else
+	say "hashes differ from the recorded Windows build"
+fi
+if [ "$MODE" = "build" ]; then
+	say "BUILD OK -> $OUT (nothing installed or compared)"
+	exit 0
+fi
 if [ "$MODE" = "verify" ]; then
+	say "checking content equivalence with addons/AdmobPlugin"
 	for v in debug release; do $EQ "$PLUGIN/bin/$v/AdmobPlugin-$v.aar" "$OUT/AdmobPlugin-$v.aar" || FAIL=1; done
 fi
-# Generated GDScript: only Admob.gd is touched by the patch; the rest must equal the
-# committed (upstream-generated) files.
+# Generated GDScript: only Admob.gd is touched (by 0001; 0002 is Java-only); the rest must
+# equal the committed (upstream-generated) files.
 while IFS= read -r f; do
 	rel="${f#"$GEN"/}"
 	[ "$rel" = "Admob.gd" ] && continue
@@ -198,5 +219,5 @@ if [ "$MODE" = "install" ]; then
 	say "INSTALLED into addons/AdmobPlugin (update VERSION.md hashes if they changed)"
 else
 	cmp -s "$OUT/Admob.gd" "$PLUGIN/Admob.gd" || die "addons/AdmobPlugin/Admob.gd is not the patched generated file"
-	say "VERIFY OK: addons/AdmobPlugin == godot-admob $PINNED_COMMIT + $(basename "$PATCH")"
+	say "VERIFY OK: addons/AdmobPlugin == godot-admob $PINNED_COMMIT + $(basename "$PATCH") + $(basename "$CONFIG_PATCH")"
 fi

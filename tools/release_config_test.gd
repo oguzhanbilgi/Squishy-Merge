@@ -16,6 +16,9 @@ extends Node
 ##   - şifre / takma ad raporlara sızmaz
 ##   - UMP sarmalayıcıları arayüz düzeyinde (AdBackend / FakeAdBackend / Admob.gd
 ##     cephesi / AdmobBackend eşlemeleri) + commit edilmiş AAR'ların bytecode'u
+##   - TASK/041: onaylı AAR = RequestConfiguration düzeltmesi (v6.0 + 0001 + 0002); eski
+##     kusurlu M9 AAR'ı ve bilinmeyen AAR CODE; GMA 24.9.0 / UMP 3.2.0, TFAT yok; facade
+##     değerleri (G / unspecified / unspecified) ve ilk yüklemeden önce uygulanma sırası
 ##   - Ayarlar'daki "Gizlilik politikası" satırı (URL yokken gizli)
 ##
 ## Kayda yazmaz (yalnız user:// geçici dosyalar, sonda silinir); yine de kayıt
@@ -31,6 +34,12 @@ const REAL_REWARDED: String = "ca-app-pub-1234567890123456/1111111111"
 const REAL_BANNER: String = "ca-app-pub-1234567890123456/2222222222"
 const REAL_INTER: String = "ca-app-pub-1234567890123456/3333333333"
 const SETTINGS_SCENE: String = "res://scenes/ui/settings_panel.tscn"
+## M9-01'in onaylı ama kusurlu yamalı AAR'ları (v6.0 + 0001; TASK/040: RequestConfiguration
+## hiç uygulanmıyor). TASK/041 bunları v6.0 + 0001 + 0002 derlemesiyle değiştirdi.
+const DEFECTIVE_M9_RELEASE_AAR_SHA256: String = "90d359921f10bc6618ed63b9ea97cdba5afcbdfbb8cb72fe264834e5bf478284"
+const DEFECTIVE_M9_DEBUG_AAR_SHA256: String = "e3ac9a6b1492468928c037d4d21464310560c7b21c14c597fa4a567c23c6eb2d"
+const CONFIG_PATCH: String = "res://tools/admob_plugin/0002-fix-request-configuration-value-types.patch"
+const SPIKE_PATCH: String = "res://tools/admob_plugin/0003-spike-gma25-age-restricted-treatment.patch"
 const KEYSTORE_ENV: Array[String] = ["GODOT_ANDROID_KEYSTORE_RELEASE_PATH", "GODOT_ANDROID_KEYSTORE_RELEASE_USER",
 	"GODOT_ANDROID_KEYSTORE_RELEASE_PASSWORD", "SQUISHY_NON_PUBLISHABLE_RELEASE"]
 
@@ -67,6 +76,7 @@ func _ready() -> void:
 	_test_wrapper_interface()
 	_test_patched_binaries()
 	_test_teen_treatment_boundaries()
+	_test_request_configuration_path()
 	await _test_privacy_policy_row()
 
 	for key in KEYSTORE_ENV:
@@ -400,11 +410,30 @@ func _test_release_gate_rules() -> void:
 			"CODE", "AAR") and _blocked_by(_gate({"plugin_facade_patched": false}), "CODE", "Admob.gd"))
 	_c("bilinen eklenti kusuru -> CODE (tek engel; TASK/040)", _blocked_by(_gate({"plugin_known_defects": ["kusur-X"]}), "CODE", "kusur-X")
 		and _gate({"plugin_known_defects": ["kusur-X"]})["blockers"].size() == 1)
-	var defect_inputs: Dictionary = _good_inputs()
-	defect_inputs.erase("plugin_known_defects")
-	_c("kusur girdisi yoksa AAR SHA'sından türetilir (fail-closed): onaylı M9 AAR -> CODE RequestConfiguration",
-		_blocked_by(ReleaseReadiness.evaluate(defect_inputs), "CODE", "RequestConfiguration")
-		and ReleaseReadiness.known_plugin_defects("0000").is_empty())
+	# TASK/041: kusur girdisi yoksa AAR SHA'sından türetilir (fail-closed).
+	var fixed_inputs: Dictionary = _good_inputs()
+	fixed_inputs.erase("plugin_known_defects")
+	var fixed: Dictionary = ReleaseReadiness.evaluate(fixed_inputs)
+	_c("düzeltilmiş TASK/041 AAR'ı (onaylı SHA) -> bilinen kusur YOK, CODE yok, UPLOAD_CANDIDATE (kusur SHA'dan türetildi)",
+		ReleaseReadiness.known_plugin_defects(ReleaseReadiness.PATCHED_RELEASE_AAR_SHA256).is_empty()
+		and fixed["status"] == ReleaseReadiness.STATUS_UPLOAD_CANDIDATE and not _has_category(fixed, "CODE"))
+	var old_inputs: Dictionary = _good_inputs()
+	old_inputs.erase("plugin_known_defects")
+	old_inputs["plugin_release_aar_sha256"] = DEFECTIVE_M9_RELEASE_AAR_SHA256
+	var old: Dictionary = ReleaseReadiness.evaluate(old_inputs)
+	_c("eski kusurlu M9 AAR'ı (90d35992…) -> REDDEDİLİR: CODE RequestConfiguration kusuru + CODE onaylı derleme değil",
+		_blocked_by(old, "CODE", "RequestConfiguration") and _blocked_by(old, "CODE", "AAR yamalı derleme değil")
+		and ReleaseReadiness.known_plugin_defects(DEFECTIVE_M9_RELEASE_AAR_SHA256).size() == 1)
+	var unknown: Dictionary = _gate({"plugin_release_aar_sha256": "0".repeat(64), "plugin_known_defects":
+		ReleaseReadiness.known_plugin_defects("0".repeat(64))})
+	_c("bilinmeyen / doğrulanmamış AAR (SHA eşleşmiyor) -> CODE (fail-closed); kusur kaydı olmasa da geçemez",
+		_blocked_by(unknown, "CODE", "AAR yamalı derleme değil") and ReleaseReadiness.known_plugin_defects("0000").is_empty()
+		and _gate({"plugin_release_aar_sha256": ""})["status"] == ReleaseReadiness.STATUS_BLOCKED)
+	_c("kusur kuralı SİLİNMEDİ: eski SHA'nın RequestConfiguration kaydı duruyor; onaylı (düzeltilmiş) SHA kayıtta DEĞİL",
+		ReleaseReadiness.KNOWN_PLUGIN_DEFECTS.has(DEFECTIVE_M9_RELEASE_AAR_SHA256)
+		and String(ReleaseReadiness.KNOWN_PLUGIN_DEFECTS[DEFECTIVE_M9_RELEASE_AAR_SHA256]).contains("RequestConfiguration")
+		and not ReleaseReadiness.KNOWN_PLUGIN_DEFECTS.has(ReleaseReadiness.PATCHED_RELEASE_AAR_SHA256)
+		and ReleaseReadiness.PATCHED_RELEASE_AAR_SHA256 != DEFECTIVE_M9_RELEASE_AAR_SHA256)
 	_c("imzasız preset -> CONFIG (Play'e yüklenemez)", _blocked_by(_gate({"signed": false}), "CONFIG", "imzasız"))
 	_c("upload anahtarı yok / dosya yok / debug anahtarı / takma ad-şifre yok -> OWNER",
 		_blocked_by(_gate({"keystore_path_set": false}), "OWNER", "verilmedi")
@@ -473,12 +502,13 @@ func _test_current_project_state() -> void:
 	for blocker: Dictionary in result["blockers"]:
 		if blocker["category"] == "CODE":
 			code_blockers += 1
-	_c("bugün tam 10 engel: OWNER 9 (AdMob 5 + gizlilik URL'i 1 + upload anahtarı 2 + 13–17 uyum 1) + CODE 1",
-		owner_blockers == 9 and code_blockers == 1 and result["blockers"].size() == 10)
-	_c("tek CODE engeli bilinen RequestConfiguration kusuru (TASK/040 A36); yamalı AAR + cephe yerinde",
+	_c("bugün tam 9 engel: OWNER 9 (AdMob 5 + gizlilik URL'i 1 + upload anahtarı 2 + 13–17 uyum 1) + CODE 0 + CONFIG 0",
+		owner_blockers == 9 and code_blockers == 0 and result["blockers"].size() == 9)
+	_c("CODE engeli YOK (TASK/041): release AAR = düzeltilmiş onaylı derleme, bilinen kusur 0, eski kusurlu SHA değil, cephe yamalı",
 		inputs["plugin_release_aar_sha256"] == ReleaseReadiness.PATCHED_RELEASE_AAR_SHA256
-		and bool(inputs["plugin_facade_patched"]) and inputs["plugin_known_defects"].size() == 1
-		and _blocked_by(result, "CODE", "RequestConfiguration"))
+		and inputs["plugin_release_aar_sha256"] != DEFECTIVE_M9_RELEASE_AAR_SHA256
+		and bool(inputs["plugin_facade_patched"]) and inputs["plugin_known_defects"].is_empty()
+		and not _blocked_by(result, "CODE", "RequestConfiguration"))
 	_c("sürüm tek kaynağı: preset versionCode 1 = project.godot 1, versionName boş → 0.8.5",
 		int(inputs["version_code"]) == int(inputs["canonical_version_code"]) and inputs["version_name_preset"] == "")
 
@@ -579,10 +609,27 @@ func _test_patched_binaries() -> void:
 		var plugin_class: PackedByteArray = inner.read_file("org/godotengine/plugin/admob/AdmobPlugin.class")
 		var consent_class: PackedByteArray = inner.read_file("org/godotengine/plugin/admob/model/ConsentConfiguration.class")
 		var config_class: PackedByteArray = inner.read_file("org/godotengine/plugin/admob/model/AdmobConfiguration.class")
+		var tfat_hits: PackedStringArray = PackedStringArray()
+		for entry in inner.get_files():
+			if entry.ends_with(".class"):
+				var bytes: PackedByteArray = inner.read_file(entry)
+				for needle in ["AgeRestrictedTreatment", "TFAT_DIAG", "age_restricted_treatment", "get_request_configuration_diagnostics"]:
+					if _class_has(bytes, needle):
+						tfat_hits.append("%s (%s)" % [entry.get_file(), needle])
 		inner.close()
-		_c("%s AdmobConfiguration.class Number / Object[] güvenli dönüşüm İÇERMİYOR — TASK/040 bilinen kusuru bu AAR'da (kapı CODE)" % kind,
-			not config_class.is_empty() and not _class_has(config_class, "java/lang/Number")
-			and _class_has(config_class, "java/lang/Integer"))
+		_c("%s AAR eski kusurlu M9 derlemesi DEĞİL (%s… ≠ %s… / %s…)" % [kind, sha.substr(0, 8),
+				DEFECTIVE_M9_DEBUG_AAR_SHA256.substr(0, 8), DEFECTIVE_M9_RELEASE_AAR_SHA256.substr(0, 8)],
+			sha != DEFECTIVE_M9_DEBUG_AAR_SHA256 and sha != DEFECTIVE_M9_RELEASE_AAR_SHA256)
+		_c("%s AdmobConfiguration.class Godot 4.6 Long / Object[] güvenli okuma İÇERİYOR (TASK/041 0002: instanceof Number + intValue + geçersiz değer logu)" % kind,
+			not config_class.is_empty() and _class_has(config_class, "java/lang/Number")
+			and _class_has(config_class, "intValue") and _class_has(config_class, "Invalid request configuration value '")
+			and _class_has(config_class, "Skipping invalid test device id of type "))
+		_c("%s AdmobPlugin.class set_request_configuration: istisna yutulmaz (NOT applied logu) + SDK geri okuması (applied satırı)" % kind,
+			_class_has(plugin_class, "set_request_configuration(): request configuration NOT applied")
+			and _class_has(plugin_class, "set_request_configuration(): applied max_ad_content_rating=")
+			and _class_has(plugin_class, "getRequestConfiguration"))
+		_c("%s üretim AAR'ında TFAT / TEEN / spike tanısı YOK: hiçbir sınıfta AgeRestrictedTreatment / TFAT_DIAG %s" % [kind, str(tfat_hits)],
+			tfat_hits.is_empty())
 		_c("%s AdmobPlugin.class: can_request_ads / get_privacy_options_requirement_status / show_privacy_options_form / sinyal" % kind,
 			not jar.is_empty() and _class_has(plugin_class, "can_request_ads")
 			and _class_has(plugin_class, "get_privacy_options_requirement_status")
@@ -594,11 +641,34 @@ func _test_patched_binaries() -> void:
 		_c("%s ConsentConfiguration.class: java/lang/Number (#120 düzeltmesi)" % kind,
 			_class_has(consent_class, "java/lang/Number"))
 	var patch_sha: String = FileAccess.get_sha256("res://tools/admob_plugin/0001-ump-privacy-options-and-debug-geography.patch")
+	var config_patch_sha: String = FileAccess.get_sha256(CONFIG_PATCH)
 	var script: String = FileAccess.get_file_as_string("res://tools/admob_plugin/build_patched_plugin.sh")
-	_c("yama SHA-256'sı VERSION.md ve yeniden derleme betiğiyle aynı", version.contains(patch_sha)
-		and script.contains("PATCH_SHA256=\"%s\"" % patch_sha))
-	_c("GMA / UMP sürümleri değişmedi (24.9.0 / eklentinin bağımlılık listesi)",
-		FileAccess.get_file_as_string("res://addons/AdmobPlugin/AdmobPlugin.gd").contains("com.google.android.gms:play-services-ads:24.9.0"))
+	_c("yama SHA-256'ları (0001 + 0002) VERSION.md ve yeniden derleme betiğiyle aynı", version.contains(patch_sha)
+		and script.contains("PATCH_SHA256=\"%s\"" % patch_sha) and version.contains(config_patch_sha)
+		and script.contains("CONFIG_PATCH_SHA256=\"%s\"" % config_patch_sha))
+	var config_patch: String = FileAccess.get_file_as_string(CONFIG_PATCH)
+	_c("0002 (üretim, TASK/041): yalnız AdmobPlugin.java + AdmobConfiguration.java; (int) / (String[]) dönüşümleri kalkıyor, Number / Object[] okuma geliyor",
+		config_patch.count("diff --git ") == 2
+		and config_patch.contains("-\t\treturn (int) _data.get(CHILD_DIRECTED_TREATMENT_PROPERTY);")
+		and config_patch.contains("-\t\treturn (int) _data.get(UNDER_AGE_OF_CONSENT_PROPERTY);")
+		and config_patch.contains("-\t\treturn (int) _data.get(PERSONALIZATION_STATE_PROPERTY);")
+		and config_patch.contains("-\t\treturn (String[]) _data.get(TEST_DEVICE_IDS_PROPERTY);")
+		and config_patch.contains("+\t\tif (value instanceof Number) {")
+		and config_patch.contains("+\t\tif (!(value instanceof Object[])) {"))
+	_c("0002 GMA 25 / UMP 4 / TFAT / TEEN İÇERMİYOR (sürüm satırı, AgeRestrictedTreatment, TFAT_DIAG, TEEN yok); GDScript'e dokunmuyor",
+		not config_patch.contains("playads") and not config_patch.contains("AgeRestrictedTreatment")
+		and not config_patch.contains("TFAT") and not config_patch.contains("TEEN") and not config_patch.contains(".gd b/"))
+	_c("derleme betiği: üretim modları v6.0 + 0001 + 0002, spike 0003 ayrı; AAR hash'leri betik = VERSION.md = kapı = diskteki AAR",
+		script.contains("git -C \"$SRC\" apply \"$CONFIG_PATCH\"")
+		and script.contains("SPIKE_PATCH=\"$HERE/0003-spike-gma25-age-restricted-treatment.patch\"")
+		and script.contains("PATCHED_RELEASE_SHA256_WINDOWS=\"%s\"" % ReleaseReadiness.PATCHED_RELEASE_AAR_SHA256)
+		and script.contains("PATCHED_DEBUG_SHA256_WINDOWS=\"%s\"" % FileAccess.get_sha256("res://addons/AdmobPlugin/bin/debug/AdmobPlugin-debug.aar"))
+		and version.contains(ReleaseReadiness.PATCHED_RELEASE_AAR_SHA256)
+		and FileAccess.get_sha256(ReleaseReadiness.PATCHED_RELEASE_AAR) == ReleaseReadiness.PATCHED_RELEASE_AAR_SHA256)
+	var deps: String = FileAccess.get_file_as_string("res://addons/AdmobPlugin/AdmobPlugin.gd")
+	_c("GMA / UMP sürümleri değişmedi: tek reklam bağımlılığı play-services-ads:24.9.0 (UMP 3.2.0 onun geçişlisi); 25.x / UMP geçersiz kılma YOK",
+		deps.contains("\"com.google.android.gms:play-services-ads:24.9.0\"") and not deps.contains("play-services-ads:25")
+		and not deps.contains("user-messaging-platform") and version.contains("user-messaging-platform:3.2.0"))
 
 
 # --- TASK/040: 13–17 genç reklam işlemi sınırları -------------------------------------
@@ -631,17 +701,57 @@ func _test_teen_treatment_boundaries() -> void:
 	var gate_src: String = FileAccess.get_file_as_string("res://tools/release/release_readiness.gd")
 	_c("kapı genç işlemi engelini kapatmıyor: project_inputs teen_ad_treatment_resolved = false, true yazılı değil",
 		gate_src.contains("\"teen_ad_treatment_resolved\": false,") and not gate_src.contains("\"teen_ad_treatment_resolved\": true"))
-	var spike_patch: String = "res://tools/admob_plugin/0002-spike-gma25-age-restricted-treatment.patch"
 	var build_script: String = FileAccess.get_file_as_string("res://tools/admob_plugin/build_patched_plugin.sh")
-	var patch_text: String = FileAccess.get_file_as_string(spike_patch)
-	_c("spike yaması (GMA 25.3.0 + setAgeRestrictedTreatment + TFAT_DIAG) yalnız `spike` modunda, SHA-256 betikte sabit",
+	var patch_text: String = FileAccess.get_file_as_string(SPIKE_PATCH)
+	_c("spike yaması 0003 (GMA 25.3.0 + setAgeRestrictedTreatment + TFAT_DIAG) yalnız `spike` modunda, SHA-256 betikte sabit",
 		patch_text.contains("+playads = \"25.3.0\"") and patch_text.contains("builder.setAgeRestrictedTreatment(ageTreatment)")
 		and patch_text.contains("TFAT_DIAG")
-		and build_script.contains("SPIKE_PATCH_SHA256=\"%s\"" % FileAccess.get_sha256(spike_patch))
+		and build_script.contains("SPIKE_PATCH_SHA256=\"%s\"" % FileAccess.get_sha256(SPIKE_PATCH))
 		and build_script.contains("NOT installed; addons/AdmobPlugin stays GMA 24.9.0"))
+	_c("0003 dönüşüm düzeltmesini TEKRARLAMIYOR (0002'nin üstüne kurulu: eski spike toInt / String.valueOf yolu yok); eski 0002-spike dosyası yok",
+		not patch_text.contains("private int toInt(") and not patch_text.contains("String.valueOf(raw[i])")
+		and not patch_text.contains("-\t\treturn (String[]) _data.get(TEST_DEVICE_IDS_PROPERTY);")
+		and patch_text.contains("Integer value = getInt(AGE_RESTRICTED_TREATMENT_PROPERTY);")
+		and not FileAccess.file_exists("res://tools/admob_plugin/0002-spike-gma25-age-restricted-treatment.patch"))
 	var harness: Script = load("res://tools/ads_device.gd")
 	_c("QA sürücüsü (tools/ads_device.gd) üretim facade'ıyla derlenir; TEEN kancaları dinamik (yalnız spike eklentisinde çalışır)",
 		harness != null and FileAccess.get_file_as_string("res://tools/ads_device.gd").contains("\"age_restricted_treatment\" in facade"))
+
+
+# --- TASK/041: üretim RequestConfiguration yolu --------------------------------------
+
+## Kodla denetlenebilen kısım: facade'ın Java'ya gönderdiği değerler (ve Godot tipleri —
+## v6.0'ı bozan tam da bunlardı) + yapılandırmanın ilk reklam yüklemesinden ÖNCE uygulanma
+## sırası. Native geri okuma cihazda: "set_request_configuration(): applied …" logu.
+func _test_request_configuration_path() -> void:
+	print("-- TASK/041: RequestConfiguration yolu (değerler aynı, ilk yüklemeden önce uygulanır)")
+	var project := AdConfig.load_project()
+	var admob := Admob.new()
+	admob.is_real = project.is_real
+	admob.max_ad_content_rating = AdmobBackend._content_rating(project.max_ad_content_rating)
+	admob.child_directed = AdmobBackend._tfcd(project.tag_for_child_directed_treatment)
+	admob.under_age_of_consent = AdmobBackend._tfua(project.tag_for_under_age_of_consent)
+	var raw: Dictionary = admob.create_request_configuration().get_raw_data()
+	admob.free()
+	_c("değerler DEĞİŞMEDİ: derece \"G\", TFCD -1 / TFUA -1 (UNSPECIFIED), kişiselleştirme 0 (DEFAULT), is_real false (DEBUG), test_device_ids []",
+		raw.get("max_ad_content_rating") == "G" and raw.get("tag_for_child_directed_treatment") == -1
+		and raw.get("tag_for_under_age_of_consent") == -1 and raw.get("personalization_state") == 0
+		and raw.get("is_real") == false and raw.get("test_device_ids") == [])
+	_c("Godot tipleri (Java'da Long / Boolean / String / Object[]): TFCD, TFUA, kişiselleştirme int; is_real bool; derece String; test_device_ids Array",
+		typeof(raw["tag_for_child_directed_treatment"]) == TYPE_INT and typeof(raw["tag_for_under_age_of_consent"]) == TYPE_INT
+		and typeof(raw["personalization_state"]) == TYPE_INT and typeof(raw["is_real"]) == TYPE_BOOL
+		and typeof(raw["max_ad_content_rating"]) == TYPE_STRING and typeof(raw["test_device_ids"]) == TYPE_ARRAY)
+	_c("TFAT / yaş işlemi anahtarı gönderilmiyor (GMA 24.9.0 üretim yolu)", not raw.has("age_restricted_treatment"))
+	var facade_src: String = FileAccess.get_file_as_string("res://addons/AdmobPlugin/Admob.gd")
+	var backend_src: String = FileAccess.get_file_as_string("res://scripts/ads/admob_backend.gd")
+	var manager_src: String = FileAccess.get_file_as_string("res://scripts/ads/monetization_manager.gd")
+	_c("sıra: SDK hazır sinyalinde facade ÖNCE set_request_configuration(), SONRA initialization_completed; AdmobBackend auto_configure_on_initialize = true",
+		facade_src.contains("\tif auto_configure_on_initialize:\n\t\tset_request_configuration()\n\n\tis_initialization_completed = true\n\tinitialization_completed.emit(")
+		and backend_src.contains("_admob.auto_configure_on_initialize = true"))
+	_c("sıra: yönetici SDK hazır sinyalinden önce hiçbir reklam yüklemez (_ads_enabled → _sdk_ready; _sdk_ready yalnız _on_initialization_completed'de true)",
+		manager_src.contains("return _backend != null and ads_allowed() and _sdk_ready and _onboarding_completed")
+		and manager_src.count("_sdk_ready = true") == 1
+		and manager_src.contains("func _on_initialization_completed() -> void:\n\t_sdk_initializing = false\n\t_sdk_ready = true"))
 
 
 static func _files_under(root: String, extensions: Array) -> PackedStringArray:
@@ -664,9 +774,11 @@ static func _class_has(bytes: PackedByteArray, needle: String) -> bool:
 
 static func _find_bytes(haystack: PackedByteArray, needle: PackedByteArray) -> bool:
 	var n: int = needle.size()
-	for i in haystack.size() - n + 1:
-		if haystack[i] == needle[0] and haystack.slice(i, i + n) == needle:
+	var i: int = haystack.find(needle[0])
+	while i != -1 and i + n <= haystack.size():
+		if haystack.slice(i, i + n) == needle:
 			return true
+		i = haystack.find(needle[0], i + 1)
 	return false
 
 

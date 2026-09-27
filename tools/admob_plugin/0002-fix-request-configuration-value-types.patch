@@ -1,0 +1,172 @@
+diff --git a/android/src/main/java/org/godotengine/plugin/admob/AdmobPlugin.java b/android/src/main/java/org/godotengine/plugin/admob/AdmobPlugin.java
+index 2a47015..b6e65d5 100644
+--- a/android/src/main/java/org/godotengine/plugin/admob/AdmobPlugin.java
++++ b/android/src/main/java/org/godotengine/plugin/admob/AdmobPlugin.java
+@@ -24,6 +24,7 @@ import com.google.android.gms.ads.AdError;
+ import com.google.android.gms.ads.AdSize;
+ import com.google.android.gms.ads.LoadAdError;
+ import com.google.android.gms.ads.MobileAds;
++import com.google.android.gms.ads.RequestConfiguration;
+ import com.google.android.gms.ads.ResponseInfo;
+ import com.google.android.gms.ads.initialization.InitializationStatus;
+ import com.google.android.gms.ads.initialization.OnInitializationCompleteListener;
+@@ -295,8 +296,22 @@ public class AdmobPlugin extends GodotPlugin {
+ 	@UsedByGodot
+ 	public void set_request_configuration(Dictionary configData) {
+ 		Log.d(LOG_TAG, "set_request_configuration()");
+-		AdmobConfiguration config = new AdmobConfiguration(configData);
+-		MobileAds.setRequestConfiguration(config.createRequestConfiguration(activity));
++		// An exception thrown from here is swallowed by Godot's JNI bridge without any log line
++		// (Squishy Merge TASK/040): report it, and read the applied configuration back.
++		try {
++			AdmobConfiguration config = new AdmobConfiguration(configData);
++			MobileAds.setRequestConfiguration(config.createRequestConfiguration(activity));
++		} catch (RuntimeException e) {
++			Log.e(LOG_TAG, "set_request_configuration(): request configuration NOT applied", e);
++			return;
++		}
++		RequestConfiguration applied = MobileAds.getRequestConfiguration();
++		Log.i(LOG_TAG, "set_request_configuration(): applied max_ad_content_rating=" + applied.getMaxAdContentRating()
++				+ " tag_for_child_directed_treatment=" + applied.getTagForChildDirectedTreatment()
++				+ " tag_for_under_age_of_consent=" + applied.getTagForUnderAgeOfConsent()
++				+ " personalization_state=" + applied.getPublisherPrivacyPersonalizationState()
++				+ " test_device_ids=" + applied.getTestDeviceIds().size()
++				+ " sdk_initialized=" + isInitialized);
+ 	}
+ 
+ 	@UsedByGodot
+diff --git a/android/src/main/java/org/godotengine/plugin/admob/model/AdmobConfiguration.java b/android/src/main/java/org/godotengine/plugin/admob/model/AdmobConfiguration.java
+index fbc71a1..8fba73a 100644
+--- a/android/src/main/java/org/godotengine/plugin/admob/model/AdmobConfiguration.java
++++ b/android/src/main/java/org/godotengine/plugin/admob/model/AdmobConfiguration.java
+@@ -43,45 +43,102 @@ public class AdmobConfiguration {
+ 		this._data = data;
+ 	}
+ 
++	// Godot 4.6 hands the facade's Dictionary values to Java as java.lang.Long (GDScript int /
++	// enum), java.lang.Boolean, java.lang.String and Object[] (GDScript Array). The v6.0
++	// `(int)` (checkcast Integer) and `(String[])` casts threw ClassCastException, so
++	// MobileAds.setRequestConfiguration() was never reached (Squishy Merge TASK/040, A36).
++	// Every getter accepts what Godot sends; an unreadable value is logged and returns null,
++	// so its builder setter is skipped and the SDK keeps its current value.
++
+ 	public boolean isReal() {
+-		return (boolean) _data.get(IS_REAL_PROPERTY);
++		Object value = _data.get(IS_REAL_PROPERTY);
++		if (value instanceof Boolean) {
++			return (Boolean) value;
++		}
++		logInvalidValue(IS_REAL_PROPERTY, "bool", value, "treated as real, no test devices registered");
++		return true;
+ 	}
+ 
+ 	public String getMaxContentRating() {
+-		return (String) _data.get(MAX_AD_CONTENT_RATING_PROPERTY);
++		Object value = _data.get(MAX_AD_CONTENT_RATING_PROPERTY);
++		if (value instanceof String) {
++			return (String) value;
++		}
++		logInvalidValue(MAX_AD_CONTENT_RATING_PROPERTY, "String", value, "not applied");
++		return null;
+ 	}
+ 
+-	public int getChildDirectedTreatment() {
+-		return (int) _data.get(CHILD_DIRECTED_TREATMENT_PROPERTY);
++	public Integer getChildDirectedTreatment() {
++		return getInt(CHILD_DIRECTED_TREATMENT_PROPERTY);
+ 	}
+ 
+-	public int getUnderAgeOfConsent() {
+-		return (int) _data.get(UNDER_AGE_OF_CONSENT_PROPERTY);
++	public Integer getUnderAgeOfConsent() {
++		return getInt(UNDER_AGE_OF_CONSENT_PROPERTY);
+ 	}
+ 
+-	public boolean getFirstPartyIdEnabled() {
+-		return (boolean) _data.get(FIRST_PARTY_ID_ENABLED_PROPERTY);
++	public Boolean getFirstPartyIdEnabled() {
++		Object value = _data.get(FIRST_PARTY_ID_ENABLED_PROPERTY);
++		if (value instanceof Boolean) {
++			return (Boolean) value;
++		}
++		logInvalidValue(FIRST_PARTY_ID_ENABLED_PROPERTY, "bool", value, "not applied");
++		return null;
+ 	}
+ 
+-	public int getPublisherPrivacyPersonalizationState() {
+-		return (int) _data.get(PERSONALIZATION_STATE_PROPERTY);
++	public Integer getPublisherPrivacyPersonalizationState() {
++		return getInt(PERSONALIZATION_STATE_PROPERTY);
+ 	}
+ 
+ 	public String[] getTestDeviceIds() {
+-		return (String[]) _data.get(TEST_DEVICE_IDS_PROPERTY);
++		Object value = _data.get(TEST_DEVICE_IDS_PROPERTY);
++		// GDScript Array arrives as Object[]; a PackedStringArray (String[]) is an Object[] too.
++		if (!(value instanceof Object[])) {
++			logInvalidValue(TEST_DEVICE_IDS_PROPERTY, "Array", value, "no configured test device ids");
++			return new String[0];
++		}
++		ArrayList<String> ids = new ArrayList<>();
++		for (Object id : (Object[]) value) {
++			if (id instanceof String && !((String) id).isEmpty()) {
++				ids.add((String) id);
++			} else {
++				Log.w(LOG_TAG, "Skipping invalid test device id of type " + typeName(id));
++			}
++		}
++		return ids.toArray(new String[0]);
++	}
++
++	private Integer getInt(String key) {
++		Object value = _data.get(key);
++		if (value instanceof Number) {
++			return ((Number) value).intValue();
++		}
++		logInvalidValue(key, "int", value, "not applied");
++		return null;
++	}
++
++	private static String typeName(Object value) {
++		return value == null ? "null" : value.getClass().getSimpleName();
++	}
++
++	private static void logInvalidValue(String key, String expected, Object value, String effect) {
++		Log.e(LOG_TAG, "Invalid request configuration value '" + key + "': expected " + expected
++				+ ", got " + typeName(value) + " (" + effect + ")");
+ 	}
+ 
+ 	public RequestConfiguration createRequestConfiguration(Activity activity) {
+ 		RequestConfiguration.Builder builder = MobileAds.getRequestConfiguration().toBuilder();
+ 
+-		if (_data.containsKey(MAX_AD_CONTENT_RATING_PROPERTY))
+-			builder.setMaxAdContentRating(getMaxContentRating());
++		String maxAdContentRating = _data.containsKey(MAX_AD_CONTENT_RATING_PROPERTY) ? getMaxContentRating() : null;
++		if (maxAdContentRating != null)
++			builder.setMaxAdContentRating(maxAdContentRating);
+ 
+-		if (_data.containsKey(CHILD_DIRECTED_TREATMENT_PROPERTY))
+-			builder.setTagForChildDirectedTreatment(getChildDirectedTreatment());
++		Integer childDirectedTreatment = _data.containsKey(CHILD_DIRECTED_TREATMENT_PROPERTY) ? getChildDirectedTreatment() : null;
++		if (childDirectedTreatment != null)
++			builder.setTagForChildDirectedTreatment(childDirectedTreatment);
+ 
+-		if (_data.containsKey(UNDER_AGE_OF_CONSENT_PROPERTY))
+-			builder.setTagForUnderAgeOfConsent(getUnderAgeOfConsent());
++		Integer underAgeOfConsent = _data.containsKey(UNDER_AGE_OF_CONSENT_PROPERTY) ? getUnderAgeOfConsent() : null;
++		if (underAgeOfConsent != null)
++			builder.setTagForUnderAgeOfConsent(underAgeOfConsent);
+ 
+ 		if (_data.containsKey(FIRST_PARTY_ID_ENABLED_PROPERTY)) {
+ 			// Note: Android RequestConfiguration does not have a direct equivalent for iOS's setPublisherFirstPartyIDEnabled.
+@@ -89,8 +146,8 @@ public class AdmobConfiguration {
+ 			Log.d(LOG_TAG, "firstPartyIdEnabled: " + getFirstPartyIdEnabled() + " (handled per AdRequest on Android)");
+ 		}
+ 
+-		if (_data.containsKey(PERSONALIZATION_STATE_PROPERTY)) {
+-			int state = getPublisherPrivacyPersonalizationState();
++		Integer state = _data.containsKey(PERSONALIZATION_STATE_PROPERTY) ? getPublisherPrivacyPersonalizationState() : null;
++		if (state != null) {
+ 			switch (state) {
+ 				case 1 -> builder.setPublisherPrivacyPersonalizationState(RequestConfiguration.PublisherPrivacyPersonalizationState.ENABLED);
+ 				case 2 -> builder.setPublisherPrivacyPersonalizationState(RequestConfiguration.PublisherPrivacyPersonalizationState.DISABLED);
