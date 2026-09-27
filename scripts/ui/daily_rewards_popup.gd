@@ -57,7 +57,10 @@ const DOUGH_ART_SMALL: float = 30.0
 ## Skin kartının halesi kartın dışına taşar (ResultRewardCard: −30/−26/−30/−34);
 ## reveal'de kart bu paylarla sarılır — hale kırpılmaz (M8.9-02.1).
 const SKIN_CARD_MARGIN: Vector4 = Vector4(30.0, 26.0, 30.0, 34.0)
-const SKIN_CAPTION: String = "Yeni Squishy keşfedildi!"
+## Kartın kendi notu (`ResultRewardCard.SKIN_NOTE_TEXT`), dar kartta gizlenip altta tam
+## genişlik yazılır: rozet "YENİ SQUISHY" + "keşfedildi!" = "Yeni Squishy keşfedildi!"
+## (round sonu kartıyla aynı). "Yeni Squishy" iki kez YAZILMAZ (TASK/044 A36 kapısı).
+const SKIN_CAPTION: String = "keşfedildi!"
 const CHEST_ART: Texture2D = preload("res://assets/visual/ui/chest_closed.png")
 const DOUGH_ART: Texture2D = preload("res://assets/visual/ui/icon_dough.png")
 const SPARKLE_ART: Texture2D = preload("res://assets/visual/ui/icon_star_filled.png")
@@ -362,7 +365,7 @@ func _build_reveal() -> void:
 	# SIZE_EXPAND_FILL; ortalayıcı container kartı minimum genişliğe sıkıştırıp
 	# sağdan kırpıyordu). Kartın dışına taşan hale/gölge için kart
 	# SKIN_CARD_MARGIN paylarıyla sarılır (gövde kaydırma alanı kırpmasın);
-	# "Yeni Squishy keşfedildi!" kartın altında tam genişlik yazılır (dar kartta
+	# kartın notu ("keşfedildi!") kartın altında tam genişlik yazılır (dar kartta
 	# rozet satırı sıkışmasın).
 	_reveal_skin_host = VBoxContainer.new()
 	_reveal_skin_host.name = "RevealSkin"

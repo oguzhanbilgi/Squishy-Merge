@@ -411,9 +411,9 @@ func name_text() -> String:
 	return _name_label.text if _name_label != null else ""
 
 
-## Kart içi notu gizler (M8.9-02.1: GÜNLÜK ÖDÜLLER reveal'i dar gövdede
-## "Yeni Squishy keşfedildi!"i kartın altında tam genişlik yazar; kart kısalır,
-## hale için yan pay kalır). Round sonu kartlarında çağrılmaz.
+## Kart içi notu gizler (M8.9-02.1: GÜNLÜK ÖDÜLLER reveal'i dar gövdede aynı
+## notu — "keşfedildi!" — kartın altında tam genişlik yazar; kart kısalır, hale
+## için yan pay kalır). Round sonu kartlarında çağrılmaz.
 func hide_note() -> void:
 	if _note != null and is_instance_valid(_note):
 		_note.visible = false

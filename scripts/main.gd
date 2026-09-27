@@ -50,6 +50,11 @@ var _chest_info: CanvasLayer
 ## Android geri tusu debounce (bkz. _notification).
 const BACK_DEBOUNCE_MSEC: int = 250
 var _last_back_msec: int = -1000
+## Geçiş sonrası parmak yatışması (TASK/044 A36 kapısı, bkz. _input): hızlı çift
+## dokunuşun ikinci yarısı yeni açılan ekranda / pencerede aynı noktadaki kontrole
+## düşmesin. 300 ms = Android'in çift dokunuş penceresi.
+const TOUCH_SETTLE_MSEC: int = 300
+var _touch_settle_until: int = -1
 var _board: Node2D
 ## --- İlk açılış tutorial'ı (M8.10 — docs/TUTORIAL_SYSTEM.md) ---
 ## Yeni kayıtta (onboarding false) açılışta otomatik olarak GERÇEK Level 1
@@ -194,6 +199,8 @@ func _ready() -> void:
 	album.home_requested.connect(_on_home_requested)
 	album.shop_requested.connect(_on_shop_requested)
 	album.shop_skin_requested.connect(_on_shop_skin_requested)
+	# Parça detayı açıldı (TASK/044): çift dokunuşun ikincisi karartmaya düşüp kapatmasın.
+	album.detail_opened.connect(settle_touch_input)
 	var shop: CanvasLayer = SHOP_SCENE.instantiate()
 	# Magaza (M8.6-05): kendi ust satiri — geri -> Ana Sayfa; sekme cubugu yok.
 	shop.home_requested.connect(_on_home_requested)
@@ -510,6 +517,9 @@ func _show_tab(tab: int) -> void:
 	# istenirse (günlük ödül kapanışı gibi) oynatılmıyor.
 	if changed:
 		UiMotion.screen_in(_screens[tab])
+		# TASK/044 A36: Ana Sayfa avatarı ile Profil geri AYNI dikdörtgende; çift
+		# dokunuş ekranlar arasında sıçramasın (KOLEKSİYONA GİT → albüm kartı da).
+		settle_touch_input()
 	# Güvenli kabuk geçişi: tutorial round'u sırasında ertelenmiş
 	# monetizasyon açılışı (rıza + yükleme + banner yuvası) burada başlar.
 	_activate_monetization_if_safe()
@@ -526,6 +536,27 @@ func _show_tab(tab: int) -> void:
 
 func open_settings() -> void:
 	_settings.open_panel()
+	# TASK/044 A36: Profil dişlisine çift dokunuşun ikincisi Ayarlar'ın karartmasına
+	# düşüp pencereyi hemen kapatmasın.
+	settle_touch_input()
+
+
+## Ekran / pencere geçişinden sonraki TOUCH_SETTLE_MSEC boyunca parmak basışları
+## yutulur (bkz. _input).
+func settle_touch_input() -> void:
+	_touch_settle_until = Time.get_ticks_msec() + TOUCH_SETTLE_MSEC
+
+
+## Geçiş sonrası parmak yatışması (TASK/044 A36 kapısı). GUI'den ÖNCE çalışır. Yalnız
+## PARMAK basışları: gerçek ScreenTouch (device ≠ -1) ve dokunuştan öykünülen fare
+## (device -1, Android `emulate_mouse_from_touch`). Kod yolu / `pressed.emit()`,
+## masaüstü fare tıklaması ve ondan öykünülen dokunuş ETKİLENMEZ.
+func _input(event: InputEvent) -> void:
+	if Time.get_ticks_msec() >= _touch_settle_until:
+		return
+	if (event is InputEventScreenTouch and event.device != InputEvent.DEVICE_ID_EMULATION) \
+			or (event is InputEventMouseButton and event.device == InputEvent.DEVICE_ID_EMULATION):
+		get_viewport().set_input_as_handled()
 
 
 func close_settings() -> void:

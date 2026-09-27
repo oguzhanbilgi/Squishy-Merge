@@ -18,6 +18,10 @@ extends Node
 ##             yuva → Koleksiyon'da o parçanın detayı; boş yuva / KOLEKSİYONA GİT
 ##             → Koleksiyon; Koleksiyon'daki vitrin değişikliği Profil'e yansır;
 ##             oyun içi HUD ayarları + mola AYNEN çalışır.
+##   yatışma   hızlı çift dokunuş (A36 kapısı): ekran / detay / Ayarlar açılışından
+##             sonra 300 ms PARMAK basışı yutulur — avatar ↔ Profil geri, KOLEKSİYONA
+##             GİT → albüm kartı, karartmaya düşen ikinci dokunuş; kod yolu
+##             (`pressed.emit()`) ve masaüstü fare etkilenmez.
 ##   sayaçlar  gerçek round bitişi: tur +1 ve oluşturulan en yüksek tier (tek
 ##             sefer, ikinci _finish sayılmaz); terk edilen / yeniden başlatılan
 ##             round SAYILMAZ; Büyütücü tier'ı sayılır, merge sayacı değişmez.
@@ -89,6 +93,7 @@ func _ready() -> void:
 	await _structure(profile)
 	await _data_states(profile)
 	await _routes(home, profile)
+	await _touch_settle(home, profile)
 	await _counters()
 	await _layout_all(profile)
 	await _ads_surface()
@@ -330,6 +335,92 @@ func _routes(home: CanvasLayer, profile: CanvasLayer) -> void:
 	_c("mola kapanıyor, board çözüldü", not _main.is_pause_open() and not _main._board._is_paused())
 	_main.abandon_run()
 	await _settle(1)
+
+
+# --- Geçiş sonrası parmak yatışması (TASK/044 A36 kapısı) ----------------------------
+
+## A36'da gerçek hızlı çift dokunuş (ikinci basış ilk bırakıştan ~130–150 ms sonra):
+## Ana Sayfa avatarı → Profil açıldı, ikinci dokunuş AYNI dikdörtgendeki Profil geri'sine
+## düşüp Ana Sayfa'ya döndü; KOLEKSİYONA GİT → altındaki albüm kartının detayı açıldı;
+## parça detayı / Profil dişlisi → pencere ikinci dokunuşta karartmadan kapandı. Main
+## geçişten sonra TOUCH_SETTLE_MSEC boyunca PARMAK basışlarını yutar. Burada gerçek
+## parmak olayı enjekte edilir (ScreenTouch, device 0 — Godot fareyi dokunuştan
+## öykünür, cihazdaki sıra); kod yolu ve masaüstü fare ayrıca sınanır.
+func _touch_settle(home: CanvasLayer, profile: CanvasLayer) -> void:
+	print("-- geçiş sonrası parmak yatışması (hızlı çift dokunuş, A36)")
+	_apply_mid()
+	var album: CanvasLayer = _main._screens[2]
+	var settle_msec: int = int(_main_script.get_script_constant_map().get("TOUCH_SETTLE_MSEC", -1))
+	_c("yatışma süresi 300 ms (Android çift dokunuş penceresi)", settle_msec == 300)
+	_main._show_tab(0)
+	await _wait_settled()
+	var avatar_pos: Vector2 = _screen_center(home.profile_button())
+	_c("ön koşul: Profil geri, Ana Sayfa avatarıyla aynı noktada", profile.top_bar().back_button().get_global_rect()
+		.has_point(home.profile_button().get_global_rect().get_center()))
+	await _finger_tap(avatar_pos)
+	_c("parmak dokunuşu: Ana Sayfa avatarı → Profil", _main._active_tab == 4 and profile.visible)
+	await _finger_tap(avatar_pos)
+	_c("hemen ikinci dokunuş (aynı nokta = Profil geri) yutuldu: Profil'de kalındı", _main._active_tab == 4
+		and profile.visible)
+	await _wait_settled()
+	await _finger_tap(_screen_center(profile.top_bar().back_button()))
+	_c("yatışmadan sonra Profil geri parmakla çalışır → Ana Sayfa", _main._active_tab == 0 and home.visible)
+	await _finger_tap(avatar_pos)
+	_c("geri dönüşün hemen ardından avatar dokunuşu yutuldu (Profil açılmadı)", _main._active_tab == 0)
+	await _wait_settled()
+	await _finger_tap(avatar_pos)
+	_c("yatışmadan sonra avatar yine Profil'i açar", _main._active_tab == 4)
+
+	var scroll: ScrollContainer = profile.scroll()
+	scroll.scroll_vertical = int(scroll.get_v_scroll_bar().max_value)
+	await _settle(2)
+	await _wait_settled()
+	var cta_pos: Vector2 = _screen_center(profile.collection_cta())
+	await _finger_tap(cta_pos)
+	_c("KOLEKSİYONA GİT (parmak) → Koleksiyon", _main._active_tab == 2 and album.visible)
+	var card_under: CollectionSkinCard = null
+	for card: CollectionSkinCard in album.cards():
+		if card.get_global_rect().has_point(get_viewport().get_screen_transform().affine_inverse() * cta_pos) \
+				and album.scroll().get_global_rect().has_point(card.get_global_rect().get_center()):
+			card_under = card
+	_c("ön koşul: aynı noktada bir albüm kartı var", card_under != null)
+	await _finger_tap(cta_pos)
+	_c("hemen ikinci dokunuş altındaki albüm kartını AÇMADI", not album.is_detail_open())
+	await _wait_settled()
+	await _finger_tap(cta_pos)
+	_c("yatışmadan sonra aynı kart parmakla detayı açar", album.is_detail_open()
+		and card_under != null and album.detail_id() == card_under.skin_id())
+	var frame: Rect2 = album.detail_frame().get_global_rect()
+	var dim_canvas := Vector2(frame.get_center().x, frame.end.y + 40.0)
+	if dim_canvas.y >= get_viewport().get_visible_rect().size.y - 8.0:
+		dim_canvas.y = frame.position.y - 40.0
+	var dim_pos: Vector2 = get_viewport().get_screen_transform() * dim_canvas
+	await _finger_tap(dim_pos)
+	_c("detay açılışının hemen ardından karartmaya dokunuş yutuldu: detay açık kaldı", album.is_detail_open())
+	await _wait_settled()
+	await _finger_tap(dim_pos)
+	_c("yatışmadan sonra karartmaya dokunuş detayı kapatır (UiKit sözleşmesi aynen)", not album.is_detail_open())
+
+	_main._show_tab(4)
+	await _wait_settled()
+	var gear_pos: Vector2 = _screen_center(profile.settings_button())
+	await _finger_tap(gear_pos)
+	_c("Profil dişlisi (parmak) → Ayarlar", _main._settings.visible)
+	await _finger_tap(gear_pos)
+	_c("hemen ikinci dokunuş Ayarlar'ın karartmasına düştü ama pencere açık kaldı", _main._settings.visible)
+	await _wait_settled()
+	_main.close_settings()
+
+	print("-- yatışma kod yolunu / masaüstü fareyi etkilemez")
+	_main._show_tab(0)
+	home.profile_button().pressed.emit()
+	_c("kod yolu: geçişin hemen ardından pressed.emit() → Profil", _main._active_tab == 4)
+	profile.top_bar().back_button().pressed.emit()
+	_c("kod yolu: geçişin hemen ardından geri → Ana Sayfa", _main._active_tab == 0)
+	_main._show_tab(4)
+	await _mouse_click(_screen_center(profile.top_bar().back_button()))
+	_c("masaüstü fare tıklaması (device 0) geçişin hemen ardından çalışır → Ana Sayfa", _main._active_tab == 0)
+	await _wait_settled()
 
 
 # --- Sayaçlar ----------------------------------------------------------------------
@@ -688,6 +779,44 @@ func _showcase_is(ids: Array) -> bool:
 
 func _settle(frames: int) -> void:
 	for i in frames:
+		await get_tree().process_frame
+
+
+## Main'in geçiş sonrası parmak yatışması geçene kadar GERÇEK süre bekler.
+func _wait_settled() -> void:
+	var settle_msec: int = int(_main_script.get_script_constant_map().get("TOUCH_SETTLE_MSEC", 300))
+	await get_tree().create_timer(float(settle_msec) / 1000.0 + 0.12).timeout
+	await get_tree().process_frame
+
+
+## Kontrolün merkezi PENCERE pikselinde (Input.parse_input_event pencere koordinatı ister).
+func _screen_center(control: Control) -> Vector2:
+	return get_viewport().get_screen_transform() * control.get_global_rect().get_center()
+
+
+## Gerçek parmak dokunuşu: ScreenTouch (device 0) bas → bir kare → bırak. Godot fareyi
+## dokunuştan öykünür (device -1) — A36'daki olay sırasının aynısı.
+func _finger_tap(pos: Vector2) -> void:
+	for pressed: bool in [true, false]:
+		var touch := InputEventScreenTouch.new()
+		touch.index = 0
+		touch.position = pos
+		touch.pressed = pressed
+		Input.parse_input_event(touch)
+		await get_tree().process_frame
+
+
+## Masaüstü fare tıklaması (device 0; proje ayarı dokunuşu fareden öykünür).
+func _mouse_click(pos: Vector2) -> void:
+	for pressed: bool in [true, false]:
+		var click := InputEventMouseButton.new()
+		click.button_index = MOUSE_BUTTON_LEFT
+		click.pressed = pressed
+		click.position = pos
+		click.global_position = pos
+		if pressed:
+			click.button_mask = MOUSE_BUTTON_MASK_LEFT
+		Input.parse_input_event(click)
 		await get_tree().process_frame
 
 

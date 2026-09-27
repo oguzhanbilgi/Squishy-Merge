@@ -40,6 +40,9 @@ signal shop_requested
 ## Kilitli parçanın MAĞAZAYA GİT'i: Mağaza o parçanın kartına kaydırır
 ## (main → ShopScreen.focus_skin). Koleksiyon satın ALMAZ.
 signal shop_skin_requested(skin_id: StringName)
+## Detay penceresi KAPALIYKEN açıldı (main: kısa parmak yatışması — çift dokunuşun
+## ikincisi karartmaya düşüp pencereyi hemen kapatmasın; TASK/044 A36 kapısı).
+signal detail_opened
 
 const TITLE: String = "KOLEKSİYON"
 const SIDE_MARGIN: float = 24.0
@@ -670,6 +673,7 @@ func open_detail(skin_id: StringName) -> void:
 	if not was_open:
 		UiMotion.modal_open(_detail_frame, _detail_dim)
 		AudioManager.play(&"ui_modal_open")
+		detail_opened.emit()
 
 
 func close_detail(with_sound: bool = true) -> void:

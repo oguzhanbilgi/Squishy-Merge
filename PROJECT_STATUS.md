@@ -1464,9 +1464,9 @@ formatına yalnız `haptics_enabled` (varsayılan true) eklendi. Ayrıntı ve
 
 ### 4.20 Player Meta V1 — gameplay skinleri emekli, Koleksiyon V1, Profil (TASK/044)
 
-> Dalda (`task/044-player-meta-v1`, başlangıç main `327dd60`); yerel owner /
-> cihaz kapısı bekliyor. Kural metni: GAME_DESIGN §5.3 / §5.8; UI:
-> UI_VISUAL_SYSTEM §17 / §22.
+> Dalda (`task/044-player-meta-v1`, başlangıç main `327dd60`); **Samsung A36 yerel
+> kapısı GEÇTİ (2026-09-28)** — main'e alınması owner onayı bekliyor. Kural metni:
+> GAME_DESIGN §5.3 / §5.8; UI: UI_VISUAL_SYSTEM §17 / §22.
 
 - **Owner kararı:** skin sistemi gameplay özelleştirmesi olarak EMEKLİ. Gerekçe:
   koleksiyon sanatı değerli ama tier kimliğiyle çatışan bir render katmanı
@@ -1508,7 +1508,8 @@ formatına yalnız `haptics_enabled` (varsayılan true) eklendi. Ayrıntı ve
   stoğu; koleksiyon kartı + KOLEKSİYONA GİT; dişli → Main'in tek `SettingsPanel`'i
   (oyun içi HUD ayarları + mola aynen). `Surface.NONE`: banner yüzeyi değil.
 - **Dil:** oyuncuya "skin / tak / TAKILI" yok — KOLEKSİYON, SQUISHY, KOLEKSİYON
-  PARÇASI; sandık / günlük: "Yeni Squishy keşfedildi!", sonuç kartı "YENİ SQUISHY";
+  PARÇASI; sandık / günlük: rozet "YENİ SQUISHY" + "keşfedildi!" (sonuç kartı ve
+  günlük reveal aynı — A36 kapısı: günlük başlık rozeti artık tekrarlamaz);
   Mağaza bölümü "KOLEKSİYON", onay "Nadir Squishy · koleksiyonuna kalıcı eklenir",
   satın alma bildirimi "… alındı · koleksiyonuna eklendi".
 - **Değişmeyen (dondurulmuş):** fizik, merge kuralları, level balansı, sandık
@@ -1533,9 +1534,37 @@ formatına yalnız `haptics_enabled` (varsayılan true) eklendi. Ayrıntı ve
   Bilinçli olarak bırakılan (owner
   kararı): Koleksiyon / Mağaza geri → Ana Sayfa (hub-and-spoke; Profil'e dönmez),
   `_finish_upgrade`'in round bitişiyle çakışan Büyütücü tier'ı (gameplay değişikliği
-  owner onayı ister), avatar ↔ Profil geri aynı dikdörtgende çift dokunuş (eski
-  sınıf), günlük reveal'de "YENİ SQUISHY" rozeti + "Yeni Squishy keşfedildi!" tekrarı.
-- **Testler:** yeni `profile_test` (135) + `collection_rework_test` (64); yeniden
+  owner onayı ister). *(A36 kapısında KAPANDI: avatar ↔ Profil geri çift dokunuşu ve
+  günlük reveal'deki "Yeni Squishy" tekrarı — aşağıda.)*
+- **Samsung A36 yerel kapısı (2026-09-28, yalnız QA paketi `…squishymerge.qa`, Google
+  TEST reklamları; `com.example` / üretim paketi hiç açılmadı):** masaüstü 25 suite +
+  bot L3 2/2 = 3673 kontrol (bulutla birebir) → düzeltmelerden sonra 3692, 0 hata.
+  Cihazda: Ana Sayfa avatarı (seri pill'iyle 12 px boşluk, çakışma yok), Profil (boş /
+  1 / 3 yuva, istatistikler kanonik alanlarla birebir, güçler, kaydırma, dudak / kırpma
+  yok, banner YOK), Koleksiyon (20 parça 8/6/4/2, N/20 · VİTRİN N/3, TAK / TAKILI /
+  Varsayılan yok, sahip / kilitli detay, VİTRİNE EKLE / ÇIKAR / AVATAR YAP, dolu vitrinde
+  açık değiştirme adımı — VAZGEÇ ve Android geri yazmaz, yuva seçimi TEK yazma, 350 ms
+  kilit ikinci dokunuşu yuttu), göç (eski `equipped_skin` → yuva 1; sahip olunmayan /
+  katalogda olmayan / sayı / sözlük değer → boş vitrin; bozuk vitrin listesi doğrulanır;
+  owner'ın masaüstü kaydı salt okunur: `rare_02` → yuva 1, dosya bayt-aynı), gameplay
+  kanonik (Tier 1–8 + birleşme hayaletleri + Büyütücü sonucu; Legendary avatar / eski Epik
+  takılı kayıtla ~315 bin parça-kare taraması 0 ihlal), sayaçlar (bitmiş round +1 tek
+  sefer; terk / yeniden başlat sayılmaz; Büyütücü tier'ı sayılır), Profil dişlisi →
+  aynı Ayarlar (ses / titreşim anahtarı cihazda etkili, gizlilik seçenekleri EEA formu),
+  TASK/043 Profil yolundan (TEEN ↔ ADULT oturum kilidi, SDK değişmedi, soğuk açılışta
+  yeni bant; UNKNOWN / UNDER_13 SDK yok), reklam yüzeyleri aynen. **Giderilen iki bulgu:**
+  (1) hızlı çift dokunuş ekran geçişinden sıçrıyordu — avatar → Profil → aynı noktadaki
+  geri → Ana Sayfa (ikinci dokunuş ~130 ms), KOLEKSİYONA GİT → altındaki kartın detayı,
+  kart / Profil dişlisi → pencere karartmadan hemen kapanıyordu: Main geçişten
+  (`_show_tab`, `open_settings`, detay açılışı) sonra 300 ms PARMAK basışlarını yutar
+  (`_input`; kod yolu / masaüstü fare etkilenmez; `profile_test` 135 → 153, negatif
+  kontrolde 6 kontrol düşüyor); (2) günlük reveal "YENİ SQUISHY" rozetinin altında
+  "Yeni Squishy keşfedildi!" yazıyordu → başlık kartın kendi notu "keşfedildi!"
+  (`collection_rework_test` 64 → 65). **Gözlem (TASK/044 öncesi, kapsam dışı):** Büyütücü
+  hedefini seçen dokunuşun BIRAKIŞI bekleyen parçayı düşürüyor (`_handle_targeting_input`
+  yalnız basışı tüketiyor). Kanıt: `build/qa_044/`.
+- **Testler:** yeni `profile_test` (135; A36 kapısından sonra 153) +
+  `collection_rework_test` (64; A36 kapısından sonra 65); yeniden
   yazılan `collection_ui_test` (164 → 205), `skin_test` (30 → 19: render hattı
   testleri emekli, kanonik görünüm kontrolleri eklendi), `ui_smoke_test` (74 → 57:
   equip akışı → vitrin akışı); güncellenen `home_ui_test` (208 → 216),

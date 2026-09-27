@@ -21,7 +21,8 @@ extends Node
 ##   türetilmiş   SkinEntry vitrin bayrakları, avatar, en son keşfedilen, rarity
 ##                sayaçları.
 ##   dil/ekonomi  oyuncuya "TAKILI" / takma / "skin" dili yok; sandık metinleri
-##                "Yeni Squishy keşfedildi!"; sandık oranları 60/25/12/3, %30
+##                "YENİ SQUISHY" + "keşfedildi!" (günlük reveal başlığı rozeti
+##                tekrarlamaz); sandık oranları 60/25/12/3, %30
 ##                parça, fiyatlar 50/150/400/900 DEĞİŞMEDİ.
 
 const VISUAL: GDScript = preload("res://scripts/game/dumpling_visual.gd")
@@ -405,10 +406,14 @@ func _copy_and_economy() -> void:
 	for hit in hits:
 		print("    eski dil: ", hit)
 	_c("oyuncuya görünen metinlerde TAKILI / takma / 'skin' dili yok (UI + oyun + sahneler)", hits.is_empty())
-	_c("sandık / günlük ödül: 'Yeni Squishy keşfedildi!' + sonuç kartı 'YENİ SQUISHY' / 'keşfedildi!'",
-		DailyRewardsPopup_caption() == "Yeni Squishy keşfedildi!"
-		and load("res://scripts/ui/result_reward_card.gd").get_script_constant_map().get("NEW_SKIN_TEXT") == "YENİ SQUISHY"
-		and load("res://scripts/ui/result_reward_card.gd").get_script_constant_map().get("SKIN_NOTE_TEXT") == "keşfedildi!")
+	var card_texts: Dictionary = load("res://scripts/ui/result_reward_card.gd").get_script_constant_map()
+	_c("sandık / günlük ödül: 'YENİ SQUISHY' rozeti + 'keşfedildi!' (sonuç kartı ve günlük reveal aynı)",
+		card_texts.get("NEW_SKIN_TEXT") == "YENİ SQUISHY" and card_texts.get("SKIN_NOTE_TEXT") == "keşfedildi!"
+		and DailyRewardsPopup_caption() == card_texts.get("SKIN_NOTE_TEXT"))
+	# TASK/044 A36 kapısı: günlük reveal'de rozetin hemen altındaki başlık "Yeni Squishy"yi
+	# ikinci kez yazıyordu ("YENİ SQUISHY" + "Yeni Squishy keşfedildi!").
+	_c("günlük reveal başlığı rozeti TEKRARLAMAZ ('Yeni Squishy' tek kez)",
+		not DailyRewardsPopup_caption().to_lower().contains("squishy"))
 	var dup := ChestReward.new()
 	dup.rarity = SkinData.Rarity.EPIC
 	dup.is_duplicate = true

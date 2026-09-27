@@ -90,7 +90,9 @@ alınacak — şimdi tahmin/vaat yok.
   birleştirilmez) ve `task/ui-layerlab-style-spike` (seçilen parçaları
   M8.6-01'de promote edildi).
 - **TASK/044 Player Meta V1 — DALDA, main'de DEĞİL** (`task/044-player-meta-v1`,
-  başlangıç main `327dd60`; yerel owner / cihaz kapısı bekliyor). Owner kararı:
+  başlangıç main `327dd60`; **Samsung A36 yerel kapısı GEÇTİ 2026-09-28** — iki bulgu
+  giderildi: ekran / pencere geçişinde hızlı çift dokunuş sıçraması ve günlük reveal'de
+  "Yeni Squishy" tekrarı; main'e alınması owner onayı bekliyor). Owner kararı:
   **gameplay skinleri EMEKLİ** — parçalar her zaman kanonik tier sprite'ı; eski
   `equipped_skin` yalnız göçte okunur (sahip olunan katalog parçasıysa vitrinin ilk
   yuvasına), sahiplik (`unlocked_skins`) aynen. **Koleksiyon V1** (albüm + parça
@@ -359,11 +361,15 @@ kod tablosunu owner tablosuyla karşılaştırır, her sapma CODE.)*
 6. Gerçek AdMob kimlikleri (App ID + Banner + Rewarded + Interstitial)
 7. Play Store varlıkları / Play Console alanları
 
-**Paralel ürün işi — TASK/044 Player Meta V1 (dalda):** main'e alınmadan ÖNCE yerel
-owner / cihaz kapısı: Samsung A36'da Koleksiyon albümü + parça detayı + vitrin
-değiştirme adımı, Profil (üç ilerleme durumu, kaydırma, dişli → Ayarlar), Ana Sayfa
-avatarı, eski `equipped_skin`'li gerçek owner kaydının açılışı (sahiplik korunur,
-gameplay kanonik), oyun içi ayarlar / mola. Sonra owner onayıyla ff-only. **TASK/045
+**Paralel ürün işi — TASK/044 Player Meta V1 (dalda):** ~~main'e alınmadan ÖNCE yerel
+owner / cihaz kapısı~~ **Samsung A36 yerel kapısı GEÇTİ (2026-09-28, yalnız QA paketi)**:
+Koleksiyon albümü + parça detayı + vitrin değiştirme adımı, Profil (boş / 1 / 3 yuva,
+kaydırma, dişli → Ayarlar), Ana Sayfa avatarı, eski `equipped_skin` göçü (sentetik QA
+kayıtları; owner'ın masaüstü kaydı salt okunur — telefondaki `com.example` owner kaydı
+owner talimatıyla açılmadı), gameplay kanonik, sayaçlar, oyun içi ayarlar / mola, TASK/043
+Profil yolu, reklam yüzeyleri. Giderilen: geçiş sonrası 300 ms parmak yatışması (hızlı
+çift dokunuş), günlük reveal başlığı. Ayrıntı: PROJECT_STATUS §4.20. Sıradaki: owner
+incelemesi → onayla ff-only. **TASK/045
 (Oyuncu Seviyesi + XP + Başarımlar + Unvanlar), TASK/046 (Günlük/Haftalık Görevler),
 TASK/047 (Günlük Merge Challenge) BAŞLAMADI.**
 

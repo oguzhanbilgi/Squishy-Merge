@@ -939,7 +939,9 @@ _remove / _replace / _make_first` ile (her biri tek `save_game` + tek
 (inceleme):** birincil buton her yazmadan sonra anlam değiştirdiği ve pencere
 yeniden ortalandığı için her detay eyleminden (değiştirme adımına giriş dahil)
 sonra 350 ms eylem kilidi — hızlı ikinci dokunuş AVATAR YAP / ÇIKAR / yuva
-seçimine düşmez; Android geri kilide takılmaz. Aynı sekmede tazeleme (günlük
+seçimine düşmez; Android geri kilide takılmaz. Detay AÇILIRKEN de kısa parmak
+yatışması var (Main, 300 ms — §22.3): karta çift dokunuşun ikincisi karartmaya
+düşüp detayı hemen kapatmaz (A36 kapısı). Aynı sekmede tazeleme (günlük
 pencere kapanışı, Hamur yenilemesi) açık detayı **korur**; sekmeden çıkınca
 detay kapanır. Başarı: sanat pop + 8 altın
 yıldız patlaması (`Fx`), kart plakası pop, `ui_equip` sesi (id tarihsel) +
@@ -1622,7 +1624,7 @@ GAME_DESIGN §12.1).
 `ScreenTopBar(title, false, "settings")` (TASK/044: `action_icon` — Hamur pill'i
 yerine aynı 56 px `home_icon_button` → `action_pressed`), model
 `scripts/game/player_profile.gd` (`PlayerProfile`, salt okunur). **Test:**
-`tools/profile_test.tscn` (135 kontrol: üç ilerleme durumu + eski kayıt, rotalar,
+`tools/profile_test.tscn` (153 kontrol: üç ilerleme durumu + eski kayıt, rotalar, geçiş sonrası parmak yatışması,
 oyun içi ayarlar/mola, gerçek round sayaçları, sahte reklam arka ucuyla banner
 yüzeyi, 7 pencere + A36 payı). **Çekim:** `godot --resolution GxY --path .
 res://tools/profile_shots.tscn -- <dir> [GxY] [safe=61]` (13 kare; `--resolution` şart).
@@ -1672,4 +1674,13 @@ her pencerede ölçer); kart içeriğe göre uzar. Rarity çipleri `badge_round`
 | Dolu vitrin yuvası | Koleksiyon + o parçanın detayı |
 | Boş yuva / KOLEKSİYONA GİT | Koleksiyon |
 | Oyun içi HUD ayarları / mola | DEĞİŞMEDİ (board donar; Profil'e gitmek gerekmez) |
+
+**Geçiş sonrası parmak yatışması (TASK/044 A36 kapısı):** Ana Sayfa avatarı ile
+Profil geri AYNI dikdörtgende; A36'da hızlı çift dokunuşun ikincisi (~130 ms) yeni
+ekranın geri butonuna düşüp Ana Sayfa'ya dönüyordu (KOLEKSİYONA GİT → altındaki kartın
+detayı; karta / dişliye çift dokunuş → pencere karartmadan hemen kapanıyordu). Main,
+görünen ekran değişince (`_show_tab`), `open_settings` ve Koleksiyon detayı açılınca
+(`detail_opened`) **300 ms** (Android çift dokunuş penceresi) PARMAK basışlarını yutar
+(`Main._input`, GUI'den önce: gerçek ScreenTouch + dokunuştan öykünülen fare). Kod
+yolu (`pressed.emit()`) ve masaüstü fare etkilenmez. Test: `profile_test` "yatışma".
 

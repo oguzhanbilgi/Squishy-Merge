@@ -128,11 +128,12 @@ seed verir; production randomize). Global RNG'ye (drop bag) dokunulmaz.
   (her zaman; X / karartma / Android geri aynı).
 - **Reveal:** kartlar yerine owner sandığı (`RewardGem`, skin rarity'sine
   göre efekt) açılır (0,32 s) → "+15 HAMUR" (0,58 s) → skin varsa
-  `ResultRewardCard` (YENİ SQUISHY — TASK/044, eskiden YENİ SKİN; altında
-  "Yeni Squishy keşfedildi!"; gerçek final sanat, 0,92 s; kart
-  hale/gölge payıyla — 30/26/30/34 px — sarılır, kart içi not gizlenip
-  "Koleksiyon'a eklendi" kartın altında tam genişlik yazılır: Legendary
-  altın halesi artık kırpılmıyor, M8.9-02.1) → **DEVAM** 1,2 s'de açılır;
+  `ResultRewardCard` (YENİ SQUISHY rozeti — TASK/044, eskiden YENİ SKİN; gerçek
+  final sanat, 0,92 s; kart hale/gölge payıyla — 30/26/30/34 px — sarılır, kart
+  içi not gizlenip kartın altında tam genişlik yazılır: Legendary altın halesi
+  artık kırpılmıyor, M8.9-02.1; not = "keşfedildi!", rozetle birlikte "Yeni
+  Squishy keşfedildi!" — TASK/044 A36 kapısı: başlık rozeti tekrarlamaz) →
+  **DEVAM** 1,2 s'de açılır;
   X her an kapatır. Ses/titreşim round sonuyla aynı eşleme (`chest_open` →
   `play_reward(rarity)`, Legendary SPECIAL). Üst bölge reveal sırasında
   yerinde kalır.
