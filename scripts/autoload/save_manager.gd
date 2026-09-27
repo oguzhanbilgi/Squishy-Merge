@@ -3,14 +3,20 @@ extends Node
 
 const SAVE_PATH: String = "user://squishy_merge_save.json"
 
-## Skin durumu değişti (M8.5-13). Koleksiyon, mağaza ve ana sayfa bunlara
-## abone: sekme geçişindeki refresh()'e ek olarak, ekran açıkken gelen bir
-## değişiklik (aynı ekrandan satın alma / equip) de anında yansısın.
-## Gameplay abone DEĞİL: parça skin'ini doğarken okuyor, round içinde equip
-## mümkün değil.
+## Koleksiyon parçası (Squishy) kazanıldı (M8.5-13; TASK/044'ten beri oyuncuya
+## "Yeni Squishy keşfedildi"). Koleksiyon, mağaza, ana sayfa ve profil abone:
+## sekme geçişindeki refresh()'e ek olarak, ekran açıkken gelen bir değişiklik
+## (aynı ekrandan satın alma) de anında yansısın. Gameplay abone DEĞİL ve
+## koleksiyonu HİÇ okumaz (TASK/044: gameplay skinleri emekli).
 signal skin_granted(id: StringName)
-## Boş id = varsayılan görünüme dönüldü.
-signal skin_equipped(id: StringName)
+## Profil vitrini değişti (TASK/044). Argüman: doğrulanmış vitrin (en fazla 3 id,
+## ilk eleman avatar).
+signal showcase_changed(ids: Array)
+
+## Vitrin yuvası sayısı (TASK/044, owner kararı).
+const SHOWCASE_MAX: int = 3
+## `showcase_add` sonucu. Yalnız ADDED kayda yazar.
+enum ShowcaseResult { ADDED, ALREADY, FULL, NOT_OWNED, UNKNOWN }
 
 var data: Dictionary = {}
 
@@ -19,11 +25,33 @@ const DEFAULT_DATA: Dictionary = {
 	"level_stars": {},
 	"endless_high_score": 0,
 	"dough": 0,
+	## Koleksiyon sahipliği. Anahtar adı TARİHSEL ("skin", M3–M9): TASK/044'ten beri
+	## oyuncuya "koleksiyon parçası / Squishy" — eski kayıtlar okusun diye ad
+	## DEĞİŞMEDİ, sahiplik aynen korunur. Sıra kazanılma sırası (yalnız sona eklenir).
 	"unlocked_skins": [],
-	## Takılı skin'in id'si. BOŞ STRING = varsayılan/orijinal dumpling görünümü.
-	## Eski kayıtlarda bu anahtar yok; load_game DEFAULT_DATA üzerine yazdığı
-	## için otomatik olarak "" kalıyor (geriye dönük uyumlu).
-	"equipped_skin": "",
+	## ESKİ "equipped_skin" (M8.5 gameplay skini) BURADA YOK — TASK/044'te emekli.
+	## Eski kayıtta durursa gameplay onu HİÇ okumaz; load_game bir kez vitrine taşır
+	## ve bellekten siler (bkz. _migrate_legacy_equip).
+	##
+	## Profil vitrini (TASK/044): en fazla 3 koleksiyon parçası id'si, sıralı; ilk
+	## eleman profil avatarı. Gameplay'e HİÇBİR etkisi yok. Okuma her zaman
+	## doğrulanır (`profile_showcase()`): sahip olunmayan / katalogda olmayan /
+	## tekrar eden id yok sayılır.
+	"profile_showcase": [],
+	## Profil sayaçları (TASK/044) — kayıttan geri üretilemeyen iki istatistik,
+	## ikisi de YALNIZ `record_round_finished` ile (Main._on_round_finished):
+	##   total_rounds_played   round başına TAM +1 — GameBoard.round_finished (kazanma
+	##                         ya da kaybetme; level ya da sonsuz; tutorial'ın gerçek
+	##                         Level 1 round'u bittiyse o da bir kez). Terk edilen round
+	##                         (Mola → Ana Menüye Dön / Yeniden Başla, yaş kısıtı) SAYILMAZ
+	##                         — total_merges / yıldız / rekorla aynı an, aynı kural.
+	##   highest_tier_created  bitmiş round'larda merge ya da Büyütücü ile OLUŞTURULAN en
+	##                         yüksek tier (düşen parça sayılmaz; GAME_DESIGN §10.3).
+	## Eski kayıtta geçmiş BİLİNMİYOR: uydurulmaz — 0'dan başlar ve
+	## `profile_counters_partial` true olur (profil "güncellemeden beri" der).
+	"total_rounds_played": 0,
+	"highest_tier_created": 0,
+	"profile_counters_partial": false,
 	"total_merges": 0,
 	"merges_since_bonus_chest": 0,
 	"daily_streak": 0,
@@ -107,6 +135,9 @@ func load_game() -> void:
 	for key: String in parsed:
 		data[key] = parsed[key]
 	_migrate_onboarding(parsed)
+	_migrate_legacy_equip(parsed)
+	_sanitize_showcase()
+	_migrate_profile_counters(parsed)
 	_grant_starter_powerups()
 
 
@@ -118,8 +149,8 @@ func load_game() -> void:
 ## ödülü tek açılışta 15 Hamur veriyor; oynanmışlık kanıtı değil). Yalnız
 ## bellekte karar verilir, DİSKE YAZILMAZ: sonraki doğal kayıt anahtarı
 ## kalıcılaştırır (okuma sırasında beklenmedik yazma yok — rewarded_power ve
-## equipped_skin ile aynı ilke). Dosyasız yeni oyuncu bu yola hiç girmez
-## (DEFAULT_DATA false).
+## profil vitrini migration'ıyla aynı ilke). Dosyasız yeni oyuncu bu yola hiç
+## girmez (DEFAULT_DATA false).
 ##
 ## M8.10: `onboarding_completed_day` burada UYDURULMAZ — boş kalır ve
 ## `Onboarding.daily_rewards_unlocked()` bunu "yerleşik oyuncu, ilk gün
@@ -129,6 +160,53 @@ func _migrate_onboarding(parsed: Dictionary) -> void:
 	if parsed.has("onboarding_completed"):
 		return
 	data["onboarding_completed"] = has_progress_evidence()
+
+
+## Eski takılı skin (`equipped_skin`, M8.5–M9) — TASK/044'te gameplay skinleri
+## EMEKLİ; gameplay bu anahtarı HİÇ okumaz. Tek seferlik ve yalnız bellekte: kayıtta
+## henüz `profile_showcase` yoksa ve eski id sahip olunan bir KATALOG parçasıysa
+## vitrinin ilk (avatar) yuvasına taşınır — oyuncunun eski favorisi profilinde
+## görünür. Sonra anahtar bellekten silinir; bir sonraki doğal kayıt ikisini birlikte
+## kalıcılaştırır (okuma sırasında disk yazması yok). Yazılmadan kapanırsa bir
+## sonraki açılışta aynı sonuç (idempotent). Sahiplik (`unlocked_skins`) DEĞİŞMEZ.
+## Boş / sahip olunmayan / katalogda olmayan / biçimsiz id → vitrin boş kalır.
+func _migrate_legacy_equip(parsed: Dictionary) -> void:
+	if not parsed.has("equipped_skin"):
+		return
+	var raw: Variant = parsed["equipped_skin"]
+	data.erase("equipped_skin")
+	if parsed.has("profile_showcase"):
+		return
+	if typeof(raw) != TYPE_STRING or String(raw).is_empty():
+		return
+	var id := StringName(String(raw))
+	if owns_skin(id) and SkinLibrary.find(id) != null:
+		data["profile_showcase"] = [String(id)]
+
+
+## Kayıttaki vitrin alanını güvenli BİÇİME indirir (dizi değilse boş; yalnız boş
+## olmayan metin id'ler, tekrarsız) — yalnız bellekte. Sahiplik / katalog / 3 sınırı
+## okumada süzülür (`profile_showcase`): katalogdan geçici kalkan bir parça geri
+## gelirse kaybolmasın.
+func _sanitize_showcase() -> void:
+	var raw: Variant = data.get("profile_showcase", [])
+	var clean: Array = []
+	if raw is Array:
+		for item: Variant in raw:
+			if typeof(item) == TYPE_STRING and not String(item).is_empty() and not clean.has(String(item)):
+				clean.append(String(item))
+	data["profile_showcase"] = clean
+
+
+## Profil sayaçları (TASK/044) eski kayıtta yok: geçmiş bilinmiyor ve UYDURULMAZ.
+## Sayaçlar 0'dan başlar; oynanmışlık kanıtı olan kayıtta `profile_counters_partial`
+## true (profil "güncellemeden beri" notunu gösterir). Yalnız bellekte.
+func _migrate_profile_counters(parsed: Dictionary) -> void:
+	if parsed.has("total_rounds_played"):
+		return
+	data["total_rounds_played"] = 0
+	data["highest_tier_created"] = 0
+	data["profile_counters_partial"] = has_progress_evidence()
 
 
 ## Kayıtta oynanmışlık kanıtı var mı (onboarding migration kuralı).
@@ -227,60 +305,150 @@ func grant_skin(id: StringName) -> void:
 	skin_granted.emit(id)
 
 
-# --- Takılı skin (M8.5) ---
+# --- Profil vitrini (TASK/044) ---
 #
-# Boş string = varsayılan görünüm. Bu bilinçli: "hiç skin seçilmemiş" ile
-# "varsayılanı seçtim" aynı şey, ayrı bir sentinel id'ye gerek yok.
+# Koleksiyon parçaları gameplay'i DEĞİŞTİRMEZ (M8.5 "takılı skin" emekli). Sahip
+# olunan en fazla 3 parça profilde sergilenir; ilk yuva avatar. Kural tek yerde
+# (burada): yalnız sahip olunan + katalogda bulunan id, en fazla 3, tekrar yok.
+# Doluyken sessiz / rastgele değiştirme YOK — değiştirme yalnız oyuncunun seçtiği
+# yuvaya (`showcase_replace`). Her yazma TEK `save_game()` + `showcase_changed`.
 
-## Takılı skin'in id'si, DOĞRULANMIŞ hâliyle. Kayıtta duran id artık
-## SkinLibrary'de yoksa ya da oyuncu ona sahip değilse boş string döner —
-## yani güvenli biçimde varsayılana düşer.
-##
-## Bu getter kayda YAZMAZ: okuma sırasında beklenmedik disk yazması olmasın.
-## Kalıcı temizlik equip_skin/clear_equipped_skin üzerinden yapılır.
-func equipped_skin_id() -> StringName:
-	var raw: String = str(data.get("equipped_skin", ""))
-	if raw.is_empty():
-		return &""
-	var id := StringName(raw)
+## Doğrulanmış vitrin: sıralı, en fazla SHOWCASE_MAX, tekrarsız; yalnız sahip olunan
+## ve katalogda bulunan parçalar. Katalogdan kalkan ya da sahipliği olmayan id sessizce
+## yok sayılır. YAZMAZ (okuma sırasında disk yazması yok).
+func profile_showcase() -> Array[StringName]:
+	var out: Array[StringName] = []
+	var raw: Variant = data.get("profile_showcase", [])
+	if not raw is Array:
+		return out
+	for item: Variant in raw:
+		if out.size() >= SHOWCASE_MAX:
+			break
+		if typeof(item) != TYPE_STRING:
+			continue
+		var id := StringName(String(item))
+		if id == &"" or out.has(id):
+			continue
+		if not owns_skin(id) or SkinLibrary.find(id) == null:
+			continue
+		out.append(id)
+	return out
+
+
+func is_showcased(id: StringName) -> bool:
+	return profile_showcase().has(id)
+
+
+## Vitrindeki yuva (0 = avatar) ya da -1.
+func showcase_slot(id: StringName) -> int:
+	return profile_showcase().find(id)
+
+
+## Vitrine ekler (sona). Dolu, sahip olunmayan, bilinmeyen ya da zaten vitrindeki
+## id hiçbir alanı değiştirmez ve diske yazmaz.
+func showcase_add(id: StringName) -> ShowcaseResult:
+	if id == &"" or SkinLibrary.find(id) == null:
+		return ShowcaseResult.UNKNOWN
 	if not owns_skin(id):
-		return &""
-	if SkinLibrary.find(id) == null:
-		return &""
-	return id
+		return ShowcaseResult.NOT_OWNED
+	var current: Array[StringName] = profile_showcase()
+	if current.has(id):
+		return ShowcaseResult.ALREADY
+	if current.size() >= SHOWCASE_MAX:
+		return ShowcaseResult.FULL
+	current.append(id)
+	_store_showcase(current)
+	return ShowcaseResult.ADDED
 
 
-## Takılı SkinData, ya da varsayılan görünümde null.
-func equipped_skin() -> SkinData:
-	var id: StringName = equipped_skin_id()
-	if id == &"":
-		return null
-	return SkinLibrary.find(id)
-
-
-## Skin takar. Sahip olunmayan ya da tanımsız id reddedilir (false döner).
-## Boş string geçerlidir ve varsayılana döner.
-func equip_skin(id: StringName) -> bool:
-	if id == &"":
-		clear_equipped_skin()
-		return true
-	if not owns_skin(id) or SkinLibrary.find(id) == null:
+## Vitrinden çıkarır; sonrakiler bir yuva öne kayar (ilk yuva çıkarsa ikinci avatar
+## olur). Vitrinde değilse hiçbir şey yazılmaz.
+func showcase_remove(id: StringName) -> bool:
+	var current: Array[StringName] = profile_showcase()
+	if not current.has(id):
 		return false
-	if StringName(str(data.get("equipped_skin", ""))) == id:
-		return true
-	data["equipped_skin"] = String(id)
-	save_game()
-	skin_equipped.emit(id)
+	current.erase(id)
+	_store_showcase(current)
 	return true
 
 
-## Varsayılan görünüme döner.
-func clear_equipped_skin() -> void:
-	if str(data.get("equipped_skin", "")).is_empty():
-		return
-	data["equipped_skin"] = ""
+## Vitrin doluyken BİLİNÇLİ değiştirme: `new_id` oyuncunun seçtiği `old_id`'nin
+## yuvasına girer (yuva sırası — avatar yuvası dahil — korunur). Geçersiz her
+## kombinasyon hiçbir şey yazmaz.
+func showcase_replace(old_id: StringName, new_id: StringName) -> bool:
+	if new_id == &"" or SkinLibrary.find(new_id) == null or not owns_skin(new_id):
+		return false
+	var current: Array[StringName] = profile_showcase()
+	var slot: int = current.find(old_id)
+	if slot < 0 or current.has(new_id):
+		return false
+	current[slot] = new_id
+	_store_showcase(current)
+	return true
+
+
+## "Avatar yap": vitrindeki parçayı ilk yuvaya taşır, diğerlerinin sırası korunur.
+## Zaten ilk yuvadaysa ya da vitrinde değilse yazılmaz.
+func showcase_make_first(id: StringName) -> bool:
+	var current: Array[StringName] = profile_showcase()
+	var slot: int = current.find(id)
+	if slot <= 0:
+		return false
+	current.remove_at(slot)
+	current.insert(0, id)
+	_store_showcase(current)
+	return true
+
+
+func _store_showcase(ids: Array[StringName]) -> void:
+	var raw: Array = []
+	for id in ids:
+		raw.append(String(id))
+	data["profile_showcase"] = raw
 	save_game()
-	skin_equipped.emit(&"")
+	showcase_changed.emit(ids.duplicate())
+
+
+# --- Profil sayaçları (TASK/044) ---
+#
+# Yalnız kayıttan GERİ ÜRETİLEMEYEN iki istatistik saklanır (DEFAULT_DATA notu);
+# yıldız / koleksiyon / güç stoğu / rekor kanonik alanlardan türetilir
+# (PlayerProfile). Biçimsiz değer (eski / bozuk kayıt) 0 okunur.
+
+func total_rounds_played() -> int:
+	return maxi(_as_int(data.get("total_rounds_played", 0)), 0)
+
+
+func highest_tier_created() -> int:
+	return clampi(_as_int(data.get("highest_tier_created", 0)), 0, TierConfig.MAX_TIER)
+
+
+## Kayıt sayaçlardan ÖNCEKİ bir sürümden geliyor: sayaçlar "güncellemeden beri".
+func profile_counters_partial() -> bool:
+	return data.get("profile_counters_partial", false) == true
+
+
+## Round KESİN bitti — yalnız Main._on_round_finished, round başına TAM bir kez
+## (GameBoard._finish korumalı). Tur sayacı +1 ve bu round'da oluşturulan en yüksek
+## tier rekoru, TEK yazma. `created_tier` 0 = merge / Büyütücü yok (rekor değişmez).
+func record_round_finished(created_tier: int) -> void:
+	data["total_rounds_played"] = total_rounds_played() + 1
+	var tier: int = clampi(created_tier, 0, TierConfig.MAX_TIER)
+	if tier > highest_tier_created():
+		data["highest_tier_created"] = tier
+	save_game()
+
+
+static func _as_int(value: Variant) -> int:
+	match typeof(value):
+		TYPE_INT, TYPE_FLOAT:
+			return int(value)
+	return 0
+
+
+## Kanonik toplam merge sayısı (profil istatistiği; biçimsiz değer 0).
+func total_merges() -> int:
+	return maxi(_as_int(data.get("total_merges", 0)), 0)
 
 
 ## Round sonunda çağrılır. Toplam merge sayacını ilerletir ve hak edilen
@@ -408,7 +576,7 @@ func purchase_powerup_with_dough(type: PowerUp.Type, amount: int = 1) -> bool:
 ## Bugün kaç ödüllü güç refill'i verildi.
 ##
 ## Tarih değiştiyse 0 döner ve KAYDA YAZMAZ: okuma sırasında beklenmedik
-## disk yazması olmasın (equipped_skin_id ile aynı yaklaşım). Kalıcı sıfırlama
+## disk yazması olmasın (profile_showcase ile aynı yaklaşım). Kalıcı sıfırlama
 ## bir sonraki grant'te yapılıyor.
 func rewarded_power_grants_today(today: String) -> int:
 	if String(data.get("rewarded_power_date", "")) != today:

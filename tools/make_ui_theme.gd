@@ -343,9 +343,10 @@ func _build_components() -> void:
 	_panel(&"Badge", "badge_round", UiTokens.GOLD, Vector4(10, 2, 10, 5))
 	_panel(&"LockBadge", "badge_round", UiTokens.DISABLED_DEEP, Vector4(10, 2, 10, 5))
 	_panel(&"EquippedBadge", "frame_round20", UiTokens.MINT, Vector4(16, 4, 16, 6))
-	# Magaza (M8.6-05): sahip olunan (takili olmayan) skin plakasi — acik nane
-	# (nane ailesi = "senin": TAKILI dolu nane, SAHIPSIN acik nane), erik yazi;
-	# EquippedBadge ile ayni geometri. Lavanta-gri "pasif" ailesinden ayrik.
+	# Magaza (M8.6-05): sahip olunan parca plakasi — acik nane (nane ailesi =
+	# "senin"), erik yazi; EquippedBadge ile ayni geometri. Lavanta-gri "pasif"
+	# ailesinden ayrik. TASK/044: TAKILI durumu kalkti; EquippedBadge adi
+	# tarihsel (dolu nane plaka: sonuc ekraninin kilit-acildi rozeti).
 	_panel(&"OwnedBadge", "frame_round20", UiTokens.MINT.lerp(Color.WHITE, 0.55), Vector4(16, 4, 16, 6))
 	_panel(&"NewBadge", "badge_round", UiTokens.PINK, Vector4(10, 2, 10, 5))
 	_panel(&"CountBadge", "badge_round", UiTokens.GOLD, Vector4(8, 1, 8, 4))

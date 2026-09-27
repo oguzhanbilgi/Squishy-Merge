@@ -12,9 +12,9 @@ extends Node
 ## rarity halesi/halkası, kart yüzü içeriğin altında, bölüm plakası dudağı,
 ## onay X'i kurdeleye binmez, sunum 190); satın alma (yeter →
 ## onay → tek transaction: Hamur −fiyat, stok +1, tek save; yetmez → hiçbir
-## şey değişmez + geri bildirim; onay kapatmak harcamaz); skinler (50/150/
-## 400/900, sahip ≠ satılık, takılı ayrık, kanonik satın alma, auto-equip
-## YOK); SATIN AL üzerinden sürükleme (06.3: gerçek basış → hareket →
+## şey değişmez + geri bildirim; onay kapatmak harcamaz); koleksiyon
+## parçaları (50/150/400/900, sahip ≠ satılık, kanonik satın alma; TASK/044:
+## TAKILI durumu yok, satın alınan parça vitrine OTOMATİK eklenmez); SATIN AL üzerinden sürükleme (06.3: gerçek basış → hareket →
 ## bırakış dizisi Mağaza'yı kaydırır, onay açılmaz, kayıt/Hamur/stok değişmez,
 ## buton basılı kalmaz; dokunuş tam bir onay; fling de kaydırır — güç ve skin
 ## butonu); rotalar (geri → Ana Sayfa, Android geri → önce onay kapanır sonra
@@ -143,10 +143,10 @@ func _ready() -> void:
 		and shop.scroll().horizontal_scroll_mode == ScrollContainer.SCROLL_MODE_DISABLED
 		and shop.scroll().vertical_scroll_mode == ScrollContainer.SCROLL_MODE_SHOW_NEVER)
 	var headers: Array[Control] = shop.section_headers()
-	_c("üç bölüm plakası: GÜNLÜK ÖDÜLLER (M8.9-02), GÜÇLER, SKİNLER (PanelShopSection)", headers.size() == 3
+	_c("üç bölüm plakası: GÜNLÜK ÖDÜLLER (M8.9-02), GÜÇLER, KOLEKSİYON (TASK/044; PanelShopSection)", headers.size() == 3
 		and (headers[0].get_meta(&"title_label") as Label).text == "GÜNLÜK ÖDÜLLER"
 		and (headers[1].get_meta(&"title_label") as Label).text == "GÜÇLER"
-		and (headers[2].get_meta(&"title_label") as Label).text == "SKİNLER"
+		and (headers[2].get_meta(&"title_label") as Label).text == "KOLEKSİYON"
 		and (headers[1].get_meta(&"plate") as PanelContainer).theme_type_variation == &"PanelShopSection")
 	_c("günlük ödüller kartı: tek geniş kart, AÇ butonu, durum rozeti; ödül vermez (yalnız sinyal)",
 		shop.daily_card() != null and shop.daily_button() != null and shop.daily_button().text == shop.DAILY_BUTTON
@@ -374,17 +374,22 @@ func _ready() -> void:
 	_c("kilitli kartlarda rarity fiyatı 50/150/400/900 (Shop.PRICES ile aynı)", rarity_ok
 		and Shop.PRICES == [50, 150, 400, 900])
 	var owned_card: ShopSkinCard = shop.skin_card(&"common_01")
-	var equipped_card: ShopSkinCard = shop.skin_card(&"rare_02")
+	var showcased_card: ShopSkinCard = shop.skin_card(&"rare_02")
 	var locked_card: ShopSkinCard = shop.skin_card(&"rare_03")
-	_c("sahip olunan kart: SAHİPSİN plakası (OwnedBadge), SATIN AL yok, fiyat yok, ipucu 'Koleksiyon'da tak'", owned_card.is_owned()
-		and not owned_card.is_equipped() and owned_card.state_text() == "SAHİPSİN"
+	_c("sahip olunan kart: SAHİPSİN plakası (OwnedBadge), SATIN AL yok, fiyat yok, ipucu 'Koleksiyonunda'", owned_card.is_owned()
+		and owned_card.state_text() == "SAHİPSİN"
 		and owned_card.state_plate().theme_type_variation == &"OwnedBadge"
 		and not owned_card.buy_button().visible and not owned_card._price_row.visible
-		and owned_card.hint_text() == "Koleksiyon'da tak")
-	_c("takılı kart: TAKILI plakası (EquippedBadge nane) — sahipten görünür ayrık, ipucu 'Şu an takılı'", equipped_card.is_equipped()
-		and equipped_card.state_text() == "TAKILI" and equipped_card.state_plate().theme_type_variation == &"EquippedBadge"
-		and equipped_card.state_plate().theme_type_variation != owned_card.state_plate().theme_type_variation
-		and not equipped_card.buy_button().visible and equipped_card.hint_text() == "Şu an takılı")
+		and owned_card.hint_text() == "Koleksiyonunda")
+	_c("vitrindeki parça da Mağaza'da yalnız SAHİPSİN (TASK/044: TAKILI durumu / takma dili YOK)", showcased_card.is_owned()
+		and showcased_card.state_text() == "SAHİPSİN" and showcased_card.state_plate().theme_type_variation == &"OwnedBadge"
+		and not showcased_card.buy_button().visible and showcased_card.hint_text() == "Koleksiyonunda"
+		and not showcased_card.has_method("is_equipped") and not ShopSkinCard.State.has("EQUIPPED"))
+	var takili: bool = false
+	for card in shop.skin_cards():
+		if card.state_text().contains("TAKILI") or card.hint_text().to_lower().contains("tak"):
+			takili = true
+	_c("hiçbir Mağaza kartında TAKILI / 'tak' ipucu yok", not takili)
 	_c("sahip olunan kart gövdesi PanelShopCardOwned, kilitli PanelShopCard (sahip ≠ satılık), güç PanelShopCardPower",
 		owned_card._body.theme_type_variation == &"PanelShopCardOwned"
 		and locked_card._body.theme_type_variation == &"PanelShopCard"
@@ -402,25 +407,28 @@ func _ready() -> void:
 		and not shop.skin_card(&"epic_02")._sparkles[0].visible)
 	_c("rarity etiketi her kartta (RarityCommon/…)", shop.skin_card(&"common_03").rarity_tag().theme_type_variation == &"RarityCommon"
 		and shop.skin_card(&"legendary_01").rarity_tag().theme_type_variation == &"RarityLegendary")
-	# Kanonik satın alma: rare_03 (150), 335 → 185; takılı DEĞİŞMEZ.
-	var equipped_before: StringName = SaveManager.equipped_skin_id()
+	# Kanonik satın alma: rare_03 (150), 335 → 185; vitrin DEĞİŞMEZ.
+	var showcase_before: Array[StringName] = SaveManager.profile_showcase()
 	var granted: Array = []
 	SaveManager.skin_granted.connect(func(id: StringName) -> void: granted.append(id))
 	locked_card.buy_button().pressed.emit()
 	await get_tree().process_frame
-	_c("skin SATIN AL → onay (ad, 'Nadir skin', 150 Hamur)", shop.is_confirm_open()
+	_c("parça SATIN AL → onay (ad, 'Nadir Squishy · koleksiyonuna', 150 Hamur)", shop.is_confirm_open()
 		and shop._confirm_title.text == SkinLibrary.find(&"rare_03").display_name
-		and shop._confirm_detail.text.begins_with("Nadir skin") and shop._confirm_price.text == "150 Hamur")
+		and shop._confirm_detail.text.begins_with("Nadir Squishy · koleksiyonuna")
+		and not shop._confirm_detail.text.contains("skin") and shop._confirm_price.text == "150 Hamur")
 	shop._confirm_yes.pressed.emit()
 	await get_tree().process_frame
 	await get_tree().process_frame
 	_c("skin satın alındı (owns_skin), Hamur −150 (335 → 185), skin_granted BİR kez", SaveManager.owns_skin(&"rare_03")
 		and SaveManager.dough() == 185 and granted == [&"rare_03"])
-	_c("auto-equip YOK: takılı skin aynen (rare_02)", SaveManager.equipped_skin_id() == equipped_before
-		and SaveManager.equipped_skin_id() == &"rare_02")
-	_c("kart SAHİPSİN'e döndü (buton yok), takılı kart hâlâ TAKILI", locked_card.is_owned()
+	_c("satın alma geri bildirimi koleksiyon dili ('koleksiyonuna eklendi'; 'tak' yok)",
+		shop.toast_text().contains("koleksiyonuna eklendi") and not shop.toast_text().to_lower().contains(" tak"))
+	_c("vitrine OTOMATİK ekleme YOK: vitrin aynen (rare_02)", SaveManager.profile_showcase() == showcase_before
+		and showcase_before.size() == 1 and showcase_before[0] == &"rare_02")
+	_c("kart SAHİPSİN'e döndü (buton yok), vitrindeki kart da SAHİPSİN", locked_card.is_owned()
 		and locked_card.state_text() == "SAHİPSİN" and not locked_card.buy_button().visible
-		and equipped_card.is_equipped())
+		and showcased_card.state_text() == "SAHİPSİN")
 	written = _read_save_file()
 	_c("dosyada Hamur 185 ve unlocked_skins rare_03 birlikte (tek transaction sonucu)", int(written.get("dough", -1)) == 185
 		and (written.get("unlocked_skins", []) as Array).has("rare_03"))
@@ -434,16 +442,16 @@ func _ready() -> void:
 	_c("yetmeyen skin → onay yok, satın alma yok, geri bildirim", not shop.is_confirm_open()
 		and not SaveManager.owns_skin(&"legendary_01") and SaveManager.dough() == 185
 		and shop.toast_text().contains("yetmiyor"))
-	# Koleksiyon'da takınca Mağaza'ya dönüşte kart TAKILI (refresh kanonik).
-	SaveManager.data["equipped_skin"] = "rare_03"
+	# Koleksiyon'da vitrin değişse de Mağaza kartı SAHİPSİN (refresh kanonik).
+	SaveManager.data["profile_showcase"] = ["rare_03"]
 	shop.scroll().scroll_vertical = 600
 	await get_tree().process_frame
 	_c("ön koşul: kaydırma 600'e alınabildi (içerik uzun)", shop.scroll().scroll_vertical == 600)
 	_main._show_tab(2)
 	_main._show_tab(3)
 	await get_tree().process_frame
-	_c("Koleksiyon'da takılan skin Mağaza'ya dönüşte TAKILI, eski takılı SAHİPSİN", locked_card.is_equipped()
-		and equipped_card.is_owned() and not equipped_card.is_equipped())
+	_c("vitrin değişince Mağaza'ya dönüşte iki kart da SAHİPSİN (vitrin Mağaza'da durum değil)", locked_card.state_text() == "SAHİPSİN"
+		and showcased_card.state_text() == "SAHİPSİN")
 	_c("sekmeye giriş kaydırmayı en üste alır (600 → 0)", shop.scroll().scroll_vertical == 0)
 
 	print("-- SATIN AL üzerinden sürükleme (06.3, A36: STOP ile 0 px)")
@@ -589,6 +597,7 @@ func _ready() -> void:
 		not shop_src.contains("add_dough(") and not shop_src.contains("spend_dough(")
 		and not shop_src.contains("data[\"dough\"]") and not shop_src.contains("grant_")
 		and not shop_src.contains("save_game(") and not shop_src.contains("equip_skin(")
+		and not shop_src.contains("showcase_add(")
 		and not power_src.contains("SaveManager.data") and not skin_src.contains("SaveManager.data")
 		and not power_src.contains("purchase(") and not skin_src.contains("purchase("))
 	_c("satın alma yalnız kanonik yoldan (PowerUpEconomy.purchase / Shop.purchase)",
@@ -726,7 +735,7 @@ func _apply_mid() -> void:
 	SaveManager.data["level_stars"] = {"1": 2, "2": 3, "3": 3}
 	SaveManager.data["dough"] = 335
 	SaveManager.data["unlocked_skins"] = ["common_01", "common_02", "rare_02", "epic_01"]
-	SaveManager.data["equipped_skin"] = "rare_02"
+	SaveManager.data["profile_showcase"] = ["rare_02"]
 	SaveManager.data["powerups"] = {"bomb": 3, "upgrade": 1, "shake": 0, "clear_small": 2}
 	SaveManager.data["endless_high_score"] = 0
 	SaveManager.data["last_login_date"] = Time.get_date_string_from_system()

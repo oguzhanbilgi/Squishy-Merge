@@ -37,9 +37,6 @@ mouse_filter = 2
 mouse_filter = 2
 expand_mode = 1
 
-[node name="Showcase" type="Control" parent="Root"]
-mouse_filter = 2
-
 [node name="Haze" type="TextureRect" parent="Root"]
 mouse_filter = 2
 expand_mode = 1

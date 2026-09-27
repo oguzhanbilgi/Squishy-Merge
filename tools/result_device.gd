@@ -376,7 +376,6 @@ func _real_round(level_path: String, center_only: bool, hold_name: String) -> vo
 	SaveManager.data["level_stars"] = {"1": 2} if center_only else {}
 	SaveManager.data["dough"] = 100
 	SaveManager.data["unlocked_skins"] = ["common_01"]
-	SaveManager.data["equipped_skin"] = ""
 	SaveManager.data["merges_since_bonus_chest"] = 62
 	SaveManager.data["total_merges"] = 300
 	SaveManager.data["endless_high_score"] = 0

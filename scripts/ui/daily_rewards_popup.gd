@@ -36,7 +36,7 @@ extends CanvasLayer
 ##
 ## REVEAL (§6): ödül ZATEN kayda yazılmış gelir. Gövde kartları yerine
 ## owner sandığı (`RewardGem`) açılır → "+15 HAMUR" belirir → skin varsa
-## `ResultRewardCard` (YENİ SKİN, gerçek final sanat) pop'lar; ~1,2 s'de
+## `ResultRewardCard` (YENİ SQUISHY, gerçek final sanat) pop'lar; ~1,2 s'de
 ## DEVAM açılır; X her an kapatır (ödül kaybolmaz, yeniden kura YOK —
 ## `DailyChestReward` değişmez, pencere yalnız gösterir).
 
@@ -57,7 +57,7 @@ const DOUGH_ART_SMALL: float = 30.0
 ## Skin kartının halesi kartın dışına taşar (ResultRewardCard: −30/−26/−30/−34);
 ## reveal'de kart bu paylarla sarılır — hale kırpılmaz (M8.9-02.1).
 const SKIN_CARD_MARGIN: Vector4 = Vector4(30.0, 26.0, 30.0, 34.0)
-const SKIN_CAPTION: String = "Koleksiyon'a eklendi"
+const SKIN_CAPTION: String = "Yeni Squishy keşfedildi!"
 const CHEST_ART: Texture2D = preload("res://assets/visual/ui/chest_closed.png")
 const DOUGH_ART: Texture2D = preload("res://assets/visual/ui/icon_dough.png")
 const SPARKLE_ART: Texture2D = preload("res://assets/visual/ui/icon_star_filled.png")
@@ -85,7 +85,7 @@ const NOTE_REQUESTING: String = "Reklam isteniyor…"
 const NOTE_NO_PROVIDER: String = "Ödüllü reklam henüz bağlı değil."
 const NOTE_CLOCK_BEHIND: String = "Cihaz saati geri alınmış görünüyor; ödüller tarih yetişince yenilenir."
 const REVEAL_DOUGH: String = "+%d HAMUR"
-const REVEAL_BONUS_NOTE: String = "%s skinlerin tamamı sende — yerine bonus Hamur"
+const REVEAL_BONUS_NOTE: String = "%s Squishy'lerin tamamı sende — yerine bonus Hamur"
 const REVEAL_TITLE_FREE: String = "ÜCRETSİZ SANDIK"
 const REVEAL_TITLE_AD: String = "REKLAMLI SANDIK"
 ## Reveal zamanlaması (s): sandık belirir → açılır → Hamur → skin → DEVAM.
@@ -362,7 +362,7 @@ func _build_reveal() -> void:
 	# SIZE_EXPAND_FILL; ortalayıcı container kartı minimum genişliğe sıkıştırıp
 	# sağdan kırpıyordu). Kartın dışına taşan hale/gölge için kart
 	# SKIN_CARD_MARGIN paylarıyla sarılır (gövde kaydırma alanı kırpmasın);
-	# "Koleksiyon'a eklendi" kartın altında tam genişlik yazılır (dar kartta
+	# "Yeni Squishy keşfedildi!" kartın altında tam genişlik yazılır (dar kartta
 	# rozet satırı sıkışmasın).
 	_reveal_skin_host = VBoxContainer.new()
 	_reveal_skin_host.name = "RevealSkin"

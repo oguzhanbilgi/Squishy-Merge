@@ -1,26 +1,24 @@
 class_name SkinData
 extends Resource
-## Kozmetik dumpling skin'inin KATALOG tanımı (GAME_DESIGN.md §5.2):
-## kimlik, ad, rarity, koleksiyon/mağaza önizleme görseli ve gameplay render
-## profili. Oyuncuya özgü durum (sahip mi, takılı mı, fiyat) burada DEĞİL —
-## o bilgi `SkinEntry` ile birleştiriliyor.
+## Koleksiyon parçasının (Squishy) KATALOG tanımı (GAME_DESIGN.md §5.2 / §5.3):
+## kimlik, ad, rarity ve owner'ın final önizleme sanatı. Oyuncuya özgü durum
+## (sahip mi, vitrinde mi, fiyat) burada DEĞİL — o bilgi `SkinEntry` ile
+## birleştiriliyor. Sınıf / dosya adı TARİHSEL ("skin"): eski kayıtlar ve
+## .tres yolları bozulmasın diye değişmedi.
 ##
-## İki görsel katman (M8.5-14):
 ##   preview_texture — owner'ın FİNAL önizleme sanatı
 ##                     (assets/visual/skins/previews/skin_<rarity>_<ad>.png).
-##                     Koleksiyon kartı, vitrin ve mağaza satırı bunu çizer.
-##   gameplay profili — 8 tier sprite'ının GÖVDESİNİ yeniden boyayan/desenleyen
-##                     shader parametreleri (assets/visual/skins/skin_body.gdshader,
-##                     uygulayan: scripts/game/skin_visual.gd). Tier siluetleri,
-##                     yüzler ve aksesuarlar korunur; skin yalnızca hamurun
-##                     rengi + malzemesi + deseni. 20×8 sprite ÜRETİLMİYOR.
+##                     Koleksiyon kartı, detay, profil vitrini ve mağaza bunu çizer.
 ##
-## Profil alanlarının hepsi veri: yeni skin = yeni .tres, kod değişmez.
-## Tüm 20 skin: tools/make_skin_resources.py tablosundan üretildi.
+## TASK/044 (owner kararı): gameplay skinleri EMEKLİ — parçalar oyundaki
+## dumpling'lerin görünümünü, fiziği ya da skoru HİÇ değiştirmez. Aşağıdaki
+## "Gameplay render (EMEKLİ)" alanları M8.5–M9'un gövde shader profiliydi; mevcut
+## 20 .tres değişmeden yüklensin diye VERİ olarak duruyor, hiçbir kod okumuyor.
+## Tüm 20 parça: tools/make_skin_resources.py tablosundan üretildi.
 
 enum Rarity { COMMON, RARE, EPIC, LEGENDARY }
 
-## Desen ailesi — skin_body.gdshader `pattern_type` ile aynı sıra.
+## Desen ailesi (EMEKLİ gameplay profili; .tres uyumluluğu için duruyor).
 enum Pattern { NONE, SPECKLE, FLECK, RING, MARBLE, SWIRL, CRYSTAL, STREAK, WAVE, IRIDESCENT, METAL }
 
 @export var id: StringName = &""
@@ -30,8 +28,8 @@ enum Pattern { NONE, SPECKLE, FLECK, RING, MARBLE, SWIRL, CRYSTAL, STREAK, WAVE,
 ## dumpling + gameplay profiliyle türetir (güvenli fallback, prod'da olmamalı).
 @export var preview_texture: Texture2D = null
 
-@export_group("Gameplay render")
-## Hamur gövdesinin ana rengi (orta ton). Kart/renk özeti de bunu kullanır.
+@export_group("Gameplay render (EMEKLİ — TASK/044, okunmaz)")
+## Hamur gövdesinin ana rengi (orta ton).
 @export var body_color: Color = Color(0.96, 0.92, 0.84)
 ## Gölge tonu (sprite'ın koyu bölgeleri buna gider).
 @export var shade_color: Color = Color(0.72, 0.62, 0.50)
@@ -58,13 +56,6 @@ enum Pattern { NONE, SPECKLE, FLECK, RING, MARBLE, SWIRL, CRYSTAL, STREAK, WAVE,
 ## Legendary aura rengi; alfa 0 = aura yok.
 @export var aura_color: Color = Color(1, 1, 1, 0)
 @export_range(0.0, 3.0) var anim_speed: float = 1.0
-
-
-## Gameplay'de hiçbir şey değiştirmeyen profil (Sade): tint 0, desen yok,
-## malzeme yok. SkinVisual bu durumda materyal takmaz — tier sprite'ı
-## orijinal renkleriyle çizilir, "varsayılan" ile birebir aynı görünür.
-func is_baseline() -> bool:
-	return tint_strength <= 0.0 and pattern == Pattern.NONE 		and gloss <= 0.0 and pearl <= 0.0 and sparkle <= 0.0
 
 
 ## Rarity'nin İÇ adı (İngilizce): tema variation adları (`RarityCommon`…),

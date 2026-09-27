@@ -4,10 +4,13 @@ extends Node
 ##
 ## Gerçek GameBoard + production HUD, deterministik yığınlar:
 ##   level1 (L1) / empty / medium / heavy / armed (seçili güç) / zero (stok 0) / danger /
-##   endless / skin_sade / skin_rare / skin_legendary
+##   endless / showcase_canonical (TASK/044: vitrin + eski takılı-skin anahtarı
+##   board'u DEĞİŞTİRMEZ — gameplay skinleri emekli, görünüm kanonik)
 ##
-## KAYIT: SaveManager.data yalnızca BELLEKTE değiştirilir (stok, takılı
-## skin) ve çıkışta geri konur; save_game() ÇAĞRILMAZ.
+## KAYIT: SaveManager.data BELLEKTE değiştirilir (stok, vitrin) ve her
+## çekimden sonra geri konur. 09 (mola) gerçek Main kurar — Main._ready günlük
+## gün / giriş kaydını YAZABİLİR (TASK/044 incelemesi): araç kayıt dosyasını
+## başta byte olarak okur, çıkışta AYNEN geri yazar (diğer *_shots araçlarıyla aynı).
 ##
 ## Kullanım:
 ##   godot --path . res://tools/shell_shots.tscn -- <çıktı_klasörü> [GxY]
@@ -20,6 +23,8 @@ var _out_dir: String = ""
 var _size: Vector2i = SHOT_SIZE
 var _board: Node2D
 var _saved_data: Dictionary = {}
+var _save_bytes: PackedByteArray = PackedByteArray()
+var _had_save: bool = false
 
 
 func _ready() -> void:
@@ -31,6 +36,9 @@ func _ready() -> void:
 	_size = _shot_size(args)
 	DisplayServer.window_set_size(_size)
 	_saved_data = SaveManager.data.duplicate(true)
+	_had_save = FileAccess.file_exists(SaveManager.SAVE_PATH)
+	if _had_save:
+		_save_bytes = FileAccess.get_file_as_bytes(SaveManager.SAVE_PATH)
 	await get_tree().process_frame
 	await get_tree().process_frame
 
@@ -41,14 +49,24 @@ func _ready() -> void:
 	await _shot_zero()
 	await _shot_danger()
 	await _shot_endless()
-	await _shot_skin("skin_sade", "")
-	await _shot_skin("skin_rare", "rare_02")
-	await _shot_skin("skin_legendary", "legendary_02")
+	await _shot_showcase_canonical()
 	await _shot_pause_menu()
 
 	SaveManager.data = _saved_data
+	_restore_save_file()
 	print("bitti -> ", _out_dir)
 	get_tree().quit()
+
+
+func _restore_save_file() -> void:
+	if not _had_save:
+		if FileAccess.file_exists(SaveManager.SAVE_PATH):
+			DirAccess.remove_absolute(ProjectSettings.globalize_path(SaveManager.SAVE_PATH))
+		return
+	var file := FileAccess.open(SaveManager.SAVE_PATH, FileAccess.WRITE)
+	if file != null:
+		file.store_buffer(_save_bytes)
+		file.close()
 
 
 func _shot_size(args: PackedStringArray) -> Vector2i:
@@ -222,15 +240,18 @@ func _shot_pause_menu() -> void:
 	await get_tree().process_frame
 
 
-func _shot_skin(name: String, skin_id: String) -> void:
-	SaveManager.data["equipped_skin"] = skin_id
-	if skin_id != "" and not SaveManager.owns_skin(StringName(skin_id)):
-		var owned: Array = SaveManager.data.get("unlocked_skins", []).duplicate()
-		owned.append(skin_id)
-		SaveManager.data["unlocked_skins"] = owned
+## TASK/044: gameplay skinleri emekli. Vitrin dolu (Legendary avatar) ve eski
+## kayıttaki `equipped_skin` anahtarı bellekte duruyor olsa bile board KANONİK
+## çizilir — bu çekim görsel kanıttır (programatik kanıt: collection_rework_test).
+func _shot_showcase_canonical() -> void:
+	SaveManager.data["unlocked_skins"] = ["rare_02", "legendary_02"]
+	SaveManager.data["profile_showcase"] = ["legendary_02", "rare_02"]
+	SaveManager.data["equipped_skin"] = "legendary_02"
 	await _make_board("res://resources/levels/level_06.tres")
 	await _pile([[8, 7], [6, 5, 5], [4, 4, 3, 4], [3, 2, 2, 3], [2, 1, 1, 2, 1]])
 	GameState.add_score(3320)
 	await get_tree().process_frame
-	await _capture("08_%s" % name)
-	SaveManager.data["equipped_skin"] = ""
+	await _capture("08_showcase_canonical")
+	# Sahiplik / vitrin çekim için daraltıldı: sonraki çekim (gerçek Main) kayda
+	# yazmadan önce bellekteki durum geri gelir.
+	SaveManager.data = _saved_data.duplicate(true)

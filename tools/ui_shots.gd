@@ -40,7 +40,7 @@ func _ready() -> void:
 	await get_tree().process_frame
 	await _boot_main()
 	await _shot_tabs("")
-	await _shot_collection_equipped()
+	await _shot_collection_detail()
 	await _shot_shop_scrolled("")
 	await _shot_settings()
 	await _shot_worst_case()
@@ -99,29 +99,29 @@ func _shot_tabs(suffix: String) -> void:
 		await _capture(names[tab] + suffix + ".png")
 
 
-# --- Koleksiyon: takili skin ---
+# --- Koleksiyon: parca detayi (TASK/044) ---
 
-## Sahip olunan ilk skin takili gibi gosterilir; kayda YAZILMAZ.
-func _shot_collection_equipped() -> void:
-	var before: Variant = SaveManager.data.get("equipped_skin", "")
+## Sahip olunan ilk parcanin detayi (VITRINE EKLE) ve kilitli bir parcanin
+## detayi (MAGAZAYA GIT). Kayda YAZILMAZ: yalniz pencere acilir.
+func _shot_collection_detail() -> void:
 	var owned: Array = SaveManager.owned_skins()
 	if owned.is_empty():
 		SaveManager.data["unlocked_skins"] = ["common_01"]
 		owned = SaveManager.owned_skins()
-	SaveManager.data["equipped_skin"] = String(owned[0])
 	await _show_tab(2)
-	await _capture("06_collection_equipped.png")
-	# M8.5-13: kilitli karta dokunma -> vitrin kilitli skin'i gosterir
-	# (ad, rarity, fiyat, "Magazaya Git"). Kayda yazmaz.
 	var album: CanvasLayer = _main._screens[2]
-	if album.has_method("_on_card_tapped"):
-		for skin in SkinLibrary.all():
-			if not SaveManager.owns_skin(skin.id):
-				album._on_card_tapped(skin.id)
-				await _settle()
-				await _capture("07_collection_locked_focus.png")
-				break
-	SaveManager.data["equipped_skin"] = before
+	if not album.has_method("open_detail"):
+		return
+	album.open_detail(StringName(owned[0]))
+	await _settle()
+	await _capture("06_collection_detail_owned.png")
+	for skin in SkinLibrary.all():
+		if not SaveManager.owns_skin(skin.id):
+			album.open_detail(skin.id)
+			await _settle()
+			await _capture("07_collection_detail_locked.png")
+			break
+	album.close_detail(false)
 
 
 # --- Magaza: guc kartlari ustte, skin listesi asagida ---

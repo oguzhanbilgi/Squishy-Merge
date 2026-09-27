@@ -1,30 +1,35 @@
 class_name SkinEntry
 extends RefCounted
-## Bir skin'in OYUNCUYA GÖRE durumu: katalog verisi (SkinData) + sahiplik /
-## takılılık (SaveManager) + fiyat (Shop) tek nesnede.
+## Bir koleksiyon parçasının (Squishy) OYUNCUYA GÖRE durumu: katalog verisi
+## (SkinData) + sahiplik / vitrin (SaveManager) + fiyat (Shop) tek nesnede.
 ##
-## Koleksiyon, mağaza ve ana sayfa skin durumunu buradan okuyor; üçü de aynı
-## kuralları ayrı ayrı türetmiyor ("sahip değil ama takılı" gibi çelişkiler
-## yapısal olarak imkânsız: takılı yalnızca sahip olunan için true olabilir,
-## SaveManager.equipped_skin_id() zaten doğruluyor).
+## Ad TARİHSEL ("skin", M8.5): TASK/044'ten beri parçalar gameplay'i DEĞİŞTİRMEZ —
+## oyuncuya "koleksiyon parçası / Squishy". Kimlikler / sınıf adları eski kayıtlar
+## ve dosya yolları bozulmasın diye değişmedi.
 ##
-## Salt okunur anlık görüntü: durum değişince (satın alma, equip) yeniden
-## üretilir; SaveManager sinyalleri (`skin_granted` / `skin_equipped`)
+## Koleksiyon, mağaza, ana sayfa ve profil durumu buradan okuyor; hiçbiri aynı
+## kuralları ayrı ayrı türetmiyor ("sahip değil ama vitrinde" gibi çelişkiler
+## yapısal olarak imkânsız: vitrin yalnız sahip olunan için true olabilir,
+## SaveManager.profile_showcase() zaten doğruluyor).
+##
+## Salt okunur anlık görüntü: durum değişince (satın alma, vitrin) yeniden
+## üretilir; SaveManager sinyalleri (`skin_granted` / `showcase_changed`)
 ## ekranlara "yeniden üret" demek için var.
 ##
-## "Varsayılan" görünüm de bir SkinEntry: `skin == null`, `id == ""`, her
-## zaman sahip olunan ve fiyatsız. Koleksiyon grid'inin ilk kartı bu.
+## "Varsayılan" (kanonik Squishy) da bir SkinEntry: `skin == null`, `id == ""`,
+## her zaman sahip olunan ve fiyatsız. Koleksiyon parçası DEĞİL (albümde yok,
+## sayaca girmez); vitrin boşken profil avatarı bu.
 
 const DEFAULT_ID: StringName = &""
 const DEFAULT_NAME: String = "Varsayılan"
-## Varsayılan kartın rarity satırı ("Common" yerine).
+## Varsayılanın rarity satırı ("Common" yerine).
 const DEFAULT_RARITY_LABEL: String = "Orijinal"
 ## Kilitli kartın adı yerine gösterilen metin: koleksiyon isimleri
 ## GİZLEMİYOR (mağaza zaten gösteriyor) — bu sabit yalnızca ad boşsa.
 const UNKNOWN_NAME: String = "???"
 
-## Önizlemenin türetildiği orijinal dumpling. Orta tier: küçükler kartta
-## kayboluyor, büyükler kırpılıyor.
+## Varsayılan (kanonik) Squishy görseli — oyundaki tier 3 dumpling'in kendisi.
+## Orta tier: küçükler kartta kayboluyor, büyükler kırpılıyor.
 const PREVIEW_BASE_TEXTURE: Texture2D = preload("res://assets/visual/dumpling_tier3.png")
 
 var id: StringName = DEFAULT_ID
@@ -33,8 +38,10 @@ var rarity: SkinData.Rarity = SkinData.Rarity.COMMON
 ## Hamur fiyatı; varsayılan görünüm için 0.
 var price: int = 0
 var owned: bool = true
-var equipped: bool = false
-## Katalog kaydı; varsayılan görünümde null.
+## Profil vitrininde mi (TASK/044) ve hangi yuvada (0 = avatar, -1 = değil).
+var showcased: bool = false
+var showcase_slot: int = -1
+## Katalog kaydı; varsayılanda null.
 var skin: SkinData = null
 
 
@@ -68,25 +75,24 @@ func rarity_color() -> Color:
 	return SkinData.rarity_color(rarity)
 
 
-## Skin'in özet rengi (gövde orta tonu); varsayılanda beyaz.
-func body_color() -> Color:
-	return skin.body_color if skin != null else Color.WHITE
-
-
-## Final önizleme görseli (M8.5-14'ten beri 20 skin'in hepsinde dolu);
-## null ise çağıran orijinal dumpling + SkinVisual ile türetir (fallback).
+## Final önizleme görseli (M8.5-14'ten beri 20 parçanın hepsinde dolu);
+## null ise çağıran kanonik Squishy'yi (PREVIEW_BASE_TEXTURE) çizer.
 func preview_texture() -> Texture2D:
 	if skin != null and skin.preview_texture != null:
 		return skin.preview_texture
 	return null
 
 
+## Çizilecek görsel: parçanın final sanatı, yoksa kanonik Squishy.
+func art_texture() -> Texture2D:
+	var ready_made: Texture2D = preview_texture()
+	return ready_made if ready_made != null else PREVIEW_BASE_TEXTURE
+
+
 # --- Üretim ---
 
 static func default_entry() -> SkinEntry:
-	var entry := SkinEntry.new()
-	entry.equipped = SaveManager.equipped_skin_id() == DEFAULT_ID
-	return entry
+	return SkinEntry.new()
 
 
 static func for_skin(skin_data: SkinData) -> SkinEntry:
@@ -97,7 +103,8 @@ static func for_skin(skin_data: SkinData) -> SkinEntry:
 	entry.rarity = skin_data.rarity
 	entry.price = Shop.price_of(skin_data)
 	entry.owned = SaveManager.owns_skin(skin_data.id)
-	entry.equipped = entry.owned and SaveManager.equipped_skin_id() == skin_data.id
+	entry.showcase_slot = SaveManager.showcase_slot(skin_data.id) if entry.owned else -1
+	entry.showcased = entry.showcase_slot >= 0
 	return entry
 
 
@@ -110,7 +117,8 @@ static func find(skin_id: StringName) -> SkinEntry:
 
 
 ## Katalog sırasında (rarity, id) bütün girişler; `with_default` true ise
-## başa "Varsayılan" eklenir (koleksiyon), false ise yalnız skinler (mağaza).
+## başa "Varsayılan" eklenir, false ise yalnız 20 koleksiyon parçası (albüm,
+## mağaza).
 static func all(with_default: bool) -> Array[SkinEntry]:
 	var result: Array[SkinEntry] = []
 	if with_default:
@@ -120,16 +128,55 @@ static func all(with_default: bool) -> Array[SkinEntry]:
 	return result
 
 
-## Takılı girişin kendisi (varsayılan dahil, hiç null dönmez).
-static func equipped_entry() -> SkinEntry:
-	return find(SaveManager.equipped_skin_id())
+## Vitrindeki girişler, yuva sırasıyla (en fazla 3; boş vitrin = boş dizi).
+static func showcase_entries() -> Array[SkinEntry]:
+	var result: Array[SkinEntry] = []
+	for showcase_id in SaveManager.profile_showcase():
+		var entry: SkinEntry = find(showcase_id)
+		if entry != null:
+			result.append(entry)
+	return result
 
 
-## Sahip olunan KATALOGDAKİ skin sayısı. Kayıttaki liste artık var olmayan
-## bir id içerse de burası saymaz — dört ekranın "18/20"si aynı sayı olsun.
+## Profil avatarı (TASK/044): vitrinin İLK parçası; vitrin boşsa kanonik Squishy
+## (varsayılan). Hiç null dönmez.
+static func avatar_entry() -> SkinEntry:
+	var showcase: Array[StringName] = SaveManager.profile_showcase()
+	if not showcase.is_empty():
+		var entry: SkinEntry = find(showcase[0])
+		if entry != null:
+			return entry
+	return default_entry()
+
+
+## En son keşfedilen (kazanılma sırasında sonuncu) katalog parçası; hiç yoksa null.
+## Ana Sayfa Koleksiyon madalyonu bunu gösterir (takma / seçim anlamı YOK).
+static func newest_owned() -> SkinEntry:
+	var owned_ids: Array = SaveManager.owned_skins()
+	for i in range(owned_ids.size() - 1, -1, -1):
+		var raw: Variant = owned_ids[i]
+		if typeof(raw) != TYPE_STRING:
+			continue
+		var entry: SkinEntry = find(StringName(String(raw)))
+		if entry != null and not entry.is_default():
+			return entry
+	return null
+
+
+## Sahip olunan KATALOGDAKİ parça sayısı. Kayıttaki liste artık var olmayan
+## bir id içerse de burası saymaz — bütün ekranların "7/20"si aynı sayı olsun.
 static func owned_count() -> int:
 	var count: int = 0
 	for skin_data in SkinLibrary.all():
+		if SaveManager.owns_skin(skin_data.id):
+			count += 1
+	return count
+
+
+## Rarity başına sahip olunan / toplam (albüm başlığı ve profil).
+static func owned_count_by_rarity(rarity_value: SkinData.Rarity) -> int:
+	var count: int = 0
+	for skin_data in SkinLibrary.by_rarity(rarity_value):
 		if SaveManager.owns_skin(skin_data.id):
 			count += 1
 	return count

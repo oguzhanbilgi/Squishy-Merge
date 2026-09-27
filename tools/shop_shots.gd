@@ -7,7 +7,7 @@ extends Node
 ## KOŞAR (kayda yazar). Araç kayıt dosyasını başta byte olarak okur, çıkışta
 ## AYNEN geri yazar; vitrin değerleri bellekte ve çıkışta geri konur.
 ##
-##   01_shop_top_mid_player     orta oyuncu: 335 Hamur, 4 skin (rare_02 takılı), stok 3/1/0/2
+##   01_shop_top_mid_player     orta oyuncu: 335 Hamur, 4 Squishy, stok 3/1/0/2
 ##   02_shop_top_fresh_player   yeni oyuncu: 0 Hamur, skin yok, stok 1/1/1/1 (hepsi "yetmiyor")
 ##   03_shop_power_zero_stock   dört gücün stoğu 0, 500 Hamur (ürün yine alınabilir)
 ##   04_shop_power_pressed      Bomba SATIN AL basılı (gerçek fare olayı)
@@ -15,7 +15,8 @@ extends Node
 ##   06_shop_insufficient_dough 80 Hamur ile Bomba'ya dokunuş: sallanma + pembe plaka
 ##   07_shop_skin_common_locked kilitli Common kartlar (yeni oyuncu, 120 Hamur)
 ##   08_shop_skin_owned         sahip olunan Common kartlar (SAHİPSİN)
-##   09_shop_skin_equipped      takılı skin kartı (TAKILI, rare_02)
+##   09_shop_skin_rare_owned    Rare bölümü başı: sahip olunan rare_02 ("Koleksiyonunda";
+##                              TASK/044 — TAKILI durumu yok)
 ##   10_shop_skin_rare          Rare bölümü
 ##   11_shop_skin_epic          Epic bölümü
 ##   12_shop_skin_legendary     Legendary bölümü
@@ -117,7 +118,7 @@ func _ready() -> void:
 	await _scroll_to(_shop().skin_card(&"common_01"))
 	await _capture("08_shop_skin_owned")
 	await _scroll_to(_shop().skin_card(&"rare_01"))
-	await _capture("09_shop_skin_equipped")
+	await _capture("09_shop_skin_rare_owned")
 	await _scroll_to(_shop().skin_card(&"rare_03"))
 	await _capture("10_shop_skin_rare")
 	await _scroll_to(_shop().skin_card(&"epic_01"))
@@ -221,7 +222,6 @@ func _apply_mid() -> void:
 	SaveManager.data["level_stars"] = {"1": 2, "2": 3, "3": 3}
 	SaveManager.data["dough"] = 335
 	SaveManager.data["unlocked_skins"] = ["common_01", "common_02", "rare_02", "epic_01"]
-	SaveManager.data["equipped_skin"] = "rare_02"
 	SaveManager.data["powerups"] = {"bomb": 3, "upgrade": 1, "shake": 0, "clear_small": 2}
 	SaveManager.data["daily_streak"] = 2
 	SaveManager.data["last_login_date"] = Time.get_date_string_from_system()
@@ -232,7 +232,6 @@ func _apply_fresh() -> void:
 	SaveManager.data["level_stars"] = {}
 	SaveManager.data["dough"] = 0
 	SaveManager.data["unlocked_skins"] = []
-	SaveManager.data["equipped_skin"] = ""
 	SaveManager.data["powerups"] = {"bomb": 1, "upgrade": 1, "shake": 1, "clear_small": 1}
 	SaveManager.data["daily_streak"] = 0
 	SaveManager.data["last_login_date"] = Time.get_date_string_from_system()

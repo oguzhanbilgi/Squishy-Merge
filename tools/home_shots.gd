@@ -165,7 +165,7 @@ func _apply_showcase() -> void:
 	SaveManager.data["daily_streak"] = 2
 	SaveManager.data["last_login_date"] = Time.get_date_string_from_system()
 	SaveManager.data["unlocked_skins"] = ["common_01", "common_02", "rare_02", "common_04", "rare_05", "epic_01"]
-	SaveManager.data["equipped_skin"] = "rare_02"
+	SaveManager.data["profile_showcase"] = ["rare_02"]
 	SaveManager.data["merges_since_bonus_chest"] = 49
 	SaveManager.data["endless_high_score"] = 0
 
@@ -177,7 +177,7 @@ func _apply_fresh() -> void:
 	SaveManager.data["daily_streak"] = 0
 	SaveManager.data["last_login_date"] = Time.get_date_string_from_system()
 	SaveManager.data["unlocked_skins"] = []
-	SaveManager.data["equipped_skin"] = ""
+	SaveManager.data["profile_showcase"] = []
 	SaveManager.data["merges_since_bonus_chest"] = 0
 	SaveManager.data["endless_high_score"] = 0
 
@@ -195,7 +195,7 @@ func _apply_endless() -> void:
 	SaveManager.data["daily_streak"] = 365
 	SaveManager.data["last_login_date"] = Time.get_date_string_from_system()
 	SaveManager.data["unlocked_skins"] = all_ids
-	SaveManager.data["equipped_skin"] = "legendary_02"
+	SaveManager.data["profile_showcase"] = ["legendary_02", "epic_01", "rare_02"]
 	SaveManager.data["merges_since_bonus_chest"] = 74
 	SaveManager.data["endless_high_score"] = 12480
 

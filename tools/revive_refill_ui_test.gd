@@ -888,7 +888,6 @@ func _apply_showcase() -> void:
 	SaveManager.data["dough"] = 335
 	SaveManager.data["daily_streak"] = 2
 	SaveManager.data["unlocked_skins"] = ["common_01", "common_02", "rare_02"]
-	SaveManager.data["equipped_skin"] = "rare_02"
 	SaveManager.data["merges_since_bonus_chest"] = 10
 	SaveManager.data["endless_high_score"] = 0
 	SaveManager.data["powerups"] = {"bomb": 0, "upgrade": 0, "shake": 0, "clear_small": 0}

@@ -32,13 +32,13 @@ const DISPLAY: StringName = &"Display"
 ## Sekme ekranının kendi başlığı: "Koleksiyon", "Mağaza".
 const SCREEN_TITLE: StringName = &"ScreenTitle"
 
-## Liste bölümü: "GÜÇLER", "SKİNLER", rarity satırı.
+## Liste bölümü: "GÜÇLER", "KOLEKSİYON", rarity satırı.
 const SECTION_TITLE: StringName = &"SectionTitle"
 
 ## Kart/satır adı: skin adı, güç adı, ödül rarity'si.
 const CARD_TITLE: StringName = &"CardTitle"
 
-## Küçük ama ÖNEMLİ veri: "Stok: ×3", "120 Hamur", "TAKILI".
+## Küçük ama ÖNEMLİ veri: "Stok: ×3", "120 Hamur", "VİTRİNDE".
 ## Gövde metninden küçük olabilir ama Bold olduğu için daha güçlü okunur.
 const STAT: StringName = &"Stat"
 

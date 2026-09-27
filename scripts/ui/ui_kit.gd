@@ -368,7 +368,7 @@ static func header_ribbon(title: String, tint: Color = UiTokens.PINK) -> PanelCo
 	return ribbon
 
 
-## Bolum etiketi: "GÜÇLER", "SKİNLER". Trapez govde, koyu yazi.
+## Bolum etiketi: "GÜÇLER", "KOLEKSİYON". Trapez govde, koyu yazi.
 static func section_tag(title: String, tint: Color = UiTokens.CYAN) -> PanelContainer:
 	var tag := panel(&"SectionTag")
 	tag.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
@@ -1186,7 +1186,7 @@ static func set_candy_well_accent(well: Control, accent: Color) -> void:
 	(well.get_meta(&"glow") as CanvasItem).self_modulate = Color(accent, WELL_GLOW_ALPHA)
 
 
-## Bolum basligi (magaza GUCLER / SKINLER): iki yanda ince acik lavanta
+## Bolum basligi (magaza GUCLER / KOLEKSIYON): iki yanda ince acik lavanta
 ## cizgi, ortada koyu lavanta `title_oval` plakasi (PanelShopSection) + acik
 ## halka + erik golge + gloss + beyaz Baloo baslik. MAGAZA kurdelesinin
 ## altinda ikincil: 44 px plaka, dikey alan yemez. 05.1 candy puff: plakanin

@@ -1,32 +1,27 @@
 extends Node
-## Koleksiyon QA çekimleri (M8.6-06). Dev aracı — oyun çalışırken kullanılmaz.
-## `--headless` İLE ÇALIŞTIRILAMAZ (ekran görüntüsü).
+## Koleksiyon QA çekimleri (M8.6-06; TASK/044 albüm + parça detayı). Dev aracı —
+## oyun çalışırken kullanılmaz. `--headless` İLE ÇALIŞTIRILAMAZ (ekran görüntüsü).
 ##
-## Gerçek `main.tscn` deterministik vitrin kayıt durumlarıyla çekiliyor.
-## KAYIT: 15/16 (TAK) için gerçek equip yolu KOŞAR (kayda yazar). Araç kayıt
-## dosyasını başta byte olarak okur, çıkışta AYNEN geri yazar; vitrin
-## değerleri bellekte ve çıkışta geri konur.
+## Gerçek `main.tscn` deterministik kayıt durumlarıyla çekiliyor. KAYIT: 13
+## (VİTRİNE EKLE) ve 12 (değiştirme adımı) gerçek vitrin yolunu KOŞAR (kayda
+## yazar). Araç kayıt dosyasını başta byte olarak okur, çıkışta AYNEN geri yazar;
+## durum değerleri bellekte ve çıkışta geri konur.
 ##
-##   01_fresh                 yeni oyuncu: 0 Hamur, skin yok, Varsayılan takılı, 0/20
-##   02_mid_player            orta oyuncu: 335 Hamur, 4 skin, rare_02 takılı, 4/20
-##   03_common_equipped       Common (Susamlı) takılı
-##   04_common_owned          Common sahip, takılı değil (TAK)
-##   05_common_locked         Common kilitli seçili (MAĞAZAYA GİT)
-##   06_rare_selected         Rare sahip seçili
-##   07_rare_locked           Rare kilitli seçili
-##   08_epic_selected         Epic sahip seçili
-##   09_epic_locked           Epic kilitli seçili
-##   10_legendary_locked      Legendary kilitli seçili (Gökkuşağı)
-##   11_legendary_owned       Legendary sahip, takılı değil (Altın Hamur)
-##   12_legendary_equipped    Legendary takılı
-##   13_full_20               20/20 koleksiyon (altın ilerleme)
-##   14_card_pressed          kart basılı (gerçek fare olayı)
-##   15_tak_pressed           TAK basılı
-##   16_equip_success         TAK → takıldı (pop + pırıltı + TAKILI)
-##   17_locked_cta            kilitli seçili + MAĞAZAYA GİT (Legendary)
-##   18_scroll_mid            galeri kaydırma %45
-##   19_scroll_bottom         galeri kaydırma sonu
-##   20_shop_route            MAĞAZAYA GİT → Mağaza (rota hedefi)
+##   01_fresh                 yeni oyuncu: 0 Hamur, parça yok, 0/20, VİTRİN 0/3
+##   02_partial               orta oyuncu: 335 Hamur, 4 parça, 4/20, vitrinde rare_02
+##   03_complete              20/20 (altın ray + yıldız), vitrin 3/3
+##   04_scroll_mid            albüm kaydırma %45 (orta oyuncu)
+##   05_scroll_bottom         albüm kaydırma sonu
+##   06_detail_locked         kilitli Common detayı (KİLİTLİ, fiyat notu, MAĞAZAYA GİT)
+##   07_detail_locked_legend  kilitli Legendary detayı (altın hale + bloom)
+##   08_detail_owned          sahip Epic detayı (SAHİPSİN, VİTRİNE EKLE)
+##   09_detail_avatar         vitrin başı (VİTRİNDE, avatar notu, VİTRİNDEN ÇIKAR)
+##   10_detail_slot2          vitrinin 2. yuvası (AVATAR YAP + VİTRİNDEN ÇIKAR)
+##   11_detail_full           vitrin dolu: sahip parça ("Vitrinin dolu (3/3)")
+##   12_detail_replace        dolu vitrinde VİTRİNE EKLE → AÇIK değiştirme adımı
+##   13_showcase_added        VİTRİNE EKLE → kutlama (pop + yıldız patlaması)
+##   14_card_pressed          albüm kartı basılı (gerçek fare olayı)
+##   15_shop_route            MAĞAZAYA GİT → Mağaza (rota hedefi)
 ##
 ## Kullanım:
 ##   godot --path . res://tools/collection_shots.tscn -- <çıktı_klasörü> [GxY] [safe=61]
@@ -64,9 +59,7 @@ func _ready() -> void:
 	_saved_data = SaveManager.data.duplicate(true)
 	# main._ready günlük ödülü bugün alınmış saysın (kayda yazmasın).
 	SaveManager.data["last_login_date"] = Time.get_date_string_from_system()
-	# M8.10: bu harness KABUGU olcuyor — onboarding tamamlanmis olmali,
-	# yoksa Main dogrudan ilk acilis tutorial'ina girer. Kayit dosyasini
-	# geri koymayan baska bir suite diske `false` birakmis olabilir.
+	# M8.10: bu harness KABUGU ölçüyor — onboarding tamamlanmış olmalı.
 	SaveManager.data["onboarding_completed"] = true
 
 	_main = MAIN_SCENE.instantiate()
@@ -83,71 +76,64 @@ func _ready() -> void:
 	await _capture("01_fresh")
 	_apply_mid()
 	await _show()
-	await _capture("02_mid_player")
-
-	_apply_mid()
-	SaveManager.data["equipped_skin"] = "common_02"
-	await _show()
-	await _capture("03_common_equipped")
-	await _select(&"common_01")
-	await _capture("04_common_owned")
-	await _select(&"common_03")
-	await _capture("05_common_locked")
-	await _select(&"rare_02")
-	await _capture("06_rare_selected")
-	await _select(&"rare_01")
-	await _capture("07_rare_locked")
-	await _select(&"epic_01")
-	await _capture("08_epic_selected")
-	await _select(&"epic_03")
-	await _capture("09_epic_locked")
-	await _select(&"legendary_02")
-	await _capture("10_legendary_locked")
-	await _capture("17_locked_cta")
-
-	_apply_mid()
-	SaveManager.data["unlocked_skins"].append("legendary_01")
-	await _show()
-	await _select(&"legendary_01")
-	await _capture("11_legendary_owned")
-	SaveManager.data["equipped_skin"] = "legendary_01"
-	await _show()
-	await _capture("12_legendary_equipped")
-
+	await _capture("02_partial")
 	_apply_full()
 	await _show()
-	await _capture("13_full_20")
-
-	_apply_mid()
-	await _show()
-	await _shot_pressed(_screen().card(&"common_01"), "14_card_pressed")
-	await _select(&"common_01")
-	await _shot_pressed(_screen().cta(), "15_tak_pressed")
-	# Gerçek equip yolu (kayda yazar, sonda geri konur). Basılı çekimin
-	# bırakılışı equip'i tetiklemiş olabilir: durum sıfırdan kurulur.
-	_apply_mid()
-	await _show()
-	await _select(&"common_01")
-	_screen().cta().pressed.emit()
-	await get_tree().create_timer(0.14).timeout
-	await _capture("16_equip_success")
-	await _settle()
+	await _capture("03_complete")
 
 	_apply_mid()
 	await _show()
 	var scroll: ScrollContainer = _screen().scroll()
 	scroll.scroll_vertical = int(scroll.get_v_scroll_bar().max_value * 0.45)
 	await _settle()
-	await _capture("18_scroll_mid")
+	await _capture("04_scroll_mid")
 	scroll.scroll_vertical = int(scroll.get_v_scroll_bar().max_value)
 	await _settle()
-	await _capture("19_scroll_bottom")
+	await _capture("05_scroll_bottom")
 
 	await _show()
-	await _select(&"legendary_02")
-	_screen().cta().pressed.emit()
+	await _detail(&"common_03")
+	await _capture("06_detail_locked")
+	await _detail(&"legendary_02")
+	await _capture("07_detail_locked_legend")
+	await _detail(&"epic_01")
+	await _capture("08_detail_owned")
+	await _detail(&"rare_02")
+	await _capture("09_detail_avatar")
+
+	_apply_mid()
+	SaveManager.data["profile_showcase"] = ["rare_02", "epic_01"]
+	await _show()
+	await _detail(&"epic_01")
+	await _capture("10_detail_slot2")
+
+	_apply_mid()
+	SaveManager.data["profile_showcase"] = ["rare_02", "epic_01", "common_01"]
+	await _show()
+	await _detail(&"common_02")
+	await _capture("11_detail_full")
+	_screen().detail_primary().pressed.emit()
 	await _settle()
-	await _capture("20_shop_route")
+	await _capture("12_detail_replace")
+
+	_apply_mid()
+	await _show()
+	await _detail(&"epic_01")
+	_screen().detail_primary().pressed.emit()
+	await get_tree().create_timer(0.16).timeout
+	await _capture("13_showcase_added")
+	await _settle()
+
+	_apply_mid()
+	await _show()
+	await _shot_pressed(_screen().card(&"common_01"), "14_card_pressed")
+	_screen().close_detail(false)
+
+	await _show()
+	await _detail(&"legendary_02")
+	_screen().detail_primary().pressed.emit()
+	await _settle()
+	await _capture("15_shop_route")
 
 	SaveManager.data = _saved_data
 	_restore_save_file()
@@ -204,19 +190,21 @@ func _screen() -> CanvasLayer:
 	return _main._screens[2]
 
 
-func _select(id: StringName) -> void:
-	_screen().select(id, true)
+## Karta dokunuş yolu (albüm kartı → detay penceresi).
+func _detail(id: StringName) -> void:
+	_screen().close_detail(false)
+	_screen().card(id).pressed.emit()
 	await _settle()
 
 
-# --- Vitrin kayıt durumları (yalnızca bellekte) ---
+# --- Kayıt durumları (yalnızca bellekte) ---
 
 func _apply_mid() -> void:
 	SaveManager.data["highest_level_unlocked"] = 4
 	SaveManager.data["level_stars"] = {"1": 2, "2": 3, "3": 3}
 	SaveManager.data["dough"] = 335
 	SaveManager.data["unlocked_skins"] = ["common_01", "common_02", "rare_02", "epic_01"]
-	SaveManager.data["equipped_skin"] = "rare_02"
+	SaveManager.data["profile_showcase"] = ["rare_02"]
 	SaveManager.data["powerups"] = {"bomb": 3, "upgrade": 1, "shake": 0, "clear_small": 2}
 	SaveManager.data["daily_streak"] = 2
 	SaveManager.data["last_login_date"] = Time.get_date_string_from_system()
@@ -227,7 +215,7 @@ func _apply_fresh() -> void:
 	SaveManager.data["level_stars"] = {}
 	SaveManager.data["dough"] = 0
 	SaveManager.data["unlocked_skins"] = []
-	SaveManager.data["equipped_skin"] = ""
+	SaveManager.data["profile_showcase"] = []
 	SaveManager.data["powerups"] = {"bomb": 1, "upgrade": 1, "shake": 1, "clear_small": 1}
 	SaveManager.data["daily_streak"] = 0
 	SaveManager.data["last_login_date"] = Time.get_date_string_from_system()
@@ -239,7 +227,7 @@ func _apply_full() -> void:
 	for skin in SkinLibrary.all():
 		all.append(String(skin.id))
 	SaveManager.data["unlocked_skins"] = all
-	SaveManager.data["equipped_skin"] = "legendary_02"
+	SaveManager.data["profile_showcase"] = ["legendary_02", "epic_03", "rare_02"]
 	SaveManager.data["dough"] = 1240
 
 

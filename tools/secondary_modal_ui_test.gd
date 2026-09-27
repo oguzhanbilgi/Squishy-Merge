@@ -750,7 +750,6 @@ func _apply_showcase() -> void:
 	SaveManager.data["daily_streak"] = 2
 	SaveManager.data["last_login_date"] = Time.get_date_string_from_system()
 	SaveManager.data["unlocked_skins"] = ["common_01", "common_02", "rare_02", "common_04", "rare_05", "epic_01"]
-	SaveManager.data["equipped_skin"] = "rare_02"
 	SaveManager.data["merges_since_bonus_chest"] = 49
 	SaveManager.data["endless_high_score"] = 0
 	SaveManager.data["powerups"] = {"bomb": 4, "upgrade": 1, "shake": 0, "clear_small": 0}

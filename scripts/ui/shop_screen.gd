@@ -10,8 +10,8 @@ extends CanvasLayer
 ##           (M8.9-02: durum rozeti HAZIR / "N ödül kaldı" / BUGÜNLÜK
 ##           TAMAMLANDI + AÇ → `daily_rewards_requested` → Main aynı
 ##           GÜNLÜK ÖDÜLLER penceresini açar; onboarding bitmeden gizli) ·
-##           GÜÇLER bölüm plakası + 2×2 `ShopPowerCard` · SKİNLER bölüm
-##           plakası + 2×10 `ShopSkinCard`; altta rahat pay (+ cihaz alt
+##           GÜÇLER bölüm plakası + 2×2 `ShopPowerCard` · KOLEKSİYON bölüm
+##           plakası (TASK/044: eski "SKİNLER") + 2×10 `ShopSkinCard`; altta rahat pay (+ cihaz alt
 ##           güvenli alanı + banner yuvası). Alt sekme çubuğu YOK.
 ##   ZEMİN   candy-night dünya (ShellBackdrop) Home ayarında + kenar vignette;
 ##           kartlar dünyanın üstünde oturan krem candy nesneler.
@@ -23,7 +23,7 @@ extends CanvasLayer
 ## Satın alma: kart → onay penceresi (`UiKit.modal_frame`, ürün sunumu +
 ## fiyat + SATIN AL / Vazgeç) → KANONİK tek transaction
 ## (`PowerUpEconomy.purchase` / `Shop.purchase` → SaveManager). Bu dosya
-## Hamur'a doğrudan DOKUNMAZ; skin TAKMAZ (Koleksiyon takar). Hamur
+## Hamur'a doğrudan DOKUNMAZ; vitrine dokunmaz (Koleksiyon ekler; TASK/044 takma yok). Hamur
 ## yetmiyorsa onay açılmaz: kart sallanır + pembe geri bildirim plakası
 ## (sessiz başarısızlık yok, bedava para yok). Başarıda kart pop + stok /
 ## bakiye anında kanonik modelden.
@@ -61,6 +61,7 @@ const CONFIRM_SKIN_WELL: float = 168.0
 const CONFIRM_SKIN_PREVIEW: float = 184.0
 ## Günlük ödüller kartı (M8.9-02).
 const DAILY_TITLE: String = "GÜNLÜK ÖDÜLLER"
+const SKINS_TITLE: String = "KOLEKSİYON"
 const DAILY_SUB: String = "Ücretsiz sandık · reklamla Hamur ve sandık"
 const DAILY_BUTTON: String = "AÇ"
 const DAILY_STATUS_READY: String = "HAZIR"
@@ -170,7 +171,8 @@ func _build_content() -> void:
 		_power_cards.append(card)
 		_cards["power_%d" % int(type)] = card
 	_content.add_child(_make_spacer(SECTION_SPACER))
-	var skins_header := UiKit.section_header("SKİNLER")
+	# TASK/044: koleksiyon parçaları (Squishy) — "skin" dili oyuncuya gösterilmez.
+	var skins_header := UiKit.section_header(SKINS_TITLE)
 	skins_header.name = "SkinsHeader"
 	_content.add_child(skins_header)
 	var skin_grid := _make_grid("SkinGrid")
@@ -514,7 +516,7 @@ func _open_confirm(skin: SkinData) -> void:
 	_pending_power = -1
 	_set_confirm_art_skin(skin)
 	_confirm_title.text = skin.display_name
-	_confirm_detail.text = "%s skin · kalıcı, bir kez alınır" % SkinData.rarity_display_name(skin.rarity)
+	_confirm_detail.text = "%s Squishy · koleksiyonuna kalıcı eklenir" % SkinData.rarity_display_name(skin.rarity)
 	_show_confirm(Shop.price_of(skin))
 
 
@@ -653,7 +655,8 @@ func _buy_skin(skin: SkinData) -> bool:
 	if Shop.purchase(skin):
 		AudioManager.play(&"ui_purchase")
 		Haptics.medium()
-		_show_toast("%s alındı · Koleksiyon'da tak" % skin.display_name,
+		# TASK/044: parça koleksiyona girer (takma dili yok; vitrin Koleksiyon'da).
+		_show_toast("%s alındı · koleksiyonuna eklendi" % skin.display_name,
 			UiTokens.MINT, UiTokens.TEXT_ON_ACCENT, _cards.get(String(skin.id)))
 		return true
 	AudioManager.play(&"ui_invalid")

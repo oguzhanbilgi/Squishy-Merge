@@ -7,8 +7,8 @@ extends CanvasLayer
 ##            glossy pill'ler (UiKit.home_pill), 56 px tek satır; cihaz üst
 ##            güvenli payı satırı aşağı iter
 ##   LOGO     SQUISHY MERGE lockup, üst satırın altında ortada
-##   YAN      sol sütun: Günlük (bildirim noktası) · Koleksiyon (takılı skin,
-##            N/20 rozeti + nane halka); sağ sütun: Mağaza · Bonus sandık
+##   YAN      sol sütun: Günlük (bildirim noktası) · Koleksiyon (en son
+##            keşfedilen Squishy, N/20 rozeti + nane halka); sağ sütun: Mağaza · Bonus sandık
 ##            (owner sandığı, N/75 rozeti + altın halka) — HomeFeatureButton
 ##   HERO     owner maskotu (yeni yüksek çözünürlüklü türev) + lavanta hale +
 ##            yer gölgesi + tier 3 / tier 6 dumpling + pırıltılar; nefes
@@ -636,8 +636,9 @@ func refresh() -> void:
 	var catalog: int = SkinLibrary.total_count()
 	collection.set_badge("%d/%d" % [owned, catalog])
 	collection.set_progress(float(owned) / float(maxi(catalog, 1)), UiTokens.MINT)
-	var preview: Texture2D = SkinEntry.equipped_entry().preview_texture()
-	collection.set_art(preview if preview != null else DUMPLING_VISUAL.TEXTURES[0])
+	# En son keşfedilen Squishy (TASK/044: "takılı" yok); hiç yoksa kanonik parça.
+	var newest: SkinEntry = SkinEntry.newest_owned()
+	collection.set_art(newest.art_texture() if newest != null else DUMPLING_VISUAL.TEXTURES[0])
 
 	var chest: HomeFeatureButton = _features[&"chest"]
 	var merges: int = int(SaveManager.data.get("merges_since_bonus_chest", 0))

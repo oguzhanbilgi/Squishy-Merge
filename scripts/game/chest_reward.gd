@@ -34,12 +34,12 @@ func description() -> String:
 	return "+%d Hamur" % dough
 
 
-## Kısa not (yalnız geri düşüşte): o kalitedeki bütün skinler zaten
-## oyuncuda, sandık aynı kalitenin Hamur karşılığını verdi. İç terim
-## ("duplicate" / "fallback") oyuncuya gösterilmez; skin verildi de denmez.
+## Kısa not (yalnız geri düşüşte): o kalitedeki bütün koleksiyon parçaları
+## (Squishy) zaten oyuncuda, sandık aynı kalitenin Hamur karşılığını verdi. İç
+## terim ("duplicate" / "fallback") ve eski "skin" dili oyuncuya gösterilmez.
 func note() -> String:
 	if is_duplicate and not is_skin_reward():
-		return "%s skinlerin tamamı sende" % SkinData.rarity_display_name(rarity)
+		return "%s Squishy'lerin tamamı sende" % SkinData.rarity_display_name(rarity)
 	return ""
 
 

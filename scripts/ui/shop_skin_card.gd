@@ -1,6 +1,7 @@
 class_name ShopSkinCard
 extends Control
-## Mağaza skin ürün kartı (M8.6-05). Yirmi skin bu TEK bileşenden; güç
+## Mağaza koleksiyon parçası (Squishy) ürün kartı (M8.6-05; ad tarihsel
+## "skin"). Yirmi parça bu TEK bileşenden; güç
 ## kartıyla aynı gövde/halka/gölge reçetesi, aynı ölçü (`ShopPowerCard.
 ## CARD_SIZE`, 328×384 — grid ritmi).
 ##
@@ -24,13 +25,14 @@ extends Control
 ## Durumlar (`SkinEntry` tek kaynak): LOCKED (fiyat + cyan SATIN AL;
 ## Hamur yetmiyorsa soluk cyan `ButtonBuyLocked` (CYAN_MUTED) + koyu pembe
 ## fiyat, dokununca sallanır) ·
-## OWNED ("SAHİPSİN" lavanta plakası, buton YOK) · EQUIPPED ("TAKILI" nane
-## plakası + tik). Mağaza skin TAKMAZ (Koleksiyon takar); kart yalnız
+## OWNED ("SAHİPSİN" plakası + "Koleksiyonunda", buton YOK). TASK/044:
+## gameplay skinleri emekli — "TAKILI" durumu ve takma dili YOK; parça
+## koleksiyona girer, Profil vitrinine Koleksiyon'dan eklenir. Kart yalnız
 ## `buy_requested` yayar. Kayda YAZMAZ.
 
 signal buy_requested(skin: SkinData)
 
-enum State { LOCKED, OWNED, EQUIPPED }
+enum State { LOCKED, OWNED }
 
 const CARD_SIZE: Vector2 = ShopPowerCard.CARD_SIZE
 const BUY_HEIGHT: float = ShopPowerCard.BUY_HEIGHT
@@ -51,10 +53,8 @@ const GLOW_ALPHA: Dictionary = {
 const NAME_FONT_SIZE: int = 26
 const BUY_TEXT: String = "SATIN AL"
 const OWNED_TEXT: String = "SAHİPSİN"
-const EQUIPPED_TEXT: String = "TAKILI"
-## Sahip olunan kartta fiyat yuvasına giren ipucu: takma Koleksiyon'da.
-const OWNED_HINT: String = "Koleksiyon'da tak"
-const EQUIPPED_HINT: String = "Şu an takılı"
+## Sahip olunan kartta fiyat yuvasına giren ipucu (TASK/044: takma dili yok).
+const OWNED_HINT: String = "Koleksiyonunda"
 const DOUGH_ART: Texture2D = preload("res://assets/visual/ui/icon_dough.png")
 const SPARKLE_ART: Texture2D = preload("res://assets/visual/ui/icon_star_filled.png")
 const WIGGLE_TIME: float = 0.22
@@ -190,7 +190,7 @@ func _init() -> void:
 	(_price_row.get_child(0) as TextureRect).texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
 	_price_label = _price_row.get_child(1) as Label
 	price_slot.add_child(_price_row)
-	# Sahip olunan kartta fiyat yerine ipucu ("Koleksiyon'da tak"): kart çıkmaz
+	# Sahip olunan kartta fiyat yerine ipucu ("Koleksiyonunda"): kart çıkmaz
 	# sokak olmasın, yuva boş kalmasın.
 	_hint_label = UiKit.label("", &"LabelCaption", HORIZONTAL_ALIGNMENT_CENTER)
 	_hint_label.add_theme_font_size_override("font_size", 16)
@@ -244,7 +244,7 @@ func _init() -> void:
 		_sparkles.append(spark)
 
 
-## Sahip/takılı plakasını eylem yuvasında ortalar (içerik genişliğine göre).
+## SAHİPSİN plakasını eylem yuvasında ortalar (içerik genişliğine göre).
 func _layout_state_plate() -> void:
 	var min: Vector2 = _owned_plate.get_combined_minimum_size()
 	var w: float = maxf(min.x, 184.0)
@@ -306,9 +306,7 @@ func refresh() -> void:
 
 
 func _apply_entry(entry: SkinEntry) -> void:
-	if entry.equipped:
-		_state = State.EQUIPPED
-	elif entry.owned:
+	if entry.owned:
 		_state = State.OWNED
 	else:
 		_state = State.LOCKED
@@ -318,7 +316,7 @@ func _apply_entry(entry: SkinEntry) -> void:
 	_price_label.text = "%d Hamur" % entry.price
 	_price_row.visible = _state == State.LOCKED
 	_hint_label.visible = _state != State.LOCKED
-	_hint_label.text = EQUIPPED_HINT if _state == State.EQUIPPED else OWNED_HINT
+	_hint_label.text = OWNED_HINT
 	_buy.visible = _state == State.LOCKED
 	_owned_plate.visible = _state != State.LOCKED
 	_body.theme_type_variation = &"PanelShopCard" if _state == State.LOCKED else &"PanelShopCardOwned"
@@ -329,13 +327,7 @@ func _apply_entry(entry: SkinEntry) -> void:
 			UiTokens.CREAM.lerp(UiTokens.GOLD_BRIGHT, 0.12), Vector4(16, 14, 16, 20)))
 	else:
 		_body.remove_theme_stylebox_override("panel")
-	if _state == State.EQUIPPED:
-		_owned_plate.theme_type_variation = &"EquippedBadge"
-		_owned_label.text = EQUIPPED_TEXT
-		_owned_label.add_theme_color_override("font_color", UiTokens.TEXT_ON_ACCENT)
-		_owned_icon.visible = true
-		_owned_icon.self_modulate = UiTokens.TEXT_ON_ACCENT
-	elif _state == State.OWNED:
+	if _state == State.OWNED:
 		_owned_plate.theme_type_variation = &"OwnedBadge"
 		_owned_label.text = OWNED_TEXT
 		_owned_label.add_theme_color_override("font_color", UiTokens.TEXT_PRIMARY)
@@ -403,10 +395,6 @@ func state() -> State:
 
 func is_owned() -> bool:
 	return _state != State.LOCKED
-
-
-func is_equipped() -> bool:
-	return _state == State.EQUIPPED
 
 
 func is_affordable() -> bool:

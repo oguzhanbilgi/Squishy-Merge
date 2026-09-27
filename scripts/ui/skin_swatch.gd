@@ -1,20 +1,21 @@
 class_name SkinSwatch
 extends Control
-## Koleksiyon / mağaza / vitrin skin önizlemesi (M8.5-13).
+## Koleksiyon parçası (Squishy) önizlemesi (M8.5-13) — Koleksiyon, detay,
+## Mağaza, Profil vitrini / avatarı, sandık açılışı.
 ##
 ## Üç durum, tek bileşen:
-##   varsayılan  — orijinal dumpling (tier 3), materyal yok, nötr hale
+##   varsayılan  — kanonik Squishy (tier 3 dumpling), materyal yok, nötr hale
 ##   sahip       — SkinData.preview_texture (owner'ın FİNAL önizleme sanatı,
-##                 M8.5-14; 20 skin'in hepsinde dolu). Yoksa fallback: orijinal
-##                 dumpling + gameplay SkinVisual materyali. Arkada rarity
-##                 renginde yumuşak radyal parıltı: kart "collectible" okunsun,
-##                 rarity bir bakışta ayırt edilsin.
+##                 M8.5-14; 20 parçanın hepsinde dolu). Yoksa güvenli fallback:
+##                 kanonik Squishy (materyalsiz). Arkada rarity renginde yumuşak
+##                 radyal parıltı: kart "collectible" okunsun, rarity bir bakışta
+##                 ayırt edilsin.
 ##   kilitli     — owner'ın silüet görseli (GAME_DESIGN.md §5.3) + sağ-altta
 ##                 kilit rozeti; parıltı soluk ama rarity rengi okunuyor.
+##                 `reveal_locked`: final sanat soluk + kilit (owner kararı).
 ##
-## Sanat turu: skin başına gerçek görsel gelince `SkinData.preview_texture`
-## doldurulur, bu dosya değişmez. Render tekniği değişirse SkinVisual değişir,
-## bu dosya yine değişmez.
+## TASK/044: gameplay skinleri emekli — bu bileşen hiçbir materyal / shader
+## takmaz; gameplay'deki parça görünümüyle bağı yok.
 
 const LOCKED_TEXTURE: Texture2D = preload("res://assets/visual/ui/skin_locked_silhouette.png")
 ## Kilit rozeti: kutunun bu oranında, sağ-alt köşede — silüetin yüzünü
@@ -85,24 +86,17 @@ func setup(entry: SkinEntry, reveal_locked: bool = false) -> void:
 		else:
 			_image.texture = LOCKED_TEXTURE
 			_image.modulate = Color.WHITE
-		SkinVisual.clear(_image)
+		_image.material = null
 		_glow.texture = _glow_for(color, GLOW_ALPHA_LOCKED)
 		_lock.visible = true
 		_lock.texture = UiIcons.LOCK
 	else:
 		_image.modulate = Color.WHITE
-		var ready_made: Texture2D = entry.preview_texture()
-		if ready_made != null:
-			# Final önizleme sanatı (M8.5-14): 512 px import, kartta 64-150 px
-			# — mipmap'li filtre yoksa küçültme kırpışır.
-			_image.texture = ready_made
-			_image.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
-			SkinVisual.clear(_image)
-		else:
-			_image.texture = SkinEntry.PREVIEW_BASE_TEXTURE
-			# Varsayılanda skin null -> materyal kalkar; sahip olunanda
-			# gameplay'deki materyalin AYNISI (SkinVisual önbelleği).
-			SkinVisual.apply(_image, entry.skin)
+		# Final önizleme sanatı (M8.5-14): 512 px import, kartta 64-150 px
+		# — mipmap'li filtre yoksa küçültme kırpışır. Yoksa kanonik Squishy.
+		_image.texture = entry.art_texture()
+		_image.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
+		_image.material = null
 		_glow.texture = _glow_for(color,
 			GLOW_ALPHA_DEFAULT if entry.is_default() else GLOW_ALPHA_OWNED)
 		_lock.visible = false

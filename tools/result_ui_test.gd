@@ -17,8 +17,8 @@ extends Node
 ##             teşvik satırı ulaşılan tier'a göre, TEKRAR DENE kahraman >
 ##             HARİTA ikincil, teselli kartı (sandık yok).
 ##   ÖDÜLLER   Hamur kartı (rarity etiketi Türkçe, "+N HAMUR"), skin kartı
-##             (gerçek sanat görünür, ad, YENİ SKİN), geri düşüş ("Epik
-##             skinlerin tamamı sende", skin denmez), İngilizce rarity /
+##             (gerçek sanat görünür, ad, YENİ SQUISHY — TASK/044), geri düşüş ("Epik
+##             Squishy'lerin tamamı sende", parça verildi denmez), İngilizce rarity /
 ##             iç terim taraması, çoklu ödül sırası, 6 ödülde gövde
 ##             kaydırılır + altlık yerinde + bütün kartlar erişilebilir +
 ##             karttan sürükleme kaydırır + kart dokunma hedefi değil.
@@ -297,7 +297,7 @@ func _test_rewards() -> void:
 			image_sized = true
 	_c("skin kartı: GERÇEK final önizleme sanatı ölçülü çizildi", image_sized)
 	_c("skin kartı: sandık kalktı (skin kahraman)", card.gem() != null and not card.gem().visible)
-	_c("skin kartı: ad + 'YENİ SKİN' rozeti", card.name_text() == skin_reward.skin.display_name
+	_c("parça kartı: ad + 'YENİ SQUISHY' rozeti (TASK/044)", card.name_text() == skin_reward.skin.display_name
 		and card.new_badge() != null and card.new_badge().visible and card.amount_text() == "")
 	_c("skin kartı: rarity etiketi Türkçe (NADİR)", card.tag_text() == "NADİR")
 	_c("skin kartı satın alma CTA'sı yok", not _tree_has_button(card))
@@ -317,8 +317,8 @@ func _test_rewards() -> void:
 	await _open(LEVEL_04, true, 1230, [_dough(SkinData.Rarity.EPIC, true)], false, false, 6, true)
 	var fb: ResultRewardCard = result.cards()[0]
 	_c("geri düşüş: Hamur kartı olarak ('EPİK' + '+60 HAMUR')", fb.tag_text() == "EPİK" and fb.amount_text() == "+60 HAMUR")
-	_c("geri düşüş notu: 'Epik skinlerin tamamı sende'", fb.note_text() == "Epik skinlerin tamamı sende")
-	_c("geri düşüş: skin verildi denmez (swatch / YENİ SKİN yok)", fb.swatch() == null and fb.new_badge() == null)
+	_c("geri düşüş notu: 'Epik Squishy'lerin tamamı sende' (TASK/044: skin dili yok)", fb.note_text() == "Epik Squishy'lerin tamamı sende")
+	_c("geri düşüş: parça verildi denmez (swatch / YENİ SQUISHY yok)", fb.swatch() == null and fb.new_badge() == null)
 	_c("geri düşüş: iç terim yok", _no_english(result.all_texts()))
 	await _leave()
 	# Çoklu ödül: sıra + hepsi görünür, kaydırma yok (3 kart 1280'e sığar).
@@ -869,7 +869,6 @@ func _apply_showcase() -> void:
 	SaveManager.data["daily_streak"] = 2
 	SaveManager.data["last_login_date"] = Time.get_date_string_from_system()
 	SaveManager.data["unlocked_skins"] = ["common_01", "common_02", "rare_02", "common_04", "rare_05", "epic_01"]
-	SaveManager.data["equipped_skin"] = "rare_02"
 	SaveManager.data["merges_since_bonus_chest"] = 49
 	SaveManager.data["endless_high_score"] = 0
 	SaveManager.data["powerups"] = {"bomb": 4, "upgrade": 1, "shake": 0, "clear_small": 0}

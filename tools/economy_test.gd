@@ -330,7 +330,7 @@ func _scenario_shop_ui() -> void:
 
 	var text: String = _collect_text(shop)
 	_check("GUCLER bolumu var", text.contains("GÜÇLER"))
-	_check("SKINLER bolumu var", text.contains("SKİNLER"))
+	_check("KOLEKSIYON bolumu var (TASK/044: eski SKINLER)", text.contains("KOLEKSİYON") and not text.contains("SKİNLER"))
 	for type in PowerUp.all():
 		_check("%s karti var" % PowerUp.display_name(type),
 			text.contains(PowerUp.display_name(type)))

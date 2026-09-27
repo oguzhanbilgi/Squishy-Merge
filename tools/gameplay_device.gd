@@ -64,7 +64,6 @@ func _ready() -> void:
 	for type in PowerUp.all():
 		stock[PowerUp.save_key(type)] = 9
 	SaveManager.data["powerups"] = stock
-	SaveManager.data["equipped_skin"] = ""
 	SaveManager.data["powerup_starter_granted"] = true
 	SaveManager.data["last_login_date"] = Time.get_date_string_from_system()
 	# M8.10: bu harness KABUGU olcuyor — onboarding tamamlanmis olmali,

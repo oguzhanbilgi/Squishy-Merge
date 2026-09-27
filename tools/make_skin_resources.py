@@ -1,10 +1,13 @@
-"""20 skin .tres dosyasini TEK tablodan uretir (M8.5-14).
+"""20 koleksiyon parcasi (Squishy; tarihsel ad "skin") .tres dosyasini TEK
+tablodan uretir (M8.5-14).
 
     python tools/make_skin_resources.py
 
 Cikti: resources/skins/<id>.tres — SkinData alanlari (scripts/game/skin_data.gd):
 kimlik + final onizleme (assets/visual/skins/previews/skin_<rarity>_<ad>.png)
-+ gameplay render profili (assets/visual/skins/skin_body.gdshader parametreleri).
++ EMEKLI gameplay render profili (TASK/044: gameplay skinleri kaldirildi; alanlar
+mevcut .tres'ler degismeden yuklensin diye veri olarak uretiliyor, hicbir kod
+okumuyor — gövde shader'i ve maskeleri silindi).
 
 Kural: id'ler SABIT (kayit dosyasi bunlari tutuyor), fiyat rarity'den geliyor
 (Shop.PRICES, burada yok). Renk/desen degistirmek icin bu tabloyu duzenle ve
@@ -33,7 +36,7 @@ PATTERNS = ["NONE", "SPECKLE", "FLECK", "RING", "MARBLE", "SWIRL", "CRYSTAL",
             "STREAK", "WAVE", "IRIDESCENT", "METAL"]
 RARITY = {"common": 0, "rare": 1, "epic": 2, "legendary": 3}
 # Rarity'ye gore skin tint agirligi: tier kimligi ~%70 / %65 / %60 / %50.
-# Baslangic degerleri; gorsel olarak ayarlanir (tools/skin_gallery.gd).
+# (EMEKLI profil degerleri — TASK/044'ten beri hicbir sey okumuyor.)
 TINT_BY_RARITY = {"common": 0.30, "rare": 0.35, "epic": 0.40, "legendary": 0.50}
 
 

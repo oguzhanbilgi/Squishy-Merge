@@ -8,7 +8,7 @@ extends RefCounted
 ##   bağımsız     %30 skin kurası (SKIN_CHANCE_PERCENT)
 ##     tuttuysa   rarity kurası Common %60 / Rare %25 / Epic %12 / Legendary %3
 ##                (ChestSystem.RARITY_THRESHOLDS ile aynı kilitli oranlar)
-##                → o rarity'de sahip OLUNMAYAN koleksiyon skinlerinden biri
+##                → o rarity'de sahip OLUNMAYAN koleksiyon parçalarından (Squishy) biri
 ##     tükendiyse (o rarity'nin tamamı sende) skin yerine +15 BONUS Hamur
 ##
 ##   sonuç:  skin yok            +15 Hamur

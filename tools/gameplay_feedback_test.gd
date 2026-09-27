@@ -109,7 +109,6 @@ func _make_board(level: int, stock: int = 3) -> void:
 	for type in PowerUp.all():
 		data[PowerUp.save_key(type)] = stock
 	SaveManager.data["powerups"] = data
-	SaveManager.data["equipped_skin"] = ""
 	_finished.clear()
 	_haptics.clear()
 	Haptics.reset_counters()

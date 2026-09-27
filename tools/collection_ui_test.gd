@@ -1,46 +1,48 @@
 extends Node
-## Koleksiyon — production galeri ekranı (M8.6-06) regresyon testi. Headless,
-## kaydı byte-identical geri koyar.
+## Koleksiyon — albüm ekranı + parça detayı (M8.6-06; TASK/044 Collection V1)
+## regresyon testi. Headless, kaydı byte-identical geri koyar.
 ##
 ##   godot --headless --audio-driver Dummy --path . res://tools/collection_ui_test.tscn
 ##
 ## Kontroller: yapı (ScreenTopBar + "KOLEKSİYON", geri, Hamur pill'i + "+",
-## alt sekme çubuğu YOK — main'de TabBar düğümü yok, gerçek ScrollContainer,
-## dört rarity plakası, tam 21 seçenek = Varsayılan taban şeridi + 20 katalog
-## skini, eski UiPalette/StyleBoxFlat parçası yok); taban görünüm (M8.6-06.1:
-## geniş ORİJİNAL şeridi YAYGIN plakasının üstünde, hiçbir bölümde değil,
-## fiyatsız, sayaca girmez, seçilir/takılır); katalog (20 skin, sıra, 8/6/4/2,
-## her kart GERÇEK final önizleme — silüet yok, 20 farklı doku); ilk durum
-## (takılı skin seçili, bozuk id → Varsayılan, gizliyken kazanılan skin →
-## açılışta vitrinde); seçim (vitrin sanat/ad/rarity/durum/CTA değişir, KAYIT
-## DEĞİŞMEZ); sahip/TAK (kanonik equip: tam BİR skin_equipped, tam BİR kayıt
-## yazması, Hamur/sahiplik/sayaç değişmez, kopya yok); takılı (TAK gizli,
-## dokunuş mutasyon yok); kilitli (final sanat + fiyat + MAĞAZAYA GİT →
-## Mağaza; Koleksiyon SATIN ALMAZ — kaynak taraması); ilerleme (0/20, 4/20,
-## 20/20 altın); rarity işaretleri (halka/hale/pırıltı/kaide, Legendary özel);
-## dört pencere + A36 payı (sabit üst satır + sabit vitrin, üç vitrin
-## durumunda kırpma/çakışma yok, dokunma ≥ 48, TAKILI plakası kart yüzünde,
-## adlar kırpılmıyor, son sıra erişilebilir); rotalar; kayıt dosyası değişmez.
+## alt sekme çubuğu YOK, sabit albüm başlığı, gerçek ScrollContainer, dört
+## rarity plakası, tam 20 katalog kartı — TASK/044: "Varsayılan" kartı / seçim
+## halkası / vitrin paneli / TAK YOK); katalog (sıra, 8/6/4/2, her kart GERÇEK
+## final sanat — silüet yok); başlık (N/20 + nane/altın ray + VİTRİN N/3 +
+## rarity sayaçları); detay (karta dokunmak açar, KAYIT DEĞİŞMEZ; kilitli →
+## KİLİTLİ + fiyat notu + MAĞAZAYA GİT; sahip → SAHİPSİN + VİTRİNE EKLE;
+## vitrinde → VİTRİNDE + VİTRİNDEN ÇIKAR (+ AVATAR YAP); X / karartma / Android
+## geri kapatır); vitrin eylemleri (kanonik SaveManager işlemi, tam BİR
+## showcase_changed + tek yazma, Hamur/sahiplik değişmez; dolu vitrinde AÇIK
+## değiştirme adımı — sessiz değiştirme yok, VAZGEÇ / geri hiçbir şey yazmaz,
+## seçilen yuva korunur); kilitli MAĞAZAYA GİT → Mağaza (Koleksiyon SATIN ALMAZ
+## — kaynak taraması); gizliyken / görünürken kazanılan parça; ilerleme (0/20,
+## 4/20, 20/20 altın); rarity işaretleri; rotalar; 7 pencere (320 / 360 / 390 /
+## 540 / 720 / 1080 genişlik) + A36 payı: albüm + detay (üç durum + değiştirme
+## adımı) kırpılmıyor / çakışmıyor, dokunma ≥ 48; kayıt dosyası değişmez.
 
 const MAIN_SCENE: PackedScene = preload("res://scenes/main.tscn")
+## Pencere boyutları: 720 tuvali (1280/1560) + gerçek telefon pencereleri —
+## 320×568 (küçük 16:9), 390×844 (19.5:9), 360×800 (20:9, uzun Android),
+## 540×960 ve 1080×2340 (A36 fiziksel).
 const VIEWS: Array[Vector2i] = [Vector2i(720, 1280), Vector2i(720, 1560),
-	Vector2i(540, 960), Vector2i(1080, 2340)]
+	Vector2i(540, 960), Vector2i(1080, 2340), Vector2i(320, 568), Vector2i(390, 844),
+	Vector2i(360, 800)]
 ## A36 punch-hole: 92 px fiziksel / 1.5 = 61 tuval px (M8.6-02 cihaz kapısı).
 const A36_SAFE_TOP: float = 61.0
-const EXPECTED_CANVAS: Dictionary = {
-	Vector2i(720, 1280): Vector2(720, 1280), Vector2i(720, 1560): Vector2(720, 1560),
-	Vector2i(540, 960): Vector2(720, 1280), Vector2i(1080, 2340): Vector2(720, 1560),
-}
 const RUNTIME_FILES: Array[String] = [
 	"res://scripts/ui/collection_screen.gd", "res://scripts/ui/collection_skin_card.gd",
-	"res://scenes/ui/collection_screen.tscn", "res://scripts/main.gd",
+	"res://scripts/ui/collectible_stage.gd", "res://scenes/ui/collection_screen.tscn",
+	"res://scripts/main.gd",
 ]
 const FORBIDDEN: Array[String] = ["_visual_source", "layerlab_spike", "layerlab_casual_game", "unitypackage"]
-## Koleksiyon satın ALMAZ, Hamur'a dokunmaz, skin vermez, kaydı elle yazmaz.
+## Koleksiyon satın ALMAZ, Hamur'a dokunmaz, parça vermez, kaydı elle yazmaz;
+## TASK/044: takma yolu / eski gameplay skin katmanı yok.
 const FORBIDDEN_CALLS: Array[String] = ["purchase", "spend_dough", "add_dough", "grant_skin",
-	"data[\"dough\"]", "save_game(", "unlocked_skins", "Shop."]
+	"data[", "save_game(", "unlocked_skins", "Shop.", "equip_skin", "equipped_skin", "SkinVisual",
+	"\"TAKILI\"", "\"TAK\""]
 const LEGACY_PARTS: Array[String] = ["UiPalette", "StyleBoxFlat", "UiType.", "CandyButton", "tab_bar"]
-## Kanonik katalog (GAME_DESIGN §5.6 / M8.6-06 brief): sıra + rarity.
+## Kanonik katalog (GAME_DESIGN §5.6): sıra + rarity.
 const EXPECTED_NAMES: Array[String] = ["Sade", "Susamlı", "Kepekli", "Havuçlu", "Yeşil Soğan",
 	"Mısır", "Peynirli", "Sarımsaklı", "Karabiber", "Kırmızı Biber", "Mantar", "Ispanak",
 	"Deniz Tuzu", "Zencefil", "Acı Sos", "Yosun", "Kakao", "Safran", "Altın Hamur", "Gökkuşağı"]
@@ -58,7 +60,7 @@ var _save_bytes: PackedByteArray = PackedByteArray()
 var _had_save: bool = false
 var _main: Node2D
 var _finished: bool = false
-var _equipped_signals: int = 0
+var _showcase_signals: int = 0
 var _granted_signals: int = 0
 var _shop_requests: int = 0
 
@@ -81,18 +83,16 @@ func _ready() -> void:
 		_save_bytes = FileAccess.get_file_as_bytes(save_path)
 	# Günlük ödül bugün alınmış gibi: main._ready kayda yazmasın.
 	SaveManager.data["last_login_date"] = Time.get_date_string_from_system()
-	# M8.10: bu harness KABUGU olcuyor — onboarding tamamlanmis olmali,
-	# yoksa Main dogrudan ilk acilis tutorial'ina girer. Kayit dosyasini
-	# geri koymayan baska bir suite diske `false` birakmis olabilir.
+	# M8.10: bu harness KABUGU olcuyor — onboarding tamamlanmis olmali.
 	SaveManager.data["onboarding_completed"] = true
 	_apply_mid()
-	get_tree().create_timer(120.0).timeout.connect(func() -> void:
+	get_tree().create_timer(180.0).timeout.connect(func() -> void:
 		if not _finished:
-			print("  [FAIL] bekçi: test 120 s'de bitmedi — kayıt geri kondu")
+			print("  [FAIL] bekçi: test 180 s'de bitmedi — kayıt geri kondu")
 			SaveManager.data = _saved
 			_restore_save_file()
 			get_tree().quit(2))
-	SaveManager.skin_equipped.connect(func(_id: StringName) -> void: _equipped_signals += 1)
+	SaveManager.showcase_changed.connect(func(_ids: Array) -> void: _showcase_signals += 1)
 	SaveManager.skin_granted.connect(func(_id: StringName) -> void: _granted_signals += 1)
 
 	get_window().size = Vector2i(720, 1000)
@@ -116,6 +116,7 @@ func _ready() -> void:
 		and (theme.get_stylebox("panel", &"PanelCollectionCard") as StyleBoxTexture).texture.resource_path.contains("card_bevel_soft"))
 	var src: String = FileAccess.get_file_as_string("res://scripts/ui/collection_screen.gd")
 	var card_src: String = FileAccess.get_file_as_string("res://scripts/ui/collection_skin_card.gd")
+	var stage_src: String = FileAccess.get_file_as_string("res://scripts/ui/collectible_stage.gd")
 	var main_src: String = FileAccess.get_file_as_string("res://scripts/main.gd")
 	var clean: bool = true
 	for path in RUNTIME_FILES:
@@ -126,18 +127,21 @@ func _ready() -> void:
 	_c("çalışma zamanı dosyalarında ham kaynak / spike referansı yok", clean)
 	var no_purchase: bool = true
 	for word in FORBIDDEN_CALLS:
-		if src.contains(word) or card_src.contains(word):
+		if src.contains(word) or card_src.contains(word) or stage_src.contains(word):
 			no_purchase = false
 			print("    yasak çağrı: ", word)
-	_c("Koleksiyon satın ALMAZ / Hamur'a dokunmaz / skin vermez / kaydı elle yazmaz (kaynak taraması)", no_purchase)
+	_c("Koleksiyon satın ALMAZ / Hamur'a dokunmaz / parça vermez / kaydı elle yazmaz / takma yolu yok (kaynak taraması)", no_purchase)
 	var no_legacy: bool = true
 	for word in LEGACY_PARTS:
 		if src.contains(word) or card_src.contains(word):
 			no_legacy = false
 			print("    eski parça: ", word)
 	_c("eski M8.5 parçası yok (UiPalette / StyleBoxFlat / UiType / CandyButton / tab_bar)", no_legacy)
-	_c("tek kanonik equip yolu: SaveManager.equip_skin, yalnız CTA'dan", src.count("SaveManager.equip_skin(") == 1
-		and card_src.count("equip_skin(") == 0)
+	_c("vitrin yazmaları yalnız kanonik SaveManager işlemleriyle, yalnız detay eylemlerinden (kart / sahne yazmaz)",
+		src.count("SaveManager.showcase_add(") == 1 and src.count("SaveManager.showcase_remove(") == 1
+		and src.count("SaveManager.showcase_replace(") == 1 and src.count("SaveManager.showcase_make_first(") == 1
+		and not card_src.contains("showcase_add") and not card_src.contains("SaveManager.")
+		and not stage_src.contains("SaveManager."))
 	_c("alt sekme çubuğu main'den tamamen kalktı (_tabs / tab_bar.tscn yok; TabBar düğümü yok)",
 		not main_src.contains("_tabs") and not main_src.contains("tab_bar.tscn")
 		and _main.get_node_or_null("TabBar") == null and not ("_tabs" in _main))
@@ -163,15 +167,17 @@ func _ready() -> void:
 		and (bar.pill().get_meta(&"pill") as PanelContainer).theme_type_variation == &"PanelHomePill")
 	_c("başlık 'KOLEKSİYON' (noktalı İ) pembe HeaderRibbon", bar.title_text() == "KOLEKSİYON"
 		and bar.title_plate().theme_type_variation == &"HeaderRibbon")
-	_c("Hamur pill'inde nane '+' VAR (→ Mağaza; kilitli skinlerin alınacağı yer)", bar.add_button() != null
+	_c("Hamur pill'inde nane '+' VAR (→ Mağaza; kilitli parçaların alınacağı yer)", bar.add_button() != null
 		and bar.add_button().theme_type_variation == &"ButtonHomeAdd" and _count_variation(screen, &"ButtonHomeAdd") == 1)
 	_c("Hamur pill'i bakiyeyi gösteriyor (335)", _pill_text(bar) == "335")
 	_c("Koleksiyon'da sekme çubuğu YOK, eski tab_bar sahnesi yok", screen.get_node_or_null("TabBar") == null
 		and not ResourceLoader.exists("res://scenes/ui/tab_bar.tscn"))
-	_c("gerçek ScrollContainer galeri (yatay kapalı, dikey açık, çubuk gizli, kırpma açık)", screen.scroll() != null
+	_c("gerçek ScrollContainer albüm (yatay kapalı, dikey açık, çubuk gizli, kırpma açık)", screen.scroll() != null
 		and screen.scroll().horizontal_scroll_mode == ScrollContainer.SCROLL_MODE_DISABLED
 		and screen.scroll().vertical_scroll_mode == ScrollContainer.SCROLL_MODE_SHOW_NEVER
 		and screen.scroll().clip_contents)
+	_c("sabit albüm başlığı (AlbumHeader) albümün DIŞINDA, detay kapalı", screen.header() != null and screen.header().visible
+		and not screen.scroll().is_ancestor_of(screen.header()) and not screen.is_detail_open())
 	var headers: Array[Control] = screen.section_headers()
 	var header_ok: bool = headers.size() == 4
 	var expected_headers: Array[String] = ["YAYGIN", "NADİR", "EPİK", "EFSANEVİ"]
@@ -180,11 +186,13 @@ func _ready() -> void:
 			header_ok = false
 	_c("dört rarity bölüm plakası sırayla YAYGIN / NADİR / EPİK / EFSANEVİ (PanelShopSection ailesi)", header_ok
 		and (headers[0].get_meta(&"plate") as PanelContainer).theme_type_variation == &"PanelShopSection")
-	_c("eski parça yok: CandyButton 0, StyleBoxFlat panel 0, koyu CardPanel 0", _count_class(screen, "CandyButton") == 0
+	_c("eski parça yok: CandyButton 0, koyu CardPanel 0", _count_class(screen, "CandyButton") == 0
 		and _count_variation(screen, &"CardPanel") == 0 and _count_variation(screen, &"QuietCardPanel") == 0)
-	_c("21 seçilebilir görünüm = Varsayılan taban şeridi + 20 katalog skini (CollectionSkinCard)", screen.cards().size() == 21
-		and _count_class(screen, "CollectionSkinCard") == 21 and screen.card(&"") != null
-		and screen.card(&"").is_default_entry() and screen.card(&"").is_wide())
+	_c("tam 20 albüm kartı (CollectionSkinCard) — TASK/044: 'Varsayılan' kartı YOK", screen.cards().size() == 20
+		and _count_class(screen, "CollectionSkinCard") == 20 and screen.card(&"") == null)
+	_c("eski seçim / vitrin paneli API'si yok (select / selected_id / cta / showcase_name_text)",
+		not screen.has_method("select") and not screen.has_method("selected_id") and not screen.has_method("cta")
+		and not screen.has_method("showcase_name_text") and screen.get_node_or_null("Root/Showcase") == null)
 	var no_card_process: bool = true
 	var cards_pass: bool = true
 	for card in screen.cards():
@@ -201,25 +209,25 @@ func _ready() -> void:
 	print("    düğüm sayısı (Koleksiyon ekranı): ", _count_nodes(screen))
 
 	print("-- katalog")
-	_c("SkinLibrary tam 20 skin", SkinLibrary.total_count() == 20 and SkinLibrary.all().size() == 20)
+	_c("SkinLibrary tam 20 parça", SkinLibrary.total_count() == 20 and SkinLibrary.all().size() == 20)
 	var counts: Dictionary = {}
 	for skin in SkinLibrary.all():
 		counts[skin.rarity] = int(counts.get(skin.rarity, 0)) + 1
 	_c("rarity sayıları 8 / 6 / 4 / 2", counts.get(SkinData.Rarity.COMMON, 0) == 8 and counts.get(SkinData.Rarity.RARE, 0) == 6
 		and counts.get(SkinData.Rarity.EPIC, 0) == 4 and counts.get(SkinData.Rarity.LEGENDARY, 0) == 2)
-	var order_ok: bool = true
 	var cards: Array[CollectionSkinCard] = screen.cards()
-	var entries: Array[SkinEntry] = SkinEntry.all(true)
-	for i in cards.size():
+	var entries: Array[SkinEntry] = SkinEntry.all(false)
+	var order_ok: bool = cards.size() == entries.size()
+	for i in mini(cards.size(), entries.size()):
 		if cards[i].skin_id() != entries[i].id:
 			order_ok = false
 	var names_ok: bool = true
 	for i in EXPECTED_NAMES.size():
-		if cards[i + 1].name_text() != EXPECTED_NAMES[i]:
+		if cards[i].name_text() != EXPECTED_NAMES[i]:
 			names_ok = false
-			print("    ad uyumsuz: ", cards[i + 1].name_text(), " / ", EXPECTED_NAMES[i])
-	_c("kart sırası katalog sırası (rarity + id), Varsayılan ilk; 20 ad kanonik sırada", order_ok and names_ok
-		and cards[0].name_text() == SkinEntry.DEFAULT_NAME)
+			print("    ad uyumsuz: ", cards[i].name_text(), " / ", EXPECTED_NAMES[i])
+	_c("kart sırası katalog sırası (rarity + id); 20 ad kanonik sırada, Sade ilk", order_ok and names_ok
+		and cards[0].skin_id() == &"common_01")
 	var grid_ok: bool = true
 	var in_sections: int = 0
 	for rarity in EXPECTED_RARITY_COUNTS:
@@ -230,47 +238,16 @@ func _ready() -> void:
 			for row in section.get_children():
 				if row.get_child_count() > 3 or (row as HBoxContainer).alignment != BoxContainer.ALIGNMENT_CENTER:
 					grid_ok = false
-				for child in row.get_children():
-					if (child as CollectionSkinCard).is_default_entry():
-						grid_ok = false
 				n += row.get_child_count()
 		if section == null or n != expect or section.get_child_count() != ceili(float(expect) / 3.0):
 			grid_ok = false
 		in_sections += n
-	_c("bölüm sıraları 3 sütun, ortalı (YAYGIN 3+3+2 / EPİK 3+1 / EFSANEVİ 2 ortada); tam 8 / 6 / 4 / 2 katalog kartı, Varsayılan hiçbirinde değil",
+	_c("bölüm sıraları 3 sütun, ortalı (YAYGIN 3+3+2 / EPİK 3+1 / EFSANEVİ 2 ortada); tam 8 / 6 / 4 / 2 kart",
 		grid_ok and in_sections == 20)
-	_c("YAYGIN bölümü Sade ile başlar (Varsayılan bölümün dışında)",
-		((screen._content.get_node("Grid_Common") as VBoxContainer).get_child(0).get_child(0) as CollectionSkinCard).skin_id() == &"common_01")
-
-	print("-- taban görünüm (Varsayılan, M8.6-06.1)")
-	var base: CollectionSkinCard = screen.card(&"")
-	var base_index: int = base.get_index()
-	var header_index: int = screen.section_headers()[0].get_index()
-	_c("Varsayılan geniş ORİJİNAL şeridi: galeri içeriğinin İLK çocuğu, YAYGIN plakasının üstünde, 672 px geniş",
-		base.is_wide() and base.get_parent() == screen._content and base_index == 0 and base_index < header_index
-		and is_equal_approx(base.custom_minimum_size.x, 672.0) and base.custom_minimum_size.y <= 120.0)
-	_c("ORİJİNAL rozeti (lavanta trapez, YAYGIN/Common değil); rarity etiketi yok", base.original_tag() != null
-		and (base.original_tag().get_meta(&"title_label") as Label).text == "ORİJİNAL"
-		and not _collect_text(base).contains("YAYGIN") and not _collect_text(base).contains("Common")
-		and base.name_text() == SkinEntry.DEFAULT_NAME)
-	_c("Varsayılan fiyatsız, kilitsiz, satın alınamaz; kanonik id boş string", base.price() == 0
-		and not base.swatch()._lock.visible and SkinEntry.find(&"").price == 0
-		and not SkinEntry.find(&"").is_purchasable() and SkinEntry.DEFAULT_ID == &"")
-	_c("Varsayılan sayaca girmez: owned_count kataloğu sayar (mid 4/20; Varsayılan takılıyken de 4)", SkinEntry.owned_count() == 4
-		and SkinLibrary.find(&"") == null and not SkinLibrary.all().any(func(s: SkinData) -> bool: return s.id == &""))
-	var catalogue_cards: int = 0
-	for card in screen.cards():
-		if not card.is_default_entry():
-			catalogue_cards += 1
-	_c("tam 20 koleksiyon kartı + 1 taban şeridi; katalog 20 skin", catalogue_cards == 20 and SkinLibrary.total_count() == 20)
 	var art_ok: bool = true
 	var seen: Dictionary = {}
 	for card in cards:
 		var tex: Texture2D = card.swatch()._image.texture
-		if card.is_default_entry():
-			if tex != SkinEntry.PREVIEW_BASE_TEXTURE:
-				art_ok = false
-			continue
 		var entry: SkinEntry = SkinEntry.find(card.skin_id())
 		if tex == null or tex != entry.preview_texture() or tex == SkinSwatch.LOCKED_TEXTURE:
 			art_ok = false
@@ -279,159 +256,210 @@ func _ready() -> void:
 		if path.is_empty() or not path.contains("assets/visual/skins/previews/") or seen.has(path):
 			art_ok = false
 		seen[path] = true
-	_c("21 kartın hepsi GERÇEK final sanat: 20 farklı önizleme dokusu, silüet yok, kilitli dahil; Varsayılan orijinal dumpling",
-		art_ok and seen.size() == 20)
-	var preview_ok: bool = true
-	for skin in SkinLibrary.all():
-		if skin.preview_texture == null or not skin.preview_texture.resource_path.begins_with("res://assets/visual/skins/previews/"):
-			preview_ok = false
-	_c("20 SkinData.preview_texture dolu ve previews/ altında", preview_ok)
+	_c("20 kartın hepsi GERÇEK final sanat: 20 farklı önizleme dokusu, silüet yok, kilitli dahil", art_ok and seen.size() == 20)
 
-	print("-- ilk durum (orta oyuncu: rare_02 takılı)")
-	_c("takılı skin seçili (rare_02), vitrin 'Kırmızı Biber' / NADİR / TAKILI, TAK gizli", screen.selected_id() == &"rare_02"
-		and screen.showcase_name_text() == "Kırmızı Biber" and screen.showcase_rarity_text() == "NADİR"
-		and screen.showcase_state_text() == "TAKILI" and not screen.cta().visible and screen.equipped_plate().visible)
-	_c("vitrin sanatı rare_02 final önizlemesi, kilit yok", screen.showcase_swatch()._image.texture == SkinLibrary.find(&"rare_02").preview_texture
-		and not screen.showcase_swatch()._lock.visible)
-	_c("rare_02 kartı seçili halka + TAKILI plakası; diğer kartlar seçili değil", screen.card(&"rare_02").is_selected()
-		and screen.card(&"rare_02").select_ring().visible and screen.card(&"rare_02").equipped_plate().visible
-		and not screen.card(&"common_01").is_selected() and not screen.card(&"common_01").equipped_plate().visible)
-	_c("ilerleme 4/20 (SkinEntry.owned_count ile aynı), nane ray", screen.progress_text() == "4/20"
-		and SkinEntry.owned_count() == 4 and is_equal_approx(screen.progress_bar().value, 0.2)
-		and screen.progress_bar().theme_type_variation == &"ProgressBarMint")
-	SaveManager.data["equipped_skin"] = "epic_03"  # sahip olunmayan id → güvenli fallback
-	screen.refresh()
-	await get_tree().process_frame
-	_c("bozuk takılı id → Varsayılan seçili (kayda yazılmadan)", SaveManager.equipped_skin_id() == &""
-		and screen.selected_id() == &"" and screen.showcase_name_text() == SkinEntry.DEFAULT_NAME
-		and screen.showcase_rarity_text() == "ORİJİNAL" and screen.showcase_state_text() == "TAKILI"
-		and SaveManager.data["equipped_skin"] == "epic_03")
-	_apply_mid()
-	screen.refresh()
-	await get_tree().process_frame
+	print("-- başlık (orta oyuncu: 4/20, vitrin rare_02)")
+	_c("KOLEKSİYON 4/20 (SkinEntry.owned_count ile aynı), nane ray, yıldız gizli", screen.header_count_text() == "4/20"
+		and SkinEntry.owned_count() == 4 and is_equal_approx(screen.header_bar().value, 0.2)
+		and screen.header_bar().theme_type_variation == &"ProgressBarMint" and not screen._header_star.visible)
+	_c("altın VİTRİN çipi 1/3", screen.showcase_chip_text() == "VİTRİN 1/3")
+	_c("rarity sayaçları YAYGIN 2/8 · NADİR 1/6 · EPİK 1/4 · EFSANEVİ 0/2",
+		screen.rarity_chip_text(SkinData.Rarity.COMMON) == "YAYGIN 2/8"
+		and screen.rarity_chip_text(SkinData.Rarity.RARE) == "NADİR 1/6"
+		and screen.rarity_chip_text(SkinData.Rarity.EPIC) == "EPİK 1/4"
+		and screen.rarity_chip_text(SkinData.Rarity.LEGENDARY) == "EFSANEVİ 0/2")
+	_c("kart durumları: rare_02 VİTRİNDE (altın plaka), common_01 SAHİP (plaka yok), common_03 KİLİTLİ",
+		screen.card(&"rare_02").is_showcased() and screen.card(&"rare_02").showcase_plate().visible
+		and screen.card(&"common_01").is_owned() and not screen.card(&"common_01").is_showcased()
+		and not screen.card(&"common_01").showcase_plate().visible
+		and not screen.card(&"common_03").is_owned() and screen.card(&"common_03").swatch()._lock.visible)
+	var plate_text: String = _collect_text(screen.card(&"rare_02"))
+	_c("VİTRİNDE plakası metni; hiçbir kartta TAKILI yok", plate_text.contains("VİTRİNDE")
+		and not _collect_text(screen).contains("TAKILI"))
 
-	print("-- seçim (kayıt değişmez)")
+	print("-- detay: aç / kapat (kayıt değişmez)")
 	var file_before: PackedByteArray = FileAccess.get_file_as_bytes(SaveManager.SAVE_PATH)
-	var equipped_before: int = _equipped_signals
-	screen.select(&"common_03")
+	var signals_before: int = _showcase_signals
+	screen.card(&"common_03").pressed.emit()
 	await get_tree().process_frame
-	_c("kilitli Common seçildi: vitrin Kepekli / YAYGIN / '50 Hamur' / MAĞAZAYA GİT, final sanat + kilit",
-		screen.selected_id() == &"common_03" and screen.showcase_name_text() == "Kepekli"
-		and screen.showcase_rarity_text() == "YAYGIN" and screen.showcase_state_text() == "50 Hamur"
-		and screen.cta().visible and screen.cta_text() == "MAĞAZAYA GİT" and not screen.equipped_plate().visible
-		and screen.showcase_swatch()._image.texture == SkinLibrary.find(&"common_03").preview_texture
-		and screen.showcase_swatch()._lock.visible)
-	_c("seçim halkası taşındı; takılı rare_02 TAKILI plakası duruyor", screen.card(&"common_03").is_selected()
-		and not screen.card(&"rare_02").is_selected() and screen.card(&"rare_02").equipped_plate().visible
-		and screen.card(&"rare_02").is_equipped())
-	_c("seçim kayda YAZMADI (dosya aynı, takılı aynı, sinyal yok)", FileAccess.get_file_as_bytes(SaveManager.SAVE_PATH) == file_before
-		and SaveManager.equipped_skin_id() == &"rare_02" and _equipped_signals == equipped_before)
-	await get_tree().create_timer(0.3).timeout
-	_c("kilitli Common: lavanta hale (LAVENDER α .42), kaide halkası açık lavanta, kaide krem",
-		screen.halo().self_modulate.is_equal_approx(Color(UiTokens.LAVENDER, screen.HALO_ALPHA[SkinData.Rarity.COMMON]))
-		and _pedestal_rim(screen).is_equal_approx(UiTokens.LAVENDER_LIGHT)
-		and screen.pedestal().self_modulate.is_equal_approx(UiTokens.TRAY_CREAM))
-	screen.select(&"rare_01")
-	await get_tree().create_timer(0.3).timeout
-	_c("kilitli Rare: NADİR, mavi hale (RARITY_RARE α .58), mavi kaide halkası + mavimsi kaide, bloom yok, 150 Hamur",
-		screen.showcase_rarity_text() == "NADİR"
-		and screen.halo().self_modulate.is_equal_approx(Color(UiTokens.RARITY_RARE, screen.HALO_ALPHA[SkinData.Rarity.RARE]))
-		and _pedestal_rim(screen).is_equal_approx(UiTokens.RARITY_RARE.lerp(Color.WHITE, 0.3))
-		and screen.pedestal().self_modulate.is_equal_approx(UiTokens.TRAY_CREAM.lerp(UiTokens.RARITY_RARE, screen.PEDESTAL_TINT))
-		and not screen.bloom().visible and screen.showcase_state_text() == "150 Hamur")
-	screen.select(&"epic_01")
-	await get_tree().create_timer(0.3).timeout
-	_c("sahip Epic (Acı Sos): EPİK, SAHİPSİN çipi, TAK, mor hale + mor kaide halkası", screen.showcase_name_text() == "Acı Sos"
-		and screen.showcase_rarity_text() == "EPİK" and screen.showcase_state_text() == "SAHİPSİN"
-		and screen.cta_text() == "TAK" and screen.halo().self_modulate.is_equal_approx(Color(UiTokens.RARITY_EPIC, screen.HALO_ALPHA[SkinData.Rarity.EPIC]))
-		and _pedestal_rim(screen).is_equal_approx(UiTokens.RARITY_EPIC.lerp(Color.WHITE, 0.3)))
-	screen.select(&"legendary_01")
-	await get_tree().create_timer(0.3).timeout
-	_c("kilitli Legendary (Altın Hamur): EFSANEVİ, altın hale + bloom, 900 Hamur, MAĞAZAYA GİT",
-		screen.showcase_rarity_text() == "EFSANEVİ" and screen.bloom().visible
-		and screen.halo().self_modulate.is_equal_approx(Color(UiTokens.GOLD, screen.HALO_ALPHA[SkinData.Rarity.LEGENDARY]))
-		and screen.showcase_state_text() == "900 Hamur" and screen.cta_text() == "MAĞAZAYA GİT")
-	_c("Legendary kaide halkası altın", _pedestal_rim(screen) == UiTokens.GOLD)
-	screen.card(&"common_02").pressed.emit()
+	_c("karta dokunmak detayı açar (Kepekli)", screen.is_detail_open() and screen.detail_id() == &"common_03"
+		and screen.detail_name_text() == "Kepekli")
+	_c("kilitli detay: KOLEKSİYON PARÇASI · YAYGIN · KİLİTLİ · '50 Hamur' notu · MAĞAZAYA GİT (tek eylem)",
+		(screen._detail_kicker as Label).text == "KOLEKSİYON PARÇASI" and screen.detail_rarity_text() == "YAYGIN"
+		and screen.detail_state_text() == "KİLİTLİ" and screen.detail_note_text().contains("50 Hamur")
+		and screen.detail_primary_text() == "MAĞAZAYA GİT" and screen.detail_secondary_text() == ""
+		and screen.detail_primary().theme_type_variation == &"ButtonPrimary")
+	_c("kilitli detay sahnesi: FINAL sanat + kilit (silüet yok), büyük sanat ≥ 200 px",
+		screen.detail_stage().swatch()._image.texture == SkinLibrary.find(&"common_03").preview_texture
+		and screen.detail_stage().swatch()._lock.visible and screen.detail_stage().art_box().size.x >= 200.0)
+	_c("detay açmak kayda YAZMADI, vitrin sinyali yok", FileAccess.get_file_as_bytes(SaveManager.SAVE_PATH) == file_before
+		and _showcase_signals == signals_before)
+	_c("detayda equip / TAK dili yok", not _collect_text(screen.detail_frame()).contains("TAK")
+		and not _collect_text(screen.detail_frame()).to_lower().contains("takıl"))
+	(screen.detail_frame().get_meta(&"close_button") as Button).pressed.emit()
 	await get_tree().process_frame
-	_c("karta dokunmak (pressed) seçer: Susamlı, kayıt yine değişmedi", screen.selected_id() == &"common_02"
-		and screen.showcase_name_text() == "Susamlı" and FileAccess.get_file_as_bytes(SaveManager.SAVE_PATH) == file_before
-		and _equipped_signals == equipped_before)
-	_c("aynı karta ikinci dokunuş seçimi bozmaz", _tap_same(screen, &"common_02"))
+	_c("X detayı kapatır", not screen.is_detail_open() and screen.detail_id() == &"")
+	screen.card(&"rare_01").pressed.emit()
+	await get_tree().create_timer(0.3).timeout
+	_c("kilitli Rare sahnesi: NADİR, mavi hale (RARITY_RARE), mavi kaide halkası + mavimsi kaide, bloom yok, 150 Hamur",
+		screen.detail_rarity_text() == "NADİR"
+		and screen.detail_stage().halo().self_modulate.is_equal_approx(Color(UiTokens.RARITY_RARE, CollectibleStage.HALO_ALPHA[SkinData.Rarity.RARE]))
+		and _stage_rim(screen).is_equal_approx(UiTokens.RARITY_RARE.lerp(Color.WHITE, 0.3))
+		and screen.detail_stage().pedestal().self_modulate.is_equal_approx(UiTokens.TRAY_CREAM.lerp(UiTokens.RARITY_RARE, CollectibleStage.PEDESTAL_TINT))
+		and not screen.detail_stage().bloom().visible and screen.detail_note_text().contains("150 Hamur"))
+	screen._detail_dim.gui_input.emit(_release_event())
+	await get_tree().process_frame
+	_c("karartmaya dokunmak detayı kapatır", not screen.is_detail_open())
+	screen.card(&"legendary_01").pressed.emit()
+	await get_tree().create_timer(0.3).timeout
+	_c("kilitli Legendary (Altın Hamur): EFSANEVİ, altın hale + bloom + altın kaide halkası, 900 Hamur, MAĞAZAYA GİT",
+		screen.detail_rarity_text() == "EFSANEVİ" and screen.detail_stage().bloom().visible
+		and screen.detail_stage().halo().self_modulate.is_equal_approx(Color(UiTokens.GOLD, CollectibleStage.HALO_ALPHA[SkinData.Rarity.LEGENDARY]))
+		and _stage_rim(screen) == UiTokens.GOLD and screen.detail_note_text().contains("900 Hamur")
+		and screen.detail_primary_text() == "MAĞAZAYA GİT")
+	_main._last_back_msec = -1000
+	_main._notification(NOTIFICATION_WM_GO_BACK_REQUEST)
+	_c("Android geri: önce detay kapanır, Koleksiyon'da kalınır", not screen.is_detail_open() and _main._active_tab == 2
+		and screen.visible)
+	screen.card(&"epic_01").pressed.emit()
+	await get_tree().create_timer(0.3).timeout
+	_c("sahip Epic (Acı Sos): EPİK · SAHİPSİN · VİTRİNE EKLE (cyan) · not '3 Squishy', mor hale + mor kaide halkası",
+		screen.detail_name_text() == "Acı Sos" and screen.detail_rarity_text() == "EPİK"
+		and screen.detail_state_text() == "SAHİPSİN" and screen.detail_primary_text() == "VİTRİNE EKLE"
+		and screen.detail_primary().theme_type_variation == &"ButtonPrimary" and screen.detail_secondary_text() == ""
+		and screen.detail_note_text().contains("en fazla 3 Squishy")
+		and screen.detail_stage().halo().self_modulate.is_equal_approx(Color(UiTokens.RARITY_EPIC, CollectibleStage.HALO_ALPHA[SkinData.Rarity.EPIC]))
+		and _stage_rim(screen).is_equal_approx(UiTokens.RARITY_EPIC.lerp(Color.WHITE, 0.3))
+		and not screen.detail_stage().swatch()._lock.visible)
+	screen.card(&"rare_02").pressed.emit()
+	await get_tree().process_frame
+	_c("vitrin başı (rare_02, avatar): VİTRİNDE · avatar notu · tek eylem VİTRİNDEN ÇIKAR (lavanta ikincil)",
+		screen.detail_id() == &"rare_02" and screen.detail_state_text() == "VİTRİNDE"
+		and screen.detail_note_text() == screen.NOTE_AVATAR and screen.detail_primary_text() == "VİTRİNDEN ÇIKAR"
+		and screen.detail_primary().theme_type_variation == &"ButtonSecondary" and screen.detail_secondary_text() == "")
+	_c("detay açıkken başka karta geçiş de kayda yazmadı", FileAccess.get_file_as_bytes(SaveManager.SAVE_PATH) == file_before
+		and _showcase_signals == signals_before)
+	screen.close_detail(false)
 
-	print("-- sahip olunan: TAK")
-	screen.select(&"common_01")
-	await get_tree().process_frame
+	print("-- vitrin eylemleri (kanonik SaveManager işlemleri)")
 	var dough_before: int = SaveManager.dough()
 	var owned_before: Array = (SaveManager.data["unlocked_skins"] as Array).duplicate()
-	var count_before: int = SkinEntry.owned_count()
-	equipped_before = _equipped_signals
 	var granted_before: int = _granted_signals
-	_c("sahip olunan Sade seçili: SAHİPSİN + TAK (cyan candy buton ≥ 48 px)", screen.showcase_state_text() == "SAHİPSİN"
-		and screen.cta().visible and screen.cta_text() == "TAK" and screen.cta().size.y >= 48.0
-		and screen.cta().theme_type_variation == &"ButtonPrimary" and SaveManager.equipped_skin_id() == &"rare_02")
-	screen.cta().pressed.emit()
+	screen.card(&"epic_01").pressed.emit()
+	await get_tree().process_frame
+	signals_before = _showcase_signals
+	screen.detail_primary().pressed.emit()
 	await get_tree().process_frame
 	var save_now: Dictionary = _read_save_file()
-	_c("TAK → kanonik equip: takılı common_01 (kayıtta), tam BİR skin_equipped sinyali", SaveManager.equipped_skin_id() == &"common_01"
-		and save_now.get("equipped_skin", "") == "common_01" and _equipped_signals == equipped_before + 1)
-	_c("TAK → Hamur, sahiplik listesi, sayaç değişmedi; kopya/grant yok", SaveManager.dough() == dough_before
-		and SaveManager.data["unlocked_skins"] == owned_before and SkinEntry.owned_count() == count_before
+	_c("VİTRİNE EKLE → vitrin [rare_02, epic_01] (sona eklendi), tam BİR showcase_changed, kayıtta aynı",
+		_showcase_is([&"rare_02", &"epic_01"]) and _showcase_signals == signals_before + 1
+		and save_now.get("profile_showcase", []) == ["rare_02", "epic_01"])
+	_c("VİTRİNE EKLE → Hamur, sahiplik, sayaç değişmedi; grant yok; eski equipped_skin anahtarı yazılmadı",
+		SaveManager.dough() == dough_before and SaveManager.data["unlocked_skins"] == owned_before
 		and _granted_signals == granted_before and int(save_now.get("dough", -1)) == dough_before
-		and (save_now.get("unlocked_skins", []) as Array).size() == owned_before.size())
-	_c("TAK → vitrin TAKILI, TAK gizli; common_01 kartı TAKILI, rare_02 kartı SAHİP (plaka gizli)",
-		screen.showcase_state_text() == "TAKILI" and not screen.cta().visible and screen.equipped_plate().visible
-		and screen.card(&"common_01").is_equipped() and screen.card(&"common_01").equipped_plate().visible
-		and not screen.card(&"rare_02").is_equipped() and not screen.card(&"rare_02").equipped_plate().visible
-		and screen.card(&"rare_02").is_owned() and screen.selected_id() == &"common_01")
-	_c("eski takılı skin (rare_02) hâlâ sahip", SaveManager.owns_skin(&"rare_02") and SkinEntry.find(&"rare_02").owned)
-	_c("takılı durumda CTA dokunuşu mutasyon yapmaz", _press_equipped_no_mutation(screen))
-	# Varsayılana dönüş: Varsayılan kartı seçilebilir ve takılabilir (GAME_DESIGN §5.3).
-	screen.select(&"")
+		and not save_now.has("equipped_skin"))
+	_c("detay güncellendi: VİTRİNDE · '2. yuva' · AVATAR YAP (cyan) + VİTRİNDEN ÇIKAR (lavanta)",
+		screen.detail_state_text() == "VİTRİNDE" and screen.detail_note_text().contains("2. yuva")
+		and screen.detail_primary_text() == "AVATAR YAP" and screen.detail_primary().theme_type_variation == &"ButtonPrimary"
+		and screen.detail_secondary_text() == "VİTRİNDEN ÇIKAR" and screen.detail_secondary().theme_type_variation == &"ButtonSecondary")
+	_c("kart + başlık güncellendi: epic_01 VİTRİNDE plakası, VİTRİN 2/3", screen.card(&"epic_01").is_showcased()
+		and screen.card(&"epic_01").showcase_plate().visible and screen.showcase_chip_text() == "VİTRİN 2/3")
+	signals_before = _showcase_signals
+	screen.detail_primary().pressed.emit()
 	await get_tree().process_frame
-	_c("Varsayılan seçili: ORİJİNAL, SAHİPSİN, TAK", screen.showcase_rarity_text() == "ORİJİNAL"
-		and screen.showcase_state_text() == "SAHİPSİN" and screen.cta_text() == "TAK")
-	screen.cta().pressed.emit()
+	_c("AVATAR YAP → epic_01 ilk yuvada [epic_01, rare_02], diğerinin sırası korunur, BİR sinyal",
+		_showcase_is([&"epic_01", &"rare_02"]) and _showcase_signals == signals_before + 1
+		and _read_save_file().get("profile_showcase", []) == ["epic_01", "rare_02"])
+	_c("avatar olunca detay: avatar notu, tek eylem VİTRİNDEN ÇIKAR", screen.detail_note_text() == screen.NOTE_AVATAR
+		and screen.detail_primary_text() == "VİTRİNDEN ÇIKAR" and screen.detail_secondary_text() == "")
+	signals_before = _showcase_signals
+	screen.detail_primary().pressed.emit()
 	await get_tree().process_frame
-	_c("Varsayılan TAK → equipped_skin '' (orijinal görünüm), vitrin TAKILI", SaveManager.equipped_skin_id() == &""
-		and _read_save_file().get("equipped_skin", "x") == "" and screen.showcase_state_text() == "TAKILI"
-		and screen.card(&"").is_equipped())
+	_c("VİTRİNDEN ÇIKAR → [rare_02] (sonraki öne kayar, rare_02 avatar), BİR sinyal; parça hâlâ sahip",
+		_showcase_is([&"rare_02"]) and _showcase_signals == signals_before + 1 and SaveManager.owns_skin(&"epic_01"))
+	_c("çıkınca detay SAHİPSİN + VİTRİNE EKLE; kart plakası gizlendi", screen.detail_state_text() == "SAHİPSİN"
+		and screen.detail_primary_text() == "VİTRİNE EKLE" and not screen.card(&"epic_01").showcase_plate().visible)
+	# Dolu vitrin: rare_02, epic_01, common_01 → common_02 eklenmek istenir.
+	SaveManager.showcase_add(&"epic_01")
+	SaveManager.showcase_add(&"common_01")
+	screen.close_detail(false)
+	screen.card(&"common_02").pressed.emit()
+	await get_tree().process_frame
+	_c("vitrin dolu (3/3): sahip Susamlı detayı 'Vitrinin dolu (3/3)' notu + VİTRİNE EKLE, başlık VİTRİN 3/3",
+		screen.detail_note_text().begins_with("Vitrinin dolu (3/3)") and screen.detail_primary_text() == "VİTRİNE EKLE"
+		and screen.showcase_chip_text() == "VİTRİN 3/3")
+	file_before = FileAccess.get_file_as_bytes(SaveManager.SAVE_PATH)
+	signals_before = _showcase_signals
+	screen.detail_primary().pressed.emit()
+	await get_tree().process_frame
+	var tiles: Array[Button] = screen.replace_tiles()
+	_c("dolu vitrinde VİTRİNE EKLE → AÇIK değiştirme adımı (sessiz / rastgele değiştirme YOK): kayıt ve vitrin aynı",
+		screen.is_replacing() and _showcase_is([&"rare_02", &"epic_01", &"common_01"])
+		and _showcase_signals == signals_before and FileAccess.get_file_as_bytes(SaveManager.SAVE_PATH) == file_before)
+	_c("değiştirme adımı: 'VİTRİN DOLU · 3/3' + soru notu, 3 yuva kutusu yuva sırasıyla (AVATAR / 2. YUVA / 3. YUVA)",
+		(screen._detail_kicker as Label).text == "VİTRİN DOLU · 3/3" and screen.detail_note_text() == screen.REPLACE_NOTE
+		and tiles.size() == 3 and tiles[0].visible and tiles[1].visible and tiles[2].visible
+		and (tiles[0].get_meta(&"name_label") as Label).text == "Kırmızı Biber"
+		and (tiles[1].get_meta(&"name_label") as Label).text == "Acı Sos"
+		and (tiles[2].get_meta(&"name_label") as Label).text == "Sade"
+		and _collect_text(tiles[0]).contains("AVATAR") and _collect_text(tiles[1]).contains("2. YUVA")
+		and _collect_text(tiles[2]).contains("3. YUVA"))
+	_c("değiştirme adımında tek eylem VAZGEÇ; yuva kutuları ≥ 48 px dokunma", not screen.detail_primary().visible
+		and screen.detail_secondary_text() == "VAZGEÇ" and tiles[0].size.y >= 48.0 and tiles[0].size.x >= 48.0)
+	screen.detail_secondary().pressed.emit()
+	await get_tree().process_frame
+	_c("VAZGEÇ → değiştirme adımı kapanır, detay açık kalır; hiçbir şey yazılmadı", not screen.is_replacing()
+		and screen.is_detail_open() and screen.detail_primary_text() == "VİTRİNE EKLE"
+		and _showcase_is([&"rare_02", &"epic_01", &"common_01"]) and _showcase_signals == signals_before
+		and FileAccess.get_file_as_bytes(SaveManager.SAVE_PATH) == file_before)
+	screen.detail_primary().pressed.emit()
+	await get_tree().process_frame
+	_main._last_back_msec = -1000
+	_main._notification(NOTIFICATION_WM_GO_BACK_REQUEST)
+	_c("değiştirme adımında Android geri → yalnız adım kapanır (detay açık), hiçbir şey yazılmadı",
+		not screen.is_replacing() and screen.is_detail_open() and _main._active_tab == 2
+		and FileAccess.get_file_as_bytes(SaveManager.SAVE_PATH) == file_before and _showcase_signals == signals_before)
+	screen.detail_primary().pressed.emit()
+	await get_tree().process_frame
+	tiles[1].pressed.emit()
+	await get_tree().process_frame
+	_c("yuva seçildi (2. YUVA: Acı Sos) → Susamlı O yuvaya girer [rare_02, common_02, common_01], BİR sinyal, kayıtta aynı",
+		_showcase_is([&"rare_02", &"common_02", &"common_01"]) and _showcase_signals == signals_before + 1
+		and _read_save_file().get("profile_showcase", []) == ["rare_02", "common_02", "common_01"])
+	_c("değiştirme sonrası detay VİTRİNDE '2. yuva'; Acı Sos kartında plaka yok, Susamlı kartında var",
+		not screen.is_replacing() and screen.detail_state_text() == "VİTRİNDE"
+		and screen.detail_note_text().contains("2. yuva")
+		and not screen.card(&"epic_01").showcase_plate().visible and screen.card(&"common_02").showcase_plate().visible)
+	_c("değiştirme de Hamur / sahiplik değiştirmedi", SaveManager.dough() == dough_before
+		and SaveManager.data["unlocked_skins"] == owned_before)
+	screen.close_detail(false)
 
 	print("-- kilitli: MAĞAZAYA GİT, satın alma yok")
 	_apply_mid()
 	screen.refresh()
 	await get_tree().process_frame
-	screen.select(&"legendary_02")
+	screen.card(&"legendary_02").pressed.emit()
 	await get_tree().process_frame
 	file_before = FileAccess.get_file_as_bytes(SaveManager.SAVE_PATH)
 	var requests_before: int = _shop_requests
-	screen.cta().pressed.emit()
+	screen.detail_primary().pressed.emit()
 	await get_tree().process_frame
-	_c("kilitli Gökkuşağı MAĞAZAYA GİT → shop_skin_requested → Mağaza (tek örnek), Koleksiyon gizli", _shop_requests == requests_before + 1
-		and _main._active_tab == 3 and shop.visible and not screen.visible
-		and _count_class(_main, "ShopPowerCard") == 4 and _count_class(_main, "CollectionSkinCard") == 21)
+	_c("kilitli Gökkuşağı MAĞAZAYA GİT → shop_skin_requested → Mağaza (tek örnek), detay kapandı, Koleksiyon gizli",
+		_shop_requests == requests_before + 1 and _main._active_tab == 3 and shop.visible and not screen.visible
+		and not screen.is_detail_open() and _count_class(_main, "ShopPowerCard") == 4
+		and _count_class(_main, "CollectionSkinCard") == 20)
 	await get_tree().process_frame
 	await get_tree().process_frame
 	await get_tree().process_frame
-	# Gökkuşağı son kart: içerik sonuna kadar kaydırılır (kart ekranda, GÜÇLER'de
-	# değil); orta kart (rare_01) tam üst satırın altına oturur.
 	var landed: Rect2 = shop.skin_card(&"legendary_02").get_global_rect()
 	var max_scroll: float = shop.scroll().get_v_scroll_bar().max_value - shop.scroll().size.y
-	_c("Mağaza hedef skin kartına kaydırdı (Gökkuşağı ekranda, kaydırma sonunda; GÜÇLER'de değil)",
+	_c("Mağaza hedef parça kartına kaydırdı (Gökkuşağı ekranda, kaydırma sonunda; GÜÇLER'de değil)",
 		shop.scroll().scroll_vertical >= int(max_scroll) - 1 and landed.position.y >= shop.top_bar().height()
 		and landed.end.y <= 1280.0 and shop.power_cards()[0].get_global_rect().end.y < 0.0)
-	shop.focus_skin(&"rare_01")
-	await get_tree().process_frame
-	await get_tree().process_frame
-	await get_tree().process_frame
-	var expected_top: float = shop.top_bar().height() + shop.CONTENT_TOP_GAP
-	_c("focus_skin(orta kart) kartı üst satırın hemen altına getirir (±3 px, pop payı)",
-		absf(shop.skin_card(&"rare_01").get_global_rect().position.y - expected_top) <= 3.0)
-	_c("kilitli CTA hiçbir şey almadı / takmadı / yazmadı", not SaveManager.owns_skin(&"legendary_02")
-		and SaveManager.equipped_skin_id() == &"rare_02" and SaveManager.dough() == 335
+	_c("kilitli CTA hiçbir şey almadı / yazmadı; vitrin aynı", not SaveManager.owns_skin(&"legendary_02")
+		and SaveManager.dough() == 335 and _showcase_is([&"rare_02"])
 		and FileAccess.get_file_as_bytes(SaveManager.SAVE_PATH) == file_before)
-	_c("Mağaza kilitli Legendary kartında SATIN AL var (satın alma Mağaza'da)", shop.skin_card(&"legendary_02").buy_button().visible)
-	# Mağazadan satın alma Koleksiyon GİZLİYKEN → açılışta yeni skin vitrinde + TAK.
+	# Mağazadan satın alma Koleksiyon GİZLİYKEN → açılışta yeni parça albümde öne alınır.
 	SaveManager.data["dough"] = 2000
 	shop.refresh()
 	shop._open_confirm(SkinLibrary.find(&"legendary_02"))
@@ -439,49 +467,57 @@ func _ready() -> void:
 	shop._confirm_yes.pressed.emit()
 	await get_tree().process_frame
 	await get_tree().process_frame
-	_c("Mağaza satın aldı (tek transaction): sahip, 1100 Hamur, takılı DEĞİL", SaveManager.owns_skin(&"legendary_02")
-		and SaveManager.dough() == 1100 and SaveManager.equipped_skin_id() == &"rare_02")
+	_c("Mağaza satın aldı (tek transaction): sahip, 1100 Hamur, vitrine OTOMATİK eklenmedi", SaveManager.owns_skin(&"legendary_02")
+		and SaveManager.dough() == 1100 and _showcase_is([&"rare_02"]))
 	_main._show_tab(2)
 	await get_tree().process_frame
-	_c("Koleksiyon'a dönünce yeni skin vitrinde (Gökkuşağı) SAHİPSİN + TAK, 5/20", screen.selected_id() == &"legendary_02"
-		and screen.showcase_state_text() == "SAHİPSİN" and screen.cta_text() == "TAK" and screen.progress_text() == "5/20"
-		and screen.card(&"legendary_02").is_owned() and not screen.card(&"legendary_02").equipped_plate().visible)
-	screen.cta().pressed.emit()
 	await get_tree().process_frame
-	_c("Legendary TAK → takılı, EFSANEVİ + TAKILI + bloom", SaveManager.equipped_skin_id() == &"legendary_02"
-		and screen.showcase_state_text() == "TAKILI" and screen.bloom().visible)
-	# Ekran görünürken grant (sandık) → anında vitrine.
+	var legend_rect: Rect2 = screen.card(&"legendary_02").get_global_rect()
+	_c("Koleksiyon'a dönünce yeni parça albümde öne alındı (kart ekranda, sahip), 5/20, detay kapalı",
+		screen.card(&"legendary_02").is_owned() and screen.header_count_text() == "5/20" and not screen.is_detail_open()
+		and screen.scroll().scroll_vertical > 0 and legend_rect.position.y >= screen.scroll().global_position.y - 1.0
+		and legend_rect.end.y <= get_viewport().get_visible_rect().size.y)
+	# Ekran görünürken grant (sandık) → anında kart + başlık; açık detay güncellenir.
+	screen.card(&"rare_05").pressed.emit()
+	await get_tree().process_frame
+	_c("ön koşul: rare_05 detayı KİLİTLİ", screen.detail_state_text() == "KİLİTLİ")
 	SaveManager.grant_skin(&"rare_05")
 	await get_tree().process_frame
-	_c("görünürken kazanılan skin (rare_05) anında seçili + SAHİPSİN + TAK, 6/20", screen.selected_id() == &"rare_05"
-		and screen.showcase_state_text() == "SAHİPSİN" and screen.cta_text() == "TAK" and screen.progress_text() == "6/20")
+	_c("görünürken kazanılan parça (rare_05): kart sahip, 6/20, açık detay SAHİPSİN + VİTRİNE EKLE",
+		screen.card(&"rare_05").is_owned() and screen.header_count_text() == "6/20" and screen.is_detail_open()
+		and screen.detail_state_text() == "SAHİPSİN" and screen.detail_primary_text() == "VİTRİNE EKLE")
+	screen.close_detail(false)
 
 	print("-- ilerleme")
 	_apply_fresh()
 	screen.refresh()
 	await get_tree().process_frame
-	_c("yeni oyuncu: 0/20 (Sade varsayılan DEĞİL, satılık), Varsayılan takılı + TAKILI şeridi, 0 Hamur", screen.progress_text() == "0/20"
-		and SkinEntry.owned_count() == 0 and is_zero_approx(screen.progress_bar().value)
-		and screen.selected_id() == &"" and screen.showcase_state_text() == "TAKILI" and _pill_text(bar) == "0"
-		and screen.card(&"").is_equipped() and screen.card(&"").equipped_plate().visible and screen.card(&"").is_selected()
-		and not screen.card(&"common_01").is_owned() and screen.card(&"common_01").price() == 50)
+	var no_plate: bool = true
+	for card in cards:
+		if card.is_owned() or card.showcase_plate().visible or not card.swatch()._lock.visible:
+			no_plate = false
+	_c("yeni oyuncu: 0/20, VİTRİN 0/3, sayaçlar 0/N, hiçbir kart sahip / vitrinde değil, 0 Hamur", screen.header_count_text() == "0/20"
+		and screen.showcase_chip_text() == "VİTRİN 0/3" and SkinEntry.owned_count() == 0
+		and is_zero_approx(screen.header_bar().value) and screen.rarity_chip_text(SkinData.Rarity.COMMON) == "YAYGIN 0/8"
+		and no_plate and _pill_text(bar) == "0")
+	screen.card(&"common_01").pressed.emit()
+	await get_tree().process_frame
+	_c("yeni oyuncuda Sade de kilitli parça (50 Hamur, MAĞAZAYA GİT)", screen.detail_state_text() == "KİLİTLİ"
+		and screen.detail_note_text().contains("50 Hamur") and screen.detail_primary_text() == "MAĞAZAYA GİT")
+	screen.close_detail(false)
 	_apply_full()
 	screen.refresh()
 	await get_tree().process_frame
-	_c("20/20: altın ray + yıldız, tam dolu; Gökkuşağı takılı; ödül verilmedi (Hamur aynı)", screen.progress_text() == "20/20"
-		and is_equal_approx(screen.progress_bar().value, 1.0) and screen.progress_bar().theme_type_variation == &"ProgressBarGold"
-		and screen._progress_star.visible and SaveManager.dough() == 1240 and screen.selected_id() == &"legendary_02")
+	_c("20/20: altın ray + yıldız + altın sayı, tam dolu; sayaçlar tam; ödül verilmedi (Hamur aynı)",
+		screen.header_count_text() == "20/20" and is_equal_approx(screen.header_bar().value, 1.0)
+		and screen.header_bar().theme_type_variation == &"ProgressBarGold" and screen._header_star.visible
+		and screen.rarity_chip_text(SkinData.Rarity.LEGENDARY) == "EFSANEVİ 2/2" and SaveManager.dough() == 1240
+		and screen.showcase_chip_text() == "VİTRİN 3/3")
 	var all_owned: bool = true
 	for card in cards:
-		if not card.is_owned() or card.price() != 0 or card.swatch()._lock.visible:
+		if not card.is_owned() or card.swatch()._lock.visible:
 			all_owned = false
-	_c("20/20: hiçbir kartta kilit yok", all_owned)
-	SaveManager.data["equipped_skin"] = ""
-	screen.refresh()
-	await get_tree().process_frame
-	_c("20/20 Varsayılan'dan bağımsız: Varsayılan takılıyken de 20/20, Varsayılan seçili + TAKILI", screen.progress_text() == "20/20"
-		and SkinEntry.owned_count() == 20 and screen.selected_id() == &"" and screen.showcase_state_text() == "TAKILI"
-		and screen.card(&"").is_equipped() and screen.card(&"").equipped_plate().visible)
+	_c("20/20: hiçbir kartta kilit yok; vitrindeki 3 kartta VİTRİNDE", all_owned and _plates(screen) == 3)
 
 	print("-- rarity işaretleri")
 	_apply_mid()
@@ -498,13 +534,13 @@ func _ready() -> void:
 		and not screen.card(&"epic_01").sparkles()[0].visible
 		and screen.card(&"legendary_01").body().has_theme_stylebox_override("panel")
 		and not screen.card(&"epic_01").body().has_theme_stylebox_override("panel"))
-	_c("bölüm plakaları rarity tonlu: EFSANEVİ altın, NADİR mavi, EPİK mor, YAYGIN gri-lavanta (hepsi override)",
+	_c("bölüm plakaları rarity tonlu (hepsi override; EFSANEVİ sıcak)",
 		(headers[3].get_meta(&"plate") as PanelContainer).has_theme_stylebox_override("panel")
 		and (headers[0].get_meta(&"plate") as PanelContainer).has_theme_stylebox_override("panel")
 		and ((headers[3].get_meta(&"plate") as PanelContainer).get_theme_stylebox("panel") as StyleBoxTexture).modulate_color.r > 0.8)
 	_c("kilitli kart gövdesi buzlu (PanelCollectionCardLocked), sahip olunan krem", screen.card(&"common_03").body().theme_type_variation == &"PanelCollectionCardLocked"
 		and screen.card(&"common_01").body().theme_type_variation == &"PanelCollectionCard")
-	_c("kilitli kartta kilit rozeti görünür, sahip olunanda yok; kartta fiyat metni YOK (vitrinde)", screen.card(&"common_03").swatch()._lock.visible
+	_c("kilitli kartta kilit rozeti görünür, sahip olunanda yok; kartta fiyat metni YOK (detayda)", screen.card(&"common_03").swatch()._lock.visible
 		and not screen.card(&"common_01").swatch()._lock.visible
 		and not _collect_text(screen.card(&"common_03")).contains("Hamur"))
 
@@ -515,23 +551,23 @@ func _ready() -> void:
 	_c("geri → Ana Sayfa", _main._active_tab == 0 and home.visible and not screen.visible)
 	home.feature_button(&"collection").pressed.emit()
 	_c("Home KOLEKSİYON madalyonu → Koleksiyon (tek örnek)", _main._active_tab == 2 and screen.visible
-		and _count_class(_main, "CollectionSkinCard") == 21)
+		and _count_class(_main, "CollectionSkinCard") == 20)
 	_main._last_back_msec = -1000
 	_main._notification(NOTIFICATION_WM_GO_BACK_REQUEST)
-	_c("Android geri → Ana Sayfa (çıkış yok: _exit_tree bekçisi SONUC'tan önce gelirse FAIL basar)", _main._active_tab == 0 and home.visible)
+	_c("Android geri (detay kapalı) → Ana Sayfa (çıkış yok: _exit_tree bekçisi SONUC'tan önce gelirse FAIL basar)", _main._active_tab == 0 and home.visible)
 	_main._show_tab(2)
 	bar.add_button().pressed.emit()
 	_c("Hamur '+' → Mağaza", _main._active_tab == 3 and shop.visible and not screen.visible)
 	_main._show_tab(2)
 	await get_tree().process_frame
-	screen.select(&"legendary_02")
+	screen.card(&"epic_01").pressed.emit()
 	screen.scroll().scroll_vertical = 600
 	await get_tree().process_frame
 	_main._show_tab(0)
 	_main._show_tab(2)
 	await get_tree().process_frame
-	_c("Koleksiyon'a her girişte kaydırma en üstte (600'den), seçim takılıya döner", screen.scroll().scroll_vertical == 0
-		and screen.selected_id() == &"rare_02")
+	_c("Koleksiyon'a her girişte kaydırma en üstte (600'den), açık detay kapanmış", screen.scroll().scroll_vertical == 0
+		and not screen.is_detail_open())
 	_c("Home Koleksiyon madalyonu aynı sayıyı gösteriyor (4/20)", home.feature_button(&"collection").badge_text() == "4/20")
 	# A36 cihaz kapısı (06.2): basış + bırakış AYNI karede (çok kısa dokunuş /
 	# adb tap) → geri butonu ekran gizlenirken 0.94'te asılı kalıyordu.
@@ -553,8 +589,9 @@ func _ready() -> void:
 	_send_click(card_center, false)
 	await get_tree().create_timer(0.4).timeout
 	await get_tree().process_frame
-	_c("aynı karede basıp bırakılan kart: seçildi, ölçeği pop/basıştan sonra 1.0", screen.selected_id() == &"common_01"
-		and first_card.scale.is_equal_approx(Vector2.ONE))
+	_c("aynı karede basıp bırakılan kart: detay açıldı, kart ölçeği 1.0", screen.is_detail_open()
+		and screen.detail_id() == &"common_01" and first_card.scale.is_equal_approx(Vector2.ONE))
+	screen.close_detail(false)
 
 	print("-- yerleşim")
 	_apply_mid()
@@ -565,12 +602,12 @@ func _ready() -> void:
 		_main._show_tab(2)
 		await get_tree().process_frame
 		await get_tree().process_frame
-		await _check_layout(screen, EXPECTED_CANVAS[view], 0.0, "%dx%d" % [view.x, view.y])
-	await _resize(VIEWS[1])
+		await _check_layout(screen, 0.0, "%dx%d" % [view.x, view.y])
+	await _resize(VIEWS[3])
 	screen._layout_with_safe_top(A36_SAFE_TOP)
 	await get_tree().process_frame
 	await get_tree().process_frame
-	await _check_layout(screen, EXPECTED_CANVAS[VIEWS[1]], A36_SAFE_TOP, "720x1560")
+	await _check_layout(screen, A36_SAFE_TOP, "1080x2340")
 	screen._layout_with_safe_top(-1.0)
 	await _resize(VIEWS[0])
 
@@ -620,12 +657,23 @@ func _resize(view: Vector2i) -> void:
 	await get_tree().process_frame
 
 
+## Kanonik vitrin (SaveManager.profile_showcase) beklenen id sırası mı.
+func _showcase_is(ids: Array) -> bool:
+	var got: Array[StringName] = SaveManager.profile_showcase()
+	if got.size() != ids.size():
+		return false
+	for i in ids.size():
+		if got[i] != StringName(ids[i]):
+			return false
+	return true
+
+
 func _apply_mid() -> void:
 	SaveManager.data["highest_level_unlocked"] = 4
 	SaveManager.data["level_stars"] = {"1": 2, "2": 3, "3": 3}
 	SaveManager.data["dough"] = 335
 	SaveManager.data["unlocked_skins"] = ["common_01", "common_02", "rare_02", "epic_01"]
-	SaveManager.data["equipped_skin"] = "rare_02"
+	SaveManager.data["profile_showcase"] = ["rare_02"]
 	SaveManager.data["powerups"] = {"bomb": 3, "upgrade": 1, "shake": 0, "clear_small": 2}
 	SaveManager.data["endless_high_score"] = 0
 	SaveManager.data["last_login_date"] = Time.get_date_string_from_system()
@@ -636,7 +684,7 @@ func _apply_fresh() -> void:
 	SaveManager.data["level_stars"] = {}
 	SaveManager.data["dough"] = 0
 	SaveManager.data["unlocked_skins"] = []
-	SaveManager.data["equipped_skin"] = ""
+	SaveManager.data["profile_showcase"] = []
 	SaveManager.data["powerups"] = {"bomb": 1, "upgrade": 1, "shake": 1, "clear_small": 1}
 	SaveManager.data["last_login_date"] = Time.get_date_string_from_system()
 
@@ -647,7 +695,7 @@ func _apply_full() -> void:
 	for skin in SkinLibrary.all():
 		all.append(String(skin.id))
 	SaveManager.data["unlocked_skins"] = all
-	SaveManager.data["equipped_skin"] = "legendary_02"
+	SaveManager.data["profile_showcase"] = ["legendary_02", "epic_03", "rare_02"]
 	SaveManager.data["dough"] = 1240
 
 
@@ -655,16 +703,32 @@ func _pill_text(bar: ScreenTopBar) -> String:
 	return (bar.pill().get_meta(&"value_label") as Label).text
 
 
-func _pedestal_rim(screen: CanvasLayer) -> Color:
-	return (screen.pedestal().get_parent().get_node("PedestalRim") as NinePatchRect).self_modulate
+func _stage_rim(screen: CanvasLayer) -> Color:
+	return (screen.detail_stage().get_node("PedestalRim") as NinePatchRect).self_modulate
 
 
 func _collect_text(node: Node) -> String:
 	var out: String = ""
 	for n in _all_nodes(node):
-		if n is Label and (n as Label).visible:
+		if n is Label and (n as Label).is_visible_in_tree():
 			out += (n as Label).text + "|"
 	return out
+
+
+func _plates(screen: CanvasLayer) -> int:
+	var n: int = 0
+	for card in screen.cards():
+		if card.showcase_plate().visible:
+			n += 1
+	return n
+
+
+## Karartmaya dokunuşun bırakılışı (UiKit.attach_dim_close bırakışta kapatır).
+func _release_event() -> InputEventMouseButton:
+	var ev := InputEventMouseButton.new()
+	ev.button_index = MOUSE_BUTTON_LEFT
+	ev.pressed = false
+	return ev
 
 
 ## Gerçek giriş olayı (BaseButton sırası: pressed → button_up), emit değil.
@@ -675,21 +739,6 @@ func _send_click(pos: Vector2, pressed: bool) -> void:
 	ev.position = pos
 	ev.global_position = pos
 	Input.parse_input_event(ev)
-
-
-func _tap_same(screen: CanvasLayer, id: StringName) -> bool:
-	var before: int = _equipped_signals
-	screen.card(id).pressed.emit()
-	return screen.selected_id() == id and _equipped_signals == before
-
-
-func _press_equipped_no_mutation(screen: CanvasLayer) -> bool:
-	var bytes: PackedByteArray = FileAccess.get_file_as_bytes(SaveManager.SAVE_PATH)
-	var before: int = _equipped_signals
-	# CTA gizli; yine de sinyal yolu çağrılırsa hiçbir şey olmamalı.
-	screen.cta().pressed.emit()
-	var unchanged: bool = FileAccess.get_file_as_bytes(SaveManager.SAVE_PATH) == bytes
-	return unchanged and _equipped_signals == before and not screen.cta().visible
 
 
 func _sparkle_cards(screen: CanvasLayer) -> int:
@@ -742,19 +791,18 @@ func _text_width(label: Label, text: String) -> float:
 		label.get_theme_font_size("font_size")).x
 
 
-func _check_layout(screen: CanvasLayer, view: Vector2, safe_top: float, window_tag: String) -> void:
-	var tag: String = "%s (tuval %dx%d)%s" % [window_tag, int(view.x), int(view.y), " +A36" if safe_top > 0.0 else ""]
-	var visible: Rect2 = get_viewport().get_visible_rect()
-	_c("%s tuval genişliği 720" % tag, is_equal_approx(visible.size.x, 720.0) and is_equal_approx(visible.size.y, view.y))
+func _check_layout(screen: CanvasLayer, safe_top: float, window_tag: String) -> void:
+	var view: Vector2 = get_viewport().get_visible_rect().size
+	var tag: String = "%s (tuval %dx%d)%s" % [window_tag, roundi(view.x), roundi(view.y), " +A36" if safe_top > 0.0 else ""]
+	_c("%s tuval genişliği ~720, yükseklik ≥ 1278" % tag, absf(view.x - 720.0) <= 2.0 and view.y >= 1278.0)
 	var bar: ScreenTopBar = screen.top_bar()
 	var scroll: ScrollContainer = screen.scroll()
 	scroll.scroll_vertical = 0
-	# Seçim pop'u / geçiş tween'leri (≤ 0.25 s) bitsin: ölçülen dikdörtgenler
-	# dinlenme konumu olsun.
+	# Geçiş / pop tween'leri (≤ 0.25 s) bitsin: ölçülen dikdörtgenler dinlenmede.
 	await get_tree().create_timer(0.35).timeout
 	await get_tree().process_frame
 	var bar_bottom: float = bar.height()
-	var screen_rect: Rect2 = Rect2(Vector2(0, safe_top), Vector2(720.0, view.y - safe_top))
+	var screen_rect: Rect2 = Rect2(Vector2(0, safe_top), Vector2(view.x, view.y - safe_top))
 	var bar_ok: bool = true
 	for control in [bar.back_button(), bar.pill(), bar.title_plate()]:
 		if not screen_rect.encloses(control.get_global_rect()):
@@ -764,107 +812,69 @@ func _check_layout(screen: CanvasLayer, view: Vector2, safe_top: float, window_t
 		and is_equal_approx(bar_bottom, safe_top + ScreenTopBar.TOP_MARGIN + ScreenTopBar.ROW_HEIGHT))
 	_c("%s geri ≥ 48, '+' ≥ 48" % tag, bar.back_button().size.x >= 48.0 and bar.back_button().size.y >= 48.0
 		and bar.add_button().size.x >= 48.0 and bar.add_button().size.y >= 48.0)
-	var showcase: Control = screen.showcase()
-	var show_rect: Rect2 = showcase.get_global_rect()
-	var art: Rect2 = screen.art_box().get_global_rect()
-	_c("%s vitrin satırın hemen altında, sabit; sanat kutusu satırla kesişmiyor, ekranda, ≥ 296 px" % tag,
-		is_equal_approx(show_rect.position.y, bar_bottom) and art.position.y >= bar_bottom
-		and screen_rect.encloses(art) and art.size.x >= 296.0)
-	var bar_rect: Rect2 = Rect2(Vector2(0, safe_top), Vector2(720.0, bar_bottom - safe_top))
+	var header: Rect2 = screen.header().get_global_rect()
+	var bar_rect: Rect2 = Rect2(Vector2(0, safe_top), Vector2(view.x, bar_bottom - safe_top))
+	_c("%s albüm başlığı satırın altında (kesişme yok), 24..W-24, ekranda" % tag, header.position.y >= bar_bottom
+		and not header.intersects(bar_rect) and absf(header.position.x - 24.0) <= 1.0
+		and absf(header.end.x - (view.x - 24.0)) <= 1.0 and screen_rect.encloses(header))
+	var header_labels_ok: bool = true
+	for label in _all_nodes(screen.header()):
+		if label is Label and (label as Label).is_visible_in_tree():
+			var l: Label = label
+			if not header.grow(1.0).encloses(l.get_global_rect()) or _text_width(l, l.text) > l.size.x + 0.5:
+				header_labels_ok = false
+				print("    başlık yazısı taşıyor/kırpılıyor: '", l.text, "' ", l.get_global_rect())
+	_c("%s başlık yazıları (sayı, VİTRİN çipi, 4 rarity sayacı) kırpılmadan plakanın içinde" % tag, header_labels_ok)
+	var gallery_y: float = scroll.global_position.y
+	_c("%s albüm başlığın altından tabana (ScrollContainer y > başlık altı, yükseklik = kalan ≥ 300)" % tag,
+		gallery_y >= header.end.y and is_equal_approx(scroll.size.y, view.y - gallery_y) and scroll.size.y >= 300.0)
 	var haze: TextureRect = screen.haze()
-	_c("%s üst haze yalnız satır bandında (vitrin sanatına dokunmaz); sanat/ad satıra girmez" % tag,
-		not art.intersects(bar_rect) and not screen._name_label.get_global_rect().intersects(bar_rect)
-		and is_equal_approx(haze.size.y, bar_bottom) and not haze.get_global_rect().intersects(art))
-	# Üç vitrin durumu (takılı / sahip TAK / kilitli MAĞAZAYA GİT): sıra, kesişme,
-	# kapsama ve çip + etiketin satır içinde kalması her durumda ölçülür.
-	var order_ok: bool = true
-	var cta_rect: Rect2
-	var plate_rect: Rect2
-	var progress_rect: Rect2
-	var name_rect: Rect2
-	var tag_rect: Rect2
-	for id in [&"rare_02", &"common_01", &"legendary_01"]:
-		screen.select(id, false)
-		await get_tree().process_frame
-		cta_rect = screen.cta().get_global_rect()
-		plate_rect = screen.equipped_plate().get_global_rect()
-		progress_rect = screen.progress_plate().get_global_rect()
-		name_rect = screen._name_label.get_global_rect()
-		tag_rect = screen._tag_row.get_global_rect()
-		var chip_ok: bool = true
-		if screen.state_chip().visible:
-			var chip_rect: Rect2 = screen.state_chip().get_global_rect()
-			var rtag_rect: Rect2 = screen._tag.get_global_rect()
-			chip_ok = tag_rect.encloses(chip_rect) and tag_rect.encloses(rtag_rect) and not chip_rect.intersects(rtag_rect)
-		var state_ok: bool = name_rect.end.y <= tag_rect.position.y and tag_rect.end.y <= cta_rect.position.y
-		state_ok = state_ok and cta_rect.end.y <= progress_rect.position.y and show_rect.encloses(cta_rect)
-		state_ok = state_ok and show_rect.encloses(progress_rect) and show_rect.encloses(name_rect)
-		state_ok = state_ok and is_equal_approx(cta_rect.position.y, plate_rect.position.y) and chip_ok
-		if not state_ok:
-			order_ok = false
-			print("    durum ", id, " vitrin ", show_rect, " ad ", name_rect, " etiket ", tag_rect, " cta ", cta_rect, " plaka ", plate_rect, " ilerleme ", progress_rect)
-	_c("%s vitrin içi (takılı / sahip / kilitli): ad → etiket+çip → eylem → ilerleme sırayla, kesişme yok, hepsi vitrin içinde" % tag, order_ok)
-	screen.select(&"rare_02", false)
-	# Seçim pop'ları (1.04, 0.22 s) bitsin: kart dikdörtgenleri dinlenmede ölçülür.
-	await get_tree().create_timer(0.3).timeout
-	await get_tree().process_frame
-	cta_rect = screen.cta().get_global_rect()
-	plate_rect = screen.equipped_plate().get_global_rect()
-	_c("%s CTA 320×60 (≥ 48), tuval ortasında; TAKILI plakası aynı yuvada, aynı ayak izi, ≥ 48" % tag,
-		cta_rect.size.y >= 48.0 and is_equal_approx(cta_rect.size.x, 320.0) and is_equal_approx(cta_rect.get_center().x, 360.0)
-		and plate_rect.size.y >= 48.0 and absf(plate_rect.get_center().x - 360.0) < 1.0
-		and is_equal_approx(plate_rect.size.x, cta_rect.size.x))
-	_c("%s vitrin okunur: ad ≥ 30 px, rarity etiketi ≥ 18 px" % tag,
-		screen._name_label.get_theme_font_size("font_size") >= 30
-		and (screen._tag.get_meta(&"title_label") as Label).get_theme_font_size("font_size") >= 18)
-	var fits: bool = true
-	for card in screen.cards():
-		var lbl: Label = card._name_label
-		if _text_width(lbl, lbl.text) > lbl.size.x:
-			fits = false
-			print("    ad sığmıyor: ", lbl.text)
-	var show_name: Label = screen._name_label
-	_c("%s 21 kart adı ve vitrin adı kırpılmadan sığıyor (üç nokta yok)" % tag, fits
-		and _text_width(show_name, "Kırmızı Biber") < show_name.size.x)
-	var gallery_y: float = show_rect.end.y
-	_c("%s galeri vitrinin altından tabana (ScrollContainer y = vitrin altı, yükseklik = kalan)" % tag,
-		is_equal_approx(scroll.global_position.y, gallery_y) and is_equal_approx(scroll.size.y, view.y - gallery_y)
-		and scroll.size.y >= 300.0)
+	_c("%s üst haze yalnız satır bandında (başlığa dokunmaz)" % tag, is_equal_approx(haze.size.y, bar_bottom)
+		and haze.get_global_rect().end.y <= header.position.y + 0.5)
 	var cards: Array[CollectionSkinCard] = screen.cards()
 	var inside_x: bool = true
 	var touch: bool = true
 	var overlap: bool = false
 	var columns: Dictionary = {}
+	var x0: float = (view.x - 3.0 * 216.0 - 2.0 * 12.0) * 0.5
 	for card in cards:
 		var rect: Rect2 = card.get_global_rect()
-		if rect.position.x < 24.0 - 0.5 or rect.end.x > 696.0 + 0.5:
+		if rect.position.x < 24.0 - 0.5 or rect.end.x > view.x - 24.0 + 0.5:
 			inside_x = false
 			print("    yatay taşma: ", card.name, " ", rect)
 		if rect.size.x < 48.0 or rect.size.y < 48.0:
 			touch = false
-		columns[roundi(rect.position.x)] = true
+		# Konteynerler konumu tam piksele yuvarlar (721 px tuval: x0 = 24.5 → 24).
+		var step: float = (rect.position.x - x0) / 114.0
+		if absf(step - roundf(step)) * 114.0 > 1.0:
+			inside_x = false
+			print("    ızgara dışı konum: ", card.name, " ", rect.position.x)
+		columns[roundi(step)] = true
 	for i in cards.size():
 		for j in range(i + 1, cards.size()):
 			if cards[i].get_global_rect().intersects(cards[j].get_global_rect()):
 				overlap = true
 				print("    kart çakışması: ", cards[i].name, " x ", cards[j].name)
-	# Tam sıralar 3 sütun (x 24 / 252 / 480); eksik sıralar ortada (Safran tek: x 252; iki Legendary: x 138 / 366).
-	_c("%s kartlar yatayda 24..696 içinde, 216 px, kesişme yok, ≥ 48 dokunma; tam sıra 3 sütun, eksik sıra ortalı (YAYGIN son 2 / Safran / Legendary 2)" % tag,
-		inside_x and touch and not overlap and is_equal_approx(cards[1].get_global_rect().size.x, 216.0)
-		and columns.has(24) and columns.has(252) and columns.has(480)
-		and is_equal_approx(screen.card(&"common_07").get_global_rect().position.x, 138.0)
-		and is_equal_approx(screen.card(&"common_08").get_global_rect().position.x, 366.0)
-		and is_equal_approx(screen.card(&"epic_04").get_global_rect().position.x, 252.0)
-		and is_equal_approx(screen.card(&"legendary_01").get_global_rect().position.x, 138.0)
-		and is_equal_approx(screen.card(&"legendary_02").get_global_rect().position.x, 366.0))
-	var base_rect: Rect2 = cards[0].get_global_rect()
-	var first: Rect2 = cards[1].get_global_rect()
-	var header: Rect2 = screen.section_headers()[0].get_global_rect()
-	_c("%s Varsayılan şeridi galerinin en üstünde (24..696, ≤ 120 px), YAYGIN plakası altında, Sade plakanın altında, ilk sıra tamamen görünür" % tag,
-		base_rect.position.y >= gallery_y and is_equal_approx(base_rect.position.x, 24.0)
-		and is_equal_approx(base_rect.size.x, 672.0) and base_rect.size.y <= 120.0
-		and base_rect.end.y < header.position.y and first.position.y > header.end.y
-		and first.end.y <= view.y and cards[3].get_global_rect().end.y <= view.y)
+	if not (columns.has(0) and columns.has(2) and columns.has(4)):
+		print("    sütunlar (x0 = %.2f, 114 px adım): " % x0, columns.keys())
+	_c("%s kartlar yatayda 24..W-24 içinde, 216 px, kesişme yok, ≥ 48 dokunma; tam sıra 3 sütun, eksik sıra ortalı" % tag,
+		inside_x and touch and not overlap and is_equal_approx(cards[0].get_global_rect().size.x, 216.0)
+		and columns.has(0) and columns.has(2) and columns.has(4)
+		and absf(screen.card(&"common_07").get_global_rect().position.x - (x0 + 114.0)) <= 1.0
+		and absf(screen.card(&"epic_04").get_global_rect().position.x - (x0 + 228.0)) <= 1.0
+		and absf(screen.card(&"legendary_02").get_global_rect().position.x - (x0 + 342.0)) <= 1.0)
+	var first: Rect2 = cards[0].get_global_rect()
+	var first_header: Rect2 = screen.section_headers()[0].get_global_rect()
+	_c("%s YAYGIN plakası albümün en üstünde, ilk sıra (Sade) plakanın altında ve tamamen görünür" % tag,
+		first_header.position.y >= gallery_y and first.position.y > first_header.end.y
+		and first.end.y <= view.y and cards[2].get_global_rect().end.y <= view.y)
+	var fits: bool = true
+	for card in cards:
+		var lbl: Label = card._name_label
+		if _text_width(lbl, lbl.text) > lbl.size.x:
+			fits = false
+			print("    ad sığmıyor: ", lbl.text)
+	_c("%s 20 kart adı kırpılmadan sığıyor (üç nokta yok)" % tag, fits)
 	var legendary: CollectionSkinCard = screen.card(&"legendary_01")
 	var card_rect: Rect2 = legendary.get_global_rect()
 	var badge_ok: bool = card_rect.grow(8.0).encloses(legendary.swatch()._lock.get_global_rect())
@@ -872,25 +882,106 @@ func _check_layout(screen: CanvasLayer, view: Vector2, safe_top: float, window_t
 	for spark in legendary.sparkles():
 		if not card_rect.encloses(spark.get_global_rect()):
 			badge_ok = false
-	var equipped_card: CollectionSkinCard = screen.card(&"rare_02")
-	var face_bottom: float = equipped_card.get_global_rect().end.y - CARD_LIP
-	var eq_plate: Rect2 = equipped_card.equipped_plate().get_global_rect()
-	_c("%s kilit rozeti sanat kutusunda, Legendary pırıltıları kartın içinde, TAKILI plakası krem yüzün içinde (dudağa binmez)" % tag,
-		badge_ok and equipped_card.get_global_rect().encloses(eq_plate) and eq_plate.end.y <= face_bottom - 4.0
-		and equipped_card.get_global_rect().encloses(equipped_card._name_label.get_global_rect()))
-	# Kaydırma: sonuna git, son kart tamamen görünür + alt pay; satır ve vitrin oynamaz.
+	var showcased: CollectionSkinCard = screen.card(&"rare_02")
+	var face_bottom: float = showcased.get_global_rect().end.y - CARD_LIP
+	var plate: Rect2 = showcased.showcase_plate().get_global_rect()
+	_c("%s kilit rozeti sanat kutusunda, Legendary pırıltıları kartın içinde, VİTRİNDE plakası krem yüzün içinde (dudağa binmez)" % tag,
+		badge_ok and showcased.get_global_rect().encloses(plate) and plate.end.y <= face_bottom - 2.0
+		and showcased.get_global_rect().encloses(showcased._name_label.get_global_rect()))
+	# Kaydırma: sonuna git, son kart tamamen görünür + alt pay; satır ve başlık oynamaz.
 	var bar_pos_before: Vector2 = bar.back_button().global_position
-	var show_pos_before: Vector2 = showcase.global_position
+	var header_before: Vector2 = screen.header().global_position
 	var max_scroll: float = scroll.get_v_scroll_bar().max_value - scroll.size.y
 	scroll.scroll_vertical = int(max_scroll) + 10
 	await get_tree().process_frame
 	await get_tree().process_frame
 	var last: Rect2 = cards[cards.size() - 1].get_global_rect()
-	_c("%s galeri kaydırılabilir (max > 0), sonunda son kart tamamen ekranda, alt pay ≥ 40" % tag,
+	_c("%s albüm kaydırılabilir (max > 0), sonunda son kart tamamen ekranda, alt pay ≥ 40" % tag,
 		max_scroll > 0.0 and last.end.y <= view.y - 40.0 and last.position.y >= gallery_y)
-	_c("%s kaydırma üst satırı ve vitrini OYNATMADI (sabit)" % tag,
-		bar.back_button().global_position == bar_pos_before and showcase.global_position == show_pos_before)
-	_c("%s kaydırma sonunda ilk kart galerinin üstünden çıktı (vitrinin altında kırpılır)" % tag,
-		cards[0].get_global_rect().end.y < gallery_y)
+	_c("%s kaydırma üst satırı ve başlığı OYNATMADI (sabit)" % tag,
+		bar.back_button().global_position == bar_pos_before and screen.header().global_position == header_before)
 	scroll.scroll_vertical = 0
 	await get_tree().process_frame
+	# Detay penceresi: kilitli / sahip / vitrinde (iki eylem) / değiştirme adımı.
+	SaveManager.data["profile_showcase"] = ["rare_02", "epic_01", "common_02"]
+	var detail_ok: bool = true
+	for step in [[&"legendary_01", false], [&"common_01", false], [&"epic_01", false], [&"common_01", true]]:
+		screen.open_detail(step[0])
+		if step[1]:
+			screen.detail_primary().pressed.emit()
+		await get_tree().create_timer(0.3).timeout
+		await get_tree().process_frame
+		if not _detail_fits(screen, screen_rect, "%s %s%s" % [tag, step[0], " (değiştirme)" if step[1] else ""]):
+			detail_ok = false
+		screen.close_detail(false)
+	SaveManager.data["profile_showcase"] = ["rare_02"]
+	screen.refresh()
+	_c("%s detay penceresi (kilitli / sahip / vitrinde iki eylem / değiştirme adımı): ekranda, butonlar ≥ 48, sahne + ad + etiket + not kırpılmadan çerçevede, çakışma yok" % tag,
+		detail_ok)
+
+
+## Detay çerçevesi güvenli alanda; kurdele + X ekranda; hero sahnesi, ad,
+## etiket satırı, not ve görünür butonlar çerçevede, birbirine binmez; ad ve
+## eylem yazıları sığar; değiştirme kutuları gövdede.
+func _detail_fits(screen: CanvasLayer, screen_rect: Rect2, tag: String) -> bool:
+	var frame: Control = screen.detail_frame()
+	var frame_rect: Rect2 = frame.get_global_rect()
+	var ok: bool = true
+	var why: Array[String] = []
+	if not screen_rect.encloses(frame_rect):
+		ok = false
+		why.append("çerçeve ekran dışı %s" % frame_rect)
+	var close: Button = frame.get_meta(&"close_button")
+	var ribbon: Control = frame.get_meta(&"ribbon")
+	if not screen_rect.encloses(close.get_global_rect()) or close.size.x < 48.0:
+		ok = false
+		why.append("X ekran dışı / küçük")
+	if not screen_rect.encloses(ribbon.get_global_rect()):
+		ok = false
+		why.append("kurdele ekran dışı")
+	var stage: Rect2 = screen.detail_stage().get_global_rect()
+	var name_rect: Rect2 = screen._detail_name.get_global_rect()
+	var chip: Rect2 = screen._detail_chip.get_global_rect()
+	var note: Rect2 = screen._detail_note.get_global_rect()
+	var scroll: ScrollContainer = frame.get_meta(&"scroll")
+	var body_clip: Rect2 = scroll.get_global_rect()
+	if not frame_rect.encloses(stage):
+		ok = false
+		why.append("sahne çerçeve dışı")
+	if screen._detail_name.is_visible_in_tree() and (not body_clip.grow(1.0).encloses(name_rect) or stage.end.y > name_rect.position.y + 1.0) \
+			and not bool(frame.get_meta(&"body_scrolls", false)):
+		ok = false
+		why.append("ad gövde dışı / sahneye biniyor")
+	if _text_width(screen._detail_name, screen._detail_name.text) > screen._detail_name.size.x:
+		ok = false
+		why.append("ad sığmıyor")
+	if chip.intersects(screen._detail_tag.get_global_rect()) and screen._detail_chip.visible:
+		ok = false
+		why.append("durum çipi rarity etiketine biniyor")
+	if not bool(frame.get_meta(&"body_scrolls", false)) and not body_clip.grow(1.0).encloses(note):
+		ok = false
+		why.append("not gövde dışı")
+	var buttons: Array[Button] = []
+	for b in [screen.detail_primary(), screen.detail_secondary()]:
+		if b.is_visible_in_tree():
+			buttons.append(b)
+	for b in buttons:
+		var r: Rect2 = b.get_global_rect()
+		if r.size.y < 48.0 or not frame_rect.encloses(r) or r.intersects(body_clip) or r.intersects(stage):
+			ok = false
+			why.append("buton %s küçük / dışarıda / gövdeye biniyor %s" % [b.name, r])
+		var title: Label = b.get_meta(&"title_label")
+		if _text_width(title, title.text) > r.size.x - 24.0:
+			ok = false
+			why.append("buton yazısı sığmıyor: %s" % title.text)
+	if buttons.size() == 2 and buttons[0].get_global_rect().intersects(buttons[1].get_global_rect()):
+		ok = false
+		why.append("iki buton çakışıyor")
+	if screen.is_replacing():
+		for tile in screen.replace_tiles():
+			if tile.visible and not frame_rect.encloses(tile.get_global_rect()):
+				ok = false
+				why.append("yuva kutusu çerçeve dışı")
+	if not ok:
+		print("    detay sorunu ", tag, ": ", ", ".join(why))
+	return ok

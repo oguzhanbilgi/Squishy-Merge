@@ -105,7 +105,6 @@ func _ready() -> void:
 	for type in PowerUp.all():
 		stock[PowerUp.save_key(type)] = 9
 	SaveManager.data["powerups"] = stock
-	SaveManager.data["equipped_skin"] = ""
 	Haptics.set_sink(_on_haptic, true)
 	Haptics.reset_counters()
 

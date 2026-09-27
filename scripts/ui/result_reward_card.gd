@@ -1,6 +1,6 @@
 class_name ResultRewardCard
 extends Control
-## Round sonu ödül kartı (M8.6-09). Sandık ödülü / skin ödülü / geri düşüş
+## Round sonu ödül kartı (M8.6-09). Sandık ödülü / Squishy ödülü / geri düşüş
 ## Hamur'u / teselli ödülü TEK bileşenden; Mağaza-Koleksiyon kartlarıyla aynı
 ## malzeme ailesi (krem `card_bevel_soft` gövde, açık halka, erik gölge, kart
 ## yüzü), yatay satır (528 × 128): solda sahne, sağda yazı sütunu.
@@ -8,16 +8,17 @@ extends Control
 ## Sahne (116 px): rarity renginde düşük alfa hale → `RewardGem` (owner
 ## sandığı, kapalı → açık + kalibre rarity katmanları, 88 px). Skin
 ## ödülünde kart daha yüksek (176), sandık açıldıktan sonra sönerek küçülür ve
-## yerine GERÇEK final skin sanatı (`SkinSwatch` 140 px, krem kaide) pop'lar —
-## skin kartın kahramanı; altında "Koleksiyon'a eklendi".
+## yerine GERÇEK final Squishy sanatı (`SkinSwatch` 140 px, krem kaide) pop'lar —
+## koleksiyon parçası kartın kahramanı; "YENİ SQUISHY keşfedildi!" (TASK/044:
+## koleksiyon dili — takma / skin dili yok).
 ## Teselli ödülünde sandık YOK (o bir sandık değil): lavanta kuyuda owner
 ## Hamur sanatı.
 ##
 ## Yazı sütunu (açılışa kadar görünmez): rarity etiketi Türkçe (YAYGIN /
 ## NADİR / EPİK / EFSANEVİ — `UiKit.rarity_tag`; teselli için lavanta
 ## "TESELLİ") → ana satır: "+25 HAMUR" (Hamur ikonu + koyu altın) ya da
-## skin adı (Baloo) + pembe "YENİ SKİN" rozeti → not: geri düşüşte
-## "Epik skinlerin tamamı sende" (iç terim yok, skin verildi denmez).
+## Squishy adı (Baloo) + pembe "YENİ SQUISHY" rozeti + "keşfedildi!" → not: geri
+## düşüşte "Epik Squishy'lerin tamamı sende" (iç terim yok).
 ##
 ## Legendary: altın halka + sıcak altın-krem gövde + altın hale + 3 pırıltı
 ## (oyundaki tek altın anı). Kart dokunma hedefi DEĞİL (`MOUSE_FILTER_IGNORE`):
@@ -54,8 +55,8 @@ const GLOW_ALPHA: Dictionary = {
 const LEGENDARY_BODY_MIX: float = 0.14
 const AMOUNT_FONT_SIZE: int = 30
 const NAME_FONT_SIZE: int = 30
-const NEW_SKIN_TEXT: String = "YENİ SKİN"
-const SKIN_NOTE_TEXT: String = "Koleksiyon'a eklendi"
+const NEW_SKIN_TEXT: String = "YENİ SQUISHY"
+const SKIN_NOTE_TEXT: String = "keşfedildi!"
 const CONSOLATION_TEXT: String = "TESELLİ"
 ## Hareket süreleri.
 const APPEAR_TIME: float = 0.26
@@ -229,11 +230,10 @@ func setup(reward: ChestReward) -> void:
 			_swatch = SkinSwatch.new()
 			_swatch.name = "SkinPreview"
 			var entry: SkinEntry = SkinEntry.for_skin(reward.skin)
-			# Kart ödülü SUNAR: skin kanonik yolda zaten verildi; vitrin her
-			# zaman "senin" görünümü (kilit/buz yok) — harness'ta verilmemiş
-			# olsa da kart yalan söylemez, yalnızca sanatı gösterir.
+			# Kart ödülü SUNAR: parça kanonik yolda zaten verildi; her zaman
+			# "senin" görünümü (kilit/buz yok) — harness'ta verilmemiş olsa da
+			# kart yalan söylemez, yalnızca sanatı gösterir.
 			entry.owned = true
-			entry.equipped = false
 			_swatch.setup(entry)
 			_center(_swatch, SKIN_SIZE, 2.0)
 			_swatch.pivot_offset = Vector2(SKIN_SIZE, SKIN_SIZE) * 0.5
@@ -412,7 +412,7 @@ func name_text() -> String:
 
 
 ## Kart içi notu gizler (M8.9-02.1: GÜNLÜK ÖDÜLLER reveal'i dar gövdede
-## "Koleksiyon'a eklendi"yi kartın altında tam genişlik yazar; kart kısalır,
+## "Yeni Squishy keşfedildi!"i kartın altında tam genişlik yazar; kart kısalır,
 ## hale için yan pay kalır). Round sonu kartlarında çağrılmaz.
 func hide_note() -> void:
 	if _note != null and is_instance_valid(_note):

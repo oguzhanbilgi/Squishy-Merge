@@ -360,7 +360,7 @@ func _page_components() -> Control:
 	var tags := _flow()
 	column.add_child(tags)
 	tags.add_child(UiKit.section_tag("GÜÇLER"))
-	tags.add_child(UiKit.section_tag("SKİNLER", UiTokens.PINK))
+	tags.add_child(UiKit.section_tag("KOLEKSİYON", UiTokens.PINK))
 	tags.add_child(UiKit.section_tag("GÜNLÜK", UiTokens.MINT))
 	tags.add_child(UiKit.section_tag("PREMIUM", UiTokens.GOLD))
 
@@ -386,7 +386,7 @@ func _page_components() -> Control:
 	badges.add_child(UiKit.badge("×4", &"Badge"))
 	badges.add_child(UiKit.badge("4", &"Badge", ""))
 	badges.add_child(UiKit.badge("Kilitli", &"LockBadge", "lock"))
-	badges.add_child(UiKit.badge("TAKILI", &"EquippedBadge", "check"))
+	badges.add_child(UiKit.badge("VİTRİNDE", &"EquippedBadge", "check"))
 	badges.add_child(UiKit.badge("YENİ", &"NewBadge"))
 	badges.add_child(UiKit.badge("12/20", &"CountBadge"))
 	badges.add_child(UiKit.badge("", &"LockBadge", "lock"))
@@ -494,8 +494,8 @@ func _module_owned_row() -> Control:
 	var owned := _row(UiTokens.SPACE_XS)
 	info.add_child(owned)
 	owned.add_child(UiKit.icon("check", 20, UiTokens.TEXT_POSITIVE))
-	owned.add_child(UiKit.label("Sahipsin · Takılı", &"LabelPositive"))
-	row.add_child(UiKit.badge("TAKILI", &"EquippedBadge"))
+	owned.add_child(UiKit.label("Sahipsin · Vitrinde", &"LabelPositive"))
+	row.add_child(UiKit.badge("VİTRİNDE", &"EquippedBadge"))
 	return card
 
 

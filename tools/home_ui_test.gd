@@ -140,7 +140,7 @@ func _ready() -> void:
 		and home._level_caption.text == "SIRADAKİ" and home._level_stars.text == "8/30")
 	var collection: HomeFeatureButton = home.feature_button(&"collection")
 	_c("koleksiyon rozeti 6/20, halka 0.30", collection.badge_text() == "6/20" and absf(collection.progress() - 0.3) < 0.011)
-	_c("koleksiyon sanatı takılı skin'in önizlemesi", collection._art.texture == SkinEntry.find(&"rare_02").preview_texture())
+	_c("koleksiyon sanatı en son keşfedilen Squishy (epic_01; 'takılı' yok)", collection._art.texture == SkinEntry.find(&"epic_01").art_texture())
 	var chest: HomeFeatureButton = home.feature_button(&"chest")
 	_c("sandık rozeti 49/75, altın halka 49/75", chest.badge_text() == "49/75" and absf(chest.progress() - 49.0 / 75.0) < 0.011
 		and chest._ring.tint == UiTokens.GOLD)
@@ -543,7 +543,7 @@ func _apply_showcase() -> void:
 	SaveManager.data["daily_streak"] = 2
 	SaveManager.data["last_login_date"] = Time.get_date_string_from_system()
 	SaveManager.data["unlocked_skins"] = ["common_01", "common_02", "rare_02", "common_04", "rare_05", "epic_01"]
-	SaveManager.data["equipped_skin"] = "rare_02"
+	SaveManager.data["profile_showcase"] = ["rare_02"]
 	SaveManager.data["merges_since_bonus_chest"] = 49
 	SaveManager.data["endless_high_score"] = 0
 
@@ -555,7 +555,7 @@ func _apply_fresh() -> void:
 	SaveManager.data["daily_streak"] = 0
 	SaveManager.data["last_login_date"] = Time.get_date_string_from_system()
 	SaveManager.data["unlocked_skins"] = []
-	SaveManager.data["equipped_skin"] = ""
+	SaveManager.data["profile_showcase"] = []
 	SaveManager.data["merges_since_bonus_chest"] = 0
 	SaveManager.data["endless_high_score"] = 0
 
@@ -574,6 +574,6 @@ func _apply_endless() -> void:
 	SaveManager.data["daily_streak"] = 365
 	SaveManager.data["last_login_date"] = Time.get_date_string_from_system()
 	SaveManager.data["unlocked_skins"] = all_ids
-	SaveManager.data["equipped_skin"] = "legendary_02"
+	SaveManager.data["profile_showcase"] = ["legendary_02", "epic_01", "rare_02"]
 	SaveManager.data["merges_since_bonus_chest"] = 74
 	SaveManager.data["endless_high_score"] = 12480

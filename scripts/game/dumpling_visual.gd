@@ -9,9 +9,11 @@ extends Node2D
 ##  - ayrı yüz katmanı YOK
 ##  - parlama overlay'i YOK (sprite'ların kendi spekuler parlamaları var)
 ##
-## M8.5'te takılı skin desteği eklendi. Skin'in NASIL çizildiği bu dosyada
-## değil, `scripts/game/skin_visual.gd` içinde — orası bilerek değiştirilebilir
-## bir katman. Burada yalnızca "hangi skin" sorusu cevaplanıyor.
+## TASK/044 (owner kararı): gameplay skinleri EMEKLİ. Parça HER ZAMAN tier'ın
+## kanonik sprite'ıyla çizilir — materyal yok, aura yok. Koleksiyon parçaları
+## (eski "skin") yalnız Koleksiyon ve Profil'de görünür; bu dosya SaveManager'ı,
+## vitrini ya da eski `equipped_skin` anahtarını HİÇ okumaz. (M8.5–M9 skin katmanı
+## ve `SkinVisual` shader'ı kaldırıldı; tarihçe: SKIN_ART_AUDIT.md.)
 
 ## Tier -> sprite. Sıra TierConfig.TIERS ile aynı.
 const TEXTURES: Array[Texture2D] = [
@@ -54,15 +56,7 @@ const CONTACT_FIT: Array[Dictionary] = [
 	{"scale": Vector2(0.43723, 0.44554), "offset": Vector2(-2.19, -5.70)},  # tier 8, stretch 1.02
 ]
 
-## Bu parçanın kullanacağı skin. null = varsayılan/orijinal görünüm.
-##
-## setup() sırasında doldurulmuyorsa SaveManager'daki takılı skin okunuyor —
-## yani hem yeni drop'lar hem merge sonucu oluşan yeni tier'lar otomatik
-## olarak aynı aktif skin'i kullanıyor. Testler ve önizleme araçları
-## `override_skin()` ile SaveManager'dan bağımsız bir skin verebilir.
-var _skin: SkinData = null
-var _skin_overridden: bool = false
-## setup()'ta verilen tier — gövde maskesi seçimi için (SkinVisual).
+## setup()'ta verilen tier.
 var _tier: int = 1
 
 var _tween: Tween
@@ -93,37 +87,13 @@ func setup(tier: int) -> void:
 	_sprite.scale = fit["scale"]
 	_fit_offset = fit["offset"]
 	_sprite.position = _fit_offset
-	_refresh_skin()
+	# Kanonik görünüm (TASK/044): materyal yok — tier sprite'ı kendi renkleriyle.
+	_sprite.material = null
 
 
-# --- Skin katmanı ---
-#
-# Buradaki tek iş DOĞRU SKIN'İ SEÇMEK. Skin'in nasıl göründüğü tamamen
-# SkinVisual'ın işi (scripts/game/skin_visual.gd) — sanat tekniği değişirse
-# bu dosyaya dokunulmayacak.
-
-## Takılı skin yerine belirli bir skin kullan (QA/önizleme). null = varsayılan.
-func override_skin(skin: SkinData) -> void:
-	_skin = skin
-	_skin_overridden = true
-	_refresh_skin()
-
-
-## Override'ı bırakıp tekrar SaveManager'daki takılı skin'e dön.
-func use_equipped_skin() -> void:
-	_skin_overridden = false
-	_refresh_skin()
-
-
-func _refresh_skin() -> void:
-	if _sprite == null:
-		return
-	if not _skin_overridden:
-		_skin = SaveManager.equipped_skin()
-	SkinVisual.apply(_sprite, _skin, _tier)
-	# Rarity efekti (Legendary aura) sprite'ın çocuğu; skin değişince
-	# SkinVisual eskisini kaldırır.
-	SkinVisual.attach_fx(_sprite, _skin)
+## Testler: çizilen doku ve materyal (kanonik görünüm denetimi).
+func sprite() -> Sprite2D:
+	return _sprite
 
 
 ## Gövde serbest dönüyor (M1 kilitli karar) ama yüz bu sprite'ların İÇİNDE
@@ -235,7 +205,7 @@ func set_targetable(targetable: bool) -> void:
 
 
 ## Sprite'in bagimsiz bir kopyasi, dunya donusumuyle (M8.5-11 merge pull).
-## Skin materyali de kopyalaniyor ki hayalet takili skinle ayni gorunsun.
+## Materyal de kopyalaniyor (TASK/044'ten beri hep null — kanonik gorunum).
 func make_ghost() -> Sprite2D:
 	var ghost := Sprite2D.new()
 	if _sprite != null:

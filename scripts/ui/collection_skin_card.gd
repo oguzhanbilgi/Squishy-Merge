@@ -1,51 +1,35 @@
 class_name CollectionSkinCard
 extends Button
-## Koleksiyon galeri kartı (M8.6-06). Yirmi skin + "Varsayılan" bu TEK
-## bileşenden; Mağaza kartıyla aynı malzeme ailesi (krem `card_bevel_soft`
-## gövde, açık halka, erik gölge, kart yüzü), 3 sütun galeriye göre daha
-## küçük ölçü (216×220). Kart bir `Button` ama `MOUSE_FILTER_PASS`: basış
-## karta işlenir VE olay ScrollContainer'a da ulaşır (STOP olsa parmak kartın
-## üstündeyken kaydırma hiç başlamazdı — galerinin tamamı kart). Kaydırma
-## başlayınca BaseButton basışı iptal eder (NOTIFICATION_SCROLL_BEGIN) ve
-## kart basış ölçeğini bırakır — kaydırırken yanlışlıkla seçilmez.
+## Koleksiyon albüm kartı (M8.6-06; TASK/044 albüm). Yirmi koleksiyon parçası
+## (Squishy; sınıf adı tarihsel "skin") bu TEK bileşenden; Mağaza kartıyla aynı
+## malzeme ailesi (krem `card_bevel_soft` gövde, açık halka, erik gölge, kart
+## yüzü), 3 sütun albüme göre ölçü (216×220). Kart bir `Button` ama
+## `MOUSE_FILTER_PASS`: basış karta işlenir VE olay ScrollContainer'a da ulaşır
+## (STOP olsa parmak kartın üstündeyken kaydırma hiç başlamazdı — albümün tamamı
+## kart). Kaydırma başlayınca BaseButton basışı iptal eder
+## (NOTIFICATION_SCROLL_BEGIN) ve kart basış ölçeğini bırakır.
 ##
 ## Anatomi (arkadan öne):
-##   seçim halesi (cyan, yalnız seçili) → erik gölge → rarity halkası (Common
-##   açık lavanta / Rare mavi / Epic mor / Legendary altın + altın hale) →
-##   seçim halkası (cyan, +7 px, yalnız seçili) → 2 px erik kontur → gövde
+##   erik gölge → rarity halkası (Common açık lavanta / Rare mavi / Epic mor +
+##   hafif hale / Legendary altın + altın hale) → 2 px erik kontur → gövde
 ##   (PanelCollectionCard krem; kilitli PanelCollectionCardLocked buzlu
 ##   lavanta-krem) → kart yüzü (`UiKit.card_face`) → sahne: rarity renginde
 ##   düşük alfa hale → krem kuyu → GERÇEK önizleme `SkinSwatch` 124 px
-##   (kilitli: final sanat soluk + owner kilit rozeti — silüet YOK) → Baloo
-##   19 ad → durum satırı: TAKILI (nane tik plakası) / boş. Fiyat kartta YOK
-##   (gardırop fiyat listesi değil; seçilince vitrin fiyatı + MAĞAZAYA GİT).
+##   (kilitli: final sanat soluk + owner kilit rozeti — owner kararı M8.5-14 /
+##   M8.6-06, silüet yok) → Baloo 19 ad → durum satırı: VİTRİNDE (altın yıldız
+##   plakası) / boş.
 ##
-## Kart kayda YAZMAZ ve takmaz: yalnız `selected(id)` yayar; takma vitrinin
-## TAK butonundan (ekran → SaveManager.equip_skin). Durum `SkinEntry` tek
-## kaynak (`refresh()` kanonik modelden yeniden okur).
-##
-## GENİŞ mod (M8.6-06.1, `create(entry, true)`): "Varsayılan" (id "") koleksiyon
-## skini DEĞİL, ücretsiz TABAN görünüm (GAME_DESIGN §5.3) — 20 katalog kartından
-## farklı BİÇİMDE: galerinin en üstünde, YAYGIN plakasının ÜSTÜNDE, 672×116
-## yatay şerit (sol: kuyu + 92 px orijinal dumpling · orta: ad + lavanta
-## "ORİJİNAL" rozeti · sağ: TAKILI plakası). Aynı gövde/halka/seçim/dokunma
-## reçetesi; rarity etiketi YOK (YAYGIN/Common denmez), fiyat YOK.
+## Durumlar (`SkinEntry` tek kaynak): LOCKED · OWNED · SHOWCASED (profil
+## vitrininde). TASK/044: TAKILI durumu / takma YOK — parçalar gameplay'i değiştirmez.
+## Kart kayda YAZMAZ: yalnız `selected(id)` yayar; ekran detay penceresini açar.
 
 signal selected(skin_id: StringName)
 
-enum State { LOCKED, OWNED, EQUIPPED }
+enum State { LOCKED, OWNED, SHOWCASED }
 
 const CARD_SIZE: Vector2 = Vector2(216.0, 220.0)
-## Geniş (taban görünüm) şerit: galeri iç genişliği; bir kart sırasının yarısı.
-const WIDE_SIZE: Vector2 = Vector2(672.0, 116.0)
-const WIDE_BODY_MARGIN: Vector4 = Vector4(14, 6, 18, 16)
-const WIDE_PREVIEW_SIZE: float = 92.0
-const WIDE_WELL_SIZE: float = 80.0
-const WIDE_GLOW_SIZE: float = 132.0
-const WIDE_NAME_FONT_SIZE: int = 22
-const ORIGINAL_TEXT: String = "ORİJİNAL"
 ## Alt iç pay 22: `card_bevel_soft`'un pişmiş alt dudağı (~11 px) + nefes —
-## durum satırındaki TAKILI plakası krem yüzün İÇİNDE kalır, dudağa binmez.
+## durum satırındaki VİTRİNDE plakası krem yüzün İÇİNDE kalır, dudağa binmez.
 const BODY_MARGIN: Vector4 = Vector4(10, 8, 10, 22)
 const PREVIEW_SIZE: float = 124.0
 const WELL_SIZE: float = 110.0
@@ -57,9 +41,7 @@ const GLOW_ALPHA: Dictionary = {
 }
 const NAME_FONT_SIZE: int = 19
 const STATE_ROW_HEIGHT: float = 26.0
-const EQUIPPED_TEXT: String = "TAKILI"
-const SELECT_RING: float = 7.0
-const SELECT_POP: float = 1.04
+const SHOWCASED_TEXT: String = "VİTRİNDE"
 const SPARKLE_ART: Texture2D = preload("res://assets/visual/ui/icon_star_filled.png")
 ## Legendary pırıltıları: kart uzayı konum, kutu, faz — dört köşe (Mağaza
 ## kartıyla aynı dil), yalnız sahne alanında (ad satırına değmez), sinüs,
@@ -70,24 +52,16 @@ const LEGENDARY_SPARKLES: Array = [
 	[Vector2(26.0, 118.0), 13.0, 3.1],
 	[Vector2(192.0, 124.0), 18.0, 4.7],
 ]
-## Legendary gövde: satılık/kilitli olsa da sıcak altın-krem (Mağaza 05.1
-## ile aynı, CREAM→GOLD_BRIGHT %12) — premium her durumda okunur; buz yalnız
-## sanatta.
+## Legendary gövde: kilitli olsa da sıcak altın-krem (Mağaza 05.1 ile aynı,
+## CREAM→GOLD_BRIGHT %12) — premium her durumda okunur; buz yalnız sanatta.
 const LEGENDARY_BODY_MIX: float = 0.12
 ## Kilitli sanat: hafif buz (soğuk, %14 karartma) — sanat görünür, "senin
-## değil" bilgisi kilit rozeti + fiyat + buzlu gövdeyle.
+## değil" bilgisi kilit rozeti + buzlu gövdeyle.
 const LOCKED_FROST: Color = Color(0.86, 0.86, 0.94, 1.0)
 
-var _id: StringName = SkinEntry.DEFAULT_ID
+var _id: StringName = &""
 var _rarity: int = 0
-var _is_default: bool = false
-var _wide: bool = false
-## Yalnız geniş mod: lavanta "ORİJİNAL" trapez rozeti.
-var _original_tag: PanelContainer
 var _state: State = State.LOCKED
-var _selected: bool = false
-var _select_halo: NinePatchRect
-var _select_ring: PanelContainer
 var _halo: NinePatchRect
 var _rim: PanelContainer
 var _body: PanelContainer
@@ -96,30 +70,24 @@ var _well: NinePatchRect
 var _swatch: SkinSwatch
 var _name_label: Label
 var _state_row: Control
-var _equipped_plate: PanelContainer
-var _price: int = 0
+var _showcase_plate: PanelContainer
 var _sparkles: Array[TextureRect] = []
 
 
-static func create(entry: SkinEntry, wide: bool = false) -> CollectionSkinCard:
-	var card := CollectionSkinCard.new(wide)
+static func create(entry: SkinEntry) -> CollectionSkinCard:
+	var card := CollectionSkinCard.new()
 	card.setup(entry)
 	return card
 
 
-func _init(wide: bool = false) -> void:
-	_wide = wide
+func _init() -> void:
 	# Buton gövdesi görünmez: kartın görünümü çocuk katmanlarında. Basış
-	# hissi UiMotion (0.94) + seçim pop'u.
+	# hissi UiMotion (0.94).
 	focus_mode = Control.FOCUS_NONE
 	mouse_filter = Control.MOUSE_FILTER_PASS
-	custom_minimum_size = WIDE_SIZE if wide else CARD_SIZE
+	custom_minimum_size = CARD_SIZE
 	for style_name in ["normal", "hover", "pressed", "focus", "disabled"]:
 		add_theme_stylebox_override(style_name, StyleBoxEmpty.new())
-	_select_halo = UiKit.patch("popup_glow", Color(UiTokens.CYAN, 0.55))
-	UiKit.inset(_select_halo, -30.0, -26.0, -30.0, -34.0)
-	_select_halo.visible = false
-	add_child(_select_halo)
 	_halo = UiKit.patch("popup_glow", Color(UiTokens.GOLD_BRIGHT, 0.0))
 	UiKit.inset(_halo, -26.0, -22.0, -26.0, -30.0)
 	_halo.visible = false
@@ -127,10 +95,6 @@ func _init(wide: bool = false) -> void:
 	var shadow := UiKit.patch("popup_glow", Color(0.22, 0.09, 0.36, 0.32))
 	UiKit.inset(shadow, -12.0, -4.0, -12.0, -20.0)
 	add_child(shadow)
-	_select_ring = UiKit.flat_plate("frame_round20", UiTokens.CYAN)
-	UiKit.inset(_select_ring, -SELECT_RING, -SELECT_RING, -SELECT_RING, -SELECT_RING)
-	_select_ring.visible = false
-	add_child(_select_ring)
 	_rim = UiKit.flat_plate("frame_round20", Color.WHITE)
 	UiKit.inset(_rim, -4.0, -4.0, -4.0, -4.0)
 	add_child(_rim)
@@ -141,27 +105,23 @@ func _init(wide: bool = false) -> void:
 	_body.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_body.set_anchors_preset(Control.PRESET_FULL_RECT)
 	add_child(_body)
-	UiKit.card_face(_body, WIDE_BODY_MARGIN if wide else BODY_MARGIN)
-	if wide:
-		_build_wide()
-	else:
-		_build_grid()
-	_build_equipped_plate()
-	if not wide:
-		for spec in LEGENDARY_SPARKLES:
-			var spark := UiKit.art(SPARKLE_ART, float(spec[1]))
-			spark.position = (spec[0] as Vector2) - Vector2(float(spec[1]), float(spec[1])) * 0.5
-			spark.size = Vector2(float(spec[1]), float(spec[1]))
-			spark.pivot_offset = spark.size * 0.5
-			spark.visible = false
-			add_child(spark)
-			_sparkles.append(spark)
+	UiKit.card_face(_body, BODY_MARGIN)
+	_build_column()
+	_build_showcase_plate()
+	for spec in LEGENDARY_SPARKLES:
+		var spark := UiKit.art(SPARKLE_ART, float(spec[1]))
+		spark.position = (spec[0] as Vector2) - Vector2(float(spec[1]), float(spec[1])) * 0.5
+		spark.size = Vector2(float(spec[1]), float(spec[1]))
+		spark.pivot_offset = spark.size * 0.5
+		spark.visible = false
+		add_child(spark)
+		_sparkles.append(spark)
 	pressed.connect(func() -> void: selected.emit(_id))
 	UiMotion.attach_press(self)
 
 
-## Galeri kartı: dikey sütun — sahne (hale + kuyu + sanat) → ad → durum satırı.
-func _build_grid() -> void:
+## Dikey sütun — sahne (hale + kuyu + sanat) → ad → durum satırı.
+func _build_column() -> void:
 	var column := VBoxContainer.new()
 	column.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	column.add_theme_constant_override("separation", 2)
@@ -196,87 +156,29 @@ func _build_grid() -> void:
 	column.add_child(_state_row)
 
 
-## Taban görünüm şeridi (Varsayılan): yatay satır — sahne (kuyu + 92 px
-## orijinal dumpling) → ad + ORİJİNAL rozeti (sola yaslı, dikey ortalı) →
-## sağda TAKILI yuvası. Rarity etiketi yok: bu bir koleksiyon skini değil.
-func _build_wide() -> void:
-	var row := HBoxContainer.new()
-	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	row.add_theme_constant_override("separation", 16)
-	_body.add_child(row)
-	var stage := Control.new()
-	stage.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	stage.custom_minimum_size = Vector2(WIDE_PREVIEW_SIZE + 6.0, 0)
-	stage.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	row.add_child(stage)
-	_glow = UiKit.patch("popup_glow", Color(UiTokens.LAVENDER, 0.0))
-	_center(_glow, WIDE_GLOW_SIZE, 0.0)
-	stage.add_child(_glow)
-	_well = UiKit.patch("item_circle_inner", UiTokens.TRAY_CREAM)
-	_center(_well, WIDE_WELL_SIZE, 2.0)
-	stage.add_child(_well)
-	var well_shade := UiKit.patch("item_circle_inner", Color(0.35, 0.25, 0.5, 0.10))
-	_center(well_shade, WIDE_WELL_SIZE - 6.0, 6.0)
-	stage.add_child(well_shade)
-	_swatch = SkinSwatch.new()
-	_swatch.name = "Preview"
-	_center(_swatch, WIDE_PREVIEW_SIZE, 0.0)
-	stage.add_child(_swatch)
-	var column := VBoxContainer.new()
-	column.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	column.alignment = BoxContainer.ALIGNMENT_CENTER
-	column.add_theme_constant_override("separation", 4)
-	column.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	row.add_child(column)
-	_name_label = UiKit.label("", &"LabelSection", HORIZONTAL_ALIGNMENT_LEFT)
-	_name_label.add_theme_font_size_override("font_size", WIDE_NAME_FONT_SIZE)
-	_name_label.clip_text = true
-	_name_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
-	column.add_child(_name_label)
-	var tag_row := HBoxContainer.new()
-	tag_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	column.add_child(tag_row)
-	# Lavanta trapez (rarity etiketleriyle aynı biçim, rarity rengi DEĞİL):
-	# "ücretsiz taban görünüm" — YAYGIN/Common değil.
-	_original_tag = PanelContainer.new()
-	_original_tag.name = "OriginalTag"
-	_original_tag.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_original_tag.add_theme_stylebox_override("panel",
-		UiKit.style("label_trapezoid", UiTokens.LAVENDER_DEEP, Vector4(14, 0, 18, 4)))
-	var tag_text := UiKit.label(ORIGINAL_TEXT, &"LabelBadgeOnDark", HORIZONTAL_ALIGNMENT_CENTER)
-	tag_text.add_theme_font_size_override("font_size", 15)
-	_original_tag.add_child(tag_text)
-	_original_tag.set_meta(&"title_label", tag_text)
-	tag_row.add_child(_original_tag)
-	_state_row = Control.new()
-	_state_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_state_row.custom_minimum_size = Vector2(112.0, 0)
-	_state_row.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	row.add_child(_state_row)
-
-
-## TAKILI: küçük nane tik plakası (EquippedBadge dili, kompakt) — durum
-## satırında ortalı; iki modda da aynı.
-func _build_equipped_plate() -> void:
-	_equipped_plate = UiKit.panel(&"EquippedBadge")
-	_equipped_plate.name = "EquippedPlate"
-	_equipped_plate.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_equipped_plate.add_theme_stylebox_override("panel",
-		UiKit.style("frame_round20", UiTokens.MINT, Vector4(10, 1, 10, 3)))
+## VİTRİNDE: küçük altın yıldız plakası (vitrin = sergi; "senin" nane dili
+## kilitli/sahip ayrımında kalıyor) — durum satırında ortalı.
+func _build_showcase_plate() -> void:
+	_showcase_plate = PanelContainer.new()
+	_showcase_plate.name = "ShowcasePlate"
+	_showcase_plate.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_showcase_plate.add_theme_stylebox_override("panel",
+		UiKit.style("frame_round20", UiTokens.GOLD, Vector4(10, 1, 12, 3)))
 	var plate_row := HBoxContainer.new()
 	plate_row.alignment = BoxContainer.ALIGNMENT_CENTER
 	plate_row.add_theme_constant_override("separation", 4)
 	plate_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_equipped_plate.add_child(plate_row)
-	var check := UiKit.icon("check", 16, UiTokens.TEXT_ON_ACCENT)
-	check.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	plate_row.add_child(check)
-	var equipped_label := UiKit.label(EQUIPPED_TEXT, &"LabelBadge", HORIZONTAL_ALIGNMENT_CENTER)
-	equipped_label.add_theme_font_size_override("font_size", 14)
-	plate_row.add_child(equipped_label)
-	_equipped_plate.visible = false
-	_state_row.add_child(_equipped_plate)
-	_equipped_plate.minimum_size_changed.connect(_layout_plate)
+	_showcase_plate.add_child(plate_row)
+	var star := UiKit.art(SPARKLE_ART, 16)
+	star.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	plate_row.add_child(star)
+	var plate_label := UiKit.label(SHOWCASED_TEXT, &"LabelBadge", HORIZONTAL_ALIGNMENT_CENTER)
+	plate_label.add_theme_font_size_override("font_size", 14)
+	plate_label.add_theme_color_override("font_color", UiTokens.TEXT_PRIMARY)
+	plate_row.add_child(plate_label)
+	_showcase_plate.visible = false
+	_state_row.add_child(_showcase_plate)
+	_showcase_plate.minimum_size_changed.connect(_layout_plate)
 
 
 ## ScrollContainer sürüklemeye başladı: BaseButton basışı iptal etti (sinyal
@@ -295,21 +197,20 @@ static func _center(node: Control, box: float, down: float) -> void:
 
 
 func _layout_plate() -> void:
-	var min: Vector2 = _equipped_plate.get_combined_minimum_size()
-	var w: float = maxf(min.x, 96.0)
+	var min: Vector2 = _showcase_plate.get_combined_minimum_size()
+	var w: float = maxf(min.x, 104.0)
 	var h: float = maxf(min.y, 26.0)
-	_equipped_plate.set_anchors_preset(Control.PRESET_CENTER)
-	_equipped_plate.offset_left = -w * 0.5
-	_equipped_plate.offset_right = w * 0.5
-	_equipped_plate.offset_top = -h * 0.5
-	_equipped_plate.offset_bottom = h * 0.5
+	_showcase_plate.set_anchors_preset(Control.PRESET_CENTER)
+	_showcase_plate.offset_left = -w * 0.5
+	_showcase_plate.offset_right = w * 0.5
+	_showcase_plate.offset_top = -h * 0.5
+	_showcase_plate.offset_bottom = h * 0.5
 
 
 func setup(entry: SkinEntry) -> void:
 	_id = entry.id
 	_rarity = int(entry.rarity)
-	_is_default = entry.is_default()
-	name = "Card_%s" % (String(_id) if not _is_default else "default")
+	name = "Card_%s" % String(_id)
 	_name_label.text = entry.display_name
 	# Rarity dili (Mağaza 05.1 kalibrasyonuyla aynı): Common açık lavanta
 	# halka, Rare mavi (beyaza %25), Epic mor (%22) + hafif hale, Legendary
@@ -317,14 +218,6 @@ func setup(entry: SkinEntry) -> void:
 	# renginde, düşük alfa.
 	var rarity_color: Color = UiTokens.rarity_color(_rarity)
 	var glow_color: Color = rarity_color
-	if _is_default:
-		# Taban görünüm: lavanta halka (Common'ın açık lavantasından bir ton
-		# doygun) — koleksiyon rarity ailesinin dışında okunur.
-		_rim.self_modulate = UiTokens.LAVENDER.lerp(Color.WHITE, 0.35)
-		_halo.visible = false
-		_glow.self_modulate = Color(UiTokens.LAVENDER, 0.16)
-		_apply_entry(entry)
-		return
 	match _rarity:
 		SkinData.Rarity.RARE:
 			_rim.self_modulate = rarity_color.lerp(Color.WHITE, 0.25)
@@ -356,15 +249,15 @@ func refresh() -> void:
 
 
 func _apply_entry(entry: SkinEntry) -> void:
-	if entry.equipped:
-		_state = State.EQUIPPED
+	if entry.showcased:
+		_state = State.SHOWCASED
 	elif entry.owned:
 		_state = State.OWNED
 	else:
 		_state = State.LOCKED
 	# Kilitli kart da GERÇEK final sanatı gösterir (owner kararı, M8.5-14;
 	# koleksiyonda M8.6-06'dan itibaren silüet yok): sanat arzu uyandırsın,
-	# kilit rozeti + fiyat + buzlu gövde "henüz senin değil" der.
+	# kilit rozeti + buzlu gövde "henüz senin değil" der.
 	_swatch.setup(entry, true)
 	_swatch.modulate = LOCKED_FROST if _state == State.LOCKED else Color.WHITE
 	_body.theme_type_variation = &"PanelCollectionCardLocked" if _state == State.LOCKED else &"PanelCollectionCard"
@@ -373,19 +266,8 @@ func _apply_entry(entry: SkinEntry) -> void:
 			UiTokens.CREAM.lerp(UiTokens.GOLD_BRIGHT, LEGENDARY_BODY_MIX), BODY_MARGIN))
 	else:
 		_body.remove_theme_stylebox_override("panel")
-	_price = entry.price
-	_equipped_plate.visible = _state == State.EQUIPPED
+	_showcase_plate.visible = _state == State.SHOWCASED
 	_layout_plate()
-
-
-## Seçim: cyan hale + halka, kısa pop (yalnız seçilince).
-func set_selected(on: bool) -> void:
-	var was: bool = _selected
-	_selected = on
-	_select_halo.visible = on
-	_select_ring.visible = on
-	if on and not was:
-		UiMotion.pop(self, SELECT_POP)
 
 
 ## Legendary pırıltıları (ekran `_process`'inden; sinüs, RNG yok).
@@ -405,19 +287,6 @@ func skin_id() -> StringName:
 	return _id
 
 
-func is_default_entry() -> bool:
-	return _is_default
-
-
-## Geniş taban görünüm şeridi mi (Varsayılan)?
-func is_wide() -> bool:
-	return _wide
-
-
-func original_tag() -> PanelContainer:
-	return _original_tag
-
-
 func state() -> State:
 	return _state
 
@@ -426,12 +295,8 @@ func is_owned() -> bool:
 	return _state != State.LOCKED
 
 
-func is_equipped() -> bool:
-	return _state == State.EQUIPPED
-
-
-func is_selected() -> bool:
-	return _selected
+func is_showcased() -> bool:
+	return _state == State.SHOWCASED
 
 
 func rarity() -> int:
@@ -446,17 +311,8 @@ func name_text() -> String:
 	return _name_label.text
 
 
-## Kartta fiyat GÖSTERİLMEZ (vitrinde); kilitli girişin fiyatı okunabilir.
-func price() -> int:
-	return _price if _state == State.LOCKED else 0
-
-
-func equipped_plate() -> PanelContainer:
-	return _equipped_plate
-
-
-func select_ring() -> Control:
-	return _select_ring
+func showcase_plate() -> PanelContainer:
+	return _showcase_plate
 
 
 func rim() -> Control:

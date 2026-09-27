@@ -1,15 +1,16 @@
 extends Node
-## Skin katalogu + gameplay render pipeline testi (M8.5-14). Headless.
+## Koleksiyon parçası katalogu + önizleme bileşeni + KANONİK gameplay görünümü
+## testi (M8.5-14; TASK/044'te yeniden yazıldı). Headless.
 ##
 ##   godot --headless --audio-driver Dummy --path . res://tools/skin_test.tscn
 ##
-## Kayda YAZMAZ (SaveManager.data yalniz bellekte degistirilir, sonunda
-## load_game ile diskten geri okunur). Kontroller: 20 skin, sabit id'ler,
-## rarity dagilimi, fiyatlar, 20 final onizleme yukleniyor, her (skin x tier)
-## materyali kuruluyor ve paylasiliyor, skin degisince materyal/aura
-## temizleniyor, Sade/varsayilan temiz donus, kozmetikler global RNG'yi
-## TUKETMIYOR. M8.5-17: tint_strength rarity tavanlari (tier kimligi korunur),
-## Sade = taban (materyal YOK), shader tier rengini capa aliyor.
+## Kayda YAZMAZ (SaveManager.data yalnız bellekte değiştirilir ve sonunda geri
+## konur). Kontroller: 20 parça, sabit id'ler, rarity dağılımı, adlar, fiyatlar,
+## 20 final önizleme yükleniyor; SkinSwatch (sahip / kilitli / reveal /
+## varsayılan) materyalsiz; TASK/044: gameplay skinleri EMEKLİ — her parça ×
+## her tier için (sahip + vitrinde + eski `equipped_skin` bellekte) parça
+## kanonik tier sprite'ıyla, materyalsiz ve aurasız çizilir; ghost da öyle;
+## eski SkinVisual / maske / shader dosyaları yok.
 
 const EXPECTED_IDS: Array[String] = [
 	"common_01", "common_02", "common_03", "common_04", "common_05", "common_06", "common_07", "common_08",
@@ -67,134 +68,64 @@ func _ready() -> void:
 	_c("fiyatlar 50/150/400/900", Shop.PRICES == [50, 150, 400, 900])
 	_c("SkinEntry fiyat rarity'den", SkinEntry.find(&"epic_01").price == 400 and SkinEntry.find(&"legendary_02").price == 900)
 
-	# Onizleme bileseni (koleksiyon + magaza ayni bileseni kullaniyor)
-	var saved_skins: Variant = (SaveManager.data.get("unlocked_skins", []) as Array).duplicate()
-	var saved_equipped: Variant = SaveManager.data.get("equipped_skin", "")
+	# Önizleme bileşeni (koleksiyon + mağaza + profil aynı bileşeni kullanıyor)
+	var saved: Dictionary = SaveManager.data.duplicate(true)
 	var sw := SkinSwatch.new()
 	add_child(sw)
 	sw.size = Vector2(90, 90)
 	SaveManager.data["unlocked_skins"] = ["common_02"]
 	sw.setup(SkinEntry.find(&"common_02"))
-	_c("SkinSwatch sahip skin: final onizleme dokusu, materyal yok",
+	_c("SkinSwatch sahip parça: final önizleme dokusu, materyal yok",
 		sw._image.texture == SkinLibrary.find(&"common_02").preview_texture and sw._image.material == null)
 	sw.setup(SkinEntry.find(&"rare_01"))
 	_c("SkinSwatch kilitli (grid): siluet + kilit", sw._image.texture == SkinSwatch.LOCKED_TEXTURE and sw._lock.visible)
 	sw.setup(SkinEntry.find(&"legendary_01"), true)
-	_c("SkinSwatch kilitli (magaza/vitrin, reveal): final onizleme + kilit",
+	_c("SkinSwatch kilitli (mağaza/detay, reveal): final önizleme + kilit",
 		sw._image.texture == SkinLibrary.find(&"legendary_01").preview_texture and sw._lock.visible and sw._image.material == null)
 	sw.setup(SkinEntry.default_entry())
-	_c("SkinSwatch varsayilan: orijinal dumpling, materyal yok",
+	_c("SkinSwatch varsayılan: kanonik dumpling, materyal yok",
 		sw._image.texture == SkinEntry.PREVIEW_BASE_TEXTURE and sw._image.material == null)
 
-	# Tier kimligi (M8.5-17): skin tinti rarity tavanini asmaz, Sade 0.
-	var tint_cap: Array[float] = [0.30, 0.35, 0.40, 0.50]
-	var tint_ok: bool = true
-	var baseline_count: int = 0
+	# TASK/044: gameplay skinleri emekli. En kötü durum: her parça sahip,
+	# vitrinin başında VE eski `equipped_skin` anahtarı bellekte — parça yine
+	# de tier'ın kanonik sprite'ıyla, materyalsiz ve aurasız çizilir.
+	var all_ids: Array = []
 	for s in skins:
-		if s.is_baseline():
-			baseline_count += 1
-			continue
-		if s.tint_strength <= 0.0 or s.tint_strength > tint_cap[int(s.rarity)] + 0.001:
-			tint_ok = false
-	_c("tint_strength rarity tavani 0.30/0.35/0.40/0.50, Sade disinda > 0", tint_ok)
-	_c("yalniz Sade taban profili (tint 0, desen/malzeme yok)",
-		baseline_count == 1 and SkinLibrary.find(&"common_01").is_baseline())
-	var shader_src: String = SkinVisual.SHADER.code
-	_c("shader tier rengini capa aliyor (tint_strength uniform + tier_blend)",
-		shader_src.contains("uniform float tint_strength") and shader_src.contains("tier_blend(src.rgb"))
-
-	# Gameplay: her skin x her tier materyali hatasiz kuruluyor (Sade haric:
-	# taban profili materyal takmaz, varsayilanla birebir ayni cizilir)
+		all_ids.append(String(s.id))
+	SaveManager.data["unlocked_skins"] = all_ids
 	var visual: Node2D = VISUAL.new()
 	add_child(visual)
-	var all_ok: bool = true
-	var mats: Dictionary = {}
+	var canonical_ok: bool = true
 	for s in skins:
+		SaveManager.data["profile_showcase"] = [String(s.id)]
+		SaveManager.data["equipped_skin"] = String(s.id)
 		for tier in range(1, 9):
 			visual.setup(tier)
-			visual.override_skin(s)
-			var mat: ShaderMaterial = visual._sprite.material as ShaderMaterial
-			if s.is_baseline():
-				if mat != null:
-					all_ok = false
-				continue
-			if mat == null or mat.shader != SkinVisual.SHADER:
-				all_ok = false
-			elif mat.get_shader_parameter("body_mask") != SkinVisual.BODY_MASKS[tier - 1]:
-				all_ok = false
-			elif mat.get_shader_parameter("body_color") != s.body_color:
-				all_ok = false
-			elif not is_equal_approx(float(mat.get_shader_parameter("tint_strength")), s.tint_strength):
-				all_ok = false
-			elif int(mat.get_shader_parameter("pattern_type")) != int(s.pattern):
-				all_ok = false
-			mats[mat] = true
-	_c("19 skin x 8 tier materyal kuruldu, maske tier'a gore, tint profilden; Sade materyalsiz", all_ok)
-	_c("materyal (skin,tier) basina bir kez (152)", mats.size() == 152)
-	visual.setup(4)
-	visual.override_skin(SkinLibrary.find(&"common_02"))
-	var v2: Node2D = VISUAL.new()
-	add_child(v2)
-	v2.setup(4)
-	v2.override_skin(SkinLibrary.find(&"common_02"))
-	_c("ayni skin+tier iki parcada AYNI materyal", v2._sprite.material == visual._sprite.material)
-	v2.queue_free()
-
-	# Rarity efektleri
-	visual.override_skin(SkinLibrary.find(&"legendary_01"))
-	var aura: Node = visual._sprite.get_node_or_null("SkinAura")
-	_c("legendary: aura eklendi (arkada)", aura != null and (aura as Sprite2D).show_behind_parent)
-	visual.override_skin(SkinLibrary.find(&"epic_01"))
-	await get_tree().process_frame
-	_c("epic'e gecince aura kalkti", visual._sprite.get_node_or_null("SkinAura") == null)
-	var epic: SkinData = SkinLibrary.find(&"epic_01")
-	_c("epic: sparkle > 0, aura yok", epic.sparkle > 0.0 and epic.aura_color.a == 0.0)
-	var rare: SkinData = SkinLibrary.find(&"rare_02")
-	_c("rare: sparkle 0, aura yok", rare.sparkle == 0.0 and rare.aura_color.a == 0.0)
-	var common: SkinData = SkinLibrary.find(&"common_04")
-	_c("common: sparkle 0, pearl 0, aura yok", common.sparkle == 0.0 and common.pearl == 0.0 and common.aura_color.a == 0.0)
-	visual.override_skin(SkinLibrary.find(&"legendary_02"))
-	visual.override_skin(null)
-	await get_tree().process_frame
-	_c("varsayilana donus: materyal ve aura yok",
-		visual._sprite.material == null and visual._sprite.get_node_or_null("SkinAura") == null)
-	visual.override_skin(SkinLibrary.find(&"legendary_01"))
-	visual.override_skin(SkinLibrary.find(&"common_01"))
-	await get_tree().process_frame
-	_c("Sade: taban = materyal YOK (varsayilanla ayni), desen NONE, aura yok",
-		visual._sprite.material == null and int(SkinLibrary.find(&"common_01").pattern) == 0
-		and visual._sprite.get_node_or_null("SkinAura") == null)
-	visual.override_skin(SkinLibrary.find(&"epic_02"))
-	var ghost: Sprite2D = visual.make_ghost()
-	_c("ghost skin materyalini tasiyor (merge cekimi)", ghost.material == visual._sprite.material)
+			var sprite: Sprite2D = visual.sprite()
+			if sprite.texture != VISUAL.TEXTURES[tier - 1] or sprite.material != null \
+					or sprite.get_child_count() != 0 or sprite.modulate != Color.WHITE \
+					or sprite.self_modulate != Color.WHITE:
+				canonical_ok = false
+	_c("20 parça × 8 tier (sahip + vitrinde + eski equipped_skin): kanonik sprite, materyal/aura/tint YOK",
+		canonical_ok)
+	var fresh: Node2D = VISUAL.new()
+	add_child(fresh)
+	fresh.setup(5)
+	_c("yeni doğan parça (tier 5) kanonik: doğru doku, materyal yok, çocuk düğüm yok",
+		fresh.sprite().texture == VISUAL.TEXTURES[4] and fresh.sprite().material == null
+		and fresh.sprite().get_child_count() == 0)
+	var ghost: Sprite2D = fresh.make_ghost()
+	_c("ghost (merge çekimi) kanonik: aynı doku, materyal yok", ghost.texture == VISUAL.TEXTURES[4] and ghost.material == null)
 	ghost.free()
+	_c("DumplingVisual skin API'si yok (override_skin / use_equipped_skin)",
+		not fresh.has_method("override_skin") and not fresh.has_method("use_equipped_skin"))
+	_c("eski SkinVisual / shader / maske dosyaları yok",
+		not ResourceLoader.exists("res://scripts/game/skin_visual.gd")
+		and not ResourceLoader.exists("res://assets/visual/skins/skin_body.gdshader")
+		and not ResourceLoader.exists("res://assets/visual/skins/skin_aura.gdshader")
+		and not DirAccess.dir_exists_absolute("res://assets/visual/skins/generated"))
+	_c("SkinData önizleme dokusu hâlâ koleksiyon sanatı (20/20 yüklü)", previews_ok)
 
-	# Global RNG determinizmi: kozmetik uygulamak RNG'yi tuketmemeli
-	seed(12345)
-	var before: int = randi()
-	seed(12345)
-	for s in skins:
-		visual.override_skin(s)
-	visual.override_skin(null)
-	visual.override_skin(SkinLibrary.find(&"legendary_01"))
-	var after: int = randi()
-	_c("skin kozmetigi global RNG'yi tuketmiyor", before == after)
-
-	# Takili skin -> yeni dogan parca (kayda yazmadan)
-	SaveManager.data["unlocked_skins"] = ["epic_02"]
-	SaveManager.data["equipped_skin"] = "epic_02"
-	var v3: Node2D = VISUAL.new()
-	add_child(v3)
-	v3.setup(2)
-	_c("yeni parca takili skin profilini aliyor",
-		(v3._sprite.material as ShaderMaterial).get_shader_parameter("body_color") == SkinLibrary.find(&"epic_02").body_color)
-	SaveManager.data["unlocked_skins"] = ["common_01"]
-	SaveManager.data["equipped_skin"] = "common_01"
-	var v4: Node2D = VISUAL.new()
-	add_child(v4)
-	v4.setup(5)
-	_c("takili Sade: yeni parca materyalsiz (orijinal tier rengi)", v4._sprite.material == null)
-	SaveManager.data["unlocked_skins"] = saved_skins
-	SaveManager.data["equipped_skin"] = saved_equipped
+	SaveManager.data = saved
 	print("=== SONUC: %d kaldi ===" % _fails)
 	get_tree().quit()
