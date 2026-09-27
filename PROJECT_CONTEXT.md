@@ -72,15 +72,14 @@ alınacak — şimdi tahmin/vaat yok.
 
 ## Current state
 
-**Kanonik durum — 2026-09-25.** Bugünün gerçeği bu bölüm +
+**Kanonik durum — 2026-09-27.** Bugünün gerçeği bu bölüm +
 [Current release blockers](#current-release-blockers) +
 [Next action](#next-action); aşağıdaki "Milestone tarihçesi" değil.
 
-- **Repo:** `main == origin/main` (2026-09-25): `task/039-target-audience`
-  (`4d3268c` hedef kitle kararı + `fa20369` politika düzeltmesi) main'e ff-only
-  alındı; üstünde yalnız bu durum doküman commit'i. `task/014`…`task/039`
-  dallarının hepsi main'de (referans için duruyor). **TASK/040 fizibilitesi
-  `task/040-global-teen-compliance` dalında — main'e alınması owner onayı bekliyor.**
+- **Repo:** `main == origin/main` (2026-09-27): `task/040-global-teen-compliance`
+  (`025214a` denetim + `e152986` spike araçları) main'e ff-only alındı; üstünde
+  yalnız bu durum doküman commit'i. Aktif kod görevi YOK; `task/014`…`task/040`
+  dallarının hepsi main'de (referans için duruyor).
   Main'e bilerek girmeyen iki dal: `task/m8.6-03-home` (reddedildi, asla
   birleştirilmez) ve `task/ui-layerlab-style-spike` (seçilen parçaları
   M8.6-01'de promote edildi).
@@ -129,7 +128,7 @@ alınacak — şimdi tahmin/vaat yok.
   `unspecified` TEEN demek değil; stratejiler belgelendi, hiçbiri seçilmedi
   ([GLOBAL_TEEN_AD_TREATMENT §D–§G](docs/monetization/GLOBAL_TEEN_AD_TREATMENT.md)).
   **Dağıtım: dünya geneli (owner kararı).**
-- **TASK/040 fizibilitesi (2026-09-25, dalda):** Godot 4.6.3 + vendored
+- **TASK/040 fizibilitesi (2026-09-25; main'de 2026-09-27):** Godot 4.6.3 + vendored
   godot-admob v6.0 + GMA **25.3.0** (UMP 4.0.0) üzerinde `AgeRestrictedTreatment.TEEN`
   **Samsung A36'da kanıtlandı** — MobileAds başlatmadan önce ve her reklam
   yüklemesinde; UMP EEA / NOT_EEA / gizlilik seçenekleri, banner, ödüllü, geçiş,
@@ -143,7 +142,7 @@ alınacak — şimdi tahmin/vaat yok.
   TFCD / TFUA / test cihazları uygulanmıyor. Spike'ta düzeltildi; üretim
   düzeltmesi ayrı görev → kapıda CODE engeli.
 - **Release kapısı** (`tools/release/release_android.sh check`, TASK/040 bulgusundan
-  sonra, 2026-09-25, dalda): **BLOCKED — CODE 1 · OWNER 9 · CONFIG 0** (CODE =
+  sonra; main'de yeniden koşuldu 2026-09-27): **BLOCKED — CODE 1 · OWNER 9 · CONFIG 0** (CODE =
   RequestConfiguration kusuru; OWNER'lardan biri ayrı 13–17 uyum satırı). İmzalı /
   Play'e yüklenebilir AAB üretilmedi (`aab` reddediyor).
 
@@ -189,7 +188,7 @@ Release kapısı 1–9'u denetler (bugün OWNER 9 · CONFIG 0 — madde 1 ve 2
 kapandı, madde 3 ayrı `UYUM:` satırı; artı TASK/040'ın CODE 1 satırı, aşağıda);
 10 kodla denetlenemez.
 
-**CODE blockers: 1** (TASK/040, dalda) — **eklenti RequestConfiguration kusuru**:
+**CODE blockers: 1** (TASK/040) — **eklenti RequestConfiguration kusuru**:
 onaylı M9 release AAR'ı yapılandırmayı hiç uygulamıyor (derece G etkin değil;
 checklist #27, GLOBAL_TEEN_AD_TREATMENT §C4). Düzeltilmiş eklenti derlemesi + M9
 cihaz/gizlilik regresyonu ayrı görev; kapı SHA'ya bağlı bilinen-kusur kaydıyla

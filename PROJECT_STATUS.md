@@ -1,6 +1,6 @@
 # PROJECT_STATUS.md — Squishy Merge, tam proje raporu
 
-**Son güncelleme:** 2026-09-25 · **Durum:** M0–M8 tamamlandı; M8.5–M8.10
+**Son güncelleme:** 2026-09-27 · **Durum:** M0–M8 tamamlandı; M8.5–M8.10
 (release/product stabilization: UI yeniden inşası, gameplay cilası, ses,
 AdMob TEST-reklam monetizasyonu + günlük ödüller, ilk açılış tutorial'ı)
 tamamlandı ve main'de; M9-01 production release hazırlığı (kod) tamamlandı,
@@ -12,7 +12,7 @@ bakım düzeltmesi main'de. Runtime / gameplay / TEST-reklam temeli donduruldu.
 altı için tasarlanmadı (Play 13–15 / 16–17 / 18+; `[Audience]
 decision=general_13_plus`, reklam istekleri değişmedi) — ürün kitlesi KAPALI;
 **13–17 genç reklam işlemi / yargı bölgesi uyumu AÇIK** (üretimden önce).
-**TASK/040 (dalda):** dünya geneli dağıtım owner kararı; GMA 25.3.0 TEEN Godot
+**TASK/040 (main'de, 2026-09-27):** dünya geneli dağıtım owner kararı; GMA 25.3.0 TEEN Godot
 4.6.3'te Samsung A36'da kanıtlandı (spike, üretime alınmadı); Play Age Signals
 reklam kararında KULLANILMAZ; strateji karar tablosu
 docs/monetization/GLOBAL_TEEN_AD_TREATMENT.md. Yeni bulgu: üretim eklentisi
@@ -21,9 +21,8 @@ CODE 1 · OWNER 9 · CONFIG 0. Sırada: **13–17 strateji kararı (owner)** + e
 RequestConfiguration düzeltmesi (ayrı kod görevi) → gizlilik politikası →
 upload anahtarı → gerçek AdMob kimlikleri → mağaza varlıkları / Play Console,
 sonra ilk imzalı üretim AAB'si ve M10 (Play kapalı test) ·
-**Branch:** `main` == origin/main — `task/039-target-audience` ff-only alındı
-(2026-09-25); TASK/040 `task/040-global-teen-compliance` dalında (main'e alınması
-owner onayı bekliyor)
+**Branch:** `main` == origin/main — `task/040-global-teen-compliance` (`025214a` +
+`e152986`, TASK/040 fizibilite denetimi + spike araçları) ff-only alındı (2026-09-27)
 
 > Güncel engel listesi ve sıradaki adımın kanonik yeri: `PROJECT_CONTEXT.md` →
 > Current state / Current release blockers / Next action. Aşağıdaki tarihçe

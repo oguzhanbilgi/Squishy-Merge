@@ -13,7 +13,7 @@
 >   ayrı bir OWNER / uyum engeli ("UYUM:"); stratejiler A–D belgelendi,
 >   hiçbiri seçilmedi.
 >
-> - **TASK/040 (2026-09-25, `task/040-global-teen-compliance` dalında):** fizibilite,
+> - **TASK/040 (2026-09-25; main'de 2026-09-27):** fizibilite,
 >   karar tablosu ve güncel strateji listesi →
 >   [GLOBAL_TEEN_AD_TREATMENT.md](GLOBAL_TEEN_AD_TREATMENT.md). TEEN, Godot 4.6.3 +
 >   GMA 25.3.0'da A36'da kanıtlandı (yalnız spike); strateji hâlâ owner kararı.

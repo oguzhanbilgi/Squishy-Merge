@@ -1,6 +1,6 @@
 # GLOBAL_TEEN_AD_TREATMENT.md — Dünya geneli 13+ genç reklam işlemi: fizibilite ve karar dosyası (TASK/040)
 
-> **Durum (2026-09-25, `task/040-global-teen-compliance`, main'e ALINMADI):**
+> **Durum (2026-09-25; `task/040-global-teen-compliance` main'e ff-only alındı 2026-09-27):**
 > teknik fizibilite çalışması. **Owner kararı gereken tek konu AÇIK kalıyor:**
 > 13–17 genç reklam işlemi stratejisi (§D). Bu doküman bir strateji SEÇMEZ,
 > hukuki tavsiye DEĞİLDİR ve Google'ın resmî sayfalarının sade Türkçe özetidir

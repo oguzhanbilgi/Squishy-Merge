@@ -461,7 +461,7 @@ Kanıt: `build/qa_m8.9-01/device/DEVICE_GATE_NOTES.md` (yerel, gitignore'lu) +
    politikası URL'i. Release kapısı bunlar kapanmadan
    yüklenebilir AAB üretmez; tam liste
    [../ANDROID_RELEASE_CHECKLIST.md](../ANDROID_RELEASE_CHECKLIST.md).
-10. **TASK/040 (2026-09-25, `task/040-global-teen-compliance` dalında):** GMA 25.3.0
+10. **TASK/040 (2026-09-25; main'de 2026-09-27):** GMA 25.3.0
     (UMP 4.0.0) + TEEN, Godot 4.6.3'te vendored v6.0 yamasıyla derlendi ve Samsung
     A36'da çalıştı (spike; üretim eklentisi GMA 24.9.0 kaldı). Yeni **CODE** engeli:
     üretim eklentisi RequestConfiguration'ı hiç uygulamıyor (checklist #27). Strateji

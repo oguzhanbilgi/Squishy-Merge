@@ -20,8 +20,8 @@
 > değişmedi. Genel "kitle kararı yok" satırı kapandı; yerine ürün kitlesinden
 > AYRI bir OWNER / uyum satırı geldi: **13–17 genç reklam işlemi / yargı bölgesi
 > uyumu AÇIK** (#26). Kapı: **CODE 0 · OWNER 9 · CONFIG 0** (§1).
-> **TASK/040 (2026-09-25, `task/040-global-teen-compliance` dalında — main'e alınması
-> owner onayı bekliyor):** GMA 25.3.0 TEEN fizibilitesi Godot 4.6.3'te Samsung A36'da
+> **TASK/040 (2026-09-25; `task/040-global-teen-compliance` main'e ff-only alındı
+> 2026-09-27):** GMA 25.3.0 TEEN fizibilitesi Godot 4.6.3'te Samsung A36'da
 > kanıtlandı (yalnız spike, üretime alınmadı — #25, #26,
 > [monetization/GLOBAL_TEEN_AD_TREATMENT.md](monetization/GLOBAL_TEEN_AD_TREATMENT.md)).
 > Yeni bulgu: üretim eklentisi RequestConfiguration'ı hiç uygulamıyor → derece G
@@ -34,7 +34,7 @@
 
 ## 1. Bugünkü release kapısı çıktısı
 
-2026-09-25, TASK/040 bulgusundan sonra (`task/040` dalında; `tools/release/release_android.sh check`):
+2026-09-27, TASK/040 main'e alındıktan sonra (`tools/release/release_android.sh check`):
 
 ```
 == release_check 'Android Release AAB': BLOCKED ==
