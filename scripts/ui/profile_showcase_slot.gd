@@ -15,7 +15,8 @@ extends Button
 ## `MOUSE_FILTER_PASS`: profil kaydırması yuvanın üstünden de başlar.
 
 const SIZE: Vector2 = Vector2(216.0, 262.0)
-const BODY_MARGIN: Vector4 = Vector4(10, 10, 10, 20)
+## Alt pay 24: pişmiş dudak alt kenardan 11–22 px yukarıda (TASK/044 incelemesi).
+const BODY_MARGIN: Vector4 = Vector4(10, 10, 10, 24)
 const STAGE_SIZE: Vector2 = Vector2(150.0, 142.0)
 const NAME_FONT_SIZE: int = 18
 const AVATAR_TEXT: String = "AVATAR"
@@ -23,6 +24,10 @@ const SLOT_TEXT: String = "%d. YUVA"
 const EMPTY_TITLE: String = "BOŞ YUVA"
 const EMPTY_NOTE: String = "Koleksiyondan ekle"
 const WELL_SIZE: float = 88.0
+## Gövde tonları (tema `PanelCollectionCard` / `...Locked` ile aynı); iç pay
+## BODY_MARGIN ile GERÇEKTEN uygulanır — içerik alt dudağa binmez.
+const BODY_TINT: Color = UiTokens.CREAM
+const BODY_TINT_EMPTY: Color = Color("f1e9dc")
 
 var _slot: int = 0
 var _entry: SkinEntry = null
@@ -49,7 +54,9 @@ func _init(slot: int = 0) -> void:
 	var shadow := UiKit.patch("popup_glow", Color(0.22, 0.09, 0.36, 0.32))
 	UiKit.inset(shadow, -12.0, -4.0, -12.0, -20.0)
 	add_child(shadow)
-	_rim = UiKit.flat_plate("frame_round20", UiTokens.LAVENDER_LIGHT)
+	# Beyaz plaka + self_modulate: rarity rengi TEK kez uygulanır (Koleksiyon kartı gibi).
+	_rim = UiKit.flat_plate("frame_round20", Color.WHITE)
+	_rim.self_modulate = UiTokens.LAVENDER_LIGHT
 	UiKit.inset(_rim, -4.0, -4.0, -4.0, -4.0)
 	add_child(_rim)
 	var contour := UiKit.flat_plate("frame_round20", Color(UiTokens.LAVENDER_DEEP, 0.5))
@@ -179,6 +186,8 @@ func set_entry(entry: SkinEntry) -> void:
 	_empty.visible = not filled
 	_badge.visible = filled
 	_body.theme_type_variation = &"PanelCollectionCard" if filled else &"PanelCollectionCardLocked"
+	_body.add_theme_stylebox_override("panel", UiKit.style("card_bevel_soft",
+		BODY_TINT if filled else BODY_TINT_EMPTY.lerp(UiTokens.LAVENDER_SURFACE, 0.38), BODY_MARGIN))
 	if not filled:
 		_rim.self_modulate = UiTokens.LAVENDER_LIGHT
 		return

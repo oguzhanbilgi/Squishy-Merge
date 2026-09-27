@@ -37,6 +37,18 @@ const LEGACY_BASE: Dictionary = {
 	"onboarding_completed": true,
 	"age_ad_band": "ADULT",
 }
+## TASK/044'te silinen gameplay skin dosyaları (klasör değil DOSYA denetimi: yerel
+## klonda izlenmeyen artık bir dosya klasörü tutsa da test yanlış alarm vermez).
+const RETIRED_FILES: Array[String] = [
+	"res://scripts/game/skin_visual.gd",
+	"res://assets/visual/skins/skin_body.gdshader", "res://assets/visual/skins/skin_aura.gdshader",
+	"res://assets/visual/skins/generated/body_mask_tier1.png", "res://assets/visual/skins/generated/body_mask_tier2.png",
+	"res://assets/visual/skins/generated/body_mask_tier3.png", "res://assets/visual/skins/generated/body_mask_tier4.png",
+	"res://assets/visual/skins/generated/body_mask_tier5.png", "res://assets/visual/skins/generated/body_mask_tier6.png",
+	"res://assets/visual/skins/generated/body_mask_tier7.png", "res://assets/visual/skins/generated/body_mask_tier8.png",
+	"res://tools/skin_gallery.gd", "res://tools/skin_gallery.tscn", "res://tools/make_skin_masks.py",
+	"res://tools/skin_tier_contrast.py",
+]
 ## Oyuncuya görünen metinde bulunmaması gereken eski takma / skin dili.
 const BANNED_COPY: Array[String] = ["takılı", "takıldı", "koleksiyon'da tak", "şu an takılı",
 	"skinler", "skin ·", "yeni skin", " skin", "skin'"]
@@ -206,14 +218,16 @@ func _gameplay_canonical() -> void:
 	board.setup(load("res://resources/levels/level_01.tres"))
 	add_child(board)
 	var spawned: Node = board._spawn_dumpling(4, Vector2(360, 600))
-	var spawned_visual: Node = spawned.find_child("*", true, false)
+	var visuals: int = 0
 	var board_ok: bool = true
 	for node in _all_nodes(spawned):
 		if node.get_script() == VISUAL:
+			visuals += 1
 			var s: Sprite2D = node.sprite()
 			if s.material != null or s.texture != VISUAL.TEXTURES[3]:
 				board_ok = false
-	_c("gerçek GameBoard'da doğan parça (tier 4) kanonik: materyalsiz, tier dokusu", board_ok and spawned_visual != null)
+	_c("gerçek GameBoard'da doğan parça (tier 4) kanonik: materyalsiz, tier dokusu (en az bir görsel bulundu)",
+		board_ok and visuals >= 1)
 	board.queue_free()
 	var code_ok: bool = true
 	var runtime: Array[String] = []
@@ -243,11 +257,12 @@ func _gameplay_canonical() -> void:
 	var save_code: String = _strip_comments(FileAccess.get_file_as_string("res://scripts/autoload/save_manager.gd"))
 	_c("equipped_skin yalnız göçte okunur (SaveManager'da tek fonksiyon)", save_code.count("\"equipped_skin\"") == 3
 		and save_code.contains("func _migrate_legacy_equip"))
-	_c("eski dosyalar yok (SkinVisual betiği, shader'lar, maskeler, skin_gallery)",
-		not FileAccess.file_exists("res://scripts/game/skin_visual.gd")
-		and not FileAccess.file_exists("res://assets/visual/skins/skin_body.gdshader")
-		and not DirAccess.dir_exists_absolute("res://assets/visual/skins/generated")
-		and not FileAccess.file_exists("res://tools/skin_gallery.gd"))
+	var gone: bool = true
+	for path in RETIRED_FILES:
+		if FileAccess.file_exists(path):
+			gone = false
+			print("    emekli dosya duruyor: ", path)
+	_c("eski dosyalar yok (SkinVisual betiği, shader'lar, 8 gövde maskesi, skin_gallery, maske / kontrast betikleri)", gone)
 	_sections_done += 1
 
 
@@ -365,18 +380,27 @@ func _copy_and_economy() -> void:
 	files.append("res://scripts/main.gd")
 	files.append_array(_files("res://scenes/ui", ".tscn"))
 	for path in files:
-		var code: String = _strip_comments(FileAccess.get_file_as_string(path)) if path.ends_with(".gd") \
+		var code: String = _strip_log_lines(_strip_comments(FileAccess.get_file_as_string(path))) if path.ends_with(".gd") \
 			else FileAccess.get_file_as_string(path)
 		for literal in _string_literals(code):
-			var low: String = _tr_lower(literal)
-			# Yol / id / hata ayıklama metni (key=value) oyuncuya görünmez.
-			if literal.begins_with("res://") or literal.contains("/") or literal.contains("=") \
-					or (not literal.contains(" ") and literal.contains("_")):
+			# Eski durum etiketleri tek kelime: kimlik atlamasından ÖNCE yakalanır.
+			if literal == "TAK" or literal == "TAKILI" or literal == "SKİN" or literal == "SKİNLER":
+				hits.append("%s: \"%s\"" % [path.get_file(), literal])
 				continue
+			# Yol / düğüm-id adı (yalnız [A-Za-z0-9_]) / hata ayıklama metni (key=value)
+			# oyuncuya görünmez.
+			if literal.begins_with("res://") or literal.contains("/") or literal.contains("=") \
+					or _IDENT.search(literal) != null:
+				continue
+			var low: String = _tr_lower(literal)
+			# İngilizce "SKIN" (noktasız I) Türkçe küçültmede "skın" olur: ASCII
+			# küçültmeyle de ara.
+			var ascii_low: String = literal.to_lower()
+			var flagged: bool = ascii_low.contains("skin")
 			for banned in BANNED_COPY:
 				if low.contains(banned):
-					hits.append("%s: \"%s\"" % [path.get_file(), literal])
-			if literal == "TAK" or literal == "TAKILI":
+					flagged = true
+			if flagged:
 				hits.append("%s: \"%s\"" % [path.get_file(), literal])
 	for hit in hits:
 		print("    eski dil: ", hit)
@@ -402,6 +426,15 @@ func _copy_and_economy() -> void:
 		power_prices.append(PowerUpEconomy.price(type))
 	_c("güç fiyatları 120/180/100/160 (Bomba/Büyütücü/Sarsıntı/Temizleyici)", power_prices == [120, 180, 100, 160])
 	_sections_done += 1
+
+
+static var _IDENT: RegEx = _ident_regex()
+
+
+static func _ident_regex() -> RegEx:
+	var re := RegEx.new()
+	re.compile("^[A-Za-z0-9_%]+$")
+	return re
 
 
 func DailyRewardsPopup_caption() -> String:
@@ -485,6 +518,18 @@ func _strip_comments(code: String) -> String:
 	for line in code.split("\n"):
 		var hash: int = line.find("#")
 		out.append(line if hash < 0 else line.substr(0, hash))
+	return "\n".join(out)
+
+
+## Geliştirici günlük satırları (push_error / push_warning / print…) oyuncuya görünmez.
+func _strip_log_lines(code: String) -> String:
+	var out: PackedStringArray = []
+	for line in code.split("\n"):
+		var t: String = line.strip_edges()
+		if t.begins_with("push_error(") or t.begins_with("push_warning(") or t.begins_with("print(") \
+				or t.begins_with("printerr(") or t.begins_with("print_rich("):
+			continue
+		out.append(line)
 	return "\n".join(out)
 
 

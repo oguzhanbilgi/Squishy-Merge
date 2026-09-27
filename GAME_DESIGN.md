@@ -310,6 +310,10 @@ yer.
 
 ### 5.2 Sandık sistemi
 
+> **TASK/044 dil notu:** bu bölümdeki "skin" = **koleksiyon parçası
+> (Squishy)** — oyuncuya "Yeni Squishy keşfedildi!". Oranlar, havuz, geri düşüş
+> ve miktarlar **DEĞİŞMEDİ**; yalnız parçanın gameplay'i boyaması kalktı (§5.3).
+
 **Sandık kaynağı:**
 - Her level tamamlanışında 1 sandık
 - Ayrıca her 75 merge işleminde bir "bonus sandık" (level'dan bağımsız —
@@ -331,7 +335,7 @@ karıştırılmamalıdır.
 
 | ödül tipi | oran |
 |---|---|
-| Skin | **%30** |
+| Skin (koleksiyon parçası / Squishy) | **%30** |
 | Hamur | **%70** |
 
 Ödül tipi rarity'den **bağımsızdır**: Legendary bir sandık da %70 olasılıkla
@@ -370,6 +374,50 @@ Teselli ödülü (kaybedilen round): **5 Hamur** — rarity'den bağımsız.
 > yalnızca *o rarity'nin tamamı toplanmışsa* devreye giren bir geri düşüş.
 
 ### 5.3 Koleksiyon albümü
+
+**OWNER KARARI (TASK/044 — KİLİTLİ): gameplay skinleri EMEKLİ.** Squishy
+koleksiyon sanatı değerli kalır ama oyundaki parçaların görünümünü ARTIK
+DEĞİŞTİRMEZ: doğan parça, merge sonucu, tier görselleri her zaman tier'ın
+kanonik sprite'ı (fizik / skor / RNG zaten dokunulmazdı). Koleksiyon bir
+**tamamlama / statü hedefi**; sahip olunan parça sanatı yalnız **Koleksiyon**
+ve **Profil avatarı / vitrini**nde görünür — gameplay'de DEĞİL.
+
+- Katalog **20 parça (kilitli)**, rarity 8 Yaygın / 6 Nadir / 4 Epik / 2
+  Efsanevi (id'ler ve sanat aynı). Sahiplik korunur — kayıt alanı tarihsel
+  adıyla `unlocked_skins` (eski kayıtlar bozulmasın diye yeniden adlandırılmadı).
+- **Albüm:** başlıkta KOLEKSİYON N/20 + ilerleme rayı (20/20 altın + yıldız,
+  ödül YOK) + altın VİTRİN N/3 çipi + rarity sayaçları (YAYGIN 3/8 …); rarity
+  bölümlü 3 sütun kart. "Varsayılan" kartı YOK (takılacak görünüm kalmadı;
+  kanonik Squishy bir koleksiyon parçası değil, sayaca girmez).
+- **Kart durumları:** KİLİTLİ (gerçek final sanat buzlu + kilit rozeti — M8.5-14 /
+  M8.6-06 owner kararı, silüet yok; ad Mağaza'da zaten görünür) · SAHİP ·
+  VİTRİNDE (altın yıldız plakası). **"TAKILI" durumu ve takma dili YOK.**
+- **Karta dokunmak parça DETAYINI açar** (kayda yazmaz): büyük sanat (rarity
+  halesi + candy kaide), KOLEKSİYON PARÇASI · ad · rarity etiketi · durum çipi ·
+  kısa not; tek hâkim eylem:
+  - sahip, vitrinde değil → **VİTRİNE EKLE**
+  - vitrinde → **VİTRİNDEN ÇIKAR** (+ ilk yuvada değilse **AVATAR YAP**)
+  - kilitli → **MAĞAZAYA GİT** (not: sandıklardan çıkabilir ya da Mağaza'da N
+    Hamur; Koleksiyon satın ALMAZ)
+- **Profil vitrini** (kayıt `profile_showcase`, sıralı kararlı id listesi; ilk
+  eleman profil avatarı): en fazla **3**; yalnız **sahip olunan + katalogda
+  bulunan** id; **tekrar yok**; katalogdan kalkan id okumada güvenle **yok
+  sayılır**; **boş vitrin geçerli**. Vitrin doluyken VİTRİNE EKLE **açık bir
+  değiştirme adımı** açar ("Hangisinin yerine koyalım?" — üç yuva kutusu;
+  seçilen yuvaya girer, diğerleri yerinde kalır; VAZGEÇ / geri hiçbir şey
+  yazmaz). **Sessiz / rastgele değiştirme YOK.** Vitrinin gameplay'e HİÇBİR
+  etkisi yok. Her geçerli vitrin işlemi tek kayıt yazması.
+- **Eski kayıt:** `equipped_skin` (M8.5–M9) yüklemede BİR kez okunur — kayıtta
+  vitrin yoksa ve id sahip olunan bir katalog parçasıysa vitrinin ilk (avatar)
+  yuvasına taşınır; anahtar bellekten silinir (bir sonraki doğal kayıtta
+  dosyadan da). Boş / sahip olunmayan / katalogda olmayan / biçimsiz id → boş
+  vitrin. Yüklemede disk yazması yok; gameplay bu anahtarı HİÇ okumaz.
+- Parça kaynakları DEĞİŞMEDİ: sandık (§5.2), günlük sandık (§5.4.1), Mağaza (§5.6).
+
+> **Tarihçe (M8.5 – M9, TASK/044 ile GEÇERSİZ — kararların izi için
+> korunuyor):** albüm eskiden "gardırop"tu; aşağıdaki "takma" kuralları artık
+> uygulanmaz.
+
 - Basit bir grid ekranı: kaç skin'den kaçı açıldı. Toplam skin sayısı:
   **20 (kilitlendi)**
 - Açılmamış skin'ler silüet olarak görünür
@@ -450,7 +498,7 @@ kotasını tüketmez. Reklamlı ödül YALNIZ "ödül kazanıldı" callback'iyle
 iptal, ödülsüz kapanış, yükleme/gösterim hatası kota tüketmez.
 
 **Günlük sandık içeriği (DAILY profili — level sonu sandığından FARKLI, §5.2
-DEĞİŞMEDİ):**
+DEĞİŞMEDİ; TASK/044: "skin" = koleksiyon parçası / Squishy, değerler aynı):**
 
 | adım | değer |
 |---|---|
@@ -484,8 +532,9 @@ BİTTİ. Ayrıntı: docs/monetization/DAILY_REWARDS.md.
 
 ### 5.6 Mağaza (M8'de eklendi)
 
-Sahip olunmayan skin'ler Hamur ile satın alınır. Tek para birimi oyun içi
-Hamur.
+Sahip olunmayan koleksiyon parçaları (Squishy; iç ad "skin") Hamur ile satın
+alınır. Tek para birimi oyun içi Hamur. **TASK/044:** satın alınan parça
+koleksiyona girer (vitrine otomatik eklenmez; gameplay'i değiştirmez).
 
 > **GÜNCELLEME (owner, M8.5-05):** "Gerçek para / IAP YOK" ifadesi artık
 > yalnızca SKİNLER için geçerli — skinler hiçbir zaman gerçek parayla
@@ -759,8 +808,8 @@ tamamen anlamsızlaştırır.
 
 #### 5.7.5 Mağaza ekranı
 
-İki bölüm: **GÜÇLER** (üstte, tekrar alınabilir) ve **SKİNLER** (altta,
-kalıcı). Üstte Hamur bakiyesi. Güç kartı: isim, `Stok: ×N`, fiyat, "Satın
+İki bölüm: **GÜÇLER** (üstte, tekrar alınabilir) ve **KOLEKSİYON** (altta,
+kalıcı; TASK/044'e kadar adı "SKİNLER"). Üstte Hamur bakiyesi. Güç kartı: isim, `Stok: ×N`, fiyat, "Satın
 Al". Hamur yetmiyorsa buton pasif. Satın alma onay diyaloğundan geçiyor;
 sonrasında bakiye, stok ve toast anında güncelleniyor.
 
@@ -784,6 +833,61 @@ işlem" penceresi.
 
 Başarısız satın alma (yetersiz Hamur, geçersiz tip, adet ≤ 0) **hiçbir alanı
 değiştirmez ve diske yazmaz.** Envanter ve Hamur asla negatife inmez.
+
+### 5.8 Profil (TASK/044 — owner kararı)
+
+Oyuncunun uzun vadeli kimliği / vitrini / istatistikleri. Candy dünyada dikey
+bir oyun profili — ayar tablosu ya da dashboard DEĞİL. **Kayda yazmaz**, satın
+almaz; reklam yüzeyi değil (§12.1).
+
+- **Giriş:** Ana Sayfa üst-sol avatar. **Avatar = vitrinin İLK parçası**,
+  vitrin boşsa kanonik Squishy. Kamera / galeri / yükleme / sunucu YOK.
+- **KİMLİK:** ad **"Oyuncu"** (nötr, yerel; hesap / kimlik iddiası yok).
+  Düzenlenebilir takma ad, **Oyuncu Seviyesi, XP, başarımlar, unvanlar YOK** —
+  TASK/045'e bırakıldı; sahte yer tutucu gösterilmez.
+- **VİTRİN:** 3 yuva (ilki AVATAR). Dolu yuva → Koleksiyon'da o parçanın
+  detayı; boş yuva → Koleksiyon. Kurallar §5.3.
+- **İSTATİSTİKLER** (kanonik alanlardan TÜRETİLİR, kopyalanmaz; değer yoksa "—"):
+
+| istatistik | kaynak | not |
+|---|---|---|
+| Sonsuz rekor | `endless_high_score` | 0 → "—" + "Sonsuz mod kilitli" |
+| Birleştirme | `total_merges` | kanonik sayaç |
+| Yıldız | `level_stars` toplamı (level başına 0–3, yalnız gerçek level'lar) / level × 3 | ikinci toplam SAKLANMAZ |
+| Tamamlanan level | `highest_level_unlocked − 1` (0–10) | 10/10'da "Sonsuz mod açık" |
+| Oynanan tur | `total_rounds_played` (**YENİ**) | aşağıda |
+| En yüksek tier | max(`highest_tier_created` (**YENİ**), tamamlanan level'ların hedef tier'ı) | 0 → "—"; değer yalnız level'lardan türeyen alt sınırsa "Tier N · en az" |
+
+- **Yeni sayaçlar (yalnız geri üretilemeyen iki istatistik; tek yazan
+  `SaveManager.record_round_finished`, `Main._on_round_finished`'dan):**
+  - `total_rounds_played` — round **KESİN BİTİNCE** tam +1 (kazanma ya da
+    kaybetme; level ya da sonsuz; tutorial'ın gerçek Level 1 round'u biterse o
+    da bir kez). Terk edilen (Mola → Ana Menüye Dön), yeniden başlatılan, uygulama
+    kapanırken yarım kalan round SAYILMAZ — `total_merges` / yıldız / rekorla
+    aynı an, aynı kural. `GameBoard._finish` korumalı → çift sayım yok.
+  - `highest_tier_created` — bitmiş round'larda merge (sonsuzda tier 8 yok oluşu
+    dahil) ya da **Büyütücü** ile OLUŞTURULAN en yüksek tier; düşen parçalar
+    sayılmaz. Büyütücü yine skor / merge / sandık üretmez (§10.3) — yalnız bu
+    istatistiğe girer.
+  - **Eski kayıt:** geçmiş bilinmiyor, **UYDURULMAZ** — sayaçlar 0'dan başlar;
+    oynanmışlık kanıtı varsa `profile_counters_partial = true` → profil
+    "güncellemeden beri" der. En yüksek tier gösterimi tamamlanan level'ların
+    hedef tier'ını kanıtlanmış alt sınır olarak kullanır (level kazanmak hedef
+    tier'ı merge / Büyütücü ile oluşturmayı ŞART koşar).
+- **GÜÇLER:** Bomba / Büyütücü / Sarsıntı / Temizleyici canlı stoğu
+  (`SaveManager`), **salt okunur** — satın alma butonu YOK.
+- **KOLEKSİYON:** N/20 + ray + rarity sayaçları + **KOLEKSİYONA GİT**.
+- **Ayarlar:** Profil'in dişli çarkı Main'in TEK `SettingsPanel`'ini açar (ses,
+  titreşim, gizlilik seçenekleri, yaş bilgisi, gizlilik politikası, sürüm) —
+  mantık kopyalanmadı; TASK/043 yaş / oturum kilidi davranışı aynı. Oyun içi
+  HUD ayarları (board donar) ve mola penceresi AYNEN — round ortasında Profil'e
+  gitmek gerekmez.
+
+**Gelecek görevler (YAPILMADI — bu sürümde hiçbir kodu yok):**
+- **TASK/045** — Oyuncu Seviyesi + XP + Başarımlar + Unvanlar (+ düzenlenebilir
+  takma ad)
+- **TASK/046** — Günlük / Haftalık Görevler
+- **TASK/047** — Günlük Merge Challenge
 
 ## 6. Ses tasarımı
 
@@ -819,6 +923,13 @@ değiştirmez ve diske yazmaz.** Envanter ve Hamur asla negatife inmez.
 > eşikleri o noktada bot ölçümünden yeniden üretilmeli.
 
 ## 7. UI / HUD
+
+> **Güncel gezinme (TASK/044):** Ana Sayfa hub'ı (M8.6) — OYNA / Harita /
+> Mağaza / Koleksiyon / Günlük / Bonus sandık aynen; üst-sol **profil avatarı**
+> (vitrinin ilk parçası, boşsa kanonik Squishy) → **Profil** (§5.8). Ana
+> Sayfa'daki ayrı ayarlar butonu kalktı: **Ayarlar = Profil'in dişli çarkı**
+> (aynı tek pencere); oyun içi HUD ayarları ve mola aynen. Yeni alt gezinme
+> çubuğu YOK. Aşağıdaki M8 notu tarihseldir.
 
 > **Navigasyon: alt sekme çubuğu (M8).** Ana Sayfa / Harita / Koleksiyon /
 > Mağaza. Oyun sırasında ve round sonucu ekranında gizleniyor.
@@ -1080,7 +1191,9 @@ kuralları değişmez.
 > Bu bölümdeki kilitli kurallar M9-01'de DEĞİŞMEDİ.
 
 ### 12.1 Banner yüzeyleri (KİLİTLİ)
-GÖSTER: Ana Sayfa, Harita, Mağaza, Koleksiyon, oyun ekranı. GİZLE: sonuç ekranı,
+GÖSTER: Ana Sayfa, Harita, Mağaza, Koleksiyon, oyun ekranı. *(TASK/044: yeni
+**Profil** ekranı banner yüzeyi DEĞİL — listeye eklemek owner kararı ister;
+Profil'de ve üstünde açılan Ayarlar'da banner gizli, yuva korunur.)* GİZLE: sonuç ekranı,
 tam ekran reklam anları, onboarding tamamlanmamış (yuva da yok). Banner gerçek
 ayrılmış alandır (yuva): oyun kabı, güç butonları, nişan/bırakma kontrolleri,
 Harita düğümleri ve OYNA plakasının üstüne ASLA binmez. Oyun: **fizik, kap

@@ -98,7 +98,7 @@ inişle kesilebiliyordu), olay başına soğuma/tavan yok (yığın inişi = 10
 | `ui_select` | koleksiyonda kilitli kart odaklama | `ui/kenney_pluck_01.ogg` | −14 | 0.85 | 60 / 1 kes | LOW | yok |
 | `ui_purchase` | mağaza satın alma, Hamurla/ödüllü refill | `rewards/sfx_reward_chime_01.wav` | −5 | 1.0 | 120 / 1 | HIGH | MEDIUM |
 | `ui_invalid` | Hamur yetmedi (mağaza yarış durumu, refill) | `ui/sfx_ui_invalid_01.wav` | −9 | 1.0 | 150 / 1 | NORMAL | yok |
-| `ui_equip` | skin takıldı (`skin_equipped`) | `rewards/sfx_sparkle_up_01.wav` | −7 | 1.1 | 120 / 1 | NORMAL | LIGHT |
+| `ui_equip` | TASK/044: parça vitrine eklendi / avatar yapıldı (id tarihsel; eski "skin takıldı" rolü emekli) | `rewards/sfx_sparkle_up_01.wav` | −7 | 1.1 | 120 / 1 | NORMAL | LIGHT |
 | `drop` | `GameBoard._drop` | `gameplay/sfx_drop_01..03.wav` | −14 (±0) | jitter ±3 % | 60 / 2 at | LOW | yok |
 | `land` | `Dumpling.impact_landed` (≥ 420 px/s) | `gameplay/kenney_impact_soft_01.ogg` | −9 −8…0 (hıza göre) ±1 | tier 1 → 8: 1.25 → 0.78, ±4 % | 55 / 2 at | LOW | yok |
 | `merge` | `_resolve_merge` (her merge) | `gameplay/sfx_merge_pop_01..03.wav` | −1 ±0 | `TierConfig.merge_pitch` ±2 % | 30 / 4 kes | NORMAL | tier < 6 LIGHT |

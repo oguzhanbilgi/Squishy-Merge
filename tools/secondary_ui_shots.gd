@@ -390,7 +390,10 @@ func _group_chest() -> void:
 # --- Ayarlar -----------------------------------------------------------------
 
 func _group_settings() -> void:
+	# TASK/044: gerçek yol Ana Sayfa avatarı → Profil → dişli çark.
 	await _show_home()
+	_main._show_tab(4)
+	await _settle()
 	_main.open_settings()
 	await _settle()
 	await _capture("settings_01_default")

@@ -51,8 +51,9 @@ def P(body, shade, hi="ffffff", pattern="NONE", pc="000000", pc2="ffffff",
 # id, rarity, gorsel dosya adi, gosterilen ad, profil
 SKINS = [
     # --- COMMON: govde/malzeme/desen, aura yok ---
-    # Sade = temiz taban: tint 0, desen/malzeme yok -> SkinVisual materyal
-    # takmaz, sekiz tier orijinal renkleriyle cizilir.
+    # Sade = temiz taban: tint 0, desen/malzeme yok. (TARIHCE: M8.5-17'de
+    # SkinVisual bu profile materyal takmazdi; TASK/044'ten beri gameplay
+    # render'i emekli, profil alanlari inert veri.)
     ("common_01", "common", "sade", "Sade",
      P("f6e9cf", "c9a97e", "fffaf0", tint=0.0)),
     ("common_02", "common", "susamli", "Susamlı",

@@ -32,6 +32,9 @@ const VIEWS: Array[Vector2i] = [Vector2i(720, 1280), Vector2i(720, 1560),
 	Vector2i(540, 960), Vector2i(1080, 2340), Vector2i(320, 568), Vector2i(390, 844),
 	Vector2i(360, 800)]
 const A36_SAFE_TOP: float = 61.0
+## `card_bevel_soft` dudağının üst kenarı: kart alt kenarından 22 px (sprite: yüz
+## 0–36, dudak 37–47, kontur 48–49, gölge 50–58; alt dilim 30 px).
+const CARD_LIP_TOP: float = 22.0
 ## Profil salt okunur: kayıt / ekonomi yazma yolu yok.
 const FORBIDDEN_CALLS: Array[String] = ["save_game(", "showcase_add(", "showcase_remove(", "showcase_replace(",
 	"showcase_make_first(", "data[", "spend_dough", "add_dough", "purchase", "grant_", "record_"]
@@ -468,6 +471,26 @@ func _check_layout(profile: CanvasLayer, safe_top: float, window_tag: String) ->
 					tiles_ok = false
 					print("    istatistik yazısı kutucuk dışı: ", key, " ", (node as Label).text)
 	_c("%s istatistik yazıları (değer / etiket / not) kutucuğun içinde" % tag, tiles_ok)
+	# `card_bevel_soft`'un pişmiş alt dudağı kartın alt kenarından 11–22 px yukarıda
+	# (sprite ölçümü): yazı / buton / avatar krem yüzde kalmalı (TASK/044 merceği 6).
+	var lip_ok: bool = true
+	var cards: Array[Control] = [content.get_node("Identity"), content.get_node("CollectionCard")]
+	for key in [&"endless", &"merges", &"stars", &"levels", &"rounds", &"tier"]:
+		cards.append(profile.stat_tile(key))
+	for tile in content.get_node("PowerRow").get_children():
+		cards.append(tile)
+	for slot_node in profile.showcase_slots():
+		cards.append(slot_node)
+	for card in cards:
+		var cr: Rect2 = card.get_global_rect()
+		for node in _all_nodes(card):
+			if node == card or not (node is Label or node is Button) or not (node as Control).is_visible_in_tree():
+				continue
+			var nr: Rect2 = (node as Control).get_global_rect()
+			if nr.end.y > cr.end.y - CARD_LIP_TOP + 0.5:
+				lip_ok = false
+				print("    alt dudağa biniyor: ", card.name, " / ", node.name, " ", nr, " kart ", cr)
+	_c("%s kart içerikleri (yazı / buton / avatar) krem yüzde — pişmiş alt dudağa binmiyor" % tag, lip_ok)
 	var max_scroll: float = maxf(scroll.get_v_scroll_bar().max_value - scroll.size.y, 0.0)
 	var bar_before: Vector2 = bar.back_button().global_position
 	scroll.scroll_vertical = int(max_scroll) + 10

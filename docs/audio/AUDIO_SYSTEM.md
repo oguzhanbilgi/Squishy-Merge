@@ -171,7 +171,7 @@ share): `docs/audio/PRODUCTION_FILES.md`.
 | Settings SFX toggle on | `ui_toggle_on` | Vibration toggle on → MEDIUM |
 | Shop purchase, Hamur/rewarded refill | `ui_purchase` | MEDIUM |
 | Insufficient Hamur (shop, refill, locked map node) | `ui_invalid` | shop: LIGHT |
-| Skin equipped | `ui_equip` | LIGHT |
+| Vitrine eklendi / avatar yapıldı (TASK/044; eski "skin equipped") | `ui_equip` | LIGHT |
 | Collection locked-card focus | `ui_select` | — |
 | `GameBoard._drop` | `drop` | — |
 | `GameBoard._on_impact_landed` (≥ 420 px/s) | `land` | — |

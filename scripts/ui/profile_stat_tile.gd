@@ -7,7 +7,9 @@ extends Control
 ## "güncellemeden beri"). Dashboard hücresi DEĞİL; değer yoksa "—" (uydurma yok).
 
 const SIZE: Vector2 = Vector2(330.0, 112.0)
-const BODY_MARGIN: Vector4 = Vector4(14, 10, 14, 18)
+## Alt pay 24: `card_bevel_soft`'un pişmiş dudağı kartın alt kenarından 11–22 px
+## yukarıda — içerik krem yüzde kalır (TASK/044 incelemesi, piksel ölçümü).
+const BODY_MARGIN: Vector4 = Vector4(14, 10, 14, 24)
 const WELL_SIZE: float = 68.0
 const WELL_ART: float = 50.0
 const VALUE_FONT_SIZE: int = 30
@@ -33,8 +35,12 @@ func _init(caption: String = "", art: Texture2D = null, accent: Color = UiTokens
 	var body := UiKit.panel(&"PanelCollectionCard")
 	body.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	body.set_anchors_preset(Control.PRESET_FULL_RECT)
+	# İç pay kart yüzüyle aynı (tema 10/8/10/12 değil): içerik alt dudağa binmez.
+	body.add_theme_stylebox_override("panel", UiKit.style("card_bevel_soft", UiTokens.CREAM, BODY_MARGIN))
 	add_child(body)
 	UiKit.card_face(body, BODY_MARGIN)
+	body.minimum_size_changed.connect(func() -> void:
+		custom_minimum_size.y = maxf(SIZE.y, body.get_combined_minimum_size().y))
 	var row := HBoxContainer.new()
 	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	row.add_theme_constant_override("separation", 14)

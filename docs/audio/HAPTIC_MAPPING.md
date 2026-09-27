@@ -54,7 +54,7 @@ Combo does **not** vibrate separately (the merge carries it).
 | Revive granted | MEDIUM | `grant_revive` |
 | Drop, landing, danger tick, combo count, round win/lose | none | — |
 | Purchase / refill | MEDIUM | shop, refill |
-| Skin equipped | LIGHT | collection |
+| Vitrine eklendi / avatar yapıldı (TASK/044; eski "skin equipped") | LIGHT | collection |
 | Insufficient Hamur (shop) | LIGHT | shop |
 | Vibration toggle switched on | MEDIUM (confirmation) | settings |
 | Reward reveal | Legendary SPECIAL · Epic MEDIUM · skin reward MEDIUM · Hamur LIGHT | round result |

@@ -24,8 +24,9 @@ enum Pattern { NONE, SPECKLE, FLECK, RING, MARBLE, SWIRL, CRYSTAL, STREAK, WAVE,
 @export var id: StringName = &""
 @export var display_name: String = ""
 @export var rarity: Rarity = Rarity.COMMON
-## Final koleksiyon/mağaza önizlemesi. null olursa SkinSwatch orijinal
-## dumpling + gameplay profiliyle türetir (güvenli fallback, prod'da olmamalı).
+## Final koleksiyon/mağaza/profil önizlemesi (20/20 dolu). null olursa çizenler
+## kanonik Squishy'yi gösterir (`SkinEntry.art_texture()`; güvenli fallback,
+## prod'da olmamalı).
 @export var preview_texture: Texture2D = null
 
 @export_group("Gameplay render (EMEKLİ — TASK/044, okunmaz)")

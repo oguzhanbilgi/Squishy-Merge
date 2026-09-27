@@ -201,7 +201,7 @@ func _page_palette() -> Control:
 			[&"LabelBody", "Body 19 · Taşan parçalar temizlenir."],
 			[&"LabelCaption", "Caption 15 · Kalıcı · bir kez alınır"],
 			[&"LabelPrice", "Price 21 · 120 Hamur"],
-			[&"LabelPositive", "Positive 18 · Sahipsin · Takılı"],
+			[&"LabelPositive", "Positive 18 · Sahipsin · Vitrinde"],
 			[&"LabelWarning", "Warning 18 · Stok bitti"],
 			[&"LabelDisabled", "Disabled 18 · Yakında"]]:
 		list.add_child(UiKit.label(entry[1], entry[0]))

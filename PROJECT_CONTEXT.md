@@ -38,10 +38,12 @@ sevenler. Kısa oturumlarla (30–90 sn round) oynamayı tercih eden kullanıcı
   DAILY_REWARDS.md). Üretim kimlikleri (3 birim) ve AdMob hesabı kurulumu ayrı
   adım. **App-open / rewarded interstitial / mediation YOK.**
 - Gerçek para **Güç Paketi** planlanıyor ama **HENÜZ KURULMADI** — Play
-  Billing yok, fiyat/product ID yok. Skinler hiçbir zaman gerçek parayla
-  satılmayacak. Bkz. GAME_DESIGN §5.7.
-- v1'de **oyun içi mağaza VAR**: Hamur ile kozmetik skin satın alınıyor.
-  Gerçek para geçmiyor — soft-currency sink'i, IAP değil. Bkz. GAME_DESIGN §5.6.
+  Billing yok, fiyat/product ID yok. Koleksiyon parçaları (eski "skin") hiçbir
+  zaman gerçek parayla satılmayacak. Bkz. GAME_DESIGN §5.7.
+- v1'de **oyun içi mağaza VAR**: Hamur ile koleksiyon parçası (Squishy) satın
+  alınıyor — TASK/044'ten beri gameplay'i değiştirmez, Koleksiyon + Profil
+  vitrini içindir. Gerçek para geçmiyor — soft-currency sink'i, IAP değil. Bkz.
+  GAME_DESIGN §5.6.
 - Ticari/growth kararları (interstitial dahil) gerçek veriyle alınacak.
 
 ## Success metric
@@ -87,6 +89,19 @@ alınacak — şimdi tahmin/vaat yok.
   Main'e bilerek girmeyen iki dal: `task/m8.6-03-home` (reddedildi, asla
   birleştirilmez) ve `task/ui-layerlab-style-spike` (seçilen parçaları
   M8.6-01'de promote edildi).
+- **TASK/044 Player Meta V1 — DALDA, main'de DEĞİL** (`task/044-player-meta-v1`,
+  başlangıç main `327dd60`; yerel owner / cihaz kapısı bekliyor). Owner kararı:
+  **gameplay skinleri EMEKLİ** — parçalar her zaman kanonik tier sprite'ı; eski
+  `equipped_skin` yalnız göçte okunur (sahip olunan katalog parçasıysa vitrinin ilk
+  yuvasına), sahiplik (`unlocked_skins`) aynen. **Koleksiyon V1** (albüm + parça
+  detayı: VİTRİNE EKLE / VİTRİNDEN ÇIKAR / AVATAR YAP / MAĞAZAYA GİT; dolu vitrinde
+  açık değiştirme adımı), **Profil** (Ana Sayfa üst-sol avatar; "Oyuncu" adı; 3 yuva
+  vitrin; kanonik istatistikler + iki yeni sayaç `total_rounds_played` /
+  `highest_tier_created`; salt okunur güç stoğu; koleksiyon ilerlemesi), **Ayarlar
+  Profil'in dişli çarkında** (tek SettingsPanel; oyun içi HUD ayarları aynen). Profil
+  banner yüzeyi değil. Ekonomi, sandık oranları, fiyatlar, reklam sözleşmesi, TASK/043
+  yaş yönlendirmesi, fizik / merge DEĞİŞMEDİ. XP / seviye / başarım / görev YOK
+  (TASK/045–047). Ayrıntı: GAME_DESIGN §5.3 / §5.8, UI_VISUAL_SYSTEM §17 / §22.
 - **M0–M8 tamamlandı.** Oyun uçtan uca oynanabilir: 10 level + sonsuz mod,
   sandık/koleksiyon/mağaza, günlük ödül, Home hub + `ScreenTopBar` gezinmesi
   (M8.5'in 4 sekmeli alt çubuğu M8.6-06'da kalktı), owner'ın görsel
@@ -114,6 +129,9 @@ alınacak — şimdi tahmin/vaat yok.
   `sdk_refused` + yaş işlemi kilidi değişti; kullanıcıya görünen reklam sözleşmesi aynı.)*
   *(TASK/043, main'de: monetizasyonun AÇILMA koşulu değişti — yaş bandı; reklam
   yüzeyleri, kotalar, geçiş reklamı zamanlaması, ekonomi ve reklamsız tutorial AYNI.)*
+  *(TASK/044, dalda: meta / kabuk UI — Koleksiyon, Profil, Ana Sayfa avatarı — ve
+  gameplay skin katmanının kaldırılması; fizik, merge, skor, ekonomi, reklam
+  sözleşmesi AYNI.)*
 - **Kalıcı paket kimliği KİLİTLENDİ (owner kararı, 2026-09-24):** üretim / Play
   = `com.obappstudio.squishymerge` (project.godot `squishy/release/android_package_id`
   + yerel release presetleri); QA / test = `com.obappstudio.squishymerge.qa` (debug
@@ -340,6 +358,14 @@ kod tablosunu owner tablosuyla karşılaştırır, her sapma CODE.)*
 5. Upload anahtarı
 6. Gerçek AdMob kimlikleri (App ID + Banner + Rewarded + Interstitial)
 7. Play Store varlıkları / Play Console alanları
+
+**Paralel ürün işi — TASK/044 Player Meta V1 (dalda):** main'e alınmadan ÖNCE yerel
+owner / cihaz kapısı: Samsung A36'da Koleksiyon albümü + parça detayı + vitrin
+değiştirme adımı, Profil (üç ilerleme durumu, kaydırma, dişli → Ayarlar), Ana Sayfa
+avatarı, eski `equipped_skin`'li gerçek owner kaydının açılışı (sahiplik korunur,
+gameplay kanonik), oyun içi ayarlar / mola. Sonra owner onayıyla ff-only. **TASK/045
+(Oyuncu Seviyesi + XP + Başarımlar + Unvanlar), TASK/046 (Günlük/Haftalık Görevler),
+TASK/047 (Günlük Merge Challenge) BAŞLAMADI.**
 
 Her madde owner girdisi ister; hiçbiri tahmin edilmez ya da uydurulmaz.
 Gizlilik politikası, upload anahtarı ve AdMob kimliklerinde repoda yalnız
@@ -1325,9 +1351,9 @@ yapılandırma değişir (checklist §3); 13–17 yaş bandı yönlendirmesi kod
 ## Project-specific invariants
 - Tier sayısı sabit: 8 · Level sayısı v1: 10 + sonsuz mod
 - Sandık **rarity** oranları: Common %60 / Rare %25 / Epic %12 / Legendary %3
-- Sandık **ödül tipi** oranı: %30 skin / %70 Hamur *(ayrı bir rule — rarity
-  ile karıştırma, bkz. GAME_DESIGN §5.2)*
-- Shop fiyatları — skin: 50 / 150 / 400 / 900
+- Sandık **ödül tipi** oranı: %30 koleksiyon parçası (skin) / %70 Hamur *(ayrı
+  bir rule — rarity ile karıştırma, bkz. GAME_DESIGN §5.2)*
+- Shop fiyatları — koleksiyon parçası: 50 / 150 / 400 / 900
 - Shop fiyatları — güç: Sarsıntı 100 / Bomba 120 / Temizleyici 160 /
   Büyütücü 180 (`power_up_economy.gd`; simülatördeki `POWER_PRICES` ile
   aynı tutulmalı)
@@ -1361,15 +1387,22 @@ yapılandırma değişir (checklist §3); 13–17 yaş bandı yönlendirmesi kod
   Owner kaynakları `_visual_source/` altında ARŞİV; runtime yalnızca
   `assets/visual/` altındaki türevleri okur. Türetme betiği:
   `tools/make_gameplay_art.py`
-- Takılı skin kayıtta `equipped_skin` alanında; **boş string = varsayılan
-  görünüm**. Skin'in nasıl çizildiği yalnızca `scripts/game/skin_visual.gd`
-  içinde (gövde maskesi + `assets/visual/skins/skin_body.gdshader`); skin
-  verisi `resources/skins/*.tres` = `tools/make_skin_resources.py` çıktısı,
-  gövde maskeleri `tools/make_skin_masks.py` çıktısı — elle düzenleme yok
-- **Skin tier'ı değiştirir, yerine geçmez (M8.5-17):** tier gövde rengi
-  çapa, skin `tint_strength` ≤ rarity tavanı (0.30/0.35/0.40/0.50); her
-  skinde 8 tier ayırt edilebilir kalmalı (`tools/skin_tier_contrast.py`
-  0 uyarı). Sade = taban, materyal yok
+- **Gameplay skinleri EMEKLİ (TASK/044, owner kararı):** oyundaki parça HER ZAMAN
+  tier'ın kanonik sprite'ı (materyal / aura / tint YOK). Gameplay kodu koleksiyonu,
+  vitrini ya da eski `equipped_skin` anahtarını OKUMAZ (`collection_rework_test`
+  kaynak taraması + 8 tier × 20 parça görsel kontrolü). `SkinVisual`, skin
+  shader'ları ve gövde maskeleri silindi; `SkinData`'daki render alanları inert
+  veri (okunmaz). Katalog verisi `resources/skins/*.tres` =
+  `tools/make_skin_resources.py` çıktısı — elle düzenleme yok
+- **Koleksiyon / vitrin kaydı (TASK/044):** sahiplik `unlocked_skins` (tarihsel ad,
+  yalnız sona eklenir); vitrin `profile_showcase` (≤ 3, yalnız sahip + katalogda
+  bulunan, tekrarsız, ilk = avatar; okuma her zaman doğrulanır, yazmaz); eski
+  `equipped_skin` yalnız `SaveManager._migrate_legacy_equip`'te okunur. Dolu
+  vitrinde sessiz değiştirme YOK. Profil sayaçları (`total_rounds_played`,
+  `highest_tier_created`) YALNIZ `record_round_finished` ile, round kesin bitince;
+  eski kayıtta uydurulmaz (`profile_counters_partial`)
+- **Profil salt okunur ve reklam yüzeyi değil (TASK/044):** Profil kayda yazmaz,
+  satın almaz; Ayarlar tek `SettingsPanel` (Profil dişlisi + oyun içi HUD)
 - **Büyük iş akışı kapısı (M8.5-17'den itibaren):** gameplay/render/skin/
   UI/ses/güç/Android işleri → otomatik testler → masaüstü QA → Android
   debug APK → USB'deki telefona kur → başlat → cihaz QA → rapor → commit.

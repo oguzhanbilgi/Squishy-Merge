@@ -4,10 +4,10 @@ extends Node
 const SAVE_PATH: String = "user://squishy_merge_save.json"
 
 ## Koleksiyon parçası (Squishy) kazanıldı (M8.5-13; TASK/044'ten beri oyuncuya
-## "Yeni Squishy keşfedildi"). Koleksiyon, mağaza, ana sayfa ve profil abone:
-## sekme geçişindeki refresh()'e ek olarak, ekran açıkken gelen bir değişiklik
-## (aynı ekrandan satın alma) de anında yansısın. Gameplay abone DEĞİL ve
-## koleksiyonu HİÇ okumaz (TASK/044: gameplay skinleri emekli).
+## "Yeni Squishy keşfedildi"). Abone yalnız Koleksiyon (görünürken anında,
+## görünmezken bir sonraki açılışta albümde öne alır); Ana Sayfa / Mağaza /
+## Profil sekme geçişindeki refresh() ile tazelenir (Main). Gameplay abone DEĞİL
+## ve koleksiyonu HİÇ okumaz (TASK/044: gameplay skinleri emekli).
 signal skin_granted(id: StringName)
 ## Profil vitrini değişti (TASK/044). Argüman: doğrulanmış vitrin (en fazla 3 id,
 ## ilk eleman avatar).
@@ -15,6 +15,10 @@ signal showcase_changed(ids: Array)
 
 ## Vitrin yuvası sayısı (TASK/044, owner kararı).
 const SHOWCASE_MAX: int = 3
+## Kayıttaki ham vitrin listesinin tavanı (bozuk / oynanmış kayıtta binlerce öğe
+## açılışı kilitlemesin). Geçerli liste en fazla SHOWCASE_MAX; pay, katalogdan
+## geçici kalkan id'ler için.
+const SHOWCASE_RAW_CAP: int = 32
 ## `showcase_add` sonucu. Yalnız ADDED kayda yazar.
 enum ShowcaseResult { ADDED, ALREADY, FULL, NOT_OWNED, UNKNOWN }
 
@@ -167,8 +171,10 @@ func _migrate_onboarding(parsed: Dictionary) -> void:
 ## henüz `profile_showcase` yoksa ve eski id sahip olunan bir KATALOG parçasıysa
 ## vitrinin ilk (avatar) yuvasına taşınır — oyuncunun eski favorisi profilinde
 ## görünür. Sonra anahtar bellekten silinir; bir sonraki doğal kayıt ikisini birlikte
-## kalıcılaştırır (okuma sırasında disk yazması yok). Yazılmadan kapanırsa bir
-## sonraki açılışta aynı sonuç (idempotent). Sahiplik (`unlocked_skins`) DEĞİŞMEZ.
+## kalıcılaştırır (göçün kendisi diske yazmaz; yalnız M8.5-03 öncesi kayıtta aynı
+## yüklemedeki başlangıç güç hediyesi kaydı onu da yazar — sonuç aynı). Yazılmadan
+## kapanırsa bir sonraki açılışta aynı sonuç (idempotent). Sahiplik
+## (`unlocked_skins`) DEĞİŞMEZ.
 ## Boş / sahip olunmayan / katalogda olmayan / biçimsiz id → vitrin boş kalır.
 func _migrate_legacy_equip(parsed: Dictionary) -> void:
 	if not parsed.has("equipped_skin"):
@@ -185,16 +191,22 @@ func _migrate_legacy_equip(parsed: Dictionary) -> void:
 
 
 ## Kayıttaki vitrin alanını güvenli BİÇİME indirir (dizi değilse boş; yalnız boş
-## olmayan metin id'ler, tekrarsız) — yalnız bellekte. Sahiplik / katalog / 3 sınırı
-## okumada süzülür (`profile_showcase`): katalogdan geçici kalkan bir parça geri
-## gelirse kaybolmasın.
+## olmayan metin id'ler, tekrarsız, en fazla SHOWCASE_RAW_CAP) — yalnız bellekte.
+## Sahiplik / katalog / 3 sınırı okumada süzülür (`profile_showcase`): katalogdan
+## geçici kalkan bir id yüklemede silinmez; bir sonraki VİTRİN yazması ise yalnız
+## doğrulanmış id'leri saklar (brief: "yok say" — 3 sınırı geri dönüşte de korunur).
 func _sanitize_showcase() -> void:
 	var raw: Variant = data.get("profile_showcase", [])
 	var clean: Array = []
+	var seen: Dictionary = {}
 	if raw is Array:
 		for item: Variant in raw:
-			if typeof(item) == TYPE_STRING and not String(item).is_empty() and not clean.has(String(item)):
-				clean.append(String(item))
+			if clean.size() >= SHOWCASE_RAW_CAP:
+				break
+			if typeof(item) != TYPE_STRING or String(item).is_empty() or seen.has(String(item)):
+				continue
+			seen[String(item)] = true
+			clean.append(String(item))
 	data["profile_showcase"] = clean
 
 

@@ -119,11 +119,14 @@ func _ready() -> void:
 	ghost.free()
 	_c("DumplingVisual skin API'si yok (override_skin / use_equipped_skin)",
 		not fresh.has_method("override_skin") and not fresh.has_method("use_equipped_skin"))
-	_c("eski SkinVisual / shader / maske dosyaları yok",
+	var masks_gone: bool = true
+	for tier in range(1, 9):
+		if FileAccess.file_exists("res://assets/visual/skins/generated/body_mask_tier%d.png" % tier):
+			masks_gone = false
+	_c("eski SkinVisual / shader / 8 gövde maskesi dosyası yok",
 		not ResourceLoader.exists("res://scripts/game/skin_visual.gd")
 		and not ResourceLoader.exists("res://assets/visual/skins/skin_body.gdshader")
-		and not ResourceLoader.exists("res://assets/visual/skins/skin_aura.gdshader")
-		and not DirAccess.dir_exists_absolute("res://assets/visual/skins/generated"))
+		and not ResourceLoader.exists("res://assets/visual/skins/skin_aura.gdshader") and masks_gone)
 	_c("SkinData önizleme dokusu hâlâ koleksiyon sanatı (20/20 yüklü)", previews_ok)
 
 	SaveManager.data = saved

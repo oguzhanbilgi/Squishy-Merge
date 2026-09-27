@@ -1,5 +1,16 @@
 # SKIN_ART_AUDIT.md — skin sanatı ve gameplay render durumu
 
+> ## ⚠️ TASK/044 (owner kararı): GAMEPLAY SKIN RENDER'I EMEKLİ
+>
+> Koleksiyon parçaları artık oyundaki parçaların görünümünü **DEĞİŞTİRMEZ** —
+> gameplay her zaman tier'ın kanonik sprite'ı. Bu belgedeki render hattı
+> (`SkinVisual`, `skin_body.gdshader`, `skin_aura.gdshader`, `generated/
+> body_mask_tier1..8.png`, `tools/make_skin_masks.py`, `tools/skin_tier_contrast.py`,
+> `tools/skin_gallery.*`) **SİLİNDİ**; `SkinData`'daki render alanları inert veri
+> olarak duruyor (okunmaz). **20 final önizleme sanatı (§1) aynen kullanılıyor** —
+> Koleksiyon albümü / parça detayı, Mağaza, sandık reveal'i ve Profil avatarı /
+> vitrini. Aşağısı TARİHÇEDİR (M8.5-02 → M8.5-17). Güncel kural: GAME_DESIGN §5.3.
+
 **Son güncelleme:** 2026-09-14 (M8.5-17: tier kimliği korunan karışım) · İlk audit: 2026-09-09 (M8.5-02).
 
 > ## STATUS: final preview art complete / production gameplay skin pipeline complete

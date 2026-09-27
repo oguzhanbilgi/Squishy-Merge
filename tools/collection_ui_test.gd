@@ -22,6 +22,7 @@ extends Node
 ## adımı) kırpılmıyor / çakışmıyor, dokunma ≥ 48; kayıt dosyası değişmez.
 
 const MAIN_SCENE: PackedScene = preload("res://scenes/main.tscn")
+const COLLECTION_SCRIPT: GDScript = preload("res://scripts/ui/collection_screen.gd")
 ## Pencere boyutları: 720 tuvali (1280/1560) + gerçek telefon pencereleri —
 ## 320×568 (küçük 16:9), 390×844 (19.5:9), 360×800 (20:9, uzun Android),
 ## 540×960 ve 1080×2340 (A36 fiziksel).
@@ -364,6 +365,7 @@ func _ready() -> void:
 		and screen.detail_secondary_text() == "VİTRİNDEN ÇIKAR" and screen.detail_secondary().theme_type_variation == &"ButtonSecondary")
 	_c("kart + başlık güncellendi: epic_01 VİTRİNDE plakası, VİTRİN 2/3", screen.card(&"epic_01").is_showcased()
 		and screen.card(&"epic_01").showcase_plate().visible and screen.showcase_chip_text() == "VİTRİN 2/3")
+	await _wait_action_lock()
 	signals_before = _showcase_signals
 	screen.detail_primary().pressed.emit()
 	await get_tree().process_frame
@@ -372,6 +374,7 @@ func _ready() -> void:
 		and _read_save_file().get("profile_showcase", []) == ["epic_01", "rare_02"])
 	_c("avatar olunca detay: avatar notu, tek eylem VİTRİNDEN ÇIKAR", screen.detail_note_text() == screen.NOTE_AVATAR
 		and screen.detail_primary_text() == "VİTRİNDEN ÇIKAR" and screen.detail_secondary_text() == "")
+	await _wait_action_lock()
 	signals_before = _showcase_signals
 	screen.detail_primary().pressed.emit()
 	await get_tree().process_frame
@@ -379,6 +382,18 @@ func _ready() -> void:
 		_showcase_is([&"rare_02"]) and _showcase_signals == signals_before + 1 and SaveManager.owns_skin(&"epic_01"))
 	_c("çıkınca detay SAHİPSİN + VİTRİNE EKLE; kart plakası gizlendi", screen.detail_state_text() == "SAHİPSİN"
 		and screen.detail_primary_text() == "VİTRİNE EKLE" and not screen.card(&"epic_01").showcase_plate().visible)
+	# İnceleme (TASK/044 merceği 5): birincil buton her yazmadan sonra anlam
+	# değiştirir — hızlı çift dokunuşun ikinci yarısı kilitte kalmalı.
+	await _wait_action_lock()
+	signals_before = _showcase_signals
+	screen.detail_primary().pressed.emit()
+	screen.detail_primary().pressed.emit()
+	screen.detail_secondary().pressed.emit()
+	await get_tree().process_frame
+	_c("çift dokunuş: yalnız İLK eylem (VİTRİNE EKLE) yazıldı; ikinci dokunuş AVATAR YAP / VİTRİNDEN ÇIKAR tetiklemedi",
+		_showcase_is([&"rare_02", &"epic_01"]) and _showcase_signals == signals_before + 1
+		and screen.detail_primary_text() == "AVATAR YAP")
+	await _wait_action_lock()
 	# Dolu vitrin: rare_02, epic_01, common_01 → common_02 eklenmek istenir.
 	SaveManager.showcase_add(&"epic_01")
 	SaveManager.showcase_add(&"common_01")
@@ -406,12 +421,19 @@ func _ready() -> void:
 		and _collect_text(tiles[2]).contains("3. YUVA"))
 	_c("değiştirme adımında tek eylem VAZGEÇ; yuva kutuları ≥ 48 px dokunma", not screen.detail_primary().visible
 		and screen.detail_secondary_text() == "VAZGEÇ" and tiles[0].size.y >= 48.0 and tiles[0].size.x >= 48.0)
+	tiles[0].pressed.emit()
+	await get_tree().process_frame
+	_c("adım açılır açılmaz gelen dokunuş (çift dokunuşun ikinci yarısı) yuva kutusunu SEÇMEDİ — kayıt aynı",
+		screen.is_replacing() and _showcase_is([&"rare_02", &"epic_01", &"common_01"]) and _showcase_signals == signals_before
+		and FileAccess.get_file_as_bytes(SaveManager.SAVE_PATH) == file_before)
+	await _wait_action_lock()
 	screen.detail_secondary().pressed.emit()
 	await get_tree().process_frame
 	_c("VAZGEÇ → değiştirme adımı kapanır, detay açık kalır; hiçbir şey yazılmadı", not screen.is_replacing()
 		and screen.is_detail_open() and screen.detail_primary_text() == "VİTRİNE EKLE"
 		and _showcase_is([&"rare_02", &"epic_01", &"common_01"]) and _showcase_signals == signals_before
 		and FileAccess.get_file_as_bytes(SaveManager.SAVE_PATH) == file_before)
+	await _wait_action_lock()
 	screen.detail_primary().pressed.emit()
 	await get_tree().process_frame
 	_main._last_back_msec = -1000
@@ -419,8 +441,10 @@ func _ready() -> void:
 	_c("değiştirme adımında Android geri → yalnız adım kapanır (detay açık), hiçbir şey yazılmadı",
 		not screen.is_replacing() and screen.is_detail_open() and _main._active_tab == 2
 		and FileAccess.get_file_as_bytes(SaveManager.SAVE_PATH) == file_before and _showcase_signals == signals_before)
+	await _wait_action_lock()
 	screen.detail_primary().pressed.emit()
 	await get_tree().process_frame
+	await _wait_action_lock()
 	tiles[1].pressed.emit()
 	await get_tree().process_frame
 	_c("yuva seçildi (2. YUVA: Acı Sos) → Susamlı O yuvaya girer [rare_02, common_02, common_01], BİR sinyal, kayıtta aynı",
@@ -568,6 +592,17 @@ func _ready() -> void:
 	await get_tree().process_frame
 	_c("Koleksiyon'a her girişte kaydırma en üstte (600'den), açık detay kapanmış", screen.scroll().scroll_vertical == 0
 		and not screen.is_detail_open())
+	screen.card(&"epic_01").pressed.emit()
+	await get_tree().process_frame
+	_main._show_tab(2)
+	await get_tree().process_frame
+	_c("aynı sekmede tazeleme (günlük pencere kapanışı / Hamur yenilemesi) açık detayı KORUR (Profil → detay rotası)",
+		screen.is_detail_open() and screen.detail_id() == &"epic_01")
+	_main._show_tab(0)
+	await get_tree().process_frame
+	_c("sekmeden çıkınca detay kapanır", not screen.is_detail_open())
+	_main._show_tab(2)
+	await get_tree().process_frame
 	_c("Home Koleksiyon madalyonu aynı sayıyı gösteriyor (4/20)", home.feature_button(&"collection").badge_text() == "4/20")
 	# A36 cihaz kapısı (06.2): basış + bırakış AYNI karede (çok kısa dokunuş /
 	# adb tap) → geri butonu ekran gizlenirken 0.94'te asılı kalıyordu.
@@ -649,6 +684,12 @@ func _read_save_file() -> Dictionary:
 		return {}
 	var parsed: Variant = JSON.parse_string(FileAccess.get_file_as_string(SaveManager.SAVE_PATH))
 	return parsed if parsed is Dictionary else {}
+
+
+## Detay eylem kilidi (CollectionScreen.ACTION_LOCK_MSEC) dolsun: art arda
+## bilinçli eylemler gerçek oyuncu hızında.
+func _wait_action_lock() -> void:
+	await get_tree().create_timer(float(COLLECTION_SCRIPT.ACTION_LOCK_MSEC) / 1000.0 + 0.05).timeout
 
 
 func _resize(view: Vector2i) -> void:

@@ -230,6 +230,9 @@ Oyuncu her durumda BİTİR / KAPAT / Hamurla al yollarına sahip.
 - **Yüzeyler (M8.9-02 owner kararı): Ana Sayfa, Harita, Mağaza, Koleksiyon,
   oyun ekranı.** GİZLİ: sonuç ekranı (`Surface.RESULT`), tam ekran reklam
   anları (SDK zaten kaplar), onboarding tamamlanmamış (yuva da yok).
+  **TASK/044:** yeni Profil ekranı (ve üstünde açılan Ayarlar) yüzey DEĞİL —
+  `TAB_SURFACES[4] = Surface.NONE`, banner gizlenir, yuva korunur (düzen
+  zıplamaz); `profile_test` sahte arka uçla doğrular. Yeni yüzey owner kararı ister.
   Pencereler (Devam / Refill / Ayarlar / Mola / GÜNLÜK ÖDÜLLER) banner'ı
   gizlemez; bütün `modal_shell` pencereleri banner'ın **üstündeki** alanda
   ortalanır ve gövde tavanı `bottom_inset` ile hesaplanır — pencere altlığı

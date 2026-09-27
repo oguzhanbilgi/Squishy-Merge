@@ -19,8 +19,11 @@ extends Node
 ##   10_slot_to_detail         dolu vitrin yuvası → Koleksiyon'da parça detayı
 ##
 ## Kullanım:
-##   godot --path . res://tools/profile_shots.tscn -- <çıktı_klasörü> [GxY] [safe=61]
+##   godot --resolution GxY --path . res://tools/profile_shots.tscn -- <çıktı_klasörü> [GxY] [safe=61]
 ## `safe=N`: A36 punch-hole payı simülasyonu (tuval px; dosya adına `_a36`).
+## `--resolution` ŞART (TASK/044): pencere yöneticisiz X (xvfb) çalışma anındaki
+## `window_set_size`'ı yok sayar — yalnız argüman verilirse kare istenen boyutta
+## çıkar; araç boyut tutmazsa uyarı basar.
 
 const MAIN_SCENE: PackedScene = preload("res://scenes/main.tscn")
 const SHOT_SIZE := Vector2i(720, 1280)
@@ -46,6 +49,9 @@ func _ready() -> void:
 	DisplayServer.window_set_size(_size)
 	await get_tree().process_frame
 	await get_tree().process_frame
+	if DisplayServer.window_get_size() != _size:
+		push_warning("pencere %s istendi, %s çalışıyor — `--resolution %dx%d` ile başlatın" % [
+			str(_size), str(DisplayServer.window_get_size()), _size.x, _size.y])
 
 	_had_save = FileAccess.file_exists(SaveManager.SAVE_PATH)
 	if _had_save:

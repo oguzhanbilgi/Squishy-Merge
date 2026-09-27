@@ -98,6 +98,10 @@ const SLOT_TEXT: String = "%d. YUVA"
 const REPLACE_TILE: Vector2 = Vector2(164.0, 200.0)
 const BURST_COUNT: int = 8
 const BURST_TIME: float = 0.55
+## Detay eylemlerinden sonra kısa kilit: birincil buton her yazmadan sonra anlam
+## değiştirir (VİTRİNE EKLE → AVATAR YAP / VİTRİNDEN ÇIKAR) ve pencere yeniden
+## ortalanır — hızlı çift dokunuşun ikinci yarısı istenmeyen bir eyleme düşmesin.
+const ACTION_LOCK_MSEC: int = 350
 
 var _bar: ScreenTopBar
 var _cards: Array[CollectionSkinCard] = []
@@ -134,6 +138,7 @@ var _replace_row: HBoxContainer
 var _replace_tiles: Array[Button] = []
 var _detail_id: StringName = &""
 var _replacing: bool = false
+var _action_lock_until: int = 0
 var _burst: Array[TextureRect] = []
 var _burst_tween: Tween
 var _entry_tween: Tween
@@ -174,7 +179,11 @@ func _ready() -> void:
 		set_process(visible)
 		if visible:
 			_layout()
-			_play_entry.call_deferred())
+			_play_entry.call_deferred()
+		else:
+			# Sekmeden çıkınca açık detay kapanır; aynı sekmede tazeleme
+			# (günlük pencere kapanışı, Hamur yenilemesi) detayı KORUR.
+			close_detail(false))
 	set_process(visible)
 	SaveManager.skin_granted.connect(_on_skin_granted)
 	SaveManager.showcase_changed.connect(_on_showcase_changed)
@@ -220,6 +229,8 @@ func _build_header() -> void:
 	var column := VBoxContainer.new()
 	column.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	column.add_theme_constant_override("separation", 8)
+	# Sabit 128 px plakada içerik dikeyde ortalı (altta boş bant kalmasın).
+	column.alignment = BoxContainer.ALIGNMENT_CENTER
 	plate.add_child(column)
 	var row := HBoxContainer.new()
 	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -276,8 +287,11 @@ func _build_header() -> void:
 		chip.name = "Chip_%s" % SkinData.rarity_name(rarity)
 		chip.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		chip.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		# `badge_round` (dikey 9-dilim payı 33) ≥ 34 px çipte düzgün hap; `label_round`'un
+		# 66 px payı 28 px'te sekme gibi çiziliyordu (TASK/044 incelemesi).
 		chip.add_theme_stylebox_override("panel",
-			UiKit.style("label_round", (SECTION_TINTS[rarity] as Color).darkened(0.12), Vector4(8, 1, 8, 3)))
+			UiKit.style("badge_round", (SECTION_TINTS[rarity] as Color).darkened(0.12), Vector4(8, 6, 8, 8)))
+		chip.custom_minimum_size = Vector2(0, 34.0)
 		var chip_label := UiKit.label("", &"LabelBadgeOnDark", HORIZONTAL_ALIGNMENT_CENTER)
 		chip_label.add_theme_font_size_override("font_size", 14)
 		chip_label.clip_text = true
@@ -562,10 +576,12 @@ func _layout() -> void:
 # --- Tazeleme -----------------------------------------------------------------
 
 ## Sekmeye her girişte (main._show_tab): kartlar, başlık ve bakiye kanonik
-## modelden; açık detay kapanır. Kartlar yeniden KURULMAZ. Görünmezken
+## modelden. Kartlar yeniden KURULMAZ. Açık detay yalnız tazelenir (sekmeden
+## çıkınca zaten kapanır — `visibility_changed`); böylece Profil'den açılan
+## detay, üstünde açılıp kapanan günlük pencere yüzünden kaybolmaz. Görünmezken
 ## keşfedilen yeni parça varsa albüm ona kaydırır ve kart pop'lar.
 func refresh() -> void:
-	close_detail(false)
+	_refresh_detail()
 	for card in _cards:
 		card.refresh()
 	_refresh_header()
@@ -647,6 +663,7 @@ func open_detail(skin_id: StringName) -> void:
 	var was_open: bool = _detail.visible
 	_detail_id = skin_id
 	_replacing = false
+	_action_lock_until = 0
 	_detail.visible = true
 	_apply_detail(entry)
 	(_detail_frame.get_meta(&"scroll") as ScrollContainer).scroll_vertical = 0
@@ -716,6 +733,9 @@ func _apply_detail(entry: SkinEntry) -> void:
 		_detail_secondary.visible = false
 	if _replacing and not entry.is_locked() and not entry.showcased and full:
 		_show_replace_step()
+	else:
+		# Değiştirme artık geçerli değil (vitrin boşaldı / parça vitrine girdi).
+		_replacing = false
 	UiKit.modal_relayout(_detail_frame)
 
 
@@ -753,10 +773,21 @@ func _set_button(button: Button, text: String, variation: StringName, shown: boo
 	UiKit.set_candy_button_variation(button, variation)
 
 
+func _actions_locked() -> bool:
+	return Time.get_ticks_msec() < _action_lock_until
+
+
+func _lock_actions() -> void:
+	_action_lock_until = Time.get_ticks_msec() + ACTION_LOCK_MSEC
+
+
 func _on_detail_primary() -> void:
+	if _actions_locked():
+		return
 	var entry: SkinEntry = SkinEntry.find(_detail_id)
 	if entry == null:
 		return
+	_lock_actions()
 	if entry.is_locked():
 		var target: StringName = entry.id
 		close_detail(false)
@@ -780,9 +811,11 @@ func _on_detail_primary() -> void:
 
 
 func _on_detail_secondary() -> void:
+	if _actions_locked():
+		return
+	_lock_actions()
 	if _replacing:
 		_replacing = false
-		AudioManager.play(&"ui_tap")
 		_refresh_detail()
 		return
 	var entry: SkinEntry = SkinEntry.find(_detail_id)
@@ -790,19 +823,20 @@ func _on_detail_secondary() -> void:
 		_remove_from_showcase(entry.id)
 
 
+## Dokunuş sesi basışta (candy buton `UiMotion.attach_press`) — ikinci kez çalınmaz.
 func _remove_from_showcase(skin_id: StringName) -> void:
-	if SaveManager.showcase_remove(skin_id):
-		AudioManager.play(&"ui_tap")
+	SaveManager.showcase_remove(skin_id)
 
 
 func _on_replace_slot(slot: int) -> void:
-	if not _replacing or slot >= _replace_tiles.size():
+	if _actions_locked() or not _replacing or slot >= _replace_tiles.size():
 		return
 	var tile: Button = _replace_tiles[slot]
 	if not tile.has_meta(&"skin_id"):
 		return
 	var old_id: StringName = tile.get_meta(&"skin_id")
 	_replacing = false
+	_lock_actions()
 	if SaveManager.showcase_replace(old_id, _detail_id):
 		_celebrate()
 	else:
@@ -864,11 +898,14 @@ func _on_skin_granted(skin_id: StringName) -> void:
 
 
 ## Android geri: açık değiştirme adımı → detaya; açık detay → kapat (true);
-## değilse main.gd Ana Sayfa'ya döner (false).
+## değilse main.gd Ana Sayfa'ya döner (false). Geri tuşu eylem kilidine
+## takılmaz (yazma yapmaz).
 func handle_back() -> bool:
 	if _detail.visible:
 		if _replacing:
-			_on_detail_secondary()
+			_replacing = false
+			AudioManager.play(&"ui_tap")
+			_refresh_detail()
 		else:
 			close_detail()
 		return true

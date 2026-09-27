@@ -367,6 +367,10 @@ squishy_merge_final_skins_named.zip`, 1254×1254, import 512 px + mipmap).
 Gameplay'de skin, tier sprite'ının gövdesini `skins/skin_body.gdshader` ile
 boyar; gövde maskeleri `skins/generated/body_mask_tier1..8.png`
 (`tools/make_skin_masks.py` çıktısı, tier dokularından türetildi).
+**TASK/044 (owner kararı): gameplay skin render'ı emekli** — shader'lar, gövde
+maskeleri ve maske betiği SİLİNDİ (türev dosyalardı; owner kaynağı etkilenmedi).
+20 önizleme görseli aynen: Koleksiyon, Mağaza, sandık reveal'i, Profil avatarı /
+vitrini.
 
 Bu turda `collection_album.gd` ve `shop_screen.gd` içindeki `LOCKED_COLOR`
 sabitleri silindi — silüet kendi rengiyle geldiği için tint uygulanmıyor,
@@ -699,7 +703,7 @@ renge temiz boyanıyor (sekme altın, pasif lavanta, krem panelde erik).
 | `ui/icons/play.png` | `icon_play_white.svg` | Alt sekme: Harita (oynanacak level'lar) |
 | `ui/icons/badge.png` | `icon_badge_white.svg` | Alt sekme: Koleksiyon, albüm ilerleme kartı, koleksiyon cipi |
 | `ui/icons/cart.png` | `icon_cart_white.svg` | Alt sekme: Mağaza |
-| `ui/icons/settings.png` | `icon_settings_white.svg` | Ana Sayfa dişli butonu |
+| `ui/icons/settings.png` | `icon_settings_white.svg` | Profil dişli butonu (TASK/044; eskiden Ana Sayfa) + oyun içi HUD ayarları |
 | `ui/icons/volume.png` | `icon_volume_white.svg` | Ayarlar: Ses Efektleri satırı |
 | `ui/icons/volume_mute.png` | `icon_volume_mute_white.svg` | (yedek; şu an bağlı değil) |
 | `ui/icons/close.png` | `icon_close_white.svg` | Ayarlar kapatma ikonu |

@@ -25,12 +25,17 @@
   depolaması. Tek yazan `scripts/autoload/save_manager.gd` (başka hiçbir
   betik `FileAccess ... WRITE` açmıyor).
 - **İçerik:** oyun ilerlemesi (açılan en yüksek level, level yıldızları, sonsuz
-  mod rekoru, toplam merge), oyun içi para (Hamur), açılan/takılı skin'ler,
+  mod rekoru, toplam merge; TASK/044: oynanan tur sayısı, oluşturulan en yüksek
+  tier), oyun içi para (Hamur), sahip olunan koleksiyon parçaları (Squishy; alan
+  adı tarihsel `unlocked_skins`) ve profil vitrini (en fazla 3 parça kimliği —
+  eski kayıttaki `equipped_skin` bir kez vitrine taşınıp silinir),
   güç stokları ve başlangıç hediyesi bayrağı, ödüllü refill günü/sayacı,
   günlük giriş serisi + son giriş tarihi, günlük ödül kotaları ve gün
   anahtarları (`YYYY-MM-DD`, cihazın yerel takvimi), ses/titreşim ayarları,
   onboarding (tutorial) tamamlanma bayrağı ve günü. **Kişisel veri yok** (ad,
-  e-posta, telefon, konum, kişi listesi, fotoğraf yok).
+  e-posta, telefon, konum, kişi listesi, fotoğraf yok). TASK/044 Profil: görünen
+  ad sabit "Oyuncu" (kullanıcıdan ad / takma ad ALINMAZ, saklanmaz); avatar yalnız
+  bir koleksiyon parçası — kamera / galeri / dosya erişimi ve izin YOK.
 - **Yaş bandı (TASK/043, [monetization/AGE_BAND_ROUTING.md](monetization/AGE_BAND_ROUTING.md)):**
   nötr yaş ekranında girilen **doğum tarihi SAKLANMAZ** ve cihazdan çıkmaz (yalnız
   bellekte sınıflandırılıp atılır). Kayda yalnız türetilmiş durum yazılır:

@@ -31,7 +31,8 @@ signal collectible_requested(skin_id: StringName)
 
 const TITLE: String = "PROFİL"
 const SIDE_MARGIN: float = 24.0
-const CONTENT_TOP_GAP: float = 18.0
+## İlk kart haze bandının altında başlar (Mağaza deseni: boşluk = HAZE_FADE).
+const CONTENT_TOP_GAP: float = 28.0
 const SECTION_GAP: float = 14.0
 const BOTTOM_PADDING: float = 56.0
 const HAZE_FADE: float = 28.0
@@ -57,6 +58,7 @@ const POWER_ART: float = 70.0
 const STAR_ART: Texture2D = preload("res://assets/visual/ui/icon_star_filled.png")
 const DUMPLING_VISUAL: GDScript = preload("res://scripts/game/dumpling_visual.gd")
 const ENTRY_TIME: float = 0.18
+const CHIP_HEIGHT: float = 34.0
 const RARITY_TINTS: Dictionary = {
 	SkinData.Rarity.COMMON: Color("8a8aa8"),
 	SkinData.Rarity.RARE: Color("3f86d0"),
@@ -138,6 +140,9 @@ func _tune_backdrop() -> void:
 
 ## Krem kart kabuğu (Koleksiyon / Mağaza kartıyla aynı reçete): erik gölge →
 ## açık halka → krem gövde + kart yüzü. İçerik `body`'ye (PanelContainer).
+## Gövde iç payı `margin` ile GERÇEKTEN uygulanır (`card_bevel_soft`'un pişmiş alt
+## dudağı kartın alt kenarından 11–22 px yukarıda — alt pay ≥ 24, içerik dudağa
+## binmesin; TASK/044 incelemesi) ve kart içeriğe göre uzar (`height` alt sınır).
 func _card(height: float, margin: Vector4 = Vector4(18, 14, 18, 22)) -> PanelContainer:
 	var wrap := Control.new()
 	wrap.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -148,14 +153,30 @@ func _card(height: float, margin: Vector4 = Vector4(18, 14, 18, 22)) -> PanelCon
 	var rim := UiKit.flat_plate("frame_round20", UiTokens.LAVENDER_LIGHT)
 	UiKit.inset(rim, -4.0, -4.0, -4.0, -4.0)
 	wrap.add_child(rim)
-	var body := UiKit.panel(&"PanelCollectionCard")
-	body.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	body.set_anchors_preset(Control.PRESET_FULL_RECT)
+	var body := _card_body(margin)
 	wrap.add_child(body)
-	UiKit.card_face(body, margin)
+	_fit_to_body(wrap, body, height)
 	_content.add_child(wrap)
 	body.set_meta(&"wrap", wrap)
 	return body
+
+
+## `PanelCollectionCard` gövdesi, iç payı kart yüzüyle AYNI (tema 10/8/10/12 değil).
+static func _card_body(margin: Vector4) -> PanelContainer:
+	var body := UiKit.panel(&"PanelCollectionCard")
+	body.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	body.set_anchors_preset(Control.PRESET_FULL_RECT)
+	body.add_theme_stylebox_override("panel", UiKit.style("card_bevel_soft", UiTokens.CREAM, margin))
+	UiKit.card_face(body, margin)
+	return body
+
+
+## Sarmalayıcı en az `min_height`, içerik daha uzunsa gövdenin en küçük boyu kadar.
+static func _fit_to_body(wrap: Control, body: PanelContainer, min_height: float) -> void:
+	var fit := func() -> void:
+		wrap.custom_minimum_size.y = maxf(min_height, body.get_combined_minimum_size().y)
+	body.minimum_size_changed.connect(fit)
+	fit.call()
 
 
 func _section(key: StringName, title: String) -> void:
@@ -166,7 +187,7 @@ func _section(key: StringName, title: String) -> void:
 
 
 func _build_identity() -> void:
-	var body := _card(IDENTITY_HEIGHT, Vector4(18, 14, 20, 22))
+	var body := _card(IDENTITY_HEIGHT, Vector4(18, 14, 20, 24))
 	(body.get_meta(&"wrap") as Control).name = "Identity"
 	var row := HBoxContainer.new()
 	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -302,11 +323,9 @@ func _make_power_tile(type: PowerUp.Type) -> Control:
 	var rim := UiKit.flat_plate("frame_round20", PowerUp.accent(type).lerp(Color.WHITE, 0.45))
 	UiKit.inset(rim, -4.0, -4.0, -4.0, -4.0)
 	tile.add_child(rim)
-	var body := UiKit.panel(&"PanelCollectionCard")
-	body.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	body.set_anchors_preset(Control.PRESET_FULL_RECT)
+	var body := _card_body(Vector4(8, 12, 8, 24))
 	tile.add_child(body)
-	UiKit.card_face(body, Vector4(8, 12, 8, 18))
+	_fit_to_body(tile, body, POWER_TILE.y)
 	var column := VBoxContainer.new()
 	column.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	column.alignment = BoxContainer.ALIGNMENT_CENTER
@@ -331,7 +350,7 @@ func _make_power_tile(type: PowerUp.Type) -> Control:
 
 func _build_collection() -> void:
 	_section(&"collection", COLLECTION_TITLE)
-	var body := _card(198.0, Vector4(20, 14, 20, 22))
+	var body := _card(198.0, Vector4(20, 14, 20, 24))
 	(body.get_meta(&"wrap") as Control).name = "CollectionCard"
 	var column := VBoxContainer.new()
 	column.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -371,8 +390,11 @@ func _build_collection() -> void:
 		var chip := PanelContainer.new()
 		chip.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		chip.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		# `badge_round` (dikey 9-dilim payı 33): çip ≥ 34 px — `label_round`'un 66 px
+		# payı 28 px'lik çipte sekme gibi çiziliyordu (TASK/044 incelemesi).
 		chip.add_theme_stylebox_override("panel",
-			UiKit.style("label_round", RARITY_TINTS[rarity], Vector4(8, 1, 8, 3)))
+			UiKit.style("badge_round", RARITY_TINTS[rarity], Vector4(8, 6, 8, 8)))
+		chip.custom_minimum_size = Vector2(0, CHIP_HEIGHT)
 		var chip_label := UiKit.label("", &"LabelBadgeOnDark", HORIZONTAL_ALIGNMENT_CENTER)
 		chip_label.add_theme_font_size_override("font_size", 14)
 		chip_label.clip_text = true
@@ -384,6 +406,9 @@ func _build_collection() -> void:
 	_collection_cta.name = "CollectionCta"
 	UiKit.make_candy_button_scrollable(_collection_cta)
 	_collection_cta.pressed.connect(func() -> void: collection_requested.emit())
+	# Parmak CTA'da başlayıp kaydırırsa BaseButton basışı iptal eder ama
+	# button_up yaymaz: basış görseli burada bırakılır (Mağaza 06.3 deseni).
+	_scroll.scroll_started.connect(func() -> void: UiKit.release_candy_button(_collection_cta))
 	column.add_child(_collection_cta)
 
 
@@ -511,7 +536,7 @@ func _play_entry() -> void:
 
 func _on_slot_pressed(slot: int) -> void:
 	var entry: SkinEntry = _slots[slot].entry()
-	AudioManager.play(&"ui_tap")
+	# Dokunuş sesi basışta (UiMotion.attach_press) — burada ikinci kez çalınmaz.
 	if entry != null and not entry.is_default():
 		collectible_requested.emit(entry.id)
 	else:

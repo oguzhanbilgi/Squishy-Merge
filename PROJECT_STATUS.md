@@ -1462,6 +1462,86 @@ formatına yalnız `haptics_enabled` (varsayılan true) eklendi. Ayrıntı ve
 - **Değişmeyen:** fizik, collider, CONTACT_FIT, bag, merge, skor, revive,
   güçler, ekonomi, kayıt formatı, önizleme sanatı, maskeler.
 
+### 4.20 Player Meta V1 — gameplay skinleri emekli, Koleksiyon V1, Profil (TASK/044)
+
+> Dalda (`task/044-player-meta-v1`, başlangıç main `327dd60`); yerel owner /
+> cihaz kapısı bekliyor. Kural metni: GAME_DESIGN §5.3 / §5.8; UI:
+> UI_VISUAL_SYSTEM §17 / §22.
+
+- **Owner kararı:** skin sistemi gameplay özelleştirmesi olarak EMEKLİ. Gerekçe:
+  koleksiyon sanatı değerli ama tier kimliğiyle çatışan bir render katmanı
+  (§4.17 / §4.19'daki gövde maskesi + shader + tavanlı tint) taşımaya değmiyor;
+  koleksiyon bir tamamlama / statü hedefi olarak daha net. Oyundaki parça artık
+  HER ZAMAN kanonik tier sprite'ı.
+- **Denetim (brief §17) — referans kategorileri:** **A sil:** `SkinVisual` +
+  `.uid`, `skin_body` / `skin_aura` shader'ları, 8 gövde maskesi (+ `.import`),
+  `make_skin_masks.py`, `skin_tier_contrast.py`, `skin_gallery.*`,
+  `screenshot_runner` skin çekimi, `DumplingVisual` skin katmanı
+  (`override_skin` / `use_equipped_skin`), equip API'leri (`equip_skin`,
+  `clear_equipped_skin`, `equipped_skin_id`, `equipped_skin`, `skin_equipped`
+  sinyali, `SkinEntry.equipped` / `equipped_entry`), Koleksiyon vitrini / TAK /
+  TAKILI, Mağaza TAKILI durumu, "Varsayılan" kartı, harness'lardaki etkisiz
+  `equipped_skin` satırları. **B göç / tarih için kalır:** `unlocked_skins` (sahiplik),
+  `SkinData` / `SkinEntry` / `SkinLibrary` sınıf adları, `SkinData` render alanları
+  (inert — okunmaz), `grant_skin` / `owns_skin` / `skin_granted`, `ui_equip` ses id'si,
+  `EquippedBadge` tema varyasyonu (sonuç ekranının kilit-açıldı rozeti),
+  `focus_skin` / `shop_skin_requested` / `ShopSkinCard` / `CollectionSkinCard` adları,
+  `equipped_skin` yalnız `_migrate_legacy_equip` içinde. **C vitrine dönüştü:** takma
+  eylemi → VİTRİNE EKLE; eski `equipped_skin` → vitrinin ilk yuvası. **D yalnız
+  tarih:** DEVLOG, bu dosyanın §4.16–§4.19'u, `SKIN_ART_AUDIT.md`, CREDITS notu.
+- **Kayıt:** yeni alanlar `profile_showcase` (≤ 3, sahip + katalog, tekrarsız,
+  ilk = avatar; okuma her zaman doğrulanır), `total_rounds_played`,
+  `highest_tier_created`, `profile_counters_partial`. Göç yalnız bellekte (yüklemede
+  disk yazması yok; sonraki doğal kayıt kalıcılaştırır): `equipped_skin` → vitrin
+  (yalnız kayıtta vitrin yoksa + sahip olunan katalog parçasıysa) ve anahtar silinir;
+  sayaçlar eski kayıtta 0'dan başlar, oynanmışlık kanıtı varsa partial = true
+  (uydurma yok). Onboarding göçü ve başlangıç güç hediyesi aynen.
+- **Sayaç semantiği (brief §12):** tur = round KESİN bitince tam +1
+  (`Main._on_round_finished` → `SaveManager.record_round_finished`, `_finish`
+  korumalı); terk / yeniden başlatma sayılmaz. En yüksek tier = bitmiş round'da
+  merge (sonsuzda tier 8 yok oluşu dahil) ya da Büyütücü ile OLUŞTURULAN
+  (`GameState.note_tier_created`; düşen parça değil). Profil gösterimi tamamlanan
+  level'ların hedef tier'ını kanıtlanmış alt sınır olarak kullanır.
+- **Profil:** Ana Sayfa üst-sol `AvatarButton` (eski ayarlar butonunun yeri);
+  "Oyuncu" adı (takma ad / XP / seviye / başarım / unvan TASK/045); 3 yuva vitrin;
+  6 istatistik (`PlayerProfile` — kanonik alanlardan türetilir); salt okunur güç
+  stoğu; koleksiyon kartı + KOLEKSİYONA GİT; dişli → Main'in tek `SettingsPanel`'i
+  (oyun içi HUD ayarları + mola aynen). `Surface.NONE`: banner yüzeyi değil.
+- **Dil:** oyuncuya "skin / tak / TAKILI" yok — KOLEKSİYON, SQUISHY, KOLEKSİYON
+  PARÇASI; sandık / günlük: "Yeni Squishy keşfedildi!", sonuç kartı "YENİ SQUISHY";
+  Mağaza bölümü "KOLEKSİYON", onay "Nadir Squishy · koleksiyonuna kalıcı eklenir",
+  satın alma bildirimi "… alındı · koleksiyonuna eklendi".
+- **Değişmeyen (dondurulmuş):** fizik, merge kuralları, level balansı, sandık
+  oranları 60/25/12/3 + %30 parça / %70 Hamur, fiyatlar 50/150/400/900, güç
+  fiyatları, günlük ödül ekonomisi, ödüllü kotalar, geçiş reklamı zamanlaması,
+  reklam yüzeyleri, TEEN / ADULT yönlendirmesi (TASK/043), GMA / UMP sürümleri,
+  paket kimlikleri.
+- **8 mercekli salt-okunur çekişmeli inceleme (brief §22):** kayıt göçü · skin gerçekten
+  kalktı · ekonomi · profil istatistikleri · vitrin sahiplik doğrulaması · responsive UI ·
+  TASK/043 yaş/ayarlar · gezinme. Blokaj yok. Giderilen: `shell_shots` gerçek Main
+  kurarken daraltılmış sahipliği kayda yazabiliyordu (araç; bayt geri yazma eklendi) ·
+  detayda hızlı çift dokunuş ikinci eyleme düşüyordu (350 ms eylem kilidi) · Profil →
+  detay rotası aynı sekme tazelemesinde (günlük pencere) kayboluyordu (tazeleme detayı
+  korur, sekmeden çıkınca kapanır) · bayat değiştirme durumu · ham vitrin listesine
+  tavan (32) · türetilmiş tier "en az" notu · Profil dişlisinden TASK/043 yaş yeniden
+  giriş testi · Profil kartlarında içerik `card_bevel_soft`'un pişmiş alt dudağına
+  biniyordu (gövde iç payı gerçekten uygulanır, alt pay 24, kart içeriğe göre uzar;
+  piksel ölçümüyle test edildi) · rarity çipleri sekme gibi çiziliyordu (`badge_round`,
+  34 px) · haze boşluğu · kaydırmada CTA basılı kalıyordu · çift `ui_tap` · çift halka
+  tonu · albüm başlığı dikey ortalı · ekran görüntüleri gerçek pencere boyutunda
+  (`--resolution`; ilk tur hep 720×1280'di) · araç / yorum / belge ufaklıkları.
+  Bilinçli olarak bırakılan (owner
+  kararı): Koleksiyon / Mağaza geri → Ana Sayfa (hub-and-spoke; Profil'e dönmez),
+  `_finish_upgrade`'in round bitişiyle çakışan Büyütücü tier'ı (gameplay değişikliği
+  owner onayı ister), avatar ↔ Profil geri aynı dikdörtgende çift dokunuş (eski
+  sınıf), günlük reveal'de "YENİ SQUISHY" rozeti + "Yeni Squishy keşfedildi!" tekrarı.
+- **Testler:** yeni `profile_test` (135) + `collection_rework_test` (64); yeniden
+  yazılan `collection_ui_test` (164 → 205), `skin_test` (30 → 19: render hattı
+  testleri emekli, kanonik görünüm kontrolleri eklendi), `ui_smoke_test` (74 → 57:
+  equip akışı → vitrin akışı); güncellenen `home_ui_test` (208 → 216),
+  `shop_ui_test` (213 → 215), `result_ui_test` / `economy_test` (metin). Tam
+  regresyon 25 suite yeşil.
+
 ## 5. Dosya/klasör yapısı ve script envanteri
 
 ```
@@ -1519,8 +1599,8 @@ squishy-merge/
 | `game/dumpling_visual.gd` | Görsel katman: tier sprite'ı, ±20° eğim, squash-stretch. |
 | `game/tier_config.gd` | 8 tier'ın veri tablosu: yarıçap, isim, renk, merge puanı, yıldız eşikleri. |
 | `game/level_data.gd` / `level_library.gd` | `.tres` level verisi + klasör tarayıcı. |
-| `game/skin_data.gd` / `skin_library.gd` / `skin_entry.gd` | Skin kataloğu (final önizleme + gameplay render profili, M8.5-14) + klasör tarayıcı + oyuncuya göre durum view model'i (M8.5-13). |
-| `game/skin_visual.gd` | Gameplay skin render katmanı (M8.5-14): gövde maskesi + `skin_body.gdshader` materyali (skin×tier paylaşımlı), Legendary aura. |
+| `game/skin_data.gd` / `skin_library.gd` / `skin_entry.gd` | Koleksiyon parçası (Squishy; ad tarihsel "skin") kataloğu (final önizleme; render alanları TASK/044'ten beri inert) + klasör tarayıcı + oyuncuya göre durum view model'i (sahip / vitrinde / yuva, avatar, en son keşfedilen, rarity sayaçları). |
+| `game/player_profile.gd` | `PlayerProfile` (TASK/044): Profil'in salt okunur istatistik / kimlik API'si — kanonik alanlardan türetir, yazmaz. *(`game/skin_visual.gd` TASK/044'te SİLİNDİ — gameplay skin render'ı emekli.)* |
 | `game/drop_bag.gd` | Bag randomizer (§4.4). |
 | `game/chest_system.gd` / `chest_reward.gd` | Sandık kurası ve ödül nesnesi; `ChestReward.title/description/note` oyuncuya Türkçe (M8.6-09), iç ad `rarity_name` değişmedi. |
 | `game/shop.gd` | Fiyatlar ve satın alma. **Fiyat tune edilecek tek yer.** |
@@ -1535,16 +1615,18 @@ squishy-merge/
 | script | işi |
 |---|---|
 | `main.gd` | Ekranlar (Ana Sayfa hub / Harita / Koleksiyon / Mağaza) ↔ oyun ↔ sonuç akışını bağlar. Kurallar burada DEĞİL. Alt sekme çubuğu M8.6-06'da kalktı. |
-| `ui/home_screen.gd` | Ana sayfa: logo, streak, Hamur, "Oyna"; Günlük madalyonu → GÜNLÜK ÖDÜLLER penceresi (M8.9-02.1). |
+| `ui/home_screen.gd` | Ana sayfa: logo, streak, Hamur, "Oyna"; Günlük madalyonu → GÜNLÜK ÖDÜLLER penceresi (M8.9-02.1); TASK/044: üst-sol profil avatarı (eski ayarlar butonu), Koleksiyon madalyonunda en son keşfedilen Squishy. |
+| `ui/profile_screen.gd` | Profil (TASK/044): kimlik + 3 yuva vitrin + 6 istatistik + salt okunur güçler + koleksiyon kartı; dişli → Ayarlar. Kayda yazmaz. |
+| `ui/avatar_button.gd` / `profile_showcase_slot.gd` / `profile_stat_tile.gd` / `collectible_stage.gd` | TASK/044 bileşenleri: yuvarlak candy avatar, vitrin yuvası, istatistik kutucuğu, rarity halesi + candy kaide + nefes alan sanat sahnesi (Koleksiyon detayı + Profil yuvası). |
 | `ui/level_select.gd` | Harita: patika üstünde 10 düğüm + durumlar + açılış animasyonu + Sonsuz Mod kapısı (M8.5-12); banner yuvası varken dünya yuvanın üstünde biter (`_fit_world`, 16:9'da ≤ %4 dikey sıkıştırma — M8.9-02). |
 | `ui/map_trail.gd` | Düğümleri bağlayan programatik candy patika (Catmull-Rom + noktalar, tamamlanmış/gelecek). |
-| `ui/collection_screen.gd` | Koleksiyon (M8.6-06): `ScreenTopBar` + sabit vitrin (candy kaide üstünde büyük skin sanatı, tek eylem TAK / MAĞAZAYA GİT / TAKILI, N/20 pill'i) + kaydırılan 3 sütun galeri. Yalnız `SaveManager.equip_skin` yazar; satın alma yok. |
-| `ui/collection_skin_card.gd` | `CollectionSkinCard` — galeri kartı (Button; rarity halkası/hale, final sanat, TAKILI / fiyat, seçim halkası). |
+| `ui/collection_screen.gd` | Koleksiyon (M8.6-06 → TASK/044 Collection V1): `ScreenTopBar` + sabit albüm başlığı (N/20, VİTRİN N/3, rarity sayaçları) + kaydırılan 3 sütun albüm + parça detayı (`CollectibleStage`; VİTRİNE EKLE / VİTRİNDEN ÇIKAR / AVATAR YAP / MAĞAZAYA GİT; dolu vitrinde açık değiştirme adımı). Yalnız kanonik `SaveManager.showcase_*` yazar; satın alma yok. |
+| `ui/collection_skin_card.gd` | `CollectionSkinCard` — albüm kartı (Button; rarity halkası/hale, final sanat, kilit, VİTRİNDE plakası; TASK/044: seçim halkası / TAKILI yok). |
 | `ui/shop_screen.gd` | Mağaza (M8.6-05): `ScreenTopBar` + kaydırılan içerik: **GÜNLÜK ÖDÜLLER kartı (M8.9-02, en üstte; HAZIR / N ödül kaldı / BUGÜNLÜK TAMAMLANDI, AÇ → pencere; onboarding bitmeden gizli)** + 2 sütun kart gridi + onay penceresi (`UiKit.modal_frame`) + candy geri bildirim plakası. Satın alma yalnız kanonik yoldan. |
 | `ui/shop_power_card.gd` | `ShopPowerCard` — güç ürün kartı (candy kuyu + owner sanatı, amaç, fiyat, SATIN AL, stok rozeti; yetmiyor/başarı durumları). |
-| `ui/shop_skin_card.gd` | `ShopSkinCard` — skin ürün kartı (SkinSwatch önizleme, rarity halkası/hale/pırıltı, fiyat veya SAHİPSİN/TAKILI). |
+| `ui/shop_skin_card.gd` | `ShopSkinCard` — koleksiyon parçası ürün kartı (SkinSwatch önizleme, rarity halkası/hale/pırıltı, fiyat veya SAHİPSİN + "Koleksiyonunda"; TASK/044: TAKILI yok). |
 | `ui/round_result.gd` | Round sonu (M8.6-09 production yeniden kurulum, shell v2 `hero` + kaydırılan gövde + sabit altlık): WIN / FAIL / ENDLESS modları, yıldız reveal → ödül kartı reveal, SKOR/HEDEF/HAMUR çipleri, HARİTA / TEKRAR DENE rotaları; yalnız sunar, kayda yazmaz. **A36'da doğrulandı (M8.6-09.1)**. |
-| `ui/result_reward_card.gd` | `ResultRewardCard` — Hamur / skin (gerçek final sanat, YENİ SKİN) / geri düşüş / teselli kartı; dokunma hedefi değil (M8.6-09). |
+| `ui/result_reward_card.gd` | `ResultRewardCard` — Hamur / parça (gerçek final sanat, YENİ SQUISHY + "keşfedildi!") / geri düşüş / teselli kartı; dokunma hedefi değil (M8.6-09; metin TASK/044). |
 | `ui/result_star_strip.gd` | `ResultStarStrip` — yay üstünde üç owner yıldızı, yumuşak lavanta kontur (türev `icon_star_empty_soft`), pop + pırıltı reveal (M8.6-09). |
 | `ui/reward_gem.gd` | Sandık ödül görseli: kapalı → açılış → rarity katmanları; `setup(reward, size)`, reveal sonrası `settle()` (M8.6-09). |
 | `ui/skin_swatch.gd` | Skin önizlemesi (M8.5-13): final önizleme sanatı + rarity parıltısı; kilitli = `reveal_locked` ile final sanat + kilit (Koleksiyon/Mağaza, M8.6-06) ya da silüet; varsayılan = orijinal dumpling. |
@@ -1579,7 +1661,10 @@ squishy-merge/
 | `daily_ads_shots.gd` + `.tscn` | **M8.9-02 düzen çekimleri** (pencereli): Harita/oyun + banner yuvası (orta ve yeni oyuncu), Mağaza günlük kartı, GÜNLÜK ÖDÜLLER penceresi (hazır/karışık), reveal (Hamur / Common / Legendary), yuvasız referanslar; ölçümler stdout'ta. `--headless` ile çalışmaz. |
 | `ads_device.gd` + `.tscn` | **Reklam cihaz kapısı sürücüsü** (M8.9-01.1 / M8.9-02.2): gerçek `main.tscn`'i gerçek ya da sahte arka uçla kurar, `user://qa_cmd.txt` komut kanalı + `user://qa_state.txt` durum dosyası (reklam/ödüllü/geçiş/banner/günlük/pencere/harita/oyun dikdörtgenleri ekran px, son olaylar). M8.9-02.2 QA komutları: onboarding, login, dailyq, dayclock, fresh, relaunch, daily_open/close/reveal, clock (aktif süre enjeksiyonu), inter_block, fake_i*. **Yalnız ayrı QA paketinde** (`…squishymerge.qa`); üretim export'u `tools/*` hariç — üretim sabitlerine dokunmaz. |
 | `ui_shots.gd` + `ui_shots.tscn` | **Production UI kabuğu çekimleri** (M8.5-10): dört sekme, ayarlar, en kötü durum, oyun ekranı; üç ölçü. `--headless` ile çalışmaz. |
-| `ui_smoke_test.gd` + `ui_smoke_test.tscn` | **Headless UI davranış testi** (74 kontrol): ayar anahtarı, onay diyaloğu, geri tuşu, equip. |
+| `ui_smoke_test.gd` + `ui_smoke_test.tscn` | **Headless UI davranış testi** (57 kontrol, TASK/044): ayar anahtarı, onay diyaloğu, geri tuşu, koleksiyon detayı + VİTRİNE EKLE. |
+| `profile_test.gd` + `.tscn` | **Profil testi** (TASK/044, 135 kontrol): üç ilerleme durumu + eski kayıt, rotalar (avatar / dişli / yuvalar / geri), oyun içi ayarlar + mola, gerçek round sayaçları, sahte arka uçla banner yüzeyi + Profil dişlisinden TASK/043 yaş yeniden girişi, 7 pencere + A36. |
+| `collection_rework_test.gd` + `.tscn` | **Skin emekliliği + vitrin kuralları testi** (TASK/044, 64 kontrol): `equipped_skin` göçü, kanonik gameplay (kaynak taraması dahil), vitrin kuralları + tek yazma, oyuncu dili, dondurulmuş ekonomi. |
+| `profile_shots.gd` + `.tscn` | **Profil çekimleri** (TASK/044): yeni / orta / geç (üst + kaydırma sonu), 0 / 3 vitrin, eski kayıt, Profil'den Ayarlar, Ana Sayfa avatarı, yuva → detay. `--headless` ile çalışmaz. |
 | `secondary_modal_ui_test.gd` + `.tscn` | **Headless ikincil pencere testi** (M8.6-08 / M8.9-02.1, 100 kontrol): shell v2 iskeleti (oturmuş X, gövde/altlık sınırları, tavan + kaydırma, karartma), Ayarlar (kanonik yazma yolu, taşma regresyonu 5 yapılandırma), Günlük = birleşik GÜNLÜK ÖDÜLLER (claim pencereden önce tam bir kez, üst bölge, yeniden açılış +15 yok, kapanış yolları, 540×960), Mola/Sandık (hiyerarşi, z-order, rota). Kaydı byte'ı geri koyar. |
 | `secondary_ui_shots.gd` + `.tscn` | **İkincil pencere çekimleri** (M8.6-07/08): 48 durum × pencere boyutu + A36 simülasyonu; `groups=` ile alt küme. `--headless` ile çalışmaz. |
 | `result_ui_test.gd` + `.tscn` | **Headless round sonu testi** (M8.6-09, 226 kontrol): yapı (eski iskelet yok, kayda yazma çağrısı yok), kazanma / kayıp / ödül kartları / dil taraması, 6 ödül taşma + sürükleme, kayıt güvenliği + gerçek kayıp yolu (teselli tam bir kez), rotalar + Android geri, L10 / Sonsuz, devam sırası, 5 yapılandırma, performans. Kaydı byte'ı geri koyar. |
@@ -2138,6 +2223,22 @@ template` ile; her makinede ayrı).
    gerçek parmakla hiç otomatik test edilmedi.**
 8. Uzun ekran (9:19.5+) ve çentikli cihazlarda düzeni kontrol et (§7 #9).
 9. APK/AAB boyutunu ölç; gerekirse `map_background` lossy import (§7 #8).
+
+### TASK/044 — Player Meta V1 (dalda) — kalan: yerel owner / cihaz kapısı
+
+- Samsung A36: Koleksiyon albümü + detay + değiştirme adımı, Profil (üç durum,
+  kaydırma, dişli → Ayarlar), Ana Sayfa avatarı, oyun içi ayarlar / mola.
+- Owner'ın gerçek (eski `equipped_skin`'li) kaydıyla açılış: sahiplik aynen, vitrin
+  başında eski favori, gameplay kanonik; masaüstü kaydı bulutta YOKTU — doğrulanmadı.
+- Owner-local `export_presets.cfg` / telefon paketi bulutta doğrulanamadı.
+- Sonra owner onayıyla main'e ff-only.
+
+### Gelecek görevler (BAŞLAMADI — kod yok)
+
+- **TASK/045** — Oyuncu Seviyesi + XP + Başarımlar + Unvanlar (+ düzenlenebilir
+  takma ad; Profil'in kimlik kartı buna yer bırakır, sahte yer tutucu yok).
+- **TASK/046** — Günlük / Haftalık Görevler.
+- **TASK/047** — Günlük Merge Challenge.
 
 ### M10 — Play Store submission
 

@@ -35,7 +35,7 @@ func _ready() -> void:
 	_button(column, "Satın alma (ui_purchase) + MEDIUM", func() -> void:
 		AudioManager.play(&"ui_purchase"); Haptics.medium())
 	_button(column, "Yetersiz Hamur (ui_invalid)", func() -> void: AudioManager.play(&"ui_invalid"))
-	_button(column, "Skin tak (ui_equip) + LIGHT", func() -> void:
+	_button(column, "Vitrine ekle (ui_equip) + LIGHT", func() -> void:
 		AudioManager.play(&"ui_equip"); Haptics.light())
 	_button(column, "Anahtar açıldı (ui_toggle_on)", func() -> void: AudioManager.play(&"ui_toggle_on"))
 
