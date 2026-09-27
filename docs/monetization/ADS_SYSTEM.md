@@ -874,4 +874,8 @@ Kanonik ayrıntı: [AGE_BAND_ROUTING.md](AGE_BAND_ROUTING.md). Özet (kod gerçe
   `interstitial_test` 60, `daily_rewards_test` 179 ve görsel harness'ler olağan (ADULT) yolu
   sürer; `tutorial_test` 200 (kabukta yaş ekranı); `release_config_test` 201 yönlendirme /
   kapı kurallarını kilitler.
-- **A36:** AGE_BAND_ROUTING §11.
+- **A36 (2026-09-27): GEÇTİ** — yalnız QA paketi; A bilinmeyen yaş (sıfır SDK çağrısı), B 15 yaş
+  EEA (TEEN + T init öncesi; banner / ödüllü / geçiş), C 36 yaş NOT_EEA (UNSPECIFIED + MA), D 10 yaş
+  (kısıt ekranı, sıfır SDK), E Ayarlar'dan iki yön (oturum reklamsız, aktif SDK'da işlem değişmez,
+  sonraki soğuk açılış yeni rota), F tam 18. yaş günü (SDK'dan önce ADULT); 9 / 9 log temiz.
+  Ayrıntı AGE_BAND_ROUTING §11.

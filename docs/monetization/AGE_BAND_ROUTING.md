@@ -1,7 +1,8 @@
 # AGE_BAND_ROUTING.md — Nötr yaş ekranı + yaş bandı reklam yönlendirmesi (TASK/043)
 
-> **Durum (2026-09-27):** kod + deterministik testler tamam; dal `task/043-age-band-routing`,
-> main'e alınması owner onayı bekliyor. Samsung A36 cihaz kapısı: §11 (bu dosyanın sonu).
+> **Durum (2026-09-27):** kod + deterministik testler + çekişmeli inceleme tamam; **Samsung A36
+> cihaz kapısı GEÇTİ** (§11); owner stratejisi kaydedildi (`teen_ad_treatment =
+> "age_band_routing"`); dal `task/043-age-band-routing`, main'e alınması owner onayı bekliyor.
 > Bu doküman hukuki tavsiye DEĞİLDİR; Google'ın resmî sayfalarının sade Türkçe özetine
 > dayanır (kaynaklar §12, 2026-09-27'de okundu; sözcüğü sözcüğüne alıntılar yerel kanıtta
 > `build/qa_043/research/`). Mimari evrensel bir hukuki garanti DEĞİLDİR — §9'daki açık
@@ -309,7 +310,7 @@ bölüme yazar ve `android_export.cfg [Audience] jurisdiction_age_review = "reco
 
 | engel | kategori | ne kaldırır |
 |---|---|---|
-| 13–17 genç reklam işlemi stratejisi (UYUM) | OWNER | `[Audience] teen_ad_treatment = "age_band_routing"` **VE** kod tablosu owner tablosuyla birebir (`AgeGate.routing_contract_problems()` boş). Kodda yazılı bayrak YOK. Kayıt A36 kapısından sonra yapılır. |
+| 13–17 genç reklam işlemi stratejisi (UYUM) | OWNER | `[Audience] teen_ad_treatment = "age_band_routing"` **VE** kod tablosu owner tablosuyla birebir (`AgeGate.routing_contract_problems()` boş). Kodda yazılı bayrak YOK. **KALKTI (2026-09-27):** A36 kapısı geçtikten sonra kaydedildi; kapı raporu stratejiyi "hukuki garanti DEĞİL" notuyla gösterir. |
 | Yargı bölgesi yaş yükümlülükleri (UYUM) | OWNER | owner / hukuk kararı §9'a yazılır + `jurisdiction_age_review = "recorded"` |
 | Play Uygunsuz Reklamlar — uygulama içerik derecesi (UYUM) | OWNER | `app_content_rating` (3+ … 18+) yönlendirmenin T / MA reklamlarına izin veriyor (T ≥ 12+, MA ≥ 16+) ya da owner yönlendirme derecelerini düşürür |
 | Kod tablosu owner tablosundan sapıyor | CODE | tablo düzeltilir |
@@ -318,9 +319,35 @@ bölüme yazar ve `android_export.cfg [Audience] jurisdiction_age_review = "reco
 Üç değer de yalnız kapı içindir; çalışma zamanı davranışını DEĞİŞTİRMEZ. Kapı bunları
 eksik / geçersiz girdide engelli sayar (fail-closed).
 
-## 11. A36 cihaz kapısı
+## 11. A36 cihaz kapısı — GEÇTİ (2026-09-27)
 
-*(Commit 1 anında: yapılmadı — commit 2'de bu bölüm doldurulur.)*
+Samsung Galaxy A36 5G (SM-A366B, Android 16; owner'ın günlük telefonu), **yalnız QA paketi**
+`com.obappstudio.squishymerge.qa` (debug, Google TEST reklam kimlikleri, `tools/ads_device.tscn`
+harness'ı gerçek Main + üretim eklentisi GMA 25.3.0 / UMP 4.0.0 ile), commit `b0e69f0`'ın APK'sı
+(sha256 `34b8e10b…`). Her dokunuş / ekran görüntüsü öncesi ve sonrası güvenlik denetimi (uyanık,
+kilitsiz, çağrı yok, bildirim perdesi / heads-up / edge-lighting / toast yok, oyun ya da
+başlatıcı önde); yalnız sentetik doğum tarihleri, gerçek dokunuşla gerçek panele; reklam içeriğine
+hiç dokunulmadı (yalnız ✕). Statik APK denetimi 46 / 46 (GMA 25.3.0 / UMP 4.0.0, TFAT, Play Age
+Signals YOK, paketli yapılandırmada derece anahtarı yok, `allowBackup=false`, yaş kodu paketli).
+
+| vaka | sonuç |
+|---|---|
+| **A** eski kayıt, yaş bilinmiyor | ✅ zorunlu nötr yaş ekranı Ana Sayfa'da; geçersiz tarih → aynı nötr hata; Android geri → çıkış; logcat'te **sıfır eklenti SDK çağrısı** (UMP / yapılandırma / init / yükleme yok) ve "ads" geçen **hiç satır yok** |
+| **B** sentetik 15 yaş (EEA) | ✅ TEEN + geçiş günü kaydedildi; rota → attach → UMP EEA formu → Consent → native geri okuma **TEEN + T** (TFCD / TFUA −1) `MobileAds.initialize` ÖNCESİ, tek init; banner (Ana Sayfa yeniden yerleşti), ödüllü (ödül bir kez, ✕, yeniden yükleme), geçiş (round sonu molası, ✕, Sonuç bir kez) |
+| **C** sentetik 36 yaş (NOT_EEA) | ✅ ADULT; UMP NOT_REQUIRED → **UNSPECIFIED + MA** init öncesi; banner, ödüllü, geçiş aynı akışla |
+| **D** sentetik 10 yaş | ✅ aynı onay adımı → nötr kısıt ekranı (eşik / tekrar dene / ebeveyn izni yok, ilerleme korunur); iki süreçte (soğuk yeniden açılış dahil) **sıfır SDK çağrısı, sıfır "ads" satırı** |
+| **E** Ayarlar → Yaş bilgisi | ✅ TEEN (SDK TEEN + T aktif) → yetişkin tarihi → nötr "kaydedildi" adımı, kayıt ADULT, oturum reklamsız (banner gizlendi, ödüllü / geçiş hazır değil), aktif SDK'da işlem DEĞİŞMEDİ (ret logu yok) → sonraki soğuk açılış **UNSPECIFIED + MA**; tersi ADULT → TEEN aynı → sonraki açılış **TEEN + T** |
+| **F** 17 → tam 18. yaş günü (QA saat dikişi) | ✅ bir gün önce TEEN + T; tam gününde soğuk açılış kayıtlı TEEN'i SDK'dan ÖNCE ADULT yaptı (geçiş günü silindi) → UNSPECIFIED + MA init öncesi |
+
+- Dokuz süreç logunun dokuzu da temiz: sentetik doğum tarihi / geçiş günü biçimleri 0, SCRIPT
+  ERROR / çökme / ANR / CHILD / Age Signals / geri okuma uyuşmazlığı / ret logu 0; her reklamlı
+  süreçte tam bir yapılandırma + bir `initialize()`.
+- QA paketi kaldırıldı; owner'ın `com.example.squishymerge` paketinin meta verisi önce / sonra
+  BİREBİR; üretim kimliği hiç kurulmadı; depo ve owner masaüstü kaydı değişmedi.
+- Kanıt (yerel, gitignore'lu): `build/qa_043/device/GATE_LOG.md`, `logs/`, 21 ekran görüntüsü.
+- Kapıdan sonra owner stratejisi kaydedildi: `android_export.cfg [Audience] teen_ad_treatment =
+  "age_band_routing"` → release kapısı **CODE 0 · OWNER 10 · CONFIG 0** (13–17 strateji engeli
+  kalktı; içerik derecesi + yargı bölgesi UYUM satırları AÇIK — §9).
 
 ## 12. Kaynaklar (2026-09-27'de okundu)
 

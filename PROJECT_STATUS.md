@@ -39,8 +39,9 @@ silinmez); ham doğum tarihi saklanmaz / gönderilmez / loglanmaz (kayıtta yaln
 SDK'dan önce; Ayarlar'da "Yaş bilgisi"; Play Age Signals reklamda KULLANILMAZ. Resmî
 araştırma iki somut açık madde buldu → yeni OWNER / UYUM satırları (Play "Uygunsuz
 reklamlar": uygulamanın içerik derecesi T / MA'ya uygun olmalı; yargı bölgesi yaş
-yükümlülükleri); dalda kapı BLOCKED — CODE 0 · OWNER 11 · CONFIG 0 (A36 kapısı bekliyor;
-ayrıntı docs/monetization/AGE_BAND_ROUTING.md). Sırada: TASK/043 A36 kapısı → owner
+yükümlülükleri); **Samsung A36 kapısı GEÇTİ** (vakalar A–F, yalnız QA paketi) ve owner
+stratejisi kaydedildi (`teen_ad_treatment = "age_band_routing"`) → dalda kapı BLOCKED — CODE 0
+· OWNER 10 · CONFIG 0 (ayrıntı docs/monetization/AGE_BAND_ROUTING.md). Sırada: owner
 incelemesi / main onayı → içerik derecesi + yargı bölgesi kararları (owner) → gizlilik
 politikası → upload anahtarı → gerçek AdMob kimlikleri → mağaza varlıkları / Play Console,
 sonra ilk imzalı üretim AAB'si ve M10 (Play kapalı test) ·
@@ -2095,8 +2096,14 @@ kapanınca, QA harness'ın attach'siz getter'ları, banner yuvası sonrası yeni
 tepelik, alan düzeltme, "kaydedildi" metni nötrlüğü, gizlilik metinleri) ve LOW'lar düzeltildi
 (çözüm tablosu `build/qa_043/review/RESOLUTION.md`). Testler: `age_gate_test` 137,
 `age_ad_routing_test` 112, `release_config_test` 201, monetization 257, interstitial 60,
-daily_rewards 179, tutorial 200, secondary_modal_ui 100 + tam regresyon. Samsung A36 kapısı:
-docs/monetization/AGE_BAND_ROUTING.md §11. Ayrıntı: AGE_BAND_ROUTING.md.
+daily_rewards 179, tutorial 200, secondary_modal_ui 100 + tam regresyon (23 suite) + bot L3 2/2. **Samsung A36 kapısı GEÇTİ**
+(yalnız QA paketi, commit `b0e69f0`'ın APK'sı): A bilinmeyen yaş → zorunlu nötr ekran, sıfır SDK /
+UMP çağrısı; B sentetik 15 yaş EEA → rıza formu → TEEN + T init öncesi, banner / ödüllü / geçiş; C
+sentetik 36 yaş NOT_EEA → UNSPECIFIED + MA; D sentetik 10 yaş → kısıt ekranı, sıfır SDK (soğuk
+açılış dahil); E Ayarlar'dan iki yön → oturum reklamsız, aktif SDK'da işlem değişmedi, sonraki
+soğuk açılış yeni rota; F tam 18. yaş günü (QA saat dikişi) → SDK'dan önce ADULT; 9 / 9 log
+temiz (sentetik tarih izi 0); QA paketi kaldırıldı, owner'ın paketi dokunulmadı. Kapıdan sonra
+owner stratejisi kaydedildi → CODE 0 · OWNER 10 · CONFIG 0. Ayrıntı: AGE_BAND_ROUTING.md §11.
 
 **Ortam neredeyse hazır** (§2'deki tabloya bakın). Godot, export
 template'leri, Android SDK, NDK, JDK 17 ve debug keystore mevcut.

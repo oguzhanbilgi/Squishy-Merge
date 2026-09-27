@@ -336,8 +336,8 @@ func _test_audience() -> void:
 		and decided.audience_decision == "general_13_plus" and decided.tag_for_child_directed_treatment == "false"
 		and decided.teen_ad_treatment == "age_band_routing" and decided.app_content_rating == "12+"
 		and decided.jurisdiction_age_review == "recorded")
-	_c("bugünkü proje: üç owner kaydı da boş (strateji / içerik derecesi / yargı bölgesi değerlendirmesi)",
-		project.teen_ad_treatment == "" and project.app_content_rating == "" and project.jurisdiction_age_review == "")
+	_c("bugünkü proje: 13–17 stratejisi KAYITTA (age_band_routing — A36 kapısı 2026-09-27'de geçtikten sonra); içerik derecesi ve yargı bölgesi değerlendirmesi boş (AÇIK)",
+		project.teen_ad_treatment == "age_band_routing" and project.app_content_rating == "" and project.jurisdiction_age_review == "")
 
 
 # --- ReleaseReadiness kuralları ------------------------------------------------------
@@ -569,9 +569,11 @@ func _test_current_project_state() -> void:
 	_c("ürün kitlesi engeli YOK (general_13_plus: ne 'kitle kararı yok' OWNER ne CODE); rapor kararı gösteriyor",
 		not _blocked_by(result, "OWNER", "kitle kararı yok") and not _blocked_by(result, "CODE", "kitle kararı")
 		and _notes_have(result, "ürün kitlesi kararı: general_13_plus"))
-	_c("TASK/043: 13–17 genç reklam işlemi stratejisi kayda geçmedi (A36 kapısı öncesi) -> OWNER UYUM engeli; kod tablosu temiz",
-		not bool(inputs["teen_ad_treatment_resolved"]) and _blocked_by(result, "OWNER", ReleaseReadiness.TEEN_TREATMENT_BLOCKER)
-		and (inputs["age_routing_problems"] as PackedStringArray).is_empty())
+	_c("TASK/043: 13–17 stratejisi kayıtta (age_band_routing) VE kod tablosu owner tablosuyla birebir -> genç işlemi engeli YOK; rapor notu stratejiyi 'hukuki garanti DEĞİL' diye gösteriyor",
+		bool(inputs["teen_ad_treatment_resolved"]) and not _blocked_by(result, "OWNER", ReleaseReadiness.TEEN_TREATMENT_BLOCKER)
+		and (inputs["age_routing_problems"] as PackedStringArray).is_empty()
+		and _notes_have(result, "13–17 genç reklam işlemi stratejisi: age_band_routing")
+		and _notes_have(result, "hukuki garanti DEĞİL"))
 	_c("TASK/043: yargı bölgesi yaş yükümlülükleri değerlendirmesi kayıtta değil -> ayrı OWNER UYUM engeli",
 		not bool(inputs["jurisdiction_age_review_recorded"]) and _blocked_by(result, "OWNER", ReleaseReadiness.JURISDICTION_REVIEW_BLOCKER))
 	_c("TASK/043: Play Uygunsuz Reklamlar — uygulamanın içerik derecesi kayıtta değil, yönlendirme T + MA -> ayrı OWNER UYUM engeli",
@@ -585,8 +587,8 @@ func _test_current_project_state() -> void:
 	for blocker: Dictionary in result["blockers"]:
 		if blocker["category"] == "CODE":
 			code_blockers += 1
-	_c("bugün tam 11 engel: OWNER 11 (AdMob 5 + gizlilik URL'i 1 + upload anahtarı 2 + 13–17 stratejisi 1 + yargı bölgesi 1 + uygulama içerik derecesi 1) + CODE 0 + CONFIG 0",
-		owner_blockers == 11 and code_blockers == 0 and result["blockers"].size() == 11)
+	_c("bugün tam 10 engel: OWNER 10 (AdMob 5 + gizlilik URL'i 1 + upload anahtarı 2 + yargı bölgesi 1 + uygulama içerik derecesi 1) + CODE 0 + CONFIG 0 — 13–17 stratejisi kayıtta",
+		owner_blockers == 10 and code_blockers == 0 and result["blockers"].size() == 10)
 	_c("CODE engeli YOK (TASK/042): release AAR = onaylı GMA 25.3.0 derlemesi, bilinen kusur 0, eski kusurlu / TASK/041 SHA değil, cephe yamalı + TFAT, GMA 25.3.0",
 		inputs["plugin_release_aar_sha256"] == ReleaseReadiness.PATCHED_RELEASE_AAR_SHA256
 		and inputs["plugin_release_aar_sha256"] != DEFECTIVE_M9_RELEASE_AAR_SHA256

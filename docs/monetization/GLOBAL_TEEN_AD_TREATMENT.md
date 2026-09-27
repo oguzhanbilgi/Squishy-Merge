@@ -50,7 +50,8 @@ Bu bölüm **güncel durumdur**; «TASK/042 durumu» ve §B–§H kayıt olarak 
   analitik kullanımını yasaklıyor; Google Play API'yi zorunlu tutmuyor).
 - **Release kapısı:** genç reklam işlemi stratejisi engeli owner kaydı
   (`[Audience] teen_ad_treatment = age_band_routing`) + kodun yönlendirme tablosu birlikte
-  doğrulanınca kalkar (bayrak kodda yazılı değil; kayıt A36 kapısından sonra). Resmî araştırmanın
+  doğrulanınca kalkar (bayrak kodda yazılı değil; kayıt A36 kapısından sonra — **Samsung A36
+  kapısı A–F GEÇTİ ve kayıt yapıldı, 2026-09-27; bu engel KALKTI**, AGE_BAND_ROUTING §11). Resmî araştırmanın
   bulduğu, bu uygulamanın tek başına karşılamadığı iki somut madde **ayrı OWNER / UYUM
   engelleri** olarak açık: (1) Play "Uygunsuz reklamlar" — reklamlar uygulamanın içerik
   derecesine uygun olmalı; T reklam en az 12+, MA reklam en az 16+ uygulama derecesi ister (IARC

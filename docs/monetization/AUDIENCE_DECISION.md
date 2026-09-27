@@ -42,7 +42,8 @@
 >   reklam YOK + kısıt ekranı; bilinmeyen yaş → reklam yok. Ürün kitlesi (§0, 13+) DEĞİŞMEDİ;
 >   Play hedef yaş grupları aynı. `[Audience] max_ad_content_rating` kaldırıldı (derece yaş
 >   bandından). Ham doğum tarihi saklanmaz. Kapıda genç işlemi engeli owner kaydıyla
->   (`teen_ad_treatment = age_band_routing`, A36 kapısından sonra) + kod tablosuyla kalkar; iki
+>   (`teen_ad_treatment = age_band_routing`, A36 kapısından sonra — A36 GEÇTİ, kaydedildi,
+>   engel KALKTI 2026-09-27) + kod tablosuyla kalkar; iki
 >   yeni somut OWNER / UYUM maddesi (Play "Uygunsuz reklamlar" — uygulama içerik derecesi;
 >   yargı bölgesi yaş yükümlülükleri) açık — [AGE_BAND_ROUTING.md](AGE_BAND_ROUTING.md) §9–§10.
 >

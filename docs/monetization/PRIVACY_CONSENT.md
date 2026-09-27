@@ -53,6 +53,9 @@
   sayılır. Güncelleme / form yüklemesi yoldayken oturum kapanırsa (ör. Ayarlar'dan 13 altı
   beyanı) geç gelen sonuç işlenmez: açılış rıza formu yüklenmez / gösterilmez, SDK başlamaz
   (`age_ad_routing_test`). SDK'ya bakan UMP getter'ları eklenti kurulmadan hiç çağrılmaz.
+- **A36 (2026-09-27):** bilinmeyen yaş ve 13 altı süreçlerinde UMP / SDK çağrısı logcat'te sıfır;
+  TEEN (15 yaş, EEA) rıza formunu gördü ve Consent sonrası TEEN + T ile başladı; ADULT (NOT_EEA)
+  UMP NOT_REQUIRED → UNSPECIFIED + MA (AGE_BAND_ROUTING §11).
 - Sıra: rota (TFAT + derece) UMP'den ÖNCE sabitlenip geri doğrulanır; SDK'ya native uygulama +
   geri okuma TASK/042'nin kanıtlanmış yerinde, UMP izninden sonra ve `MobileAds.initialize()`
   öncesi kalır (debug test cihazı yolu reklam kimliğini okur — rızadan önce değil).
