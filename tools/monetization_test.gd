@@ -83,6 +83,7 @@ func _ready() -> void:
 	_test_events()
 	_test_sources()
 	await _test_consent_flow()
+	await _test_request_configuration_order()
 	await _test_consent_errors()
 	await _test_privacy_options()
 	await _test_can_request_ads_gate()
@@ -344,6 +345,58 @@ func _test_consent_flow() -> void:
 	_c("REQUIRED + form yok -> ADS_NOT_ALLOWED (reklam istenmez)", m.ads_state() == MonetizationManager.AdsState.ADS_NOT_ALLOWED
 		and fake.init_calls == 0 and fake.rewarded_loads == 0)
 	await _free_manager(m)
+
+
+## TASK/042 (GMA 25.3.0): istek yapılandırması (yaş işlemi dahil) MobileAds.initialize()
+## ÖNCESİ bir kez uygulanır ve geri okunur; üretim yaş işlemi UNSPECIFIED; doğrulanamazsa
+## SDK başlamaz ve hiçbir reklam yüklenmez (fail-closed). Reklam kuralları değişmedi.
+func _test_request_configuration_order() -> void:
+	print("-- TASK/042: istek yapılandırması SDK başlamadan ÖNCE + geri okuma; yaş işlemi UNSPECIFIED; fail-closed")
+	var fake := FakeAdBackend.new()
+	fake.status = AdBackend.ConsentStatus.NOT_REQUIRED
+	var m: MonetizationManager = _make_manager(fake)
+	_c("üretim yaş işlemi UNSPECIFIED: attach'te arka uca verildi (yaş bilgisi / yönlendirme yok)",
+		MonetizationManager.DEFAULT_AGE_RESTRICTED_TREATMENT == AdBackend.AgeRestrictedTreatment.UNSPECIFIED
+		and fake.age_restricted_treatment() == AdBackend.AgeRestrictedTreatment.UNSPECIFIED
+		and m.age_restricted_treatment() == AdBackend.AgeRestrictedTreatment.UNSPECIFIED
+		and fake.calls.has("set_age_restricted_treatment:UNSPECIFIED"))
+	_c("rıza sonuçlanmadan: ne yapılandırma ne SDK", fake.request_configuration_applies == 0 and fake.init_calls == 0)
+	fake.complete_consent_update(true)
+	var cfg_at: int = fake.calls.find("request_configuration:UNSPECIFIED")
+	_c("izin -> yapılandırma (UNSPECIFIED) SDK başlatmadan ÖNCE, bir kez; geri okuma beklenenle aynı",
+		cfg_at != -1 and fake.calls.find("initialize") > cfg_at and fake.request_configuration_applies == 1
+		and fake.init_calls == 1 and AdBackend.request_configuration_problem(fake.applied_request_configuration(),
+			AdBackend.expected_request_configuration(AdBackend.AgeRestrictedTreatment.UNSPECIFIED, "G", -1, -1)).is_empty())
+	_c("SDK hazır sinyalinden önce hiçbir reklam yüklenmez", fake.rewarded_loads == 0 and fake.interstitial_loads == 0
+		and fake.banner_loads == 0 and not m.sdk_ready())
+	fake.complete_init()
+	m.ensure_rewarded()
+	await _settle(2)
+	_c("SDK hazır -> yüklemeler başlar; SDK tek kez, yapılandırma hazır sinyalinde TEKRARLANMADI",
+		m.sdk_ready() and fake.rewarded_loads == 1 and fake.interstitial_loads == 1 and fake.init_calls == 1
+		and fake.request_configuration_applies == 1)
+	await _free_manager(m)
+
+	var bad := FakeAdBackend.new()
+	bad.status = AdBackend.ConsentStatus.NOT_REQUIRED
+	bad.request_configuration_fault = true
+	var mb: MonetizationManager = _make_manager(bad)
+	# Sahte SDK yaş işlemini uygulamıyor: TEEN istenirse geri okuma UNSPECIFIED kalır.
+	bad.set_age_restricted_treatment(AdBackend.AgeRestrictedTreatment.TEEN)
+	bad.complete_consent_update(true)
+	mb.ensure_rewarded()
+	await _settle(2)
+	_c("geri okuma uyuşmazsa SDK BAŞLATILMAZ (tek deneme, döngü yok) ve hiçbir reklam yüklenmez",
+		bad.init_refusals == 1 and bad.init_calls == 0 and bad.request_configuration_applies == 1 and not mb.sdk_ready()
+		and bad.rewarded_loads == 0 and bad.interstitial_loads == 0 and bad.banner_loads == 0 and not mb.is_rewarded_ready())
+	_c("reddedilen SDK terminal durum: sdk_refused, not 'kullanılamıyor' (sonsuz 'hazırlanıyor' yok), geçiş sebebi sdk_refused değil consent karışmaz",
+		mb.sdk_refused() and mb.rewarded_note() == MonetizationManager.NOTE_UNAVAILABLE
+		and mb._interstitial_block_reason() in ["disabled", "not_eligible", "sdk_refused"])
+	mb.ensure_rewarded()
+	await _settle(2)
+	_c("reddedilen SDK: yeni talep yeniden başlatmayı / yapılandırmayı DENEMEZ", bad.request_configuration_applies == 1
+		and bad.init_refusals == 1 and bad.rewarded_loads == 0)
+	await _free_manager(mb)
 
 
 func _test_consent_errors() -> void:

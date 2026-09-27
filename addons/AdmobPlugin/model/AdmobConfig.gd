@@ -29,10 +29,20 @@ enum PersonalizationState {
 	DISABLED = 2 ## Means that ad requests are set to serve non-personalized ads (NPA) only.
 }
 
+## Age treatment for ad requests (Google Mobile Ads SDK 25.3.0+,
+## RequestConfiguration.Builder.setAgeRestrictedTreatment()). It replaces the deprecated
+## TFCD / TFUA tags; if both are set, Google applies the most conservative treatment.
+enum AgeRestrictedTreatment {
+	UNSPECIFIED = 0, ## AgeRestrictedTreatment.UNSPECIFIED: no age treatment specified (SDK default).
+	CHILD = 1, ## AgeRestrictedTreatment.CHILD: ad requests receive child age treatment.
+	TEEN = 2 ## AgeRestrictedTreatment.TEEN: ad requests receive teen age treatment.
+}
+
 const DATA_KEY_IS_REAL: String = "is_real"
 const DATA_KEY_MAX_AD_CONTENT_RATING: String = "max_ad_content_rating"
 const DATA_KEY_CHILD_DIRECTED_TREATMENT: String = "tag_for_child_directed_treatment"
 const DATA_KEY_UNDER_AGE_OF_CONSENT: String = "tag_for_under_age_of_consent"
+const DATA_KEY_AGE_RESTRICTED_TREATMENT: String = "age_restricted_treatment"
 const DATA_KEY_FIRST_PARTY_ID_ENABLED: String = "first_party_id_enabled"
 const DATA_KEY_PERSONALIZATION_STATE: String = "personalization_state"
 const DATA_KEY_TEST_DEVICE_IDS = "test_device_ids"
@@ -63,6 +73,11 @@ func set_child_directed_treatment(a_value: TagForChildDirectedTreatment) -> Admo
 
 func set_under_age_of_consent(a_value: TagForUnderAgeOfConsent) -> AdmobConfig:
 	_data[DATA_KEY_UNDER_AGE_OF_CONSENT] = a_value
+	return self
+
+
+func set_age_restricted_treatment(a_value: AgeRestrictedTreatment) -> AdmobConfig:
+	_data[DATA_KEY_AGE_RESTRICTED_TREATMENT] = a_value
 	return self
 
 

@@ -36,8 +36,14 @@ extends RefCounted
 ## Bilinen eklenti kusurları (TASK/040, Samsung A36 kanıtı): onaylı release AAR'ında
 ## kodla düzeltilmesi gereken bir kusur kayıtlıysa CODE engeli (KNOWN_PLUGIN_DEFECTS,
 ## AAR SHA-256'sına göre; girdi yoksa SHA'dan türetilir — fail-closed). TASK/041: onaylı
-## AAR artık RequestConfiguration'ı düzelten v6.0 + 0001 + 0002 derlemesi; eski kusurlu
+## AAR artık RequestConfiguration'ı düzelten v6.0 + 0001 + 0002 derlemesiydi; eski kusurlu
 ## M9 AAR'ının kaydı kalır (o AAR geri gelirse yine CODE).
+## TASK/042: üretim şartı Google Mobile Ads SDK 25.3.0 (UMP 4.0.0 geçişli) — onaylı AAR
+## v6.0 + 0001 + 0002 + 0003 derlemesi; TASK/041'in GMA 24.9.0 AAR'ı artık onaylı DEĞİL
+## (SUPERSEDED_RELEASE_AARS, geri gelirse CODE); eklentinin bildirdiği GMA sürümü ve
+## facade'ın TFAT / geri okuma API'si ayrıca denetlenir. TFAT'ın teknik olarak hazır
+## olması genç reklam işlemi engelini KALDIRMAZ (yaş bandı yönlendirmesi yok, üretim
+## varsayılanı UNSPECIFIED).
 
 const CATEGORY_OWNER: String = "OWNER"
 const CATEGORY_CONFIG: String = "CONFIG"
@@ -68,12 +74,23 @@ const FORMAT_AAB: int = 1
 const NON_PUBLISHABLE_ENV: String = "SQUISHY_NON_PUBLISHABLE_RELEASE"
 const NON_PUBLISHABLE_MARKER: String = "NOT_FOR_UPLOAD"
 ## Yamalı eklenti (tools/admob_plugin, addons/AdmobPlugin/VERSION.md). Onaylı release AAR =
-## godot-admob v6.0 + 0001 (UMP) + 0002 (RequestConfiguration dönüşümü, TASK/041); iki
-## bağımsız temiz derleme bayt-aynı (cihaz kanıtı: docs/monetization/ADS_SYSTEM.md).
-## Başka her SHA → CODE.
+## godot-admob v6.0 + 0001 (UMP) + 0002 (RequestConfiguration dönüşümü, TASK/041) + 0003
+## (GMA 25.3.0 / UMP 4.0.0 / TFAT, TASK/042); iki bağımsız temiz derleme bayt-aynı (cihaz
+## kanıtı: docs/monetization/ADS_SYSTEM.md). Başka her SHA → CODE.
 const PATCHED_RELEASE_AAR: String = "res://addons/AdmobPlugin/bin/release/AdmobPlugin-release.aar"
-const PATCHED_RELEASE_AAR_SHA256: String = "14c745e9d00dbcb582b4e890f5c8a95969f1a15f97a4dfb6e0107860624541a4"
+const PATCHED_RELEASE_AAR_SHA256: String = "f5a563a7f3784a1006520199c0946ba05c7a2eb41da7fb55deebda93371b20f8"
 const PATCHED_FACADE: String = "res://addons/AdmobPlugin/Admob.gd"
+## Eklentinin export'ta uygulamaya eklediği Google Mobile Ads SDK bağımlılığı (üretilmiş
+## AdmobPlugin.gd → ANDROID_DEPENDENCIES). TASK/042 üretim şartı: 25.3.0 (TFAT'lı ilk sürüm;
+## UMP 4.0.0 onun geçişli bağımlılığı — derleme betiği çözülmüş sınıf yolunu denetler).
+const PLUGIN_EXPORT_SCRIPT: String = "res://addons/AdmobPlugin/AdmobPlugin.gd"
+const GMA_DEPENDENCY_PREFIX: String = "com.google.android.gms:play-services-ads:"
+const REQUIRED_GMA_VERSION: String = "25.3.0"
+## Artık onaylı OLMAYAN, önceden onaylı release AAR'ları (SHA-256 → açıklama). Kusurlu
+## değiller ama üretim şartını (GMA 25.3.0 / TFAT) karşılamıyorlar → geri gelirlerse CODE.
+const SUPERSEDED_RELEASE_AARS: Dictionary = {
+	"14c745e9d00dbcb582b4e890f5c8a95969f1a15f97a4dfb6e0107860624541a4": "TASK/041 AAR'ı (v6.0 + 0001 + 0002; GMA 24.9.0 / UMP 3.2.0, TFAT yok) — TASK/042 üretim şartı GMA 25.3.0 (v6.0 + 0001 + 0002 + 0003)",
+}
 ## Bilinen kusurlu yamalı AAR'lar (release AAR SHA-256 → CODE engeli metni).
 ## TASK/040 A36 kanıtı (2026-09-25): Godot 4.6 Dictionary int'lerini java.lang.Long, dizileri
 ## Object[] olarak geçiriyor; v6.0 AdmobConfiguration'ın `(int)` / `(String[])` dönüşümleri
@@ -88,7 +105,7 @@ const IMPLEMENTED_AUDIENCE_DECISIONS: Array[String] = ["general_13_plus"]
 ## 13–17 yaş kullanıcıları da hedefleyen kitle kararları: bunlarda genç reklam
 ## işlemi / yargı bölgesi uyum stratejisi ayrıca çözülmeli (AUDIENCE_DECISION.md §2.2).
 const TEEN_AUDIENCE_DECISIONS: Array[String] = ["general_13_plus", "mixed_audience"]
-const TEEN_TREATMENT_BLOCKER: String = "UYUM: 13–17 genç reklam işlemi / yargı bölgesi uyum stratejisi çözülmedi (TFAT TEEN'in GMA 24.9.0 TFCD/TFUA yolunda karşılığı yok; unspecified ≠ TEEN) — AUDIENCE_DECISION.md §2.2"
+const TEEN_TREATMENT_BLOCKER: String = "UYUM: 13–17 genç reklam işlemi / yargı bölgesi uyum stratejisi çözülmedi (TFAT TEEN teknik olarak hazır — GMA 25.3.0, TASK/042 — ama yaş bandı yönlendirmesi yok, üretim UNSPECIFIED; unspecified ≠ TEEN) — AUDIENCE_DECISION.md §2.2"
 
 
 ## Kuralları uygular. `inputs` anahtarları: build ("release"|"debug"),
@@ -98,6 +115,7 @@ const TEEN_TREATMENT_BLOCKER: String = "UYUM: 13–17 genç reklam işlemi / yar
 ## keystore_path_set, keystore_exists, keystore_is_debug, keystore_user_set,
 ## keystore_password_set, ad_config (AdConfig, RELEASE türünde yüklenmiş),
 ## privacy_policy_url, plugin_release_aar_sha256, plugin_facade_patched,
+## plugin_facade_tfat, plugin_gma_version (yoksa "" = engel),
 ## teen_ad_treatment_resolved (yoksa false = engel), plugin_known_defects (Array; yoksa
 ## AAR SHA'sından türetilir), non_publishable_requested, export_path.
 static func evaluate(inputs: Dictionary) -> Dictionary:
@@ -180,11 +198,22 @@ static func evaluate(inputs: Dictionary) -> Dictionary:
 	elif not url.begins_with("https://"):
 		_add(blockers, CATEGORY_OWNER, "gizlilik politikası URL'i https değil")
 
-	# 6) Yamalı AdMob eklentisi (UMP canRequestAds / gizlilik seçenekleri).
-	if String(inputs.get("plugin_release_aar_sha256", "")) != PATCHED_RELEASE_AAR_SHA256:
-		_add(blockers, CATEGORY_CODE, "addons/AdmobPlugin release AAR yamalı derleme değil (tools/admob_plugin)")
+	# 6) Yamalı AdMob eklentisi (UMP canRequestAds / gizlilik seçenekleri; TASK/042: GMA
+	#    25.3.0 + TFAT / geri okuma).
+	var aar_sha: String = String(inputs.get("plugin_release_aar_sha256", ""))
+	if aar_sha != PATCHED_RELEASE_AAR_SHA256:
+		if SUPERSEDED_RELEASE_AARS.has(aar_sha):
+			_add(blockers, CATEGORY_CODE, "addons/AdmobPlugin release AAR artık onaylı değil: %s — tools/admob_plugin ile yeniden kur" % SUPERSEDED_RELEASE_AARS[aar_sha])
+		else:
+			_add(blockers, CATEGORY_CODE, "addons/AdmobPlugin release AAR yamalı derleme değil (tools/admob_plugin)")
 	if not bool(inputs.get("plugin_facade_patched", false)):
 		_add(blockers, CATEGORY_CODE, "addons/AdmobPlugin/Admob.gd yamalı cephe değil")
+	if not bool(inputs.get("plugin_facade_tfat", false)):
+		_add(blockers, CATEGORY_CODE, "addons/AdmobPlugin/Admob.gd yaş işlemi (TFAT) / geri okuma API'si yok — v6.0 + 0001 + 0002 + 0003 cephesi gerekli")
+	var gma: String = String(inputs.get("plugin_gma_version", ""))
+	if gma != REQUIRED_GMA_VERSION:
+		_add(blockers, CATEGORY_CODE, "Google Mobile Ads SDK bağımlılığı '%s' — üretim şartı %s (addons/AdmobPlugin/AdmobPlugin.gd)"
+			% [gma if not gma.is_empty() else "?", REQUIRED_GMA_VERSION])
 	var defects: Array = inputs.get("plugin_known_defects",
 		known_plugin_defects(String(inputs.get("plugin_release_aar_sha256", ""))))
 	for defect in defects:
@@ -256,6 +285,11 @@ static func project_inputs(preset: Dictionary, build: String) -> Dictionary:
 		"plugin_release_aar_sha256": aar_sha,
 		"plugin_known_defects": known_plugin_defects(aar_sha),
 		"plugin_facade_patched": facade.contains("func has_privacy_options_api()") and facade.contains("func show_privacy_options_form()"),
+		"plugin_facade_tfat": facade.contains("@export var age_restricted_treatment: AdmobConfig.AgeRestrictedTreatment")
+			and facade.contains(".set_age_restricted_treatment(age_restricted_treatment)")
+			and facade.contains("func get_applied_request_configuration() -> Dictionary:"),
+		"plugin_gma_version": plugin_gma_version(FileAccess.get_file_as_string(PLUGIN_EXPORT_SCRIPT)
+			if FileAccess.file_exists(PLUGIN_EXPORT_SCRIPT) else ""),
 		# 13–17 genç reklam işlemi stratejisi bugün SEÇİLMEDİ (AUDIENCE_DECISION §2.2):
 		# kayıt / uygulama yok → daima false. Strateji seçilince ayrı görevde bağlanır.
 		"teen_ad_treatment_resolved": false,
@@ -273,6 +307,21 @@ static func report(result: Dictionary, title: String) -> String:
 	for note in result["notes"]:
 		lines.append("  not: %s" % note)
 	return "\n".join(lines)
+
+
+## Üretilmiş AdmobPlugin.gd metnindeki TEK play-services-ads sürümü; yok ya da birden
+## fazlaysa "" (fail-closed).
+static func plugin_gma_version(export_script: String) -> String:
+	var versions: PackedStringArray = PackedStringArray()
+	var at: int = export_script.find(GMA_DEPENDENCY_PREFIX)
+	while at != -1:
+		var start: int = at + GMA_DEPENDENCY_PREFIX.length()
+		var end: int = export_script.find("\"", start)
+		if end == -1:
+			return ""
+		versions.append(export_script.substr(start, end - start))
+		at = export_script.find(GMA_DEPENDENCY_PREFIX, end)
+	return versions[0] if versions.size() == 1 else ""
 
 
 ## Verilen release AAR SHA-256'sı için kayıtlı bilinen kusurlar (CODE engeli metinleri).

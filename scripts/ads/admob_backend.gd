@@ -15,6 +15,11 @@ extends AdBackend
 ## privacy_options_form_dismissed; `has_privacy_api()` yamalı AAR'ı algılar
 ## (docs/monetization/PRIVACY_CONSENT.md §4).
 ##
+## TASK/042: eklenti Google Mobile Ads SDK 25.3.0 (UMP 4.0.0) ile derlenir (yama 0003).
+## İstek yapılandırması (derece, TFCD / TFUA, yaş işlemi TFAT) MobileAds.initialize()
+## ÖNCESİ bir kez uygulanır ve `get_applied_request_configuration()` ile geri okunarak
+## doğrulanır; uyuşmazsa SDK başlatılmaz. Yaş işlemi varsayılanı UNSPECIFIED.
+##
 ## Kimlikler AdConfig'ten (android_export.cfg): DEBUG build'de Google örnek
 ## kimlikleri (rewarded, adaptive banner, interstitial), RELEASE build'de
 ## [Release] (M9-01). Eklentinin kendi varsayılan "debug" kimlikleri
@@ -25,6 +30,10 @@ const SINGLETON_NAME: String = "AdmobPlugin"
 
 var _admob: Admob
 var _config: AdConfig
+## TASK/042: SDK'ya gidecek yaş işlemi (varsayılan UNSPECIFIED — yaş bilgisi yok).
+var _age_restricted_treatment: AgeRestrictedTreatment = AgeRestrictedTreatment.UNSPECIFIED
+## İstek yapılandırması en az bir kez SDK'ya uygulandı mı (initialize() başı).
+var _request_configured: bool = false
 
 
 static func is_available() -> bool:
@@ -75,7 +84,12 @@ func attach(host: Node) -> void:
 	_admob.max_ad_content_rating = _content_rating(_config.max_ad_content_rating)
 	_admob.child_directed = _tfcd(_config.tag_for_child_directed_treatment)
 	_admob.under_age_of_consent = _tfua(_config.tag_for_under_age_of_consent)
-	_admob.auto_configure_on_initialize = true
+	# Yaş işlemi (TFAT, TASK/042 — GMA 25.3.0): varsayılan UNSPECIFIED; yaş bilgisi
+	# kullanılmaz, Play Age Signals reklama ASLA bağlanmaz. Yönlendirme TASK/043'te.
+	_admob.age_restricted_treatment = _tfat(_age_restricted_treatment)
+	# TASK/042 — Google'ın sırası: istek yapılandırması MobileAds.initialize() ÖNCESİ,
+	# bir kez (`initialize()`); facade SDK hazır sinyalinde YENİDEN uygulamaz.
+	_admob.auto_configure_on_initialize = false
 	# Tek seferlik ödüllü reklam: gösterildikten sonra önbellekten düşer;
 	# sonraki reklam MonetizationManager tarafından yeniden yüklenir.
 	_admob.remove_rewarded_ads_after_displayed = true
@@ -139,6 +153,15 @@ static func _tfua(value: String) -> AdmobConfig.TagForUnderAgeOfConsent:
 	return AdmobConfig.TagForUnderAgeOfConsent.UNSPECIFIED
 
 
+static func _tfat(value: AgeRestrictedTreatment) -> AdmobConfig.AgeRestrictedTreatment:
+	match value:
+		AgeRestrictedTreatment.CHILD:
+			return AdmobConfig.AgeRestrictedTreatment.CHILD
+		AgeRestrictedTreatment.TEEN:
+			return AdmobConfig.AgeRestrictedTreatment.TEEN
+	return AdmobConfig.AgeRestrictedTreatment.UNSPECIFIED
+
+
 func _connect() -> void:
 	_admob.initialization_completed.connect(func(_status: InitializationStatus) -> void:
 		initialization_completed.emit())
@@ -197,8 +220,53 @@ func _connect() -> void:
 		banner_clicked.emit(info.get_ad_id()))
 
 
-func initialize() -> void:
+## TASK/042: yapılandır → geri oku / doğrula → MobileAds.initialize(). Yönetici bunu
+## yalnız UMP canRequestAds() true iken ve bir kez çağırır; hiçbir reklam yüklemesi
+## SDK hazır sinyalinden önce yapılmaz (MonetizationManager._ads_enabled).
+func initialize() -> bool:
+	if not _apply_request_configuration():
+		push_error("AdmobBackend: istek yapılandırması doğrulanamadı — Mobile Ads SDK BAŞLATILMADI (fail-closed, bu oturumda reklam yok)")
+		return false
 	_admob.initialize()
+	return true
+
+
+func set_age_restricted_treatment(value: AgeRestrictedTreatment) -> bool:
+	if _request_configured:
+		if value == _age_restricted_treatment:
+			return true
+		# SDK doğrulanmış yapılandırmayla çalışıyor: sonradan değiştirmek (yeniden uygulama,
+		# önbellekteki reklamlar, doğrulama hatası) TASK/043'ün owner onaylı konusu — reddet.
+		push_error("AdmobBackend: yaş işlemi SDK yapılandırıldıktan sonra değiştirilemez (%s → %s reddedildi)"
+			% [AgeRestrictedTreatment.keys()[_age_restricted_treatment], AgeRestrictedTreatment.keys()[value]])
+		return false
+	_age_restricted_treatment = value
+	if _admob != null:
+		_admob.age_restricted_treatment = _tfat(value)   # attach() öncesiyse attach yazar
+	return true
+
+
+func age_restricted_treatment() -> AgeRestrictedTreatment:
+	return _age_restricted_treatment
+
+
+func applied_request_configuration() -> Dictionary:
+	return _admob.get_applied_request_configuration() if _admob != null else {}
+
+
+## Facade'ın tek yolu (set_request_configuration: derece, TFCD / TFUA, yaş işlemi, test
+## cihazları yalnız debug'da) + SDK'dan geri okuma. true = geri okuma beklenenle aynı.
+func _apply_request_configuration() -> bool:
+	_admob.set_request_configuration()
+	_request_configured = true
+	var expected: Dictionary = expected_request_configuration(_age_restricted_treatment,
+		AdmobConfig.ContentRating.keys()[_admob.max_ad_content_rating], int(_admob.child_directed),
+		int(_admob.under_age_of_consent))
+	var problem: String = request_configuration_problem(_admob.get_applied_request_configuration(), expected)
+	if problem.is_empty():
+		return true
+	push_error("AdmobBackend: istek yapılandırması geri okuması beklenenle uyuşmuyor — %s" % problem)
+	return false
 
 
 func request_consent_update() -> void:

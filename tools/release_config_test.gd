@@ -16,9 +16,13 @@ extends Node
 ##   - şifre / takma ad raporlara sızmaz
 ##   - UMP sarmalayıcıları arayüz düzeyinde (AdBackend / FakeAdBackend / Admob.gd
 ##     cephesi / AdmobBackend eşlemeleri) + commit edilmiş AAR'ların bytecode'u
-##   - TASK/041: onaylı AAR = RequestConfiguration düzeltmesi (v6.0 + 0001 + 0002); eski
-##     kusurlu M9 AAR'ı ve bilinmeyen AAR CODE; GMA 24.9.0 / UMP 3.2.0, TFAT yok; facade
-##     değerleri (G / unspecified / unspecified) ve ilk yüklemeden önce uygulanma sırası
+##   - TASK/041: RequestConfiguration düzeltmesi (0002) korunuyor; eski kusurlu M9 AAR'ı
+##     ve bilinmeyen AAR CODE; facade değerleri (G / unspecified / unspecified)
+##   - TASK/042: onaylı AAR = v6.0 + 0001 + 0002 + 0003 (GMA 25.3.0, UMP 4.0.0 geçişli,
+##     TFAT UNSPECIFIED / CHILD / TEEN + SDK geri okuması); TASK/041'in GMA 24.9.0 AAR'ı
+##     artık onaylı DEĞİL (CODE); GMA sürümü + facade TFAT API'si kapıda; üretim yaş işlemi
+##     UNSPECIFIED; yapılandırma SDK başlamadan ÖNCE bir kez + geri okuma doğrulaması
+##     (uyuşmazsa SDK başlamaz); Age Signals reklama bağlı DEĞİL; genç işlemi OWNER engeli AÇIK
 ##   - Ayarlar'daki "Gizlilik politikası" satırı (URL yokken gizli)
 ##
 ## Kayda yazmaz (yalnız user:// geçici dosyalar, sonda silinir); yine de kayıt
@@ -39,7 +43,15 @@ const SETTINGS_SCENE: String = "res://scenes/ui/settings_panel.tscn"
 const DEFECTIVE_M9_RELEASE_AAR_SHA256: String = "90d359921f10bc6618ed63b9ea97cdba5afcbdfbb8cb72fe264834e5bf478284"
 const DEFECTIVE_M9_DEBUG_AAR_SHA256: String = "e3ac9a6b1492468928c037d4d21464310560c7b21c14c597fa4a567c23c6eb2d"
 const CONFIG_PATCH: String = "res://tools/admob_plugin/0002-fix-request-configuration-value-types.patch"
-const SPIKE_PATCH: String = "res://tools/admob_plugin/0003-spike-gma25-age-restricted-treatment.patch"
+## TASK/042 üretim yaması (TASK/040 spike'ının yerine; spike dosyaları kaldırıldı).
+const GMA25_PATCH: String = "res://tools/admob_plugin/0003-gma25-age-restricted-treatment.patch"
+const RETIRED_SPIKE_FILES: Array[String] = ["res://tools/admob_plugin/0003-spike-gma25-age-restricted-treatment.patch",
+	"res://tools/admob_plugin/0002-spike-gma25-age-restricted-treatment.patch",
+	"res://tools/admob_plugin/spike_qa_export.sh", "res://tools/admob_plugin/spike_qa_preset.py"]
+## TASK/041'in onaylı AAR'ları (v6.0 + 0001 + 0002, GMA 24.9.0) — TASK/042'de yerini
+## GMA 25.3.0 derlemesine bıraktı; kusurlu değil ama artık onaylı değil.
+const TASK041_RELEASE_AAR_SHA256: String = "14c745e9d00dbcb582b4e890f5c8a95969f1a15f97a4dfb6e0107860624541a4"
+const TASK041_DEBUG_AAR_SHA256: String = "40ae0592773a19045c6a97d1d7182347e1c6d026497ee574a58562b450109e2c"
 const KEYSTORE_ENV: Array[String] = ["GODOT_ANDROID_KEYSTORE_RELEASE_PATH", "GODOT_ANDROID_KEYSTORE_RELEASE_USER",
 	"GODOT_ANDROID_KEYSTORE_RELEASE_PASSWORD", "SQUISHY_NON_PUBLISHABLE_RELEASE"]
 
@@ -77,6 +89,7 @@ func _ready() -> void:
 	_test_patched_binaries()
 	_test_teen_treatment_boundaries()
 	_test_request_configuration_path()
+	_test_tfat_api()
 	await _test_privacy_policy_row()
 
 	for key in KEYSTORE_ENV:
@@ -116,6 +129,19 @@ func _real_release(extra: Dictionary = {}) -> Dictionary:
 		for key: String in extra[section]:
 			sections[section][key] = extra[section][key]
 	return sections
+
+
+## android_export.cfg [Audience]: hiçbir anahtar yaş işlemi değil ve hiçbir değer TEEN / CHILD
+## seçmiyor (yorumlar sayılmaz — ConfigFile ile okunur).
+static func _audience_selects_teen() -> bool:
+	var file := ConfigFile.new()
+	if file.load(AdConfig.CONFIG_PATH) != OK:
+		return true
+	for key in file.get_section_keys("Audience"):
+		var value: String = str(file.get_value("Audience", key)).to_lower()
+		if key.to_lower().contains("age_restricted") or value == "teen" or value == "child":
+			return true
+	return false
 
 
 static func _problem_count(config: AdConfig, needle: String) -> int:
@@ -262,10 +288,11 @@ func _test_audience() -> void:
 		and AdmobBackend._content_rating(project.max_ad_content_rating) == AdmobConfig.ContentRating.G)
 	var plugin_api: String = FileAccess.get_file_as_string("res://addons/AdmobPlugin/Admob.gd") \
 		+ FileAccess.get_file_as_string("res://addons/AdmobPlugin/model/AdmobConfig.gd")
-	_c("GMA 24.9.0 yolu TEEN ifade edemez: TFCD/TFUA enumlarında TEEN yok, eklentide AgeRestrictedTreatment API'si yok, bağımlılık 24.9.0 (TFAT 25.3.0+)",
+	_c("TFCD/TFUA TEEN ifade edemez (enumlarında TEEN yok); TEEN yalnız ayrı TFAT enumunda (GMA 25.3.0, TASK/042) ve projenin [Audience] etiketleri onu seçmez",
 		not AdmobConfig.TagForChildDirectedTreatment.has("TEEN") and not AdmobConfig.TagForUnderAgeOfConsent.has("TEEN")
-		and not plugin_api.contains("AgeRestrictedTreatment") and not plugin_api.to_lower().contains("age_restricted_treatment")
-		and FileAccess.get_file_as_string("res://addons/AdmobPlugin/AdmobPlugin.gd").contains("com.google.android.gms:play-services-ads:24.9.0"))
+		and AdmobConfig.AgeRestrictedTreatment.has("TEEN") and plugin_api.contains("enum AgeRestrictedTreatment")
+		and FileAccess.get_file_as_string("res://addons/AdmobPlugin/AdmobPlugin.gd").contains("com.google.android.gms:play-services-ads:25.3.0")
+		and not _audience_selects_teen())
 	var release_project := AdConfig.load_file(AdConfig.CONFIG_PATH, AdConfig.BuildType.RELEASE)
 	_c("RELEASE yüklemesinde de general_13_plus; ürün kitlesinin kodu hazır (CODE engeli yok), [Audience] sorunu yok",
 		release_project.audience_decision == "general_13_plus"
@@ -310,6 +337,7 @@ func _good_inputs() -> Dictionary:
 		"keystore_password_set": true, "ad_config": _cfg(_real_release(), AdConfig.BuildType.RELEASE),
 		"privacy_policy_url": "https://squishy.invalid/privacy",
 		"plugin_release_aar_sha256": ReleaseReadiness.PATCHED_RELEASE_AAR_SHA256, "plugin_facade_patched": true,
+		"plugin_facade_tfat": true, "plugin_gma_version": ReleaseReadiness.REQUIRED_GMA_VERSION,
 		"teen_ad_treatment_resolved": true, "plugin_known_defects": [],
 		"non_publishable_requested": false, "export_path": "build/release/squishy_merge.aab",
 	}
@@ -414,9 +442,35 @@ func _test_release_gate_rules() -> void:
 	var fixed_inputs: Dictionary = _good_inputs()
 	fixed_inputs.erase("plugin_known_defects")
 	var fixed: Dictionary = ReleaseReadiness.evaluate(fixed_inputs)
-	_c("düzeltilmiş TASK/041 AAR'ı (onaylı SHA) -> bilinen kusur YOK, CODE yok, UPLOAD_CANDIDATE (kusur SHA'dan türetildi)",
+	_c("onaylı TASK/042 AAR'ı (GMA 25.3.0 derlemesi) -> bilinen kusur YOK, CODE yok, UPLOAD_CANDIDATE (kusur SHA'dan türetildi)",
 		ReleaseReadiness.known_plugin_defects(ReleaseReadiness.PATCHED_RELEASE_AAR_SHA256).is_empty()
 		and fixed["status"] == ReleaseReadiness.STATUS_UPLOAD_CANDIDATE and not _has_category(fixed, "CODE"))
+	var t041_inputs: Dictionary = _good_inputs()
+	t041_inputs.erase("plugin_known_defects")
+	t041_inputs["plugin_release_aar_sha256"] = TASK041_RELEASE_AAR_SHA256
+	var t041: Dictionary = ReleaseReadiness.evaluate(t041_inputs)
+	_c("TASK/041 AAR'ı (14c745e9…, GMA 24.9.0) sessizce geri gelemez -> CODE 'artık onaylı değil' (tek engel); kusur kaydı değil",
+		_blocked_by(t041, "CODE", "artık onaylı değil") and _blocked_by(t041, "CODE", "GMA 25.3.0")
+		and t041["blockers"].size() == 1 and ReleaseReadiness.known_plugin_defects(TASK041_RELEASE_AAR_SHA256).is_empty()
+		and ReleaseReadiness.SUPERSEDED_RELEASE_AARS.has(TASK041_RELEASE_AAR_SHA256)
+		and not ReleaseReadiness.SUPERSEDED_RELEASE_AARS.has(ReleaseReadiness.PATCHED_RELEASE_AAR_SHA256))
+	_c("GMA sürüm şartı: 25.3.0 kabul; 24.9.0 / 25.4.0 / boş -> CODE (tam sürüm, fail-closed)",
+		ReleaseReadiness.REQUIRED_GMA_VERSION == "25.3.0"
+		and _blocked_by(_gate({"plugin_gma_version": "24.9.0"}), "CODE", "Google Mobile Ads SDK")
+		and _blocked_by(_gate({"plugin_gma_version": "25.4.0"}), "CODE", "Google Mobile Ads SDK")
+		and _blocked_by(_gate({"plugin_gma_version": ""}), "CODE", "Google Mobile Ads SDK"))
+	var no_gma_inputs: Dictionary = _good_inputs()
+	no_gma_inputs.erase("plugin_gma_version")
+	var no_tfat_inputs: Dictionary = _good_inputs()
+	no_tfat_inputs.erase("plugin_facade_tfat")
+	_c("GMA sürümü / facade TFAT girdisi yoksa -> CODE (fail-closed); TFAT'sız cephe -> CODE",
+		_blocked_by(ReleaseReadiness.evaluate(no_gma_inputs), "CODE", "Google Mobile Ads SDK")
+		and _blocked_by(ReleaseReadiness.evaluate(no_tfat_inputs), "CODE", "TFAT")
+		and _blocked_by(_gate({"plugin_facade_tfat": false}), "CODE", "TFAT"))
+	_c("GMA sürümü üretilmiş AdmobPlugin.gd metninden: tek bağımlılık -> sürüm; yok / iki tane -> '' (fail-closed)",
+		ReleaseReadiness.plugin_gma_version("[ \"a:b:1\", \"com.google.android.gms:play-services-ads:25.3.0\" ]") == "25.3.0"
+		and ReleaseReadiness.plugin_gma_version("[ \"a:b:1\" ]") == ""
+		and ReleaseReadiness.plugin_gma_version("\"com.google.android.gms:play-services-ads:25.3.0\", \"com.google.android.gms:play-services-ads:24.9.0\"") == "")
 	var old_inputs: Dictionary = _good_inputs()
 	old_inputs.erase("plugin_known_defects")
 	old_inputs["plugin_release_aar_sha256"] = DEFECTIVE_M9_RELEASE_AAR_SHA256
@@ -429,7 +483,7 @@ func _test_release_gate_rules() -> void:
 	_c("bilinmeyen / doğrulanmamış AAR (SHA eşleşmiyor) -> CODE (fail-closed); kusur kaydı olmasa da geçemez",
 		_blocked_by(unknown, "CODE", "AAR yamalı derleme değil") and ReleaseReadiness.known_plugin_defects("0000").is_empty()
 		and _gate({"plugin_release_aar_sha256": ""})["status"] == ReleaseReadiness.STATUS_BLOCKED)
-	_c("kusur kuralı SİLİNMEDİ: eski SHA'nın RequestConfiguration kaydı duruyor; onaylı (düzeltilmiş) SHA kayıtta DEĞİL",
+	_c("kusur kuralı SİLİNMEDİ: eski SHA'nın RequestConfiguration kaydı duruyor; onaylı (GMA 25.3.0) SHA kayıtta DEĞİL",
 		ReleaseReadiness.KNOWN_PLUGIN_DEFECTS.has(DEFECTIVE_M9_RELEASE_AAR_SHA256)
 		and String(ReleaseReadiness.KNOWN_PLUGIN_DEFECTS[DEFECTIVE_M9_RELEASE_AAR_SHA256]).contains("RequestConfiguration")
 		and not ReleaseReadiness.KNOWN_PLUGIN_DEFECTS.has(ReleaseReadiness.PATCHED_RELEASE_AAR_SHA256)
@@ -504,10 +558,12 @@ func _test_current_project_state() -> void:
 			code_blockers += 1
 	_c("bugün tam 9 engel: OWNER 9 (AdMob 5 + gizlilik URL'i 1 + upload anahtarı 2 + 13–17 uyum 1) + CODE 0 + CONFIG 0",
 		owner_blockers == 9 and code_blockers == 0 and result["blockers"].size() == 9)
-	_c("CODE engeli YOK (TASK/041): release AAR = düzeltilmiş onaylı derleme, bilinen kusur 0, eski kusurlu SHA değil, cephe yamalı",
+	_c("CODE engeli YOK (TASK/042): release AAR = onaylı GMA 25.3.0 derlemesi, bilinen kusur 0, eski kusurlu / TASK/041 SHA değil, cephe yamalı + TFAT, GMA 25.3.0",
 		inputs["plugin_release_aar_sha256"] == ReleaseReadiness.PATCHED_RELEASE_AAR_SHA256
 		and inputs["plugin_release_aar_sha256"] != DEFECTIVE_M9_RELEASE_AAR_SHA256
-		and bool(inputs["plugin_facade_patched"]) and inputs["plugin_known_defects"].is_empty()
+		and inputs["plugin_release_aar_sha256"] != TASK041_RELEASE_AAR_SHA256
+		and bool(inputs["plugin_facade_patched"]) and bool(inputs["plugin_facade_tfat"])
+		and inputs["plugin_gma_version"] == "25.3.0" and inputs["plugin_known_defects"].is_empty()
 		and not _blocked_by(result, "CODE", "RequestConfiguration"))
 	_c("sürüm tek kaynağı: preset versionCode 1 = project.godot 1, versionName boş → 0.8.5",
 		int(inputs["version_code"]) == int(inputs["canonical_version_code"]) and inputs["version_name_preset"] == "")
@@ -576,6 +632,9 @@ func _test_wrapper_interface() -> void:
 		and admob.has_method("show_privacy_options_form") and admob.has_method("has_privacy_options_api")
 		and admob.has_signal("privacy_options_form_dismissed"))
 	_c("eklenti singleton'ı yokken (masaüstü) API 'yok' der — çağrı yapılmaz", not admob.has_privacy_options_api())
+	_c("Admob.gd cephesi (TASK/042): age_restricted_treatment özelliği (varsayılan UNSPECIFIED) + get_applied_request_configuration()",
+		"age_restricted_treatment" in admob and admob.has_method("get_applied_request_configuration")
+		and admob.age_restricted_treatment == AdmobConfig.AgeRestrictedTreatment.UNSPECIFIED)
 	admob.free()
 	var backend_src: String = FileAccess.get_file_as_string("res://scripts/ads/admob_backend.gd")
 	_c("AdmobBackend: API algısı sinyal kaydından, durum dizgesi eşlemesi, kapanış sinyali bağlı",
@@ -609,27 +668,44 @@ func _test_patched_binaries() -> void:
 		var plugin_class: PackedByteArray = inner.read_file("org/godotengine/plugin/admob/AdmobPlugin.class")
 		var consent_class: PackedByteArray = inner.read_file("org/godotengine/plugin/admob/model/ConsentConfiguration.class")
 		var config_class: PackedByteArray = inner.read_file("org/godotengine/plugin/admob/model/AdmobConfiguration.class")
-		var tfat_hits: PackedStringArray = PackedStringArray()
+		var spike_hits: PackedStringArray = PackedStringArray()
 		for entry in inner.get_files():
 			if entry.ends_with(".class"):
 				var bytes: PackedByteArray = inner.read_file(entry)
-				for needle in ["AgeRestrictedTreatment", "TFAT_DIAG", "age_restricted_treatment", "get_request_configuration_diagnostics"]:
+				for needle in ["TFAT_DIAG", "get_request_configuration_diagnostics", "configure_before_initialize"]:
 					if _class_has(bytes, needle):
-						tfat_hits.append("%s (%s)" % [entry.get_file(), needle])
+						spike_hits.append("%s (%s)" % [entry.get_file(), needle])
 		inner.close()
-		_c("%s AAR eski kusurlu M9 derlemesi DEĞİL (%s… ≠ %s… / %s…)" % [kind, sha.substr(0, 8),
-				DEFECTIVE_M9_DEBUG_AAR_SHA256.substr(0, 8), DEFECTIVE_M9_RELEASE_AAR_SHA256.substr(0, 8)],
-			sha != DEFECTIVE_M9_DEBUG_AAR_SHA256 and sha != DEFECTIVE_M9_RELEASE_AAR_SHA256)
+		_c("%s AAR eski kusurlu M9 derlemesi DEĞİL, TASK/041 derlemesi DEĞİL (%s… ≠ %s… / %s… / %s… / %s…)" % [kind, sha.substr(0, 8),
+				DEFECTIVE_M9_DEBUG_AAR_SHA256.substr(0, 8), DEFECTIVE_M9_RELEASE_AAR_SHA256.substr(0, 8),
+				TASK041_DEBUG_AAR_SHA256.substr(0, 8), TASK041_RELEASE_AAR_SHA256.substr(0, 8)],
+			sha != DEFECTIVE_M9_DEBUG_AAR_SHA256 and sha != DEFECTIVE_M9_RELEASE_AAR_SHA256
+			and sha != TASK041_DEBUG_AAR_SHA256 and sha != TASK041_RELEASE_AAR_SHA256)
 		_c("%s AdmobConfiguration.class Godot 4.6 Long / Object[] güvenli okuma İÇERİYOR (TASK/041 0002: instanceof Number + intValue + geçersiz değer logu)" % kind,
 			not config_class.is_empty() and _class_has(config_class, "java/lang/Number")
 			and _class_has(config_class, "intValue") and _class_has(config_class, "Invalid request configuration value '")
 			and _class_has(config_class, "Skipping invalid test device id of type "))
-		_c("%s AdmobPlugin.class set_request_configuration: istisna yutulmaz (NOT applied logu) + SDK geri okuması (applied satırı)" % kind,
+		_c("%s AdmobPlugin.class set_request_configuration: istisna yutulmaz (NOT applied logu) + SDK geri okuması (applied satırı, yaş işlemi dahil)" % kind,
 			_class_has(plugin_class, "set_request_configuration(): request configuration NOT applied")
-			and _class_has(plugin_class, "set_request_configuration(): applied max_ad_content_rating=")
-			and _class_has(plugin_class, "getRequestConfiguration"))
-		_c("%s üretim AAR'ında TFAT / TEEN / spike tanısı YOK: hiçbir sınıfta AgeRestrictedTreatment / TFAT_DIAG %s" % [kind, str(tfat_hits)],
-			tfat_hits.is_empty())
+			and _class_has(plugin_class, "set_request_configuration(): applied ")
+			and _class_has(plugin_class, "max_ad_content_rating=") and _class_has(plugin_class, " age_restricted_treatment=")
+			and _class_has(plugin_class, "getRequestConfiguration") and _class_has(plugin_class, "getAgeRestrictedTreatment"))
+		_c("%s AdmobPlugin.class (TASK/042): get_applied_request_configuration() + MobileAds.initialize ÖNCESİ geri okuma logu + SDK sürümü" % kind,
+			_class_has(plugin_class, "get_applied_request_configuration")
+			and _class_has(plugin_class, "initialize(): request configuration before MobileAds.initialize ")
+			and _class_has(plugin_class, "getVersion"))
+		_c("%s AdmobConfiguration.class (TASK/042): setAgeRestrictedTreatment + UNSPECIFIED / CHILD / TEEN + age_restricted_treatment anahtarı" % kind,
+			_class_has(config_class, "setAgeRestrictedTreatment")
+			and _class_has(config_class, "com/google/android/gms/ads/AgeRestrictedTreatment")
+			and _class_has_utf8(config_class, "UNSPECIFIED") and _class_has_utf8(config_class, "CHILD")
+			and _class_has_utf8(config_class, "TEEN")
+			and _class_has(config_class, "age_restricted_treatment"))
+		_c("%s reklam kimliği (AAID) loglanmıyor: eski 'Added Advertising ID as test device: ' + değer satırı yok, yerine '(value not logged)'" % kind,
+			not _class_has(config_class, "Added Advertising ID as test device: ")
+			and _class_has(config_class, "Added Advertising ID as test device (value not logged)")
+			and _class_has(config_class, " (values not logged)"))
+		_c("%s spike tanısı üretime girmedi: TFAT_DIAG / get_request_configuration_diagnostics / configure_before_initialize YOK %s" % [kind, str(spike_hits)],
+			spike_hits.is_empty())
 		_c("%s AdmobPlugin.class: can_request_ads / get_privacy_options_requirement_status / show_privacy_options_form / sinyal" % kind,
 			not jar.is_empty() and _class_has(plugin_class, "can_request_ads")
 			and _class_has(plugin_class, "get_privacy_options_requirement_status")
@@ -642,10 +718,12 @@ func _test_patched_binaries() -> void:
 			_class_has(consent_class, "java/lang/Number"))
 	var patch_sha: String = FileAccess.get_sha256("res://tools/admob_plugin/0001-ump-privacy-options-and-debug-geography.patch")
 	var config_patch_sha: String = FileAccess.get_sha256(CONFIG_PATCH)
+	var gma25_patch_sha: String = FileAccess.get_sha256(GMA25_PATCH)
 	var script: String = FileAccess.get_file_as_string("res://tools/admob_plugin/build_patched_plugin.sh")
-	_c("yama SHA-256'ları (0001 + 0002) VERSION.md ve yeniden derleme betiğiyle aynı", version.contains(patch_sha)
+	_c("yama SHA-256'ları (0001 + 0002 + 0003) VERSION.md ve yeniden derleme betiğiyle aynı", version.contains(patch_sha)
 		and script.contains("PATCH_SHA256=\"%s\"" % patch_sha) and version.contains(config_patch_sha)
-		and script.contains("CONFIG_PATCH_SHA256=\"%s\"" % config_patch_sha))
+		and script.contains("CONFIG_PATCH_SHA256=\"%s\"" % config_patch_sha) and not gma25_patch_sha.is_empty()
+		and version.contains(gma25_patch_sha) and script.contains("GMA25_PATCH_SHA256=\"%s\"" % gma25_patch_sha))
 	var config_patch: String = FileAccess.get_file_as_string(CONFIG_PATCH)
 	_c("0002 (üretim, TASK/041): yalnız AdmobPlugin.java + AdmobConfiguration.java; (int) / (String[]) dönüşümleri kalkıyor, Number / Object[] okuma geliyor",
 		config_patch.count("diff --git ") == 2
@@ -658,27 +736,59 @@ func _test_patched_binaries() -> void:
 	_c("0002 GMA 25 / UMP 4 / TFAT / TEEN İÇERMİYOR (sürüm satırı, AgeRestrictedTreatment, TFAT_DIAG, TEEN yok); GDScript'e dokunmuyor",
 		not config_patch.contains("playads") and not config_patch.contains("AgeRestrictedTreatment")
 		and not config_patch.contains("TFAT") and not config_patch.contains("TEEN") and not config_patch.contains(".gd b/"))
-	_c("derleme betiği: üretim modları v6.0 + 0001 + 0002, spike 0003 ayrı; AAR hash'leri betik = VERSION.md = kapı = diskteki AAR",
-		script.contains("git -C \"$SRC\" apply \"$CONFIG_PATCH\"")
-		and script.contains("SPIKE_PATCH=\"$HERE/0003-spike-gma25-age-restricted-treatment.patch\"")
+	var gma25_patch: String = FileAccess.get_file_as_string(GMA25_PATCH)
+	_c("0003 (üretim, TASK/042): playads 24.9.0 -> 25.3.0, setAgeRestrictedTreatment, geri okuma API'si, AAID loglanmıyor; 5 dosya",
+		gma25_patch.count("diff --git ") == 5
+		and gma25_patch.contains("-playads = \"24.9.0\"") and gma25_patch.contains("+playads = \"25.3.0\"")
+		and gma25_patch.contains("builder.setAgeRestrictedTreatment(ageTreatment == AgeRestrictedTreatment.UNSPECIFIED ? null : ageTreatment);")
+		and gma25_patch.contains("+\tpublic Dictionary get_applied_request_configuration() {")
+		and gma25_patch.contains("+func get_applied_request_configuration() -> Dictionary:")
+		and gma25_patch.contains("-\t\t\t\t\tLog.d(LOG_TAG, \"Added Advertising ID as test device: \" + adInfo.getId());"))
+	_c("0003 TFAT eşlemesi tam: 0 UNSPECIFIED (SDK'ya null = ayarlanmamış varsayılan), 1 CHILD, 2 TEEN; bilinmeyen değer loglanır, uygulanmaz",
+		gma25_patch.contains("+\t\t\tcase 0: return AgeRestrictedTreatment.UNSPECIFIED;")
+		and gma25_patch.contains("+\t\t\tcase 1: return AgeRestrictedTreatment.CHILD;")
+		and gma25_patch.contains("+\t\t\tcase 2: return AgeRestrictedTreatment.TEEN;")
+		and gma25_patch.contains("builder.setAgeRestrictedTreatment(ageTreatment == AgeRestrictedTreatment.UNSPECIFIED ? null : ageTreatment);")
+		and gma25_patch.contains("': unknown treatment \" + value + \" (not applied)\");"))
+	_c("0003 0002'nin dönüşüm düzeltmesini geri ALMIYOR / tekrarlamıyor (getInt yeniden kullanılır; (int) / (String[]) dönüşümü yok); spike tanısı yok",
+		not gma25_patch.contains("(int) _data.get(") and not gma25_patch.contains("(String[]) _data.get(")
+		and not gma25_patch.contains("-\t\tif (value instanceof Number) {")
+		and gma25_patch.contains("Integer value = getInt(AGE_RESTRICTED_TREATMENT_PROPERTY);")
+		and not gma25_patch.contains("TFAT_DIAG") and not gma25_patch.contains("get_request_configuration_diagnostics")
+		and not gma25_patch.contains("configure_before_initialize"))
+	var retired: PackedStringArray = PackedStringArray()
+	for path in RETIRED_SPIKE_FILES:
+		if FileAccess.file_exists(path):
+			retired.append(path)
+	_c("derleme betiği: modlar verify / build / install / baseline, v6.0 + 0001 + 0002 + 0003, spike modu YOK; beklenen GMA 25.3.0 / UMP 4.0.0; AAR hash'leri betik = VERSION.md = kapı = diskteki AAR; eski spike dosyaları yok %s" % str(retired),
+		script.contains("git -C \"$SRC\" apply \"$1\"")
+		and script.contains("apply_patch \"$CONFIG_PATCH\" \"$CONFIG_PATCH_SHA256\" \"0002\"")
+		and script.contains("apply_patch \"$GMA25_PATCH\" \"$GMA25_PATCH_SHA256\" \"0003\"")
+		and script.contains("EXPECTED_GMA=\"25.3.0\"") and script.contains("EXPECTED_UMP=\"4.0.0\"")
+		and script.contains("case \"$MODE\" in verify|build|install|baseline) ;;")
+		and not script.contains("SPIKE_PATCH") and retired.is_empty()
 		and script.contains("PATCHED_RELEASE_SHA256_WINDOWS=\"%s\"" % ReleaseReadiness.PATCHED_RELEASE_AAR_SHA256)
 		and script.contains("PATCHED_DEBUG_SHA256_WINDOWS=\"%s\"" % FileAccess.get_sha256("res://addons/AdmobPlugin/bin/debug/AdmobPlugin-debug.aar"))
 		and version.contains(ReleaseReadiness.PATCHED_RELEASE_AAR_SHA256)
 		and FileAccess.get_sha256(ReleaseReadiness.PATCHED_RELEASE_AAR) == ReleaseReadiness.PATCHED_RELEASE_AAR_SHA256)
 	var deps: String = FileAccess.get_file_as_string("res://addons/AdmobPlugin/AdmobPlugin.gd")
-	_c("GMA / UMP sürümleri değişmedi: tek reklam bağımlılığı play-services-ads:24.9.0 (UMP 3.2.0 onun geçişlisi); 25.x / UMP geçersiz kılma YOK",
-		deps.contains("\"com.google.android.gms:play-services-ads:24.9.0\"") and not deps.contains("play-services-ads:25")
-		and not deps.contains("user-messaging-platform") and version.contains("user-messaging-platform:3.2.0"))
+	_c("GMA 25.3.0 / UMP 4.0.0: tek reklam bağımlılığı play-services-ads:25.3.0 (UMP 4.0.0 play-services-ads-api:25.3.0'ın geçişlisi); 24.9.0 / UMP geçersiz kılma YOK; VERSION.md çözülmüş sürümleri yazıyor",
+		deps.contains("\"com.google.android.gms:play-services-ads:25.3.0\"") and not deps.contains("play-services-ads:24")
+		and ReleaseReadiness.plugin_gma_version(deps) == "25.3.0"
+		and not deps.contains("user-messaging-platform") and version.contains("user-messaging-platform:4.0.0")
+		and version.contains("play-services-ads-api:25.3.0")
+		and script.contains("for artifact in play-services-ads play-services-ads-api user-messaging-platform; do")
+		and script.contains("[ \"$got\" = \"$want \" ] || die"))
 
 
-# --- TASK/040: 13–17 genç reklam işlemi sınırları -------------------------------------
+# --- TASK/040 + TASK/042: 13–17 genç reklam işlemi sınırları ---------------------------
 
-## Kodla denetlenebilen TASK/040 kuralları (docs/monetization/GLOBAL_TEEN_AD_TREATMENT.md):
-## Play Age Signals hiçbir reklam / runtime koduna bağlı değil; GMA 25.3.0 TEEN spike'ı
-## üretim eklentisine GİRMEDİ; genç işlemi engeli yapılandırmayla kapanmıyor; spike
-## yalnız yama + QA araçları olarak duruyor.
+## Kodla denetlenebilen kurallar (docs/monetization/GLOBAL_TEEN_AD_TREATMENT.md): Play Age
+## Signals hiçbir reklam / runtime koduna bağlı değil; TASK/042 ile TFAT (TEEN / CHILD)
+## üretim eklentisinde TEKNİK olarak var ama üretim yaş işlemi UNSPECIFIED ve hiçbir kod
+## kullanıcıyı TEEN / CHILD'a yönlendirmiyor; genç işlemi engeli yapılandırmayla kapanmıyor.
 func _test_teen_treatment_boundaries() -> void:
-	print("-- TASK/040: genç reklam işlemi sınırları (Age Signals YOK, spike üretime girmedi)")
+	print("-- TASK/040 + TASK/042: genç reklam işlemi sınırları (Age Signals YOK, TFAT hazır ama üretim UNSPECIFIED, yönlendirme YOK)")
 	var hits: PackedStringArray = PackedStringArray()
 	for root in ["res://scripts", "res://addons"]:
 		for path in _files_under(root, ["gd", "cfg", "tscn", "tres"]):
@@ -689,69 +799,195 @@ func _test_teen_treatment_boundaries() -> void:
 	var project_text: String = FileAccess.get_file_as_string("res://project.godot").to_lower()
 	_c("Play Age Signals reklam / runtime koduna BAĞLI DEĞİL: scripts/ + addons/ + project.godot içinde yok %s" % str(hits),
 		hits.is_empty() and not project_text.contains("age-signals") and not project_text.contains("agesignals"))
-	var facade: String = FileAccess.get_file_as_string("res://addons/AdmobPlugin/Admob.gd")
-	var model: String = FileAccess.get_file_as_string("res://addons/AdmobPlugin/model/AdmobConfig.gd")
-	var ads_src: String = ""
-	for path in _files_under("res://scripts/ads", ["gd"]):
-		ads_src += FileAccess.get_file_as_string(path)
-	_c("üretim eklentisi GMA 24.9.0 kaldı: facade / model / scripts/ads içinde age_restricted_treatment YOK (spike üretime girmedi)",
-		not facade.contains("age_restricted_treatment") and not model.contains("AgeRestrictedTreatment")
-		and not ads_src.contains("age_restricted_treatment")
-		and FileAccess.get_file_as_string("res://addons/AdmobPlugin/AdmobPlugin.gd").contains("play-services-ads:24.9.0"))
+	var deps: String = FileAccess.get_file_as_string("res://addons/AdmobPlugin/AdmobPlugin.gd").to_lower()
+	_c("Age Signals bağımlılığı YOK: eklentinin Android bağımlılıklarında com.google.android.play:age-signals yok",
+		not deps.contains("age-signals") and not deps.contains("agesignals"))
+	_c("üretim yaş işlemi varsayılanı UNSPECIFIED: yönetici sabiti, AdBackend tabanı, FakeAdBackend, AdmobBackend ve Admob.gd cephesi",
+		MonetizationManager.DEFAULT_AGE_RESTRICTED_TREATMENT == AdBackend.AgeRestrictedTreatment.UNSPECIFIED
+		and AdBackend.new().age_restricted_treatment() == AdBackend.AgeRestrictedTreatment.UNSPECIFIED
+		and FakeAdBackend.new().age_restricted_treatment() == AdBackend.AgeRestrictedTreatment.UNSPECIFIED
+		and AdmobBackend.new().age_restricted_treatment() == AdBackend.AgeRestrictedTreatment.UNSPECIFIED
+		and _facade_default_treatment() == AdmobConfig.AgeRestrictedTreatment.UNSPECIFIED)
+	# Yönlendirme yok: scripts/ içindeki her set_age_restricted_treatment ÇAĞRISI yalnız üretim
+	# varsayılanını verir; facade'a yazan tek satır arka ucun eşlemesi (_tfat); TEEN / CHILD
+	# sabitleri yalnız enum bildirimi ve bu eşlemede.
+	var calls: PackedStringArray = PackedStringArray()
+	var bad_calls: PackedStringArray = PackedStringArray()
+	var teen_refs: PackedStringArray = PackedStringArray()
+	for path in _files_under("res://scripts", ["gd"]):
+		var lines: PackedStringArray = FileAccess.get_file_as_string(path).split("\n")
+		for i in lines.size():
+			var line: String = lines[i].strip_edges()
+			if line.begins_with("#") or line.begins_with("##"):
+				continue
+			if line.contains("set_age_restricted_treatment(") and not line.begins_with("func ") \
+					and not line.begins_with("static func "):
+				calls.append("%s:%d" % [path.get_file(), i + 1])
+				if not line.contains("DEFAULT_AGE_RESTRICTED_TREATMENT"):
+					bad_calls.append("%s:%d %s" % [path.get_file(), i + 1, line])
+			if line.contains("AgeRestrictedTreatment.TEEN") or line.contains("AgeRestrictedTreatment.CHILD"):
+				teen_refs.append("%s:%d" % [path.get_file(), i + 1])
+	_c("üretim kodu kimseyi TEEN / CHILD'a YÖNLENDİRMİYOR: set_age_restricted_treatment çağrıları yalnız DEFAULT (%s) %s" % [str(calls), str(bad_calls)],
+		calls.size() == 1 and bad_calls.is_empty())
+	_c("scripts/ içinde TEEN / CHILD sabiti yalnız AdmobBackend._tfat eşlemesinde (4 satır) %s" % str(teen_refs),
+		teen_refs.size() == 4 and Array(teen_refs).all(func(ref: String) -> bool: return ref.begins_with("admob_backend.gd:")))
+	var ad_config_src: String = FileAccess.get_file_as_string("res://scripts/ads/ad_config.gd").to_lower()
+	var export_cfg: String = FileAccess.get_file_as_string("res://addons/AdmobPlugin/android_export.cfg").to_lower()
+	_c("yaş işlemi yapılandırmadan / yaş bilgisinden gelmiyor: android_export.cfg ve AdConfig'te age_restricted_treatment / TEEN anahtarı yok",
+		not ad_config_src.contains("age_restricted_treatment") and not export_cfg.contains("age_restricted_treatment"))
 	var gate_src: String = FileAccess.get_file_as_string("res://tools/release/release_readiness.gd")
-	_c("kapı genç işlemi engelini kapatmıyor: project_inputs teen_ad_treatment_resolved = false, true yazılı değil",
-		gate_src.contains("\"teen_ad_treatment_resolved\": false,") and not gate_src.contains("\"teen_ad_treatment_resolved\": true"))
-	var build_script: String = FileAccess.get_file_as_string("res://tools/admob_plugin/build_patched_plugin.sh")
-	var patch_text: String = FileAccess.get_file_as_string(SPIKE_PATCH)
-	_c("spike yaması 0003 (GMA 25.3.0 + setAgeRestrictedTreatment + TFAT_DIAG) yalnız `spike` modunda, SHA-256 betikte sabit",
-		patch_text.contains("+playads = \"25.3.0\"") and patch_text.contains("builder.setAgeRestrictedTreatment(ageTreatment)")
-		and patch_text.contains("TFAT_DIAG")
-		and build_script.contains("SPIKE_PATCH_SHA256=\"%s\"" % FileAccess.get_sha256(SPIKE_PATCH))
-		and build_script.contains("NOT installed; addons/AdmobPlugin stays GMA 24.9.0"))
-	_c("0003 dönüşüm düzeltmesini TEKRARLAMIYOR (0002'nin üstüne kurulu: eski spike toInt / String.valueOf yolu yok); eski 0002-spike dosyası yok",
-		not patch_text.contains("private int toInt(") and not patch_text.contains("String.valueOf(raw[i])")
-		and not patch_text.contains("-\t\treturn (String[]) _data.get(TEST_DEVICE_IDS_PROPERTY);")
-		and patch_text.contains("Integer value = getInt(AGE_RESTRICTED_TREATMENT_PROPERTY);")
-		and not FileAccess.file_exists("res://tools/admob_plugin/0002-spike-gma25-age-restricted-treatment.patch"))
+	_c("kapı genç işlemi engelini kapatmıyor: project_inputs teen_ad_treatment_resolved = false, true yazılı değil; engel metni 'TFAT teknik olarak hazır ama yönlendirme yok' diyor",
+		gate_src.contains("\"teen_ad_treatment_resolved\": false,") and not gate_src.contains("\"teen_ad_treatment_resolved\": true")
+		and ReleaseReadiness.TEEN_TREATMENT_BLOCKER.contains("TFAT TEEN teknik olarak hazır")
+		and ReleaseReadiness.TEEN_TREATMENT_BLOCKER.contains("yaş bandı yönlendirmesi yok"))
+	var harness_src: String = FileAccess.get_file_as_string("res://tools/ads_device.gd")
+	var main_src: String = FileAccess.get_file_as_string("res://scripts/main.gd") + FileAccess.get_file_as_string("res://scenes/main.tscn")
 	var harness: Script = load("res://tools/ads_device.gd")
-	_c("QA sürücüsü (tools/ads_device.gd) üretim facade'ıyla derlenir; TEEN kancaları dinamik (yalnız spike eklentisinde çalışır)",
-		harness != null and FileAccess.get_file_as_string("res://tools/ads_device.gd").contains("\"age_restricted_treatment\" in facade"))
+	_c("TEEN yalnız QA sürücüsünde (tools/ads_device.gd, export dışı klasör) ve yalnız açık QA komutuyla; üretim sahnesi onu yüklemiyor",
+		harness != null and harness_src.contains("\"teen\": AdBackend.AgeRestrictedTreatment.TEEN")
+		and harness_src.contains("ads.backend().set_age_restricted_treatment(TFAT_VALUES[word])")
+		and not main_src.contains("ads_device"))
 
 
-# --- TASK/041: üretim RequestConfiguration yolu --------------------------------------
+func _facade_default_treatment() -> int:
+	var admob := Admob.new()
+	var value: int = admob.age_restricted_treatment
+	admob.free()
+	return value
+
+
+# --- TASK/041 + TASK/042: üretim RequestConfiguration yolu -----------------------------
 
 ## Kodla denetlenebilen kısım: facade'ın Java'ya gönderdiği değerler (ve Godot tipleri —
-## v6.0'ı bozan tam da bunlardı) + yapılandırmanın ilk reklam yüklemesinden ÖNCE uygulanma
-## sırası. Native geri okuma cihazda: "set_request_configuration(): applied …" logu.
+## v6.0'ı bozan tam da bunlardı) + yapılandırmanın MobileAds.initialize() ÖNCESİ bir kez
+## uygulanma sırası. Native geri okuma cihazda: "set_request_configuration(): applied …"
+## ve "initialize(): request configuration before MobileAds.initialize …" logları.
 func _test_request_configuration_path() -> void:
-	print("-- TASK/041: RequestConfiguration yolu (değerler aynı, ilk yüklemeden önce uygulanır)")
+	print("-- TASK/041 + TASK/042: RequestConfiguration yolu (değerler aynı + TFAT UNSPECIFIED, SDK başlamadan ÖNCE bir kez)")
 	var project := AdConfig.load_project()
 	var admob := Admob.new()
 	admob.is_real = project.is_real
 	admob.max_ad_content_rating = AdmobBackend._content_rating(project.max_ad_content_rating)
 	admob.child_directed = AdmobBackend._tfcd(project.tag_for_child_directed_treatment)
 	admob.under_age_of_consent = AdmobBackend._tfua(project.tag_for_under_age_of_consent)
+	admob.age_restricted_treatment = AdmobBackend._tfat(MonetizationManager.DEFAULT_AGE_RESTRICTED_TREATMENT)
 	var raw: Dictionary = admob.create_request_configuration().get_raw_data()
+	admob.age_restricted_treatment = AdmobBackend._tfat(AdBackend.AgeRestrictedTreatment.TEEN)
+	var raw_teen: Dictionary = admob.create_request_configuration().get_raw_data()
+	admob.age_restricted_treatment = AdmobBackend._tfat(AdBackend.AgeRestrictedTreatment.CHILD)
+	var raw_child: Dictionary = admob.create_request_configuration().get_raw_data()
 	admob.free()
 	_c("değerler DEĞİŞMEDİ: derece \"G\", TFCD -1 / TFUA -1 (UNSPECIFIED), kişiselleştirme 0 (DEFAULT), is_real false (DEBUG), test_device_ids []",
 		raw.get("max_ad_content_rating") == "G" and raw.get("tag_for_child_directed_treatment") == -1
 		and raw.get("tag_for_under_age_of_consent") == -1 and raw.get("personalization_state") == 0
 		and raw.get("is_real") == false and raw.get("test_device_ids") == [])
-	_c("Godot tipleri (Java'da Long / Boolean / String / Object[]): TFCD, TFUA, kişiselleştirme int; is_real bool; derece String; test_device_ids Array",
+	_c("TASK/042: yaş işlemi anahtarı gönderiliyor, üretim değeri 0 (UNSPECIFIED); TEEN 2, CHILD 1 (Java eşlemesiyle aynı)",
+		raw.get("age_restricted_treatment") == 0 and raw_teen.get("age_restricted_treatment") == 2
+		and raw_child.get("age_restricted_treatment") == 1 and raw_teen.get("max_ad_content_rating") == "G")
+	_c("Godot tipleri (Java'da Long / Boolean / String / Object[]): TFCD, TFUA, kişiselleştirme, yaş işlemi int; is_real bool; derece String; test_device_ids Array",
 		typeof(raw["tag_for_child_directed_treatment"]) == TYPE_INT and typeof(raw["tag_for_under_age_of_consent"]) == TYPE_INT
-		and typeof(raw["personalization_state"]) == TYPE_INT and typeof(raw["is_real"]) == TYPE_BOOL
+		and typeof(raw["personalization_state"]) == TYPE_INT and typeof(raw["age_restricted_treatment"]) == TYPE_INT
+		and typeof(raw["is_real"]) == TYPE_BOOL
 		and typeof(raw["max_ad_content_rating"]) == TYPE_STRING and typeof(raw["test_device_ids"]) == TYPE_ARRAY)
-	_c("TFAT / yaş işlemi anahtarı gönderilmiyor (GMA 24.9.0 üretim yolu)", not raw.has("age_restricted_treatment"))
 	var facade_src: String = FileAccess.get_file_as_string("res://addons/AdmobPlugin/Admob.gd")
 	var backend_src: String = FileAccess.get_file_as_string("res://scripts/ads/admob_backend.gd")
 	var manager_src: String = FileAccess.get_file_as_string("res://scripts/ads/monetization_manager.gd")
-	_c("sıra: SDK hazır sinyalinde facade ÖNCE set_request_configuration(), SONRA initialization_completed; AdmobBackend auto_configure_on_initialize = true",
-		facade_src.contains("\tif auto_configure_on_initialize:\n\t\tset_request_configuration()\n\n\tis_initialization_completed = true\n\tinitialization_completed.emit(")
-		and backend_src.contains("_admob.auto_configure_on_initialize = true"))
+	_c("facade: set_request_configuration() create_request_configuration() ile AYNI yapıcıyı kullanır (gönderilen = test edilen)",
+		facade_src.contains("\t\t\ta_config = create_request_configuration()\n\n\t\t_plugin_singleton.set_request_configuration(a_config.get_raw_data())"))
+	_c("sıra (TASK/042): AdmobBackend.initialize() ÖNCE yapılandırır + geri okur, SONRA _admob.initialize(); doğrulanamazsa başlatmaz",
+		backend_src.contains("func initialize() -> bool:\n\tif not _apply_request_configuration():\n")
+		and backend_src.contains("\t\treturn false\n\t_admob.initialize()\n")
+		and backend_src.count("_admob.initialize()") == 1
+		and backend_src.contains("func _apply_request_configuration() -> bool:\n\t_admob.set_request_configuration()\n"))
+	_c("tek yapılandırma yolu: facade SDK hazır sinyalinde YENİDEN uygulamaz (auto_configure_on_initialize = false); set_request_configuration yalnız _apply_request_configuration'da",
+		backend_src.contains("_admob.auto_configure_on_initialize = false")
+		and not backend_src.contains("_admob.auto_configure_on_initialize = true")
+		and backend_src.count("_admob.set_request_configuration()") == 1)
 	_c("sıra: yönetici SDK hazır sinyalinden önce hiçbir reklam yüklemez (_ads_enabled → _sdk_ready; _sdk_ready yalnız _on_initialization_completed'de true)",
 		manager_src.contains("return _backend != null and ads_allowed() and _sdk_ready and _onboarding_completed")
 		and manager_src.count("_sdk_ready = true") == 1
 		and manager_src.contains("func _on_initialization_completed() -> void:\n\t_sdk_initializing = false\n\t_sdk_ready = true"))
+	_c("SDK tek kez: _ensure_sdk başlatmayı _sdk_ready / _sdk_initializing ile korur, yalnız _request_permitted() (UMP canRequestAds) iken; tek initialize çağrısı",
+		manager_src.contains("func _ensure_sdk() -> void:\n\tif _sdk_ready or _sdk_initializing:")
+		and manager_src.contains("\tif not _request_permitted():\n\t\treturn\n\t_sdk_initializing = true\n\tif not _backend.initialize():")
+		and manager_src.count("_backend.initialize()") == 1)
+	_c("fail-closed yönetici: initialize() false -> _sdk_refused, başlatma bayrağı temizlenir, yeniden deneme yok, not 'kullanılamıyor'",
+		manager_src.contains("\t\t_sdk_initializing = false\n\t\t_sdk_refused = true\n")
+		and manager_src.contains("\tif _sdk_refused:\n\t\treturn\n\t# Google: Mobile Ads SDK yalnız canRequestAds() true iken başlatılır.")
+		and manager_src.contains("if not _onboarding_completed or _sdk_refused:\n\t\treturn NOTE_UNAVAILABLE"))
+	_c("yaş işlemi SDK başlamadan ÖNCE arka uca verilir (attach'ten hemen sonra, rıza / initialize'dan önce)",
+		manager_src.contains("\t_backend.attach(self)\n\t# SDK başlamadan ÖNCE (initialize, rızadan sonra): yaş işlemi = üretim varsayılanı.\n\t_backend.set_age_restricted_treatment(DEFAULT_AGE_RESTRICTED_TREATMENT)"))
+
+
+# --- TASK/042: TFAT arayüzü + geri okuma doğrulaması (sahte SDK) ------------------------
+
+func _test_tfat_api() -> void:
+	print("-- TASK/042: TFAT arayüzü (UNSPECIFIED / CHILD / TEEN) + geri okuma doğrulaması, fail-closed")
+	_c("AdBackend.AgeRestrictedTreatment: UNSPECIFIED 0, CHILD 1, TEEN 2 (adlar SDK enum adları)",
+		AdBackend.AgeRestrictedTreatment.keys() == ["UNSPECIFIED", "CHILD", "TEEN"]
+		and AdBackend.AgeRestrictedTreatment.UNSPECIFIED == 0 and AdBackend.AgeRestrictedTreatment.TEEN == 2)
+	_c("AdmobConfig.AgeRestrictedTreatment (cephe modeli): UNSPECIFIED 0, CHILD 1, TEEN 2; AdmobBackend._tfat birebir eşler",
+		AdmobConfig.AgeRestrictedTreatment.UNSPECIFIED == 0 and AdmobConfig.AgeRestrictedTreatment.CHILD == 1
+		and AdmobConfig.AgeRestrictedTreatment.TEEN == 2
+		and AdmobBackend._tfat(AdBackend.AgeRestrictedTreatment.UNSPECIFIED) == AdmobConfig.AgeRestrictedTreatment.UNSPECIFIED
+		and AdmobBackend._tfat(AdBackend.AgeRestrictedTreatment.CHILD) == AdmobConfig.AgeRestrictedTreatment.CHILD
+		and AdmobBackend._tfat(AdBackend.AgeRestrictedTreatment.TEEN) == AdmobConfig.AgeRestrictedTreatment.TEEN)
+	var expected: Dictionary = AdBackend.expected_request_configuration(AdBackend.AgeRestrictedTreatment.UNSPECIFIED, "G", -1, -1)
+	_c("beklenen geri okuma: {UNSPECIFIED, G, -1, -1}", expected == {"age_restricted_treatment": "UNSPECIFIED",
+		"max_ad_content_rating": "G", "tag_for_child_directed_treatment": -1, "tag_for_under_age_of_consent": -1})
+	# Cihazdaki native geri okuma biçimi (Java Dictionary → Godot: String / int / bool).
+	var native: Dictionary = {"age_restricted_treatment": "UNSPECIFIED", "max_ad_content_rating": "G",
+		"tag_for_child_directed_treatment": -1, "tag_for_under_age_of_consent": -1, "personalization_state": "DEFAULT",
+		"test_device_ids": 3, "sdk_version": "25.3.0", "initialized": false}
+	var teen_native: Dictionary = native.duplicate()
+	teen_native["age_restricted_treatment"] = "TEEN"
+	var no_rating: Dictionary = native.duplicate()
+	no_rating["max_ad_content_rating"] = ""
+	_c("doğrulama: aynı -> ''; yaş işlemi farklı / derece uygulanmamış / geri okuma yok (eski eklenti) -> uyuşmazlık",
+		AdBackend.request_configuration_problem(native, expected) == ""
+		and AdBackend.request_configuration_problem(teen_native, expected).contains("age_restricted_treatment=TEEN")
+		and AdBackend.request_configuration_problem(no_rating, expected).contains("max_ad_content_rating")
+		and not AdBackend.request_configuration_problem({}, expected).is_empty()
+		and AdBackend.request_configuration_problem(teen_native,
+			AdBackend.expected_request_configuration(AdBackend.AgeRestrictedTreatment.TEEN, "G", -1, -1)) == "")
+	var fake := FakeAdBackend.new()
+	fake.initialize()
+	var cfg_at: int = fake.calls.find("request_configuration:UNSPECIFIED")
+	_c("sahte SDK: initialize = yapılandırma (UNSPECIFIED) + geri okuma, SONRA başlatma; geri okuma UNSPECIFIED / G",
+		cfg_at != -1 and fake.calls.find("initialize") > cfg_at and fake.init_calls == 1
+		and fake.applied_request_configuration()["age_restricted_treatment"] == "UNSPECIFIED"
+		and fake.applied_request_configuration()["max_ad_content_rating"] == "G")
+	var late_ok: bool = fake.set_age_restricted_treatment(AdBackend.AgeRestrictedTreatment.TEEN)
+	var same_ok: bool = fake.set_age_restricted_treatment(AdBackend.AgeRestrictedTreatment.UNSPECIFIED)
+	_c("SDK yapılandırıldıktan SONRA farklı yaş işlemi REDDEDİLİR (false), doğrulanmış yapılandırma kalır; aynı değer kabul",
+		not late_ok and same_ok and fake.treatment_refusals == 1 and fake.request_configuration_applies == 1
+		and fake.applied_request_configuration()["age_restricted_treatment"] == "UNSPECIFIED"
+		and fake.age_restricted_treatment() == AdBackend.AgeRestrictedTreatment.UNSPECIFIED)
+	var early := FakeAdBackend.new()
+	var early_ok: bool = early.set_age_restricted_treatment(AdBackend.AgeRestrictedTreatment.TEEN)
+	_c("SDK başlamadan verilen TEEN kabul edilir (true), henüz uygulanmaz; initialize onu başlatma ÖNCESİ uygular",
+		early_ok and early.request_configuration_applies == 0)
+	var early_started: bool = early.initialize()
+	_c("... geri okuma TEEN, sonra başlatma (initialize true)", early_started
+		and early.calls.find("request_configuration:TEEN") < early.calls.find("initialize")
+		and early.calls.find("request_configuration:TEEN") != -1 and early.init_calls == 1
+		and early.applied_request_configuration()["age_restricted_treatment"] == "TEEN")
+	var bad := FakeAdBackend.new()
+	bad.request_configuration_fault = true
+	bad.set_age_restricted_treatment(AdBackend.AgeRestrictedTreatment.TEEN)
+	var bad_started: bool = bad.initialize()
+	_c("fail-closed: SDK TEEN'i uygulamazsa (geri okuma UNSPECIFIED) SDK BAŞLATILMAZ (initialize false)", not bad_started
+		and bad.init_refusals == 1
+		and bad.init_calls == 0 and bad.calls.has("initialize_refused") and not bad.calls.has("initialize"))
+	var backend_src: String = FileAccess.get_file_as_string("res://scripts/ads/admob_backend.gd")
+	_c("AdmobBackend: beklenen = cephenin gönderdiği derece / TFCD / TFUA + yaş işlemi; uyuşmazlık push_error ile görünür, initialize false",
+		backend_src.contains("expected_request_configuration(_age_restricted_treatment,")
+		and backend_src.contains("request_configuration_problem(_admob.get_applied_request_configuration(), expected)")
+		and backend_src.contains("push_error(\"AdmobBackend: istek yapılandırması doğrulanamadı")
+		and backend_src.contains("\t\treturn false\n\t_admob.initialize()\n\treturn true\n"))
+	_c("AdmobBackend: SDK yapılandırıldıktan sonra yaş işlemi değişikliği reddedilir (yeniden uygulama yolu YOK)",
+		backend_src.contains("\tif _request_configured:\n\t\tif value == _age_restricted_treatment:\n\t\t\treturn true\n")
+		and backend_src.count("_apply_request_configuration()") == 2)
 
 
 static func _files_under(root: String, extensions: Array) -> PackedStringArray:
@@ -770,6 +1006,15 @@ static func _files_under(root: String, extensions: Array) -> PackedStringArray:
 ## Sınıf dosyası sabit havuzundaki UTF-8 adlar (NUL içerdiği için bayt araması).
 static func _class_has(bytes: PackedByteArray, needle: String) -> bool:
 	return _find_bytes(bytes, needle.to_utf8_buffer())
+
+
+## Sabit havuzunda TAM olarak bu dizge olan bir CONSTANT_Utf8 girdisi (etiket 0x01 + u2 uzunluk):
+## "CHILD" araması "CHILD_DIRECTED_TREATMENT_PROPERTY" ile eşleşemez.
+static func _class_has_utf8(bytes: PackedByteArray, value: String) -> bool:
+	var body: PackedByteArray = value.to_utf8_buffer()
+	var entry := PackedByteArray([1, (body.size() >> 8) & 0xff, body.size() & 0xff])
+	entry.append_array(body)
+	return _find_bytes(bytes, entry)
 
 
 static func _find_bytes(haystack: PackedByteArray, needle: PackedByteArray) -> bool:

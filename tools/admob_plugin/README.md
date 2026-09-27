@@ -1,16 +1,21 @@
-# tools/admob_plugin — AdMob eklentisi yamaları (M9-01 UMP + TASK/041 RequestConfiguration)
+# tools/admob_plugin — AdMob eklentisi yamaları (M9-01 UMP + TASK/041 RequestConfiguration + TASK/042 GMA 25.3 / TFAT)
 
 `addons/AdmobPlugin/` = `godot-sdk-integrations/godot-admob` **v6.0** + bu
-klasördeki İKİ üretim yaması (`0001` + `0002`, bu sırayla). Bu klasör export'a
-girmez (`tools/*` preset dışında); yalnız yamaların kaynağı, yeniden derleme
-betiği ve doğrulama aracı burada.
+klasördeki ÜÇ üretim yaması (`0001` + `0002` + `0003`, bu sırayla). Bu klasör
+export'a girmez (`tools/*` preset dışında); yalnız yamaların kaynağı, yeniden
+derleme betiği ve doğrulama aracı burada.
+
+**Üretim yığını (TASK/042):** Google Mobile Ads SDK **25.3.0**, UMP **4.0.0**
+(play-services-ads-api 25.3.0'ın geçişli bağımlılığı), TFAT
+(`AgeRestrictedTreatment` UNSPECIFIED / CHILD / TEEN) teknik olarak hazır —
+**üretim varsayılanı UNSPECIFIED**, yaş bandı yönlendirmesi YOK (TASK/043).
 
 | dosya | ne |
 |---|---|
 | `0001-ump-privacy-options-and-debug-geography.patch` | üretim yaması 1 (M9-01): upstream v6.0'a UMP gizlilik seçenekleri + #120 (3 dosya, +73/−2, LF) |
 | `0002-fix-request-configuration-value-types.patch` | üretim yaması 2 (TASK/041): 0001'in ÜSTÜNE `AdmobConfiguration` Godot 4.6 Long / Object[] okuma + `set_request_configuration` hata logu ve SDK geri okuması (2 Java dosyası, +93/−21, LF) |
-| `0003-spike-gma25-age-restricted-treatment.patch` | TASK/040 fizibilite spike'ı — ÜRETİM DEĞİL (aşağıda) |
-| `build_patched_plugin.sh` | deterministik yeniden derleme + doğrulama (`baseline` / `build` / `verify` / `install` / `spike`) |
+| `0003-gma25-age-restricted-treatment.patch` | üretim yaması 3 (TASK/042): 0001 + 0002'nin ÜSTÜNE `playads` 24.9.0 → 25.3.0, `setAgeRestrictedTreatment` (TFAT), SDK geri okuma API'si `get_applied_request_configuration()`, `MobileAds.initialize` öncesi geri okuma logu, reklam kimliği (AAID) artık loglanmıyor (5 dosya, LF) |
+| `build_patched_plugin.sh` | deterministik yeniden derleme + doğrulama (`baseline` / `build` / `verify` / `install`); her yamalı modda çözülmüş sınıf yolunu denetler (GMA 25.3.0 / ads-api 25.3.0 / UMP 4.0.0) |
 | `aar_equivalence.py` | iki AAR'ı girdi girdi, `classes.jar`'ı sınıf sınıf karşılaştırır |
 
 ## Neden yama (0001)
@@ -55,7 +60,41 @@ TFAT / yaş işlemi, GDScript ya da sürüm değişikliği İÇERMEZ; GMA 24.9.0
 Upstream v7.0 / `main` (4b4ddce, 2026-05-27) yalnız Long dönüşümlerini
 (`((Long) x).intValue()`) düzeltti; `(String[])` orada hâlâ var.
 
-## Deterministiklik kanıtı — TASK/041 (iş makinesi, 2026-09-27)
+## Neden yama (0003 — TASK/042)
+
+TASK/040 spike'ı GMA 25.3.0 + TEEN'in Godot 4.6.3'te çalıştığını A36'da kanıtlamıştı;
+TASK/042 bunun güvenli ve gerekli kısmını üretime taşıdı (spike'ın tanı logları —
+`TFAT_DIAG`, her yüklemede log, `configure_before_initialize` — ALINMADI).
+
+| konu | 0003 |
+|---|---|
+| SDK sürümü | `common/gradle/libs.versions.toml` `playads` 24.9.0 → **25.3.0** (TFAT'lı ilk sürüm); UMP **4.0.0** `play-services-ads-api:25.3.0` üzerinden geçişli — ayrı geçersiz kılma yok |
+| TFAT | `AdmobConfiguration`: yeni anahtar `age_restricted_treatment` (Godot `Long`: 0 UNSPECIFIED, 1 CHILD, 2 TEEN; 0002'nin `getInt`'i ile okunur, bilinmeyen değer loglanır ve uygulanmaz). CHILD / TEEN → `builder.setAgeRestrictedTreatment(...)`; UNSPECIFIED → `setAgeRestrictedTreatment(null)` = yapıcının ayarlanmamış varsayılanı (parametre `@Nullable`; GMA 25.3.0 null için -1, açık `UNSPECIFIED` için 0 gönderir, geri okuma ikisini de UNSPECIFIED gösterir — javap ile bakıldı) → yaş işlemsiz istek, sıfırlamadan sonra da, tam SDK varsayılanı. TFCD / TFUA DEĞİŞMEDEN uygulanmaya devam eder — Google: ikisi birlikte verilirse en muhafazakâr işlem uygulanır |
+| geri okuma | `AdmobPlugin.get_applied_request_configuration()` (`@UsedByGodot`): SDK'nın o anki `RequestConfiguration`'ı — yaş işlemi, derece, TFCD, TFUA, kişiselleştirme, test cihazı SAYISI, SDK sürümü, `initialized`. TASK/041 `applied …` satırına `age_restricted_treatment=` eklendi; `initialize()` başlatmadan önceki yapılandırmayı loglar |
+| cephe | `Admob.gd`: `age_restricted_treatment` (varsayılan UNSPECIFIED) `create_request_configuration()`'a girer; `set_request_configuration()` aynı yapıcıyı kullanır; `get_applied_request_configuration()` native metodu `has_java_method()` ile arar (Godot 4.6 Android `JNISingleton` eklenti metotlarını `has_method()`'da göstermez). `model/AdmobConfig.gd`: `enum AgeRestrictedTreatment` |
+| gizlilik | debug test-cihazı yolundaki upstream `Log.d` satırları reklam kimliğini ve kimlik listesini artık YAZMIYOR (`(value not logged)`, yalnız sayı) |
+
+Değeri eklenti değil proje seçer: `MonetizationManager.DEFAULT_AGE_RESTRICTED_TREATMENT`
+= UNSPECIFIED; `AdmobBackend` yapılandırmayı `MobileAds.initialize()` ÖNCESİ bir kez
+uygular, geri okur, uyuşmazsa SDK'yı başlatmaz (docs/monetization/ADS_SYSTEM.md).
+GMA 25.3.0'a karşı `javac` 11 kullanımdan kalkma uyarısı verir (TFCD / TFUA — Google:
+yerini yaş işlemi aldı; sabit uyarlanabilir banner boyutu yardımcıları) — kaldırılmadılar,
+hata yok.
+
+## Deterministiklik kanıtı — TASK/042 (iş makinesi, 2026-09-27)
+
+- `build` iki kez, iki ayrı çalışma dizininde (mevcut upstream klonu + sıfırdan
+  GitHub klonu), kuruluma GİRMEDEN: debug `a78acb22…15b6`, release `f5a563a7…20f8`
+  ve üretilen `Admob.gd` / `AdmobPlugin.gd` / `model/AdmobConfig.gd` iki koşuda
+  **bayt-aynı**. Sonra `install` (3. derleme) ve `verify` (4. derleme) aynı baytları
+  üretti; `verify` depodaki AAR'ları BYTE-IDENTICAL buldu; `baseline` upstream v6.0
+  AAR'larını hâlâ yeniden üretiyor.
+- Her koşuda çözülmüş sınıf yolu: `play-services-ads:25.3.0`,
+  `play-services-ads-api:25.3.0`, `user-messaging-platform:4.0.0` (başka sürüm yok).
+- TASK/041 AAR'larıyla fark yalnız `AdmobConfiguration.class`, `AdmobPlugin.class` ve
+  `AdmobPlugin$*.class`.
+
+## Deterministiklik kanıtı — TASK/041 (iş makinesi, 2026-09-27; TARİHSEL)
 
 - `build` iki kez, iki ayrı çalışma dizininde (mevcut upstream klonu + sıfırdan
   klon), kuruluma GİRMEDEN: debug `40ae0592…9e2c`, release `14c745e9…41a4` —
@@ -94,9 +133,10 @@ tools/admob_plugin/build_patched_plugin.sh verify
 `install` yalnız bir üretim yaması bilerek değiştirildiğinde: önce `build`'i iki
 kez (biri `SQUISHY_PLUGIN_WORK` ile sıfırdan bir dizinde) koşup bayt-aynı
 olduğunu göster, SONRA `install`; ardından `VERSION.md`, betikteki
-`PATCHED_*_SHA256_WINDOWS` + `PATCH_SHA256` / `CONFIG_PATCH_SHA256` ve release
-kapısının `PATCHED_RELEASE_AAR_SHA256`'sı güncellenir (release_config_test hepsini
-çapraz denetler) ve yeni AAR gerçek cihazda doğrulanır.
+`PATCHED_*_SHA256_WINDOWS` + `PATCH_SHA256` / `CONFIG_PATCH_SHA256` /
+`GMA25_PATCH_SHA256` ve release kapısının `PATCHED_RELEASE_AAR_SHA256`'sı
+güncellenir (release_config_test hepsini çapraz denetler; eski onaylı SHA
+`SUPERSEDED_RELEASE_AARS`'a girer) ve yeni AAR gerçek cihazda doğrulanır.
 
 Sistem geneli kurulum YOK. Araçlar Godot editörünün kendi ayarlarından okunur:
 JDK 17 (`export/android/java_sdk_path`), Android SDK
@@ -113,39 +153,25 @@ Linux/macOS'ta derlenen AAR'ın SHA-256'sı Windows'takinden yalnız manifest
 satır sonları yüzünden farklı çıkar; `verify` bunu `aar_equivalence.py` ile
 "EQUIVALENT" olarak kabul eder, başka her farkta durur.
 
-## TASK/040 — GMA 25.3.0 TEEN fizibilite spike'ı (ÜRETİM DEĞİL)
+## TASK/040 spike'ı (TARİHSEL — TASK/042'de kaldırıldı)
 
-| dosya | ne |
-|---|---|
-| `0003-spike-gma25-age-restricted-treatment.patch` | 0001 + 0002'nin ÜSTÜNE: `playads` 24.9.0 → **25.3.0** (UMP 4.0.0 geçişli), `AgeRestrictedTreatment` (TFAT) desteği, facade'da `age_restricted_treatment` + `configure_before_initialize` (yapılandırma MobileAds.initialize ÖNCESİ), `TFAT_DIAG` tanı logları + `get_request_configuration_diagnostics()`. Dönüşüm düzeltmesi artık 0002'de (tekrarlanmaz) |
-| `build_patched_plugin.sh spike` | v6.0 + 0001 + 0002 + 0003 → `build/admob_plugin_spike/out/spike/` (AAR'lar + üretilen addon); **`addons/AdmobPlugin`'e ASLA kurmaz**; yama SHA-256'sı betikte sabit; aynı girdiyle iki derleme bayt-aynı (TASK/041: debug `f6603cab…`, release `f8ee3135…`) |
-| `spike_qa_export.sh` + `spike_qa_preset.py` | `tools/ads_device` QA sürücüsünü yalnız `com.obappstudio.squishymerge.qa` paketiyle, spike eklentisiyle export eder; `project.godot` / `export_presets.cfg` / `addons/AdmobPlugin` yalnız export süresince değişir ve SHA-256 ile birebir geri konur (değiştirilmiş dosya varsa başlamaz) |
-
-QA sürücüsü: `qa_boot.txt` içinde `teen` → TEEN + başlatma öncesi yapılandırma;
-`tfat teen|child|unspecified [apply]`, `tfat_diag`, durum satırı `tfat:`. Samsung A36
-kanıtı ve karar tablosu: `docs/monetization/GLOBAL_TEEN_AD_TREATMENT.md`.
-**Play Age Signals hiçbir reklam koduna bağlanmaz.**
-
-**Yeniden adlandırma (TASK/041):** spike yaması TASK/040'ta
-`0002-spike-gma25-age-restricted-treatment.patch` adıyla (SHA-256 `e54c2271…b036`;
-dönüşüm düzeltmesi içinde) A36'da kanıtlandı — o kanıt ve spike AAR'ları
-(`4aac803a…` / `3e0801ff…`) o yamaya aittir (git geçmişi `e152986`). TASK/041
-üretim düzeltmesini `0002` yaptı; spike, düzeltmeyi tekrarlamadan onun üstüne
-`0003` olarak taşındı (GDScript ve sürüm hunk'ları bayt-aynı; Java'da yalnız
-dönüşüm kısmı 0002'ye geçti). Spike yeniden cihazda koşulmadı.
-
-**Üretim eklentisindeki kusur (spike'ın bulgusu — TASK/041'de DÜZELTİLDİ):** v6.0
-`AdmobConfiguration` `(int)` / `(String[])` dönüşümleri Godot 4.6'nın Long / Object[]
-değerlerinde ClassCastException atıyordu → M9-01 üretim AAR'ı (`90d35992…`)
-RequestConfiguration'ı hiç uygulamıyordu. TASK/041: üretim `0002` + yeni AAR'lar;
-release kapısı yeni SHA'yı onaylar, eski SHA'yı `KNOWN_PLUGIN_DEFECTS`'te CODE olarak
-tutar.
+TASK/040 fizibilite spike'ı (`0002-spike-…` → TASK/041'de `0003-spike-gma25-age-restricted-treatment.patch`,
+`build_patched_plugin.sh spike`, `spike_qa_export.sh`, `spike_qa_preset.py`) GMA 25.3.0 +
+TEEN'i A36'da kanıtladı (`docs/monetization/GLOBAL_TEEN_AD_TREATMENT.md`). TASK/042 aynı
+yeteneği üretim yaması `0003-gma25-age-restricted-treatment.patch`'e taşıdı ve iki
+çelişen uygulama tutulmasın diye spike dosyalarını ve `spike` modunu KALDIRDI (git
+geçmişinde: `e152986`, `d32a4d3`). Spike'ın A36 kanıtı ve AAR'ları o yamalara aittir;
+üretim yığınının kendi A36 kanıtı TASK/042'de (ADS_SYSTEM.md). QA sürücüsünün
+(`tools/ads_device.gd`) `teen` / `tfat` / `tfat_diag` komutları artık üretim API'sini
+kullanır ve YALNIZ QA teşhisidir — üretim varsayılanını değiştirmez. **Play Age Signals
+hiçbir reklam koduna bağlanmaz.**
 
 ## Eklentiyi güncellerken
 
 Yeni bir release zip'ini `addons/AdmobPlugin/` üstüne KOPYALAMA — yamalar
 sessizce kaybolur: üretim rıza yolu eski türetme davranışına düşer (runtime
-`has_privacy_options_api()` false görür, uyarı basar) ve RequestConfiguration
-yine uygulanmaz. 0001 + 0002'yi yeni etikete taşı, betikle derle, `VERSION.md`'yi
-ve kapının SHA'sını güncelle. Upstream'e PR göndermek owner
+`has_privacy_options_api()` false görür, uyarı basar), RequestConfiguration
+yine uygulanmaz ve GMA 24.9.0'a (TFAT yok) dönülür; `AdmobBackend` geri okumayı
+doğrulayamaz ve SDK'yı başlatmaz. 0001 + 0002 + 0003'ü yeni etikete taşı, betikle
+derle, `VERSION.md`'yi ve kapının SHA'sını güncelle. Upstream'e PR göndermek owner
 kararı (docs/monetization/PRIVACY_CONSENT.md §4).

@@ -16,6 +16,12 @@ extends RefCounted
 enum ConsentStatus { UNKNOWN, NOT_REQUIRED, REQUIRED, OBTAINED }
 ## UMP `getPrivacyOptionsRequirementStatus()` (M9-01).
 enum PrivacyOptionsStatus { UNKNOWN, NOT_REQUIRED, REQUIRED }
+## İstek yapılandırmasının yaş işlemi (TFAT, TASK/042): GMA 25.3.0
+## `RequestConfiguration.Builder.setAgeRestrictedTreatment()`. Adlar SDK'nın
+## enum adlarıyla aynı (geri okumada "UNSPECIFIED" / "CHILD" / "TEEN").
+## UNSPECIFIED = yaş işlemi belirtilmedi (SDK varsayılanı, TASK/042 üretim değeri);
+## TEEN / CHILD'ı kimin alacağı (yaş bandı yönlendirmesi) bu arayüzün işi DEĞİL.
+enum AgeRestrictedTreatment { UNSPECIFIED, CHILD, TEEN }
 
 signal initialization_completed
 signal consent_info_updated
@@ -62,8 +68,57 @@ func attach(_host: Node) -> void:
 	pass
 
 
-func initialize() -> void:
-	pass
+## Mobile Ads SDK'yı başlatır (tam bir kez, yalnız UMP izin verince çağrılır).
+## TASK/042 sözleşmesi (Google'ın sırası): istek yapılandırması (içerik derecesi,
+## TFCD / TFUA, yaş işlemi) SDK başlamadan ÖNCE uygulanır ve SDK'dan geri okunarak
+## doğrulanır. true = SDK başlatılıyor (`initialization_completed` gelecek); false =
+## doğrulanamadı, SDK BAŞLATILMADI (fail-closed: bu oturumda reklam yok, yeniden deneme yok).
+func initialize() -> bool:
+	return false
+
+
+## SDK'ya gidecek yaş işlemi (TASK/042). Varsayılan UNSPECIFIED. Yalnız SDK
+## yapılandırılmadan (`initialize()`) ÖNCE değiştirilebilir: sonra farklı bir değer
+## REDDEDİLİR (false, loglanır) — doğrulanmış yapılandırma geçerli kalır, uygulanmamış
+## bir işlem sessizce "uygulandı" sayılamaz. true = kabul (aynı değer de true).
+func set_age_restricted_treatment(_value: AgeRestrictedTreatment) -> bool:
+	return false
+
+
+func age_restricted_treatment() -> AgeRestrictedTreatment:
+	return AgeRestrictedTreatment.UNSPECIFIED
+
+
+## SDK'nın ŞU ANKİ istek yapılandırması (native geri okuma, TASK/042):
+## age_restricted_treatment, max_ad_content_rating, tag_for_child_directed_treatment,
+## tag_for_under_age_of_consent, personalization_state, test_device_ids (yalnız
+## SAYI), sdk_version, initialized. Boş = bilinmiyor.
+func applied_request_configuration() -> Dictionary:
+	return {}
+
+
+## Beklenen geri okuma değerleri (TASK/042 doğrulaması): yaş işlemi adı, derece,
+## TFCD / TFUA (SDK tamsayısı: -1 belirtilmedi, 0 false, 1 true).
+static func expected_request_configuration(treatment: AgeRestrictedTreatment, max_ad_content_rating: String,
+		tag_for_child_directed_treatment: int, tag_for_under_age_of_consent: int) -> Dictionary:
+	return {
+		"age_restricted_treatment": String(AgeRestrictedTreatment.keys()[treatment]),
+		"max_ad_content_rating": max_ad_content_rating,
+		"tag_for_child_directed_treatment": tag_for_child_directed_treatment,
+		"tag_for_under_age_of_consent": tag_for_under_age_of_consent,
+	}
+
+
+## SDK geri okumasını beklenenle karşılaştırır; "" = uyuşuyor, değilse okunabilir
+## fark listesi. Geri okuma yoksa (eski eklenti) de uyuşmazlık sayılır — fail-closed.
+static func request_configuration_problem(applied: Dictionary, expected: Dictionary) -> String:
+	if applied.is_empty():
+		return "SDK geri okuması yok (eklenti get_applied_request_configuration() sunmuyor)"
+	var problems: PackedStringArray = PackedStringArray()
+	for key: String in expected:
+		if not applied.has(key) or str(applied[key]) != str(expected[key]):
+			problems.append("%s=%s (beklenen %s)" % [key, str(applied.get(key, "<yok>")), str(expected[key])])
+	return ", ".join(problems)
 
 
 func request_consent_update() -> void:

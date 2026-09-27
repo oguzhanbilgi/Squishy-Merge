@@ -62,6 +62,12 @@ extends Node
 ## (docs/monetization/ADS_SYSTEM.md §6); sonuç ekranında gizli. Yuva açılışta
 ## bir kez hesaplanır ve sabit kalır; onboarding tamamlanmamışsa yuva 0 ve
 ## hiçbir reklam yüklenmez (tutorial M8.10). Kayda hiçbir şey yazmaz.
+##
+## İstek yapılandırması (TASK/042, GMA 25.3.0): SDK başlatma arka ucun işi — derece,
+## TFCD / TFUA ve yaş işlemi (TFAT) MobileAds.initialize() ÖNCESİ bir kez uygulanır,
+## geri okunup doğrulanır; doğrulanamazsa SDK başlamaz (reklam yok). Yaş işlemi
+## üretimde UNSPECIFIED (DEFAULT_AGE_RESTRICTED_TREATMENT): yaş bilgisi kullanılmaz,
+## Play Age Signals reklama bağlanmaz; yaş bandı yönlendirmesi bu görevde YOK.
 
 signal ads_state_changed(state: int)
 ## Ödüllü reklamın "hazır" durumu ya da notu değişti — açık pencere tazelenir.
@@ -126,6 +132,9 @@ const NOTE_NO_BACKEND: String = "Ödüllü reklam bu cihazda kullanılamıyor."
 
 ## Talep üzerine rıza güncellemesini yenileme aralığı (sn).
 const CONSENT_ON_DEMAND_MIN_INTERVAL: float = 20.0
+## TASK/042: üretimde SDK'ya giden yaş işlemi. TEEN / CHILD'a yönlendirme (yaş bandı)
+## owner onaylı ayrı görev (TASK/043); o zamana kadar herkes için UNSPECIFIED.
+const DEFAULT_AGE_RESTRICTED_TREATMENT: AdBackend.AgeRestrictedTreatment = AdBackend.AgeRestrictedTreatment.UNSPECIFIED
 const EMPTY_REQUEST: Dictionary = {"active": false, "id": 0, "kind": RewardedKind.NONE, "main": null,
 	"type": -1, "token": 0, "day_key": "", "ad_id": "", "earned": false, "cancelled": false}
 
@@ -167,6 +176,9 @@ var _privacy_options_required: bool = false
 var _privacy_api: bool = false
 var _sdk_ready: bool = false
 var _sdk_initializing: bool = false
+## TASK/042: arka uç istek yapılandırmasını doğrulayamadı → SDK başlatılmadı; bu
+## oturumda reklam yok, yeniden deneme yok (fail-closed). Notlar "kullanılamıyor" der.
+var _sdk_refused: bool = false
 var _app_paused: bool = false
 ## Onboarding/tutorial tamamlandı mı (Main kayıttan verir). false: yuva 0,
 ## hiçbir reklam yüklenmez/gösterilmez, aktif süre sayılmaz.
@@ -238,6 +250,8 @@ func _ready() -> void:
 		set_process(false)
 		return
 	_backend.attach(self)
+	# SDK başlamadan ÖNCE (initialize, rızadan sonra): yaş işlemi = üretim varsayılanı.
+	_backend.set_age_restricted_treatment(DEFAULT_AGE_RESTRICTED_TREATMENT)
 	_privacy_api = _backend.has_privacy_api()
 	if not _privacy_api:
 		push_warning("MonetizationManager: arka uç UMP canRequestAds / gizlilik seçenekleri API'sini sunmuyor — M8.9 türetmesi kullanılıyor (tools/admob_plugin)")
@@ -330,6 +344,11 @@ func sdk_ready() -> bool:
 	return _sdk_ready
 
 
+## TASK/042: SDK istek yapılandırması doğrulanamadığı için başlatılmadı (oturum reklamsız).
+func sdk_refused() -> bool:
+	return _sdk_refused
+
+
 func rewarded_state() -> RewardedState:
 	return _rewarded_state
 
@@ -348,6 +367,11 @@ func surface() -> Surface:
 
 func backend() -> AdBackend:
 	return _backend
+
+
+## SDK'ya giden yaş işlemi (TASK/042; arka uç yoksa varsayılan).
+func age_restricted_treatment() -> AdBackend.AgeRestrictedTreatment:
+	return _backend.age_restricted_treatment() if _backend != null else DEFAULT_AGE_RESTRICTED_TREATMENT
 
 
 func has_backend() -> bool:
@@ -593,11 +617,18 @@ func _ensure_sdk() -> void:
 		_preload_interstitial()
 		_sync_banner()
 		return
+	if _sdk_refused:
+		return
 	# Google: Mobile Ads SDK yalnız canRequestAds() true iken başlatılır.
 	if not _request_permitted():
 		return
 	_sdk_initializing = true
-	_backend.initialize()
+	if not _backend.initialize():
+		# TASK/042: istek yapılandırması doğrulanamadı → SDK başlamadı (fail-closed).
+		_sdk_initializing = false
+		_sdk_refused = true
+		push_warning("MonetizationManager: istek yapılandırması doğrulanamadı — bu oturumda reklam yok")
+		rewarded_availability_changed.emit()
 
 
 func _on_initialization_completed() -> void:
@@ -623,7 +654,7 @@ func is_rewarded_ready() -> bool:
 func rewarded_note() -> String:
 	if _backend == null or _state == AdsState.UNAVAILABLE:
 		return NOTE_NO_BACKEND
-	if not _onboarding_completed:
+	if not _onboarding_completed or _sdk_refused:
 		return NOTE_UNAVAILABLE
 	match _state:
 		AdsState.CONSENT_CHECKING, AdsState.CONSENT_FORM:
@@ -1064,6 +1095,8 @@ func _interstitial_block_reason() -> String:
 		return "disabled"
 	if not _interstitial_eligible:
 		return "not_eligible"
+	if _sdk_refused:
+		return "sdk_refused"
 	if not ads_allowed() or not _sdk_ready:
 		return "consent"
 	if _fullscreen_cooldown > 0.0:

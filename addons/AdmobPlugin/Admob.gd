@@ -96,6 +96,11 @@ const MAXIMUM_CACHE_SIZE: int = 1000
 ## TFUA is a technical parameter to indicate that a user is under the digital age of consent in the European Economic Area (EEA), the UK, and Switzerland.
 @export var under_age_of_consent: AdmobConfig.TagForUnderAgeOfConsent = AdmobConfig.TagForUnderAgeOfConsent.UNSPECIFIED: set = set_under_age_of_consent
 
+## Age treatment for ad requests (Google Mobile Ads SDK 25.3.0+ setAgeRestrictedTreatment()). It replaces
+## the deprecated TFCD / TFUA tags; if both are set, Google applies the most conservative treatment.
+## UNSPECIFIED (default) leaves the SDK age treatment unset (null, the SDK default).
+@export var age_restricted_treatment: AdmobConfig.AgeRestrictedTreatment = AdmobConfig.AgeRestrictedTreatment.UNSPECIFIED: set = set_age_restricted_treatment
+
 ## A configuration option that controls the use of first-party IDs for tracking user interactions.
 @export var first_party_id_enabled: bool = true: set = set_first_party_id_enabled
 
@@ -497,6 +502,29 @@ func get_initialization_status() -> InitializationStatus:
 	return __status
 
 
+## The Google Mobile Ads SDK's CURRENT RequestConfiguration, read back from
+## MobileAds.getRequestConfiguration(): "age_restricted_treatment" ("UNSPECIFIED" / "CHILD" /
+## "TEEN"), "max_ad_content_rating", "tag_for_child_directed_treatment",
+## "tag_for_under_age_of_consent", "personalization_state", "test_device_ids" (a count, never the
+## ids), "sdk_version" and "initialized". Empty when the native plugin does not provide it.
+func get_applied_request_configuration() -> Dictionary:
+	if _plugin_singleton == null:
+		Admob.log_error("%s plugin not initialized" % PLUGIN_SINGLETON_NAME)
+		return {}
+	if not _plugin_has_method("get_applied_request_configuration"):
+		Admob.log_error("%s: get_applied_request_configuration() is not available" % PLUGIN_SINGLETON_NAME)
+		return {}
+	return _plugin_singleton.get_applied_request_configuration()
+
+
+## Android's JNISingleton registers the plugin's @UsedByGodot methods outside ClassDB, so
+## has_method() is false for them there; has_java_method() is the real check.
+func _plugin_has_method(a_method: String) -> bool:
+	if _plugin_singleton.has_method("has_java_method"):
+		return _plugin_singleton.has_java_method(a_method)
+	return _plugin_singleton.has_method(a_method)
+
+
 func set_is_real(a_value: bool) -> void:
 	is_real = a_value
 
@@ -511,6 +539,10 @@ func set_child_directed(a_value: AdmobConfig.TagForChildDirectedTreatment) -> vo
 
 func set_under_age_of_consent(a_value: AdmobConfig.TagForUnderAgeOfConsent) -> void:
 	under_age_of_consent = a_value
+
+
+func set_age_restricted_treatment(a_value: AdmobConfig.AgeRestrictedTreatment) -> void:
+	age_restricted_treatment = a_value
 
 
 func set_first_party_id_enabled(a_value: bool) -> void:
@@ -577,6 +609,7 @@ func create_request_configuration() -> AdmobConfig:
 			.set_max_ad_content_rating(max_ad_content_rating)
 			.set_child_directed_treatment(child_directed)
 			.set_under_age_of_consent(under_age_of_consent)
+			.set_age_restricted_treatment(age_restricted_treatment)
 			.set_first_party_id_enabled(first_party_id_enabled)
 			.set_personalization_state(personalization_state))
 
@@ -584,13 +617,8 @@ func create_request_configuration() -> AdmobConfig:
 func set_request_configuration(a_config: AdmobConfig = null) -> void:
 	if _plugin_singleton != null:
 		if a_config == null:
-			a_config = (AdmobConfig.new()
-					.set_is_real(is_real)
-					.set_max_ad_content_rating(max_ad_content_rating)
-					.set_child_directed_treatment(child_directed)
-					.set_under_age_of_consent(under_age_of_consent)
-					.set_first_party_id_enabled(first_party_id_enabled)
-					.set_personalization_state(personalization_state))
+			# One builder for both paths: what create_request_configuration() returns is what is sent.
+			a_config = create_request_configuration()
 
 		_plugin_singleton.set_request_configuration(a_config.get_raw_data())
 	else:

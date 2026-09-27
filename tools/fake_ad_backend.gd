@@ -41,6 +41,16 @@ var privacy_form_shows: int = 0
 ## Sabit uyarlanabilir banner yüksekliği (dp) ve yoğunluk (A36: 64 dp × 2.625).
 var adaptive_height_dp: int = 64
 var density_value: float = 2.625
+## TASK/042: istek yapılandırması (SDK başlamadan ÖNCE uygulanır + geri okunur).
+## `applied_config` = sahte SDK'nın geri okuması; `request_configuration_fault` true →
+## sahte SDK yaş işlemini uygulamaz (geri okuma önceki değerde kalır) — fail-closed testi.
+var treatment: AgeRestrictedTreatment = AgeRestrictedTreatment.UNSPECIFIED
+var max_ad_content_rating: String = "G"
+var applied_config: Dictionary = {}
+var request_configuration_fault: bool = false
+var request_configuration_applies: int = 0
+var init_refusals: int = 0
+var treatment_refusals: int = 0
 
 var _rewarded_seq: int = 0
 var _interstitial_seq: int = 0
@@ -65,9 +75,49 @@ func attach(_host: Node) -> void:
 	_log("attach")
 
 
-func initialize() -> void:
+## AdmobBackend ile aynı sözleşme: yapılandır → geri oku / doğrula → başlat; doğrulanamazsa
+## başlatma YOK (`initialize_refused`, false).
+func initialize() -> bool:
+	if not _apply_request_configuration():
+		_log("initialize_refused")
+		init_refusals += 1
+		return false
 	_log("initialize")
 	init_calls += 1
+	return true
+
+
+## AdmobBackend ile aynı: SDK yapılandırıldıktan sonra farklı değer REDDEDİLİR.
+func set_age_restricted_treatment(value: AgeRestrictedTreatment) -> bool:
+	_log("set_age_restricted_treatment:%s" % AgeRestrictedTreatment.keys()[value])
+	if request_configuration_applies > 0:
+		if value == treatment:
+			return true
+		_log("set_age_restricted_treatment_refused")
+		treatment_refusals += 1
+		return false
+	treatment = value
+	return true
+
+
+func age_restricted_treatment() -> AgeRestrictedTreatment:
+	return treatment
+
+
+func applied_request_configuration() -> Dictionary:
+	return applied_config.duplicate()
+
+
+func _apply_request_configuration() -> bool:
+	_log("request_configuration:%s" % AgeRestrictedTreatment.keys()[treatment])
+	request_configuration_applies += 1
+	var expected: Dictionary = expected_request_configuration(treatment, max_ad_content_rating, -1, -1)
+	var previous: String = String(applied_config.get("age_restricted_treatment", "UNSPECIFIED"))
+	applied_config = expected.duplicate()
+	if request_configuration_fault:
+		applied_config["age_restricted_treatment"] = previous
+	applied_config["initialized"] = init_calls > 0
+	return request_configuration_problem(applied_config, expected).is_empty()
 
 
 func request_consent_update() -> void:
