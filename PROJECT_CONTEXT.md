@@ -81,10 +81,9 @@ alınacak — şimdi tahmin/vaat yok.
   `cbdcb8f → 3d15402`, merge commit yok, ağaç eşit); üstünde yalnız bu durum doküman
   commit'i. Önce aynı gün `task/041-fix-request-configuration` (`7e1e378` + `d32a4d3`,
   durum commit'i `cbdcb8f`) ve `task/040-global-teen-compliance` (`025214a` +
-  `e152986`, durum commit'i `ee01841`). `task/014`…`task/042` dallarının hepsi main'de
-  (referans için duruyor). **Aktif kod görevi: TASK/043** — dal
-  `task/043-age-band-routing` (main `249a6e1` üstünden; main'e ALINMADI, owner
-  incelemesi / onayı bekliyor; aşağıda).
+  `e152986`, durum commit'i `ee01841`). `task/014`…`task/043` dallarının hepsi main'de
+  (referans için duruyor). **TASK/043 owner onayıyla ff-only main'e alındı**
+  (`249a6e1 → 753503a`, merge commit yok; A36 doğrulanmış ağaç korunuyor).
   Main'e bilerek girmeyen iki dal: `task/m8.6-03-home` (reddedildi, asla
   birleştirilmez) ve `task/ui-layerlab-style-spike` (seçilen parçaları
   M8.6-01'de promote edildi).
@@ -113,7 +112,7 @@ alınacak — şimdi tahmin/vaat yok.
   kodu (M9-01/01.1). Gerçek bir blokaj çıkmadıkça açılmaz; cila için açılmaz.
   *(TASK/042, main'de: yalnız SDK başlatma sırası / istek yapılandırması doğrulaması +
   `sdk_refused` + yaş işlemi kilidi değişti; kullanıcıya görünen reklam sözleşmesi aynı.)*
-  *(TASK/043, dalda: monetizasyonun AÇILMA koşulu değişti — yaş bandı; reklam
+  *(TASK/043, main'de: monetizasyonun AÇILMA koşulu değişti — yaş bandı; reklam
   yüzeyleri, kotalar, geçiş reklamı zamanlaması, ekonomi ve reklamsız tutorial AYNI.)*
 - **Kalıcı paket kimliği KİLİTLENDİ (owner kararı, 2026-09-24):** üretim / Play
   = `com.obappstudio.squishymerge` (project.godot `squishy/release/android_package_id`
@@ -127,7 +126,7 @@ alınacak — şimdi tahmin/vaat yok.
   [Audience] decision = general_13_plus`. TFCD / TFUA (`unspecified`) ve en
   yüksek reklam derecesi (G) DEĞİŞMEDİ — reklam istekleri aynı; yaş ekranı,
   çocuğa yönelik reklam mantığı, Families yeniden tasarımı YOK; runtime kodu
-  değişmedi. *(Sonra: TASK/043, dalda — nötr doğum tarihi ekranı + yaş bandı reklam
+  değişmedi. *(TASK/043, main'de — nötr doğum tarihi ekranı + yaş bandı reklam
   yönlendirmesi; en yüksek derece artık yaş bandından (TEEN T, yetişkin MA), sabit
   `max_ad_content_rating` anahtarı kaldırıldı; TFCD / TFUA `unspecified` kaldı. Families
   yeniden tasarımı yine YOK.)* Bu "Families hiçbir yerde uygulanmaz" demek DEĞİL: Google'a göre
@@ -135,22 +134,22 @@ alınacak — şimdi tahmin/vaat yok.
   Families / çocuk gizliliği / reklam yükümlülükleri değerlendirilir. Karar
   yerel rıza / reklam kurallarını geçersiz kılmaz
   ([AUDIENCE_DECISION §0](docs/monetization/AUDIENCE_DECISION.md)).
-- **13–17 genç reklam işlemi / yargı bölgesi uyumu: AÇIK** (üretim yayınından
+- **13–17 genç reklam işlemi stratejisi: KAPALI; yargı bölgesi / içerik derecesi uyumu: AÇIK** (üretim yayınından
   önce; ürün kitlesinden AYRI; kapıda OWNER `UYUM:` satırı,
-  `teen_ad_treatment_resolved=false`). TFAT `TEEN` artık TASK/042 ile üretim
+  `teen_ad_treatment_resolved=true`). TFAT `TEEN` artık TASK/042 ile üretim
   eklentisinde **teknik olarak mevcut** (GMA 25.3.0; main'de), ama üretim herkes için
-  `UNSPECIFIED` gönderir — `unspecified` TEEN demek değil — ve **yaş bandı
-  yönlendirmesi UYGULANMADI**. Stratejiler belgelendi
+  `UNSPECIFIED` gönderir — `unspecified` TEEN demek değil — ve **TASK/043 ile yaş bandı
+  yönlendirmesi UYGULANDI**. Stratejiler belgelendi
   ([GLOBAL_TEEN_AD_TREATMENT §D–§G](docs/monetization/GLOBAL_TEEN_AD_TREATMENT.md)).
   **Owner yönü (2026-09-27, TASK/042 görev tanımı):** TASK/043 owner onaylı, gelir odaklı
   yaş bandı yönlendirmesini uygulayacak — 13–17 → TEEN; 18+ → olağan rıza denetimli
-  yetişkin yolu (UNSPECIFIED). ~~TASK/043 BAŞLAMADI~~ → **TASK/043 dalda UYGULANDI**
+  yetişkin yolu (UNSPECIFIED). **TASK/043 UYGULANDI ve main'de**
   (aşağıda); bu yön OWNER `UYUM:` engelini kendiliğinden KAPATMAZ (uyum / hukuki
   belirleme owner'da).
   **Dağıtım: dünya geneli (owner kararı).**
-- **TASK/043 nötr yaş ekranı + yaş bandı reklam yönlendirmesi: dalda UYGULANDI**
+- **TASK/043 nötr yaş ekranı + yaş bandı reklam yönlendirmesi: TAMAM, main'de**
   (`task/043-age-band-routing`, 2026-09-27; **Samsung A36 kapısı GEÇTİ — vakalar A–F**, owner
-  stratejisi kaydedildi; main'e alınmadı, owner onayı bekliyor). Tutorial ve tutorial kaynaklı Level 1 reklamsız bittikten sonra İLK güvenli
+  stratejisi kaydedildi; owner onayıyla main'e ff-only alındı). Tutorial ve tutorial kaynaklı Level 1 reklamsız bittikten sonra İLK güvenli
   kabukta (eski kayıtta açılıştaki Ana Sayfa) nötr doğum tarihi ekranı (gün / ay / yıl,
   ön seçim yok, eşik / reklam ipucu yok, Türkçe, oyun stili); tarih yalnız cihazda
   doğrulanıp sınıflandırılır, **ham doğum tarihi saklanmaz / gönderilmez / loglanmaz**
@@ -207,13 +206,12 @@ alınacak — şimdi tahmin/vaat yok.
   seçenekleri, init öncesi UNSPECIFIED geri okuma, banner / ödüllü / geçiş, yaşam
   döngüsü, logcat temiz; QA-only TEEN init öncesi uygulandı + geri okundu, reklamlar
   yüklendi, sonraki değişiklik reddedildi (kilit).
-- **Release kapısı — TASK/043 dalı (A36 kapısı sonrası, 2026-09-27): BLOCKED — CODE 0 ·
+- **Release kapısı — TASK/043 main (A36 kapısı sonrası, 2026-09-27): BLOCKED — CODE 0 ·
   OWNER 10 · CONFIG 0** (13–17 strateji `UYUM:` satırı owner kaydıyla — `teen_ad_treatment =
   "age_band_routing"` — KALKTI, rapor "hukuki garanti DEĞİL" notuyla gösterir; AÇIK: içerik
-  derecesi ↔ reklam derecesi + yargı bölgesi değerlendirmesi; A36 öncesi OWNER 11). Main'de
-  aşağıdaki gibi:
-- **Release kapısı** (`tools/release/release_android.sh check`, TASK/042 main'e
-  alındıktan sonra main'de yeniden koşuldu 2026-09-27):
+  derecesi ↔ reklam derecesi + yargı bölgesi değerlendirmesi; A36 öncesi OWNER 11). **Bu artık main'in güncel kapı durumudur.**
+- **Önceki TASK/042 release kapısı (tarihsel)** (`tools/release/release_android.sh check`,
+  TASK/042 main'e alındıktan sonra 2026-09-27):
   **BLOCKED — CODE 0 · OWNER 9 · CONFIG 0** (OWNER'lardan biri ayrı 13–17 `UYUM:`
   satırı, `teen_ad_treatment_resolved=false`). Onaylı AAR = GMA 25.3.0 derlemesi
   (release `f5a563a7…`), kapı GMA 25.3.0 + cephe TFAT API'sini ister; TASK/041 AAR'ı
@@ -275,7 +273,7 @@ Bugün açık olan maddelerin tamamı — adımlar ve ayrıntı:
     Data safety, IARC, hedef kitle formu (karar: madde 2) + reklam beyanı,
     kapalı test kanalı.
 
-Release kapısı 1–9'u denetler (bugün OWNER 9 · CONFIG 0 — madde 1 ve 2
+Release kapısı 1–9'u denetler (bugün OWNER 10 · CONFIG 0 — madde 1 ve 2
 kapandı, madde 3 ayrı `UYUM:` satırı; TASK/040'ın CODE satırı TASK/041'de kapandı,
 aşağıda); 10 kodla denetlenemez. *(TASK/043 dalında: 3a ve 3b de denetlenir; madde 3
 owner kaydıyla kalktı → OWNER 10.)*
@@ -293,7 +291,7 @@ kusurlu `90d35992…` yine CODE; düzeltme `0002` aynen korunuyor, kusur kapalı
 Ürün kitlesi için ek kod yok (13+ = AUDIENCE_DECISION seçenek A);
 karma / yalnız çocuk kararları hâlâ CODE ile reddedilir, boş karar OWNER.
 13–17 genç reklam işlemi (madde 3) CODE değil OWNER / uyum engeli: owner onaylı yaş
-bandı yönlendirmesi TASK/043'te kod ister (başlamadı); uyum / hukuki belirleme
+bandı yönlendirmesi TASK/043 ile kodlandı ve main'e alındı; uyum / hukuki belirleme
 owner'da (A/B kod ister, C hukuki kayıt). *(Sonra: TASK/043 — kod dalda; kapı yaş bandı
 kod tablosunu owner tablosuyla karşılaştırır, her sapma CODE.)*
 
@@ -329,11 +327,11 @@ kod tablosunu owner tablosuyla karşılaştırır, her sapma CODE.)*
    - ~~GMA 25.3+ üretim geçişi (TFAT)~~ ✅ TASK/042 (A36 kapısı GEÇTİ; owner onayıyla
      main'e ff-only alındı 2026-09-27). Üretim varsayılanı herkes için UNSPECIFIED; kapı
      CODE 0 · OWNER 9 · CONFIG 0.
-   - **TASK/043 — yaş bandı yönlendirmesi** ← **dalda uygulandı**
+   - ~~**TASK/043 — yaş bandı yönlendirmesi**~~ ✅ **TAMAM, main'de**
      (`task/043-age-band-routing`; 13–17 → TEEN + T; 18+ → UNSPECIFIED + MA; 13 altı /
      bilinmeyen → reklam SDK'sı yok). **Samsung A36 kapısı GEÇTİ** (A–F, yalnız QA paketi);
-     owner stratejisi kaydedildi. Sıradaki: **owner incelemesi → main'e alma YALNIZ owner
-     onayıyla** (ff-only). Play Age Signals reklamda ASLA kullanılmaz.
+     owner stratejisi kaydedildi. Sıradaki: **Play içerik derecesi (#28) + yargı bölgesi yaş yükümlülükleri (#29)**
+     owner / uyum kararlarını kapatmak. Play Age Signals reklamda ASLA kullanılmaz.
    - **3a.** Play içerik derecesi (IARC) sonucu → `[Audience] app_content_rating`; T / MA
      için yetmezse yönlendirme dereceleri owner kararıyla düşürülür (checklist #28).
    - **3b.** Yargı bölgesi yaş yükümlülükleri değerlendirmesi (owner / hukuk) →

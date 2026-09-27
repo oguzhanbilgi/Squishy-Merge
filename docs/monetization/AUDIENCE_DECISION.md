@@ -35,8 +35,7 @@
 >   `TEEN`; 18+ → olağan, rızaya bağlı yetişkin yolu, `UNSPECIFIED`), **BAŞLAMADI**.
 >   Play Age Signals reklamda hâlâ KULLANILMAZ. 13–17 UYUM engeli **AÇIK** (§2.2);
 >   kapı BLOCKED — CODE 0 · OWNER 9 · CONFIG 0.
-> - **TASK/043 (2026-09-27; dal `task/043-age-band-routing`, main'e alınması owner onayı
->   bekliyor):** owner §2.2 **Strateji B**'yi (yaş bandı) iş kararı olarak seçti, UYGULANDI:
+> - **TASK/043 (2026-09-27; owner onayıyla main'e ff-only alındı):** owner §2.2 **Strateji B**'yi (yaş bandı) iş kararı olarak seçti, UYGULANDI:
 >   nötr doğum tarihi ekranı (ilk güvenli kabukta, tutorial'dan sonra); 13–17 → TFAT `TEEN` +
 >   en yüksek derece `T`; 18+ → `UNSPECIFIED` + `MA`; 13 yaş altı → reklam SDK'sı / UMP /
 >   reklam YOK + kısıt ekranı; bilinmeyen yaş → reklam yok. Ürün kitlesi (§0, 13+) DEĞİŞMEDİ;

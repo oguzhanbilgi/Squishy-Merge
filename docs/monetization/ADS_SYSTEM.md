@@ -61,8 +61,7 @@
 > yönlendirmesi YOK (TASK/043, başlamadı); 13–17 `UYUM:` OWNER engeli AÇIK. Samsung A36
 > kapısı GEÇTİ (§16). Release kapısı hâlâ BLOCKED — CODE 0 · OWNER 9 · CONFIG 0.
 >
-> **TASK/043 (2026-09-27; dal `task/043-age-band-routing`, main'e alınması owner onayı
-> bekliyor):** nötr doğum tarihi ekranı + **yaş bandı reklam yönlendirmesi** (owner iş
+> **TASK/043 (2026-09-27; owner onayıyla main'e ff-only alındı):** nötr doğum tarihi ekranı + **yaş bandı reklam yönlendirmesi** (owner iş
 > kararı): 13–17 → TFAT **TEEN** + en yüksek derece **T**; 18+ → **UNSPECIFIED** + **MA**;
 > 13 yaş altı ve bilinmeyen yaş → eklenti düğümü kurulmaz, UMP sorulmaz, SDK başlamaz,
 > reklam yok (13 altı: kısıt ekranı). Rota rızadan ve attach'ten ÖNCE arka uca verilir;
@@ -103,7 +102,7 @@ kaldı; skinler asla reklam/paraya bağlı değil.
 | Godot uyumu | eklenti `godot-lib 4.6.stable` ile derlendi; v7.0 (2026-05-27) **Godot 4.7 beta1** hedefli ve bakımcı issue #122'de "4.6.x için v6.0 kullanın" diyor → v6.0 |
 | Google Mobile Ads SDK | **TASK/042:** `com.google.android.gms:play-services-ads:25.3.0` (eklentinin export'ta eklediği Maven bağımlılığı; `play-services-ads-api:25.3.0`'ı çözer, derleme betiği çözülmüş sürümü birebir denetler) — `setAgeRestrictedTreatment`'lı (TFAT) ilk sürüm, TASK/040'ta seçildi. Google'ın "Mobile Ads SDK (Legacy)" hattı (`play-services-ads`). *M8.9-01 – TASK/041: `24.9.0`; 24.x **Supported**, deprecation 2027-06-30, sunset 2028-06-30 (deprecation sayfası, 2026-09-21).* |
 | UMP SDK | **TASK/042:** `com.google.android.ump:user-messaging-platform:4.0.0` (`play-services-ads-api` 25.3.0'dan geçişli; ayrı geçersiz kılma yok). *M8.9-01 – TASK/041: 3.2.0 (play-services-ads-api 24.9.0 POM'undan geçişli).* |
-| Yaş işlemi (TFAT) | **TASK/042:** `AgeRestrictedTreatment` UNSPECIFIED / CHILD / TEEN üretim eklentisinde teknik olarak var; üretim değeri herkes için **UNSPECIFIED**, yaş bandı yönlendirmesi YOK (TASK/043, başlamadı) — §16 |
+| Yaş işlemi (TFAT) | **TASK/042:** `AgeRestrictedTreatment` UNSPECIFIED / CHILD / TEEN üretim eklentisinde teknik olarak var; üretim değeri TASK/043 yaş bandından gelir: TEEN → **TEEN + T**, ADULT → **UNSPECIFIED + MA**; UNKNOWN / UNDER_13 → reklam SDK'sı yok — §17 |
 | Android | AAR minSdk 24; Godot 4.6.3 Gradle şablonu compileSdk 36 / targetSdk 36 / minSdk 24; Gradle 8.11.1, AGP 8.x; JDK 17 |
 | Eklenti API'si | Godot Android plugin **v2** (`org.godotengine.plugin.v2.AdmobPlugin`) |
 

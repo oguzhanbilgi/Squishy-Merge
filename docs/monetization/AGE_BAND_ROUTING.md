@@ -2,7 +2,7 @@
 
 > **Durum (2026-09-27):** kod + deterministik testler + çekişmeli inceleme tamam; **Samsung A36
 > cihaz kapısı GEÇTİ** (§11); owner stratejisi kaydedildi (`teen_ad_treatment =
-> "age_band_routing"`); dal `task/043-age-band-routing`, main'e alınması owner onayı bekliyor.
+> "age_band_routing"`); owner onayıyla `task/043-age-band-routing` **main'e ff-only alındı**.
 > Bu doküman hukuki tavsiye DEĞİLDİR; Google'ın resmî sayfalarının sade Türkçe özetine
 > dayanır (kaynaklar §12, 2026-09-27'de okundu; sözcüğü sözcüğüne alıntılar yerel kanıtta
 > `build/qa_043/research/`). Mimari evrensel bir hukuki garanti DEĞİLDİR — §9'daki açık

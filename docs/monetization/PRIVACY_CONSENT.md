@@ -29,8 +29,7 @@
 > RequestConfiguration kusuru KAPALI kalıyor (TASK/041). Release kapısı BLOCKED —
 > CODE 0 · OWNER 9 · CONFIG 0.
 >
-> **TASK/043 (2026-09-27; dal `task/043-age-band-routing`, main'e alınması owner onayı
-> bekliyor):** UMP artık bir de **yaş bandı** ister (§0). Yaş bilinmiyorken (UNKNOWN) ve
+> **TASK/043 (2026-09-27; owner onayıyla main'e ff-only alındı):** UMP artık bir de **yaş bandı** ister (§0). Yaş bilinmiyorken (UNKNOWN) ve
 > 13 yaş altında (UNDER_13) `update_consent_info` HİÇ çağrılmaz, rıza formu açılmaz, SDK
 > başlamaz, eklenti düğümü bile kurulmaz. 13–17 (TEEN) ve 18+ (ADULT) bu dokümandaki rıza
 > akışından AYNEN geçer — Google'ın TEEN işleminin UMP'yi atladığına dair bir ifadesi yok;

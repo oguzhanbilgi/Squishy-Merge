@@ -29,8 +29,7 @@
 > **TASK/042 (2026-09-27; dal `task/042-gma25-production`, main'e alınması owner onayı
 > bekliyor):** güncel durum hemen aşağıda. *(Sonra: main'e ff-only alındı 2026-09-27.)*
 >
-> **TASK/043 (2026-09-27; dal `task/043-age-band-routing`, main'e alınması owner onayı
-> bekliyor):** owner §D'de **Strateji B'yi (uygulamanın yaş bandı)** gelir odaklı iş kararı
+> **TASK/043 (2026-09-27; owner onayıyla main'e ff-only alındı):** owner §D'de **Strateji B'yi (uygulamanın yaş bandı)** gelir odaklı iş kararı
 > olarak seçti ve UYGULANDI — güncel durum «TASK/043 durumu» (hemen aşağıda).
 
 ## TASK/043 durumu (2026-09-27)

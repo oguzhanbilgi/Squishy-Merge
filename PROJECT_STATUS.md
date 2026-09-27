@@ -29,8 +29,7 @@ herkes için UNSPECIFIED**; istek yapılandırması `MobileAds.initialize()`'dan
 uygulanıp geri okunarak doğrulanıyor, uyuşmazlıkta SDK başlatılmıyor (fail-closed); SDK
 yapılandırıldıktan sonra yaş işlemi kilitli. Derece G, TFCD / TFUA değişmedi; Play Age
 Signals reklamda asla kullanılmaz. Samsung A36 kapısı GEÇTİ; main'de release kapısı BLOCKED
-— CODE 0 · OWNER 9 · CONFIG 0. **TASK/043 (2026-09-27, dal `task/043-age-band-routing`,
-main'e ALINMADI — owner onayı bekliyor):** nötr doğum tarihi ekranı (tutorial ve tutorial
+— CODE 0 · OWNER 9 · CONFIG 0. **TASK/043 (2026-09-27, main'de — owner onayıyla ff-only alındı):** nötr doğum tarihi ekranı (tutorial ve tutorial
 kaynaklı Level 1'den sonra İLK güvenli kabukta; eski kayıtta açılıştaki Ana Sayfa) + yaş
 bandı reklam yönlendirmesi — **13–17 → TFAT TEEN + derece T, 18+ → UNSPECIFIED + MA, 13 altı
 / bilinmeyen → reklam SDK'sı / UMP / reklam YOK** (13 altı: nötr kısıt ekranı, ilerleme
@@ -40,12 +39,12 @@ SDK'dan önce; Ayarlar'da "Yaş bilgisi"; Play Age Signals reklamda KULLANILMAZ.
 araştırma iki somut açık madde buldu → yeni OWNER / UYUM satırları (Play "Uygunsuz
 reklamlar": uygulamanın içerik derecesi T / MA'ya uygun olmalı; yargı bölgesi yaş
 yükümlülükleri); **Samsung A36 kapısı GEÇTİ** (vakalar A–F, yalnız QA paketi) ve owner
-stratejisi kaydedildi (`teen_ad_treatment = "age_band_routing"`) → dalda kapı BLOCKED — CODE 0
+stratejisi kaydedildi (`teen_ad_treatment = "age_band_routing"`) → main'de kapı BLOCKED — CODE 0
 · OWNER 10 · CONFIG 0 (ayrıntı docs/monetization/AGE_BAND_ROUTING.md). Sırada: owner
 incelemesi / main onayı → içerik derecesi + yargı bölgesi kararları (owner) → gizlilik
 politikası → upload anahtarı → gerçek AdMob kimlikleri → mağaza varlıkları / Play Console,
 sonra ilk imzalı üretim AAB'si ve M10 (Play kapalı test) ·
-**Branch:** `task/043-age-band-routing` (main `249a6e1` üstünden; main'e alınmadı) ·
+**Branch:** `main` — TASK/043 `task/043-age-band-routing` (`b0e69f0` + `753503a`) owner onayıyla ff-only entegre ·
 `main` == origin/main — `task/042-gma25-production` (`83b86a9` kod + `3d15402`
 A36 kapısı / doküman kaydı) ff-only alındı (2026-09-27, owner onayıyla; ağaç eşit); önce
 aynı gün `task/041-fix-request-configuration` (`7e1e378` + `d32a4d3`) ve
