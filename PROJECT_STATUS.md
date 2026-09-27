@@ -14,13 +14,13 @@ decision=general_13_plus`, reklam istekleri değişmedi) — ürün kitlesi KAPA
 **13–17 genç reklam işlemi / yargı bölgesi uyumu AÇIK** (üretimden önce).
 **TASK/040 (main'de, 2026-09-27):** dünya geneli dağıtım owner kararı; GMA 25.3.0 TEEN Godot
 4.6.3'te Samsung A36'da kanıtlandı (spike; yeteneği TASK/042 üretim eklentisine taşıdı —
-dalda, spike araçları kaldırıldı); Play Age Signals reklam kararında KULLANILMAZ; strateji
+main'de, spike araçları kaldırıldı); Play Age Signals reklam kararında KULLANILMAZ; strateji
 karar tablosu docs/monetization/GLOBAL_TEEN_AD_TREATMENT.md. TASK/040 bulgusu (üretim
 eklentisi RequestConfiguration'ı hiç uygulamıyordu, derece G etkin değildi) **TASK/041'de
 KAPANDI** (2026-09-27, main'de; TASK/042'de de kapalı): üretim yaması 0002, Samsung A36'da
-derece G / TFCD / TFUA / test cihazları ilk reklam yüklemesinden önce uygulanıyor; main'deki
-yığın hâlâ GMA 24.9.0 / UMP 3.2.0.
-**TASK/042 (2026-09-27, dalda; main'e alınması owner onayı bekliyor):** üretim AdMob yığını
+derece G / TFCD / TFUA / test cihazları ilk reklam yüklemesinden önce uygulanıyor (TASK/041
+yığını GMA 24.9.0 / UMP 3.2.0 idi; TASK/042 ile main'de GMA 25.3.0 / UMP 4.0.0).
+**TASK/042 (2026-09-27, main'de — owner onayıyla ff-only alındı):** üretim AdMob yığını
 GMA **25.3.0** / UMP **4.0.0** (play-services-ads-api 25.3.0 üzerinden geçişli) — üretim
 yaması 0003, onaylı AAR'lar debug `a78acb22…` / release `f5a563a7…` (TASK/041'in
 `14c745e9…`'u artık onaylı değil, geri gelirse CODE); TFAT (`AgeRestrictedTreatment`
@@ -31,15 +31,14 @@ yapılandırıldıktan sonra yaş işlemi kilitli. Derece G, TFCD / TFUA değiş
 Signals reklamda asla kullanılmaz. **Yaş bandı yönlendirmesi YOK** (TASK/043, başlamadı) →
 13–17 genç reklam işlemi OWNER `UYUM:` engeli AÇIK (`teen_ad_treatment_resolved=false`);
 Samsung A36 kapısı GEÇTİ; release kapısı BLOCKED — CODE 0 · OWNER 9 · CONFIG 0. Sırada:
-**task/042'nin main'e alınması için owner incelemesi** → **TASK/043** (owner onaylı, gelir
+**TASK/043** (owner onaylı, gelir
 odaklı yaş bandı yönlendirmesi: 13–17 → TEEN, 18+ → olağan rıza denetimli yetişkin yolu,
 UNSPECIFIED; başlamadı, UYUM engelini kendiliğinden KAPATMAZ) → 13–17 uyum kararı (owner)
 → gizlilik politikası → upload anahtarı → gerçek AdMob kimlikleri → mağaza varlıkları /
 Play Console, sonra ilk imzalı üretim AAB'si ve M10 (Play kapalı test) ·
-**Branch:** `task/042-gma25-production` (`83b86a9` kod + A36 kapısı / doküman kaydı) dalda,
-push edildi, main'e alınması owner onayı bekliyor; `main` == origin/main == `cbdcb8f`
-(değişmedi) — son olarak `task/041-fix-request-configuration` (`7e1e378` düzeltme +
-`d32a4d3` A36 kapısı kaydı) ff-only alındı (2026-09-27, owner onayıyla); önce aynı gün
+**Branch:** `main` == origin/main — `task/042-gma25-production` (`83b86a9` kod + `3d15402`
+A36 kapısı / doküman kaydı) ff-only alındı (2026-09-27, owner onayıyla; ağaç eşit); önce
+aynı gün `task/041-fix-request-configuration` (`7e1e378` + `d32a4d3`) ve
 `task/040-global-teen-compliance` (`025214a` + `e152986`, TASK/040 fizibilite denetimi +
 spike araçları)
 

@@ -37,9 +37,8 @@ cümlelerde *(Sonra: TASK/042 — …)* notu var). Kanıt ve sayıların kaynağ
 [tools/admob_plugin/README.md](../../tools/admob_plugin/README.md), yerel cihaz kanıtı
 `build/qa_042/A36_DEVICE_GATE.md`.
 
-- **Dal:** `task/042-gma25-production` — kod `83b86a9` + belge / kapı kaydı commit'i,
-  push edildi; **main'e alınması owner onayı bekliyor.** main == origin/main == `cbdcb8f`
-  (değişmedi).
+- **Dal:** `task/042-gma25-production` — kod `83b86a9` + belge / kapı kaydı `3d15402` —
+  owner onayıyla **main'e ff-only alındı** (2026-09-27; `cbdcb8f → 3d15402`, ağaç eşit).
 - **Üretim yığını:** godot-admob v6.0 + `0001` (M9-01) + `0002` (TASK/041, değişmedi) +
   `0003-gma25-age-restricted-treatment.patch` (TASK/042) → GMA **25.3.0**
   (`play-services-ads-api:25.3.0`), UMP **4.0.0** (ads-api 25.3.0 üzerinden geçişli, ayrı
@@ -390,7 +389,7 @@ bir oran bu dokümanda kullanılmadı; gerçek trafik olmadan **ölçülemez**.
 | | **A · herkes için TEEN** | **B · uygulamanın yaş bandı** | **C · UNSPECIFIED + dış hukuki belirleme** |
 |---|---|---|---|
 | Teknik olarak mümkün mü? | EVET — A36'da kanıtlandı | EVET (TEEN yolu aynı; yaş ekranı yazılmadı) | EVET (bugünkü yol; §C4 düzeltmesi gerekli — TASK/041'de yapıldı) |
-| Godot / eklenti işi | 0002'nin üretime alınması (GMA 25.3.0, TFAT, dönüşüm düzeltmesi, başlatma öncesi yapılandırma) + `[Audience]` alanı + kapı + M9 cihaz/gizlilik regresyonu *(TASK/041'den beri: dönüşüm düzeltmesi üretimde; kalan = spike `0003`'ün üretime alınması)* *(Sonra: TASK/042 — üretim `0003-gma25-…` ile yapıldı, varsayılan UNSPECIFIED; dalda, main'e alınması owner onayı bekliyor)* | A'nın hepsi + yaş bandı ekranı + kayıt alanı + istek başına işlem + tutorial / rıza sırası + testler | GMA değişmez; yalnız dönüşüm düzeltmesi + hukuki kayıt *(dönüşüm düzeltmesi TASK/041'de yapıldı; kalan = hukuki kayıt)* *(Sonra: TASK/042'den beri üretim zaten GMA 25.3.0, UNSPECIFIED varsayılan)* |
+| Godot / eklenti işi | 0002'nin üretime alınması (GMA 25.3.0, TFAT, dönüşüm düzeltmesi, başlatma öncesi yapılandırma) + `[Audience]` alanı + kapı + M9 cihaz/gizlilik regresyonu *(TASK/041'den beri: dönüşüm düzeltmesi üretimde; kalan = spike `0003`'ün üretime alınması)* *(Sonra: TASK/042 — üretim `0003-gma25-…` ile yapıldı, varsayılan UNSPECIFIED; main'de 2026-09-27)* | A'nın hepsi + yaş bandı ekranı + kayıt alanı + istek başına işlem + tutorial / rıza sırası + testler | GMA değişmez; yalnız dönüşüm düzeltmesi + hukuki kayıt *(dönüşüm düzeltmesi TASK/041'de yapıldı; kalan = hukuki kayıt)* *(Sonra: TASK/042'den beri üretim zaten GMA 25.3.0, UNSPECIFIED varsayılan)* |
 | Yaş verisi toplanıyor mu? | HAYIR | EVET (kendi beyanı: 13–17 / 18+) | HAYIR |
 | UX sürtünmesi | yok | yeni ekran (ilk reklamdan önce) | yok |
 | 18+ için kişiselleştirilmiş reklam | HAYIR (herkese TEEN) | EVET (rıza denetimli) | EVET (rıza denetimli) |

@@ -16,9 +16,8 @@
 > **M9-01.1'de (2026-09-23) gerçek Samsung A36'da doğrulandı — GEÇTİ, runtime
 > değişmedi** (§7; plan §8); M9-01 + M9-01.1 2026-09-24'te main'e ff-only alındı.
 >
-> **TASK/042 (2026-09-27; dal `task/042-gma25-production` — `83b86a9` kod + ardından
-> doküman / kapı commit'i — push edildi; main'e alınması owner onayı bekliyor, main ==
-> origin/main == `cbdcb8f` değişmedi):** üretim eklentisi GMA **25.3.0**'a geçti; UMP
+> **TASK/042 (2026-09-27; `task/042-gma25-production` — `83b86a9` + `3d15402` — main'e
+> ff-only alındı 2026-09-27):** üretim eklentisi GMA **25.3.0**'a geçti; UMP
 > SDK artık **4.0.0** (`play-services-ads-api:25.3.0` üzerinden geçişli, açık override
 > yok; önce 3.2.0). UMP sarmalayıcısı (yama `0001`) ve bu dokümandaki rıza sözleşmesi
 > DEĞİŞMEDİ; Samsung A36'da yeniden doğrulandı — **GEÇTİ** (§7). Yeni: istek

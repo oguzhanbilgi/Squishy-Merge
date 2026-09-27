@@ -23,8 +23,8 @@
 >   RequestConfiguration'ı hiç uygulamıyor (derece G etkin değil) → kapıda CODE.
 >   *(Sonra kapandı: TASK/041, 2026-09-27, main'de — derece G / TFCD / TFUA A36'da ilk
 >   reklam yüklemesinden önce uygulanıyor; değerler değişmedi; 13–17 stratejisi hâlâ AÇIK.)*
-> - **TASK/042 (2026-09-27; `task/042-gma25-production` dalında, `83b86a9`; main'e
->   alınması owner onayı bekliyor):** üretim eklentisi GMA **25.3.0** (UMP **4.0.0**,
+> - **TASK/042 (2026-09-27; `task/042-gma25-production` main'e ff-only alındı
+>   2026-09-27):** üretim eklentisi GMA **25.3.0** (UMP **4.0.0**,
 >   `play-services-ads-api` 25.3.0 üzerinden geçişli); TFAT (`AgeRestrictedTreatment`
 >   UNSPECIFIED / CHILD / TEEN) üretim eklentisinde teknik olarak var. Üretim
 >   varsayılanı **herkes için UNSPECIFIED** (SDK varsayılanı): reklam isteklerinin
@@ -60,7 +60,7 @@ children under 13."*
 | Nötr yaş ekranı | YOK — bu görevde eklenmez (§2.2 B stratejisi ileride bir yaş / yaş bandı düzeneği getirebilir; yalnız owner kararıyla) |
 | 13 altına özel (child-directed) reklam mantığı | YOK — eklenmez |
 | Families / karma kitle yeniden tasarımı | YOK |
-| Google Mobile Ads / UMP | 24.9.0 / 3.2.0 aynen — task/039'da SDK geçişi YOK. 24.9.0 TFAT `TEEN` gönderemez (§2.1) → 13–17 stratejisi AÇIK (§2.2) *(Sonra: TASK/042 — dalda 25.3.0 / 4.0.0; TFAT var ama üretim UNSPECIFIED, §2.1; strateji hâlâ AÇIK)* |
+| Google Mobile Ads / UMP | 24.9.0 / 3.2.0 aynen — task/039'da SDK geçişi YOK. 24.9.0 TFAT `TEEN` gönderemez (§2.1) → 13–17 stratejisi AÇIK (§2.2) *(Sonra: TASK/042 — main'de 25.3.0 / 4.0.0; TFAT var ama üretim UNSPECIFIED, §2.1; strateji hâlâ AÇIK)* |
 | Oyun, ekonomi, reklam sıklığı, banner, ödüllü, geçiş zamanlaması, tutorial, günlük ödüller, ses, sanat, UI | DEĞİŞMEDİ |
 
 **Hukuki not (düzeltildi, 2026-09-25).** Google'ın hedef kitle sayfası 13–15 ve
@@ -119,7 +119,7 @@ Ayrıntı [GLOBAL_TEEN_AD_TREATMENT §C4](GLOBAL_TEEN_AD_TREATMENT.md). *(Sonra 
 TASK/041 — dönüşüm düzeltildi; A36'da yapılandırma her süreçte ilk reklam yüklemesinden
 önce uygulanıyor (sıra değişmedi: SDK hazır → yapılandırma → yüklemeler). Başlatma
 ÖNCESİ uygulama TEEN / TFAT geçişine bırakıldı — [ADS_SYSTEM §15](ADS_SYSTEM.md).)*
-*(Sonra: TASK/042, dalda — sıra değişti: yapılandırma (yaş işlemi UNSPECIFIED dahil)
+*(Sonra: TASK/042, main'de — sıra değişti: yapılandırma (yaş işlemi UNSPECIFIED dahil)
 `MobileAds.initialize()`'dan ÖNCE bir kez uygulanıyor, geri okunup doğrulanıyor;
 uyuşmazsa SDK başlamıyor (fail-closed, oturum reklamsız, yeniden deneme yok). SDK
 yapılandırılınca yaş işlemi kilitli — TASK/043 yönlendirmeyi SDK başlamadan ÖNCE yapmalı
@@ -158,7 +158,7 @@ Age Signals reklam / runtime koduna bağlı değil, `[Audience]` yaş işlemi se
   `setAgeRestrictedTreatment()` (CHILD / TEEN / UNSPECIFIED) altında topladı ve
   eskileri kullanımdan kaldırdı. Bu projenin SDK'sı **24.9.0** (eklenti v6.0'a
   bağlı), dolayısıyla eski iki etiket hâlâ çalışan araç — ama genç (`TEEN`)
-  işlemini ifade edemezler. *(Sonra: TASK/042 dalında SDK 25.3.0 — v6.0 + yama 0003;
+  işlemini ifade edemezler. *(Sonra: TASK/042 ile main'de SDK 25.3.0 — v6.0 + yama 0003;
   TFCD / TFUA kullanımdan kalkmış ama çalışıyor ve hâlâ TEEN ifade edemez; TEEN yalnız
   TFAT'ta, üretimde UNSPECIFIED.)* Güncel durum: §2.1; 13–17 uyumu: §2.2.
 
@@ -172,13 +172,13 @@ Age Signals reklam / runtime koduna bağlı değil, `[Audience]` yaş işlemi se
 - TFAT **GMA legacy 25.3.0** ile geldi. Bu proje **GMA 24.9.0**'da kalıyor,
   çünkü Godot 4.6 uyumlu eklenti (godot-admob v6.0) o sürüme sabit; 24.x hattı
   **2027-06-30'a kadar destekleniyor** (deprecation sayfası). *(Sonra: TASK/042 —
-  üretim 25.3.0'a geçti (dalda); eklenti hâlâ v6.0 + yamalar; bu bölümün son maddesi.)*
+  üretim 25.3.0'a geçti (main'de); eklenti hâlâ v6.0 + yamalar; bu bölümün son maddesi.)*
 - M9-01.1 sonucu (2026-09-23, **2026-09-25'te düzeltildi**): "TFAT'a geçiş bu
   kapalı test milestone'u için kendiliğinden bir engel değil; belgelenmiş bir
   modernizasyon maddesi". SDK tarafı için doğru kalan kısım: SDK 25.3.0+ (ya
   da Google'ın bugün tercih ettiği **GMA Next-Gen SDK**) eklentinin
   güncellenmesini gerektiriyor ve bu geçiş **YAPILMADI** — ne M9-01.1'de ne
-  task/039'da *(sonra: TASK/042'de yapıldı, dalda)*. Düzeltilen kısım: 13–17'yi hedefleyen bir kitlede konu yalnız
+  task/039'da *(sonra: TASK/042'de yapıldı, main'de)*. Düzeltilen kısım: 13–17'yi hedefleyen bir kitlede konu yalnız
   sonraki teknik borç **DEĞİL** — aşağıdaki iki madde ve §2.2.
 - **24.9.0 TFAT `TEEN` gönderemez.** Google'ın hedefleme sayfası (son güncelleme
   2026-09-24) `TEEN`'in eski TFCD / TFUA'da karşılığı olmadığını söylüyor.
@@ -189,7 +189,7 @@ Age Signals reklam / runtime koduna bağlı değil, `[Audience]` yaş işlemi se
   üretim yayınından önce çözülmeli (§2.2). SDK geçişinin kendisi ancak seçilen
   strateji gerektirirse iş olur. *İlk task/039 kaydındaki "değerlendirme TFAT
   geçişinde / teknik borç" ifadesi bu maddeyle düzeltildi.*
-- **Güncel (TASK/042, 2026-09-27, dalda — main'e alınması owner onayı bekliyor):**
+- **Güncel (TASK/042, 2026-09-27, main'de):**
   üretim GMA **25.3.0**, UMP **4.0.0** (`play-services-ads-api` 25.3.0 üzerinden
   geçişli). TFAT üretim eklentisinde teknik olarak var, ama üretim her kullanıcı için
   **UNSPECIFIED** gönderiyor (SDK varsayılanı); derece G, TFCD / TFUA `unspecified`
@@ -217,8 +217,8 @@ işlemi / yargı bölgesi uyum stratejisi çözülmedi …"); kapı bu engel aç
 yüklenebilir AAB (kapalı test yüklemesi dahil) üretmez. CODE engeli DEĞİL:
 uygulama, seçilecek stratejiye bağlı.
 
-**TASK/042 durumu (2026-09-27, `task/042-gma25-production` dalında — main'e
-alınması owner onayı bekliyor):** üretim eklentisi GMA 25.3.0 ile TFAT `TEEN`'i
+**TASK/042 durumu (2026-09-27, `task/042-gma25-production` main'e ff-only
+alındı):** üretim eklentisi GMA 25.3.0 ile TFAT `TEEN`'i
 teknik olarak gönderebiliyor (A36'da yalnız QA paketinde, QA kancasıyla denendi);
 üretim yolunda her kullanıcı **UNSPECIFIED** alıyor, derece G ve TFCD / TFUA
 `unspecified` aynen — reklam isteklerinin içeriği değişmedi, TEEN / CHILD'a
@@ -234,7 +234,7 @@ Neden açık:
 - Hedef yaş grupları 13–15 ve 16–17'yi içeriyor; Google bu grupların bazı
   yerlerde çocuk sayılabileceğini söylüyor (§0 hukuki not).
 - GMA 24.9.0 TFAT `TEEN` gönderemez; `TEEN`'in eski TFCD / TFUA'da karşılığı yok.
-  *(Sonra: TASK/042 dalında GMA 25.3.0 `TEEN`'i gönderebilir, ama üretim UNSPECIFIED
+  *(Sonra: TASK/042 ile main'de GMA 25.3.0 `TEEN`'i gönderebilir, ama üretim UNSPECIFIED
   ve yönlendirme yok.)*
 - Bugünkü `unspecified` / `unspecified` / G değerleri TEEN işlemi değildir;
   uyum bu değerlerden sessizce iddia edilmez. *(TASK/042: yaş işlemi UNSPECIFIED de
@@ -251,11 +251,11 @@ Olası stratejiler — **belgelendi, HİÇBİRİ SEÇİLMEDİ, HİÇBİRİ UYGUL
 | **D** | Hukuki olarak incelenmiş bir strateji, gerçek yayın bölgeleri için bugünkü UNSPECIFIED işleminin yeterli olduğuna karar verir | hukuki inceleme + yayın bölgeleri listesi + kayıt; kod gerekmeyebilir |
 
 *(Sonra: TASK/042 — A ve B'nin ortak teknik ön koşulu (TEEN gönderebilen GMA 25.3.0 +
-yamalı eklenti) dalda hazır; B satırındaki "24.9.0'da `TEEN` yok" üretim eklentisi için
+yamalı eklenti) main'de hazır; B satırındaki "24.9.0'da `TEEN` yok" üretim eklentisi için
 artık geçerli değil. Hiçbir strateji UYGULANMADI; owner yönü TASK/043 — yukarıdaki not.)*
 
 task/039'da yapılmayanlar: yaş ekranı YOK, GMA yükseltmesi YOK, reklam
-davranışı değişikliği YOK. *(TASK/042: GMA yükseltmesi dalda yapıldı; reklam
+davranışı değişikliği YOK. *(TASK/042: GMA yükseltmesi yapıldı, main'de; reklam
 isteklerinin içeriği ve reklam davranışı değişmedi; yaş ekranı / yönlendirme hâlâ YOK.)*
 Strateji seçilince ayrı bir görevde uygulanır ve kapı
 ona göre güncellenir (A/B için kod; D için kayıt). Bugün engel yapılandırmayla
@@ -300,7 +300,7 @@ ya da ek soru gelirse değerlendirme owner'ındır.
 | Yaş ekranı | yok | ZORUNLU (yeni UI) | yok |
 | AD_ID izni | kalır | kalır (çocuktan kimlik gönderilmez) | ÇIKARILIR |
 | TFCD | owner (bugün unspecified — TEEN değil) | çocuk için true | her zaman true |
-| RequestConfiguration sırası | ürün kararı için bugünkü yeterli; 13–17 stratejisine göre değişebilir (§2.2) *(TASK/042 dalında: SDK başlatmadan ÖNCE, bir kez + geri okuma)* | SDK başlatmadan ÖNCE olmalı | SDK başlatmadan ÖNCE olmalı |
+| RequestConfiguration sırası | ürün kararı için bugünkü yeterli; 13–17 stratejisine göre değişebilir (§2.2) *(TASK/042, main'de: SDK başlatmadan ÖNCE, bir kez + geri okuma)* | SDK başlatmadan ÖNCE olmalı | SDK başlatmadan ÖNCE olmalı |
 | Mağaza "çocuklara hitap" incelemesi | risk (kawaii sanat) | beklenen | beklenen |
 | Bu milestone'dan sonra kod işi | ürün kararı için yok; 13–17 stratejisi A/B seçilirse var (§2.2) | yaş ekranı + istek başına TFCD + sıra | TFCD her yerde + AD_ID çıkarma + sıra + interstitial kuralı denetimi |
 
@@ -346,7 +346,7 @@ genç reklam işlemi için ayrı OWNER "UYUM:" engeli verir (§2.2).
   davranışı; 13+ kararı değiştirmedi — bu TEEN işlemi değildir, §2.2). **TASK/040:**
   yapılandırma üretim eklentisinde hiç uygulanmıyor → derece G fiilen etkin değil
   (GLOBAL_TEEN_AD_TREATMENT §C4, kapıda CODE). *(Sonra kapandı: TASK/041 — derece
-  G / TFCD / TFUA ilk reklam yüklemesinden önce uygulanıyor. TASK/042 dalında: + yaş
+  G / TFCD / TFUA ilk reklam yüklemesinden önce uygulanıyor. TASK/042 ile main'de: + yaş
   işlemi UNSPECIFIED, SDK başlatmadan önce; istek içeriği aynı.)*
 - Play'e yüklenebilir AAB üretilmez — genel kitle engeli kalktı; release
   kapısı 13–17 uyum engeli (§2.2) ve kalan owner maddeleri (gerçek AdMob

@@ -51,9 +51,8 @@
 > yok (§15) *(Sonra: TASK/042 — GMA 25.3.0 / UMP 4.0.0 + TFAT, §16)*. Release kapısı
 > CODE 0 · OWNER 9 · CONFIG 0.
 >
-> **TASK/042 (2026-09-27; dal `task/042-gma25-production` — `83b86a9` kod + ardından kapı /
-> doküman commit'i, push edildi; main'e alınması owner onayı bekliyor, main == origin/main
-> == `cbdcb8f` değişmedi):** üretim yığını Google Mobile Ads SDK **25.3.0** + UMP **4.0.0**
+> **TASK/042 (2026-09-27; `task/042-gma25-production` — `83b86a9` + `3d15402` — main'e
+> ff-only alındı 2026-09-27):** üretim yığını Google Mobile Ads SDK **25.3.0** + UMP **4.0.0**
 > (`play-services-ads-api` 25.3.0 üzerinden geçişli), üretim yaması `0003`. TFAT
 > (`AgeRestrictedTreatment` UNSPECIFIED / CHILD / TEEN) üretim eklentisinde teknik olarak
 > hazır; **üretim varsayılanı herkes için UNSPECIFIED** ve yaş işlemi SDK yapılandırıldıktan
@@ -81,9 +80,9 @@ kaldı; skinler asla reklam/paraya bağlı değil.
 
 ## 2. Seçilen eklenti ve SDK sürümleri (araştırma 2026-09-21)
 
-> **Güncel (TASK/042, 2026-09-27, dal `task/042-gma25-production`):** GMA **25.3.0** /
+> **Güncel (TASK/042, 2026-09-27, main'de):** GMA **25.3.0** /
 > UMP **4.0.0** + üretim yaması `0003` (§16). 24.9.0 / 3.2.0 değerleri M8.9-01 – TASK/041
-> yığınıdır — main'de, `task/042` alınana kadar hâlâ geçerli.
+> yığınıdır (TARİHSEL).
 
 | | |
 |---|---|
@@ -702,8 +701,8 @@ doğrulaması. Kullanıcıya görünen monetizasyon davranışı DEĞİŞMEDİ (
 banner yok, ödüllü kuralları, geçiş 900 sn aktif süre / yalnız `round_finish` molası / 60 sn tam
 ekran beklemesi, tutorial reklamsız). Yaş bandı yönlendirmesi, yaş bilgisi / yaş ekranı, Play Age
 Signals, gerçek kimlik, imza YOK; gameplay / ekonomi / UI / ses DEĞİŞMEDİ; Godot 4.6.3 aynı. Dal
-`task/042-gma25-production` (`83b86a9` kod + ardından kapı / doküman commit'i), push edildi;
-main'e alınması owner onayı bekliyor (main == origin/main == `cbdcb8f` değişmedi).
+`task/042-gma25-production` (`83b86a9` kod + `3d15402` kapı / doküman kaydı) owner onayıyla
+main'e ff-only alındı (2026-09-27; ağaç eşit, A36 kanıtı geçerli).
 
 **Owner yönü (TASK/042 brief'i, 2026-09-27):** TASK/043 owner onaylı, gelir odaklı yaş bandı
 yönlendirmesini uygulayacak (13–17 → TEEN; 18+ → olağan, rızayla yönetilen yetişkin yolu,
