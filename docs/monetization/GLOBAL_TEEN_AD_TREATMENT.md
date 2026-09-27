@@ -27,7 +27,36 @@
 > 13–17 `UYUM:` OWNER engeli hâlâ AÇIK — «TASK/042 durumu».)*
 >
 > **TASK/042 (2026-09-27; dal `task/042-gma25-production`, main'e alınması owner onayı
-> bekliyor):** güncel durum hemen aşağıda.
+> bekliyor):** güncel durum hemen aşağıda. *(Sonra: main'e ff-only alındı 2026-09-27.)*
+>
+> **TASK/043 (2026-09-27; dal `task/043-age-band-routing`, main'e alınması owner onayı
+> bekliyor):** owner §D'de **Strateji B'yi (uygulamanın yaş bandı)** gelir odaklı iş kararı
+> olarak seçti ve UYGULANDI — güncel durum «TASK/043 durumu» (hemen aşağıda).
+
+## TASK/043 durumu (2026-09-27)
+
+Bu bölüm **güncel durumdur**; «TASK/042 durumu» ve §B–§H kayıt olarak kalır.
+
+- **Owner seçimi (iş kararı, TASK/043 brifi):** Strateji **B** — nötr doğum tarihi ekranı;
+  13–17 → TFAT **TEEN** + en yüksek derece **T**; 18+ → **UNSPECIFIED** + **MA** (yetişkin
+  envanteri korunur); 13 yaş altı → reklam SDK'sı / UMP / reklam YOK + kısıt ekranı; bilinmeyen
+  yaş → reklam SDK'sı / UMP / reklam YOK. Dağıtım dünya geneli.
+- **Uygulama:** [AGE_BAND_ROUTING.md](AGE_BAND_ROUTING.md) — ham doğum tarihi saklanmaz
+  (yalnız bant + geçiş günü), soğuk açılış geçişleri SDK'dan önce, rota rızadan ve attach'ten
+  önce, yapılandırma + geri okuma `MobileAds.initialize()` öncesi, SDK yapılandırılınca kilit
+  (bant değişirse oturum reklamsız, yeni bant sonraki açılışta).
+- **Play Age Signals reklamda hâlâ HİÇ kullanılmıyor** (⚠ bölüm aynen; 2026-09-27'de yeniden
+  okundu: şartlar ve Play politikası reklam / pazarlama / kişiselleştirme / profilleme /
+  analitik kullanımını yasaklıyor; Google Play API'yi zorunlu tutmuyor).
+- **Release kapısı:** genç reklam işlemi stratejisi engeli owner kaydı
+  (`[Audience] teen_ad_treatment = age_band_routing`) + kodun yönlendirme tablosu birlikte
+  doğrulanınca kalkar (bayrak kodda yazılı değil; kayıt A36 kapısından sonra). Resmî araştırmanın
+  bulduğu, bu uygulamanın tek başına karşılamadığı iki somut madde **ayrı OWNER / UYUM
+  engelleri** olarak açık: (1) Play "Uygunsuz reklamlar" — reklamlar uygulamanın içerik
+  derecesine uygun olmalı; T reklam en az 12+, MA reklam en az 16+ uygulama derecesi ister (IARC
+  sonucu henüz yok); (2) yargı bölgesi yaş yükümlülükleri (Brezilya Digital ECA: mağazadan yaş
+  aralığı + loot box; ABD eyalet yasaları; AB / UK / CH dijital rıza yaşı; Families "bazı
+  yerlerde çocuk"). Hukuki garanti iddiası YOK; ayrıntı AGE_BAND_ROUTING §9–§10.
 
 ## TASK/042 durumu (2026-09-27)
 
@@ -47,7 +76,7 @@ cümlelerde *(Sonra: TASK/042 — …)* notu var). Kanıt ve sayıların kaynağ
 - **TFAT üretim eklentisinde teknik olarak hazır** (`AgeRestrictedTreatment` UNSPECIFIED /
   CHILD / TEEN). **Üretim varsayılanı herkes için UNSPECIFIED**
   (`MonetizationManager.DEFAULT_AGE_RESTRICTED_TREATMENT`; UNSPECIFIED =
-  `setAgeRestrictedTreatment(null)` = SDK varsayılanı). İstek yapılandırması
+  `setAgeRestrictedTreatment(null)` = SDK varsayılanı). *(Sonra: TASK/043 — sabit kaldırıldı; yaş işlemi + derece yaş bandından (`AgeGate.ad_route`): TEEN → TEEN + T, ADULT → UNSPECIFIED + MA; UNKNOWN / UNDER_13 → eklenti / UMP / SDK yok — §17, AGE_BAND_ROUTING.md.)* İstek yapılandırması
   `MobileAds.initialize()` ÖNCESİ **bir kez** uygulanır, `get_applied_request_configuration()`
   ile geri okunup doğrulanır (yaş işlemi, derece, TFCD, TFUA); uyuşmazlıkta ya da geri okuma
   yoksa SDK **başlatılmaz** (fail-closed; oturum reklamsız, yeniden deneme yok). SDK
@@ -318,6 +347,9 @@ yönlendirmesini uygulayacak: 13–17 → TEEN, 18+ → normal rıza denetimli y
 olarak kaydedilmedi. **TASK/043 başlamadı.** Bu yön 13–17 `UYUM:` OWNER engelini kendiliğinden
 KAPATMAZ — engel owner uyum kararını kaydedene kadar (`teen_ad_treatment_resolved=false`)
 AÇIK; uyum owner'da. Hukuki sonuç burada çıkarılmaz. «TASK/042 durumu».)*
+*(Sonra: TASK/043 — owner Strateji **B**'yi iş kararı olarak seçti ve uygulandı (13–17 TEEN +
+T, 18+ UNSPECIFIED + MA, 13 altı / bilinmeyen reklamsız); «TASK/043 durumu». Hukuki / yargı
+bölgesi değerlendirmesi ve uygulama içerik derecesi ayrı OWNER / UYUM maddeleri olarak açık.)*
 
 Etiketler TASK/040'ın; AUDIENCE_DECISION §2.2'deki eski etiketlerle eşleme:
 task/039 A → **A**, B → **B**, D (hukuki inceleme) → **C**, C (başka ürün

@@ -228,6 +228,13 @@ açılış normal monetizasyon yoluna girer).
 ekranına dönüş (`_show_tab`) ya da yeni bir round kurulumu (`_start_level`,
 board henüz yokken). O an `MonetizationManager.set_onboarding_completed(true)`
 → yuva hesaplanır, **rıza akışı başlar**, ödüllü + geçiş önyüklemeleri açılır.
+*(Sonra: TASK/043 — rıza, yuva ve yüklemeler artık bir de **yaş bandı** ister: yeni
+oyuncunun yaşı bilinmediği için tutorial ve tutorial kaynaklı Level 1 yine reklamsız biter;
+İLK güvenli kabukta (`_show_tab` → `Main._maybe_request_age`) zorunlu **nötr yaş ekranı**
+açılır ve rıza / SDK ancak TEEN ya da ADULT bandı çözülünce başlar; 13 altı → kısıt ekranı,
+reklam yok. Tutorial yaş ekranıyla KESİLMEZ. `_start_level` ile kabuk görülmeden yeni round'a
+geçen oyuncu o round'u da reklamsız oynar. Ayrıntı:
+[monetization/AGE_BAND_ROUTING.md](monetization/AGE_BAND_ROUTING.md) §2.)*
 
 Tutorial round'u bu erteleme sırasında kaybedilirse **ödüllü devam/refill
 sunulmaz** — mevcut dürüst "kullanılamıyor" / Bitir / Hamur yolları çalışır,

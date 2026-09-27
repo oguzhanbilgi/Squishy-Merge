@@ -88,6 +88,10 @@ func _fresh_save(onboarding: bool = true, dough: int = 0) -> void:
 	SaveManager.data["dough"] = dough
 	SaveManager.data["last_login_date"] = Time.get_date_string_from_system()
 	SaveManager.data["onboarding_completed"] = onboarding
+	# TASK/043: olağan (yetişkin) reklam yolu — yaş bandı ADULT. Yaş bilinmiyorken günlük
+	# pencerenin beklemesi age_ad_routing_test'te.
+	SaveManager.data["age_ad_band"] = "ADULT"
+	SaveManager.data["next_age_transition_date"] = ""
 	SaveManager.save_game()
 
 

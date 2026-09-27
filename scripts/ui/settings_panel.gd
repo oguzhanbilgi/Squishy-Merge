@@ -13,6 +13,10 @@ extends CanvasLayer
 ##   Gizlilik politikası   (M9-01) Play'in "uygulama içinde de" şartı için
 ##                   barındırılan politikaya bağlantı; URL owner'da (project.godot
 ##                   `squishy/privacy/policy_url`) — boşken satır HİÇ görünmez.
+##   Yaş bilgisi     (TASK/043) doğum tarihini yeniden girme — Main nötr yaş ekranını
+##                   yeniden giriş kipinde açar. Kayıtlı yaş / tarih GÖSTERİLMEZ (doğum
+##                   tarihi saklanmıyor). Yalnız reklam yöneticisi varken ve yaş bandı
+##                   biliniyorken (TEEN / ADULT) görünür (`set_age_info_visible`).
 ##   Sürüm           uygulama adı + sürüm (project.godot → config/version)
 ##   Kapat           altlıkta ikincil buton; X ve karartma da kapatır
 ##
@@ -34,8 +38,12 @@ extends CanvasLayer
 ## girdisi karartmanın arkasında kalır (M8.6-07 z-order bulgusu).
 
 signal closed
+## TASK/043: "Yaş bilgisi → Güncelle" — Main nötr yaş ekranını yeniden giriş kipinde açar.
+signal age_info_requested
 
-const PRIVACY_TEXT: String = "Squishy Merge hesap, sunucu ve analitik kullanmaz; ilerlemen yalnızca bu cihazda saklanır. Ödüllü, banner ve geçiş (tam ekran) reklamları için Google AdMob kullanılır; reklam SDK'sı reklam kimliği gibi cihaz verilerini Google'ın gizlilik politikasına göre işleyebilir. Uygulama içi satın alma yok."
+const PRIVACY_TEXT: String = "Squishy Merge hesap, sunucu ve analitik kullanmaz; ilerlemen yalnızca bu cihazda saklanır. Ödüllü, banner ve geçiş (tam ekran) reklamları için Google AdMob kullanılır; reklam SDK'sı reklam kimliği gibi cihaz verilerini Google'ın gizlilik politikasına göre işleyebilir. Doğum tarihin saklanmaz; cihazda yalnızca yaş grubun ve bir sonraki gruba geçiş günün (doğum günün) tutulur; reklam isteğine yalnızca yaş grubuna uygun ayar eklenir. Uygulama içi satın alma yok."
+const AGE_INFO_TITLE: String = "Yaş bilgisi"
+const AGE_INFO_BUTTON: String = "Güncelle"
 const PRIVACY_OPTIONS_TITLE: String = "Gizlilik seçenekleri"
 const PRIVACY_OPTIONS_BUTTON: String = "Aç"
 const PRIVACY_POLICY_TITLE: String = "Gizlilik politikası"
@@ -62,6 +70,11 @@ var _privacy_options_source: Object = null
 var _privacy_policy_row: HBoxContainer
 var _privacy_policy_divider: Control
 var _privacy_policy_button: Button
+## Yaş bilgisi (TASK/043): satır + ayırıcı, varsayılan gizli (Main açar).
+var _age_info_row: HBoxContainer
+var _age_info_divider: Control
+var _age_info_button: Button
+var _age_info_visible: bool = false
 var _about: Label
 var _close: Button
 
@@ -140,6 +153,18 @@ func _ready() -> void:
 	body.add_child(_privacy_policy_row)
 	_apply_privacy_policy_visibility()
 
+	# Yaş bilgisi (TASK/043): yalnız Main görünür yapınca (reklam yöneticisi + bilinen bant).
+	_age_info_divider = UiKit.settings_divider()
+	_age_info_divider.name = "AgeInfoDivider"
+	body.add_child(_age_info_divider)
+	_age_info_button = UiKit.button(AGE_INFO_BUTTON, &"ButtonSecondary")
+	_age_info_button.custom_minimum_size = Vector2(132, UiTokens.HEIGHT_NORMAL)
+	_age_info_button.pressed.connect(_on_age_info_pressed)
+	_age_info_row = UiKit.settings_row("calendar", AGE_INFO_TITLE, _age_info_button)
+	_age_info_row.name = "AgeInfoRow"
+	body.add_child(_age_info_row)
+	_apply_age_info_visibility()
+
 	# Altlık: sürüm (düşük vurgu) + Kapat. Hiç kaydırılmaz.
 	var footer: VBoxContainer = _frame.get_meta(&"footer")
 	var footer_gap := Control.new()
@@ -177,6 +202,7 @@ func open_panel() -> void:
 	_set_privacy_open(false)
 	_apply_privacy_options_visibility()
 	_apply_privacy_policy_visibility()
+	_apply_age_info_visibility()
 	visible = true
 	UiKit.modal_relayout(_frame)
 	(_frame.get_meta(&"scroll") as ScrollContainer).scroll_vertical = 0
@@ -279,6 +305,39 @@ func _on_privacy_policy_pressed() -> void:
 		return
 	AudioManager.play(&"ui_tap")
 	OS.shell_open(url)
+
+
+# --- Yaş bilgisi (TASK/043) --------------------------------------------------------------
+
+## Main: reklam yöneticisi varken ve yaş bandı TEEN / ADULT iken true. Bilinmeyen yaş
+## zorunlu yaş ekranıyla (kabukta) çözülür; 13 altı Ayarlar'a hiç ulaşamaz (kısıt ekranı).
+func set_age_info_visible(shown: bool) -> void:
+	_age_info_visible = shown
+	_apply_age_info_visibility()
+
+
+func _apply_age_info_visibility() -> void:
+	if _age_info_row == null:
+		return
+	_age_info_row.visible = _age_info_visible
+	_age_info_divider.visible = _age_info_visible
+	if visible and _frame != null:
+		UiKit.modal_relayout(_frame)
+
+
+func _on_age_info_pressed() -> void:
+	if not _age_info_visible:
+		return
+	AudioManager.play(&"ui_tap")
+	age_info_requested.emit()
+
+
+func age_info_row() -> HBoxContainer:
+	return _age_info_row
+
+
+func age_info_button() -> Button:
+	return _age_info_button
 
 
 ## Testler / araçlar için.

@@ -15,6 +15,7 @@ extends Node
 ##   cancel_rewarded_request() / set_surface(surface)
 ##   try_show_interstitial(break_name, continue_callback)
 ##   set_onboarding_completed(done)
+##   set_age_band(band)                      (TASK/043 — yaş bandı yönlendirmesi)
 ##   privacy_options_required() / show_privacy_options()
 ## SDK tarafı `AdBackend` arayüzü (gerçek: AdmobBackend; testler tools/
 ## altındaki sahte arka uçla aynı arayüzü sürer).
@@ -65,9 +66,22 @@ extends Node
 ##
 ## İstek yapılandırması (TASK/042, GMA 25.3.0): SDK başlatma arka ucun işi — derece,
 ## TFCD / TFUA ve yaş işlemi (TFAT) MobileAds.initialize() ÖNCESİ bir kez uygulanır,
-## geri okunup doğrulanır; doğrulanamazsa SDK başlamaz (reklam yok). Yaş işlemi
-## üretimde UNSPECIFIED (DEFAULT_AGE_RESTRICTED_TREATMENT): yaş bilgisi kullanılmaz,
-## Play Age Signals reklama bağlanmaz; yaş bandı yönlendirmesi bu görevde YOK.
+## geri okunup doğrulanır; doğrulanamazsa SDK başlamaz (reklam yok).
+##
+## YAŞ BANDI YÖNLENDİRMESİ (TASK/043, owner kararı — docs/monetization/AGE_BAND_ROUTING.md):
+## tek girdi `set_age_band()` (Main, nötr yaş ekranından türetilmiş bant; doğum tarihi
+## buraya HİÇ gelmez). Rota `AgeGate.ad_route()`:
+##   UNKNOWN / UNDER_13 -> kapı KAPALI: eklenti düğümü kurulmaz (attach yok), UMP
+##                         sorulmaz, SDK başlamaz, hiçbir reklam yüklenmez / gösterilmez,
+##                         yuva 0, aktif süre saymaz (fail-closed, ASLA yetişkin yolu).
+##   TEEN               -> TFAT TEEN + en yüksek derece "T"
+##   ADULT              -> TFAT UNSPECIFIED + en yüksek derece "MA"
+## Sıra: bant -> rota arka uca (attach'ten ÖNCE) -> attach -> UMP / canRequestAds ->
+## initialize() (yapılandırma + geri okuma doğrulaması, SONRA MobileAds.initialize) ->
+## SDK hazır -> yüklemeler (+ onboarding). SDK yapılandırıldıktan sonra rota KİLİTLİ: bant
+## bu süreçte değişirse işlem değiştirilmez — reklam oturumun geri kalanında kapanır
+## (banner gizlenir, ödüllü / geçiş yok) ve yeni bant bir sonraki soğuk açılışta SDK'dan
+## önce uygulanır (`AgeBandChange.NEXT_LAUNCH`). Play Age Signals reklama ASLA bağlanmaz.
 
 signal ads_state_changed(state: int)
 ## Ödüllü reklamın "hazır" durumu ya da notu değişti — açık pencere tazelenir.
@@ -86,6 +100,11 @@ enum InterstitialState { IDLE, LOADING, READY, SHOWING, DISMISSED, FAILED }
 enum BannerState { IDLE, LOADING, LOADED, SHOWN, FAILED }
 enum Surface { NONE, HOME, MAP, SHOP, COLLECTION, GAMEPLAY, RESULT }
 enum FormPurpose { NONE, STARTUP, PRIVACY_OPTIONS }
+## `set_age_band()` sonucu (TASK/043): UNCHANGED aynı bant; APPLIED uygulandı (ya da SDK
+## henüz yapılandırılmadığı için bekleyen rota güncellendi); NEXT_LAUNCH SDK bu süreçte
+## eski bantla yapılandırıldı — reklam bu oturumda kapandı, yeni bant bir sonraki soğuk
+## açılışta; ADS_STOPPED reklamsız banda (UNKNOWN / UNDER_13) geçildi, reklam durdu.
+enum AgeBandChange { UNCHANGED, APPLIED, NEXT_LAUNCH, ADS_STOPPED }
 
 ## Banner yüzeyleri (M8.9-02 owner kararı): Harita ve oyun ekranı da dahil;
 ## sonuç ekranı ve pencereli tam ekran anlar dışarıda.
@@ -132,9 +151,6 @@ const NOTE_NO_BACKEND: String = "Ödüllü reklam bu cihazda kullanılamıyor."
 
 ## Talep üzerine rıza güncellemesini yenileme aralığı (sn).
 const CONSENT_ON_DEMAND_MIN_INTERVAL: float = 20.0
-## TASK/042: üretimde SDK'ya giden yaş işlemi. TEEN / CHILD'a yönlendirme (yaş bandı)
-## owner onaylı ayrı görev (TASK/043); o zamana kadar herkes için UNSPECIFIED.
-const DEFAULT_AGE_RESTRICTED_TREATMENT: AdBackend.AgeRestrictedTreatment = AdBackend.AgeRestrictedTreatment.UNSPECIFIED
 const EMPTY_REQUEST: Dictionary = {"active": false, "id": 0, "kind": RewardedKind.NONE, "main": null,
 	"type": -1, "token": 0, "day_key": "", "ad_id": "", "earned": false, "cancelled": false}
 
@@ -183,6 +199,14 @@ var _app_paused: bool = false
 ## Onboarding/tutorial tamamlandı mı (Main kayıttan verir). false: yuva 0,
 ## hiçbir reklam yüklenmez/gösterilmez, aktif süre sayılmaz.
 var _onboarding_completed: bool = true
+## TASK/043: yaş bandı (AgeGate.Band). Varsayılan UNKNOWN = kapı kapalı (fail-closed):
+## bant verilmeden hiçbir şey başlamaz.
+var _age_band: int = AgeGate.Band.UNKNOWN
+## Arka uç (eklenti düğümü) bu süreçte kuruldu mu — yalnız TEEN / ADULT rotası verilince.
+var _backend_attached: bool = false
+## TASK/043: bant, SDK bu süreçte yapılandırıldıktan sonra değişti (ya da rota kabul
+## edilmedi) -> oturumun geri kalanında reklam YOK; yeni bant bir sonraki soğuk açılışta.
+var _age_session_blocked: bool = false
 
 var _rewarded_state: RewardedState = RewardedState.IDLE
 var _ready_ad_id: String = ""
@@ -249,16 +273,14 @@ func _ready() -> void:
 		_set_state(AdsState.UNAVAILABLE)
 		set_process(false)
 		return
-	_backend.attach(self)
-	# SDK başlamadan ÖNCE (initialize, rızadan sonra): yaş işlemi = üretim varsayılanı.
-	_backend.set_age_restricted_treatment(DEFAULT_AGE_RESTRICTED_TREATMENT)
-	_privacy_api = _backend.has_privacy_api()
-	if not _privacy_api:
-		push_warning("MonetizationManager: arka uç UMP canRequestAds / gizlilik seçenekleri API'sini sunmuyor — M8.9 türetmesi kullanılıyor (tools/admob_plugin)")
 	_connect_backend()
-	_compute_banner_slot()
 	print_verbose("MonetizationManager: %s, %s" % [_backend.backend_name(),
 		_config.describe() if _config != null else "config yok"])
+	# TASK/043: eklenti düğümü, rıza ve SDK YALNIZ yaş bandı reklama izin verince (TEEN /
+	# ADULT) açılır; rota (yaş işlemi + derece) attach'ten ve rızadan ÖNCE arka uca gider.
+	# UNKNOWN / UNDER_13: hiçbiri — Main yaşı ilk güvenli kabukta sorar (`set_age_band`).
+	_open_age_gate()
+	_compute_banner_slot()
 	# Rıza (UMP) ONBOARDING'DEN SONRA (M8.10 §18): tutorial sırasında ekranı
 	# bir gizlilik formu kaplamaz. Rıza şartı KALDIRILMADI, yalnız ertelendi —
 	# `_ads_enabled()` hâlâ izin + SDK istiyor, yani ilk reklam talebinden
@@ -369,13 +391,147 @@ func backend() -> AdBackend:
 	return _backend
 
 
-## SDK'ya giden yaş işlemi (TASK/042; arka uç yoksa varsayılan).
+## Arka uca verilmiş yaş işlemi (TASK/042 / TASK/043; arka uç yoksa UNSPECIFIED). Kapı
+## kapalıyken (UNKNOWN / UNDER_13) hiçbir şey gönderilmez — bu değer SDK'ya gitmez.
 func age_restricted_treatment() -> AdBackend.AgeRestrictedTreatment:
-	return _backend.age_restricted_treatment() if _backend != null else DEFAULT_AGE_RESTRICTED_TREATMENT
+	return _backend.age_restricted_treatment() if _backend != null else AdBackend.AgeRestrictedTreatment.UNSPECIFIED
+
+
+## Arka uca verilmiş en yüksek reklam derecesi (TASK/043); arka uç yoksa "".
+func max_ad_content_rating() -> String:
+	return _backend.max_ad_content_rating() if _backend != null else ""
 
 
 func has_backend() -> bool:
 	return _backend != null
+
+
+## TASK/043: yöneticinin yaş bandı (AgeGate.Band).
+func age_band() -> int:
+	return _age_band
+
+
+## TASK/043: eklenti düğümü bu süreçte kuruldu mu (yalnız TEEN / ADULT rotasıyla).
+func backend_attached() -> bool:
+	return _backend_attached
+
+
+## TASK/043: bant SDK yapılandırıldıktan sonra değişti -> bu oturumda reklam yok.
+func age_session_blocked() -> bool:
+	return _age_session_blocked
+
+
+## Yaş kapısı reklama izin veriyor mu (bant TEEN / ADULT ve oturum kapatılmadı).
+func age_ads_allowed() -> bool:
+	return _age_ads_allowed()
+
+
+func _age_ads_allowed() -> bool:
+	return not _age_session_blocked and bool(AgeGate.ad_route(_age_band)["ads"])
+
+
+# --- Yaş bandı yönlendirmesi (TASK/043) ----------------------------------------------
+
+## Main'in TEK girişi: nötr yaş ekranından (ya da kayıttan, soğuk açılışta) türetilmiş
+## bant. Ağaca girmeden önce verilirse yalnız saklanır; `_ready` kapıyı açar (ya da
+## açmaz). Sonra verilirse:
+##   reklamsız banda (UNKNOWN / UNDER_13) geçiş -> kapı hiç açılmadıysa kapalı kalır;
+##       açıldıysa reklam oturum boyunca DURUR (ADS_STOPPED)
+##   TEEN / ADULT, SDK henüz yapılandırılmadı -> bekleyen rota güncellenir, kapı açılır
+##       (attach + yuva + rıza; APPLIED) — SDK başlarken yeni değerler uygulanır
+##   TEEN / ADULT, SDK bu süreçte başka rotayla yapılandırıldı -> işlem DEĞİŞTİRİLMEZ
+##       (kilit): reklam oturumun geri kalanında kapanır, yeni bant bir sonraki soğuk
+##       açılışta SDK'dan önce (NEXT_LAUNCH). Çağıran oyuncuya kısa not gösterir.
+func set_age_band(band: int) -> AgeBandChange:
+	if band == _age_band:
+		return AgeBandChange.UNCHANGED
+	_age_band = band
+	if _backend == null or not is_node_ready():
+		return AgeBandChange.APPLIED
+	var route: Dictionary = AgeGate.ad_route(band)
+	if not bool(route["ads"]):
+		if _backend_attached:
+			_block_age_session()
+			return AgeBandChange.ADS_STOPPED
+		rewarded_availability_changed.emit()
+		return AgeBandChange.APPLIED
+	if _age_session_blocked:
+		return AgeBandChange.NEXT_LAUNCH
+	if _backend.request_configured():
+		# Yalnız birebir aynı rota sürebilir; değilse arka uca reddettirmeden (hata logu
+		# üretmeden) oturumu kapat.
+		if route["treatment"] == _backend.age_restricted_treatment() \
+				and route["max_ad_content_rating"] == _backend.max_ad_content_rating():
+			return AgeBandChange.APPLIED
+		_block_age_session()
+		return AgeBandChange.NEXT_LAUNCH
+	if not _open_age_gate():
+		return AgeBandChange.NEXT_LAUNCH
+	_compute_banner_slot()
+	_maybe_start_consent()
+	_preload_rewarded()
+	_preload_interstitial()
+	rewarded_availability_changed.emit()
+	_sync_banner()
+	return AgeBandChange.APPLIED
+
+
+## Kapıyı açar: rota arka uca (SDK yapılandırılmadan ÖNCE), sonra (ilk kez) attach +
+## gizlilik API algısı. Bant reklama izin vermiyorsa ya da oturum kapatıldıysa HİÇBİR
+## ŞEY yapmaz (false). Rota reddedilirse (SDK başka rotayla yapılandırılmış) oturum kapanır.
+func _open_age_gate() -> bool:
+	if not _age_ads_allowed():
+		return false
+	var route: Dictionary = AgeGate.ad_route(_age_band)
+	if not _push_age_route(route) or not _backend_matches_route(route):
+		_block_age_session()
+		return false
+	if not _backend_attached:
+		_backend.attach(self)
+		_backend_attached = true
+		_privacy_api = _backend.has_privacy_api()
+		if not _privacy_api:
+			push_warning("MonetizationManager: arka uç UMP canRequestAds / gizlilik seçenekleri API'sini sunmuyor — M8.9 türetmesi kullanılıyor (tools/admob_plugin)")
+	return true
+
+
+## Rotanın iki değeri (yaş işlemi + en yüksek derece) arka uca. İkisi de kabul edilmezse
+## false (SDK başka değerlerle yapılandırılmış — kilit).
+func _push_age_route(route: Dictionary) -> bool:
+	var treatment_ok: bool = _backend.set_age_restricted_treatment(route["treatment"])
+	var rating_ok: bool = _backend.set_max_ad_content_rating(route["max_ad_content_rating"])
+	return treatment_ok and rating_ok
+
+
+## Arka ucun tuttuğu (SDK'ya gidecek) yaş işlemi + derece, rotayla BİREBİR mi. UMP'den ÖNCE
+## (kapı açılırken) ve `MobileAds.initialize` ÖNCESİ (`_ensure_sdk`) sorulur; SDK'nın
+## uygulanan yapılandırmayı geri okuması (TASK/042) bunun üstüne ayrıca doğrular.
+func _backend_matches_route(route: Dictionary) -> bool:
+	return bool(route["ads"]) and _backend.age_restricted_treatment() == route["treatment"] \
+		and _backend.max_ad_content_rating() == route["max_ad_content_rating"]
+
+
+## Oturumun geri kalanında reklam YOK (TASK/043): hazır / yüklenen reklamlar gösterilmez
+## (`_ads_enabled` false), banner gizlenir, yeniden denemeler durur, açık pencereler
+## "kullanılamıyor" der. Gizlilik seçenekleri formu (oyuncunun hakkı) açık kalır; yuva
+## sabit kalır (düzen zıplamaz). Geri alınmaz — yeni süreç yeni bantla başlar.
+func _block_age_session() -> void:
+	if _age_session_blocked:
+		return
+	_age_session_blocked = true
+	_cancel_timer(_consent_retry_timer)
+	_consent_retry_timer = null
+	_cancel_timer(_rewarded_retry_timer)
+	_rewarded_retry_timer = null
+	_cancel_timer(_banner_retry_timer)
+	_banner_retry_timer = null
+	_cancel_timer(_interstitial_retry_timer)
+	_interstitial_retry_timer = null
+	# Yoldaki (yüklenen) açılış rıza formu artık gösterilmez (`_on_consent_form_loaded`).
+	if _form_purpose == FormPurpose.STARTUP:
+		_form_purpose = FormPurpose.NONE
+	_sync_banner()
+	rewarded_availability_changed.emit()
 
 
 ## Onboarding tamamlanmış mı (Main kayıttan verir; M8.10 tutorial bitince
@@ -384,9 +540,9 @@ func onboarding_completed() -> bool:
 	return _onboarding_completed
 
 
-## Reklam istenebilir mi: izin + SDK + onboarding (hepsi birlikte).
+## Reklam istenebilir mi: izin + SDK + onboarding + yaş kapısı (hepsi birlikte).
 func _ads_enabled() -> bool:
-	return _backend != null and ads_allowed() and _sdk_ready and _onboarding_completed
+	return _backend != null and ads_allowed() and _sdk_ready and _onboarding_completed and _age_ads_allowed()
 
 
 ## Main açılışta kayıttan çağırır (ekranlar yerleşmeden ÖNCE — yuva) ve
@@ -434,12 +590,20 @@ func _maybe_start_consent() -> void:
 	_start_consent()
 
 
+## TASK/043: UMP yalnız kapı açıkken (eklenti kurulu + bant TEEN / ADULT + oturum açık).
+## Yeniden denemeler ve talep üzerine tazeleme de bu kapıdan geçer (`_start_consent`).
+func _consent_gate_open() -> bool:
+	return _backend_attached and _age_ads_allowed()
+
+
 ## Rıza akışı bu yönetici örneğinde hiç başlatıldı mı (testler + teşhis).
 func consent_started() -> bool:
 	return _consent_kickoff_done
 
 
 func _start_consent() -> void:
+	if not _consent_gate_open():
+		return
 	_cancel_timer(_consent_retry_timer)
 	_consent_retry_timer = null
 	_consent_kickoff_done = true
@@ -456,6 +620,8 @@ func _on_consent_retry() -> void:
 
 
 func _on_consent_info_updated() -> void:
+	if not _backend_attached:
+		return   # TASK/043: kapı kapalıyken UMP sorulmadı — başıboş sinyal yok sayılır.
 	_consent_checked = true
 	_resolve_consent(false)
 
@@ -464,6 +630,8 @@ func _on_consent_info_updated() -> void:
 ## taşır (UMP belgesi) — o değer izin veriyorsa reklam istenebilir
 ## (ERROR_WITH_PREVIOUS_STATE), vermiyorsa sınırlı yeniden deneme.
 func _on_consent_info_update_failed(_code: int, _message: String) -> void:
+	if not _backend_attached:
+		return
 	_consent_checked = true
 	_resolve_consent(true)
 
@@ -475,6 +643,10 @@ func _on_consent_info_update_failed(_code: int, _message: String) -> void:
 func _resolve_consent(after_error: bool) -> void:
 	var status: AdBackend.ConsentStatus = _backend.consent_status()
 	_update_privacy_options()
+	if not _consent_gate_open():
+		# TASK/043: güncelleme yoldayken oturum kapandı (ör. Ayarlar'dan 13 altı) — rıza formu,
+		# SDK ve yeniden deneme YOK. Gizlilik seçenekleri satırı yukarıda güncellendi.
+		return
 	if not after_error and status == AdBackend.ConsentStatus.REQUIRED and _backend.is_consent_form_available():
 		# loadAndShowConsentFormIfRequired'ın açık hâli (aynı SDK çağrıları).
 		_set_state(AdsState.CONSENT_FORM)
@@ -525,6 +697,9 @@ func _schedule_consent_retry() -> void:
 
 func _on_consent_form_loaded() -> void:
 	if _form_purpose == FormPurpose.NONE:
+		return
+	if _form_purpose == FormPurpose.STARTUP and not _consent_gate_open():
+		_form_purpose = FormPurpose.NONE   # TASK/043: yükleme sürerken oturum kapandı
 		return
 	_backend.show_consent_form()
 
@@ -612,6 +787,8 @@ func consent_form_covering() -> bool:
 # --- SDK ------------------------------------------------------------------------
 
 func _ensure_sdk() -> void:
+	if not _consent_gate_open():
+		return   # TASK/043: bilinmeyen / 13 altı / oturumu kapatılmış bant -> SDK yok.
 	if _sdk_ready or _sdk_initializing:
 		_preload_rewarded()
 		_preload_interstitial()
@@ -621,6 +798,10 @@ func _ensure_sdk() -> void:
 		return
 	# Google: Mobile Ads SDK yalnız canRequestAds() true iken başlatılır.
 	if not _request_permitted():
+		return
+	# TASK/043: SDK'ya gidecek yaş işlemi + derece hâlâ bu bandın rotası mı (fail-closed).
+	if not _backend_matches_route(AgeGate.ad_route(_age_band)):
+		_block_age_session()
 		return
 	_sdk_initializing = true
 	if not _backend.initialize():
@@ -652,7 +833,12 @@ func is_rewarded_ready() -> bool:
 
 ## CTA pasifken pencerede yazan sebep; hazırken boş.
 func rewarded_note() -> String:
-	if _backend == null or _state == AdsState.UNAVAILABLE:
+	if _backend == null:
+		return NOTE_NO_BACKEND
+	if not _age_ads_allowed():
+		# TASK/043: yaş kapısı kapalı — nötr not (yaşı / sebebi söylemez).
+		return NOTE_UNAVAILABLE
+	if _state == AdsState.UNAVAILABLE:
 		return NOTE_NO_BACKEND
 	if not _onboarding_completed or _sdk_refused:
 		return NOTE_UNAVAILABLE
@@ -681,7 +867,7 @@ func rewarded_note() -> String:
 ## Pencere açıldı: hazır değilse (rıza reddi dışında) bir yükleme daha dene —
 ## geri çekilme beklemesi kısaltılır, spam yok (ON_DEMAND_MIN_INTERVAL).
 func ensure_rewarded() -> void:
-	if _backend == null or not _onboarding_completed:
+	if _backend == null or not _onboarding_completed or not _age_ads_allowed():
 		return
 	if _state == AdsState.ADS_NOT_ALLOWED:
 		# Rıza reddi/hatası sonrası pencere açıldı: sınırlı aralıkla bir
@@ -1034,7 +1220,7 @@ func _interstitial_expired() -> bool:
 
 ## Aktif süre sayılabilir mi (bkz. üst not).
 func _counting_allowed() -> bool:
-	return (_backend != null and _onboarding_completed and not _app_paused
+	return (_backend != null and _onboarding_completed and _age_ads_allowed() and not _app_paused
 		and not consent_form_covering() and not fullscreen_ad_active())
 
 
@@ -1093,6 +1279,8 @@ func try_show_interstitial(break_name: String, continue_callback: Callable) -> b
 func _interstitial_block_reason() -> String:
 	if _backend == null or not _onboarding_completed:
 		return "disabled"
+	if not _age_ads_allowed():
+		return "age_gate"
 	if not _interstitial_eligible:
 		return "not_eligible"
 	if _sdk_refused:
@@ -1333,7 +1521,10 @@ func banner_slot_px() -> float:
 
 
 func _compute_banner_slot() -> void:
-	var height_dp: int = _backend.adaptive_banner_height_dp() if _onboarding_completed else 0
+	# TASK/043: yuva yalnız eklenti kurulu ve bant reklamlıyken; oturum sonradan kapatılırsa
+	# (NEXT_LAUNCH) yuva SABİT kalır — düzen zıplamaz, boş yuvada zemin görünür.
+	var slot_open: bool = _onboarding_completed and _backend_attached and bool(AgeGate.ad_route(_age_band)["ads"])
+	var height_dp: int = _backend.adaptive_banner_height_dp() if slot_open else 0
 	var previous: float = _banner_slot_px
 	if height_dp <= 0:
 		_banner_slot_px = 0.0
@@ -1445,7 +1636,8 @@ func _cancel_timer(timer: SceneTreeTimer) -> void:
 # --- Testler / teşhis --------------------------------------------------------------
 
 func describe() -> String:
-	return "ads=%s papi=%s priv=%s sdk=%s onb=%s rewarded=%s ready=%s inter=%s elig=%s active=%.0f cool=%.0f banner=%s surface=%s slot=%d req=%s" % [
+	return "age=%s attached=%s age_blocked=%s ads=%s papi=%s priv=%s sdk=%s onb=%s rewarded=%s ready=%s inter=%s elig=%s active=%.0f cool=%.0f banner=%s surface=%s slot=%d req=%s" % [
+		AgeGate.band_name(_age_band), str(_backend_attached), str(_age_session_blocked),
 		AdsState.keys()[_state], str(_privacy_api), str(_privacy_options_required), str(_sdk_ready), str(_onboarding_completed),
 		RewardedState.keys()[_rewarded_state], str(is_rewarded_ready()),
 		InterstitialState.keys()[_interstitial_state], str(_interstitial_eligible), _active_elapsed,

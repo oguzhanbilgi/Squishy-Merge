@@ -28,15 +28,24 @@ UNSPECIFIED / CHILD / TEEN) üretim eklentisinde teknik olarak hazır, **üretim
 herkes için UNSPECIFIED**; istek yapılandırması `MobileAds.initialize()`'dan ÖNCE bir kez
 uygulanıp geri okunarak doğrulanıyor, uyuşmazlıkta SDK başlatılmıyor (fail-closed); SDK
 yapılandırıldıktan sonra yaş işlemi kilitli. Derece G, TFCD / TFUA değişmedi; Play Age
-Signals reklamda asla kullanılmaz. **Yaş bandı yönlendirmesi YOK** (TASK/043, başlamadı) →
-13–17 genç reklam işlemi OWNER `UYUM:` engeli AÇIK (`teen_ad_treatment_resolved=false`);
-Samsung A36 kapısı GEÇTİ; release kapısı BLOCKED — CODE 0 · OWNER 9 · CONFIG 0. Sırada:
-**TASK/043** (owner onaylı, gelir
-odaklı yaş bandı yönlendirmesi: 13–17 → TEEN, 18+ → olağan rıza denetimli yetişkin yolu,
-UNSPECIFIED; başlamadı, UYUM engelini kendiliğinden KAPATMAZ) → 13–17 uyum kararı (owner)
-→ gizlilik politikası → upload anahtarı → gerçek AdMob kimlikleri → mağaza varlıkları /
-Play Console, sonra ilk imzalı üretim AAB'si ve M10 (Play kapalı test) ·
-**Branch:** `main` == origin/main — `task/042-gma25-production` (`83b86a9` kod + `3d15402`
+Signals reklamda asla kullanılmaz. Samsung A36 kapısı GEÇTİ; main'de release kapısı BLOCKED
+— CODE 0 · OWNER 9 · CONFIG 0. **TASK/043 (2026-09-27, dal `task/043-age-band-routing`,
+main'e ALINMADI — owner onayı bekliyor):** nötr doğum tarihi ekranı (tutorial ve tutorial
+kaynaklı Level 1'den sonra İLK güvenli kabukta; eski kayıtta açılıştaki Ana Sayfa) + yaş
+bandı reklam yönlendirmesi — **13–17 → TFAT TEEN + derece T, 18+ → UNSPECIFIED + MA, 13 altı
+/ bilinmeyen → reklam SDK'sı / UMP / reklam YOK** (13 altı: nötr kısıt ekranı, ilerleme
+silinmez); ham doğum tarihi saklanmaz / gönderilmez / loglanmaz (kayıtta yalnız
+`age_ad_band` + `next_age_transition_date`); 18. yaş günü (ve 13 altı → TEEN) soğuk açılışta
+SDK'dan önce; Ayarlar'da "Yaş bilgisi"; Play Age Signals reklamda KULLANILMAZ. Resmî
+araştırma iki somut açık madde buldu → yeni OWNER / UYUM satırları (Play "Uygunsuz
+reklamlar": uygulamanın içerik derecesi T / MA'ya uygun olmalı; yargı bölgesi yaş
+yükümlülükleri); dalda kapı BLOCKED — CODE 0 · OWNER 11 · CONFIG 0 (A36 kapısı bekliyor;
+ayrıntı docs/monetization/AGE_BAND_ROUTING.md). Sırada: TASK/043 A36 kapısı → owner
+incelemesi / main onayı → içerik derecesi + yargı bölgesi kararları (owner) → gizlilik
+politikası → upload anahtarı → gerçek AdMob kimlikleri → mağaza varlıkları / Play Console,
+sonra ilk imzalı üretim AAB'si ve M10 (Play kapalı test) ·
+**Branch:** `task/043-age-band-routing` (main `249a6e1` üstünden; main'e alınmadı) ·
+`main` == origin/main — `task/042-gma25-production` (`83b86a9` kod + `3d15402`
 A36 kapısı / doküman kaydı) ff-only alındı (2026-09-27, owner onayıyla; ağaç eşit); önce
 aynı gün `task/041-fix-request-configuration` (`7e1e378` + `d32a4d3`) ve
 `task/040-global-teen-compliance` (`025214a` + `e152986`, TASK/040 fizibilite denetimi +
@@ -1495,9 +1504,9 @@ squishy-merge/
 
 | script | işi |
 |---|---|
-| `ads/monetization_manager.gd` | `MonetizationManager` — tek üretim reklam soyutlaması: UMP rıza yaşam döngüsü, SDK başlatma, ödüllü durum makinesi (devam + refill + günlük sandık + günlük Hamur, talep bağlamı, önyükleme, geri çekilme), **geçiş reklamı durum makinesi + aktif süre saati + doğal mola (`try_show_interstitial`) + 60 sn tam ekran beklemesi (M8.9-02)**, banner yaşam döngüsü + yuva (5 yüzey), onboarding kapısı, olaylar. Main'in çocuğu (autoload değil); eklentisiz platformda yaratılmaz. |
+| `ads/monetization_manager.gd` | `MonetizationManager` — tek üretim reklam soyutlaması: **yaş kapısı (TASK/043: bant → rota TFAT + derece → geri doğrulama → attach → UMP; UNKNOWN / UNDER_13'te eklenti / UMP / SDK yok; SDK sonrası bant değişimi oturumu reklamsız yapar)**, UMP rıza yaşam döngüsü, SDK başlatma, ödüllü durum makinesi (devam + refill + günlük sandık + günlük Hamur, talep bağlamı, önyükleme, geri çekilme), **geçiş reklamı durum makinesi + aktif süre saati + doğal mola (`try_show_interstitial`) + 60 sn tam ekran beklemesi (M8.9-02)**, banner yaşam döngüsü + yuva (5 yüzey), onboarding kapısı, olaylar. Main'in çocuğu (autoload değil); eklentisiz platformda yaratılmaz. |
 | `ads/ad_backend.gd` | `AdBackend` — SDK'ya bakan soyut arayüz (düz tipli sinyaller). |
-| `ads/admob_backend.gd` | `AdmobBackend` — eklentinin `Admob` düğümünü sarar; kimlikler `AdConfig`'ten; banner uyarlanabilir/alt/güvenli alan; TFCD/TFUA UNSPECIFIED, içerik G. |
+| `ads/admob_backend.gd` | `AdmobBackend` — eklentinin `Admob` düğümünü sarar; kimlikler `AdConfig`'ten; banner uyarlanabilir/alt/güvenli alan; TFCD/TFUA UNSPECIFIED, içerik G. *(TASK/042: yapılandırma init öncesi + geri okuma, kilit. TASK/043: yaş işlemi + en yüksek derece yaş bandından — `set_max_ad_content_rating` aynı kilitle; getter'lar attach öncesi güvenli.)* |
 | `ads/ad_config.gd` | `AdConfig` — `addons/AdmobPlugin/android_export.cfg` → is_real + app/rewarded/banner kimlikleri + debug_geography; gerçek modda eksik/örnek kimlikte geçersiz. |
 | `ads/ad_events.gd` | `AdEvents` — analitik olay dikişi (28 olay: ödüllü / banner / interstitial / günlük; abone/son 200); sağlayıcı sonraki milestone. |
 
@@ -1515,6 +1524,7 @@ squishy-merge/
 | `game/drop_bag.gd` | Bag randomizer (§4.4). |
 | `game/chest_system.gd` / `chest_reward.gd` | Sandık kurası ve ödül nesnesi; `ChestReward.title/description/note` oyuncuya Türkçe (M8.6-09), iç ad `rarity_name` değişmedi. |
 | `game/shop.gd` | Fiyatlar ve satın alma. **Fiyat tune edilecek tek yer.** |
+| `game/age_gate.gd` | `AgeGate` (TASK/043) — SAF yaş hesabı: takvim yaşı (13. / 18. yaş günü, 29 Şubat → 1 Mart), doğum tarihi → bant + geçiş günü, kayıttaki durumun doğrulanması + soğuk açılış geçişleri (fail-closed → UNKNOWN), owner yönlendirme tablosu (`ad_route`: TEEN → TEEN + T, ADULT → UNSPECIFIED + MA), bozuk saat denetimi. Autoload'a dokunmaz (release kapısı da derler). |
 | `game/daily_reward.gd` | Günlük GİRİŞ ödülü + streak (GAME_DESIGN §5.4; ekonomi değişmedi). M8.9-02.1: onboarding false iken `claim_if_new_day` / `is_claimable` no-op (kayıt mutasyonu yok); `claimed_today()` / `view()` pencere görünümü. |
 | `game/daily_rewards.gd` | `DailyRewards` (M8.9-02) — GÜNLÜK ÖDÜLLER modelinin tek yetkili noktası: yerel gün anahtarı + geri alma koruması, üç ayrı kota (ücretsiz sandık 1 / reklamlı sandık 2 / reklamlı +150 Hamur 1), tek transaction grant'ler, otomatik pencere işareti; RNG enjekte edilir. |
 | `game/daily_chest_loot.gd` / `daily_chest_reward.gd` | `DailyChestLoot` (DAILY reçetesi: +15 garanti, %30 skin, 60/25/12/3, sahip olunmayan skin, tükenmişse +15 bonus) + `DailyChestReward` (değişmez sonuç). Level sandığı reçetesi (`chest_system.gd`) DEĞİŞMEDİ. |
@@ -1545,9 +1555,11 @@ squishy-merge/
 | `ui/ui_toggle.gd` | Ayarlar anahtarı (M8.5-10); `UiKit.switch_toggle` ile LayerLab ray/topuz; ScrollContainer içinde kaydırma başlayınca basış ölçeğini bırakır (M8.6-08). |
 | `ui/ui_kit.gd` | Production UI bileşen fabrikası (M8.6-01+): `modal_frame` (Mağaza onayı), **`modal_shell` iskelet v2** (kurdele/başlık+tepelik, oturmuş X, kaydırılan gövde + sabit altlık, tavan sistemi, `attach_dim_close`, `settings_row`) (M8.6-08). |
 | `ui/streak_strip.gd` | `StreakStrip` — Günlük ödül seri şeridi: 7 düğüm (alınmış / bugün / gelecek), bağlantı çizgileri, gün numaraları, "+N" rozeti (M8.6-08). |
-| `ui/settings_panel.gd` | Ayarlar penceresi (M8.6-08 yeniden kurulum, shell v2): ses efektleri, titreşim (M8.5-15), gizlilik (gövdede açılır, taşmaz; metin M8.9-01'de AdMob'u anlatır), **"Gizlilik seçenekleri" satırı yalnız UMP form sunuyorsa** (M8.9-01), sürüm; yalnız `set_sfx_enabled` / `set_haptics_enabled` yazar. |
+| `ui/settings_panel.gd` | Ayarlar penceresi (M8.6-08 yeniden kurulum, shell v2): ses efektleri, titreşim (M8.5-15), gizlilik (gövdede açılır, taşmaz; metin M8.9-01'de AdMob'u anlatır), **"Gizlilik seçenekleri" satırı yalnız UMP form sunuyorsa** (M8.9-01), sürüm; yalnız `set_sfx_enabled` / `set_haptics_enabled` yazar. *(TASK/043: "Yaş bilgisi → Güncelle" satırı yalnız TEEN / ADULT'ta — nötr yaş ekranını yeniden giriş kipinde açar; gizlilik metnine yaş cümlesi.)* |
 | ~~`ui/daily_reward_popup.gd`~~ | **Silindi (M8.9-02.1):** M8.6-08 giriş ödülü penceresi; işlevi birleşik GÜNLÜK ÖDÜLLER penceresinin üst bölgesine taşındı (`StreakStrip` yeniden kullanılıyor). |
 | `ui/daily_rewards_popup.gd` | GÜNLÜK ÖDÜLLER penceresi (M8.9-02 / 02.1, shell v2 kurdele + X) — oyuncunun TEK günlük ödül penceresi: üst bölge "N. GÜN · +15 HAMUR · ALINDI" + seri şeridi (giriş ödülü pencereden önce `DailyReward` ile yazılmış gelir; ilk açılışta kutlama), üç seçenek kartı (ücretsiz sandık AÇ / +150 Hamur REKLAM İZLE / reklamlı sandık REKLAM İZLE), durum rozetleri, sağlayıcı notları, in-modal reveal (RewardGem → +N HAMUR → YENİ SKİN kartı hale payıyla, DEVAM). Ödül vermez, kayda yazmaz; yalnız sinyal. |
+| `ui/age_gate_panel.gd` | Nötr yaş ekranı (TASK/043, shell v2, tepeliksiz): Gün / Ay / Yıl + oyun içi tuş takımı, hazır tarih yok, her tarihte aynı onay adımı, geçersiz / gelecek / çok eski için aynı nötr hata; ZORUNLU / YENİDEN GİRİŞ kipleri; rakamlar yalnız bellekte, dışarı yalnız `resolved(band, transition)`. |
+| `ui/age_restricted_screen.gd` | 13 altı nötr kısıt ekranı (TASK/043, katman 30): eşik / tekrar dene / ebeveyn izni yok, ilerleme silinmez, tek eylem ÇIKIŞ. |
 | `ui/pause_menu.gd` / `ui/bonus_chest_info.gd` | Mola ve Bonus Sandık bilgi pencereleri — shell v2, oturmuş X (M8.6-08 cila; eylemler/kural değişmedi). |
 | ~~`ui/candy_button.gd`~~ | **Silindi (M8.6-10):** M8.5-08 candy pill CTA'ları; son kullanıcıları Devam + Refill `UiKit`e geçti. Dokuları (`cta_button_*`, `power_button_*`, `panel_candy.png`) ve M8.5 ikon klasörü (`ui/icons/`) de kaldırıldı. |
 | `ui/revive_offer.gd` | Devam (revive) teklifi (M8.6-10 production yeniden kurulum, shell v2 + tepelik): DEVAM HAKKI plakası (iki kalp, `icon_heart_revive`), DEVAM ET kahraman / BİTİR; sağlayıcı yokken CTA pasif + sebep; talep kilidi; yalnız sinyal yayar, hak vermez. |
@@ -2061,6 +2073,30 @@ kaldırıldı, üretim paketi hiç kurulmadı, owner'ın paketi dokunulmadı. 13
 owner yönü (2026-09-27): TASK/043 yaş bandı yönlendirmesi (13–17 → TEEN, 18+ → olağan rıza
 denetimli yetişkin yolu, UNSPECIFIED) — başlamadı, engeli kendiliğinden kapatmaz. Kanıt
 `build/qa_042/` (yerel); ayrıntı docs/monetization/ADS_SYSTEM.md.
+
+**TASK/043 — nötr yaş ekranı + yaş bandı reklam yönlendirmesi (2026-09-27; dal
+`task/043-age-band-routing`, main `249a6e1` üzerine; main'e alınması owner onayı bekliyor).**
+Owner iş kararı: dünya geneli, ürün kitlesi 13+; 13–17 reklam alabilir (TFAT TEEN + en yüksek
+derece T), 18+ olağan yetişkin yolu (UNSPECIFIED + MA), 13 altı ve bilinmeyen yaş → reklam
+SDK'sı başlamaz, UMP yok, reklam yok. Resmî Google kaynakları yeniden okundu (Play hedef kitle /
+nötr yaş ekranı / Families / Data safety / Uygunsuz reklamlar / Age Signals şartları; AdMob
+TFAT / derece / RequestConfiguration / UMP) — hukuki sonuç çıkarılmadı. Kod: `AgeGate` (saf
+takvim yaşı + geçişler + tablo), `SaveManager` (yalnız `age_ad_band` + `next_age_transition_date`,
+eski kayıt → UNKNOWN), nötr panel + kısıt ekranı, Main (İLK güvenli kabukta sorar; tutorial /
+round ortası ASLA; günlük pencere yaştan sonra; Ayarlar → Yaş bilgisi), `MonetizationManager`
+(rota → geri doğrulama → attach → UMP → init öncesi yeniden doğrulama → yapılandırma + geri
+okuma → init; SDK sonrası bant değişimi oturumu reklamsız yapar, sonraki soğuk açılış yeni
+bantla), `AdmobBackend` derece kilidi, `[Audience] max_ad_content_rating` kaldırıldı, owner
+kayıtları (`teen_ad_treatment`, `app_content_rating`, `jurisdiction_age_review`). Kapı: genç
+işlemi engeli owner kaydı + kod tablosuyla kalkar; yeni OWNER / UYUM: içerik derecesi ↔ T / MA,
+yargı bölgesi değerlendirmesi; CODE: tablo sapması; CONFIG: preset yedeklemesi açık. Çekişmeli
+salt-okunur inceleme (7 mercek): HIGH yok; onaylanan MEDIUM'lar (yoldaki rıza formu oturum
+kapanınca, QA harness'ın attach'siz getter'ları, banner yuvası sonrası yeniden yerleşim,
+tepelik, alan düzeltme, "kaydedildi" metni nötrlüğü, gizlilik metinleri) ve LOW'lar düzeltildi
+(çözüm tablosu `build/qa_043/review/RESOLUTION.md`). Testler: `age_gate_test` 137,
+`age_ad_routing_test` 112, `release_config_test` 201, monetization 257, interstitial 60,
+daily_rewards 179, tutorial 200, secondary_modal_ui 100 + tam regresyon. Samsung A36 kapısı:
+docs/monetization/AGE_BAND_ROUTING.md §11. Ayrıntı: AGE_BAND_ROUTING.md.
 
 **Ortam neredeyse hazır** (§2'deki tabloya bakın). Godot, export
 template'leri, Android SDK, NDK, JDK 17 ve debug keystore mevcut.

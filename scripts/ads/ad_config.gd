@@ -18,9 +18,15 @@ extends RefCounted
 ## Aynı kurallar export anında (addons/squishy_release) ve testlerde
 ## (tools/release_config_test) çalışır — tek doğrulayıcı `problems()`.
 ##
-## [Audience] (M9-01): TFCD / TFUA / en yüksek içerik derecesi burada; owner
-## kararı verilene kadar M8.9 değerleri (gönderilmez / gönderilmez / G) ve
-## release export'u reddedilir (docs/monetization/AUDIENCE_DECISION.md).
+## [Audience] (M9-01): ürün kitlesi kararı + eski TFCD / TFUA etiketleri (unspecified —
+## gönderilmez). TASK/043: en yüksek reklam derecesi ARTIK BURADA DEĞİL — yaş bandından
+## gelir (AgeGate.ad_route: TEEN "T", ADULT "MA"); dosyada eski `max_ad_content_rating`
+## anahtarı kalırsa yapılandırma GEÇERSİZ olur (sessizce yok sayılan, yanıltıcı bir ayar
+## olmasın). Owner kayıtları (üçünü de YALNIZ release kapısı okur; çalışma zamanı davranışını
+## DEĞİŞTİRMEZLER — docs/monetization/AUDIENCE_DECISION.md, AGE_BAND_ROUTING.md):
+##   `teen_ad_treatment`       13–17 genç reklam işlemi stratejisi ("" / "age_band_routing")
+##   `app_content_rating`      uygulamanın Play içerik derecesi ("" / 3+ / 7+ / 12+ / 16+ / 18+)
+##   `jurisdiction_age_review` yargı bölgesi yaş yükümlülükleri değerlendirmesi ("" / "recorded")
 
 const CONFIG_PATH: String = "res://addons/AdmobPlugin/android_export.cfg"
 
@@ -42,7 +48,16 @@ const DEBUG_GEOGRAPHY_VALUES: Array[String] = ["", "disabled", "eea", "not_eea",
 ## Kitle kararı anahtarları (owner, AUDIENCE_DECISION.md). "" = karar yok.
 const AUDIENCE_DECISIONS: Array[String] = ["general_13_plus", "mixed_audience", "child_directed"]
 const TAG_VALUES: Array[String] = ["unspecified", "true", "false"]
+## SDK'nın kabul ettiği en yüksek reklam derecesi değerleri (arka uç doğrulaması).
 const CONTENT_RATINGS: Array[String] = ["G", "PG", "T", "MA"]
+## 13–17 genç reklam işlemi stratejisi kaydı (owner). "" = kayıt yok.
+const TEEN_AD_TREATMENTS: Array[String] = ["age_band_routing"]
+## Yargı bölgesi yaş yükümlülükleri değerlendirmesi kaydı (owner / hukuk). "" = kayıt yok.
+const JURISDICTION_AGE_REVIEWS: Array[String] = ["recorded"]
+## Uygulamanın Google Play içerik derecesi (IARC genel yaş etiketi) — owner Play Console
+## içerik derecelendirme anketinden sonra kaydeder; "" = kayıt yok. Release kapısı bununla
+## yönlendirmenin reklam derecelerini karşılaştırır (Play "Uygunsuz reklamlar" politikası).
+const APP_CONTENT_RATINGS: Array[String] = ["3+", "7+", "12+", "16+", "18+"]
 
 ## AdMob kimlik biçimleri (16 haneli yayıncı; ~ uygulama, / reklam birimi).
 const APP_ID_PATTERN: String = "^ca-app-pub-\\d{16}~\\d{10}$"
@@ -66,7 +81,12 @@ var debug_geography: String = ""
 var audience_decision: String = ""
 var tag_for_child_directed_treatment: String = "unspecified"
 var tag_for_under_age_of_consent: String = "unspecified"
-var max_ad_content_rating: String = "G"
+## `[Audience] teen_ad_treatment` (owner stratejisi kaydı, TASK/043); "" = yok.
+var teen_ad_treatment: String = ""
+## `[Audience] app_content_rating` (uygulamanın Play içerik derecesi, owner); "" = yok.
+var app_content_rating: String = ""
+## `[Audience] jurisdiction_age_review` (owner / hukuk değerlendirmesi kaydı); "" = yok.
+var jurisdiction_age_review: String = ""
 var source: String = "defaults"
 ## İlk sorun (geriye uyumlu tek satır); tamamı `problems()`.
 var error: String = ""
@@ -132,7 +152,11 @@ func _load(path: String) -> void:
 		"unspecified")).strip_edges().to_lower()
 	tag_for_under_age_of_consent = String(file.get_value("Audience", "tag_for_under_age_of_consent",
 		"unspecified")).strip_edges().to_lower()
-	max_ad_content_rating = String(file.get_value("Audience", "max_ad_content_rating", "G")).strip_edges().to_upper()
+	teen_ad_treatment = String(file.get_value("Audience", "teen_ad_treatment", "")).strip_edges().to_lower()
+	app_content_rating = String(file.get_value("Audience", "app_content_rating", "")).strip_edges()
+	jurisdiction_age_review = String(file.get_value("Audience", "jurisdiction_age_review", "")).strip_edges().to_lower()
+	if file.has_section_key("Audience", "max_ad_content_rating"):
+		_problems.append("[Audience] max_ad_content_rating artık kullanılmıyor (TASK/043: derece yaş bandından — TEEN T, ADULT MA); anahtarı kaldır")
 	_validate()
 
 
@@ -144,8 +168,12 @@ func _validate() -> void:
 		_problems.append("geçersiz tag_for_child_directed_treatment '%s'" % tag_for_child_directed_treatment)
 	if not TAG_VALUES.has(tag_for_under_age_of_consent):
 		_problems.append("geçersiz tag_for_under_age_of_consent '%s'" % tag_for_under_age_of_consent)
-	if not CONTENT_RATINGS.has(max_ad_content_rating):
-		_problems.append("geçersiz max_ad_content_rating '%s'" % max_ad_content_rating)
+	if not teen_ad_treatment.is_empty() and not TEEN_AD_TREATMENTS.has(teen_ad_treatment):
+		_problems.append("geçersiz [Audience] teen_ad_treatment '%s'" % teen_ad_treatment)
+	if not app_content_rating.is_empty() and not APP_CONTENT_RATINGS.has(app_content_rating):
+		_problems.append("geçersiz [Audience] app_content_rating '%s' (3+ / 7+ / 12+ / 16+ / 18+)" % app_content_rating)
+	if not jurisdiction_age_review.is_empty() and not JURISDICTION_AGE_REVIEWS.has(jurisdiction_age_review):
+		_problems.append("geçersiz [Audience] jurisdiction_age_review '%s'" % jurisdiction_age_review)
 	if not audience_decision.is_empty() and not AUDIENCE_DECISIONS.has(audience_decision):
 		_problems.append("geçersiz [Audience] decision '%s'" % audience_decision)
 	var ids: Dictionary = {"app_id": app_id, "rewarded_id": rewarded_id, "banner_id": banner_id,
@@ -224,10 +252,11 @@ func set_debug_geography(value: String) -> bool:
 
 
 func describe() -> String:
-	return "AdConfig(build=%s, is_real=%s, file_is_real=%s, app_id=%s, rewarded=%s, banner=%s, interstitial=%s, geo=%s, audience=%s tfcd=%s tfua=%s rating=%s, source=%s%s)" % [
+	return "AdConfig(build=%s, is_real=%s, file_is_real=%s, app_id=%s, rewarded=%s, banner=%s, interstitial=%s, geo=%s, audience=%s tfcd=%s tfua=%s teen=%s, source=%s%s)" % [
 		"release" if build_type == BuildType.RELEASE else "debug", str(is_real), str(file_is_real),
 		app_id, rewarded_id, banner_id, interstitial_id,
 		effective_debug_geography() if not effective_debug_geography().is_empty() else "-",
 		audience_decision if not audience_decision.is_empty() else "-", tag_for_child_directed_treatment,
-		tag_for_under_age_of_consent, max_ad_content_rating, source,
+		tag_for_under_age_of_consent, (teen_ad_treatment if not teen_ad_treatment.is_empty() else "-")
+			+ " app_rating=" + (app_content_rating if not app_content_rating.is_empty() else "-"), source,
 		"" if error.is_empty() else ", HATA: " + error]

@@ -60,6 +60,17 @@
 > SDK'dan geri okunup doğrulanıyor; uyuşmazsa SDK başlamıyor (fail-closed). Yaş bandı
 > yönlendirmesi YOK (TASK/043, başlamadı); 13–17 `UYUM:` OWNER engeli AÇIK. Samsung A36
 > kapısı GEÇTİ (§16). Release kapısı hâlâ BLOCKED — CODE 0 · OWNER 9 · CONFIG 0.
+>
+> **TASK/043 (2026-09-27; dal `task/043-age-band-routing`, main'e alınması owner onayı
+> bekliyor):** nötr doğum tarihi ekranı + **yaş bandı reklam yönlendirmesi** (owner iş
+> kararı): 13–17 → TFAT **TEEN** + en yüksek derece **T**; 18+ → **UNSPECIFIED** + **MA**;
+> 13 yaş altı ve bilinmeyen yaş → eklenti düğümü kurulmaz, UMP sorulmaz, SDK başlamaz,
+> reklam yok (13 altı: kısıt ekranı). Rota rızadan ve attach'ten ÖNCE arka uca verilir;
+> yapılandırma + geri okuma yine `MobileAds.initialize()` öncesi (TASK/042 sözleşmesi).
+> SDK yapılandırıldıktan sonra bant değişirse işlem değişmez — reklam o oturumda kapanır,
+> yeni bant sonraki soğuk açılışta. Ham doğum tarihi saklanmaz / loglanmaz. Kullanıcıya görünen
+> reklam sözleşmesi (yüzeyler, kotalar, geçiş cadence'ı) TEEN / ADULT için DEĞİŞMEDİ.
+> Ayrıntı: [AGE_BAND_ROUTING.md](AGE_BAND_ROUTING.md), §17.
 
 ## 1. Kapsam (v1 monetizasyon planı)
 
@@ -167,7 +178,7 @@ TFUA} beklenenle karşılaştırılır. Uyuşmazlık ya da eksik geri okuma → 
 SDK başlatılmaz, yönetici terminal `sdk_refused` durumuna geçer (yeniden deneme yok,
 reklam yok). Yaş işlemi üretimde herkes için UNSPECIFIED
 (`MonetizationManager.DEFAULT_AGE_RESTRICTED_TREATMENT`, `attach` hemen sonrası, rıza /
-SDK'dan önce) ve SDK yapılandırıldıktan sonra kilitli. *(M8.9-01 – TASK/041: facade
+SDK'dan önce) ve SDK yapılandırıldıktan sonra kilitli. *(Sonra: TASK/043 — sabit kaldırıldı; yaş işlemi + derece yaş bandından (`AgeGate.ad_route`): TEEN → TEEN + T, ADULT → UNSPECIFIED + MA; UNKNOWN / UNDER_13 → eklenti / UMP / SDK yok — §17, AGE_BAND_ROUTING.md.)* *(M8.9-01 – TASK/041: facade
 yapılandırmayı SDK hazır olunca, `initialization_completed`'tan hemen önce
 uyguluyordu — §15.)*
 
@@ -346,7 +357,7 @@ Sağlayıcı YOK (sonraki milestone). `AdEvents.emit(name, ctx)`; abone
   `MobileAds.initialize()` ÖNCESİ bir kez uygulanır, geri okunup doğrulanır (§4); SDK
   yapılandırıldıktan sonra yaş işlemi kilitli. TEEN / CHILD'a yönlendirme (yaş bandı)
   TASK/043'ün işi — BAŞLAMADI; release kapısında `teen_ad_treatment_resolved=false`,
-  `UYUM:` engeli AÇIK.
+  `UYUM:` engeli AÇIK. *(Sonra: TASK/043 — sabit kaldırıldı; yaş işlemi + derece yaş bandından (`AgeGate.ad_route`): TEEN → TEEN + T, ADULT → UNSPECIFIED + MA; UNKNOWN / UNDER_13 → eklenti / UMP / SDK yok — §17, AGE_BAND_ROUTING.md.)*
 - **TASK/040 bulgusu — RequestConfiguration hiç uygulanmıyor (kapıda CODE):**
   facade'ın `set_request_configuration` Dictionary'si Java'ya Long / Object[] olarak
   geliyor; vendored v6.0 `AdmobConfiguration`'ın `(int)` / `(String[])` dönüşümleri
@@ -748,7 +759,7 @@ UMP canRequestAds() true → _ensure_sdk (bir kez; _sdk_ready / _sdk_initializin
   uygulamaz (tek uygulama, tek doğrulama). Onboarding rızayı + reklamları hâlâ erteliyor.
 - **Varsayılan:** `MonetizationManager.DEFAULT_AGE_RESTRICTED_TREATMENT` = **UNSPECIFIED**, herkes
   için; yaş bilgisi yok, Play Age Signals reklamda ASLA kullanılmaz, yönlendirme yok. Derece **G**,
-  TFCD / TFUA unspecified — DEĞİŞMEDİ; kitle `general_13_plus` değişmedi.
+  TFCD / TFUA unspecified — DEĞİŞMEDİ; kitle `general_13_plus` değişmedi. *(Sonra: TASK/043 — sabit kaldırıldı; yaş işlemi + derece yaş bandından (`AgeGate.ad_route`): TEEN → TEEN + T, ADULT → UNSPECIFIED + MA; UNKNOWN / UNDER_13 → eklenti / UMP / SDK yok — §17, AGE_BAND_ROUTING.md.)*
 - **Kilit:** yaş işlemi SDK yapılandırıldıktan sonra değiştirilemez —
   `set_age_restricted_treatment()` farklı bir değer için `false` + `push_error` döner, doğrulanmış
   yapılandırma geçerli kalır (aynı değer `true`). Gerekçe (çekişmeli inceleme): init sonrası
@@ -824,3 +835,43 @@ paketi (kayıt dahil) dokunulmadı (meta veri önce = sonra). Masaüstü owner k
 sonrası. Yerel kanıt: `build/qa_042/` (`A36_DEVICE_GATE.md`, `FACTS.md`, `device/`, `plugin/`,
 `tests/`, `integrity/`).
 
+
+## 17. TASK/043 — nötr yaş ekranı + yaş bandı reklam yönlendirmesi (2026-09-27)
+
+Kanonik ayrıntı: [AGE_BAND_ROUTING.md](AGE_BAND_ROUTING.md). Özet (kod gerçeği):
+
+- **Tek girdi:** `MonetizationManager.set_age_band(band)` — Main soğuk açılışta bandı
+  `SaveManager.resolve_age_band_at_launch(AgeGate.today())` ile (geçişler dahil) yöneticiyi
+  ağaca eklemeden ÖNCE verir; bilinmiyorsa İLK güvenli kabukta nötr yaş ekranı
+  (`scenes/ui/age_gate_panel.tscn`) çözer. Doğum tarihi yöneticiye / Main'e hiç gelmez.
+- **Rota (`AgeGate.ad_route`):** UNKNOWN / UNDER_13 → kapı KAPALI (attach yok, UMP yok, SDK
+  yok, yükleme yok, yuva 0, aktif süre saymaz, geçiş sebebi `age_gate`, ödüllü notu
+  "Reklam şu anda kullanılamıyor."); TEEN → `set_age_restricted_treatment(TEEN)` +
+  `set_max_ad_content_rating("T")`; ADULT → UNSPECIFIED + `"MA"`. CHILD hiçbir banda verilmez.
+- **Sıra:** rota → rota geri doğrulaması (arka ucun tuttuğu değer = tablo; değilse oturum
+  reklamsız) → `attach` → UMP (`canRequestAds`) → rota yeniden doğrulanır →
+  `AdmobBackend.initialize()` (yapılandırma + geri okuma: yaş işlemi, derece, TFCD, TFUA) →
+  `MobileAds.initialize()` → yüklemeler. Native uygulama + geri okuma TASK/042'nin kanıtlanmış
+  yerinde (UMP izninden sonra — debug test cihazı yolu AAID okur); AGE_BAND_ROUTING §7. Rıza
+  güncellemesi / form yüklemesi yoldayken oturum kapanırsa (ör. 13 altı beyanı) açılış rıza
+  formu yüklenmez / gösterilmez. `[Audience] max_ad_content_rating` kaldırıldı (geri gelirse yapılandırma
+  geçersiz); arka ucun rota verilmemiş varsayılanı en muhafazakâr UNSPECIFIED + G.
+- **Kilit:** derece de yaş işlemi gibi SDK yapılandırılınca kilitli
+  (`AdBackend.request_configured()`). Bant sonradan değişirse: SDK yapılandırılmadıysa bekleyen
+  rota güncellenir (`APPLIED`); yapılandırıldıysa işlem değişmez, `_block_age_session()` —
+  banner gizlenir, ödüllü / geçiş gösterilmez, yeni yükleme / yeniden deneme yok, yuva sabit,
+  gizlilik seçenekleri açık — `NEXT_LAUNCH` (panelin "kaydedildi" adımı her cevapta AYNI nötr
+  metni gösterir); 13 altına geçiş `ADS_STOPPED` + kısıt ekranı. Yuva ilk kez açılınca görünür
+  kabuk ekranı hemen yeniden yerleşir (`Main._on_banner_slot_changed`).
+- **Değişmeyenler (TEEN / ADULT):** banner yüzeyleri (Ana Sayfa / Harita / Mağaza /
+  Koleksiyon / oyun; Sonuç bannersız), ödüllü kotalar (+150 Hamur 1/gün, reklamlı sandık 2/gün,
+  refill 1/gün toplam, devam 2/round), geçiş (900 sn aktif süre, yalnız doğal mola, Sonuç hemen,
+  uygunluk korunur, 60 sn bekleme), tutorial + tutorial kaynaklı Level 1 reklamsız, ilk gün
+  kuralı, ekonomi.
+- **Testler:** `age_ad_routing_test` 112 (yönetici + UMP matrisi + bant değişimi + yoldaki
+  rıza + rota doğrulaması + Main akışları + bozuk saat + yeniden yerleşim), `age_gate_test` 137
+  (takvim / sınırlar / kayıt / gizlilik / UI / düzeltme); `monetization_test` 257,
+  `interstitial_test` 60, `daily_rewards_test` 179 ve görsel harness'ler olağan (ADULT) yolu
+  sürer; `tutorial_test` 200 (kabukta yaş ekranı); `release_config_test` 201 yönlendirme /
+  kapı kurallarını kilitler.
+- **A36:** AGE_BAND_ROUTING §11.

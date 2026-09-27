@@ -71,6 +71,10 @@ func _ready() -> void:
 	# yoksa Main dogrudan ilk acilis tutorial'ina girer. Kayit dosyasini
 	# geri koymayan baska bir suite diske `false` birakmis olabilir.
 	SaveManager.data["onboarding_completed"] = true
+	# TASK/043: QA APK'sında gerçek reklam yöneticisi var — yaş bilinmezse Main zorunlu yaş
+	# ekranını açar. Bu sürücü yetişkin rotasıyla ölçer (UNSPECIFIED + MA).
+	SaveManager.data["age_ad_band"] = "ADULT"
+	SaveManager.data["next_age_transition_date"] = ""
 	Haptics.set_sink(_on_device_haptic, true)
 	Haptics.reset_counters()
 	_log("=== gameplay_device %s view=%s hz=%.0f ===" % [_tag(), str(_size), DisplayServer.screen_get_refresh_rate()])

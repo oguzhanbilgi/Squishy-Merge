@@ -28,6 +28,41 @@
 > işlemi owner `UYUM:` engeli AÇIK (§6); Play Age Signals reklamda hiç kullanılmaz.
 > RequestConfiguration kusuru KAPALI kalıyor (TASK/041). Release kapısı BLOCKED —
 > CODE 0 · OWNER 9 · CONFIG 0.
+>
+> **TASK/043 (2026-09-27; dal `task/043-age-band-routing`, main'e alınması owner onayı
+> bekliyor):** UMP artık bir de **yaş bandı** ister (§0). Yaş bilinmiyorken (UNKNOWN) ve
+> 13 yaş altında (UNDER_13) `update_consent_info` HİÇ çağrılmaz, rıza formu açılmaz, SDK
+> başlamaz, eklenti düğümü bile kurulmaz. 13–17 (TEEN) ve 18+ (ADULT) bu dokümandaki rıza
+> akışından AYNEN geçer — Google'ın TEEN işleminin UMP'yi atladığına dair bir ifadesi yok;
+> TFUA `unspecified` kaldı (UMP TFUA'yı reklam isteklerine taşımaz, yaş işlemi ayrıca TFAT ile
+> verilir). Yaş ekranı ilk güvenli kabukta, rızadan ÖNCE (§0). Ayrıntı:
+> [AGE_BAND_ROUTING.md](AGE_BAND_ROUTING.md).
+
+## 0. Yaş kapısı (TASK/043)
+
+| bant | UMP `update_consent_info` | rıza formu | `canRequestAds` → SDK | reklam |
+|---|---|---|---|---|
+| UNKNOWN | YOK | YOK | YOK | YOK |
+| UNDER_13 | YOK | YOK | YOK | YOK (kısıt ekranı) |
+| TEEN | her açılışta (onboarding sonrası) | EEA / UK / CH'de gerekiyorsa | evet → TFAT TEEN + derece T ile yapılandır + geri oku → init | evet |
+| ADULT | her açılışta (onboarding sonrası) | EEA / UK / CH'de gerekiyorsa | evet → UNSPECIFIED + derece MA ile yapılandır + geri oku → init | evet |
+
+- Kapı `MonetizationManager._consent_gate_open()` (eklenti kurulu + bant TEEN / ADULT + oturum
+  kapatılmadı): açılış kick-off'u, planlı yeniden denemeler ve talep üzerine tazeleme
+  (`ensure_rewarded`) hepsi bu kapıdan geçer; kapı kapalıyken gelen başıboş rıza sinyali yok
+  sayılır. Güncelleme / form yüklemesi yoldayken oturum kapanırsa (ör. Ayarlar'dan 13 altı
+  beyanı) geç gelen sonuç işlenmez: açılış rıza formu yüklenmez / gösterilmez, SDK başlamaz
+  (`age_ad_routing_test`). SDK'ya bakan UMP getter'ları eklenti kurulmadan hiç çağrılmaz.
+- Sıra: rota (TFAT + derece) UMP'den ÖNCE sabitlenip geri doğrulanır; SDK'ya native uygulama +
+  geri okuma TASK/042'nin kanıtlanmış yerinde, UMP izninden sonra ve `MobileAds.initialize()`
+  öncesi kalır (debug test cihazı yolu reklam kimliğini okur — rızadan önce değil).
+- Bant SDK yapılandırıldıktan sonra değişirse (Ayarlar → Yaş bilgisi) reklam o oturumda kapanır;
+  **gizlilik seçenekleri formu açık kalır** (oyuncunun hakkı) — form kapanınca SDK yine
+  başlamaz / yükleme yapılmaz.
+- AÇIK uyum notu (owner / hukuk, AGE_BAND_ROUTING §9): Google, dijital rıza yaşının altındaki
+  EEA / UK / CH kullanıcıları için TFUA (UMP rıza sormaz; GMA 25'te karşılığı CHILD) araçlarını
+  gösteriyor; rıza yaşı ülkeye göre 13–16. Bu uygulama 13–17'yi ülkeden bağımsız TEEN + UMP
+  rızası ile yönlendiriyor (owner kararı).
 
 ## 1. İlke
 
@@ -154,7 +189,11 @@ durum görüyor (`monetization_test` "ABD eyalet mesajı").
   analitik yok; ilerleme cihazda; ödüllü, banner ve geçiş reklamları için
   Google AdMob; reklam SDK'sı reklam kimliği gibi cihaz verilerini Google'ın
   politikasına göre işleyebilir; uygulama içi satın alma yok. Bu bir ÖZET;
-  Play'in istediği tam gizlilik politikası değildir (§6).
+  Play'in istediği tam gizlilik politikası değildir (§6). *(Sonra: TASK/043 — bir cümle
+  eklendi: "Doğum tarihin saklanmaz; cihazda yalnızca yaş grubun ve bir sonraki gruba
+  geçiş günün (doğum günün) tutulur; reklam isteğine yalnızca yaş grubuna uygun ayar
+  eklenir." — owner / hukuk incelemesinde, AGE_BAND_ROUTING §9.7. Ayarlar'da ayrıca
+  "Yaş bilgisi → Güncelle" satırı, yalnız TEEN / ADULT'ta.)*
 - **"Gizlilik seçenekleri" satırı** (`lock`): yalnız
   `MonetizationManager.privacy_options_required()` true iken görünür — M9-01:
   UMP `getPrivacyOptionsRequirementStatus() == REQUIRED`. "Aç" →

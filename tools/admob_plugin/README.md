@@ -9,6 +9,9 @@ derleme betiği ve doğrulama aracı burada.
 (play-services-ads-api 25.3.0'ın geçişli bağımlılığı), TFAT
 (`AgeRestrictedTreatment` UNSPECIFIED / CHILD / TEEN) teknik olarak hazır —
 **üretim varsayılanı UNSPECIFIED**, yaş bandı yönlendirmesi YOK (TASK/043).
+*(Sonra: TASK/043 — oyun kodu yaş bandına göre yönlendirir: 13–17 → TEEN + derece T,
+18+ → UNSPECIFIED + MA, 13 altı / bilinmeyen → eklenti düğümü hiç kurulmaz. Eklenti ve
+yamalar DEĞİŞMEDİ — docs/monetization/AGE_BAND_ROUTING.md.)*
 
 | dosya | ne |
 |---|---|

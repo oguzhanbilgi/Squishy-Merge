@@ -24,6 +24,12 @@ extends Node
 ##     UNSPECIFIED; yapılandırma SDK başlamadan ÖNCE bir kez + geri okuma doğrulaması
 ##     (uyuşmazsa SDK başlamaz); Age Signals reklama bağlı DEĞİL; genç işlemi OWNER engeli AÇIK
 ##   - Ayarlar'daki "Gizlilik politikası" satırı (URL yokken gizli)
+##   - TASK/043: yaş bandı yönlendirmesi (nötr yaş ekranı; 13–17 TEEN + T, 18+ UNSPECIFIED +
+##     MA, 13 altı / bilinmeyen reklamsız): TFAT / derece yalnız AgeGate.ad_route'tan ve yalnız
+##     yöneticinin rota yolundan, attach'ten ÖNCE; [Audience] max_ad_content_rating kalktı;
+##     genç işlemi engeli owner kaydı + kod tablosu ile kalkar (kodda yazılı bayrak YOK);
+##     Play "Uygunsuz reklamlar" (uygulama içerik derecesi) ve yargı bölgesi yaş
+##     yükümlülükleri ayrı OWNER / UYUM engelleri
 ##
 ## Kayda yazmaz (yalnız user:// geçici dosyalar, sonda silinir); yine de kayıt
 ## dosyası byte-identical kontrol edilir.
@@ -90,6 +96,7 @@ func _ready() -> void:
 	_test_teen_treatment_boundaries()
 	_test_request_configuration_path()
 	_test_tfat_api()
+	_test_age_band_routing_gate()
 	await _test_privacy_policy_row()
 
 	for key in KEYSTORE_ENV:
@@ -279,13 +286,16 @@ func _test_audience() -> void:
 	var project := AdConfig.load_project()
 	_c("ürün kitlesi seçili: decision general_13_plus (13+ genel kitle; Play 13–15 / 16–17 / 18+), yapılandırma geçerli",
 		project.audience_decision == "general_13_plus" and project.is_valid())
-	_c("reklam etiketleri korunuyor: TFCD unspecified, TFUA unspecified, derece G (M8.9 değerleri)",
+	var audience_file := ConfigFile.new()
+	audience_file.load(AdConfig.CONFIG_PATH)
+	_c("eski yaş etiketleri korunuyor: TFCD unspecified, TFUA unspecified; derece anahtarı YOK (TASK/043: yaş bandından)",
 		project.tag_for_child_directed_treatment == "unspecified"
-		and project.tag_for_under_age_of_consent == "unspecified" and project.max_ad_content_rating == "G")
-	_c("projenin değerleri SDK'ya aynen: TFCD/TFUA UNSPECIFIED (gönderilmez — TEEN DEĞİL), derece G",
+		and project.tag_for_under_age_of_consent == "unspecified"
+		and not audience_file.has_section_key("Audience", "max_ad_content_rating")
+		and not ("max_ad_content_rating" in project))
+	_c("projenin eski etiketleri SDK'ya aynen: TFCD/TFUA UNSPECIFIED (gönderilmez — TEEN DEĞİL)",
 		AdmobBackend._tfcd(project.tag_for_child_directed_treatment) == AdmobConfig.TagForChildDirectedTreatment.UNSPECIFIED
-		and AdmobBackend._tfua(project.tag_for_under_age_of_consent) == AdmobConfig.TagForUnderAgeOfConsent.UNSPECIFIED
-		and AdmobBackend._content_rating(project.max_ad_content_rating) == AdmobConfig.ContentRating.G)
+		and AdmobBackend._tfua(project.tag_for_under_age_of_consent) == AdmobConfig.TagForUnderAgeOfConsent.UNSPECIFIED)
 	var plugin_api: String = FileAccess.get_file_as_string("res://addons/AdmobPlugin/Admob.gd") \
 		+ FileAccess.get_file_as_string("res://addons/AdmobPlugin/model/AdmobConfig.gd")
 	_c("TFCD/TFUA TEEN ifade edemez (enumlarında TEEN yok); TEEN yalnız ayrı TFAT enumunda (GMA 25.3.0, TASK/042) ve projenin [Audience] etiketleri onu seçmez",
@@ -310,23 +320,31 @@ func _test_audience() -> void:
 		and AdmobBackend._content_rating("PG") == AdmobConfig.ContentRating.PG
 		and AdmobBackend._content_rating("T") == AdmobConfig.ContentRating.T
 		and AdmobBackend._content_rating("MA") == AdmobConfig.ContentRating.MA)
-	_c("geçersiz TFCD / derece / karar -> yapılandırma GEÇERSİZ",
+	_c("geçersiz TFCD / karar / teen_ad_treatment / app_content_rating / jurisdiction_age_review -> yapılandırma GEÇERSİZ",
 		not _cfg({"Audience": {"tag_for_child_directed_treatment": "maybe"}}, AdConfig.BuildType.DEBUG).is_valid()
-		and not _cfg({"Audience": {"max_ad_content_rating": "X"}}, AdConfig.BuildType.DEBUG).is_valid()
-		and not _cfg({"Audience": {"decision": "kids"}}, AdConfig.BuildType.DEBUG).is_valid())
+		and not _cfg({"Audience": {"decision": "kids"}}, AdConfig.BuildType.DEBUG).is_valid()
+		and not _cfg({"Audience": {"teen_ad_treatment": "teen"}}, AdConfig.BuildType.DEBUG).is_valid()
+		and not _cfg({"Audience": {"app_content_rating": "PEGI 3"}}, AdConfig.BuildType.DEBUG).is_valid()
+		and not _cfg({"Audience": {"jurisdiction_age_review": "yes"}}, AdConfig.BuildType.DEBUG).is_valid())
+	var stale := _cfg({"Audience": {"max_ad_content_rating": "G"}}, AdConfig.BuildType.DEBUG)
+	_c("TASK/043: eski [Audience] max_ad_content_rating anahtarı (geçerli değerle bile) -> GEÇERSİZ (yanıltıcı, kullanılmayan ayar kalmaz)",
+		not stale.is_valid() and _problem_count(stale, "artık kullanılmıyor") == 1)
 	var decided := _cfg(_real_release({"Audience": {"tag_for_child_directed_treatment": "false",
-		"tag_for_under_age_of_consent": "false", "max_ad_content_rating": "pg"}}), AdConfig.BuildType.RELEASE)
-	_c("owner kararı kayda geçince değerler okunur (derece büyük harfe)", decided.is_valid()
+		"tag_for_under_age_of_consent": "false", "teen_ad_treatment": "Age_Band_Routing", "app_content_rating": "12+",
+		"jurisdiction_age_review": "recorded"}}), AdConfig.BuildType.RELEASE)
+	_c("owner kayıtları okunur (strateji küçük harfe, derece aynen)", decided.is_valid()
 		and decided.audience_decision == "general_13_plus" and decided.tag_for_child_directed_treatment == "false"
-		and decided.max_ad_content_rating == "PG")
+		and decided.teen_ad_treatment == "age_band_routing" and decided.app_content_rating == "12+"
+		and decided.jurisdiction_age_review == "recorded")
+	_c("bugünkü proje: üç owner kaydı da boş (strateji / içerik derecesi / yargı bölgesi değerlendirmesi)",
+		project.teen_ad_treatment == "" and project.app_content_rating == "" and project.jurisdiction_age_review == "")
 
 
 # --- ReleaseReadiness kuralları ------------------------------------------------------
 
-## "Her şey tamam" girdileri. `teen_ad_treatment_resolved = true` ve
-## `plugin_known_defects = []` GELECEĞİ modeller (13–17 genç reklam işlemi stratejisi
-## seçilmiş + uygulanmış; RequestConfiguration kusuru düzeltilmiş eklenti derlemesi);
-## bugünkü projede ikisi de açık.
+## "Her şey tamam" girdileri: GELECEĞİ modeller — 13–17 stratejisi kayıtta, yargı bölgesi
+## değerlendirmesi kayıtta, uygulamanın Play içerik derecesi yönlendirmenin T / MA
+## reklamlarına izin veriyor (16+), kod tablosu temiz, bilinen eklenti kusuru yok.
 func _good_inputs() -> Dictionary:
 	return {
 		"build": "release", "preset_name": "Android Release AAB",
@@ -338,7 +356,8 @@ func _good_inputs() -> Dictionary:
 		"privacy_policy_url": "https://squishy.invalid/privacy",
 		"plugin_release_aar_sha256": ReleaseReadiness.PATCHED_RELEASE_AAR_SHA256, "plugin_facade_patched": true,
 		"plugin_facade_tfat": true, "plugin_gma_version": ReleaseReadiness.REQUIRED_GMA_VERSION,
-		"teen_ad_treatment_resolved": true, "plugin_known_defects": [],
+		"teen_ad_treatment_resolved": true, "jurisdiction_age_review_recorded": true, "age_routing_problems": [],
+		"app_content_rating": "16+", "routed_ad_content_ratings": ["T", "MA"], "plugin_known_defects": [],
 		"non_publishable_requested": false, "export_path": "build/release/squishy_merge.aab",
 	}
 
@@ -378,6 +397,9 @@ func _test_release_gate_rules() -> void:
 	_c("com.godot.game (Godot varsayılanı) -> engel", _gate({"package_id": "com.godot.game",
 		"canonical_package_id": "com.godot.game"})["status"] == ReleaseReadiness.STATUS_BLOCKED)
 	_c("preset paket ≠ project.godot -> CONFIG", _blocked_by(_gate({"package_id": "com.squishy.other"}), "CONFIG", "≠"))
+	_c("TASK/043: preset user_data_backup/allow=true (kayıt otomatik yedeğe) -> CONFIG; varsayılan / false engel değil",
+		_blocked_by(_gate({"user_data_backup_allowed": true}), "CONFIG", "user_data_backup/allow")
+		and _gate({"user_data_backup_allowed": false})["status"] == ReleaseReadiness.STATUS_UPLOAD_CANDIDATE)
 	_c("geçersiz paket biçimi -> engel", _gate({"package_id": "squishy", "canonical_package_id": "squishy"})["status"]
 		== ReleaseReadiness.STATUS_BLOCKED)
 	var qa: String = ReleaseReadiness.qa_package_id("com.squishy.merge")
@@ -410,8 +432,10 @@ func _test_release_gate_rules() -> void:
 	_c("fail-closed: mixed_audience -> CODE + ayrı UYUM (13–17 de hedefte); child_directed -> CODE, UYUM yok (yalnız 13 altı)",
 		_blocked_by(mixed, "CODE", "mixed_audience") and _blocked_by(mixed, "OWNER", "UYUM:")
 		and _blocked_by(child, "CODE", "child_directed") and not _blocked_by(child, "OWNER", "UYUM:"))
-	_c("general_13_plus -> ürün kitlesi engeli yok; rapor notu kararı, etiketleri ve TEEN olmadıklarını gösterir",
-		_notes_have(good, "ürün kitlesi kararı: general_13_plus (TFCD=unspecified, TFUA=unspecified, en yüksek reklam derecesi G — bunlar TEEN işlemi DEĞİL)"))
+	_c("general_13_plus -> ürün kitlesi engeli yok; rapor notu kararı, eski etiketleri ve TEEN olmadıklarını gösterir; strateji notu",
+		_notes_have(good, "ürün kitlesi kararı: general_13_plus (TFCD=unspecified, TFUA=unspecified — eski etiketler TEEN işlemi DEĞİL")
+		and _notes_have(good, "13–17 genç reklam işlemi stratejisi: age_band_routing")
+		and _notes_have(good, "hukuki garanti DEĞİL"))
 	var teen: Dictionary = _gate({"teen_ad_treatment_resolved": false})
 	_c("general_13_plus + genç reklam işlemi çözülmedi -> TEK engel: ayrı OWNER UYUM (13–17); 'kitle kararı yok' yok, CODE yok",
 		_blocked_by(teen, "OWNER", ReleaseReadiness.TEEN_TREATMENT_BLOCKER) and teen["blockers"].size() == 1
@@ -422,14 +446,13 @@ func _test_release_gate_rules() -> void:
 		_blocked_by(ReleaseReadiness.evaluate(legacy_inputs), "OWNER", "UYUM:"))
 	var tags_not_teen: bool = true
 	for tags: Dictionary in [
-			{"tag_for_child_directed_treatment": "unspecified", "tag_for_under_age_of_consent": "unspecified", "max_ad_content_rating": "G"},
-			{"tag_for_child_directed_treatment": "false", "tag_for_under_age_of_consent": "false", "max_ad_content_rating": "G"},
-			{"tag_for_child_directed_treatment": "true", "tag_for_under_age_of_consent": "true", "max_ad_content_rating": "G"},
-			{"tag_for_child_directed_treatment": "unspecified", "tag_for_under_age_of_consent": "unspecified", "max_ad_content_rating": "T"}]:
+			{"tag_for_child_directed_treatment": "unspecified", "tag_for_under_age_of_consent": "unspecified"},
+			{"tag_for_child_directed_treatment": "false", "tag_for_under_age_of_consent": "false"},
+			{"tag_for_child_directed_treatment": "true", "tag_for_under_age_of_consent": "true"}]:
 		var tagged: Dictionary = _gate({"ad_config": _cfg(_real_release({"Audience": tags}), AdConfig.BuildType.RELEASE),
 			"teen_ad_treatment_resolved": false})
-		tags_not_teen = tags_not_teen and _blocked_by(tagged, "OWNER", "UYUM:")
-	_c("etiketler TEEN yerine geçmez: TFCD/TFUA unspecified, false, true ya da derece T (Teen İÇERİK derecesi) -> UYUM engeli kalır",
+		tags_not_teen = tags_not_teen and _blocked_by(tagged, "OWNER", ReleaseReadiness.TEEN_TREATMENT_BLOCKER)
+	_c("etiketler TEEN stratejisi yerine geçmez: TFCD/TFUA unspecified, false, true -> genç işlemi engeli kalır",
 		tags_not_teen)
 	_c("gizlilik politikası URL'i yok -> OWNER; http -> OWNER", _blocked_by(_gate({"privacy_policy_url": ""}), "OWNER", "gizlilik")
 		and _blocked_by(_gate({"privacy_policy_url": "http://squishy.invalid"}), "OWNER", "https"))
@@ -546,8 +569,14 @@ func _test_current_project_state() -> void:
 	_c("ürün kitlesi engeli YOK (general_13_plus: ne 'kitle kararı yok' OWNER ne CODE); rapor kararı gösteriyor",
 		not _blocked_by(result, "OWNER", "kitle kararı yok") and not _blocked_by(result, "CODE", "kitle kararı")
 		and _notes_have(result, "ürün kitlesi kararı: general_13_plus"))
-	_c("ayrı OWNER UYUM engeli VAR: 13–17 genç reklam işlemi / yargı bölgesi stratejisi AÇIK (project_inputs: çözülmedi)",
-		not bool(inputs["teen_ad_treatment_resolved"]) and _blocked_by(result, "OWNER", ReleaseReadiness.TEEN_TREATMENT_BLOCKER))
+	_c("TASK/043: 13–17 genç reklam işlemi stratejisi kayda geçmedi (A36 kapısı öncesi) -> OWNER UYUM engeli; kod tablosu temiz",
+		not bool(inputs["teen_ad_treatment_resolved"]) and _blocked_by(result, "OWNER", ReleaseReadiness.TEEN_TREATMENT_BLOCKER)
+		and (inputs["age_routing_problems"] as PackedStringArray).is_empty())
+	_c("TASK/043: yargı bölgesi yaş yükümlülükleri değerlendirmesi kayıtta değil -> ayrı OWNER UYUM engeli",
+		not bool(inputs["jurisdiction_age_review_recorded"]) and _blocked_by(result, "OWNER", ReleaseReadiness.JURISDICTION_REVIEW_BLOCKER))
+	_c("TASK/043: Play Uygunsuz Reklamlar — uygulamanın içerik derecesi kayıtta değil, yönlendirme T + MA -> ayrı OWNER UYUM engeli",
+		inputs["app_content_rating"] == "" and inputs["routed_ad_content_ratings"] == ["T", "MA"]
+		and _blocked_by(result, "OWNER", "UYUM (Play Uygunsuz Reklamlar)"))
 	var owner_blockers: int = 0
 	for blocker: Dictionary in result["blockers"]:
 		if blocker["category"] == "OWNER":
@@ -556,8 +585,8 @@ func _test_current_project_state() -> void:
 	for blocker: Dictionary in result["blockers"]:
 		if blocker["category"] == "CODE":
 			code_blockers += 1
-	_c("bugün tam 9 engel: OWNER 9 (AdMob 5 + gizlilik URL'i 1 + upload anahtarı 2 + 13–17 uyum 1) + CODE 0 + CONFIG 0",
-		owner_blockers == 9 and code_blockers == 0 and result["blockers"].size() == 9)
+	_c("bugün tam 11 engel: OWNER 11 (AdMob 5 + gizlilik URL'i 1 + upload anahtarı 2 + 13–17 stratejisi 1 + yargı bölgesi 1 + uygulama içerik derecesi 1) + CODE 0 + CONFIG 0",
+		owner_blockers == 11 and code_blockers == 0 and result["blockers"].size() == 11)
 	_c("CODE engeli YOK (TASK/042): release AAR = onaylı GMA 25.3.0 derlemesi, bilinen kusur 0, eski kusurlu / TASK/041 SHA değil, cephe yamalı + TFAT, GMA 25.3.0",
 		inputs["plugin_release_aar_sha256"] == ReleaseReadiness.PATCHED_RELEASE_AAR_SHA256
 		and inputs["plugin_release_aar_sha256"] != DEFECTIVE_M9_RELEASE_AAR_SHA256
@@ -783,12 +812,13 @@ func _test_patched_binaries() -> void:
 
 # --- TASK/040 + TASK/042: 13–17 genç reklam işlemi sınırları ---------------------------
 
-## Kodla denetlenebilen kurallar (docs/monetization/GLOBAL_TEEN_AD_TREATMENT.md): Play Age
-## Signals hiçbir reklam / runtime koduna bağlı değil; TASK/042 ile TFAT (TEEN / CHILD)
-## üretim eklentisinde TEKNİK olarak var ama üretim yaş işlemi UNSPECIFIED ve hiçbir kod
-## kullanıcıyı TEEN / CHILD'a yönlendirmiyor; genç işlemi engeli yapılandırmayla kapanmıyor.
+## Kodla denetlenebilen kurallar (docs/monetization/GLOBAL_TEEN_AD_TREATMENT.md,
+## AGE_BAND_ROUTING.md): Play Age Signals hiçbir reklam / runtime koduna bağlı değil; TASK/043
+## ile yaş işlemi (TEEN / UNSPECIFIED) ve derece YALNIZ AgeGate.ad_route'tan, YALNIZ
+## yöneticinin rota yolundan gelir; CHILD hiçbir banda verilmez; genç işlemi engeli owner
+## kaydı + kod tablosu olmadan kapanmaz.
 func _test_teen_treatment_boundaries() -> void:
-	print("-- TASK/040 + TASK/042: genç reklam işlemi sınırları (Age Signals YOK, TFAT hazır ama üretim UNSPECIFIED, yönlendirme YOK)")
+	print("-- TASK/040 + TASK/042 + TASK/043: genç reklam işlemi sınırları (Age Signals YOK, TFAT yalnız yaş bandı rotasından, CHILD yok)")
 	var hits: PackedStringArray = PackedStringArray()
 	for root in ["res://scripts", "res://addons"]:
 		for path in _files_under(root, ["gd", "cfg", "tscn", "tres"]):
@@ -802,15 +832,16 @@ func _test_teen_treatment_boundaries() -> void:
 	var deps: String = FileAccess.get_file_as_string("res://addons/AdmobPlugin/AdmobPlugin.gd").to_lower()
 	_c("Age Signals bağımlılığı YOK: eklentinin Android bağımlılıklarında com.google.android.play:age-signals yok",
 		not deps.contains("age-signals") and not deps.contains("agesignals"))
-	_c("üretim yaş işlemi varsayılanı UNSPECIFIED: yönetici sabiti, AdBackend tabanı, FakeAdBackend, AdmobBackend ve Admob.gd cephesi",
-		MonetizationManager.DEFAULT_AGE_RESTRICTED_TREATMENT == AdBackend.AgeRestrictedTreatment.UNSPECIFIED
-		and AdBackend.new().age_restricted_treatment() == AdBackend.AgeRestrictedTreatment.UNSPECIFIED
+	_c("rota verilmeden arka uç değerleri en muhafazakâr: UNSPECIFIED + G (AdBackend tabanı, FakeAdBackend, AdmobBackend, Admob.gd cephesi)",
+		AdBackend.new().age_restricted_treatment() == AdBackend.AgeRestrictedTreatment.UNSPECIFIED
+		and AdBackend.new().max_ad_content_rating() == "G" and FakeAdBackend.new().max_ad_content_rating() == "G"
+		and AdmobBackend.new().max_ad_content_rating() == "G"
 		and FakeAdBackend.new().age_restricted_treatment() == AdBackend.AgeRestrictedTreatment.UNSPECIFIED
 		and AdmobBackend.new().age_restricted_treatment() == AdBackend.AgeRestrictedTreatment.UNSPECIFIED
 		and _facade_default_treatment() == AdmobConfig.AgeRestrictedTreatment.UNSPECIFIED)
-	# Yönlendirme yok: scripts/ içindeki her set_age_restricted_treatment ÇAĞRISI yalnız üretim
-	# varsayılanını verir; facade'a yazan tek satır arka ucun eşlemesi (_tfat); TEEN / CHILD
-	# sabitleri yalnız enum bildirimi ve bu eşlemede.
+	# TASK/043: scripts/ içindeki set_age_restricted_treatment / set_max_ad_content_rating ÇAĞRISI
+	# yalnız yöneticinin rota yolunda (AgeGate.ad_route değeri); TEEN sabiti yalnız arka ucun
+	# eşlemesinde (_tfat) ve AgeGate'in tablosunda; CHILD yalnız _tfat eşlemesinde.
 	var calls: PackedStringArray = PackedStringArray()
 	var bad_calls: PackedStringArray = PackedStringArray()
 	var teen_refs: PackedStringArray = PackedStringArray()
@@ -823,30 +854,43 @@ func _test_teen_treatment_boundaries() -> void:
 			if line.contains("set_age_restricted_treatment(") and not line.begins_with("func ") \
 					and not line.begins_with("static func "):
 				calls.append("%s:%d" % [path.get_file(), i + 1])
-				if not line.contains("DEFAULT_AGE_RESTRICTED_TREATMENT"):
+				if not (path.ends_with("monetization_manager.gd") and line.contains("(route[\"treatment\"])")):
+					bad_calls.append("%s:%d %s" % [path.get_file(), i + 1, line])
+			if line.contains("set_max_ad_content_rating(") and not line.begins_with("func ") \
+					and not line.begins_with("static func "):
+				calls.append("%s:%d" % [path.get_file(), i + 1])
+				if not (path.ends_with("monetization_manager.gd") and line.contains("(route[\"max_ad_content_rating\"])")):
 					bad_calls.append("%s:%d %s" % [path.get_file(), i + 1, line])
 			if line.contains("AgeRestrictedTreatment.TEEN") or line.contains("AgeRestrictedTreatment.CHILD"):
 				teen_refs.append("%s:%d" % [path.get_file(), i + 1])
-	_c("üretim kodu kimseyi TEEN / CHILD'a YÖNLENDİRMİYOR: set_age_restricted_treatment çağrıları yalnız DEFAULT (%s) %s" % [str(calls), str(bad_calls)],
-		calls.size() == 1 and bad_calls.is_empty())
-	_c("scripts/ içinde TEEN / CHILD sabiti yalnız AdmobBackend._tfat eşlemesinde (4 satır) %s" % str(teen_refs),
-		teen_refs.size() == 4 and Array(teen_refs).all(func(ref: String) -> bool: return ref.begins_with("admob_backend.gd:")))
+	_c("yaş işlemi + derece yalnız yöneticinin rota yolundan (_push_age_route: AgeGate.ad_route değeri) — başka çağrı YOK (%s) %s" % [str(calls), str(bad_calls)],
+		calls.size() == 2 and bad_calls.is_empty())
+	var admob_refs: int = 0
+	var gate_refs: int = 0
+	for ref in teen_refs:
+		if ref.begins_with("admob_backend.gd:"):
+			admob_refs += 1
+		elif ref.begins_with("age_gate.gd:"):
+			gate_refs += 1
+	var gate_code: String = "\n".join(Array(FileAccess.get_file_as_string("res://scripts/game/age_gate.gd").split("\n")).filter(
+		func(line: String) -> bool: return not line.strip_edges().begins_with("#")))
+	_c("scripts/ içinde TEEN / CHILD sabiti yalnız AdmobBackend._tfat (4) + AgeGate tablosu (TEEN, 2); AgeGate'te CHILD YOK %s" % str(teen_refs),
+		teen_refs.size() == 6 and admob_refs == 4 and gate_refs == 2 and not gate_code.contains("AgeRestrictedTreatment.CHILD"))
 	var ad_config_src: String = FileAccess.get_file_as_string("res://scripts/ads/ad_config.gd").to_lower()
 	var export_cfg: String = FileAccess.get_file_as_string("res://addons/AdmobPlugin/android_export.cfg").to_lower()
-	_c("yaş işlemi yapılandırmadan / yaş bilgisinden gelmiyor: android_export.cfg ve AdConfig'te age_restricted_treatment / TEEN anahtarı yok",
+	_c("yaş işlemi yapılandırmadan gelmiyor (yaş bandından): android_export.cfg ve AdConfig'te age_restricted_treatment anahtarı yok",
 		not ad_config_src.contains("age_restricted_treatment") and not export_cfg.contains("age_restricted_treatment"))
 	var gate_src: String = FileAccess.get_file_as_string("res://tools/release/release_readiness.gd")
-	_c("kapı genç işlemi engelini kapatmıyor: project_inputs teen_ad_treatment_resolved = false, true yazılı değil; engel metni 'TFAT teknik olarak hazır ama yönlendirme yok' diyor",
-		gate_src.contains("\"teen_ad_treatment_resolved\": false,") and not gate_src.contains("\"teen_ad_treatment_resolved\": true")
-		and ReleaseReadiness.TEEN_TREATMENT_BLOCKER.contains("TFAT TEEN teknik olarak hazır")
-		and ReleaseReadiness.TEEN_TREATMENT_BLOCKER.contains("yaş bandı yönlendirmesi yok"))
+	_c("kapı genç işlemi engelini bayrakla kapatmıyor: project_inputs teen_treatment_resolved(ad_config) (owner kaydı + kod tablosu), 'teen_ad_treatment_resolved': true / false yazılı DEĞİL",
+		gate_src.contains("\"teen_ad_treatment_resolved\": teen_treatment_resolved(ad_config),")
+		and not gate_src.contains("\"teen_ad_treatment_resolved\": true") and not gate_src.contains("\"teen_ad_treatment_resolved\": false")
+		and ReleaseReadiness.TEEN_TREATMENT_BLOCKER.contains("age_band_routing"))
 	var harness_src: String = FileAccess.get_file_as_string("res://tools/ads_device.gd")
 	var main_src: String = FileAccess.get_file_as_string("res://scripts/main.gd") + FileAccess.get_file_as_string("res://scenes/main.tscn")
 	var harness: Script = load("res://tools/ads_device.gd")
-	_c("TEEN yalnız QA sürücüsünde (tools/ads_device.gd, export dışı klasör) ve yalnız açık QA komutuyla; üretim sahnesi onu yüklemiyor",
-		harness != null and harness_src.contains("\"teen\": AdBackend.AgeRestrictedTreatment.TEEN")
-		and harness_src.contains("ads.backend().set_age_restricted_treatment(TFAT_VALUES[word])")
-		and not main_src.contains("ads_device"))
+	_c("QA sürücüsü yaş işlemini arka uca DOĞRUDAN vermez (TASK/042 `teen` / `tfat` kaldırıldı); yaş yalnız üretim yolundan (kayıt + panel); üretim sahnesi sürücüyü yüklemiyor",
+		harness != null and harness.can_instantiate() and not harness_src.contains("set_age_restricted_treatment(") and not harness_src.contains("set_max_ad_content_rating(")
+		and harness_src.contains("SaveManager.store_age_band(") and not main_src.contains("ads_device"))
 
 
 func _facade_default_treatment() -> int:
@@ -866,24 +910,28 @@ func _test_request_configuration_path() -> void:
 	print("-- TASK/041 + TASK/042: RequestConfiguration yolu (değerler aynı + TFAT UNSPECIFIED, SDK başlamadan ÖNCE bir kez)")
 	var project := AdConfig.load_project()
 	var admob := Admob.new()
+	var adult: Dictionary = AgeGate.ad_route(AgeGate.Band.ADULT)
+	var teen: Dictionary = AgeGate.ad_route(AgeGate.Band.TEEN)
 	admob.is_real = project.is_real
-	admob.max_ad_content_rating = AdmobBackend._content_rating(project.max_ad_content_rating)
 	admob.child_directed = AdmobBackend._tfcd(project.tag_for_child_directed_treatment)
 	admob.under_age_of_consent = AdmobBackend._tfua(project.tag_for_under_age_of_consent)
-	admob.age_restricted_treatment = AdmobBackend._tfat(MonetizationManager.DEFAULT_AGE_RESTRICTED_TREATMENT)
+	admob.max_ad_content_rating = AdmobBackend._content_rating(adult["max_ad_content_rating"])
+	admob.age_restricted_treatment = AdmobBackend._tfat(adult["treatment"])
 	var raw: Dictionary = admob.create_request_configuration().get_raw_data()
-	admob.age_restricted_treatment = AdmobBackend._tfat(AdBackend.AgeRestrictedTreatment.TEEN)
+	admob.max_ad_content_rating = AdmobBackend._content_rating(teen["max_ad_content_rating"])
+	admob.age_restricted_treatment = AdmobBackend._tfat(teen["treatment"])
 	var raw_teen: Dictionary = admob.create_request_configuration().get_raw_data()
 	admob.age_restricted_treatment = AdmobBackend._tfat(AdBackend.AgeRestrictedTreatment.CHILD)
 	var raw_child: Dictionary = admob.create_request_configuration().get_raw_data()
 	admob.free()
-	_c("değerler DEĞİŞMEDİ: derece \"G\", TFCD -1 / TFUA -1 (UNSPECIFIED), kişiselleştirme 0 (DEFAULT), is_real false (DEBUG), test_device_ids []",
-		raw.get("max_ad_content_rating") == "G" and raw.get("tag_for_child_directed_treatment") == -1
+	_c("ADULT rotası cepheden aynen: derece \"MA\", yaş işlemi 0 (UNSPECIFIED), TFCD -1 / TFUA -1, kişiselleştirme 0 (DEFAULT), is_real false (DEBUG), test_device_ids []",
+		raw.get("max_ad_content_rating") == "MA" and raw.get("age_restricted_treatment") == 0
+		and raw.get("tag_for_child_directed_treatment") == -1
 		and raw.get("tag_for_under_age_of_consent") == -1 and raw.get("personalization_state") == 0
 		and raw.get("is_real") == false and raw.get("test_device_ids") == [])
-	_c("TASK/042: yaş işlemi anahtarı gönderiliyor, üretim değeri 0 (UNSPECIFIED); TEEN 2, CHILD 1 (Java eşlemesiyle aynı)",
-		raw.get("age_restricted_treatment") == 0 and raw_teen.get("age_restricted_treatment") == 2
-		and raw_child.get("age_restricted_treatment") == 1 and raw_teen.get("max_ad_content_rating") == "G")
+	_c("TEEN rotası cepheden aynen: yaş işlemi 2 (TEEN), derece \"T\"; CHILD eşlemesi 1 (Java ile aynı, hiçbir banda verilmez)",
+		raw_teen.get("age_restricted_treatment") == 2 and raw_teen.get("max_ad_content_rating") == "T"
+		and raw_child.get("age_restricted_treatment") == 1)
 	_c("Godot tipleri (Java'da Long / Boolean / String / Object[]): TFCD, TFUA, kişiselleştirme, yaş işlemi int; is_real bool; derece String; test_device_ids Array",
 		typeof(raw["tag_for_child_directed_treatment"]) == TYPE_INT and typeof(raw["tag_for_under_age_of_consent"]) == TYPE_INT
 		and typeof(raw["personalization_state"]) == TYPE_INT and typeof(raw["age_restricted_treatment"]) == TYPE_INT
@@ -907,16 +955,28 @@ func _test_request_configuration_path() -> void:
 		manager_src.contains("return _backend != null and ads_allowed() and _sdk_ready and _onboarding_completed")
 		and manager_src.count("_sdk_ready = true") == 1
 		and manager_src.contains("func _on_initialization_completed() -> void:\n\t_sdk_initializing = false\n\t_sdk_ready = true"))
-	_c("SDK tek kez: _ensure_sdk başlatmayı _sdk_ready / _sdk_initializing ile korur, yalnız _request_permitted() (UMP canRequestAds) iken; tek initialize çağrısı",
-		manager_src.contains("func _ensure_sdk() -> void:\n\tif _sdk_ready or _sdk_initializing:")
-		and manager_src.contains("\tif not _request_permitted():\n\t\treturn\n\t_sdk_initializing = true\n\tif not _backend.initialize():")
+	_c("SDK tek kez: _ensure_sdk ÖNCE yaş kapısı (TASK/043), sonra _sdk_ready / _sdk_initializing, yalnız _request_permitted() (UMP canRequestAds) iken, init'ten HEMEN önce rota doğrulaması (sapma -> oturum kapanır); tek initialize çağrısı",
+		manager_src.contains("func _ensure_sdk() -> void:\n\tif not _consent_gate_open():\n\t\treturn")
+		and manager_src.contains("\tif _sdk_ready or _sdk_initializing:\n\t\t_preload_rewarded()")
+		and manager_src.contains("\tif not _request_permitted():\n\t\treturn\n")
+		and manager_src.contains("\tif not _backend_matches_route(AgeGate.ad_route(_age_band)):\n\t\t_block_age_session()\n\t\treturn\n\t_sdk_initializing = true\n\tif not _backend.initialize():")
+		and manager_src.find("\tif not _request_permitted():\n\t\treturn\n", manager_src.find("func _ensure_sdk()"))
+			< manager_src.find("\tif not _backend_matches_route(AgeGate.ad_route(_age_band)):", manager_src.find("func _ensure_sdk()"))
 		and manager_src.count("_backend.initialize()") == 1)
 	_c("fail-closed yönetici: initialize() false -> _sdk_refused, başlatma bayrağı temizlenir, yeniden deneme yok, not 'kullanılamıyor'",
 		manager_src.contains("\t\t_sdk_initializing = false\n\t\t_sdk_refused = true\n")
 		and manager_src.contains("\tif _sdk_refused:\n\t\treturn\n\t# Google: Mobile Ads SDK yalnız canRequestAds() true iken başlatılır.")
 		and manager_src.contains("if not _onboarding_completed or _sdk_refused:\n\t\treturn NOTE_UNAVAILABLE"))
-	_c("yaş işlemi SDK başlamadan ÖNCE arka uca verilir (attach'ten hemen sonra, rıza / initialize'dan önce)",
-		manager_src.contains("\t_backend.attach(self)\n\t# SDK başlamadan ÖNCE (initialize, rızadan sonra): yaş işlemi = üretim varsayılanı.\n\t_backend.set_age_restricted_treatment(DEFAULT_AGE_RESTRICTED_TREATMENT)"))
+	var gate_at: int = manager_src.find("func _open_age_gate() -> bool:")
+	var push_at: int = manager_src.find("\tvar route: Dictionary = AgeGate.ad_route(_age_band)\n\tif not _push_age_route(route) or not _backend_matches_route(route):\n\t\t_block_age_session()\n\t\treturn false", gate_at)
+	var attach_at: int = manager_src.find("_backend.attach(self)", gate_at)
+	_c("TASK/043: rota (yaş işlemi + derece) attach'ten ÖNCE gönderilip arka uçtan geri doğrulanır (UMP öncesi), attach tek yerde (_open_age_gate), rıza _open_age_gate'ten SONRA",
+		gate_at != -1 and push_at > gate_at and attach_at > push_at and manager_src.count("_backend.attach(self)") == 1
+		and manager_src.contains("\t_open_age_gate()\n\t_compute_banner_slot()"))
+	_c("TASK/043: yoldaki rıza sonucu / formu kapalı oturumda işlenmez (_resolve_consent kapı denetimi, STARTUP formu düşer)",
+		manager_src.contains("\t_update_privacy_options()\n\tif not _consent_gate_open():\n")
+		and manager_src.contains("\tif _form_purpose == FormPurpose.STARTUP and not _consent_gate_open():\n\t\t_form_purpose = FormPurpose.NONE")
+		and manager_src.contains("\tif _form_purpose == FormPurpose.STARTUP:\n\t\t_form_purpose = FormPurpose.NONE"))
 
 
 # --- TASK/042: TFAT arayüzü + geri okuma doğrulaması (sahte SDK) ------------------------
@@ -952,8 +1012,8 @@ func _test_tfat_api() -> void:
 			AdBackend.expected_request_configuration(AdBackend.AgeRestrictedTreatment.TEEN, "G", -1, -1)) == "")
 	var fake := FakeAdBackend.new()
 	fake.initialize()
-	var cfg_at: int = fake.calls.find("request_configuration:UNSPECIFIED")
-	_c("sahte SDK: initialize = yapılandırma (UNSPECIFIED) + geri okuma, SONRA başlatma; geri okuma UNSPECIFIED / G",
+	var cfg_at: int = fake.calls.find("request_configuration:UNSPECIFIED:G")
+	_c("sahte SDK: initialize = yapılandırma (rota yoksa UNSPECIFIED / G) + geri okuma, SONRA başlatma; geri okuma UNSPECIFIED / G",
 		cfg_at != -1 and fake.calls.find("initialize") > cfg_at and fake.init_calls == 1
 		and fake.applied_request_configuration()["age_restricted_treatment"] == "UNSPECIFIED"
 		and fake.applied_request_configuration()["max_ad_content_rating"] == "G")
@@ -969,8 +1029,8 @@ func _test_tfat_api() -> void:
 		early_ok and early.request_configuration_applies == 0)
 	var early_started: bool = early.initialize()
 	_c("... geri okuma TEEN, sonra başlatma (initialize true)", early_started
-		and early.calls.find("request_configuration:TEEN") < early.calls.find("initialize")
-		and early.calls.find("request_configuration:TEEN") != -1 and early.init_calls == 1
+		and early.calls.find("request_configuration:TEEN:G") < early.calls.find("initialize")
+		and early.calls.find("request_configuration:TEEN:G") != -1 and early.init_calls == 1
 		and early.applied_request_configuration()["age_restricted_treatment"] == "TEEN")
 	var bad := FakeAdBackend.new()
 	bad.request_configuration_fault = true
@@ -988,6 +1048,83 @@ func _test_tfat_api() -> void:
 	_c("AdmobBackend: SDK yapılandırıldıktan sonra yaş işlemi değişikliği reddedilir (yeniden uygulama yolu YOK)",
 		backend_src.contains("\tif _request_configured:\n\t\tif value == _age_restricted_treatment:\n\t\t\treturn true\n")
 		and backend_src.count("_apply_request_configuration()") == 2)
+	# TASK/043: en yüksek derece aynı kilitle.
+	var rated := FakeAdBackend.new()
+	var rate_early: bool = rated.set_max_ad_content_rating("T")
+	var rate_bad: bool = rated.set_max_ad_content_rating("X")
+	rated.initialize()
+	var rate_late: bool = rated.set_max_ad_content_rating("MA")
+	var rate_same: bool = rated.set_max_ad_content_rating("T")
+	_c("TASK/043 derece kilidi (sahte SDK): SDK öncesi T kabul, geçersiz X ret; yapılandırma T; sonra MA ret, aynı T kabul",
+		rate_early and not rate_bad and not rate_late and rate_same and rated.rating == "T"
+		and rated.applied_request_configuration()["max_ad_content_rating"] == "T" and rated.request_configured())
+	_c("AdmobBackend: derece yalnız G / PG / T / MA; SDK yapılandırıldıktan sonra farklı derece reddedilir; request_configured() bayrağı",
+		backend_src.contains("func set_max_ad_content_rating(value: String) -> bool:\n\tif not AdConfig.CONTENT_RATINGS.has(value):")
+		and backend_src.contains("\tif _request_configured:\n\t\tif value == _max_ad_content_rating:\n\t\t\treturn true\n")
+		and backend_src.contains("func request_configured() -> bool:\n\treturn _request_configured")
+		and backend_src.contains("_admob.max_ad_content_rating = _content_rating(_max_ad_content_rating)")
+		and not backend_src.contains("_config.max_ad_content_rating"))
+
+
+# --- TASK/043: yaş bandı yönlendirmesi + kapı kuralları ---------------------------------
+
+func _test_age_band_routing_gate() -> void:
+	print("-- TASK/043: yaş bandı yönlendirme tablosu + kapı (strateji kaydı, yargı bölgesi, Play Uygunsuz Reklamlar)")
+	_c("kod tablosu owner tablosuyla birebir (AgeGate.routing_contract_problems boş)",
+		AgeGate.routing_contract_problems().is_empty())
+	_c("yönlendirmenin reklam dereceleri: TEEN T + ADULT MA", ReleaseReadiness.routed_ad_content_ratings() == ["T", "MA"])
+	_c("teen_treatment_resolved: kayıt yok -> false; 'age_band_routing' -> true (kod tablosu temizken); config yok -> false",
+		not ReleaseReadiness.teen_treatment_resolved(_cfg(_real_release(), AdConfig.BuildType.RELEASE))
+		and ReleaseReadiness.teen_treatment_resolved(_cfg(_real_release({"Audience": {"teen_ad_treatment": "age_band_routing"}}),
+			AdConfig.BuildType.RELEASE))
+		and not ReleaseReadiness.teen_treatment_resolved(null))
+	var no_review: Dictionary = _gate({"jurisdiction_age_review_recorded": false})
+	var review_missing: Dictionary = _good_inputs()
+	review_missing.erase("jurisdiction_age_review_recorded")
+	_c("yargı bölgesi değerlendirmesi kayıtta değil / girdi yok -> TEK engel OWNER UYUM (Brezilya Digital ECA, ABD eyalet, AB rıza yaşı, Families)",
+		_blocked_by(no_review, "OWNER", ReleaseReadiness.JURISDICTION_REVIEW_BLOCKER) and no_review["blockers"].size() == 1
+		and _blocked_by(ReleaseReadiness.evaluate(review_missing), "OWNER", ReleaseReadiness.JURISDICTION_REVIEW_BLOCKER)
+		and ReleaseReadiness.JURISDICTION_REVIEW_BLOCKER.contains("Digital ECA")
+		and ReleaseReadiness.JURISDICTION_REVIEW_BLOCKER.contains("Age Signals reklamda ASLA"))
+	var routing_bad: Dictionary = _gate({"age_routing_problems": ["TEEN -> TFAT TEEN + derece T olmalı"]})
+	var routing_missing: Dictionary = _good_inputs()
+	routing_missing.erase("age_routing_problems")
+	_c("kod tablosu sapması -> CODE; girdi yoksa CODE (fail-closed)", _blocked_by(routing_bad, "CODE", "owner tablosundan sapıyor")
+		and _blocked_by(ReleaseReadiness.evaluate(routing_missing), "CODE", "denetlenemedi"))
+	_c("Play Uygunsuz Reklamlar: içerik derecesi kayıtta yok -> OWNER; 3+ / 7+ / 12+ (MA 16+ ister) -> OWNER; 16+ / 18+ -> engel yok",
+		_blocked_by(_gate({"app_content_rating": ""}), "OWNER", "kayda geçmedi")
+		and _blocked_by(_gate({"app_content_rating": "3+"}), "OWNER", "UYUM (Play Uygunsuz Reklamlar): uygulamanın Play içerik derecesi 3+")
+		and _blocked_by(_gate({"app_content_rating": "7+"}), "OWNER", "Uygunsuz Reklamlar")
+		and _blocked_by(_gate({"app_content_rating": "12+"}), "OWNER", "en az 16+")
+		and _gate({"app_content_rating": "16+"})["status"] == ReleaseReadiness.STATUS_UPLOAD_CANDIDATE
+		and _gate({"app_content_rating": "18+"})["status"] == ReleaseReadiness.STATUS_UPLOAD_CANDIDATE)
+	_c("derece tablosu (AdMob dijital içerik etiketi ↔ Play): G 3+, PG 7+, T 12+, MA 16+; yalnız T -> 12+ yeter; G -> her derece",
+		ReleaseReadiness.AD_RATING_MIN_APP_RATING == {"G": "3+", "PG": "7+", "T": "12+", "MA": "16+"}
+		and ReleaseReadiness.ad_content_rating_problem("12+", ["T"]) == ""
+		and ReleaseReadiness.ad_content_rating_problem("3+", ["G"]) == ""
+		and not ReleaseReadiness.ad_content_rating_problem("7+", ["T"]).is_empty()
+		and not ReleaseReadiness.ad_content_rating_problem("", ["G", "PG"]).is_empty())
+	var rated_missing: Dictionary = _good_inputs()
+	rated_missing.erase("routed_ad_content_ratings")
+	rated_missing["app_content_rating"] = "12+"
+	_c("fail-closed: yönlendirme dereceleri girdisi yoksa MA sayılır; tanınmayan reklam derecesi MA; tanınmayan uygulama derecesi engel",
+		_blocked_by(ReleaseReadiness.evaluate(rated_missing), "OWNER", "Uygunsuz Reklamlar")
+		and not ReleaseReadiness.ad_content_rating_problem("12+", ["Z"]).is_empty()
+		and not ReleaseReadiness.ad_content_rating_problem("PEGI 3", ["T"]).is_empty())
+	var all_open: Dictionary = _gate({"teen_ad_treatment_resolved": false, "jurisdiction_age_review_recorded": false,
+		"app_content_rating": ""})
+	_c("üç UYUM engeli birbirinden bağımsız ve hepsi OWNER (strateji + yargı bölgesi + içerik derecesi)",
+		all_open["blockers"].size() == 3 and not _has_category(all_open, "CODE") and not _has_category(all_open, "CONFIG"))
+	var export_cfg := ConfigFile.new()
+	export_cfg.load(AdConfig.CONFIG_PATH)
+	_c("android_export.cfg: teen_ad_treatment / app_content_rating / jurisdiction_age_review anahtarları var (owner kayıtları), max_ad_content_rating YOK",
+		export_cfg.has_section_key("Audience", "teen_ad_treatment") and export_cfg.has_section_key("Audience", "app_content_rating")
+		and export_cfg.has_section_key("Audience", "jurisdiction_age_review")
+		and not export_cfg.has_section_key("Audience", "max_ad_content_rating"))
+	var gate_src: String = FileAccess.get_file_as_string("res://tools/release/release_readiness.gd")
+	_c("kapı yaş kodunu yalnız saf tablolardan okur (AgeGate autoload'a dokunmaz — export eklentisinde de derlenir)",
+		gate_src.contains("AgeGate.routing_contract_problems()") and gate_src.contains("AgeGate.ad_route(band)")
+		and not FileAccess.get_file_as_string("res://scripts/game/age_gate.gd").contains("SaveManager."))
 
 
 static func _files_under(root: String, extensions: Array) -> PackedStringArray:

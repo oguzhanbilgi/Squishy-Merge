@@ -39,6 +39,9 @@ func _ready() -> void:
 		_save_bytes = FileAccess.get_file_as_bytes(SaveManager.SAVE_PATH)
 	SaveManager.data["last_login_date"] = Time.get_date_string_from_system()
 	SaveManager.data["onboarding_completed"] = true
+	# TASK/043: olağan (yetişkin) reklam yolu — yaş bandı ADULT; yaş kapısı age_ad_routing_test'te.
+	SaveManager.data["age_ad_band"] = "ADULT"
+	SaveManager.data["next_age_transition_date"] = ""
 	DailyRewards.auto_popup_enabled = false
 	MonetizationManager.time_scale = 0.01
 	AdEvents.subscribe(_on_event)
@@ -85,6 +88,7 @@ func _wait(seconds_scaled: float) -> void:
 func _boot(fake: FakeAdBackend) -> MonetizationManager:
 	fake.status = AdBackend.ConsentStatus.NOT_REQUIRED
 	var m: MonetizationManager = MonetizationManager.create(fake, AdConfig.test_defaults())
+	m.set_age_band(AgeGate.Band.ADULT)
 	add_child(m)
 	m.set_process(false)
 	fake.complete_consent_update(true)
@@ -163,6 +167,7 @@ func _test_preload_and_clock() -> void:
 	fake.status = AdBackend.ConsentStatus.REQUIRED
 	fake.form_available = true
 	m = MonetizationManager.create(fake, AdConfig.test_defaults())
+	m.set_age_band(AgeGate.Band.ADULT)
 	add_child(m)
 	m.set_process(false)
 	fake.complete_consent_update(true)

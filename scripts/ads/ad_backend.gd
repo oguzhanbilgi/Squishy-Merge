@@ -19,8 +19,10 @@ enum PrivacyOptionsStatus { UNKNOWN, NOT_REQUIRED, REQUIRED }
 ## İstek yapılandırmasının yaş işlemi (TFAT, TASK/042): GMA 25.3.0
 ## `RequestConfiguration.Builder.setAgeRestrictedTreatment()`. Adlar SDK'nın
 ## enum adlarıyla aynı (geri okumada "UNSPECIFIED" / "CHILD" / "TEEN").
-## UNSPECIFIED = yaş işlemi belirtilmedi (SDK varsayılanı, TASK/042 üretim değeri);
-## TEEN / CHILD'ı kimin alacağı (yaş bandı yönlendirmesi) bu arayüzün işi DEĞİL.
+## UNSPECIFIED = yaş işlemi belirtilmedi (SDK varsayılanı). TEEN / UNSPECIFIED'ı kimin
+## alacağı (yaş bandı yönlendirmesi, TASK/043) bu arayüzün işi DEĞİL: MonetizationManager
+## AgeGate.ad_route()'a göre SDK yapılandırılmadan ÖNCE bir kez verir. CHILD hiçbir bant
+## için kullanılmaz (13 yaş altı = reklam SDK'sı hiç başlamaz).
 enum AgeRestrictedTreatment { UNSPECIFIED, CHILD, TEEN }
 
 signal initialization_completed
@@ -63,7 +65,9 @@ func backend_name() -> String:
 
 
 ## Arka uç sahne ağacına bağlanır (`host` = MonetizationManager). Eklenti
-## düğümü burada yaratılır; testte no-op.
+## düğümü burada yaratılır; testte no-op. TASK/043: yönetici bunu yalnız yaş bandı
+## reklama izin verince (TEEN / ADULT) ve rotayı (yaş işlemi + derece) verdikten SONRA
+## çağırır — UNKNOWN / UNDER_13'te eklenti düğümü hiç kurulmaz.
 func attach(_host: Node) -> void:
 	pass
 
@@ -87,6 +91,23 @@ func set_age_restricted_treatment(_value: AgeRestrictedTreatment) -> bool:
 
 func age_restricted_treatment() -> AgeRestrictedTreatment:
 	return AgeRestrictedTreatment.UNSPECIFIED
+
+
+## SDK'ya gidecek en yüksek reklam içeriği derecesi ("G" / "PG" / "T" / "MA"; TASK/043:
+## yaş bandından — TEEN "T", ADULT "MA"). Yaş işlemiyle AYNI kilit: yalnız SDK
+## yapılandırılmadan ÖNCE değiştirilebilir, sonra farklı değer REDDEDİLİR (false).
+func set_max_ad_content_rating(_value: String) -> bool:
+	return false
+
+
+func max_ad_content_rating() -> String:
+	return "G"
+
+
+## İstek yapılandırması bu süreçte SDK'ya en az bir kez uygulandı mı (`initialize()`
+## başı). true iken yaş işlemi / derece kilitli (TASK/042 / TASK/043).
+func request_configured() -> bool:
+	return false
 
 
 ## SDK'nın ŞU ANKİ istek yapılandırması (native geri okuma, TASK/042):

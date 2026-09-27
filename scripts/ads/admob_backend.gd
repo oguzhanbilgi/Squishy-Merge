@@ -18,7 +18,11 @@ extends AdBackend
 ## TASK/042: eklenti Google Mobile Ads SDK 25.3.0 (UMP 4.0.0) ile derlenir (yama 0003).
 ## İstek yapılandırması (derece, TFCD / TFUA, yaş işlemi TFAT) MobileAds.initialize()
 ## ÖNCESİ bir kez uygulanır ve `get_applied_request_configuration()` ile geri okunarak
-## doğrulanır; uyuşmazsa SDK başlatılmaz. Yaş işlemi varsayılanı UNSPECIFIED.
+## doğrulanır; uyuşmazsa SDK başlatılmaz.
+## TASK/043: yaş işlemi ve en yüksek derece yaş bandından gelir (MonetizationManager,
+## AgeGate.ad_route: TEEN -> TEEN + "T", ADULT -> UNSPECIFIED + "MA"); ikisi de SDK
+## yapılandırılınca kilitli. Rota verilmeden attach edilmez; verilmemişse en muhafazakâr
+## değerler (UNSPECIFIED + "G") kalır.
 ##
 ## Kimlikler AdConfig'ten (android_export.cfg): DEBUG build'de Google örnek
 ## kimlikleri (rewarded, adaptive banner, interstitial), RELEASE build'de
@@ -30,8 +34,10 @@ const SINGLETON_NAME: String = "AdmobPlugin"
 
 var _admob: Admob
 var _config: AdConfig
-## TASK/042: SDK'ya gidecek yaş işlemi (varsayılan UNSPECIFIED — yaş bilgisi yok).
+## SDK'ya gidecek yaş işlemi (TASK/042; TASK/043'te yaş bandının rotası verir).
 var _age_restricted_treatment: AgeRestrictedTreatment = AgeRestrictedTreatment.UNSPECIFIED
+## SDK'ya gidecek en yüksek derece (TASK/043: yaş bandının rotası verir; verilmemişse "G").
+var _max_ad_content_rating: String = "G"
 ## İstek yapılandırması en az bir kez SDK'ya uygulandı mı (initialize() başı).
 var _request_configured: bool = false
 
@@ -77,15 +83,13 @@ func attach(host: Node) -> void:
 	_admob.banner_size = LoadAdRequest.RequestedAdSize.ADAPTIVE
 	_admob.banner_collapsible_position = LoadAdRequest.CollapsiblePosition.DISABLED
 	_admob.banner_anchor_to_safe_area = true
-	# Kitle/içerik (M9-01): android_export.cfg [Audience]. Owner kararı
-	# verilene kadar M8.9 değerleri — içerik derecesi G, COPPA/TFUA etiketi
-	# UNSPECIFIED (gönderilmez); tahmin edilmedi
-	# (docs/monetization/AUDIENCE_DECISION.md).
-	_admob.max_ad_content_rating = _content_rating(_config.max_ad_content_rating)
+	# Eski yaş etiketleri (M9-01): android_export.cfg [Audience] — TFCD / TFUA
+	# UNSPECIFIED (gönderilmez; kullanımdan kalkan yol nötr, TEEN onlarla VERİLMEZ).
 	_admob.child_directed = _tfcd(_config.tag_for_child_directed_treatment)
 	_admob.under_age_of_consent = _tfua(_config.tag_for_under_age_of_consent)
-	# Yaş işlemi (TFAT, TASK/042 — GMA 25.3.0): varsayılan UNSPECIFIED; yaş bilgisi
-	# kullanılmaz, Play Age Signals reklama ASLA bağlanmaz. Yönlendirme TASK/043'te.
+	# Yaş işlemi (TFAT, GMA 25.3.0) + en yüksek derece (TASK/043): yaş bandının rotası
+	# (yönetici attach'ten ÖNCE verdi). Play Age Signals reklama ASLA bağlanmaz.
+	_admob.max_ad_content_rating = _content_rating(_max_ad_content_rating)
 	_admob.age_restricted_treatment = _tfat(_age_restricted_treatment)
 	# TASK/042 — Google'ın sırası: istek yapılandırması MobileAds.initialize() ÖNCESİ,
 	# bir kez (`initialize()`); facade SDK hazır sinyalinde YENİDEN uygulamaz.
@@ -236,7 +240,8 @@ func set_age_restricted_treatment(value: AgeRestrictedTreatment) -> bool:
 		if value == _age_restricted_treatment:
 			return true
 		# SDK doğrulanmış yapılandırmayla çalışıyor: sonradan değiştirmek (yeniden uygulama,
-		# önbellekteki reklamlar, doğrulama hatası) TASK/043'ün owner onaylı konusu — reddet.
+		# önbellekteki reklamlar, doğrulama hatası) YOK. TASK/043: bant bu süreçte değişirse
+		# yönetici reklamı oturum boyunca kapatır, yeni işlem bir sonraki soğuk açılışta.
 		push_error("AdmobBackend: yaş işlemi SDK yapılandırıldıktan sonra değiştirilemez (%s → %s reddedildi)"
 			% [AgeRestrictedTreatment.keys()[_age_restricted_treatment], AgeRestrictedTreatment.keys()[value]])
 		return false
@@ -248,6 +253,31 @@ func set_age_restricted_treatment(value: AgeRestrictedTreatment) -> bool:
 
 func age_restricted_treatment() -> AgeRestrictedTreatment:
 	return _age_restricted_treatment
+
+
+## TASK/043: yaş işlemiyle aynı kilit. Yalnız G / PG / T / MA (başka değer reddedilir).
+func set_max_ad_content_rating(value: String) -> bool:
+	if not AdConfig.CONTENT_RATINGS.has(value):
+		push_error("AdmobBackend: geçersiz en yüksek reklam derecesi '%s' reddedildi" % value)
+		return false
+	if _request_configured:
+		if value == _max_ad_content_rating:
+			return true
+		push_error("AdmobBackend: en yüksek reklam derecesi SDK yapılandırıldıktan sonra değiştirilemez (%s → %s reddedildi)"
+			% [_max_ad_content_rating, value])
+		return false
+	_max_ad_content_rating = value
+	if _admob != null:
+		_admob.max_ad_content_rating = _content_rating(value)   # attach() öncesiyse attach yazar
+	return true
+
+
+func max_ad_content_rating() -> String:
+	return _max_ad_content_rating
+
+
+func request_configured() -> bool:
+	return _request_configured
 
 
 func applied_request_configuration() -> Dictionary:
@@ -275,7 +305,11 @@ func request_consent_update() -> void:
 	_admob.update_consent_info()
 
 
+## TASK/043: getter'lar attach() öncesi (UNKNOWN / 13 altı: eklenti düğümü HİÇ kurulmaz)
+## varsayılan döner — yönetici bunları kapı açılmadan çağırmaz, bu yalnız savunma.
 func consent_status() -> ConsentStatus:
+	if _admob == null:
+		return ConsentStatus.UNKNOWN
 	var status: UserConsent = _admob.get_consent_status()
 	if status == null:
 		return ConsentStatus.UNKNOWN
@@ -290,7 +324,7 @@ func consent_status() -> ConsentStatus:
 
 
 func is_consent_form_available() -> bool:
-	return _admob.is_consent_form_available()
+	return _admob != null and _admob.is_consent_form_available()
 
 
 func load_consent_form() -> void:
@@ -307,10 +341,12 @@ func has_privacy_api() -> bool:
 
 
 func can_request_ads() -> bool:
-	return _admob.can_request_ads()
+	return _admob != null and _admob.can_request_ads()
 
 
 func privacy_options_status() -> PrivacyOptionsStatus:
+	if _admob == null:
+		return PrivacyOptionsStatus.UNKNOWN
 	match _admob.get_privacy_options_requirement_status():
 		"REQUIRED":
 			return PrivacyOptionsStatus.REQUIRED
@@ -381,6 +417,8 @@ func remove_banner(ad_id: String) -> void:
 
 ## SDK'nın portre sabit uyarlanabilir yüksekliği (tam ekran genişliği için).
 func adaptive_banner_height_dp() -> int:
+	if _admob == null:
+		return 0
 	var size: AdSize = _admob.get_portrait_adaptive_banner_size(-1)
 	return size.get_height() if size != null else 0
 

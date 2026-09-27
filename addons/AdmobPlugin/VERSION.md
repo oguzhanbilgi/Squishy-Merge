@@ -103,6 +103,10 @@ DEFAULT_AGE_RESTRICTED_TREATMENT` = **UNSPECIFIED** for every user; `AdmobBacken
 applies the request configuration ONCE before `MobileAds.initialize()`, reads it back
 and does not start the SDK when the read-back differs (see
 `docs/monetization/ADS_SYSTEM.md`). No age information and no Play Age Signals are used.
+*(Later: TASK/043 — the project routes by an age band from its own neutral date-of-birth
+screen: 13–17 → TEEN + max rating T, 18+ → UNSPECIFIED + MA, under 13 / unknown → the
+plugin node is never created. `DEFAULT_AGE_RESTRICTED_TREATMENT` was removed. The plugin
+itself is unchanged; Play Age Signals are still never used — docs/monetization/AGE_BAND_ROUTING.md.)*
 
 Rebuild vs TASK/041 AARs: only `AdmobConfiguration.class`, `AdmobPlugin.class` and
 `AdmobPlugin$*.class` differ. `javac` reports 11 deprecation warnings against GMA 25.3.0

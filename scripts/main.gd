@@ -21,6 +21,8 @@ const SETTINGS_SCENE: PackedScene = preload("res://scenes/ui/settings_panel.tscn
 const PAUSE_MENU_SCENE: PackedScene = preload("res://scenes/ui/pause_menu.tscn")
 const CHEST_INFO_SCENE: PackedScene = preload("res://scenes/ui/bonus_chest_info.tscn")
 const TUTORIAL_OVERLAY_SCENE: PackedScene = preload("res://scenes/ui/tutorial_overlay.tscn")
+const AGE_GATE_SCENE: PackedScene = preload("res://scenes/ui/age_gate_panel.tscn")
+const AGE_RESTRICTED_SCENE: PackedScene = preload("res://scenes/ui/age_restricted_screen.tscn")
 
 ## Round bitip sonuç ekranı açılmadan önceki kısa nefes payı — son merge'in
 ## efekti ekranda kalsın diye.
@@ -85,6 +87,19 @@ var _rewarded_provider: Object = null
 var _ads: MonetizationManager = null
 static var ads_backend_override: AdBackend = null
 
+## --- Nötr yaş ekranı + yaş bandı yönlendirmesi (TASK/043 — AGE_BAND_ROUTING.md) ---
+## Yalnız reklam yöneticisi varken (Android + eklenti) devrededir: yaş, reklam
+## yönlendirmesinin girdisidir. Bant soğuk açılışta kayıttan çözülür (geçişler dahil) ve
+## yöneticiye SDK'ya dokunmadan ÖNCE verilir; bilinmiyorsa İLK güvenli kabukta sorulur
+## (tutorial + tutorial kaynaklı Level 1 reklamsız biter, sonra). Doğum tarihi Main'e
+## HİÇ gelmez — panel yalnız türetilmiş bandı yayar.
+var _age_band: int = AgeGate.Band.UNKNOWN
+var _age_panel: CanvasLayer
+var _age_restricted: CanvasLayer
+## Test kancası: true iken `_quit_app` uygulamayı kapatmaz (yalnız sayar).
+static var quit_suppressed: bool = false
+var quit_requests: int = 0
+
 ## --- Ödüllü güç refill talebi (M8.5-06) ---
 ##
 ## Stale/duplicate reward callback'lerine karşı token. Her yeni talep
@@ -129,11 +144,18 @@ func _ready() -> void:
 	# açılışta bir kez hesaplanır, ekranlar ilk yerleşimde onu okur.
 	_ads = MonetizationManager.create(ads_backend_override)
 	if _ads != null:
+		# TASK/043: yaş bandı reklam SDK'sına dokunulmadan ÖNCE çözülür — kayıt doğrulanır,
+		# soğuk açılış geçişi (13. yaş günü -> TEEN, 18. yaş günü -> ADULT) burada
+		# kalıcılaşır; bozuk kayıt -> UNKNOWN (reklam yok, yaş yeniden sorulur).
+		_age_band = SaveManager.resolve_age_band_at_launch(AgeGate.today())
 		# Onboarding (tutorial, M8.10) bitmeden yuva 0 ve reklam yok; kayıt
 		# karar verir (eski kayıt ilerleme kanıtıyla tamamlanmış sayılır).
 		_ads.set_onboarding_completed(SaveManager.onboarding_completed())
+		# Yaş kapısı: UNKNOWN / UNDER_13 -> eklenti, UMP ve SDK hiç açılmaz.
+		_ads.set_age_band(_age_band)
 		add_child(_ads)
 		_ads.rewarded_availability_changed.connect(_on_rewarded_availability_changed)
+		_ads.banner_slot_changed.connect(_on_banner_slot_changed)
 		set_rewarded_provider(_ads)
 	_result = ROUND_RESULT_SCENE.instantiate()
 	_result.retry_pressed.connect(_on_retry_pressed)
@@ -215,6 +237,17 @@ func _ready() -> void:
 	_tutorial.completed.connect(_on_tutorial_completed)
 	add_child(_tutorial)
 
+	# TASK/043: nötr yaş ekranı (katman 14) + 13 yaş altı kısıt ekranı (katman 30).
+	_age_panel = AGE_GATE_SCENE.instantiate()
+	_age_panel.resolved.connect(_on_age_resolved)
+	_age_panel.closed.connect(_on_age_panel_closed)
+	add_child(_age_panel)
+	_age_restricted = AGE_RESTRICTED_SCENE.instantiate()
+	_age_restricted.exit_requested.connect(_quit_app)
+	add_child(_age_restricted)
+	_settings.age_info_requested.connect(_open_age_reentry)
+	_refresh_age_settings_row()
+
 	# İlk açılış (M8.10): yeni oyuncu Ana Sayfa'yı, günlük pencereyi, banner'ı
 	# ve UMP formunu GÖRMEDEN doğrudan Level 1 tutorial'ına girer (§4).
 	var fresh: bool = not Onboarding.is_completed()
@@ -228,9 +261,14 @@ func _ready() -> void:
 	DailyRewards.observe_day()
 	_resolve_daily_login()
 	_booted = true
-	if fresh:
+	if _ads != null and _age_band == AgeGate.Band.UNDER_13:
+		# Kayıtlı 13 yaş altı: oyun kısıt ekranında durur (tutorial da açılmaz).
+		_show_age_restricted()
+	elif fresh:
 		_begin_first_run_tutorial()
-	else:
+	elif not _maybe_request_age():
+		# Yaş biliniyor (ya da reklam yok): günlük pencere her zamanki gibi. Bilinmiyorsa
+		# pencere yaş ekranı çözülene kadar bekler (reklamlı sandık / Hamur girişleri var).
 		_maybe_auto_open_daily_rewards()
 
 
@@ -285,9 +323,157 @@ func _activate_monetization_if_safe() -> void:
 		_ads.set_onboarding_completed(SaveManager.onboarding_completed())
 
 
+## Banner yuvası, görünür kabuk ekranı yerleştikten SONRA değişti (tutorial sonrası ilk
+## güvenli geçiş; TASK/043: yaş ilk güvenli kabukta girilince kapı açılır): ekran yeni
+## alt payla hemen yeniden yerleşir — banner içeriğin altına binmez. Board varken
+## yuva değişmez (§19); yeni round zaten güncel payla kurulur.
+func _on_banner_slot_changed(_px: float) -> void:
+	if _board != null and is_instance_valid(_board):
+		return
+	if _active_tab < 0 or _active_tab >= _screens.size():
+		return
+	var screen: CanvasLayer = _screens[_active_tab]
+	if screen.visible and screen.has_method("_layout"):
+		screen.call("_layout")
+
+
 ## Tutorial şu an ekranda mı (mola/ayarlar bastırması ve geri tuşu için).
 func is_tutorial_active() -> bool:
 	return _tutorial != null and _tutorial.is_active()
+
+
+# --- Nötr yaş ekranı + yaş bandı yönlendirmesi (TASK/043) ---
+#
+# SÖZLEŞME (docs/monetization/AGE_BAND_ROUTING.md): yaş yalnız reklam yöneticisi varken
+# sorulur; İLK güvenli kabukta (tutorial ve tutorial kaynaklı Level 1 reklamsız bittikten
+# sonra; eski kayıtta açılıştaki Ana Sayfa), round ortasında ASLA. Yaş çözülene kadar
+# reklam SDK'sı, UMP ve reklamlı yüzeyler (günlük pencere) kapalı. Doğum tarihi buraya
+# GELMEZ: panel yalnız türetilmiş bandı + geçiş gününü yayar; burada log / analitik YOK.
+
+## Yaş ekranı (bant bilinmiyorsa) ya da 13 altı kısıt ekranı şu an gerekli mi — gerekiyorsa
+## açar. true = yaş / kısıt ekranı ekranda (çağıran günlük pencereyi açmaz).
+func _maybe_request_age() -> bool:
+	if _ads == null or not _booted:
+		return false
+	if _age_band == AgeGate.Band.UNDER_13:
+		_show_age_restricted()
+		return true
+	if _age_band != AgeGate.Band.UNKNOWN:
+		return false
+	if not SaveManager.onboarding_completed() or _monetization_deferred:
+		return false
+	if _board != null and is_instance_valid(_board):
+		return false
+	if not _age_panel.visible and not AgeGate.clock_plausible(AgeGate.today()):
+		# Cihaz saati modelden önceyi gösteriyor (bozuk): yaş bu saatle sınıflandırılamaz.
+		# Bant UNKNOWN kalır (reklam / UMP / SDK yok), oyun açık; saat düzelince sorulur.
+		return false
+	if not _age_panel.visible:
+		# Yaş sorusu kabuğun tek odağı: açık ikincil pencereler kapanır.
+		_close_secondary_windows()
+		if not _age_panel.visible:
+			_age_panel.open_required()
+	return true
+
+
+## Reklam başlatabilecek yüzeyler (günlük pencere: reklamlı sandık / +150 Hamur) yaş
+## çözülmeden açılmaz: bant bilinmiyor / 13 altı / yaş ya da kısıt ekranı açık.
+func _age_blocks_monetizable_surfaces() -> bool:
+	if _ads == null:
+		return false
+	return _age_band == AgeGate.Band.UNKNOWN or _age_band == AgeGate.Band.UNDER_13 \
+		or (_age_panel != null and _age_panel.visible) or (_age_restricted != null and _age_restricted.visible)
+
+
+## Panel sonucu (zorunlu ilk giriş ya da Ayarlar'dan yeniden giriş): TEK kayıt yazması
+## (yalnız türetilmiş durum), sonra yönetici. Yönetici SDK'yı bu süreçte eski bantla
+## yapılandırdıysa işlemi DEĞİŞTİRMEZ — reklam oturum boyunca kapanır, yeni bant bir
+## sonraki soğuk açılışta; oyuncu kısa bir not görür.
+func _on_age_resolved(band: int, transition: String) -> void:
+	var reentry: bool = _age_panel.is_reentry()
+	SaveManager.store_age_band(band, transition)
+	_age_band = band
+	var change: int = MonetizationManager.AgeBandChange.APPLIED
+	if _ads != null:
+		change = _ads.set_age_band(band)
+	_refresh_age_settings_row()
+	if band == AgeGate.Band.UNDER_13:
+		_age_panel.close_panel()
+		_show_age_restricted()
+		return
+	if reentry:
+		_age_panel.show_done(change == MonetizationManager.AgeBandChange.NEXT_LAUNCH)
+		return
+	_age_panel.close_panel()
+	# İlk çözüm, kabukta: rıza + reklam şimdi başlayabilir; günlük pencere bugün
+	# gösterilmediyse şimdi (ilk gün kuralı Onboarding'de, değişmedi).
+	_maybe_auto_open_daily_rewards()
+
+
+## Yeniden giriş penceresi kapandı (vazgeç / tamam): Ayarlar açık kalır.
+func _on_age_panel_closed() -> void:
+	_refresh_age_settings_row()
+
+
+## Ayarlar → "Yaş bilgisi". Yalnız bant biliniyorken (TEEN / ADULT).
+func _open_age_reentry() -> void:
+	if _ads == null or (_age_band != AgeGate.Band.TEEN and _age_band != AgeGate.Band.ADULT):
+		return
+	_age_panel.open_reentry()
+
+
+func _refresh_age_settings_row() -> void:
+	if _settings != null:
+		_settings.set_age_info_visible(_ads != null
+			and (_age_band == AgeGate.Band.TEEN or _age_band == AgeGate.Band.ADULT))
+
+
+## 13 yaş altı: oyun kısıt ekranında durur (terminal). Açık round terk edilir (sonuç /
+## ödül YOK), pencereler kapanır; kayıt SİLİNMEZ. Ekran ÖNCE açılır — pencere kapanış
+## zincirleri (günlük pencere -> _show_tab) buraya geri döndüğünde erken çıkar.
+func _show_age_restricted() -> void:
+	if _age_restricted.visible:
+		return
+	_age_restricted.open_screen()
+	if _age_panel.visible:
+		_age_panel.close_panel()
+	if _board != null and is_instance_valid(_board):
+		_clear_board()
+	_result.hide_result()
+	if _pause.visible:
+		_pause.close_menu()
+	_close_secondary_windows()
+	_hide_shell()
+	_set_ad_surface(MonetizationManager.Surface.NONE)
+
+
+func _close_secondary_windows() -> void:
+	if _settings != null and _settings.visible:
+		close_settings()
+	if _chest_info != null and _chest_info.visible:
+		_chest_info.close_info()
+	if _daily_rewards != null and _daily_rewards.visible:
+		_daily_rewards.close_popup()
+
+
+## Uygulamadan çıkış (kısıt ekranı / zorunlu yaş sorusunda geri). Testler bastırır.
+func _quit_app() -> void:
+	quit_requests += 1
+	if not quit_suppressed:
+		get_tree().quit()
+
+
+## Testler / QA sürücüsü.
+func age_band() -> int:
+	return _age_band
+
+
+func age_panel() -> CanvasLayer:
+	return _age_panel
+
+
+func age_restricted_screen() -> CanvasLayer:
+	return _age_restricted
 
 
 # --- Ekranlar ---
@@ -313,6 +499,10 @@ func _show_tab(tab: int) -> void:
 	# Güvenli kabuk geçişi: tutorial round'u sırasında ertelenmiş
 	# monetizasyon açılışı (rıza + yükleme + banner yuvası) burada başlar.
 	_activate_monetization_if_safe()
+	# TASK/043: yaş bilinmiyorsa İLK güvenli kabukta nötr yaş ekranı — günlük pencereden
+	# (reklamlı girişler) ve rızadan ÖNCE.
+	if _maybe_request_age():
+		return
 	# Oyundan / sonuçtan kabuğa dönüldü: günlük pencere bugün hiç
 	# gösterilmediyse (açılış oyun içindeyken ertelenmişse) şimdi.
 	_maybe_auto_open_daily_rewards()
@@ -423,6 +613,16 @@ func _notification(what: int) -> void:
 	if now - _last_back_msec < BACK_DEBOUNCE_MSEC:
 		return
 	_last_back_msec = now
+	# TASK/043: 13 yaş altı kısıt ekranı terminal — geri = uygulamadan çık. Zorunlu yaş
+	# sorusu kapatılamaz — geri = uygulamadan çık (bir sonraki açılışta yine sorulur);
+	# yeniden girişte (Ayarlar) geri = vazgeç / tamam.
+	if _age_restricted != null and _age_restricted.visible:
+		_quit_app()
+		return
+	if _age_panel != null and _age_panel.visible:
+		if not _age_panel.handle_back():
+			_quit_app()
+		return
 	# Tutorial açıkken geri: küçük onay (DEVAM ET / ATLA). Onboarding false
 	# iken monetize edilmiş Ana Sayfa'ya ASLA düşülmez (§12).
 	if is_tutorial_active():
@@ -560,6 +760,9 @@ func _maybe_auto_open_daily_rewards() -> void:
 	# bitirildiği takvim gününde de kapalı (ilk gün kuralı).
 	if not _booted or _daily_rewards == null or not Onboarding.daily_rewards_unlocked():
 		return
+	# TASK/043: pencerede reklamlı giriş noktaları var — yaş çözülmeden açılmaz.
+	if _age_blocks_monetizable_surfaces():
+		return
 	if not DailyRewards.popup_due():
 		return
 	if _board != null and is_instance_valid(_board):
@@ -579,7 +782,7 @@ func _maybe_auto_open_daily_rewards() -> void:
 func open_daily_rewards() -> void:
 	if _daily_rewards == null or not Onboarding.daily_rewards_unlocked():
 		return
-	if _daily_rewards.visible:
+	if _daily_rewards.visible or _age_blocks_monetizable_surfaces():
 		return
 	_open_daily_rewards_window(false)
 

@@ -61,6 +61,14 @@ const DEFAULT_DATA: Dictionary = {
 	##   onboarding true  -> ESKİ/YERLEŞİK kayıt (M8.10 öncesi tamamlanmış):
 	##                       bastırma YOK, bugünün tarihi UYDURULMAZ.
 	"onboarding_completed_day": "",
+	## Yaş bandı (TASK/043, docs/monetization/AGE_BAND_ROUTING.md) — reklam yönlendirmesinin
+	## tek girdisi (AgeGate). HAM DOĞUM TARİHİ BURADA YOK: nötr yaş ekranındaki tarih
+	## sınıflandırılıp atılır; yalnız türetilmiş bant ("UNKNOWN" / "UNDER_13" / "TEEN" /
+	## "ADULT") ve UNDER_13 / TEEN için bir sonraki bant geçiş günü (13. / 18. yaş günü,
+	## YYYY-MM-DD; ADULT'ta boş) saklanır. Eski kayıtlarda anahtar yok -> "UNKNOWN": reklam
+	## SDK'sı başlamaz, yaş ilk güvenli kabukta sorulur; ilerleme SİLİNMEZ.
+	"age_ad_band": "UNKNOWN",
+	"next_age_transition_date": "",
 	## Günlük ödüller (M8.9-02, docs/monetization/DAILY_REWARDS.md): yerel
 	## takvim günü anahtarı + o günün kotaları. Gün değişince sayaçlar
 	## OKUMADA sıfır görünür (yazma yok); ilk işlem yeni günü yazar.
@@ -525,6 +533,43 @@ func complete_onboarding(day_key: String = "") -> void:
 		if day_key > String(raw["last_seen_day_key"]):
 			raw["last_seen_day_key"] = day_key
 			data["daily_rewards"] = raw
+	save_game()
+
+
+# --- Yaş bandı (TASK/043 — docs/monetization/AGE_BAND_ROUTING.md) ---
+#
+# Doğrulama, geçişler ve reklam rotası AgeGate'te (saf; bozuk değer -> UNKNOWN, ASLA
+# ADULT). Burada yalnız okuma / tek-yazma. Doğum tarihi parametresi HİÇBİR yerde yok.
+
+func age_ad_band_raw() -> Variant:
+	return data.get("age_ad_band", "UNKNOWN")
+
+
+func next_age_transition_raw() -> Variant:
+	return data.get("next_age_transition_date", "")
+
+
+## Kayıttaki bant (yazmaz). Bozuk kayıt -> UNKNOWN.
+func stored_age_band(on_day: Dictionary) -> int:
+	return int(AgeGate.resolve_stored(age_ad_band_raw(), next_age_transition_raw(), on_day)["band"])
+
+
+## Soğuk açılış (Main._ready, reklam yöneticisi SDK'ya dokunmadan ÖNCE): kaydı doğrular,
+## geçişi (13. yaş günü -> TEEN, 18. yaş günü -> ADULT) TEK yazmayla kalıcılaştırır, bandı
+## döner. Bozuk kayıt -> UNKNOWN, yazma YOK (bir sonraki giriş üzerine yazar).
+func resolve_age_band_at_launch(on_day: Dictionary) -> int:
+	var result: Dictionary = AgeGate.resolve_stored(age_ad_band_raw(), next_age_transition_raw(), on_day)
+	if bool(result["changed"]):
+		store_age_band(int(result["band"]), String(result["transition"]))
+	return int(result["band"])
+
+
+## Nötr yaş ekranının sonucu ya da soğuk açılış geçişi: iki alan, TEK yazma. Yalnız
+## türetilmiş bant + (UNDER_13 / TEEN için) geçiş günü; ADULT / UNKNOWN'da tarih boş.
+func store_age_band(band: int, transition: String) -> void:
+	var pair: Array[String] = AgeGate.stored_pair(band, transition)
+	data["age_ad_band"] = pair[0]
+	data["next_age_transition_date"] = pair[1]
 	save_game()
 
 

@@ -343,5 +343,8 @@ func _apply_showcase() -> void:
 	SaveManager.data["powerups"] = {"bomb": 2, "upgrade": 1, "shake": 0, "clear_small": 1}
 	SaveManager.data["powerup_starter_granted"] = true
 	SaveManager.data["onboarding_completed"] = true
+	# TASK/043: vitrin oyuncusu olağan (yetişkin) reklam yolunda — yaş bandı ADULT.
+	SaveManager.data["age_ad_band"] = "ADULT"
+	SaveManager.data["next_age_transition_date"] = ""
 	SaveManager.data["daily_rewards"] = {"day_key": "", "free_chest_claimed": false, "ad_chests_claimed": 0,
 		"dough_ad_claimed": false, "popup_seen_day": "", "last_seen_day_key": ""}

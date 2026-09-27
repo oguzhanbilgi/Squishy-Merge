@@ -768,13 +768,26 @@ func _test_monetization_defer() -> void:
 	_c("Main erteleme bayrağını taşıyor", _main._monetization_deferred)
 	_c("ödüllü devam/refill sunumu hâlâ kapalı", not _main._revive_provider_ready())
 
-	# Güvenli kabuk geçişi: monetizasyon açılır.
+	# Güvenli kabuk geçişi: monetizasyon açılır — TASK/043: önce nötr yaş ekranı.
 	_main.abandon_run()
 	await get_tree().process_frame
 	await get_tree().process_frame
 	_c("kabuk geçişinde yönetici true", ads.onboarding_completed())
-	_c("rıza akışı ŞİMDİ başladı (reklamdan ÖNCE)", ads.consent_started())
 	_c("erteleme bayrağı temizlendi", not _main._monetization_deferred)
+	_c("TASK/043: ilk güvenli kabukta zorunlu yaş ekranı; yaş çözülmeden rıza BAŞLAMADI",
+		_main.age_panel().visible and not ads.consent_started() and not ads.backend_attached())
+	# Yaş saati model gününden (AgeGate.MODEL_START_DAY) önce olamaz — öncesi "bozuk saat"
+	# sayılır ve tarih sınıflandırılmaz; günlük ödül saati (DAY_A) ayrı.
+	AgeGate.clock_override = AgeGate.MODEL_START_DAY
+	for ch in "01011990":
+		(_main.age_panel().key_button(ch) as Button).pressed.emit()
+	_main.age_panel().continue_button().pressed.emit()
+	await get_tree().process_frame
+	_main.age_panel().confirm_button().pressed.emit()
+	await get_tree().process_frame
+	AgeGate.clock_override = ""
+	_c("yaş çözüldü -> rıza akışı ŞİMDİ başladı (reklamdan ÖNCE)", ads.consent_started()
+		and not _main.age_panel().visible)
 	_c("aynı gün günlük HÂLÂ kilitli (reklam != günlük)",
 		not Onboarding.daily_rewards_unlocked())
 	await _frames(4)

@@ -44,13 +44,23 @@ var density_value: float = 2.625
 ## TASK/042: istek yapılandırması (SDK başlamadan ÖNCE uygulanır + geri okunur).
 ## `applied_config` = sahte SDK'nın geri okuması; `request_configuration_fault` true →
 ## sahte SDK yaş işlemini uygulamaz (geri okuma önceki değerde kalır) — fail-closed testi.
+## TASK/043: `rating` = en yüksek reklam derecesi (yaş bandının rotası; varsayılan "G"),
+## yaş işlemiyle aynı kilit.
 var treatment: AgeRestrictedTreatment = AgeRestrictedTreatment.UNSPECIFIED
-var max_ad_content_rating: String = "G"
+var rating: String = "G"
 var applied_config: Dictionary = {}
 var request_configuration_fault: bool = false
 var request_configuration_applies: int = 0
 var init_refusals: int = 0
 var treatment_refusals: int = 0
+var rating_refusals: int = 0
+## TASK/043: gerçek AdmobBackend'de SDK'ya bakan getter'lar eklenti düğümü ister (attach).
+## attach() ÖNCESİ çağrılırsa burada kaydedilir — kapalı bant testleri boş olmasını ister.
+var attached: bool = false
+var pre_attach_getters: Array[String] = []
+## TASK/043: true -> set_age_restricted_treatment / set_max_ad_content_rating "kabul eder" ama
+## değeri TUTMAZ (bozuk arka uç) — yöneticinin UMP öncesi rota doğrulaması testi.
+var route_store_fault: bool = false
 
 var _rewarded_seq: int = 0
 var _interstitial_seq: int = 0
@@ -73,6 +83,12 @@ func _log(name: String) -> void:
 
 func attach(_host: Node) -> void:
 	_log("attach")
+	attached = true
+
+
+func _sdk_getter(name: String) -> void:
+	if not attached:
+		pre_attach_getters.append(name)
 
 
 ## AdmobBackend ile aynı sözleşme: yapılandır → geri oku / doğrula → başlat; doğrulanamazsa
@@ -96,7 +112,8 @@ func set_age_restricted_treatment(value: AgeRestrictedTreatment) -> bool:
 		_log("set_age_restricted_treatment_refused")
 		treatment_refusals += 1
 		return false
-	treatment = value
+	if not route_store_fault:
+		treatment = value
 	return true
 
 
@@ -104,14 +121,40 @@ func age_restricted_treatment() -> AgeRestrictedTreatment:
 	return treatment
 
 
+## AdmobBackend ile aynı: yalnız G / PG / T / MA; SDK yapılandırıldıktan sonra farklı değer
+## REDDEDİLİR.
+func set_max_ad_content_rating(value: String) -> bool:
+	_log("set_max_ad_content_rating:%s" % value)
+	if not AdConfig.CONTENT_RATINGS.has(value):
+		rating_refusals += 1
+		return false
+	if request_configuration_applies > 0:
+		if value == rating:
+			return true
+		_log("set_max_ad_content_rating_refused")
+		rating_refusals += 1
+		return false
+	if not route_store_fault:
+		rating = value
+	return true
+
+
+func max_ad_content_rating() -> String:
+	return rating
+
+
+func request_configured() -> bool:
+	return request_configuration_applies > 0
+
+
 func applied_request_configuration() -> Dictionary:
 	return applied_config.duplicate()
 
 
 func _apply_request_configuration() -> bool:
-	_log("request_configuration:%s" % AgeRestrictedTreatment.keys()[treatment])
+	_log("request_configuration:%s:%s" % [AgeRestrictedTreatment.keys()[treatment], rating])
 	request_configuration_applies += 1
-	var expected: Dictionary = expected_request_configuration(treatment, max_ad_content_rating, -1, -1)
+	var expected: Dictionary = expected_request_configuration(treatment, rating, -1, -1)
 	var previous: String = String(applied_config.get("age_restricted_treatment", "UNSPECIFIED"))
 	applied_config = expected.duplicate()
 	if request_configuration_fault:
@@ -126,10 +169,12 @@ func request_consent_update() -> void:
 
 
 func consent_status() -> ConsentStatus:
+	_sdk_getter("consent_status")
 	return status
 
 
 func is_consent_form_available() -> bool:
+	_sdk_getter("is_consent_form_available")
 	return form_available
 
 
@@ -150,6 +195,7 @@ func has_privacy_api() -> bool:
 ## UMP: requestConsentInfoUpdate çağrılmadan false; sonra NOT_REQUIRED /
 ## OBTAINED iken true (ya da testin zorladığı değer).
 func can_request_ads() -> bool:
+	_sdk_getter("can_request_ads")
 	can_request_calls += 1
 	if can_request_override >= 0:
 		return can_request_override == 1
@@ -159,6 +205,7 @@ func can_request_ads() -> bool:
 
 
 func privacy_options_status() -> PrivacyOptionsStatus:
+	_sdk_getter("privacy_options_status")
 	return privacy_status
 
 
@@ -224,10 +271,12 @@ func remove_banner(ad_id: String) -> void:
 
 
 func adaptive_banner_height_dp() -> int:
+	_sdk_getter("adaptive_banner_height_dp")
 	return adaptive_height_dp
 
 
 func density() -> float:
+	_sdk_getter("density")
 	return density_value
 
 

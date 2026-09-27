@@ -42,8 +42,21 @@ extends RefCounted
 ## v6.0 + 0001 + 0002 + 0003 derlemesi; TASK/041'in GMA 24.9.0 AAR'ı artık onaylı DEĞİL
 ## (SUPERSEDED_RELEASE_AARS, geri gelirse CODE); eklentinin bildirdiği GMA sürümü ve
 ## facade'ın TFAT / geri okuma API'si ayrıca denetlenir. TFAT'ın teknik olarak hazır
-## olması genç reklam işlemi engelini KALDIRMAZ (yaş bandı yönlendirmesi yok, üretim
-## varsayılanı UNSPECIFIED).
+## olması genç reklam işlemi engelini KALDIRMAZ.
+##
+## TASK/043 (owner iş kararı, 2026-09-27): nötr yaş ekranı + yaş bandı yönlendirmesi
+## (13–17 TEEN + T, 18+ UNSPECIFIED + MA, 13 altı / bilinmeyen reklamsız). Genç reklam
+## işlemi engeli ancak İKİSİ birlikte doğruysa kalkar: owner stratejisi kayıtta
+## (`[Audience] teen_ad_treatment = age_band_routing`, A36 kapısından sonra) VE kodun
+## yönlendirme tablosu owner tablosuyla birebir (`AgeGate.routing_contract_problems`; fark
+## -> CODE). Bayrak kodda yazılı DEĞİL. Resmî araştırmanın bulduğu, bu uygulamanın tek
+## başına karşılamadığı iki somut şart AYRI OWNER / UYUM engelidir (gizlenmez):
+##   - Play "Uygunsuz reklamlar": reklamlar UYGULAMANIN içerik derecesine uygun olmalı;
+##     yönlendirmenin T / MA dereceleri uygulamanın kayıtlı Play derecesiyle kıyaslanır
+##     (`ad_content_rating_problem`, AdMob dijital içerik etiketi tablosu).
+##   - Yargı bölgesi yaş yükümlülükleri (Brezilya Digital ECA vb.): owner / hukuk
+##     değerlendirmesi kayda geçene kadar (`[Audience] jurisdiction_age_review`).
+## Hukuki garanti iddiası YOK (docs/monetization/AGE_BAND_ROUTING.md).
 
 const CATEGORY_OWNER: String = "OWNER"
 const CATEGORY_CONFIG: String = "CONFIG"
@@ -105,7 +118,16 @@ const IMPLEMENTED_AUDIENCE_DECISIONS: Array[String] = ["general_13_plus"]
 ## 13–17 yaş kullanıcıları da hedefleyen kitle kararları: bunlarda genç reklam
 ## işlemi / yargı bölgesi uyum stratejisi ayrıca çözülmeli (AUDIENCE_DECISION.md §2.2).
 const TEEN_AUDIENCE_DECISIONS: Array[String] = ["general_13_plus", "mixed_audience"]
-const TEEN_TREATMENT_BLOCKER: String = "UYUM: 13–17 genç reklam işlemi / yargı bölgesi uyum stratejisi çözülmedi (TFAT TEEN teknik olarak hazır — GMA 25.3.0, TASK/042 — ama yaş bandı yönlendirmesi yok, üretim UNSPECIFIED; unspecified ≠ TEEN) — AUDIENCE_DECISION.md §2.2"
+const TEEN_TREATMENT_BLOCKER: String = "UYUM: 13–17 genç reklam işlemi stratejisi kayda geçmedi — TASK/043 yaş bandı yönlendirmesi kodda (13–17 TFAT TEEN + derece T, 18+ UNSPECIFIED + MA, 13 altı / bilinmeyen reklamsız); owner stratejisi A36 kapısından sonra android_export.cfg [Audience] teen_ad_treatment = age_band_routing ile kaydedilir — AGE_BAND_ROUTING.md"
+## Yargı bölgesi yaş yükümlülükleri (TASK/043 resmî araştırması, 2026-09-27): kendi beyanlı
+## yaş ekranı bunları kendiliğinden karşılamaz; owner / hukuk değerlendirmesi kayda geçene
+## kadar AÇIK (`[Audience] jurisdiction_age_review = recorded`).
+const JURISDICTION_REVIEW_BLOCKER: String = "UYUM: yargı bölgesi yaş yükümlülükleri değerlendirmesi kayda geçmedi (android_export.cfg [Audience] jurisdiction_age_review boş) — dünya geneli dağıtımda: Brezilya Digital ECA (Google Play yardım sayfası: çocuk / ergenlerin erişmesi muhtemel uygulamalar mağazadan yaş aralığı almalı + bu oyunlarda loot box yasağı), ABD eyalet uygulama mağazası yasaları (ör. Teksas SB2420), AB / BK / İsviçre dijital rıza yaşı (rıza yaşının altı: Google TFUA / CHILD), Families 'bazı yerlerde çocuk' (13–15 / 16–17); Play Age Signals reklamda ASLA kullanılmaz — AGE_BAND_ROUTING.md §9"
+## Play "Uygunsuz reklamlar" politikası (support.google.com/googleplay/android-developer/
+## answer/9857753): reklamlar uygulamanın İÇERİK DERECESİNE uygun olmalı. AdMob dijital içerik
+## etiketi ↔ Google Play derecesi (support.google.com/admob/answer/10478094): G 3+ · PG 7+ ·
+## T 12+ · MA 16+ / 18+. Reklam derecesi -> gereken en düşük uygulama derecesi.
+const AD_RATING_MIN_APP_RATING: Dictionary = {"G": "3+", "PG": "7+", "T": "12+", "MA": "16+"}
 
 
 ## Kuralları uygular. `inputs` anahtarları: build ("release"|"debug"),
@@ -116,8 +138,10 @@ const TEEN_TREATMENT_BLOCKER: String = "UYUM: 13–17 genç reklam işlemi / yar
 ## keystore_password_set, ad_config (AdConfig, RELEASE türünde yüklenmiş),
 ## privacy_policy_url, plugin_release_aar_sha256, plugin_facade_patched,
 ## plugin_facade_tfat, plugin_gma_version (yoksa "" = engel),
-## teen_ad_treatment_resolved (yoksa false = engel), plugin_known_defects (Array; yoksa
-## AAR SHA'sından türetilir), non_publishable_requested, export_path.
+## teen_ad_treatment_resolved (yoksa false = engel), jurisdiction_age_review_recorded (yoksa
+## false = engel), age_routing_problems (Array; yoksa engel), app_content_rating (yoksa "" =
+## engel), routed_ad_content_ratings (Array; yoksa ["MA"] — en kötü durum), plugin_known_defects
+## (Array; yoksa AAR SHA'sından türetilir), non_publishable_requested, export_path.
 static func evaluate(inputs: Dictionary) -> Dictionary:
 	var blockers: Array[Dictionary] = []
 	var notes: PackedStringArray = PackedStringArray()
@@ -146,6 +170,10 @@ static func evaluate(inputs: Dictionary) -> Dictionary:
 		_add(blockers, CATEGORY_CONFIG, "preset package/unique_name QA / test kimliği: '%s' — QA paketi release olamaz" % package_id)
 	elif not canonical.is_empty() and package_id != canonical:
 		_add(blockers, CATEGORY_CONFIG, "preset package/unique_name '%s' ≠ project.godot '%s'" % [package_id, canonical])
+	# TASK/043: kayıt (yaş bandı + doğum gününe denk gelen geçiş günü dahil) Google otomatik
+	# yedeğine GİTMEZ — gizlilik metni "yalnızca bu cihazda" diyor (allowBackup kapalı olmalı).
+	if bool(inputs.get("user_data_backup_allowed", false)):
+		_add(blockers, CATEGORY_CONFIG, "preset user_data_backup/allow=true — kayıt (yaş bandı + geçiş günü dahil) otomatik yedeğe gider; gizlilik metni 'yalnızca bu cihazda' diyor (TASK/043)")
 
 	# 2) Sürüm: tek kaynak project.godot.
 	var code: int = int(inputs.get("version_code", 0))
@@ -183,13 +211,31 @@ static func evaluate(inputs: Dictionary) -> Dictionary:
 		elif not IMPLEMENTED_AUDIENCE_DECISIONS.has(ads.audience_decision):
 			_add(blockers, CATEGORY_CODE, "kitle kararı '%s' ek uygulama istiyor (Families: yaş ekranı / AD_ID / TFCD) — henüz kodda yok" % ads.audience_decision)
 		else:
-			notes.append("ürün kitlesi kararı: %s (TFCD=%s, TFUA=%s, en yüksek reklam derecesi %s — bunlar TEEN işlemi DEĞİL) — AUDIENCE_DECISION.md §0"
-				% [ads.audience_decision, ads.tag_for_child_directed_treatment, ads.tag_for_under_age_of_consent,
-					ads.max_ad_content_rating])
-		# Ürün kitlesinden AYRI uyum kararı: etiket değerleri (hangisi olursa olsun)
-		# genç işlemi yerine geçmez; engeli yalnız çözülmüş bir strateji kaldırır.
-		if TEEN_AUDIENCE_DECISIONS.has(ads.audience_decision) and not bool(inputs.get("teen_ad_treatment_resolved", false)):
-			_add(blockers, CATEGORY_OWNER, TEEN_TREATMENT_BLOCKER)
+			notes.append("ürün kitlesi kararı: %s (TFCD=%s, TFUA=%s — eski etiketler TEEN işlemi DEĞİL; yaş işlemi ve derece yaş bandından, TASK/043) — AUDIENCE_DECISION.md §0"
+				% [ads.audience_decision, ads.tag_for_child_directed_treatment, ads.tag_for_under_age_of_consent])
+		# Ürün kitlesinden AYRI uyum kararları: etiket değerleri (hangisi olursa olsun)
+		# genç işlemi yerine geçmez; engeli yalnız kayda geçmiş + kodda doğrulanmış strateji
+		# kaldırır (TASK/043). Yargı bölgesi yükümlülükleri ayrı kayıt ister.
+		if TEEN_AUDIENCE_DECISIONS.has(ads.audience_decision):
+			if not bool(inputs.get("teen_ad_treatment_resolved", false)):
+				_add(blockers, CATEGORY_OWNER, TEEN_TREATMENT_BLOCKER)
+			else:
+				notes.append("13–17 genç reklam işlemi stratejisi: age_band_routing (nötr yaş ekranı; 13–17 TFAT TEEN + T, 18+ UNSPECIFIED + MA, 13 altı / bilinmeyen reklamsız; Play Age Signals reklamda YOK) — hukuki garanti DEĞİL, AGE_BAND_ROUTING.md")
+			if not bool(inputs.get("jurisdiction_age_review_recorded", false)):
+				_add(blockers, CATEGORY_OWNER, JURISDICTION_REVIEW_BLOCKER)
+	# TASK/043: kodun yaş bandı yönlendirmesi owner tablosundan saparsa CODE (girdi yoksa da).
+	var routing_problems: Variant = inputs.get("age_routing_problems", null)
+	if typeof(routing_problems) != TYPE_ARRAY and typeof(routing_problems) != TYPE_PACKED_STRING_ARRAY:
+		_add(blockers, CATEGORY_CODE, "yaş bandı yönlendirme sözleşmesi denetlenemedi (girdi yok)")
+	else:
+		for problem in routing_problems:
+			_add(blockers, CATEGORY_CODE, "yaş bandı yönlendirmesi owner tablosundan sapıyor: %s (AgeGate.ad_route)" % str(problem))
+	# TASK/043: Play "Uygunsuz reklamlar" — yönlendirmenin reklam dereceleri uygulamanın Play
+	# içerik derecesine uygun olmalı; derece kayda geçmediyse de engel (owner girdisi).
+	var rating_problem: String = ad_content_rating_problem(String(inputs.get("app_content_rating", "")),
+		inputs.get("routed_ad_content_ratings", ["MA"]))
+	if not rating_problem.is_empty():
+		_add(blockers, CATEGORY_OWNER, rating_problem)
 
 	# 5) Gizlilik politikası (Play: konsolda VE uygulama içinde).
 	var url: String = String(inputs.get("privacy_policy_url", "")).strip_edges()
@@ -261,10 +307,12 @@ static func project_inputs(preset: Dictionary, build: String) -> Dictionary:
 	var keystore_abs: String = ProjectSettings.globalize_path(keystore) if not keystore.is_empty() else ""
 	var facade: String = FileAccess.get_file_as_string(PATCHED_FACADE) if FileAccess.file_exists(PATCHED_FACADE) else ""
 	var aar_sha: String = FileAccess.get_sha256(PATCHED_RELEASE_AAR) if FileAccess.file_exists(PATCHED_RELEASE_AAR) else ""
+	var ad_config: AdConfig = AdConfig.load_file(AdConfig.CONFIG_PATH, AdConfig.BuildType.RELEASE)
 	return {
 		"build": build,
 		"preset_name": String(preset.get("name", "")),
 		"package_id": String(options.get("package/unique_name", "")),
+		"user_data_backup_allowed": bool(options.get("user_data_backup/allow", false)),
 		"canonical_package_id": String(ProjectSettings.get_setting(SETTING_PACKAGE_ID, "")),
 		"version_code": int(options.get("version/code", 1)),
 		"canonical_version_code": int(ProjectSettings.get_setting(SETTING_VERSION_CODE, 0)),
@@ -280,7 +328,7 @@ static func project_inputs(preset: Dictionary, build: String) -> Dictionary:
 			or keystore_abs.simplify_path() == String(_editor_debug_keystore()).simplify_path()),
 		"keystore_user_set": not user.is_empty(),
 		"keystore_password_set": password_set,
-		"ad_config": AdConfig.load_file(AdConfig.CONFIG_PATH, AdConfig.BuildType.RELEASE),
+		"ad_config": ad_config,
 		"privacy_policy_url": String(ProjectSettings.get_setting(SETTING_PRIVACY_URL, "")),
 		"plugin_release_aar_sha256": aar_sha,
 		"plugin_known_defects": known_plugin_defects(aar_sha),
@@ -290,9 +338,13 @@ static func project_inputs(preset: Dictionary, build: String) -> Dictionary:
 			and facade.contains("func get_applied_request_configuration() -> Dictionary:"),
 		"plugin_gma_version": plugin_gma_version(FileAccess.get_file_as_string(PLUGIN_EXPORT_SCRIPT)
 			if FileAccess.file_exists(PLUGIN_EXPORT_SCRIPT) else ""),
-		# 13–17 genç reklam işlemi stratejisi bugün SEÇİLMEDİ (AUDIENCE_DECISION §2.2):
-		# kayıt / uygulama yok → daima false. Strateji seçilince ayrı görevde bağlanır.
-		"teen_ad_treatment_resolved": false,
+		# TASK/043: owner stratejisi kayıtta VE kod tablosu owner tablosuyla birebir (bayrak
+		# kodda yazılı değil; ikisinden biri eksikse genç işlemi engeli AÇIK kalır).
+		"teen_ad_treatment_resolved": teen_treatment_resolved(ad_config),
+		"jurisdiction_age_review_recorded": ad_config.jurisdiction_age_review == "recorded",
+		"age_routing_problems": AgeGate.routing_contract_problems(),
+		"app_content_rating": ad_config.app_content_rating,
+		"routed_ad_content_ratings": routed_ad_content_ratings(),
 		"non_publishable_requested": OS.get_environment(NON_PUBLISHABLE_ENV) == "1",
 		"export_path": String(preset.get("export_path", "")),
 	}
@@ -322,6 +374,47 @@ static func plugin_gma_version(export_script: String) -> String:
 		versions.append(export_script.substr(start, end - start))
 		at = export_script.find(GMA_DEPENDENCY_PREFIX, end)
 	return versions[0] if versions.size() == 1 else ""
+
+
+## TASK/043: 13–17 genç reklam işlemi çözüldü mü — owner stratejisi kayıtta
+## (`teen_ad_treatment = age_band_routing`) VE kodun yönlendirme tablosu owner tablosuyla
+## birebir. Yapılandırma okunamazsa false (fail-closed).
+static func teen_treatment_resolved(ad_config: AdConfig) -> bool:
+	return ad_config != null and ad_config.teen_ad_treatment == "age_band_routing" \
+		and AgeGate.routing_contract_problems().is_empty()
+
+
+## Yönlendirmenin reklam gönderdiği bantların (TEEN, ADULT) en yüksek reklam dereceleri.
+static func routed_ad_content_ratings() -> Array:
+	var out: Array = []
+	for band in [AgeGate.Band.TEEN, AgeGate.Band.ADULT]:
+		var route: Dictionary = AgeGate.ad_route(band)
+		if bool(route["ads"]):
+			out.append(String(route["max_ad_content_rating"]))
+	return out
+
+
+## Play "Uygunsuz reklamlar" denetimi: yönlendirmenin en yüksek reklam derecesi uygulamanın
+## kayıtlı Play içerik derecesine uygun mu (AD_RATING_MIN_APP_RATING)? "" = uygun. Derece
+## kayda geçmediyse ya da tanınmıyorsa da engel metni (fail-closed); tanınmayan reklam
+## derecesi en kötü durum (MA) sayılır.
+static func ad_content_rating_problem(app_rating: String, routed: Variant) -> String:
+	var ratings: Array = routed if typeof(routed) == TYPE_ARRAY else ["MA"]
+	var order: Array[String] = AdConfig.APP_CONTENT_RATINGS
+	var required: String = "3+"
+	var highest: String = "G"
+	for rating in ratings:
+		var need: String = String(AD_RATING_MIN_APP_RATING.get(String(rating), "16+"))
+		if order.find(need) > order.find(required):
+			required = need
+			highest = String(rating) if AD_RATING_MIN_APP_RATING.has(String(rating)) else "MA"
+	if required == "3+":
+		return ""
+	if app_rating.is_empty() or not order.has(app_rating):
+		return "UYUM (Play Uygunsuz Reklamlar): uygulamanın Play içerik derecesi kayda geçmedi (android_export.cfg [Audience] app_content_rating boş) — yaş bandı yönlendirmesi en yüksek %s reklam derecesi gönderiyor, Play reklamların UYGULAMANIN içerik derecesine uygun olmasını istiyor (AdMob etiketi %s ↔ en az %s); IARC sonucu kaydedilmeli, daha düşükse yönlendirme dereceleri owner kararıyla düşürülmeli — AGE_BAND_ROUTING.md §6" % [highest, highest, required]
+	if order.find(app_rating) < order.find(required):
+		return "UYUM (Play Uygunsuz Reklamlar): uygulamanın Play içerik derecesi %s, yaş bandı yönlendirmesi %s reklam gönderiyor (AdMob etiketi %s ↔ en az %s) — owner kararı: yönlendirme derecelerini uygulamanın derecesine indir (3+ → G, 7+ → PG, 12+ → T) — AGE_BAND_ROUTING.md §6" % [app_rating, highest, highest, required]
+	return ""
 
 
 ## Verilen release AAR SHA-256'sı için kayıtlı bilinen kusurlar (CODE engeli metinleri).

@@ -74,6 +74,10 @@ func _ready() -> void:
 	# Onboarding tamam (M8.9-02): reklam ve yuva ancak o zaman; otomatik günlük
 	# pencere bu suite'in konusu değil (daily_rewards_test).
 	SaveManager.data["onboarding_completed"] = true
+	# TASK/043: bu suite olağan (yetişkin) reklam yolunu sınar — yaş bandı ADULT
+	# (UNSPECIFIED + MA). Yaş kapısının kendisi age_ad_routing_test'te.
+	SaveManager.data["age_ad_band"] = "ADULT"
+	SaveManager.data["next_age_transition_date"] = ""
 	DailyRewards.auto_popup_enabled = false
 	# Geri çekilme / zaman aşımı sürelerini testte kısalt (5 s -> 10 ms).
 	MonetizationManager.time_scale = 0.002
@@ -132,6 +136,7 @@ func _wait(seconds_scaled: float) -> void:
 
 func _make_manager(fake: FakeAdBackend) -> MonetizationManager:
 	var manager: MonetizationManager = MonetizationManager.create(fake, AdConfig.test_defaults())
+	manager.set_age_band(AgeGate.Band.ADULT)
 	add_child(manager)
 	return manager
 
@@ -348,25 +353,26 @@ func _test_consent_flow() -> void:
 
 
 ## TASK/042 (GMA 25.3.0): istek yapılandırması (yaş işlemi dahil) MobileAds.initialize()
-## ÖNCESİ bir kez uygulanır ve geri okunur; üretim yaş işlemi UNSPECIFIED; doğrulanamazsa
-## SDK başlamaz ve hiçbir reklam yüklenmez (fail-closed). Reklam kuralları değişmedi.
+## ÖNCESİ bir kez uygulanır ve geri okunur; doğrulanamazsa SDK başlamaz ve hiçbir reklam
+## yüklenmez (fail-closed). TASK/043: değerler yaş bandının rotası — bu suite ADULT
+## (UNSPECIFIED + MA); TEEN / UNKNOWN / UNDER_13 age_ad_routing_test'te. Reklam kuralları aynı.
 func _test_request_configuration_order() -> void:
-	print("-- TASK/042: istek yapılandırması SDK başlamadan ÖNCE + geri okuma; yaş işlemi UNSPECIFIED; fail-closed")
+	print("-- TASK/042 + TASK/043: istek yapılandırması SDK başlamadan ÖNCE + geri okuma; ADULT rotası UNSPECIFIED + MA; fail-closed")
 	var fake := FakeAdBackend.new()
 	fake.status = AdBackend.ConsentStatus.NOT_REQUIRED
 	var m: MonetizationManager = _make_manager(fake)
-	_c("üretim yaş işlemi UNSPECIFIED: attach'te arka uca verildi (yaş bilgisi / yönlendirme yok)",
-		MonetizationManager.DEFAULT_AGE_RESTRICTED_TREATMENT == AdBackend.AgeRestrictedTreatment.UNSPECIFIED
-		and fake.age_restricted_treatment() == AdBackend.AgeRestrictedTreatment.UNSPECIFIED
-		and m.age_restricted_treatment() == AdBackend.AgeRestrictedTreatment.UNSPECIFIED
-		and fake.calls.has("set_age_restricted_treatment:UNSPECIFIED"))
+	_c("ADULT rotası (UNSPECIFIED + MA) attach'ten ÖNCE arka uca verildi",
+		fake.age_restricted_treatment() == AdBackend.AgeRestrictedTreatment.UNSPECIFIED and fake.rating == "MA"
+		and m.age_restricted_treatment() == AdBackend.AgeRestrictedTreatment.UNSPECIFIED and m.max_ad_content_rating() == "MA"
+		and fake.calls.find("set_age_restricted_treatment:UNSPECIFIED") < fake.calls.find("attach")
+		and fake.calls.find("set_max_ad_content_rating:MA") < fake.calls.find("attach"))
 	_c("rıza sonuçlanmadan: ne yapılandırma ne SDK", fake.request_configuration_applies == 0 and fake.init_calls == 0)
 	fake.complete_consent_update(true)
-	var cfg_at: int = fake.calls.find("request_configuration:UNSPECIFIED")
-	_c("izin -> yapılandırma (UNSPECIFIED) SDK başlatmadan ÖNCE, bir kez; geri okuma beklenenle aynı",
+	var cfg_at: int = fake.calls.find("request_configuration:UNSPECIFIED:MA")
+	_c("izin -> yapılandırma (UNSPECIFIED / MA) SDK başlatmadan ÖNCE, bir kez; geri okuma beklenenle aynı",
 		cfg_at != -1 and fake.calls.find("initialize") > cfg_at and fake.request_configuration_applies == 1
 		and fake.init_calls == 1 and AdBackend.request_configuration_problem(fake.applied_request_configuration(),
-			AdBackend.expected_request_configuration(AdBackend.AgeRestrictedTreatment.UNSPECIFIED, "G", -1, -1)).is_empty())
+			AdBackend.expected_request_configuration(AdBackend.AgeRestrictedTreatment.UNSPECIFIED, "MA", -1, -1)).is_empty())
 	_c("SDK hazır sinyalinden önce hiçbir reklam yüklenmez", fake.rewarded_loads == 0 and fake.interstitial_loads == 0
 		and fake.banner_loads == 0 and not m.sdk_ready())
 	fake.complete_init()
@@ -381,8 +387,12 @@ func _test_request_configuration_order() -> void:
 	bad.status = AdBackend.ConsentStatus.NOT_REQUIRED
 	bad.request_configuration_fault = true
 	var mb: MonetizationManager = _make_manager(bad)
-	# Sahte SDK yaş işlemini uygulamıyor: TEEN istenirse geri okuma UNSPECIFIED kalır.
-	bad.set_age_restricted_treatment(AdBackend.AgeRestrictedTreatment.TEEN)
+	# Sahte SDK yaş işlemini uygulamıyor: TEEN istenirse geri okuma UNSPECIFIED kalır. TEEN
+	# yöneticinin bant yolundan gelir (TASK/043: arka uca doğrudan yazılan, rotayla uyuşmayan
+	# değer init'ten önce ayrıca yakalanır — age_ad_routing_test); burada NATIVE geri okuma.
+	_c("SDK öncesi bant ADULT -> TEEN: bekleyen rota TEEN / T (yönetici yolu)",
+		mb.set_age_band(AgeGate.Band.TEEN) == MonetizationManager.AgeBandChange.APPLIED
+		and bad.treatment == AdBackend.AgeRestrictedTreatment.TEEN and bad.rating == "T")
 	bad.complete_consent_update(true)
 	mb.ensure_rewarded()
 	await _settle(2)
@@ -1017,6 +1027,7 @@ func _test_onboarding_consent_defer() -> void:
 	var m: MonetizationManager = MonetizationManager.create(fake, AdConfig.test_defaults())
 	# Main açılışta bunu AĞACA GİRMEDEN önce veriyor (yuva ekranlardan önce).
 	m.set_onboarding_completed(false)
+	m.set_age_band(AgeGate.Band.ADULT)
 	add_child(m)
 	await _settle(2)
 	_c("onboarding false: UMP güncellemesi HİÇ istenmedi", not m.consent_started()
@@ -1081,6 +1092,7 @@ func _test_consent_kickoff_latch() -> void:
 	fake.status = AdBackend.ConsentStatus.NOT_REQUIRED
 	var m: MonetizationManager = MonetizationManager.create(fake, AdConfig.test_defaults())
 	m.set_onboarding_completed(false)
+	m.set_age_band(AgeGate.Band.ADULT)
 	add_child(m)
 	await _settle(2)
 	_c("onboarding false: sıfır consent update, latch kapalı",

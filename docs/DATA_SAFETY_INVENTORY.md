@@ -1,4 +1,4 @@
-# DATA_SAFETY_INVENTORY.md — Play "Data safety" girdileri (M9-01)
+# DATA_SAFETY_INVENTORY.md — Play "Data safety" girdileri (M9-01; TASK/043 yaş bandı eklendi)
 
 > **Bu bir ENVANTER, Play Console'a verilecek nihai cevaplar DEĞİL.** Yalnız
 > kodun ve bağımlılıkların gerçekten yaptığı yazıldı. Google'ın SDK beyanları
@@ -11,9 +11,9 @@
 
 | kaynak | veri cihazdan çıkıyor mu | alan | kanıt |
 |---|---|---|---|
-| Oyunun yerel kaydı | **HAYIR** | yalnız cihaz | §2, kod taraması |
-| Google Mobile Ads SDK (`play-services-ads` 24.9.0) | **EVET** (üçüncü taraf SDK) | Google | §3, Google beyanı |
-| UMP SDK (`user-messaging-platform` 3.2.0) | EVET (rıza yapılandırması / kaydı) — ayrıntı **UNVERIFIED** | Google | §4 |
+| Oyunun yerel kaydı (TASK/043: yaş bandı + geçiş günü dahil; doğum tarihi YOK) | **HAYIR** | yalnız cihaz | §2, kod taraması |
+| Google Mobile Ads SDK (`play-services-ads` 24.9.0 — *TASK/042'den beri 25.3.0*) | **EVET** (üçüncü taraf SDK) | Google | §3, Google beyanı |
+| UMP SDK (`user-messaging-platform` 3.2.0 — *TASK/042'den beri 4.0.0*) | EVET (rıza yapılandırması / kaydı) — ayrıntı **UNVERIFIED** | Google | §4 |
 | Analitik | **YOK** | — | §5 |
 | Hesap / giriş / sunucu / bulut kayıt | **YOK** | — | §5 |
 | Crash raporlama SDK'sı | **YOK** | — | §5 |
@@ -31,6 +31,13 @@
   anahtarları (`YYYY-MM-DD`, cihazın yerel takvimi), ses/titreşim ayarları,
   onboarding (tutorial) tamamlanma bayrağı ve günü. **Kişisel veri yok** (ad,
   e-posta, telefon, konum, kişi listesi, fotoğraf yok).
+- **Yaş bandı (TASK/043, [monetization/AGE_BAND_ROUTING.md](monetization/AGE_BAND_ROUTING.md)):**
+  nötr yaş ekranında girilen **doğum tarihi SAKLANMAZ** ve cihazdan çıkmaz (yalnız
+  bellekte sınıflandırılıp atılır). Kayda yalnız türetilmiş durum yazılır:
+  `age_ad_band` (UNKNOWN / UNDER_13 / TEEN / ADULT) ve UNDER_13 / TEEN için
+  `next_age_transition_date` (13. / 18. yaş günü, `YYYY-MM-DD`; ADULT'ta boş). Dürüst not:
+  UNDER_13 / TEEN bandında bu geçiş günü doğum tarihine matematiksel olarak eşdeğerdir
+  (geçiş − 13 / 18 yıl); yalnız cihazdaki kayıtta durur, ADULT olunca silinir.
 - **Ağ:** oyun kodu hiçbir sunucuya bağlanmaz — `scripts/` ve `scenes/`
   altında `HTTPRequest` / `HTTPClient` / `WebSocket` / TCP-UDP kullanımı YOK
   (M9-01 taraması). Tek dış bağlantı: Ayarlar'daki "Gizlilik politikası"
@@ -100,6 +107,7 @@
 | Aktarımda şifreli mi? | SDK trafiği TLS (Google beyanı); oyun ağ kullanmıyor | — |
 | Kullanıcı silme isteyebilir mi? | oyun verisi yalnız cihazda (kaldırınca silinir); reklam verisi Google'da | ifade owner'ın |
 | Toplama isteğe bağlı mı? | EEA/UK/CH'de UMP rızası; diğer bölgelerde reklam için gerekli | owner |
+| Doğum tarihi / yaş (TASK/043) | Doğum tarihi yalnız cihazda işlenir, saklanmaz, gönderilmez — Google'ın Data safety tanımında yalnız cihazda işlenen veri beyan kapsamı dışında (owner doğrular). AMA yaşa bağlı **reklam işlemi sinyalleri** her reklam isteğiyle Google'a gider: TFAT `TEEN` (13–17) ya da `UNSPECIFIED` (18+) ve en yüksek reklam derecesi `T` / `MA`; 13 altı / bilinmeyen yaşta reklam isteği hiç yok | bu sinyallerin formda (ör. "Diğer kişisel bilgi" / paylaşım) nasıl beyan edileceği **owner kararı — UNVERIFIED**; gizlilik politikası yaş sorusunu ve kullanımını anlatmalı (AGE_BAND_ROUTING §9) |
 | Reklam kimliği beyanı | uygulama reklam kimliğini kullanıyor (GMA, `AD_ID` izni) | Play "Advertising ID" formu — ürün kitlesi 13+ (2026-09-25): `AD_ID` izni bugün kalıyor (yalnız çocuklara yönelik kitlede çıkarılırdı, AUDIENCE_DECISION §3); 13–17 genç reklam işlemi / yargı bölgesi uyumu AÇIK (§2.2) ve reklam kimliği kullanımını etkileyebilir; formun cevabı owner'ın |
 | "Contains ads" | **Evet** (banner, ödüllü, geçiş) | Play "Ads" beyanı |
 | Hesap oluşturma | Yok | — |

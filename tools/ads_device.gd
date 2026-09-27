@@ -75,16 +75,27 @@ extends Node
 ##   hiç başlatılmamışken EEA / NOT_EEA kanıtı (öncesinde `pm clear` = UMP
 ##   sıfırlama). Dosya açılışta okunur ve silinir.
 ##
-## TASK/042 (üretim eklentisi GMA 25.3.0 — yaş işlemi TFAT; YALNIZ QA teşhisi, üretim
-## yönlendirmesi DEĞİL: üretim varsayılanı MonetizationManager.DEFAULT_AGE_RESTRICTED_TREATMENT
-## = UNSPECIFIED ve bu komutlar olmadan hiçbir şey onu değiştirmez):
-##   `qa_boot.txt` içinde `teen` → ilk arka uca SDK başlamadan ÖNCE TEEN verilir
-##   (AdBackend.set_age_restricted_treatment; initialize() onu başlatma öncesi uygular)
-##   tfat teen|child|unspecified   aynı çağrı; SDK yapılandırıldıktan SONRA farklı değer
-##                            REDDEDİLİR (accepted=false) — sözleşme gereği
-##   tfat_diag                SDK'nın o anki RequestConfiguration'ı (native geri okuma)
-##   (durum satırı `tfat:`)
-## Play Age Signals'a hiçbir bağlantı YOK: yaş işlemi yalnız bu QA komutlarıyla seçilir.
+## TASK/042: `tfat_diag` = SDK'nın o anki RequestConfiguration'ı (native geri okuma; salt okunur).
+## (TASK/042'nin QA-only `teen` açılış sözcüğü ve `tfat` komutu TASK/043'te KALDIRILDI: yaş
+## işlemi artık yalnız üretim yolundan — yaş bandı — gelir; sürücü arka uca TFAT vermez.)
+##
+## TASK/043 (yaş bandı yönlendirmesi — yalnız QA; ham doğum tarihi YALNIZ gerçek dokunuşla
+## gerçek panele girilir, sürücü komutu / logu tarih taşımaz):
+##   `qa_boot.txt` sözcükleri (Main kurulmadan, SDK'ya dokunulmadan ÖNCE uygulanır):
+##     keep                   kaydı OLDUĞU GİBİ kullan (vitrin / fresh uygulanmaz) — "sonraki
+##                            soğuk açılış" kanıtı (yeniden giriş, geçiş)
+##     age=unknown            yaş anahtarları silinir (eski kayıt = UNKNOWN)
+##     age=teen|under13|adult sentetik bant: TEEN = 15 yaş, UNDER_13 = 10 yaş (geçiş günü
+##                            AgeGate'ten), ADULT tarihsiz — kayda yalnız türetilmiş durum
+##     agetrans=YYYY-MM-DD    age=teen / under13 ile: geçiş gününü açıkça ver (CASE F)
+##     ageclock=YYYY-MM-DD    AgeGate.clock_override (cihaz saati DEĞİŞMEZ) — soğuk açılış
+##                            geçişi SDK'dan ÖNCE çözülür
+##   ageclock YYYY-MM-DD|none komut: yalnız bir SONRAKİ Main kurulumuna (relaunch) etkiler
+##   age_reentry              Ayarlar → Yaş bilgisi ile aynı yol (kod yolu; cihazda GERÇEK
+##                            dokunuş tercih — `settings:` satırındaki age= dikdörtgeni)
+##   (durum satırları `age:` / `agepanel:` / `agerects:` / `restricted:`; `tfat:` = arka uç +
+##    native geri okuma)
+## Play Age Signals'a hiçbir bağlantı YOK.
 
 const MAIN_SCENE: PackedScene = preload("res://scenes/main.tscn")
 const BOOT_PATH: String = "user://qa_boot.txt"
@@ -107,13 +118,8 @@ var _fake_ishow_done: int = 0
 ## yeniden bağlanır) — "callback tam bir kez" kanıtı.
 var _privacy_dismissals: int = 0
 var _privacy_last: String = "-"
-## TASK/042: QA-only age-treatment diagnostics (production API; never the production default).
-const TFAT_VALUES: Dictionary = {
-	"unspecified": AdBackend.AgeRestrictedTreatment.UNSPECIFIED,
-	"child": AdBackend.AgeRestrictedTreatment.CHILD,
-	"teen": AdBackend.AgeRestrictedTreatment.TEEN,
-}
-var _tfat_boot: String = "-"
+## TASK/043: açılışta uygulanan yaş sözcükleri (tarih İÇERMEZ — durum satırı için).
+var _age_boot: String = "-"
 
 
 func _ready() -> void:
@@ -124,10 +130,13 @@ func _ready() -> void:
 	var boot: String = FileAccess.get_file_as_string(BOOT_PATH).strip_edges() if FileAccess.file_exists(BOOT_PATH) else ""
 	_remove(BOOT_PATH)
 	var boot_words: PackedStringArray = boot.split(" ", false)
-	if boot_words.has("fresh"):
+	if boot_words.has("keep"):
+		pass   # TASK/043: kayıt olduğu gibi (sonraki soğuk açılış kanıtı)
+	elif boot_words.has("fresh"):
 		_apply_fresh()
 	else:
 		_apply_showcase()
+	_apply_age_boot(boot_words)
 	SaveManager.save_game()
 	var boot_backend: AdmobBackend = null
 	for word in boot_words:
@@ -140,14 +149,12 @@ func _ready() -> void:
 			else:
 				_last = "boot: debug coğrafyası reddedildi (%s)" % word
 	await _make_main(boot_backend)
-	if boot_words.has("teen"):
-		# TASK/042 QA: TEEN before MobileAds.initialize (the manager initializes only after the
-		# async UMP update). Proof of the order = the native "initialize(): request configuration
-		# before MobileAds.initialize … age_restricted_treatment=TEEN" line; if the SDK had already
-		# been configured the backend refuses the change (accepted=false) — never a silent pass.
-		_tfat_boot = _tfat_set("teen")
-		_last = "boot teen: %s" % _tfat_boot
-	print("[qa] ready view=", DisplayServer.window_get_size(), " boot=", boot if boot != "" else "showcase")
+	# Açılış satırında tarih YOK (logcat gizlilik taraması): yalnız sözcük anahtarları.
+	var boot_keys: PackedStringArray = PackedStringArray()
+	for word in boot_words:
+		var key: String = word.split("=")[0]
+		boot_keys.append(key + "=…" if key == "ageclock" or key == "agetrans" else word)
+	print("[qa] ready view=", DisplayServer.window_get_size(), " boot=", _redact(" ".join(boot_keys)) if boot != "" else "showcase")
 	_write_state("ready")
 	while true:
 		await get_tree().create_timer(POLL).timeout
@@ -276,7 +283,9 @@ func _hook_finished() -> void:
 func _handle(line: String) -> void:
 	var parts: PackedStringArray = line.split(" ", false)
 	var cmd: String = parts[0]
-	print("[qa] cmd ", line)
+	# TASK/043: tarih biçimli her şey (yaş komutlarının argümanları, yanlış yazılmış komutlar
+	# dahil) logcat'e ve durum dosyasına MASKELİ gider (`_redact`).
+	print("[qa] cmd ", _redact(line))
 	match cmd:
 		"state", "events":
 			pass
@@ -354,7 +363,7 @@ func _handle(line: String) -> void:
 				await _make_main(real)
 		"reset_consent":
 			var ads: MonetizationManager = _ads()
-			if ads != null and ads.backend() is AdmobBackend:
+			if ads != null and ads.backend_attached() and ads.backend() is AdmobBackend:
 				(ads.backend() as AdmobBackend)._admob.reset_consent_info()
 				_last = "reset_consent"
 		"privacy":
@@ -369,6 +378,8 @@ func _handle(line: String) -> void:
 			var raw: AdBackend = raw_ads.backend() if raw_ads != null else null
 			if raw == null or not (raw is AdmobBackend):
 				_last = "ump_raw: gerçek arka uç yok"
+			elif not raw_ads.backend_attached():
+				_last = "ump_raw: eklenti kurulmadı (yaş kapısı kapalı — UNKNOWN / UNDER_13)"
 			elif parts.size() > 1 and parts[1] == "show":
 				raw.show_privacy_options_form()
 				_last = "ump_raw show_privacy_options_form çağrıldı (dismissals önce=%d)" % _privacy_dismissals
@@ -377,10 +388,15 @@ func _handle(line: String) -> void:
 					str(raw.has_privacy_api()), str(raw.can_request_ads()),
 					AdBackend.PrivacyOptionsStatus.keys()[raw.privacy_options_status()],
 					AdBackend.ConsentStatus.keys()[raw.consent_status()], str(raw.is_consent_form_available())]
-		"tfat":
-			# TASK/042 (QA only): tfat teen|child|unspecified
-			var word: String = parts[1] if parts.size() > 1 else "teen"
-			_last = "tfat: %s" % _tfat_set(word)
+		"ageclock":
+			# TASK/043: yalnız bir sonraki Main kurulumunda (relaunch) okunur.
+			AgeGate.clock_override = "" if (parts.size() < 2 or parts[1] == "none") else parts[1]
+			_last = "ageclock set (next relaunch)"
+		"age_reentry":
+			if _main._settings.visible == false:
+				_main.open_settings()
+			_main._settings.age_info_button().pressed.emit()
+			await _settle()
 		"tfat_diag":
 			var diag_ads: MonetizationManager = _ads()
 			_last = "tfat_diag: %s" % (str(diag_ads.backend().applied_request_configuration())
@@ -508,15 +524,19 @@ func _handle(line: String) -> void:
 		"tut_back":
 			_main._notification(Node.NOTIFICATION_WM_GO_BACK_REQUEST)
 		"savedump":
+			# TASK/043: geçiş günü doğum gününe denk gelir -> dökümde yalnız "set" / "".
+			var dump: Dictionary = SaveManager.data.duplicate(true)
+			if not str(dump.get("next_age_transition_date", "")).is_empty():
+				dump["next_age_transition_date"] = "set"
 			var f := FileAccess.open("user://qa_save.txt", FileAccess.WRITE)
 			if f != null:
-				f.store_string(JSON.stringify(SaveManager.data, "\t"))
+				f.store_string(JSON.stringify(dump, "\t"))
 				f.close()
 		"bitir":
 			_main.decline_revive()
 			await _settle()
 		_:
-			print("[qa] bilinmeyen komut: ", line)
+			print("[qa] bilinmeyen komut: ", _redact(line))
 	await get_tree().process_frame
 	_write_state(line)
 
@@ -534,20 +554,35 @@ func _fake_ishow_pending() -> bool:
 	return false
 
 
-## QA: arka uca yaş işlemi verir (üretim API'si). SDK henüz başlamadıysa initialize()
-## onu başlatma öncesi uygular; başladıysa arka uç hemen yeniden uygular. Tek satır özet.
-func _tfat_set(word: String) -> String:
-	var ads: MonetizationManager = _ads()
-	if ads == null or ads.backend() == null:
-		return "arka uç yok"
-	if not TFAT_VALUES.has(word):
-		return "bilinmeyen değer %s" % word
-	var sdk_was_ready: bool = ads.sdk_ready()
-	var configured_before: bool = not ads.backend().applied_request_configuration().is_empty() \
-		and ads.backend().applied_request_configuration().get("max_ad_content_rating", "") != ""
-	var accepted: bool = ads.backend().set_age_restricted_treatment(TFAT_VALUES[word])
-	return "treatment=%s accepted=%s sdk_ready_before=%s configured_before=%s" % [word, str(accepted),
-		str(sdk_was_ready), str(configured_before)]
+## TASK/043: açılış yaş sözcükleri (Main kurulmadan ÖNCE). Kayda yalnız türetilmiş durum
+## girer (SaveManager.store_age_band); sentetik yaşlar AgeGate'ten sınıflandırılır.
+func _apply_age_boot(words: PackedStringArray) -> void:
+	var band: String = ""
+	var trans: String = ""
+	for word in words:
+		if word.begins_with("ageclock="):
+			AgeGate.clock_override = word.substr(9)
+		elif word.begins_with("age="):
+			band = word.substr(4)
+		elif word.begins_with("agetrans="):
+			trans = word.substr(9)
+	var today: Dictionary = AgeGate.today()
+	match band:
+		"unknown":
+			SaveManager.data.erase("age_ad_band")
+			SaveManager.data.erase("next_age_transition_date")
+		"adult":
+			SaveManager.store_age_band(AgeGate.Band.ADULT, "")
+		"teen", "under13":
+			var years: int = 15 if band == "teen" else 10
+			var born: Dictionary = AgeGate.anniversary(today, -years)
+			var result: Dictionary = AgeGate.classify_birth_date(born["year"], born["month"], born["day"], today)
+			SaveManager.store_age_band(result["band"], trans if not trans.is_empty() else String(result["transition"]))
+	if not band.is_empty():
+		_age_boot = "age=%s%s%s" % [band, " agetrans" if not trans.is_empty() else "",
+			" ageclock" if not AgeGate.clock_override.is_empty() else ""]
+	elif not AgeGate.clock_override.is_empty():
+		_age_boot = "ageclock"
 
 
 ## Main'i mevcut arka uç türüyle yeniden kurar (uygulama açılışı: _ready →
@@ -613,9 +648,19 @@ func _rect_px(control: Control) -> String:
 	return "px[%d,%d-%d,%d c=%d,%d]" % [int(a.x), int(a.y), int(b.x), int(b.y), int(c.x), int(c.y)]
 
 
+## Tarih biçimli metni maskeler (YYYY-MM-DD ve 6+ haneli rakam dizileri) — logcat ve durum
+## dosyası sentetik tarihleri bile taşımaz.
+static func _redact(text: String) -> String:
+	var dates := RegEx.new()
+	dates.compile("\\d{4}-\\d{1,2}-\\d{1,2}")
+	var runs := RegEx.new()
+	runs.compile("\\d{6,}")
+	return runs.sub(dates.sub(text, "<tarih>", true), "<rakam>", true)
+
+
 func _write_state(label: String) -> void:
 	var lines: PackedStringArray = PackedStringArray()
-	lines.append("label: %s" % label)
+	lines.append("label: %s" % _redact(label))
 	lines.append("time: %s" % Time.get_time_string_from_system())
 	lines.append("view: %s canvas: %s scale: %s backend: %s" % [str(DisplayServer.window_get_size()),
 		str(get_viewport().get_visible_rect().size), str(get_viewport().get_screen_transform().get_scale()),
@@ -623,24 +668,31 @@ func _write_state(label: String) -> void:
 	var ads: MonetizationManager = _ads()
 	if ads == null:
 		lines.append("ads: NONE (manager yok)")
+		lines.append("age: band=%s (manager yok)" % AgeGate.band_name(_main.age_band()))
 	else:
 		var backend: AdBackend = ads.backend()
+		# TASK/043: UNKNOWN / UNDER_13'te eklenti düğümü HİÇ kurulmaz — SDK getter'ları yalnız attach'ten sonra.
+		var live: bool = backend != null and ads.backend_attached()
 		lines.append("ads: state=%s allowed=%s sdk_ready=%s consent=%s form_available=%s privacy_required=%s consent_attempts=%d consent_retry=%s" % [
 			MonetizationManager.AdsState.keys()[ads.ads_state()], str(ads.ads_allowed()), str(ads.sdk_ready()),
-			AdBackend.ConsentStatus.keys()[backend.consent_status()] if backend != null else "-",
-			str(backend.is_consent_form_available()) if backend != null else "-",
+			AdBackend.ConsentStatus.keys()[backend.consent_status()] if live else "-",
+			str(backend.is_consent_form_available()) if live else "-",
 			str(ads.privacy_options_required()), ads.consent_attempts(), str(ads.has_pending_consent_retry())])
 		# M9-01: UMP resmî değerleri (yamalı eklenti) — EEA / NOT_EEA kapısı bunları okur.
-		var papi: bool = backend != null and backend.has_privacy_api()
+		var papi: bool = live and backend.has_privacy_api()
 		lines.append("ump: api=%s can_request_ads=%s privacy_status=%s uses_api=%s privacy_dismissals=%d privacy_last='%s'" % [str(papi),
 			str(backend.can_request_ads()) if papi else "-",
 			AdBackend.PrivacyOptionsStatus.keys()[backend.privacy_options_status()] if papi else "-",
 			str(ads.uses_privacy_api()), _privacy_dismissals, _privacy_last])
-		# TASK/042: yaş işlemi (arka uç değeri) + SDK'nın native geri okuması.
-		lines.append("tfat: default=%s treatment=%s boot='%s' applied=%s" % [
-			AdBackend.AgeRestrictedTreatment.keys()[MonetizationManager.DEFAULT_AGE_RESTRICTED_TREATMENT],
-			AdBackend.AgeRestrictedTreatment.keys()[ads.age_restricted_treatment()], _tfat_boot,
-			str(backend.applied_request_configuration()) if backend != null else "-"])
+		# TASK/042 + TASK/043: arka ucun yaş işlemi / derecesi + SDK'nın native geri okuması.
+		lines.append("tfat: treatment=%s rating=%s configured=%s applied=%s" % [
+			AdBackend.AgeRestrictedTreatment.keys()[ads.age_restricted_treatment()], ads.max_ad_content_rating(),
+			str(backend.request_configured()) if backend != null else "-",
+			str(backend.applied_request_configuration()) if backend != null and ads.backend_attached() else "-"])
+		lines.append("age: band=%s attached=%s blocked=%s allowed=%s consent_started=%s boot='%s' clock_override=%s" % [
+			AgeGate.band_name(ads.age_band()), str(ads.backend_attached()), str(ads.age_session_blocked()),
+			str(ads.age_ads_allowed()), str(ads.consent_started()), _age_boot,
+			"set" if not AgeGate.clock_override.is_empty() else "-"])
 		var req: Dictionary = ads.request_info()
 		lines.append("rewarded: state=%s ready=%s note='%s' attempts=%d retry=%s request={active=%s id=%d kind=%s type=%d token=%d day=%s ad_id=%s earned=%s cancelled=%s}" % [
 			MonetizationManager.RewardedState.keys()[ads.rewarded_state()], str(ads.is_rewarded_ready()),
@@ -727,10 +779,28 @@ func _write_state(label: String) -> void:
 		str(rf._ad.disabled), rf.ad_note_text(), str(rf._dough.disabled), rf.note_text(), str(rf.is_request_pending()),
 		_rect_px(rf._ad), _rect_px(rf._dough), _rect_px(rf._close), _rect_px(rf.close_button())])
 	var st: CanvasLayer = _main._settings
-	lines.append("settings: visible=%s privacy_row=%s policy_row=%s policy_url='%s' rects: privacy_btn=%s close=%s" % [
+	lines.append("settings: visible=%s privacy_row=%s policy_row=%s age_row=%s policy_url='%s' rects: privacy_btn=%s age=%s close=%s" % [
 		str(st.visible), str(st.privacy_options_row() != null and st.privacy_options_row().visible),
-		str(st.privacy_policy_row() != null and st.privacy_policy_row().visible), st.privacy_policy_url(),
-		_rect_px(st.privacy_options_button()), _rect_px(st._close)])
+		str(st.privacy_policy_row() != null and st.privacy_policy_row().visible),
+		str(st.age_info_row() != null and st.age_info_row().visible), st.privacy_policy_url(),
+		_rect_px(st.privacy_options_button()), _rect_px(st.age_info_button()), _rect_px(st._close)])
+	# TASK/043: nötr yaş ekranı + kısıt ekranı (rakamlar ve onay metni YAZILMAZ — yalnız hane
+	# sayıları ve onay metninin var olup olmadığı; tarih ekran görüntüsünde, sentetik).
+	var ap: CanvasLayer = _main.age_panel()
+	lines.append("agepanel: visible=%s reentry=%s stage=%d field=%d lengths=%s complete=%s error=%s confirm=%s done_note=%s next_launch=%s save_band=%s save_trans=%s" % [
+		str(ap.visible), str(ap.is_reentry()), ap.stage(), ap.active_field(), str(ap.field_lengths()), str(ap.is_complete()),
+		str(ap.error_visible()), "set" if not ap.confirm_text().is_empty() else "-", str(ap.done_note_visible()),
+		str(ap.done_next_launch()),
+		str(SaveManager.age_ad_band_raw()), "set" if not str(SaveManager.next_age_transition_raw()).is_empty() else "-"])
+	var key_rects: PackedStringArray = PackedStringArray()
+	for key_name in ["1", "2", "3", "4", "5", "6", "7", "8", "9", "0", "del", "clear"]:
+		key_rects.append("k%s=%s" % [key_name, _rect_px(ap.key_button(key_name))])
+	lines.append("agerects: %s f0=%s f1=%s f2=%s continue=%s confirm=%s fix=%s cancel=%s done=%s x=%s" % [" ".join(key_rects),
+		_rect_px(ap.field_button(0)), _rect_px(ap.field_button(1)), _rect_px(ap.field_button(2)),
+		_rect_px(ap.continue_button()), _rect_px(ap.confirm_button()), _rect_px(ap.fix_button()),
+		_rect_px(ap.cancel_button()), _rect_px(ap.done_button()), _rect_px(ap.close_x())])
+	var rs: CanvasLayer = _main.age_restricted_screen()
+	lines.append("restricted: visible=%s exit=%s quit_requests=%d" % [str(rs.visible), _rect_px(rs.exit_button()), _main.quit_requests])
 	lines.append("result: visible=%s pause: %s" % [str(_main._result.visible), str(_main._pause.visible)])
 	var home: CanvasLayer = _main._screens[0]
 	lines.append("home: play=%s settings=%s daily_medal=%s daily_dot=%s" % [_rect_px(home._play), _rect_px(home._settings_button),

@@ -35,6 +35,16 @@
 >   `TEEN`; 18+ → olağan, rızaya bağlı yetişkin yolu, `UNSPECIFIED`), **BAŞLAMADI**.
 >   Play Age Signals reklamda hâlâ KULLANILMAZ. 13–17 UYUM engeli **AÇIK** (§2.2);
 >   kapı BLOCKED — CODE 0 · OWNER 9 · CONFIG 0.
+> - **TASK/043 (2026-09-27; dal `task/043-age-band-routing`, main'e alınması owner onayı
+>   bekliyor):** owner §2.2 **Strateji B**'yi (yaş bandı) iş kararı olarak seçti, UYGULANDI:
+>   nötr doğum tarihi ekranı (ilk güvenli kabukta, tutorial'dan sonra); 13–17 → TFAT `TEEN` +
+>   en yüksek derece `T`; 18+ → `UNSPECIFIED` + `MA`; 13 yaş altı → reklam SDK'sı / UMP /
+>   reklam YOK + kısıt ekranı; bilinmeyen yaş → reklam yok. Ürün kitlesi (§0, 13+) DEĞİŞMEDİ;
+>   Play hedef yaş grupları aynı. `[Audience] max_ad_content_rating` kaldırıldı (derece yaş
+>   bandından). Ham doğum tarihi saklanmaz. Kapıda genç işlemi engeli owner kaydıyla
+>   (`teen_ad_treatment = age_band_routing`, A36 kapısından sonra) + kod tablosuyla kalkar; iki
+>   yeni somut OWNER / UYUM maddesi (Play "Uygunsuz reklamlar" — uygulama içerik derecesi;
+>   yargı bölgesi yaş yükümlülükleri) açık — [AGE_BAND_ROUTING.md](AGE_BAND_ROUTING.md) §9–§10.
 >
 > Karardan önceki durum (2026-09-22): kod kararı tahmin etmedi; sevimli / kawaii
 > sanat tek başına "çocuklara yönelik" ya da "13+" demek için yeterli sayılmadı.
@@ -55,9 +65,9 @@ children under 13."*
 | Play Console hedef yaş grupları — **SEÇİLMEZ** | **5 ve altı · 6–8 · 9–12** |
 | Google Play Families politikası | 13 altı grup seçilmedi — ama bu "Families hiçbir yerde uygulanmaz" demek **DEĞİL**: Google'a göre 13–15 ve 16–17 bazı yerlerde çocuk sayılabilir; dağıtılan bölgelere göre Families / çocuk gizliliği / reklam yükümlülükleri değerlendirilmeli (hukuki not, §2.2) |
 | `android_export.cfg [Audience] decision` | **`general_13_plus`** |
-| TFCD / TFUA / en yüksek reklam derecesi | bu kararla **DEĞİŞTİRİLMEDİ**: `unspecified` / `unspecified` / `G` — reklam istekleri M8.9'dan beri aynı (TFCD/TFUA gönderilmez, derece G). Bunlar **TEEN işlemi DEĞİLDİR** ve 13–17 için uyumu kanıtlamaz (§2.2) |
-| 13–17 genç reklam işlemi / yargı bölgesi uyumu | **AÇIK — üretim yayınından önce çözülmeli** (§2.2; kapıda ayrı OWNER "UYUM:" engeli). Stratejiler A–D belgelendi, hiçbiri seçilmedi |
-| Nötr yaş ekranı | YOK — bu görevde eklenmez (§2.2 B stratejisi ileride bir yaş / yaş bandı düzeneği getirebilir; yalnız owner kararıyla) |
+| TFCD / TFUA / en yüksek reklam derecesi | bu kararla **DEĞİŞTİRİLMEDİ**: `unspecified` / `unspecified` / `G` — reklam istekleri M8.9'dan beri aynı (TFCD/TFUA gönderilmez, derece G). Bunlar **TEEN işlemi DEĞİLDİR** ve 13–17 için uyumu kanıtlamaz (§2.2) *(Sonra: TASK/043 — TFCD / TFUA `unspecified` kaldı; derece artık yaş bandından: TEEN `T`, ADULT `MA`; `[Audience] max_ad_content_rating` kaldırıldı)* |
+| 13–17 genç reklam işlemi / yargı bölgesi uyumu | **AÇIK — üretim yayınından önce çözülmeli** (§2.2; kapıda ayrı OWNER "UYUM:" engeli). Stratejiler A–D belgelendi, hiçbiri seçilmedi *(Sonra: TASK/043 — owner B'yi seçti ve uygulandı; yargı bölgesi değerlendirmesi + uygulama içerik derecesi ayrı OWNER / UYUM maddeleri, AGE_BAND_ROUTING §9–§10)* |
+| Nötr yaş ekranı | YOK — bu görevde eklenmez (§2.2 B stratejisi ileride bir yaş / yaş bandı düzeneği getirebilir; yalnız owner kararıyla) *(Sonra: TASK/043 — owner B'yi seçti; nötr doğum tarihi ekranı eklendi, AGE_BAND_ROUTING.md)* |
 | 13 altına özel (child-directed) reklam mantığı | YOK — eklenmez |
 | Families / karma kitle yeniden tasarımı | YOK |
 | Google Mobile Ads / UMP | 24.9.0 / 3.2.0 aynen — task/039'da SDK geçişi YOK. 24.9.0 TFAT `TEEN` gönderemez (§2.1) → 13–17 stratejisi AÇIK (§2.2) *(Sonra: TASK/042 — main'de 25.3.0 / 4.0.0; TFAT var ama üretim UNSPECIFIED, §2.1; strateji hâlâ AÇIK)* |
@@ -103,7 +113,7 @@ Tek kaynak: `addons/AdmobPlugin/android_export.cfg` → `[Audience]`
 | `tag_for_child_directed_treatment` (TFCD, COPPA) | `unspecified` | Mobile Ads `RequestConfiguration` | **gönderilmez** — Google'a hiçbir şey söylenmez (TEEN işlemi DEĞİL) |
 | `tag_for_under_age_of_consent` (TFUA) | `unspecified` | `RequestConfiguration` + UMP `ConsentRequestParameters` | **gönderilmez** (eklenti yalnız UNSPECIFIED değilse ekler; TEEN işlemi DEĞİL) |
 | `max_ad_content_rating` | `G` | `RequestConfiguration` | yalnız "genel izleyici" reklamları (en muhafazakâr) — **TASK/040: FİİLEN ETKİN DEĞİL**, üretim eklentisi RequestConfiguration'ı hiç uygulamıyor ([GLOBAL_TEEN_AD_TREATMENT §C4](GLOBAL_TEEN_AD_TREATMENT.md); kapıda CODE) *(sonra kapandı: TASK/041 — A36 geri okuması `max_ad_content_rating=G`, ilk yüklemeden önce)* |
-| yaş işlemi (TFAT, `age_restricted_treatment`) — **TASK/042 dalı** | `UNSPECIFIED`, herkes için — kaynak `android_export.cfg` DEĞİL: `MonetizationManager.DEFAULT_AGE_RESTRICTED_TREATMENT` | `RequestConfiguration` (`setAgeRestrictedTreatment(null)` = SDK varsayılanı) | **özel yaş işlemi yok** — istek SDK varsayılanıyla aynı (TEEN işlemi DEĞİL); A36 geri okuması her üretim yolu sürecinde `UNSPECIFIED`. TEEN / CHILD'a yönlendiren kod YOK (TASK/043, başlamadı). main'deki GMA 24.9.0'da bu alan yok |
+| yaş işlemi (TFAT, `age_restricted_treatment`) — **TASK/042 dalı** | `UNSPECIFIED`, herkes için — kaynak `android_export.cfg` DEĞİL: `MonetizationManager.DEFAULT_AGE_RESTRICTED_TREATMENT` | `RequestConfiguration` (`setAgeRestrictedTreatment(null)` = SDK varsayılanı) | **özel yaş işlemi yok** — istek SDK varsayılanıyla aynı (TEEN işlemi DEĞİL); A36 geri okuması her üretim yolu sürecinde `UNSPECIFIED`. TEEN / CHILD'a yönlendiren kod YOK (TASK/043, başlamadı). main'deki GMA 24.9.0'da bu alan yok *(Sonra: TASK/043 — sabit kaldırıldı; kaynak yaş bandı (`AgeGate.ad_route`): TEEN → `TEEN` + derece `T`, ADULT → `UNSPECIFIED` + `MA`; UNKNOWN / UNDER_13 → reklam isteği hiç yok; CHILD hiçbir banda verilmez)* |
 | kişiselleştirme | SDK varsayılanı | — | EEA/UK/CH'de UMP rızasına göre; rıza yoksa sınırlı reklam |
 | `AD_ID` izni | manifest'te VAR | Google Mobile Ads SDK + eklenti manifest birleştirmesi | reklam kimliği okunabilir |
 
@@ -210,6 +220,10 @@ Age Signals reklam / runtime koduna bağlı değil, `[Audience]` yaş işlemi se
 > TASK/043 yaş bandı yönlendirmesi (B'ye karşılık gelen uygulama yönü; bir strateji / uyum
 > seçimi olarak kaydedilmedi, UYUM kararı owner'da) — başlamadı; UYUM engeli AÇIK, aşağıdaki
 > TASK/042 notu.)*
+
+**TASK/043 durumu (2026-09-27, dal `task/043-age-band-routing`):** owner **B**'yi seçti ve
+uygulandı (yukarıdaki durum maddesi; [AGE_BAND_ROUTING.md](AGE_BAND_ROUTING.md)). Aşağıdaki
+metin kayıt olarak kalır.
 
 **Durum:** ürün kitlesi kararından (§0, KAPALI) **AYRI**, **AÇIK** bir owner /
 uyum kararı. Release kapısında ayrı OWNER engeli ("UYUM: 13–17 genç reklam
