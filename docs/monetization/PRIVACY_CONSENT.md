@@ -1,4 +1,4 @@
-# PRIVACY_CONSENT.md — UMP rıza akışı ve gizlilik (M8.9-01 → M9-01)
+# PRIVACY_CONSENT.md — UMP rıza akışı ve gizlilik (M8.9-01 → M9-01 → TASK/042)
 
 > Kanonik doküman. Reklam mimarisi: [ADS_SYSTEM.md](ADS_SYSTEM.md); kitle /
 > COPPA: [AUDIENCE_DECISION.md](AUDIENCE_DECISION.md); Play hazırlığı:
@@ -15,6 +15,20 @@
 > gizlilik seçenekleri resmî durum + resmî form. M9-01'de telefon/ADB yoktu;
 > **M9-01.1'de (2026-09-23) gerçek Samsung A36'da doğrulandı — GEÇTİ, runtime
 > değişmedi** (§7; plan §8); M9-01 + M9-01.1 2026-09-24'te main'e ff-only alındı.
+>
+> **TASK/042 (2026-09-27; dal `task/042-gma25-production` — `83b86a9` kod + ardından
+> doküman / kapı commit'i — push edildi; main'e alınması owner onayı bekliyor, main ==
+> origin/main == `cbdcb8f` değişmedi):** üretim eklentisi GMA **25.3.0**'a geçti; UMP
+> SDK artık **4.0.0** (`play-services-ads-api:25.3.0` üzerinden geçişli, açık override
+> yok; önce 3.2.0). UMP sarmalayıcısı (yama `0001`) ve bu dokümandaki rıza sözleşmesi
+> DEĞİŞMEDİ; Samsung A36'da yeniden doğrulandı — **GEÇTİ** (§7). Yeni: istek
+> yapılandırması (derece G, TFCD / TFUA unspecified, yaş işlemi UNSPECIFIED) artık
+> `MobileAds.initialize()`'dan ÖNCE bir kez uygulanıyor, geri okunup doğrulanıyor;
+> uyuşmazsa SDK başlatılmıyor (fail-closed). Başlatma hâlâ yalnız `canRequestAds()` true
+> iken (§1, §3). Yaş bandı yönlendirmesi YOK (TASK/043, başlamadı); 13–17 genç reklam
+> işlemi owner `UYUM:` engeli AÇIK (§6); Play Age Signals reklamda hiç kullanılmaz.
+> RequestConfiguration kusuru KAPALI kalıyor (TASK/041). Release kapısı BLOCKED —
+> CODE 0 · OWNER 9 · CONFIG 0.
 
 ## 1. İlke
 
@@ -26,7 +40,9 @@
   gerekiyorsa SDK'nın formu gösterilir; ardından **karar UMP
   `canRequestAds()`'indir** (M9-01). Mobile Ads SDK ancak `canRequestAds()`
   true iken başlatılır ve **her reklam yüklemesinden hemen önce yeniden
-  sorulur** (`MonetizationManager._request_permitted`).
+  sorulur** (`MonetizationManager._request_permitted`). TASK/042: başlatma
+  istek yapılandırmasını (yaş işlemi UNSPECIFIED dahil) `MobileAds.initialize()`'dan
+  önce bir kez uygular, geri okuyup doğrular; uyuşmazsa SDK başlamaz (§3).
 - Sonsuz bekleme yok: oyun rızayı beklemez, pencerelerde reklam CTA'sı
   pasif + gerçek sebep ("hazırlanıyor" / "şu anda kullanılamıyor").
 
@@ -67,6 +83,18 @@ initialization_completed → her yükleme (ödüllü / geçiş / banner) ÖNCES�
    false çıkarsa istek gitmez, durum ADS_NOT_ALLOWED (banner gizlenir)
 ```
 
+**TASK/042 — şemadaki `initialize()`:** `_ensure_sdk()` (tek sefer; `_sdk_ready` /
+`_sdk_initializing` / `_sdk_refused` korumalı) → `AdmobBackend.initialize()` =
+`set_request_configuration()` → `get_applied_request_configuration()` geri okuması →
+{yaş işlemi, derece, TFCD, TFUA} karşılaştırması → ANCAK eşleşirse
+`MobileAds.initialize()` → `initialization_completed` → `_sdk_ready` → yüklemeler.
+Uyuşmazlık / eksik geri okuma → `push_error`, SDK BAŞLATILMAZ, oturum reklamsız, yeniden
+deneme yok (`sdk_refused`; ödüllü notu "Reklam şu anda kullanılamıyor."); onaylı AAR'la
+bu yola hiç girilmedi. Yaş işlemi üretimde herkes için UNSPECIFIED, rıza / SDK'dan önce
+arka uca verilir ve SDK yapılandırıldıktan sonra KİLİTLİ (farklı değer reddedilir). Rıza
+kapısı değişmedi: zincir yalnız `canRequestAds()` true iken çalışır; onboarding ertelemesi
+aynen.
+
 Google ayrıca `requestConsentInfoUpdate()` çağrısından hemen sonra, önceki
 oturumun rızasıyla SDK'yı paralel başlatmaya izin veriyor. **Bilerek
 yapılmadı:** güncellemenin sonucu (başarı ya da hata) birkaç saniye içinde
@@ -79,13 +107,26 @@ ekler (emülatörler otomatik test cihazıdır); `[Debug] debug_geography` yaln�
 boşaltır, eklenti cephesi `is_real` iken ve Java tarafı gerçek modda yok sayar
 — üç kilit). v6.0'daki #120 hatası (Java `instanceof Integer`, Godot `Long`
 gönderir → coğrafya sessizce yok sayılır) yama ile düzeldi (`instanceof Number`).
+TASK/042 (yama `0003`): eklentinin DEBUG'a özel Mobile Ads test cihazı yolu reklam
+kimliğini ve kimlik listesini artık LOGLAMIYOR (`Added Advertising ID as test device
+(value not logged)`, `Set test device IDs: <n> (values not logged)`); release'te bu dal
+hiç çalışmaz.
 
 ## 4. Eklenti: resmî UMP çağrıları (M9-01) ve geri düşüş
 
-`addons/AdmobPlugin` = upstream v6.0 + `tools/admob_plugin/0001-…patch`
-(deterministik yeniden derleme ve doğrulama: `tools/admob_plugin/README.md`,
-`addons/AdmobPlugin/VERSION.md`). Upstream'de (v6.0, v7.0, `main`; 2026-09-22)
-bu üç çağrı YOK; #120 yalnız v7.0'da (Godot 4.7 hedefli) düzeltilmiş.
+`addons/AdmobPlugin` = upstream v6.0 + `tools/admob_plugin/0001-…patch` (bu
+bölüm) *(bugün + `0002` — TASK/041, RequestConfiguration dönüşümü + `0003` — TASK/042,
+GMA 25.3.0 + yaş işlemi; `0001` değişmedi)* (deterministik yeniden derleme ve doğrulama:
+`tools/admob_plugin/README.md`, `addons/AdmobPlugin/VERSION.md`). Upstream'de (v6.0,
+v7.0, `main`; 2026-09-22) bu üç çağrı YOK; #120 yalnız v7.0'da (Godot 4.7 hedefli)
+düzeltilmiş.
+
+**UMP sürümü (TASK/042):** `com.google.android.ump:user-messaging-platform:4.0.0`,
+`play-services-ads-api:25.3.0` üzerinden geçişli (açık override yok; önce 3.2.0). Derleme
+betiği çözümlenen sınıf yolunu birebir doğrular (`play-services-ads:25.3.0` /
+`-api:25.3.0` / `user-messaging-platform:4.0.0`, aksi hâlde başarısız). Kullandığımız UMP
+sınıflarında 3.2.0 → 4.0.0 yalnız ekleme (`setConsentSyncId`), `DebugGeography` değerleri
+aynı (TASK/040, §7); aşağıdaki tablo iki sürümde de aynı.
 
 | gereken (UMP) | eklenti (yamalı) | yönetici kullanımı |
 |---|---|---|
@@ -100,7 +141,9 @@ yoksa) yönetici M8.9'un SDK'dan türettiği eşdeğere düşer ve uyarı basar:
 `canRequestAds` ≡ güncelleme sonrası durum NOT_REQUIRED/OBTAINED (Google'ın
 tanımının kendisi); gizlilik seçenekleri ≡ güncelleme yapıldı + form var;
 form ≡ `load_consent_form` + `show_consent_form`. Release kapısı yamasız
-AAR'la yüklenebilir AAB üretmez (AAR SHA-256 kontrolü).
+AAR'la yüklenebilir AAB üretmez (AAR SHA-256 kontrolü). *(TASK/042'den beri onaylı
+release AAR `f5a563a7…` (v6.0 + 0001 + 0002 + 0003; debug `a78acb22…`); TASK/041 AAR'ı
+`14c745e9…` artık onaylı değil, kusurlu M9 AAR'ı `90d35992…` — ikisi de dönerse CODE.)*
 
 M8.9'un açık noktası kapandı: ABD eyalet mesajında rıza NOT_REQUIRED iken
 gizlilik seçenekleri REQUIRED olabiliyor — türetme bunu göremiyordu; resmî
@@ -128,7 +171,7 @@ durum görüyor (`monetization_test` "ABD eyalet mesajı").
 
 | konu | durum | nerede |
 |---|---|---|
-| Kitle / COPPA / TFCD / TFUA / içerik derecesi | **Ürün kitlesi KARARI (owner, 2026-09-25):** 13+ genel kitle (Play 13–15 / 16–17 / 18+), `general_13_plus`; TFCD / TFUA `unspecified`, derece G — değişmedi. **13–17 genç reklam işlemi / yargı bölgesi uyumu AÇIK** — üretimden önce çözülmeli: 13–15 / 16–17 bazı yerlerde çocuk sayılabilir, GMA 24.9.0 TFAT `TEEN` gönderemez, `unspecified` TEEN değil. Karar yerel rıza / reklam kurallarını geçersiz kılmaz; bugünkü UMP akışı TFUA `unspecified` ile çalışır (yaşa özel işlem yok). TASK/040: strateji karar tablosu + TEEN fizibilitesi (A36); Play Age Signals reklam kararında KULLANILMAZ | [AUDIENCE_DECISION.md](AUDIENCE_DECISION.md) §0, §2.2 · [GLOBAL_TEEN_AD_TREATMENT.md](GLOBAL_TEEN_AD_TREATMENT.md) |
+| Kitle / COPPA / TFCD / TFUA / içerik derecesi | **Ürün kitlesi KARARI (owner, 2026-09-25):** 13+ genel kitle (Play 13–15 / 16–17 / 18+), `general_13_plus`; TFCD / TFUA `unspecified`, derece G — değişmedi. **13–17 genç reklam işlemi / yargı bölgesi uyumu AÇIK** — üretimden önce çözülmeli: 13–15 / 16–17 bazı yerlerde çocuk sayılabilir, GMA 24.9.0 TFAT `TEEN` gönderemez, `unspecified` TEEN değil. *(Sonra: TASK/042 — üretim GMA 25.3.0; TFAT UNSPECIFIED / CHILD / TEEN eklentide teknik olarak var, üretim varsayılanı herkes için UNSPECIFIED, SDK yapılandırıldıktan sonra kilitli; yaş bandı yönlendirmesi YOK. Owner yönü (2026-09-27): TASK/043 — 13–17 → TEEN, 18+ → olağan rıza denetimli yetişkin yolu (UNSPECIFIED); BAŞLAMADI ve `UYUM:` engelini kapatmaz — `teen_ad_treatment_resolved=false`, uyum AÇIK, owner'da.)* Karar yerel rıza / reklam kurallarını geçersiz kılmaz; bugünkü UMP akışı TFUA `unspecified` ile çalışır (yaşa özel işlem yok). TASK/040: strateji karar tablosu + TEEN fizibilitesi (A36); Play Age Signals reklam kararında KULLANILMAZ | [AUDIENCE_DECISION.md](AUDIENCE_DECISION.md) §0, §2.2 · [GLOBAL_TEEN_AD_TREATMENT.md](GLOBAL_TEEN_AD_TREATMENT.md) |
 | AdMob Privacy & messaging: GDPR (EEA/UK/CH) mesajı | owner, AdMob konsolu — kişiselleştirilmiş reklam için sertifikalı CMP (UMP) mesajı gerekli; mesaj yoksa bu bölgelerde sınırlı reklam | checklist §E |
 | ABD eyalet mesajı | isteğe bağlı araç (yasal uyum owner'da); yoksa sınırlı veri işleme seçeneği | checklist §E |
 | Gerçek reklam birimleri (App ID + 3 birim) | owner, AdMob konsolu | ADS_SYSTEM §8 |
@@ -218,9 +261,44 @@ showPrivacyOptionsForm / #120) yeniden derlemeden sonra A36'da aynı sözleşmey
 EEA formu → Consent → OBTAINED; form öncesi `canRequestAds` false, başlatma ve yükleme
 0; gizlilik seçenekleri formu gerçek dokunuşla → Do not consent → geri çağrı tam bir kez,
 sınırlı reklam; NOT_EEA → NOT_REQUIRED; `update_consent_info` tek sefer. Üretim hâlâ
-UMP 3.2.0. Ayrıntı [GLOBAL_TEEN_AD_TREATMENT.md](GLOBAL_TEEN_AD_TREATMENT.md) §C5.
+UMP 3.2.0. *(Sonra: TASK/042 — üretim UMP 4.0.0; spike araçları emekliye ayrıldı; aşağıda.)*
+Ayrıntı [GLOBAL_TEEN_AD_TREATMENT.md](GLOBAL_TEEN_AD_TREATMENT.md) §C5.
 
-## 8. EEA / NOT_EEA cihaz kapısı planı (M9-01.1'de A36'da UYGULANDI — GEÇTİ)
+**TASK/042 (2026-09-27) — ÜRETİM yığını GMA 25.3.0 / UMP 4.0.0, Samsung A36: GEÇTİ.**
+SM-A366B / Android 16; yalnız QA paketi (`…squishymerge.qa`, kapıdan sonra kaldırıldı),
+yalnız Google test kimlikleri, reklama tıklanmadı; üretim paketi hiç kurulmadı, owner'ın
+eski `com.example` paketine ve kaydına dokunulmadı. QA APK `83b86a9`'dan (`eb764436…`);
+statik kontrol GEÇTİ: dex'te `play-services-ads@@25.3.0`, `play-services-ads-api@@25.3.0`,
+`user-messaging-platform@@4.0.0` (her biri tam bir; 24.x ve UMP 3.x YOK), spike dizgesi /
+ham reklam kimliği log biçimi / Play Age Signals YOK. Bulgular (her coğrafya YENİ süreçte):
+- **EEA (`pm clear`, debug coğrafyası EEA):** form; rıza öncesi `can_request_ads=false`,
+  CONSENT_FORM, SDK yapılandırılmamış, `set_request_configuration()` 0, `initialize()` 0,
+  yükleme 0. "Consent" → OBTAINED / `can_request_ads=true` → ANCAK ondan sonra `applied …
+  age_restricted_treatment=UNSPECIFIED … sdk_initialized=false` (13:53:20.958) →
+  `initialize()` + `initialize(): request configuration before MobileAds.initialize …
+  UNSPECIFIED` (20.959) → yüklemeler (22.664). Geri okuma G / -1 / -1 / UNSPECIFIED, SDK
+  25.3.0; süreç boyunca `set_request_configuration()` 1, `initialize()` 1. Sıra: rıza
+  güncellemesi → form → `canRequestAds` → yapılandırma + doğrulama → başlatma → yükleme.
+- **NOT_EEA:** debug coğrafyası 4 (OTHER), NOT_REQUIRED, rıza formu çağrısı 0, gizlilik
+  NOT_REQUIRED, Ayarlar'da "Gizlilik seçenekleri" satırı gizli; UNSPECIFIED uygulandı →
+  başlatma öncesi satır → yüklemeler.
+- **Gizlilik seçenekleri (gerçek UI):** Ayarlar satırı (REQUIRED) → gerçek dokunuş →
+  `show_privacy_options_form()` → Google formu → "Do not consent" →
+  `privacy_options_form_dismissed` TAM BİR KEZ (`code=0`); `can_request_ads` true (sınırlı
+  reklam).
+- **Yaşam döngüsü:** arka plan → öne dönüş aynı süreç, `initialize()` 1 (ikinci başlatma
+  yok).
+- **QA'ya özel TEEN teşhisi** (üretim yolu değil): TEEN de aynı sırayla — rıza sonrası,
+  `MobileAds.initialize()` öncesi — uygulanıp geri okundu; sonraki değişiklik reddedildi
+  (kilit). SDK önce yapılandırılmışsa TEEN reddedildi, UNSPECIFIED kaldı. Üretimde yaş
+  bandı yönlendirmesi YOK (TASK/043, başlamadı).
+- **Logcat:** varsayılan yol temiz — SCRIPT ERROR / FATAL / ANR / ClassCast / JNI /
+  NoSuchMethod / ikinci başlatma / geri okuma uyuşmazlığı / ham kimlik 0. Eklenti reklam
+  kimliğini ve test kimliği listesini artık loglamıyor (§3); `g.sh dump` eski biçimli
+  satırları yine redakte ediyor (derinlemesine savunma).
+Ayrıntı: `build/qa_042/A36_DEVICE_GATE.md` (yerel), [ADS_SYSTEM.md](ADS_SYSTEM.md).
+
+## 8. EEA / NOT_EEA cihaz kapısı planı (M9-01.1'de A36'da UYGULANDI — GEÇTİ; TASK/042'de UMP 4.0.0 ile yeniden — GEÇTİ, §7)
 
 Telefonun gerçek coğrafyası DEĞİŞMEZ: DEBUG build'de UMP debug coğrafyası +
 test cihazı (eklenti cihazın hash'ini otomatik ekler; emülatörde de çalışır).

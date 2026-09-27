@@ -10,7 +10,9 @@
 > **Sonuç özeti:** Godot 4.6.3 + godot-admob v6.0 + GMA **25.3.0** (UMP 4.0.0)
 > üzerinde `AgeRestrictedTreatment.TEEN` **Samsung A36'da kanıtlandı** (başlatmadan
 > önce + her reklam yüklemesinde; UMP / banner / ödüllü / geçiş / gizlilik
-> seçenekleri çalışıyor) — yalnız spike, üretime alınmadı (§C). **Yeni bulgu:**
+> seçenekleri çalışıyor) — yalnız spike, üretime alınmadı (§C) *(Sonra: TASK/042 —
+> GMA 25.3.0 / UMP 4.0.0 + TFAT üretim eklentisine alındı, varsayılan UNSPECIFIED;
+> aşağıdaki «TASK/042 durumu» bölümü)*. **Yeni bulgu:**
 > bugünkü üretim eklentisi RequestConfiguration'ı hiç uygulamıyor → derece G etkin
 > değil; kapı artık bunu **CODE** engeli olarak gösteriyor (§C4).
 >
@@ -20,6 +22,68 @@
 > TFCD / TFUA `-1` ve test cihazları ilk reklam yüklemesinden önce uygulanıyor; kapı
 > CODE 0 · OWNER 9 · CONFIG 0 ([ADS_SYSTEM §15](ADS_SYSTEM.md)). Spike yaması `0003`
 > olarak 0002'nin üstüne taşındı. **13–17 genç reklam işlemi stratejisi (§D) HÂLÂ AÇIK.**
+> *(Sonra: TASK/042 — üretim GMA 25.3.0 / UMP 4.0.0, TFAT üretim yaması
+> `0003-gma25-age-restricted-treatment.patch`'te; spike yaması ve araçları kaldırıldı.
+> 13–17 `UYUM:` OWNER engeli hâlâ AÇIK — «TASK/042 durumu».)*
+>
+> **TASK/042 (2026-09-27; dal `task/042-gma25-production`, main'e alınması owner onayı
+> bekliyor):** güncel durum hemen aşağıda.
+
+## TASK/042 durumu (2026-09-27)
+
+Bu bölüm **güncel durumdur**; §B–§H TASK/040 kaydıdır ve olduğu gibi kalır (eskiyen
+cümlelerde *(Sonra: TASK/042 — …)* notu var). Kanıt ve sayıların kaynağı:
+[ADS_SYSTEM](ADS_SYSTEM.md), [addons/AdmobPlugin/VERSION.md](../../addons/AdmobPlugin/VERSION.md),
+[tools/admob_plugin/README.md](../../tools/admob_plugin/README.md), yerel cihaz kanıtı
+`build/qa_042/A36_DEVICE_GATE.md`.
+
+- **Dal:** `task/042-gma25-production` — kod `83b86a9` + belge / kapı kaydı commit'i,
+  push edildi; **main'e alınması owner onayı bekliyor.** main == origin/main == `cbdcb8f`
+  (değişmedi).
+- **Üretim yığını:** godot-admob v6.0 + `0001` (M9-01) + `0002` (TASK/041, değişmedi) +
+  `0003-gma25-age-restricted-treatment.patch` (TASK/042) → GMA **25.3.0**
+  (`play-services-ads-api:25.3.0`), UMP **4.0.0** (ads-api 25.3.0 üzerinden geçişli, ayrı
+  geçersiz kılma yok). Onaylı AAR'lar: debug `a78acb22…`, release `f5a563a7…` (iki temiz
+  derleme bayt-aynı).
+- **TFAT üretim eklentisinde teknik olarak hazır** (`AgeRestrictedTreatment` UNSPECIFIED /
+  CHILD / TEEN). **Üretim varsayılanı herkes için UNSPECIFIED**
+  (`MonetizationManager.DEFAULT_AGE_RESTRICTED_TREATMENT`; UNSPECIFIED =
+  `setAgeRestrictedTreatment(null)` = SDK varsayılanı). İstek yapılandırması
+  `MobileAds.initialize()` ÖNCESİ **bir kez** uygulanır, `get_applied_request_configuration()`
+  ile geri okunup doğrulanır (yaş işlemi, derece, TFCD, TFUA); uyuşmazlıkta ya da geri okuma
+  yoksa SDK **başlatılmaz** (fail-closed; oturum reklamsız, yeniden deneme yok). SDK
+  yapılandırıldıktan sonra yaş işlemi **kilitli** — farklı değer reddedilir. Derece G,
+  TFCD / TFUA `unspecified` değişmedi.
+- **Spike üretime alındı, spike araçları kaldırıldı:** TASK/040 spike'ının güvenli kısmı
+  üretim `0003`'e taşındı; `0003-spike-…` yaması, `build_patched_plugin.sh spike` modu,
+  `spike_qa_export.sh`, `spike_qa_preset.py` kaldırıldı (git geçmişi: `e152986`, `d32a4d3`).
+  Spike'ın tanı logları (`TFAT_DIAG`, her yüklemede log, `configure_before_initialize`)
+  üretime ALINMADI. §C3–§C6'daki kanıt spike'a aittir.
+- **A36 kapısı (üretim yığını, yalnız QA paketi `…squishymerge.qa`) — GEÇTİ:** APK dex
+  `play-services-ads@@25.3.0` / `user-messaging-platform@@4.0.0`; her üretim yolu sürecinde
+  geri okuma UNSPECIFIED (EEA rızadan sonra + NOT_EEA); UMP / gizlilik seçenekleri / banner /
+  ödüllü / geçiş / yaşam döngüsü regresyonu geçti, logcat temiz. **TEEN yeteneği üretim
+  yığınıyla A36'da yeniden kanıtlandı — yalnız QA** (`teen` açılış sözcüğü): TEEN
+  yapılandırmadan önce kabul edildi, `MobileAds.initialize()`'dan önce uygulanıp TEEN
+  olarak geri okundu, üç reklam türü yüklendi; sonraki değişiklik reddedildi (kilit).
+- **Hiçbir kullanıcı TEEN'e yönlendirilmiyor:** yaş bilgisi, yaş ekranı ve yönlendirme YOK.
+  **Play Age Signals reklam için hâlâ HİÇ kullanılmıyor** (⚠ bölüm aynen geçerli; A36 APK
+  statik denetiminde Age Signals yok).
+- **§D — owner yönü:** owner'ın TASK/042 brifi (2026-09-27): **TASK/043** gelir odaklı yaş
+  bandı yönlendirmesini uygulayacak — 13–17 → TEEN; 18+ → normal rıza denetimli yetişkin
+  yolu (UNSPECIFIED). Eşleme §D Strateji B'ninkiyle aynı — bu bir strateji / uyum seçimi
+  olarak KAYDEDİLMEDİ, UYUM kararı owner'da; ayrıntılar TASK/043'te, Play Age Signals reklam
+  kararına yine GİRMEZ. **TASK/043 BAŞLAMADI.** Kilit yüzünden TASK/043
+  yönlendirmeyi SDK başlamadan önce yapmalı (ilk açılış rızayı ve SDK'yı zaten erteliyor)
+  ya da başlatma sonrası anlamını kendisi tanımlamalı.
+- **13–17 `UYUM:` OWNER engeli AÇIK** (`teen_ad_treatment_resolved=false`): owner yönü engeli
+  kendiliğinden KAPATMAZ; engel owner uyum kararını kaydedene kadar AÇIK kalır. Bu doküman
+  hukuki sonuç çıkarmaz; uyum owner'dadır.
+- **Release kapısı:** `release_android.sh check` (`83b86a9`) → **BLOCKED — CODE 0 · OWNER 9
+  · CONFIG 0** (OWNER: AdMob 5 + UYUM 1 + gizlilik URL'si 1 + upload anahtarı 2). §C4
+  RequestConfiguration kusuru TASK/041'den beri KAPALI ve kapalı kalıyor. TASK/041 AAR'ı
+  `14c745e9…` artık onaylı değil (geri gelirse CODE); kusurlu M9 AAR'ı `90d35992…` hâlâ
+  CODE.
 
 ## ⚠ Mimari kısıt — Play Age Signals reklam kararında KULLANILMAZ
 
@@ -136,7 +200,9 @@ YASAK).
 UMP (4.0.0) ve minSdk (23) ama 25.4.0'ın açıklamasız yeni `hsdp` bağımlılığı
 yok; 25.5.0'ın minSdk 24 artışı ve yeni geri çağrısı yok → en küçük geçiş
 yüzeyi. **Bu üretim geçişi izni DEĞİL**; üretime geçilecekse 25.3.x ↔ güncel
-25.x hata düzeltmeleri o görevde yeniden değerlendirilmeli.
+25.x hata düzeltmeleri o görevde yeniden değerlendirilmeli. *(Sonra: TASK/042 üretimi
+GMA 25.3.0'a taşıdı — 25.4 `hsdp` ekliyor, 25.5 minSdk'yı yükseltiyor; somut bir engel
+olmadan alınmadı, [VERSION.md](../../addons/AdmobPlugin/VERSION.md).)*
 
 **C2 · API uyumluluk matrisi** (eklentinin kullandığı çağrılar; derleme +
 `javap` ile):
@@ -164,7 +230,10 @@ bayt-aynı. Çıktı `build/admob_plugin_spike/out/spike/` — `addons/AdmobPlug
 **KURULMAZ** (üretim eklentisi GMA 24.9.0 / UMP 3.2.0 olarak kaldı; kod testle
 kilitli). QA APK: `tools/admob_plugin/spike_qa_export.sh` (yalnız
 `com.obappstudio.squishymerge.qa`, Google TEST kimlikleri; üretim dosyaları
-yalnız export süresince değişir ve SHA-256 ile birebir geri konur).
+yalnız export süresince değişir ve SHA-256 ile birebir geri konur). *(Sonra: TASK/042 —
+üretim eklentisi GMA 25.3.0 / UMP 4.0.0 (üretim yaması `0003-gma25-age-restricted-treatment.patch`);
+`spike` modu, `spike_qa_export.sh` ve `spike_qa_preset.py` kaldırıldı — git geçmişinde
+`e152986` / `d32a4d3`.)*
 
 **C4 · Bulunan üretim hatası — RequestConfiguration hiç uygulanmıyor (YENİ CODE engeli).**
 - **Kök neden (A36 native log, spike):** Godot 4.6, `set_request_configuration`
@@ -188,7 +257,8 @@ yalnız export süresince değişir ve SHA-256 ile birebir geri konur).
   (yalnız debug) etkin değil; ileride seçilecek **herhangi** bir yaş işlemi / etiket
   değeri de bu yol düzelmeden uygulanmaz.
 - **Spike düzeltmesi (0002)** *(spike yaması bugün `0003`; dönüşüm düzeltmesi TASK/041'de
-  üretim `0002`'ye taşındı)*: Number-güvenli int okuma + `Object[]` → `String[]`
+  üretim `0002`'ye taşındı)* *(Sonra: TASK/042 — spike yaması kaldırıldı; TFAT kısmı üretim
+  `0003-gma25-age-restricted-treatment.patch`'te)*: Number-güvenli int okuma + `Object[]` → `String[]`
   dönüşümü + hata/tip loglama → A36'da `set_request_configuration:applied
   {… max_ad_content_rating=G, test_device_ids=3, age_restricted_treatment=TEEN}`.
   Upstream 953df5e aynı Long sorununu `((Long) x).intValue()` ile düzeltmiş.
@@ -234,9 +304,21 @@ GMA 25 + WebView). Yerel kanıt: `build/qa_040/A36_SPIKE_GATE.md`,
 QA komutuyla (`teen` açılış sözcüğü / `tfat`) seçilir; `AdConfig` /
 `AdmobBackend` / `MonetizationManager` değişmedi. Üretime geçiş (hangi strateji
 seçilirse) ayrı görev: eklenti yamasının üretime alınması + `AdConfig`
-`[Audience]` alanı + kapı + tam M9 cihaz / gizlilik regresyonu.
+`[Audience]` alanı + kapı + tam M9 cihaz / gizlilik regresyonu. *(Sonra: TASK/042 —
+eklenti yaması üretime alındı, kapı güncellendi, M9 UMP / gizlilik / reklam regresyonu
+A36'da GEÇTİ; yaş işlemi `[Audience]` alanı yerine
+`MonetizationManager.DEFAULT_AGE_RESTRICTED_TREATMENT` = UNSPECIFIED (paketlenen
+yapılandırmada yaş işlemi anahtarı yok). QA `teen` / `tfat` komutları artık üretim API'sini
+kullanır, yalnız QA teşhisidir. Yönlendirme TASK/043'te — başlamadı.)*
 
 ## D. Owner kararı — HÂLÂ AÇIK: 13–17 genç reklam işlemi stratejisi
+
+*(Sonra: owner'ın TASK/042 brifi, 2026-09-27 — TASK/043 gelir odaklı yaş bandı
+yönlendirmesini uygulayacak: 13–17 → TEEN, 18+ → normal rıza denetimli yetişkin yolu
+(UNSPECIFIED); eşleme aşağıdaki Strateji B'ninkiyle aynı — bu bir strateji / uyum seçimi
+olarak kaydedilmedi. **TASK/043 başlamadı.** Bu yön 13–17 `UYUM:` OWNER engelini kendiliğinden
+KAPATMAZ — engel owner uyum kararını kaydedene kadar (`teen_ad_treatment_resolved=false`)
+AÇIK; uyum owner'da. Hukuki sonuç burada çıkarılmaz. «TASK/042 durumu».)*
 
 Etiketler TASK/040'ın; AUDIENCE_DECISION §2.2'deki eski etiketlerle eşleme:
 task/039 A → **A**, B → **B**, D (hukuki inceleme) → **C**, C (başka ürün
@@ -249,7 +331,9 @@ ve sınıflandırma mantığı yok. Bedeli: 18+ kullanıcılar da TEEN işlemi a
 onlar için de kişiselleştirilmiş reklam ve yeniden pazarlama kapanır. Gerekli
 iş: GMA 25.3+ üretim geçişi (spike yaması + düzeltilmiş RequestConfiguration
 yolu), `[Audience]` alanı, başlatma ÖNCESİ yapılandırma, kapı, cihaz/gizlilik
-regresyonu.
+regresyonu. *(Sonra: TASK/042 — GMA 25.3.0 üretim geçişi, başlatma öncesi yapılandırma +
+geri okuma doğrulaması, kapı ve A36 cihaz / gizlilik regresyonu yapıldı; üretim varsayılanı
+herkes için UNSPECIFIED, kimse TEEN'e yönlendirilmiyor.)*
 
 **Strateji B — uygulamanın kendi yaş bandı (13–17 / 18+).** Uygulama yalnız
 gerekeni sorar; 13–17 → TEEN, 18+ → UNSPECIFIED (normal rıza denetimli yol).
@@ -268,9 +352,11 @@ gerekeni sorar; 13–17 → TEEN, 18+ → UNSPECIFIED (normal rıza denetimli yo
   teşvik etmemek) tasarım kararı.
 - UX: ilk açılışta tutorial + rıza ertelemesiyle birlikte konumlandırılmalı
   (ilk reklam isteğinden ÖNCE).
-- Uygulanmadı; yaş ekranı eklenmedi.
+- Uygulanmadı; yaş ekranı eklenmedi. *(Sonra: owner yönü — TASK/043 bu eşlemeyle yaş
+  bandı yönlendirmesini uygulayacak; başlamadı, TASK/042'de de yaş ekranı / yaş verisi yok.)*
 
 **Strateji C — bugünkü GMA 24.9.0 / UNSPECIFIED + dış hukuki belirleme.**
+*(Sonra: TASK/042 — üretim GMA 25.3.0; UNSPECIFIED bugün üretimin herkes için varsayılanı.)*
 TFCD / TFUA `unspecified` kalır. Resmî belgeler bunu 13–17 için yeterli saymak
 için dayanak **vermiyor** (Play: yerel hukuku değerlendir; AdMob: hukuk
 danışmanına danış). `UNSPECIFIED` TEEN DEĞİLDİR. Engel ancak gerçek yayın
@@ -304,7 +390,7 @@ bir oran bu dokümanda kullanılmadı; gerçek trafik olmadan **ölçülemez**.
 | | **A · herkes için TEEN** | **B · uygulamanın yaş bandı** | **C · UNSPECIFIED + dış hukuki belirleme** |
 |---|---|---|---|
 | Teknik olarak mümkün mü? | EVET — A36'da kanıtlandı | EVET (TEEN yolu aynı; yaş ekranı yazılmadı) | EVET (bugünkü yol; §C4 düzeltmesi gerekli — TASK/041'de yapıldı) |
-| Godot / eklenti işi | 0002'nin üretime alınması (GMA 25.3.0, TFAT, dönüşüm düzeltmesi, başlatma öncesi yapılandırma) + `[Audience]` alanı + kapı + M9 cihaz/gizlilik regresyonu *(TASK/041'den beri: dönüşüm düzeltmesi üretimde; kalan = spike `0003`'ün üretime alınması)* | A'nın hepsi + yaş bandı ekranı + kayıt alanı + istek başına işlem + tutorial / rıza sırası + testler | GMA değişmez; yalnız dönüşüm düzeltmesi + hukuki kayıt *(dönüşüm düzeltmesi TASK/041'de yapıldı; kalan = hukuki kayıt)* |
+| Godot / eklenti işi | 0002'nin üretime alınması (GMA 25.3.0, TFAT, dönüşüm düzeltmesi, başlatma öncesi yapılandırma) + `[Audience]` alanı + kapı + M9 cihaz/gizlilik regresyonu *(TASK/041'den beri: dönüşüm düzeltmesi üretimde; kalan = spike `0003`'ün üretime alınması)* *(Sonra: TASK/042 — üretim `0003-gma25-…` ile yapıldı, varsayılan UNSPECIFIED; dalda, main'e alınması owner onayı bekliyor)* | A'nın hepsi + yaş bandı ekranı + kayıt alanı + istek başına işlem + tutorial / rıza sırası + testler | GMA değişmez; yalnız dönüşüm düzeltmesi + hukuki kayıt *(dönüşüm düzeltmesi TASK/041'de yapıldı; kalan = hukuki kayıt)* *(Sonra: TASK/042'den beri üretim zaten GMA 25.3.0, UNSPECIFIED varsayılan)* |
 | Yaş verisi toplanıyor mu? | HAYIR | EVET (kendi beyanı: 13–17 / 18+) | HAYIR |
 | UX sürtünmesi | yok | yeni ekran (ilk reklamdan önce) | yok |
 | 18+ için kişiselleştirilmiş reklam | HAYIR (herkese TEEN) | EVET (rıza denetimli) | EVET (rıza denetimli) |
@@ -323,7 +409,9 @@ bir oran bu dokümanda kullanılmadı; gerçek trafik olmadan **ölçülemez**.
 derlemesini üretime al (her strateji için gerekli — C dahil) *(yapıldı: TASK/041)*; owner TEEN'i
 seçerse bunu kanıtlanmış GMA 25.3.0 yoluyla (0002: TFAT + dönüşüm düzeltmesi +
 başlatma öncesi yapılandırma — *TASK/041'den beri spike `0003`, dönüşüm düzeltmesi üretim
-`0002`'de*) yap. A / B / C arasında teknik olarak en basit ve en
+`0002`'de*) yap *(Sonra: TASK/042 — GMA 25.3.0 / TFAT yolu üretim `0003-gma25-…`'te,
+varsayılan UNSPECIFIED; owner yönü TASK/043 yaş bandı yönlendirmesi (13–17 TEEN, 18+
+UNSPECIFIED), başlamadı; uyum sorusu AÇIK)*. A / B / C arasında teknik olarak en basit ve en
 düşük riskli uygulama **A**: Godot 4.6.3'te A36'da kanıtlandı, yaş verisi ve yeni
 UI gerektirmiyor, Age Signals'a ihtiyaç yok ve B'nin de altyapısı (B = A'nın yolu +
 yaş bandı).

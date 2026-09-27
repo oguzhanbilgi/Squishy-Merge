@@ -76,12 +76,15 @@ alınacak — şimdi tahmin/vaat yok.
 [Current release blockers](#current-release-blockers) +
 [Next action](#next-action); aşağıdaki "Milestone tarihçesi" değil.
 
-- **Repo:** `main == origin/main` (2026-09-27): `task/041-fix-request-configuration`
-  (`7e1e378` düzeltme + `d32a4d3` A36 kapısı kaydı) main'e ff-only alındı (owner
-  onayıyla; merge commit yok, ağaç eşit); üstünde yalnız bu durum doküman commit'i.
-  Önce aynı gün `task/040-global-teen-compliance` (`025214a` + `e152986`, durum
-  commit'i `ee01841`). Aktif kod görevi YOK; `task/014`…`task/041` dallarının hepsi
-  main'de (referans için duruyor).
+- **Repo:** `main == origin/main == cbdcb8f` (2026-09-27, değişmedi):
+  `task/041-fix-request-configuration` (`7e1e378` düzeltme + `d32a4d3` A36 kapısı
+  kaydı) main'e ff-only alındı (owner onayıyla; merge commit yok, ağaç eşit); üstünde
+  yalnız durum doküman commit'i `cbdcb8f`. Önce aynı gün
+  `task/040-global-teen-compliance` (`025214a` + `e152986`, durum commit'i `ee01841`).
+  `task/014`…`task/041` dallarının hepsi main'de (referans için duruyor). **Aktif kod
+  görevi:** `task/042-gma25-production` (TASK/042 üretim GMA 25.3 geçişi — `83b86a9`
+  kod + ardından doküman / A36 kapısı commit'i) — dalda, push edildi; main'e alınması
+  owner onayı bekliyor.
   Main'e bilerek girmeyen iki dal: `task/m8.6-03-home` (reddedildi, asla
   birleştirilmez) ve `task/ui-layerlab-style-spike` (seçilen parçaları
   M8.6-01'de promote edildi).
@@ -108,6 +111,8 @@ alınacak — şimdi tahmin/vaat yok.
 - **Runtime DONDURULDU:** gameplay (M8.7-02), ses/titreşim (M8.8-02),
   TEST-reklam monetizasyonu (M8.9-01/02), ilk açılış (M8.10), rıza/release
   kodu (M9-01/01.1). Gerçek bir blokaj çıkmadıkça açılmaz; cila için açılmaz.
+  *(TASK/042, dalda: yalnız SDK başlatma sırası / istek yapılandırması doğrulaması +
+  `sdk_refused` + yaş işlemi kilidi değişti; kullanıcıya görünen reklam sözleşmesi aynı.)*
 - **Kalıcı paket kimliği KİLİTLENDİ (owner kararı, 2026-09-24):** üretim / Play
   = `com.obappstudio.squishymerge` (project.godot `squishy/release/android_package_id`
   + yerel release presetleri); QA / test = `com.obappstudio.squishymerge.qa` (debug
@@ -126,18 +131,26 @@ alınacak — şimdi tahmin/vaat yok.
   yerel rıza / reklam kurallarını geçersiz kılmaz
   ([AUDIENCE_DECISION §0](docs/monetization/AUDIENCE_DECISION.md)).
 - **13–17 genç reklam işlemi / yargı bölgesi uyumu: AÇIK** (üretim yayınından
-  önce; ürün kitlesinden AYRI). GMA 24.9.0 TFAT `TEEN` gönderemez ve
-  `unspecified` TEEN demek değil; stratejiler belgelendi, hiçbiri seçilmedi
+  önce; ürün kitlesinden AYRI; kapıda OWNER `UYUM:` satırı,
+  `teen_ad_treatment_resolved=false`). TFAT `TEEN` artık TASK/042 ile üretim
+  eklentisinde **teknik olarak mevcut** (GMA 25.3.0; dalda), ama üretim herkes için
+  `UNSPECIFIED` gönderir — `unspecified` TEEN demek değil — ve **yaş bandı
+  yönlendirmesi UYGULANMADI**. Stratejiler belgelendi
   ([GLOBAL_TEEN_AD_TREATMENT §D–§G](docs/monetization/GLOBAL_TEEN_AD_TREATMENT.md)).
+  **Owner yönü (2026-09-27, TASK/042 görev tanımı):** TASK/043 owner onaylı, gelir odaklı
+  yaş bandı yönlendirmesini uygulayacak — 13–17 → TEEN; 18+ → olağan rıza denetimli
+  yetişkin yolu (UNSPECIFIED). **TASK/043 BAŞLAMADI**; bu yön OWNER `UYUM:` engelini
+  KAPATMAZ (uyum / hukuki belirleme owner'da).
   **Dağıtım: dünya geneli (owner kararı).**
 - **TASK/040 fizibilitesi (2026-09-25; main'de 2026-09-27):** Godot 4.6.3 + vendored
   godot-admob v6.0 + GMA **25.3.0** (UMP 4.0.0) üzerinde `AgeRestrictedTreatment.TEEN`
   **Samsung A36'da kanıtlandı** — MobileAds başlatmadan önce ve her reklam
   yüklemesinde; UMP EEA / NOT_EEA / gizlilik seçenekleri, banner, ödüllü, geçiş,
   yaşam döngüsü temiz. Yalnız spike (`tools/admob_plugin` `spike` modu + QA
-  paketi); üretim eklentisi GMA 24.9.0 / UMP 3.2.0 kaldı. **Play Age Signals
-  reklam kararında KULLANILMAZ** (Age Signals şartları reklam / pazarlama /
-  profilleme / analitiği yasaklıyor).
+  paketi); üretim eklentisi GMA 24.9.0 / UMP 3.2.0 kaldı. *(Sonra: TASK/042 — spike
+  araçları kaldırıldı; güvenli kısmı üretim yaması `0003` olarak dalda, aşağıda.)*
+  **Play Age Signals reklam kararında KULLANILMAZ** (Age Signals şartları reklam /
+  pazarlama / profilleme / analitiği yasaklıyor).
 - **RequestConfiguration kusuru: KAPANDI (TASK/041, A36 kanıtı 2026-09-27; main'de).**
   TASK/040 bulgusu: üretim eklentisi RequestConfiguration'ı hiç uygulamıyordu (Godot
   4.6 Long / Object[] → v6.0 `(int)` / `(String[])` dönüşümü ClassCastException,
@@ -147,13 +160,37 @@ alınacak — şimdi tahmin/vaat yok.
   `applied max_ad_content_rating=G tag_for_child_directed_treatment=-1
   tag_for_under_age_of_consent=-1 … test_device_ids=3` İLK reklam yüklemesinden
   ÖNCE; UMP EEA / NOT_EEA / gizlilik seçenekleri, banner / ödüllü / geçiş, yaşam
-  döngüsü, logcat temiz. **Üretim yığını değişmedi: GMA 24.9.0 / UMP 3.2.0** (TFAT /
-  TEEN yok, GMA 25 geçişi yok).
-- **Release kapısı** (`tools/release/release_android.sh check`, TASK/041 main'e
-  alındıktan sonra main'de yeniden koşuldu 2026-09-27): **BLOCKED — CODE 0 · OWNER 9 ·
-  CONFIG 0** (onaylı AAR = düzeltilmiş
-  derleme; eski kusurlu AAR SHA'sı gelirse yine CODE; OWNER'lardan biri ayrı 13–17
-  uyum satırı). İmzalı / Play'e yüklenebilir AAB üretilmedi (`aab` reddediyor).
+  döngüsü, logcat temiz. **TASK/041 üretim yığınını değiştirmedi: GMA 24.9.0 / UMP
+  3.2.0** (TFAT / TEEN yok) — main bugün hâlâ bu yığında. *(Sonra: TASK/042 yığını
+  dalda GMA 25.3.0 / UMP 4.0.0'a taşıdı, aşağıda; düzeltme `0002` aynen korundu,
+  kusur kapalı kalıyor.)*
+- **TASK/042 üretim GMA 25.3 geçişi: TAMAM (Samsung A36 kapısı GEÇTİ 2026-09-27;
+  dalda).** `task/042-gma25-production` (`83b86a9` kod + ardından doküman / A36 kapısı
+  commit'i), push edildi; main'e alınması owner onayı bekliyor (main `cbdcb8f`'de,
+  değişmedi). Üretim yığını (dalda): godot-admob v6.0 + `0001` + `0002` (TASK/041,
+  aynen) + yeni `0003` → **GMA 25.3.0**, **UMP 4.0.0** (`play-services-ads-api:25.3.0`
+  üzerinden geçişli); onaylı AAR'lar debug `a78acb22…`, release `f5a563a7…` (iki temiz
+  derleme bayt-aynı). **TFAT** (`AgeRestrictedTreatment` UNSPECIFIED / CHILD / TEEN)
+  üretim eklentisinde teknik olarak hazır; **üretim varsayılanı herkes için
+  UNSPECIFIED**, SDK yapılandırılınca yaş işlemi kilitli. İstek yapılandırması
+  `MobileAds.initialize()` ÖNCESİ BİR kez uygulanır, geri okunup doğrulanır;
+  uyuşmazsa SDK başlatılmaz (fail-closed, oturum reklamsız, yeniden deneme yok).
+  Derece G, TFCD / TFUA değişmedi; yaş bilgisi, Play Age Signals ve yaş bandı
+  yönlendirmesi YOK (TASK/043). Kullanıcıya görünen monetizasyon sözleşmesi
+  değişmedi. Spike araçları (`spike` modu, spike yaması, `spike_qa_*`) kaldırıldı.
+  Testler yeşil (release_config 182, monetization 256, interstitial 60,
+  daily_rewards 179, tutorial 199). A36 (yalnız QA paketi): EEA / NOT_EEA / gizlilik
+  seçenekleri, init öncesi UNSPECIFIED geri okuma, banner / ödüllü / geçiş, yaşam
+  döngüsü, logcat temiz; QA-only TEEN init öncesi uygulandı + geri okundu, reklamlar
+  yüklendi, sonraki değişiklik reddedildi (kilit).
+- **Release kapısı** (`tools/release/release_android.sh check`; main'de TASK/041
+  alındıktan sonra, `task/042` dalında `83b86a9` üzerinde, ikisi de 2026-09-27):
+  **BLOCKED — CODE 0 · OWNER 9 · CONFIG 0** (OWNER'lardan biri ayrı 13–17 `UYUM:`
+  satırı, `teen_ad_treatment_resolved=false`). Dalda onaylı AAR = GMA 25.3.0 derlemesi
+  (release `f5a563a7…`), kapı GMA 25.3.0 + cephe TFAT API'sini ister; TASK/041 AAR'ı
+  (`14c745e9…`) artık onaylı değil (geri gelirse CODE), kusurlu M9 AAR'ı (`90d35992…`)
+  ve tanınmayan her SHA yine CODE. İmzalı / Play'e yüklenebilir AAB üretilmedi
+  (`aab` reddediyor).
 
 ## Current release blockers
 
@@ -171,12 +208,17 @@ Bugün açık olan maddelerin tamamı — adımlar ve ayrıntı:
    (docs/monetization/AUDIENCE_DECISION.md §0). Konsoldaki "Hedef kitle ve
    içerik" formu hesap açılınca bu kararla doldurulur (madde 10).
 3. **13–17 genç reklam işlemi / yargı bölgesi uyum stratejisi** — AÇIK, üretim
-   yayınından önce çözülmeli; ürün kitlesinden AYRI OWNER / uyum kararı. GMA
-   24.9.0 TFAT `TEEN` gönderemez, `unspecified` TEEN değil. TASK/040: TEEN teknik
-   olarak kanıtlandı; stratejiler (A herkes için TEEN · B uygulamanın yaş bandı ·
-   C UNSPECIFIED + hukuki belirleme) + karar tablosu
-   [GLOBAL_TEEN_AD_TREATMENT §D–§G](docs/monetization/GLOBAL_TEEN_AD_TREATMENT.md) —
-   seçilmedi (checklist #26).
+   yayınından önce çözülmeli; ürün kitlesinden AYRI OWNER / uyum kararı (kapıda
+   `UYUM:` satırı, `teen_ad_treatment_resolved=false`). TASK/040: TEEN teknik olarak
+   kanıtlandı; TASK/042: TFAT `TEEN` üretim eklentisinde teknik olarak hazır (GMA
+   25.3.0; dalda), ama üretim herkes için `UNSPECIFIED` gönderir — `unspecified`
+   TEEN değil — ve yaş bandı yönlendirmesi yok. Stratejiler (A herkes için TEEN ·
+   B uygulamanın yaş bandı · C UNSPECIFIED + hukuki belirleme) + karar tablosu
+   [GLOBAL_TEEN_AD_TREATMENT §D–§G](docs/monetization/GLOBAL_TEEN_AD_TREATMENT.md)
+   (checklist #26). Owner yönü (2026-09-27): TASK/043 gelir odaklı yaş bandı
+   yönlendirmesi (13–17 → TEEN; 18+ → olağan rıza denetimli yetişkin yolu,
+   UNSPECIFIED) — **BAŞLAMADI**; bu madde onunla kendiliğinden kapanmaz, uyum /
+   hukuki belirleme owner'da.
 4. **Gizlilik politikası metni + herkese açık HTTPS URL'i** — project.godot
    `squishy/privacy/policy_url` + Play Console alanı.
 5. **Upload anahtarı** — owner oluşturur (checklist §4); yalnız ortam
@@ -197,20 +239,29 @@ Release kapısı 1–9'u denetler (bugün OWNER 9 · CONFIG 0 — madde 1 ve 2
 kapandı, madde 3 ayrı `UYUM:` satırı; TASK/040'ın CODE satırı TASK/041'de kapandı,
 aşağıda); 10 kodla denetlenemez.
 
-**CODE blockers: 0** (TASK/041, main'de 2026-09-27). TASK/040'ın **eklenti
-RequestConfiguration kusuru** (onaylı M9 release
+**CODE blockers: 0** (TASK/041, main'de 2026-09-27; `task/042` dalında da 0).
+TASK/040'ın **eklenti RequestConfiguration kusuru** (onaylı M9 release
 AAR'ı yapılandırmayı hiç uygulamıyordu — checklist #27, GLOBAL_TEEN_AD_TREATMENT §C4)
 **KAPANDI**: düzeltilmiş eklenti derlemesi (v6.0 + 0001 + 0002, GMA 24.9.0 / UMP
 3.2.0) + Samsung A36 M9 cihaz/gizlilik regresyonu geçti. Kapı artık düzeltilmiş AAR'ın
 SHA'sını onaylar; eski kusurlu SHA bilinen-kusur kaydında kalır (geri gelirse CODE),
-tanınmayan her SHA da CODE — fail-closed. Ürün kitlesi için ek kod yok (13+ = AUDIENCE_DECISION seçenek A);
+tanınmayan her SHA da CODE — fail-closed. *(Sonra: TASK/042 dalında onaylı AAR GMA
+25.3.0 derlemesi — v6.0 + 0001 + 0002 + 0003, debug `a78acb22…` / release
+`f5a563a7…`; TASK/041 AAR'ı `14c745e9…` artık onaylı değil, geri gelirse CODE;
+kusurlu `90d35992…` yine CODE; düzeltme `0002` aynen korunuyor, kusur kapalı.)*
+Ürün kitlesi için ek kod yok (13+ = AUDIENCE_DECISION seçenek A);
 karma / yalnız çocuk kararları hâlâ CODE ile reddedilir, boş karar OWNER.
-13–17 genç reklam işlemi (madde 3) CODE değil OWNER / uyum engeli: uygulama
-seçilecek stratejiye bağlı (A/B kod ister, C hukuki kayıt).
+13–17 genç reklam işlemi (madde 3) CODE değil OWNER / uyum engeli: owner onaylı yaş
+bandı yönlendirmesi TASK/043'te kod ister (başlamadı); uyum / hukuki belirleme
+owner'da (A/B kod ister, C hukuki kayıt).
 
 **Technical debt** — engel DEĞİL, kapalı test hazırlığını durdurmaz:
 - Google Mobile Ads **24.9.0** (legacy) ve eski yaş işleme yolu (TFCD/TFUA);
-  24.x desteği 2027-06-30'a kadar.
+  24.x desteği 2027-06-30'a kadar. *(Sonra: TASK/042 — dalda üretim GMA 25.3.0 /
+  UMP 4.0.0; main'e alınana kadar main 24.9.0 / 3.2.0'da. TFCD / TFUA `unspecified`
+  olarak uygulanmaya devam eder; GMA 25.3.0'a karşı `javac` 11 kullanımdan kalkma
+  uyarısı — TFCD / TFUA getter/setter'ları, sabit uyarlanabilir banner boyutu
+  yardımcıları — kaldırılmadılar, derleme hatasız.)*
 - **TFAT** (`setAgeRestrictedTreatment`, GMA 25.3.0+) / GMA Next-Gen geçişi
   sonraya belgelendi — eklenti güncellemesine bağlı ayrı iş
   (AUDIENCE_DECISION §2.1, checklist #25); task/039'da yapılmadı. **Düzeltme
@@ -218,6 +269,8 @@ seçilecek stratejiye bağlı (A/B kod ister, C hukuki kayıt).
   genç reklam işlemi artık yalnız teknik borç DEĞİL — yukarıda madde 3 (OWNER /
   uyum, AÇIK); SDK geçişi ancak seçilen strateji gerektirirse iş olur. TASK/040:
   GMA 25.3.0 yolu Godot 4.6.3'te kanıtlandı (spike; üretim geçişi ayrı görev).
+  *(Sonra: TASK/042 — TFAT üretim eklentisinde teknik olarak hazır, dalda; varsayılan
+  UNSPECIFIED, yönlendirme TASK/043. GMA Next-Gen geçişi hâlâ yapılmadı.)*
 
 ## Next action
 
@@ -225,12 +278,23 @@ seçilecek stratejiye bağlı (A/B kod ister, C hukuki kayıt).
 
 1. ~~Kalıcı paket kimliği~~ ✅ `com.obappstudio.squishymerge` (2026-09-24)
 2. ~~Kitle / hedef yaş grupları~~ ✅ 13+ genel kitle — 13–15 / 16–17 / 18+ (2026-09-25)
-3. **13–17 genç reklam işlemi / yargı bölgesi uyum stratejisi** — A / B / C
-   karar tablosu [GLOBAL_TEEN_AD_TREATMENT §F](docs/monetization/GLOBAL_TEEN_AD_TREATMENT.md)
-   (TASK/040 fizibilitesi tamam; hukuki belirleme + iş dengesi owner'da) ← sıradaki karar
+3. **13–17 genç reklam işlemi / yargı bölgesi uyum stratejisi** — OWNER `UYUM:`
+   engeli AÇIK; A / B / C karar tablosu
+   [GLOBAL_TEEN_AD_TREATMENT §F](docs/monetization/GLOBAL_TEEN_AD_TREATMENT.md)
+   (TASK/040 fizibilitesi tamam; hukuki belirleme + iş dengesi owner'da)
    - ~~Kod tarafında her stratejiden bağımsız: eklenti RequestConfiguration
-     düzeltmesi~~ ✅ TASK/041 (A36 kanıtı; main'de 2026-09-27). Seçilecek strateji
-     TEEN gerektirirse GMA 25.3+ üretim geçişi yine ayrı görev.
+     düzeltmesi~~ ✅ TASK/041 (A36 kanıtı; main'de 2026-09-27).
+   - ~~GMA 25.3+ üretim geçişi (TFAT)~~ ✅ TASK/042 (A36 kapısı GEÇTİ 2026-09-27;
+     `task/042-gma25-production` dalında, push edildi; main'e alınması owner onayı
+     bekliyor). Üretim varsayılanı herkes için UNSPECIFIED; kapı CODE 0 · OWNER 9 ·
+     CONFIG 0.
+   - **Owner: `task/042` incelemesi + main'e alma onayı** ← sıradaki adım
+   - **Sonra: TASK/043 — yaş bandı yönlendirmesi** (owner onaylı, gelir odaklı yön,
+     2026-09-27: 13–17 → TEEN; 18+ → olağan rıza denetimli yetişkin yolu,
+     UNSPECIFIED) — **BAŞLAMADI**. Yaş işlemi SDK yapılandırılınca kilitli: TASK/043
+     SDK başlamadan ÖNCE yönlendirmeli (onboarding rızayı + SDK'yı zaten erteliyor) ya
+     da init sonrası anlamını kendisi tanımlamalı. Play Age Signals reklamda ASLA
+     kullanılmaz. TASK/043 `UYUM:` engelini kendiliğinden KAPATMAZ.
 4. Gizlilik politikası (metin + HTTPS URL)
 5. Upload anahtarı
 6. Gerçek AdMob kimlikleri (App ID + Banner + Rewarded + Interstitial)
@@ -238,8 +302,8 @@ seçilecek stratejiye bağlı (A/B kod ister, C hukuki kayıt).
 
 Her madde owner girdisi ister; hiçbiri tahmin edilmez ya da uydurulmaz.
 Gizlilik politikası, upload anahtarı ve AdMob kimliklerinde repoda yalnız
-yapılandırma değişir (checklist §3); 13–17 stratejisi A ya da B seçilirse kod
-ister. İmzalı AAB yalnız
+yapılandırma değişir (checklist §3); 13–17 yaş bandı yönlendirmesi kod ister
+(TASK/043). İmzalı AAB yalnız
 `tools/release/release_android.sh check` **UPLOAD_CANDIDATE** dedikten sonra
 üretilir → Play dahili test → **M10 — Play kapalı test.**
 

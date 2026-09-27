@@ -23,7 +23,8 @@
 > **TASK/040 (2026-09-25; `task/040-global-teen-compliance` main'e ff-only alındı
 > 2026-09-27):** GMA 25.3.0 TEEN fizibilitesi Godot 4.6.3'te Samsung A36'da
 > kanıtlandı (yalnız spike, üretime alınmadı — #25, #26,
-> [monetization/GLOBAL_TEEN_AD_TREATMENT.md](monetization/GLOBAL_TEEN_AD_TREATMENT.md)).
+> [monetization/GLOBAL_TEEN_AD_TREATMENT.md](monetization/GLOBAL_TEEN_AD_TREATMENT.md))
+> *(Sonra: TASK/042 — GMA 25.3.0 üretime taşındı, spike kaldırıldı; dalda, aşağıda)*.
 > Yeni bulgu: üretim eklentisi RequestConfiguration'ı hiç uygulamıyor → derece G
 > etkin değil (#27). Kapı: **CODE 1 · OWNER 9 · CONFIG 0** (§1). Play Age Signals
 > reklam kararında KULLANILMAZ.
@@ -32,6 +33,17 @@
 > (GMA 24.9.0 / UMP 3.2.0 aynı); Samsung A36'da derece G, TFCD / TFUA ve test
 > cihazları ilk reklam yüklemesinden önce uygulanıyor, M9 UMP / gizlilik / reklam
 > regresyonu geçti. Kapı: **CODE 0 · OWNER 9 · CONFIG 0** (§1). 13–17 uyumu (#26) AÇIK.
+> **TASK/042 (2026-09-27; dal `task/042-gma25-production` — kod `83b86a9` + belge /
+> kapı commit'i, push edildi; main'e alınması owner onayı bekliyor, main == origin/main
+> == `cbdcb8f` değişmedi):** üretim AdMob yığını **GMA 25.3.0** + **UMP 4.0.0**
+> (play-services-ads-api 25.3.0 üzerinden geçişli) — üretim yaması `0003` + yeni AAR'lar;
+> **TFAT** (`AgeRestrictedTreatment` UNSPECIFIED / CHILD / TEEN) üretim eklentisinde
+> teknik olarak hazır (#25). Üretim varsayılanı **herkes için UNSPECIFIED**; istek
+> yapılandırması `MobileAds.initialize()` öncesi BİR kez uygulanıp geri okunuyor,
+> uyuşmazsa SDK başlamıyor (fail-closed); SDK yapılandırılınca yaş işlemi kilitli.
+> Samsung A36 kapısı GEÇTİ. **Yaş bandı yönlendirmesi YOK** — owner onaylı yönlendirme
+> TASK/043'te (**BAŞLAMADI**); 13–17 uyumu (#26) AÇIK. Kapı: **CODE 0 · OWNER 9 ·
+> CONFIG 0** (§1).
 >
 > Kategoriler: ✅ **CODE COMPLETE** · 🟠 **OWNER ACTION** · 🟣 **PLAY CONSOLE
 > ACTION** · 🔵 **EXTERNAL ACCOUNT ACTION**. Kaynak: Google resmî sayfaları
@@ -39,14 +51,16 @@
 
 ## 1. Bugünkü release kapısı çıktısı
 
-2026-09-27, düzeltilmiş eklenti kurulup A36'da doğrulandıktan ve TASK/041 main'e
-alındıktan sonra main'de (`tools/release/release_android.sh check`; dalda da aynı çıktı):
+2026-09-27, `task/042-gma25-production` dalında (`83b86a9`), GMA 25.3 üretim eklentisi
+kurulduktan sonra (`tools/release/release_android.sh check`; main'e alınması owner onayı
+bekliyor). main'de (`cbdcb8f`, değişmedi) sayılar aynı; yalnız `UYUM:` satırı eski
+(GMA 24.9.0) metniyle çıkar:
 
 ```
 == release_check 'Android Release AAB': BLOCKED ==
   [OWNER]  AdMob: release build ama [General] is_real=false (üretim kimlikleri onaylanmadı)
   [OWNER]  AdMob: [Release] app_id / rewarded_id / banner_id / interstitial_id boş (4)
-  [OWNER]  UYUM: 13–17 genç reklam işlemi / yargı bölgesi uyum stratejisi çözülmedi (TFAT TEEN'in GMA 24.9.0 TFCD/TFUA yolunda karşılığı yok; unspecified ≠ TEEN) — AUDIENCE_DECISION.md §2.2
+  [OWNER]  UYUM: 13–17 genç reklam işlemi / yargı bölgesi uyum stratejisi çözülmedi (TFAT TEEN teknik olarak hazır — GMA 25.3.0, TASK/042 — ama yaş bandı yönlendirmesi yok, üretim UNSPECIFIED; unspecified ≠ TEEN) — AUDIENCE_DECISION.md §2.2
   [OWNER]  gizlilik politikası URL'i yok (project.godot squishy/privacy/policy_url)
   [OWNER]  upload anahtar deposu verilmedi / takma adı-şifresi verilmedi (2)
   not: ürün kitlesi kararı: general_13_plus (TFCD=unspecified, TFUA=unspecified, en yüksek reklam derecesi G — bunlar TEEN işlemi DEĞİL) — AUDIENCE_DECISION.md §0
@@ -57,7 +71,19 @@ TASK/040'ın `[CODE]` satırı (#27: onaylı M9 AAR'ı RequestConfiguration'ı h
 uygulamıyordu) **TASK/041'de kalktı**: `PATCHED_RELEASE_AAR_SHA256` artık düzeltilmiş
 derlemeyi (v6.0 + 0001 + 0002, `14c745e9…`) onaylıyor. Kural silinmedi — eski kusurlu
 SHA (`90d35992…`) `KNOWN_PLUGIN_DEFECTS`'te duruyor ve o AAR geri gelirse satır yine
-çıkar; tanınmayan her AAR da CODE ("yamalı derleme değil").
+çıkar; tanınmayan her AAR da CODE ("yamalı derleme değil"). *(Sonra: TASK/042 — onaylı
+AAR değişti, aşağıda.)*
+
+**TASK/042 (dalda; main'e alınması owner onayı bekliyor):** `PATCHED_RELEASE_AAR_SHA256`
+artık v6.0 + 0001 + 0002 + 0003 derlemesini onaylıyor — release `f5a563a7…`
+(debug `a78acb22…`). TASK/041 AAR'ı (release `14c745e9…`, GMA 24.9.0 — kusurlu değil)
+`SUPERSEDED_RELEASE_AARS`'ta: geri gelirse CODE ("artık onaylı değil"). Kusurlu M9 AAR'ı
+(`90d35992…`) `KNOWN_PLUGIN_DEFECTS`'te kalıyor (CODE). Kapı ayrıca üretilen
+`AdmobPlugin.gd`'den GMA **25.3.0**'ı (`REQUIRED_GMA_VERSION`) ve cephede TFAT'ı
+(`plugin_facade_tfat`) ister. `UYUM:` satırının metni değişti (TFAT TEEN teknik olarak
+hazır ama yaş bandı yönlendirmesi yok, üretim UNSPECIFIED); `teen_ad_treatment_resolved`
+= false, satır kalıyor — TFAT'ın teknik olarak hazır olması onu kaldırmaz (#26).
+`release_config_test` 182/182.
 
 Önceki çıktıdaki genel kitle satırı (`[OWNER] kitle kararı yok …`) owner'ın 13+
 kararıyla kapandı (2026-09-25); yerine ürün kitlesinden AYRI `[OWNER] UYUM:`
@@ -101,9 +127,9 @@ AAB yok).
 | 22 | **Android geliştirici doğrulaması / paket kaydı** | 🔵 | **Düzeltildi (M9-01.1):** 30 Eylül 2026, herkese uygulanan bir son tarih DEĞİL; **ilk bölgesel uygulama dalgası** — Brezilya, Endonezya, Singapur ve Tayland'da, katılımcı mağazalardan (Google Play dahil) kurulan uygulamalar için, Android 7+ sertifikalı cihazlarda. **2027'de** tüm sertifikalı cihazlara genişliyor. Google Play uygulamaların ~%99'unu **otomatik kaydediyor**; kalanlar Play Console'dan elle kaydediliyor (developer.android.com/developer-verification). Yayımlanmamış bu uygulama için bugün ayrı bir işlem yok: hesap açılıp uygulama oluşturulunca owner kayıt durumunu Play Console'da kontrol eder. |
 | 23 | **Google Play Developer hesabı** | 🔵 | Açılmadı / kimlik doğrulaması bekliyor (PROJECT_CONTEXT). Diğer bütün Play maddelerinin önkoşulu. |
 | 24 | **AdMob hesabı / ödeme profili / app-ads.txt** | 🔵 | AdMob hesabı + ödeme profili owner'da. app-ads.txt (geliştirici web sitesinde) AdMob'un önerdiği doğrulama — web sitesi gizlilik politikasıyla aynı yer olabilir (zorunluluk ayrıntısı **UNVERIFIED**). |
-| 25 | **SDK sürümü (teknik borç)** | 🟠 | Bugün **GMA 24.9.0 legacy** (destek **2027-06-30**'a kadar). TFCD/TFUA'nın yerine geçen **TFAT** (`setAgeRestrictedTreatment`) legacy **25.3.0+**'da; Google'ın bugün tercih ettiği Android SDK'sı **GMA Next-Gen**. Data safety beyanı yalnız en yeni sürümü (25.5.0) anlatıyor. SDK geçişinin kendisi eklenti güncellemesine bağlı ayrı bir modernizasyon işi (AUDIENCE_DECISION §2.1); M9-01.1'de ve task/039'da **YAPILMADI**. **Düzeltme (2026-09-25):** 24.9.0 TFAT `TEEN` gönderemez, bu yüzden 13–17 genç reklam işlemi yalnız teknik borç DEĞİL — ayrı, AÇIK bir release-uyum kararı (#26); SDK geçişi ancak seçilen strateji gerektirirse iş olur. **TASK/040 (spike, üretime alınmadı):** GMA **25.3.0** (ilk TEEN-yetenekli sürüm; UMP 4.0.0) vendored v6.0 + yamayla Godot 4.6.3'te derlendi ve A36'da çalıştı — banner / ödüllü / geçiş / UMP / gizlilik seçenekleri; 25.0.0'da kaldırılan API'leri eklenti kullanmıyor (`tools/admob_plugin/0002-…patch` — TASK/041'de `0003-spike-…` oldu, [GLOBAL_TEEN_AD_TREATMENT §C](monetization/GLOBAL_TEEN_AD_TREATMENT.md)). upstream v7.0 Godot 4.7 istiyor (bu projede yasak). |
-| 26 | **13–17 genç reklam işlemi / yargı bölgesi uyumu** | 🟠 | **AÇIK — üretim yayınından önce çözülmeli.** Kapıda ayrı `[OWNER] UYUM:` satırı; bu açıkken yüklenebilir AAB (kapalı test yüklemesi dahil) üretilmez. Ürün kitlesi kararından (#13) AYRI. GMA 24.9.0 TFAT `TEEN` gönderemez (`TEEN`'in eski TFCD/TFUA'da karşılığı yok); bugünkü `unspecified` / `unspecified` / G TEEN işlemi DEĞİL, uyum bunlardan iddia edilmez. Stratejiler (belgelendi, **seçilmedi**): A) `TEEN` gönderebilen GMA / eklenti yolu, B) yaş / yaş bandı düzeneği, C) owner açıkça seçerse ileride başka ürün konumu, D) gerçek yayın bölgeleri için UNSPECIFIED'in yeterli olduğuna karar veren hukuki inceleme — [AUDIENCE_DECISION §2.2](monetization/AUDIENCE_DECISION.md). task/039'da yaş ekranı / GMA yükseltmesi / reklam değişikliği YOK. **TASK/040:** fizibilite + karar tablosu (A herkes için TEEN · B uygulamanın yaş bandı · C UNSPECIFIED + hukuki belirleme; D eski TRUE etiketleri REDDEDİLDİ; E 18+ seçilmedi) → [GLOBAL_TEEN_AD_TREATMENT §D–§G](monetization/GLOBAL_TEEN_AD_TREATMENT.md); TEEN A36'da kanıtlandı; **karar hâlâ owner'da**, engel açık. **Play Age Signals reklam kararında KULLANILMAZ** (Age Signals şartları reklam / pazarlama / profilleme / analitik kullanımını yasaklıyor). |
-| 27 | **Eklenti RequestConfiguration kusuru** | ✅ CODE (TASK/041) | **TASK/040 bulgusu (A36 kanıtı):** Godot 4.6 Dictionary int'lerini `Long`, dizileri `Object[]` olarak geçiriyor; vendored v6.0 `AdmobConfiguration`'ın `(int)` / `(String[])` dönüşümleri `ClassCastException` atıyor → `MobileAds.setRequestConfiguration()` hiç çağrılmıyor (Godot istisnayı yutuyor). Etki: **derece G etkin değil**, TFCD / TFUA ve test cihazları uygulanmıyor, ileride seçilecek yaş işlemi de uygulanamaz. Spike yamasında düzeltildi (A36: G + TEEN uygulandı); **üretim AAR'ı değişmedi** → kapı CODE engeli (`ReleaseReadiness.KNOWN_PLUGIN_DEFECTS`). Düzeltilmiş eklenti derlemesi + M9 cihaz/gizlilik regresyonu ayrı görev (her strateji için gerekli). **KAPANDI — TASK/041 (2026-09-27; main'de):** üretim yaması `tools/admob_plugin/0002-fix-request-configuration-value-types.patch` + yeni AAR'lar (GMA 24.9.0 / UMP 3.2.0 aynı, iki temiz derleme bayt-aynı); Samsung A36'da her süreçte `applied max_ad_content_rating=G tag_for_child_directed_treatment=-1 tag_for_under_age_of_consent=-1 … test_device_ids=3` ilk reklam yüklemesinden ÖNCE, SDK test-cihazı ipucu 0, UMP EEA / NOT_EEA / gizlilik seçenekleri + banner / ödüllü / geçiş + yaşam döngüsü + logcat temiz ([ADS_SYSTEM §15](monetization/ADS_SYSTEM.md)). Kapı düzeltilmiş AAR'ı onaylar; eski SHA kayıtta kalır (geri gelirse CODE). |
+| 25 | **SDK sürümü (teknik borç)** | ✅ CODE (TASK/042, dalda — main'e alınınca geçerli; GMA Next-Gen hâlâ yok) | Bugün **GMA 24.9.0 legacy** (destek **2027-06-30**'a kadar) *(Sonra: TASK/042 — üretim GMA 25.3.0, dalda; aşağıda)*. TFCD/TFUA'nın yerine geçen **TFAT** (`setAgeRestrictedTreatment`) legacy **25.3.0+**'da; Google'ın bugün tercih ettiği Android SDK'sı **GMA Next-Gen**. Data safety beyanı yalnız en yeni sürümü (25.5.0) anlatıyor. SDK geçişinin kendisi eklenti güncellemesine bağlı ayrı bir modernizasyon işi (AUDIENCE_DECISION §2.1); M9-01.1'de ve task/039'da **YAPILMADI**. **Düzeltme (2026-09-25):** 24.9.0 TFAT `TEEN` gönderemez, bu yüzden 13–17 genç reklam işlemi yalnız teknik borç DEĞİL — ayrı, AÇIK bir release-uyum kararı (#26); SDK geçişi ancak seçilen strateji gerektirirse iş olur. **TASK/040 (spike, üretime alınmadı):** GMA **25.3.0** (ilk TEEN-yetenekli sürüm; UMP 4.0.0) vendored v6.0 + yamayla Godot 4.6.3'te derlendi ve A36'da çalıştı — banner / ödüllü / geçiş / UMP / gizlilik seçenekleri; 25.0.0'da kaldırılan API'leri eklenti kullanmıyor (`tools/admob_plugin/0002-…patch` — TASK/041'de `0003-spike-…` oldu, [GLOBAL_TEEN_AD_TREATMENT §C](monetization/GLOBAL_TEEN_AD_TREATMENT.md)). upstream v7.0 Godot 4.7 istiyor (bu projede yasak). **ÜRETİME ALINDI — TASK/042 (2026-09-27; dal `task/042-gma25-production`, main'e alınması owner onayı bekliyor):** üretim yığını **GMA 25.3.0** (`play-services-ads` + `play-services-ads-api` 25.3.0) + **UMP 4.0.0** (ads-api 25.3.0 üzerinden geçişli, ayrı geçersiz kılma yok) — üretim yaması `tools/admob_plugin/0003-gma25-age-restricted-treatment.patch` (v6.0 + 0001 + 0002 + 0003; 0002 değişmedi), onaylı AAR'lar debug `a78acb22…`, release `f5a563a7…` (iki temiz derleme bayt-aynı; derleme betiği çözülmüş sürümleri denetler). **TFAT** (`AgeRestrictedTreatment` UNSPECIFIED / CHILD / TEEN) üretim eklentisinde teknik olarak hazır; üretim varsayılanı herkes için **UNSPECIFIED** (yaş işlemi seçimi #26). `javac` 25.3.0'a karşı 11 kullanımdan kalkma uyarısı (TFCD / TFUA getter / setter'ları, sabit uyarlanabilir banner boyutu yardımcıları) — kaldırılmadılar, derleme sorunsuz. Samsung A36 kapısı GEÇTİ (UMP EEA / NOT_EEA / gizlilik seçenekleri, banner / ödüllü / geçiş, yaşam döngüsü, logcat temiz). Spike dosyaları ve `spike` modu KALDIRILDI (git geçmişinde `e152986` / `d32a4d3`). |
+| 26 | **13–17 genç reklam işlemi / yargı bölgesi uyumu** | 🟠 | **AÇIK — üretim yayınından önce çözülmeli.** Kapıda ayrı `[OWNER] UYUM:` satırı; bu açıkken yüklenebilir AAB (kapalı test yüklemesi dahil) üretilmez. Ürün kitlesi kararından (#13) AYRI. GMA 24.9.0 TFAT `TEEN` gönderemez (`TEEN`'in eski TFCD/TFUA'da karşılığı yok) *(Sonra: TASK/042 — üretim GMA 25.3.0'da TFAT teknik olarak hazır, dalda; üretim yine UNSPECIFIED)*; bugünkü `unspecified` / `unspecified` / G TEEN işlemi DEĞİL, uyum bunlardan iddia edilmez. Stratejiler (belgelendi, **seçilmedi**) *(Sonra: owner yönü 2026-09-27 — aşağıda TASK/042 / TASK/043)*: A) `TEEN` gönderebilen GMA / eklenti yolu, B) yaş / yaş bandı düzeneği, C) owner açıkça seçerse ileride başka ürün konumu, D) gerçek yayın bölgeleri için UNSPECIFIED'in yeterli olduğuna karar veren hukuki inceleme — [AUDIENCE_DECISION §2.2](monetization/AUDIENCE_DECISION.md). task/039'da yaş ekranı / GMA yükseltmesi / reklam değişikliği YOK. **TASK/040:** fizibilite + karar tablosu (A herkes için TEEN · B uygulamanın yaş bandı · C UNSPECIFIED + hukuki belirleme; D eski TRUE etiketleri REDDEDİLDİ; E 18+ seçilmedi) → [GLOBAL_TEEN_AD_TREATMENT §D–§G](monetization/GLOBAL_TEEN_AD_TREATMENT.md); TEEN A36'da kanıtlandı; **karar hâlâ owner'da**, engel açık. **Play Age Signals reklam kararında KULLANILMAZ** (Age Signals şartları reklam / pazarlama / profilleme / analitik kullanımını yasaklıyor). **TASK/042 (2026-09-27, dalda; main'e alınması owner onayı bekliyor):** TFAT `TEEN` artık üretim eklentisinde teknik olarak gönderilebilir (GMA 25.3.0, #25), ama üretim herkes için **UNSPECIFIED** gönderir — `unspecified ≠ TEEN`, uyum bundan iddia edilmez; yaş bilgisi kullanılmıyor, **yaş bandı yönlendirmesi YOK**. İstek yapılandırması `MobileAds.initialize()` öncesi BİR kez uygulanır, geri okunup doğrulanır; uyuşmazsa SDK başlatılmaz (fail-closed); SDK yapılandırılınca yaş işlemi kilitlenir (sonraki farklı değer reddedilir). Derece G, TFCD / TFUA değişmedi. `teen_ad_treatment_resolved=false`; kapının `UYUM:` satırı kalıyor (metni güncellendi, §1). **Owner yönü (2026-09-27, TASK/042 brief'i):** owner onaylı, gelir odaklı yaş bandı yönlendirmesi — 13–17 → TEEN, 18+ → normal rıza kontrollü yetişkin yolu (UNSPECIFIED) — **TASK/043**'te uygulanacak; **TASK/043 BAŞLAMADI**. Bu yön OWNER `UYUM:` engelini KAPATMAZ; uyum / hukuki değerlendirme owner'da, AÇIK. TASK/043 yönlendirmeyi SDK başlamadan ÖNCE yapmalı (onboarding rızayı + SDK'yı zaten erteliyor) ya da başlatma sonrası anlamı kendisi tanımlamalı. |
+| 27 | **Eklenti RequestConfiguration kusuru** | ✅ CODE (TASK/041) | **TASK/040 bulgusu (A36 kanıtı):** Godot 4.6 Dictionary int'lerini `Long`, dizileri `Object[]` olarak geçiriyor; vendored v6.0 `AdmobConfiguration`'ın `(int)` / `(String[])` dönüşümleri `ClassCastException` atıyor → `MobileAds.setRequestConfiguration()` hiç çağrılmıyor (Godot istisnayı yutuyor). Etki: **derece G etkin değil**, TFCD / TFUA ve test cihazları uygulanmıyor, ileride seçilecek yaş işlemi de uygulanamaz. Spike yamasında düzeltildi (A36: G + TEEN uygulandı); **üretim AAR'ı değişmedi** → kapı CODE engeli (`ReleaseReadiness.KNOWN_PLUGIN_DEFECTS`). Düzeltilmiş eklenti derlemesi + M9 cihaz/gizlilik regresyonu ayrı görev (her strateji için gerekli). **KAPANDI — TASK/041 (2026-09-27; main'de):** üretim yaması `tools/admob_plugin/0002-fix-request-configuration-value-types.patch` + yeni AAR'lar (GMA 24.9.0 / UMP 3.2.0 aynı, iki temiz derleme bayt-aynı); Samsung A36'da her süreçte `applied max_ad_content_rating=G tag_for_child_directed_treatment=-1 tag_for_under_age_of_consent=-1 … test_device_ids=3` ilk reklam yüklemesinden ÖNCE, SDK test-cihazı ipucu 0, UMP EEA / NOT_EEA / gizlilik seçenekleri + banner / ödüllü / geçiş + yaşam döngüsü + logcat temiz ([ADS_SYSTEM §15](monetization/ADS_SYSTEM.md)). Kapı düzeltilmiş AAR'ı onaylar; eski SHA kayıtta kalır (geri gelirse CODE). *(Sonra: TASK/042, dalda — kusur KAPALI kalıyor: 0002 değişmeden 0003'ün altında, A36'da yapılandırma yine ilk yüklemeden önce uygulanıp geri okundu; onaylı AAR artık release `f5a563a7…`, TASK/041 AAR'ı `14c745e9…` SUPERSEDED — geri gelirse CODE "artık onaylı değil"; kusurlu `90d35992…` yine CODE.)* |
 
 ## 3. Owner girdileri gelince: yüklenebilir AAB
 
@@ -121,6 +147,9 @@ AAB yok).
    `[General] is_real=true`; ~~`[Audience]` kararı~~ ✅ `decision=general_13_plus`
    (2026-09-25, AUDIENCE_DECISION §0). 13–17 genç reklam işlemi stratejisi (#26)
    seçilip ayrı bir görevde uygulanmalı — kapının `UYUM:` satırı ancak o zaman kalkar.
+   *(TASK/042, dalda: TFAT teknik olarak hazır, üretim UNSPECIFIED. Owner'ın 2026-09-27
+   yönü — yaş bandı yönlendirmesi, TASK/043, BAŞLAMADI — bu engeli kendiliğinden
+   kapatmaz; uyum değerlendirmesi owner'da.)*
 4. Upload anahtarı ortam değişkenleri (yalnız o kabuk oturumu; dosyaya yazma):
    `GODOT_ANDROID_KEYSTORE_RELEASE_PATH`, `GODOT_ANDROID_KEYSTORE_RELEASE_USER`,
    `GODOT_ANDROID_KEYSTORE_RELEASE_PASSWORD`.
