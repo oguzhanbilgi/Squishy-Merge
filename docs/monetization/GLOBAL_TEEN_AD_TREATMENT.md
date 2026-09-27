@@ -14,8 +14,8 @@
 > bugünkü üretim eklentisi RequestConfiguration'ı hiç uygulamıyor → derece G etkin
 > değil; kapı artık bunu **CODE** engeli olarak gösteriyor (§C4).
 >
-> **TASK/041 (2026-09-27; dal `task/041-fix-request-configuration`, main'e alınması owner
-> onayı bekliyor):** §C4 kusuru **KAPANDI** — yalnız dönüşüm düzeltmesi üretime alındı
+> **TASK/041 (2026-09-27; `task/041-fix-request-configuration` main'e ff-only alındı
+> 2026-09-27):** §C4 kusuru **KAPANDI** — yalnız dönüşüm düzeltmesi üretime alındı
 > (yama `0002`, GMA 24.9.0 / UMP 3.2.0 aynı; TFAT / TEEN YOK); Samsung A36'da derece G,
 > TFCD / TFUA `-1` ve test cihazları ilk reklam yüklemesinden önce uygulanıyor; kapı
 > CODE 0 · OWNER 9 · CONFIG 0 ([ADS_SYSTEM §15](ADS_SYSTEM.md)). Spike yaması `0003`

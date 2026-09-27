@@ -17,16 +17,16 @@ decision=general_13_plus`, reklam istekleri değişmedi) — ürün kitlesi KAPA
 reklam kararında KULLANILMAZ; strateji karar tablosu
 docs/monetization/GLOBAL_TEEN_AD_TREATMENT.md. TASK/040 bulgusu (üretim eklentisi
 RequestConfiguration'ı hiç uygulamıyordu, derece G etkin değildi) **TASK/041'de
-KAPANDI** (2026-09-27, dalda): üretim yaması 0002 + yeni AAR'lar, Samsung A36'da
+KAPANDI** (2026-09-27, main'de): üretim yaması 0002 + yeni AAR'lar, Samsung A36'da
 derece G / TFCD / TFUA / test cihazları ilk reklam yüklemesinden önce uygulanıyor;
 yığın GMA 24.9.0 / UMP 3.2.0 → release kapısı CODE 0 · OWNER 9 · CONFIG 0. Sırada:
 **13–17 strateji kararı (owner)** → gizlilik politikası → upload anahtarı →
 gerçek AdMob kimlikleri → mağaza varlıkları / Play Console, sonra ilk imzalı
 üretim AAB'si ve M10 (Play kapalı test) ·
-**Branch:** `main` == origin/main — `task/040-global-teen-compliance` (`025214a` +
-`e152986`, TASK/040 fizibilite denetimi + spike araçları) ff-only alındı (2026-09-27);
-`task/041-fix-request-configuration` (`7e1e378` düzeltme + A36 kapısı kaydı) dalda,
-push edildi, main'e alınması owner onayı bekliyor
+**Branch:** `main` == origin/main — `task/041-fix-request-configuration` (`7e1e378`
+düzeltme + `d32a4d3` A36 kapısı kaydı) ff-only alındı (2026-09-27, owner onayıyla); önce
+aynı gün `task/040-global-teen-compliance` (`025214a` + `e152986`, TASK/040 fizibilite
+denetimi + spike araçları)
 
 > Güncel engel listesi ve sıradaki adımın kanonik yeri: `PROJECT_CONTEXT.md` →
 > Current state / Current release blockers / Next action. Aşağıdaki tarihçe

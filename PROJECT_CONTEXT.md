@@ -76,12 +76,12 @@ alınacak — şimdi tahmin/vaat yok.
 [Current release blockers](#current-release-blockers) +
 [Next action](#next-action); aşağıdaki "Milestone tarihçesi" değil.
 
-- **Repo:** `main == origin/main` (2026-09-27): `task/040-global-teen-compliance`
-  (`025214a` denetim + `e152986` spike araçları) main'e ff-only alındı; üstünde
-  yalnız bir durum doküman commit'i (`ee01841`). `task/014`…`task/040` dallarının
-  hepsi main'de (referans için duruyor). **Aktif kod görevi:**
-  `task/041-fix-request-configuration` (RequestConfiguration düzeltmesi + A36
-  kapısı) — dalda, push edildi; main'e alınması owner onayı bekliyor.
+- **Repo:** `main == origin/main` (2026-09-27): `task/041-fix-request-configuration`
+  (`7e1e378` düzeltme + `d32a4d3` A36 kapısı kaydı) main'e ff-only alındı (owner
+  onayıyla; merge commit yok, ağaç eşit); üstünde yalnız bu durum doküman commit'i.
+  Önce aynı gün `task/040-global-teen-compliance` (`025214a` + `e152986`, durum
+  commit'i `ee01841`). Aktif kod görevi YOK; `task/014`…`task/041` dallarının hepsi
+  main'de (referans için duruyor).
   Main'e bilerek girmeyen iki dal: `task/m8.6-03-home` (reddedildi, asla
   birleştirilmez) ve `task/ui-layerlab-style-spike` (seçilen parçaları
   M8.6-01'de promote edildi).
@@ -138,7 +138,7 @@ alınacak — şimdi tahmin/vaat yok.
   paketi); üretim eklentisi GMA 24.9.0 / UMP 3.2.0 kaldı. **Play Age Signals
   reklam kararında KULLANILMAZ** (Age Signals şartları reklam / pazarlama /
   profilleme / analitiği yasaklıyor).
-- **RequestConfiguration kusuru: KAPANDI (TASK/041, A36 kanıtı 2026-09-27; dalda).**
+- **RequestConfiguration kusuru: KAPANDI (TASK/041, A36 kanıtı 2026-09-27; main'de).**
   TASK/040 bulgusu: üretim eklentisi RequestConfiguration'ı hiç uygulamıyordu (Godot
   4.6 Long / Object[] → v6.0 `(int)` / `(String[])` dönüşümü ClassCastException,
   sessizce yutuluyordu) → derece G, TFCD / TFUA, test cihazları etkin değildi.
@@ -149,8 +149,9 @@ alınacak — şimdi tahmin/vaat yok.
   ÖNCE; UMP EEA / NOT_EEA / gizlilik seçenekleri, banner / ödüllü / geçiş, yaşam
   döngüsü, logcat temiz. **Üretim yığını değişmedi: GMA 24.9.0 / UMP 3.2.0** (TFAT /
   TEEN yok, GMA 25 geçişi yok).
-- **Release kapısı** (`tools/release/release_android.sh check`, TASK/041 dalında
-  2026-09-27): **BLOCKED — CODE 0 · OWNER 9 · CONFIG 0** (onaylı AAR = düzeltilmiş
+- **Release kapısı** (`tools/release/release_android.sh check`, TASK/041 main'e
+  alındıktan sonra main'de yeniden koşuldu 2026-09-27): **BLOCKED — CODE 0 · OWNER 9 ·
+  CONFIG 0** (onaylı AAR = düzeltilmiş
   derleme; eski kusurlu AAR SHA'sı gelirse yine CODE; OWNER'lardan biri ayrı 13–17
   uyum satırı). İmzalı / Play'e yüklenebilir AAB üretilmedi (`aab` reddediyor).
 
@@ -196,8 +197,8 @@ Release kapısı 1–9'u denetler (bugün OWNER 9 · CONFIG 0 — madde 1 ve 2
 kapandı, madde 3 ayrı `UYUM:` satırı; TASK/040'ın CODE satırı TASK/041'de kapandı,
 aşağıda); 10 kodla denetlenemez.
 
-**CODE blockers: 0** (TASK/041 dalında, 2026-09-27; main'e alınması owner onayı
-bekliyor). TASK/040'ın **eklenti RequestConfiguration kusuru** (onaylı M9 release
+**CODE blockers: 0** (TASK/041, main'de 2026-09-27). TASK/040'ın **eklenti
+RequestConfiguration kusuru** (onaylı M9 release
 AAR'ı yapılandırmayı hiç uygulamıyordu — checklist #27, GLOBAL_TEEN_AD_TREATMENT §C4)
 **KAPANDI**: düzeltilmiş eklenti derlemesi (v6.0 + 0001 + 0002, GMA 24.9.0 / UMP
 3.2.0) + Samsung A36 M9 cihaz/gizlilik regresyonu geçti. Kapı artık düzeltilmiş AAR'ın
@@ -228,9 +229,8 @@ seçilecek stratejiye bağlı (A/B kod ister, C hukuki kayıt).
    karar tablosu [GLOBAL_TEEN_AD_TREATMENT §F](docs/monetization/GLOBAL_TEEN_AD_TREATMENT.md)
    (TASK/040 fizibilitesi tamam; hukuki belirleme + iş dengesi owner'da) ← sıradaki karar
    - ~~Kod tarafında her stratejiden bağımsız: eklenti RequestConfiguration
-     düzeltmesi~~ ✅ TASK/041 (A36 kanıtı; dalda, main'e alınması owner onayı
-     bekliyor). Seçilecek strateji TEEN gerektirirse GMA 25.3+ üretim geçişi yine
-     ayrı görev.
+     düzeltmesi~~ ✅ TASK/041 (A36 kanıtı; main'de 2026-09-27). Seçilecek strateji
+     TEEN gerektirirse GMA 25.3+ üretim geçişi yine ayrı görev.
 4. Gizlilik politikası (metin + HTTPS URL)
 5. Upload anahtarı
 6. Gerçek AdMob kimlikleri (App ID + Banner + Rewarded + Interstitial)

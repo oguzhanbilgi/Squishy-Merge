@@ -19,7 +19,7 @@
 >   GMA 25.3.0'da A36'da kanıtlandı (yalnız spike); strateji hâlâ owner kararı.
 >   Play Age Signals reklam kararında KULLANILMAZ. Yeni bulgu: üretim eklentisi
 >   RequestConfiguration'ı hiç uygulamıyor (derece G etkin değil) → kapıda CODE.
->   *(Sonra kapandı: TASK/041, 2026-09-27, dalda — derece G / TFCD / TFUA A36'da ilk
+>   *(Sonra kapandı: TASK/041, 2026-09-27, main'de — derece G / TFCD / TFUA A36'da ilk
 >   reklam yüklemesinden önce uygulanıyor; değerler değişmedi; 13–17 stratejisi hâlâ AÇIK.)*
 >
 > Karardan önceki durum (2026-09-22): kod kararı tahmin etmedi; sevimli / kawaii

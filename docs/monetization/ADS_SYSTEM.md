@@ -43,8 +43,8 @@
 > §14)**. **Üretime hazır DEĞİL:** ~~eklentinin UMP yüzeyi (PRIVACY_CONSENT
 > §4) + #120~~ (M9-01'de kapandı, M9-01.1'de A36'da doğrulandı), ~~COPPA/kitle kararı (§6) açık~~ (2026-09-25: ürün kitlesi 13+ KAPALI; 13–17 genç reklam işlemi / yargı bölgesi uyumu AÇIK — AUDIENCE_DECISION §2.2); üretim kimliği YOK (artık 3 birim).
 >
-> **TASK/041 (2026-09-27, dal `task/041-fix-request-configuration`; main'e alınması
-> owner onayı bekliyor):** TASK/040'ın RequestConfiguration kusuru **KAPANDI** —
+> **TASK/041 (2026-09-27; `task/041-fix-request-configuration` main'e ff-only alındı
+> 2026-09-27):** TASK/040'ın RequestConfiguration kusuru **KAPANDI** —
 > üretim yaması `0002` (Godot 4.6 Long / Object[]-güvenli okuma + hata logu + SDK
 > geri okuması); Samsung A36'da derece G, TFCD / TFUA `-1` ve (debug) test cihazları
 > İLK reklam yüklemesinden önce uygulanıyor; yığın GMA 24.9.0 / UMP 3.2.0, TFAT / TEEN
@@ -560,7 +560,8 @@ onboarding / login / dailyq / dayclock / fresh / relaunch / daily_open / daily_r
 
 **Kapsam:** yalnız TASK/040'ın CODE bulgusu. TEEN / TFAT, GMA 25 / UMP 4 üretim geçişi,
 yaş ekranı, gerçek kimlik, imza YOK; gameplay / ekonomi / UI / ses ve `scripts/` DEĞİŞMEDİ.
-Dal `task/041-fix-request-configuration`, main'e alınması owner onayı bekliyor.
+Dal `task/041-fix-request-configuration` (`7e1e378` + `d32a4d3`) owner onayıyla main'e
+ff-only alındı (2026-09-27; ağaç eşit, A36 kanıtı geçerli).
 
 **Kök neden (TASK/040):** facade `set_request_configuration` sözlüğünü Java'ya
 TFCD / TFUA / kişiselleştirme = `java.lang.Long`, `test_device_ids` = `Object[]`
