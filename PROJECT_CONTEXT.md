@@ -74,25 +74,27 @@ alınacak — şimdi tahmin/vaat yok.
 
 ## Current state
 
-**Kanonik durum — 2026-09-27.** Bugünün gerçeği bu bölüm +
+**Kanonik durum — 2026-09-28.** Bugünün gerçeği bu bölüm +
 [Current release blockers](#current-release-blockers) +
 [Next action](#next-action); aşağıdaki "Milestone tarihçesi" değil.
 
-- **Repo:** `main == origin/main` (2026-09-27): `task/042-gma25-production` (`83b86a9`
-  kod + `3d15402` doküman / A36 kapısı kaydı) main'e ff-only alındı (owner onayıyla;
-  `cbdcb8f → 3d15402`, merge commit yok, ağaç eşit); üstünde yalnız bu durum doküman
-  commit'i. Önce aynı gün `task/041-fix-request-configuration` (`7e1e378` + `d32a4d3`,
-  durum commit'i `cbdcb8f`) ve `task/040-global-teen-compliance` (`025214a` +
-  `e152986`, durum commit'i `ee01841`). `task/014`…`task/043` dallarının hepsi main'de
-  (referans için duruyor). **TASK/043 owner onayıyla ff-only main'e alındı**
-  (`249a6e1 → 753503a`, merge commit yok; A36 doğrulanmış ağaç korunuyor).
+- **Repo:** `main == origin/main` (2026-09-28): **TASK/044 owner onayıyla ff-only main'e
+  alındı** (`task/044-player-meta-v1`: `d2832dc` + `e6c1c07` + `c5b4db5` + `239f2e7` A36
+  kapısı düzeltmeleri; `327dd60 → 239f2e7`, merge commit yok, ağaç eşit — A36 doğrulanmış
+  ağaç); üstünde yalnız bu durum doküman commit'i. Önce 2026-09-27: **TASK/043** ff-only
+  (`249a6e1 → 753503a`, durum commit'i `327dd60`), `task/042-gma25-production` (`83b86a9`
+  kod + `3d15402` doküman / A36 kapısı kaydı; `cbdcb8f → 3d15402`),
+  `task/041-fix-request-configuration` (`7e1e378` + `d32a4d3`, durum commit'i `cbdcb8f`) ve
+  `task/040-global-teen-compliance` (`025214a` + `e152986`, durum commit'i `ee01841`) — hepsi
+  owner onayıyla, merge commit yok. `task/014`…`task/044` dallarının hepsi main'de
+  (referans için duruyor).
   Main'e bilerek girmeyen iki dal: `task/m8.6-03-home` (reddedildi, asla
   birleştirilmez) ve `task/ui-layerlab-style-spike` (seçilen parçaları
   M8.6-01'de promote edildi).
-- **TASK/044 Player Meta V1 — DALDA, main'de DEĞİL** (`task/044-player-meta-v1`,
-  başlangıç main `327dd60`; **Samsung A36 yerel kapısı GEÇTİ 2026-09-28** — iki bulgu
-  giderildi: ekran / pencere geçişinde hızlı çift dokunuş sıçraması ve günlük reveal'de
-  "Yeni Squishy" tekrarı; main'e alınması owner onayı bekliyor). Owner kararı:
+- **TASK/044 Player Meta V1 — TAMAM, main'de** (`task/044-player-meta-v1`, başlangıç main
+  `327dd60`; **Samsung A36 yerel kapısı GEÇTİ 2026-09-28** — iki bulgu giderildi: ekran /
+  pencere geçişinde hızlı çift dokunuş sıçraması ve günlük reveal'de "Yeni Squishy"
+  tekrarı; owner onayıyla ff-only main'e alındı `327dd60 → 239f2e7`, 2026-09-28). Owner kararı:
   **gameplay skinleri EMEKLİ** — parçalar her zaman kanonik tier sprite'ı; eski
   `equipped_skin` yalnız göçte okunur (sahip olunan katalog parçasıysa vitrinin ilk
   yuvasına), sahiplik (`unlocked_skins`) aynen. **Koleksiyon V1** (albüm + parça
@@ -131,7 +133,7 @@ alınacak — şimdi tahmin/vaat yok.
   `sdk_refused` + yaş işlemi kilidi değişti; kullanıcıya görünen reklam sözleşmesi aynı.)*
   *(TASK/043, main'de: monetizasyonun AÇILMA koşulu değişti — yaş bandı; reklam
   yüzeyleri, kotalar, geçiş reklamı zamanlaması, ekonomi ve reklamsız tutorial AYNI.)*
-  *(TASK/044, dalda: meta / kabuk UI — Koleksiyon, Profil, Ana Sayfa avatarı — ve
+  *(TASK/044, main'de: meta / kabuk UI — Koleksiyon, Profil, Ana Sayfa avatarı — ve
   gameplay skin katmanının kaldırılması; fizik, merge, skor, ekonomi, reklam
   sözleşmesi AYNI.)*
 - **Kalıcı paket kimliği KİLİTLENDİ (owner kararı, 2026-09-24):** üretim / Play
@@ -361,15 +363,15 @@ kod tablosunu owner tablosuyla karşılaştırır, her sapma CODE.)*
 6. Gerçek AdMob kimlikleri (App ID + Banner + Rewarded + Interstitial)
 7. Play Store varlıkları / Play Console alanları
 
-**Paralel ürün işi — TASK/044 Player Meta V1 (dalda):** ~~main'e alınmadan ÖNCE yerel
-owner / cihaz kapısı~~ **Samsung A36 yerel kapısı GEÇTİ (2026-09-28, yalnız QA paketi)**:
+**Paralel ürün işi — TASK/044 Player Meta V1:** ✅ **TAMAM, main'de** (owner onayıyla
+ff-only `327dd60 → 239f2e7`, 2026-09-28). **Samsung A36 yerel kapısı GEÇTİ (2026-09-28,
+yalnız QA paketi)**:
 Koleksiyon albümü + parça detayı + vitrin değiştirme adımı, Profil (boş / 1 / 3 yuva,
 kaydırma, dişli → Ayarlar), Ana Sayfa avatarı, eski `equipped_skin` göçü (sentetik QA
 kayıtları; owner'ın masaüstü kaydı salt okunur — telefondaki `com.example` owner kaydı
 owner talimatıyla açılmadı), gameplay kanonik, sayaçlar, oyun içi ayarlar / mola, TASK/043
 Profil yolu, reklam yüzeyleri. Giderilen: geçiş sonrası 300 ms parmak yatışması (hızlı
-çift dokunuş), günlük reveal başlığı. Ayrıntı: PROJECT_STATUS §4.20. Sıradaki: owner
-incelemesi → onayla ff-only. **TASK/045
+çift dokunuş), günlük reveal başlığı. Ayrıntı: PROJECT_STATUS §4.20. **TASK/045
 (Oyuncu Seviyesi + XP + Başarımlar + Unvanlar), TASK/046 (Günlük/Haftalık Görevler),
 TASK/047 (Günlük Merge Challenge) BAŞLAMADI.**
 

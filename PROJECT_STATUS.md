@@ -1,6 +1,6 @@
 # PROJECT_STATUS.md — Squishy Merge, tam proje raporu
 
-**Son güncelleme:** 2026-09-27 · **Durum:** M0–M8 tamamlandı; M8.5–M8.10
+**Son güncelleme:** 2026-09-28 · **Durum:** M0–M8 tamamlandı; M8.5–M8.10
 (release/product stabilization: UI yeniden inşası, gameplay cilası, ses,
 AdMob TEST-reklam monetizasyonu + günlük ödüller, ilk açılış tutorial'ı)
 tamamlandı ve main'de; M9-01 production release hazırlığı (kod) tamamlandı,
@@ -40,11 +40,16 @@ araştırma iki somut açık madde buldu → yeni OWNER / UYUM satırları (Play
 reklamlar": uygulamanın içerik derecesi T / MA'ya uygun olmalı; yargı bölgesi yaş
 yükümlülükleri); **Samsung A36 kapısı GEÇTİ** (vakalar A–F, yalnız QA paketi) ve owner
 stratejisi kaydedildi (`teen_ad_treatment = "age_band_routing"`) → main'de kapı BLOCKED — CODE 0
-· OWNER 10 · CONFIG 0 (ayrıntı docs/monetization/AGE_BAND_ROUTING.md). Sırada: owner
-incelemesi / main onayı → içerik derecesi + yargı bölgesi kararları (owner) → gizlilik
+· OWNER 10 · CONFIG 0 (ayrıntı docs/monetization/AGE_BAND_ROUTING.md). **TASK/044
+(2026-09-28, main'de — owner onayıyla ff-only alındı):** Player Meta V1 — gameplay skinleri
+EMEKLİ (parça her zaman kanonik tier sprite'ı), Koleksiyon V1 + Profil + 3 yuva vitrin,
+Ayarlar Profil'in dişli çarkında; Samsung A36 yerel kapısı GEÇTİ (§4.20). Sırada: içerik
+derecesi + yargı bölgesi kararları (owner) → gizlilik
 politikası → upload anahtarı → gerçek AdMob kimlikleri → mağaza varlıkları / Play Console,
 sonra ilk imzalı üretim AAB'si ve M10 (Play kapalı test) ·
-**Branch:** `main` — TASK/043 `task/043-age-band-routing` (`b0e69f0` + `753503a`) owner onayıyla ff-only entegre ·
+**Branch:** `main` — TASK/044 `task/044-player-meta-v1` (`d2832dc` + `e6c1c07` + `c5b4db5` +
+`239f2e7`) owner onayıyla ff-only entegre (`327dd60 → 239f2e7`, 2026-09-28) · önce TASK/043
+`task/043-age-band-routing` (`b0e69f0` + `753503a`) owner onayıyla ff-only entegre ·
 `main` == origin/main — `task/042-gma25-production` (`83b86a9` kod + `3d15402`
 A36 kapısı / doküman kaydı) ff-only alındı (2026-09-27, owner onayıyla; ağaç eşit); önce
 aynı gün `task/041-fix-request-configuration` (`7e1e378` + `d32a4d3`) ve
@@ -1464,9 +1469,9 @@ formatına yalnız `haptics_enabled` (varsayılan true) eklendi. Ayrıntı ve
 
 ### 4.20 Player Meta V1 — gameplay skinleri emekli, Koleksiyon V1, Profil (TASK/044)
 
-> Dalda (`task/044-player-meta-v1`, başlangıç main `327dd60`); **Samsung A36 yerel
-> kapısı GEÇTİ (2026-09-28)** — main'e alınması owner onayı bekliyor. Kural metni:
-> GAME_DESIGN §5.3 / §5.8; UI: UI_VISUAL_SYSTEM §17 / §22.
+> **main'de** — `task/044-player-meta-v1` (başlangıç main `327dd60`) owner onayıyla
+> ff-only alındı (`327dd60 → 239f2e7`, 2026-09-28); **Samsung A36 yerel kapısı GEÇTİ
+> (2026-09-28)**. Kural metni: GAME_DESIGN §5.3 / §5.8; UI: UI_VISUAL_SYSTEM §17 / §22.
 
 - **Owner kararı:** skin sistemi gameplay özelleştirmesi olarak EMEKLİ. Gerekçe:
   koleksiyon sanatı değerli ama tier kimliğiyle çatışan bir render katmanı
@@ -2253,7 +2258,11 @@ template` ile; her makinede ayrı).
 8. Uzun ekran (9:19.5+) ve çentikli cihazlarda düzeni kontrol et (§7 #9).
 9. APK/AAB boyutunu ölç; gerekirse `map_background` lossy import (§7 #8).
 
-### TASK/044 — Player Meta V1 (dalda) — kalan: yerel owner / cihaz kapısı
+### TASK/044 — Player Meta V1 — ✅ TAMAM, main'de (2026-09-28)
+
+*(Kapandı: Samsung A36 yerel kapısı GEÇTİ — §4.20; owner onayıyla ff-only `327dd60 →
+239f2e7`. Aşağıdaki maddeler kapı ÖNCESİ listeydi: owner'ın masaüstü kaydı salt okunur
+doğrulandı; telefondaki `com.example` kaydı owner talimatıyla açılmadı.)*
 
 - Samsung A36: Koleksiyon albümü + detay + değiştirme adımı, Profil (üç durum,
   kaydırma, dişli → Ayarlar), Ana Sayfa avatarı, oyun içi ayarlar / mola.
