@@ -221,6 +221,23 @@ func _next_opportunity(album: CanvasLayer) -> void:
 		and _popup().visible)
 	_close_popup()
 	await _settle(2)
+
+	print("-- detaydaki MAĞAZAYA GİT: ertelenen pencere hedefli Mağaza geçişinde açılmaz")
+	_make_due()
+	album.open_detail(&"rare_05")
+	await _settle(2)
+	_c("ön koşul: kilitli parça detayı (MAĞAZAYA GİT), pencere due", album.is_detail_open()
+		and album.detail_primary_text() == "MAĞAZAYA GİT" and DailyRewards.popup_due() and not _popup().visible)
+	album.detail_primary().pressed.emit()
+	await _settle(3)
+	_c("MAĞAZAYA GİT → Mağaza: pencere AÇILMADI (hedef kart kaybolmaz), due kaldı", _main._active_tab == 3
+		and not album.is_detail_open() and not _popup().visible and DailyRewards.popup_due())
+	_main._on_home_requested()
+	await _settle(2)
+	_c("  … sonraki geçiş (Ana Sayfa): pencere açıldı", _main._active_tab == 0 and _popup().visible
+		and not DailyRewards.popup_due())
+	_close_popup()
+	await _settle(2)
 	_sections_done += 1
 
 

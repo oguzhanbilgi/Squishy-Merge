@@ -185,7 +185,8 @@ func _ready() -> void:
 			_play_entry.call_deferred()
 		else:
 			# Sekmeden çıkınca açık detay kapanır; aynı sekmede tazeleme
-			# (günlük pencere kapanışı, Hamur yenilemesi) detayı KORUR.
+			# (Hamur yenilemesi) detayı KORUR. TASK/045.1'den beri otomatik
+			# günlük pencere detay açıkken açılmaz (Main kapısı).
 			close_detail(false))
 	set_process(visible)
 	SaveManager.skin_granted.connect(_on_skin_granted)
@@ -581,7 +582,8 @@ func _layout() -> void:
 ## Sekmeye her girişte (main._show_tab): kartlar, başlık ve bakiye kanonik
 ## modelden. Kartlar yeniden KURULMAZ. Açık detay yalnız tazelenir (sekmeden
 ## çıkınca zaten kapanır — `visibility_changed`); böylece Profil'den açılan
-## detay, üstünde açılıp kapanan günlük pencere yüzünden kaybolmaz. Görünmezken
+## detay aynı sekme tazelemesinde (Hamur yenilemesi) kaybolmaz — otomatik günlük
+## pencere ise TASK/045.1'den beri detay açıkken hiç açılmaz. Görünmezken
 ## keşfedilen yeni parça varsa albüm ona kaydırır ve kart pop'lar.
 func refresh() -> void:
 	_refresh_detail()

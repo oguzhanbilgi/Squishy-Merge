@@ -742,9 +742,12 @@ func _on_shop_requested() -> void:
 
 
 ## Koleksiyon'da kilitli skin'in MAĞAZAYA GİT'i: Mağaza açılır ve o skin'in
-## kartına kaydırılır (satın alma yine yalnız Mağaza'da).
+## kartına kaydırılır (satın alma yine yalnız Mağaza'da). TASK/045.1: buton parça
+## detayının içinde — detay açıkken ertelenen otomatik günlük pencere bu hedefli
+## geçişte açılmaz (kapanış tazelemesi Mağaza'yı başa kaydırıp hedef kartı
+## kaybettiriyordu); "due" kalır, sonraki geçişte açılır.
 func _on_shop_skin_requested(skin_id: StringName) -> void:
-	_show_tab(3)
+	_show_tab(3, false)
 	_screens[3].focus_skin(skin_id)
 
 

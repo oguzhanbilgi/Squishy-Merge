@@ -6,33 +6,46 @@ extends RefCounted
 ##
 ## YAZMA (`write_save`): kanonik dosya HİÇBİR ZAMAN yerinde kesilip yeniden yazılmaz.
 ##   1. Yükün tamamı bellekte; geri okunabilir bir JSON sözlüğü değilse hiçbir şey yazılmaz.
-##   2. Aynı klasörde `<kayıt>.tmp`'ye yazılır, kapatılır, BAYT BAYT geri okunup doğrulanır
+##   2. Kanonik yok / bozukken duran GEÇERLİ bir `<kayıt>.tmp` kurtarılacak tek kopyadır
+##      (terfisi olmamış kurtarma, geri alınamamış taahhüt): üzerine yazılmadan ÖNCE kanonik
+##      ada taşınır; taşınamazsa kayıt yapılmaz ve `.tmp`'ye dokunulmaz.
+##   3. Aynı klasörde `.tmp`'ye yazılır, kapatılır, BAYT BAYT geri okunup doğrulanır
 ##      (FileAccess `close` hatası bildirmez — kısa / yarım yazma burada yakalanır).
-##   3. Eski kanonik kayıt (varsa) `<kayıt>.bak`'a TAŞINIR (duran bir `.bak`'ın üzerine
-##      yalnız GEÇERLİ bir kanonik taşınır; bozuk kanonik kenara alınmaz).
-##   4. `.tmp` kanonik ada TAŞINIR — hedef bu anda boştur: her platformda düz bir taşıma.
-##   5. `.bak` silinir. Başarıda klasörde yalnız kanonik dosya kalır.
-##   Hata: false + push_error (içerik loglanmaz); önceki kanonik kayıt yerinde kalır (4
-##   başarısızsa `.bak` geri taşınır), yarım / fazla `.tmp` silinir.
+##   4. Eski kanonik kayıt (varsa) `<kayıt>.bak`'a TAŞINIR ve bir önceki kayıt olarak KALIR
+##      (duran bir `.bak`'ın üzerine yalnız GEÇERLİ bir kanonik taşınır; bozuk kanonik kenara
+##      alınmaz, yeni kayıt doğrudan onun yerine geçer).
+##   5. `.tmp` kanonik ada TAŞINIR.
+##   Başarı: kanonik = yeni kayıt, `.bak` = bir önceki kayıt, `.tmp` YOK.
+##   Hata: false + push_error (dosya adı + aşama + hata kodu; içerik yok); önceki kanonik
+##   kayıt yerinde kalır (5 başarısızsa `.bak` geri taşınır), fazla `.tmp` silinir. Tek istisna
+##   (çift hata): kanonik ad boş kaldıysa (geri alma da olmadı / Windows hedefi silip
+##   taşıyamadı) doğrulanmış yeni kayıt `.tmp`'de bırakılır — bir sonraki açılış onu kurtarır.
 ##
-## Neden "kenara taşı + yerine taşı", doğrudan "üzerine yeniden adlandır" değil: Godot
-## 4.6.3'te `DirAccess.rename` hedef varken Windows'ta hedefi ÖNCE siler, sonra taşır
-## (DeleteFileW + MoveFileW — atomik değil); Android / Linux'ta `rename(2)` atomiktir. Bu
-## sıra hiçbir platformda atomik üzerine yazmaya güvenmez.
+## Neden "kenara taşı + yerine taşı": Godot 4.6.3'te `DirAccess.rename` hedef varken
+## Windows'ta hedefi ÖNCE siler, sonra taşır (DeleteFileW + MoveFileW — atomik değil);
+## Android / Linux'ta `rename(2)` atomiktir. Bu sıra hiçbir platformda atomik üzerine
+## yazmaya güvenmez; her adımda diskte en az bir geçerli kayıt vardır.
 ##
 ## OKUMA (`read_save`, deterministik kurtarma — geçerli = okunabilir + JSON sözlüğü):
-##   1. Kanonik geçerliyse O KAZANIR; artık `.tmp` / `.bak` silinir (yarım kalmış bir
-##      işlemin taahhüt edilmemiş yeni kaydı da olsa).
+##   1. Kanonik geçerliyse O KAZANIR; bayat `.tmp` silinir (taahhüt edilmemiş yeni kayıt da
+##      olsa); `.bak` bir önceki kayıt olarak kalır.
 ##   2. Kanonik yok / bozuksa geçerli `.tmp`: yer değiştirme anında kesilen işlemin
-##      doğrulanmış YENİ kaydı (yalnız 3 ile 4 arasında kalabilir) → kanonik ada taşınır.
-##   3. Değilse geçerli `.bak`: son tamamlanmış kayıt → kanonik ada taşınır.
-##   4. Hiçbiri: kurtarılacak kayıt yok (çağıran karar verir: kanonik dosya hiç yoksa yeni
-##      oyuncu, varsa bozuk kayıt → varsayılanlar — TASK/045.1 öncesi davranış). Geçersiz
-##      `.tmp` / `.bak` silinir; bozuk kanonik dosyaya DOKUNULMAZ.
+##      doğrulanmış YENİ kaydı → kanonik ada taşınır.
+##   3. Değilse geçerli `.bak` (bir önceki kayıt) — YALNIZ kanonik ad doluyken (bozuk /
+##      okunamıyor) ya da yarım bir işlemin izi (`.tmp`) varken. Dosyalara dokunulmaz; bir
+##      sonraki kayıt bozuk kanoniğin yerine geçer. Kanonik ad boş ve `.tmp` yoksa kayıt
+##      bilerek silinmiştir (geliştirici / test sıfırlaması): artık `.bak` silinir, temiz başlangıç.
+##   4. Hiçbiri: kurtarılacak kayıt yok (çağıran: kanonik dosya hiç yoksa yeni oyuncu, varsa
+##      bozuk kayıt → varsayılanlar — TASK/045.1 öncesi davranış). Geçersiz `.tmp` / `.bak`
+##      silinir; bozuk kanonik dosyaya DOKUNULMAZ.
 ##
-## SINIR: Godot 4.6 FileAccess fsync sunmuyor (`flush` = fflush). İşlem süreç çökmesine /
-## öldürülmesine / yazma hatasına karşı tutarlıdır; ani güç kaybında kalıcılık işletim
-## sistemine / dosya sistemine bağlıdır.
+## SINIR: Godot 4.6 FileAccess fsync sunmuyor (`flush` = fflush). Süreç çökmesi /
+## öldürülmesi / yazma hatası: her an diskte geçerli bir kayıt vardır. Ani güç kaybı / zorla
+## yeniden başlatma: dosya sistemi yeniden adlandırmaları yeni kaydın verisinden önce
+## kalıcılaştırabilir → kanonik boş / sıfır dolu kalabilir; o zaman bir önceki kayıt (`.bak`)
+## kurtarılır (en kötü bir kayıt geri). Kayıtlar saniyeler içinde art arda yapıldıysa `.bak`'ın
+## verisi de henüz diskte olmayabilir. Okunamayan (ör. kilitli) kanonik dosya bozuk sayılır
+## (okuma hatası ayrıştırma hatasından ayrılmaz); ona dokunulmaz.
 
 const TEMP_SUFFIX: String = ".tmp"
 const BACKUP_SUFFIX: String = ".bak"
@@ -45,6 +58,7 @@ enum Source { NONE, CANONICAL, TEMP, BACKUP }
 ## CRASH_* aşamaları "süreç orada öldü" gibi temizlik yapmadan döner.
 enum Fault {
 	NONE,
+	RECOVER_MOVE,        ## kurtarılacak `.tmp` kanonik ada taşınamadı (kayıt yapılmaz)
 	TEMP_OPEN,           ## `.tmp` açılamadı
 	TEMP_WRITE,          ## `.tmp` yazımı yarıda kaldı (yarım içerik, yazma hatası)
 	TEMP_SHORT,          ## `.tmp` sessizce kısa yazıldı (yazma "başarılı") — geri okuma yakalar
@@ -53,7 +67,6 @@ enum Fault {
 	CRASH_AFTER_BACKUP,  ## süreç eski kayıt `.bak`'a taşınınca öldü (kanonik ad boş)
 	COMMIT,              ## `.tmp` kanonik ada taşınamadı (geri alma çalışır)
 	COMMIT_AND_ROLLBACK, ## taşıma da geri alma da başarısız
-	CRASH_AFTER_COMMIT,  ## yeni kayıt yerinde, `.bak` silinmeden öldü
 }
 static var fault: Fault = Fault.NONE
 ## Son başarısız yazmanın aşaması (teşhis / testler); başarılı yazmada boş.
@@ -61,7 +74,8 @@ static var last_error_stage: String = ""
 
 
 ## Yükü kanonik `path`'e çökmeye dayanıklı işlemle yazar. true = yeni kayıt kanonik
-## dosyada; false = hiçbir şey taahhüt edilmedi, önceki geçerli kayıt korunuyor.
+## dosyada; false = yeni kayıt kanonik dosyaya konamadı, önceki geçerli kayıt korunuyor
+## (çift hata istisnası başlıkta).
 static func write_save(path: String, text: String) -> bool:
 	var injected: Fault = fault
 	fault = Fault.NONE
@@ -73,16 +87,20 @@ static func write_save(path: String, text: String) -> bool:
 	var bytes: PackedByteArray = text.to_utf8_buffer()
 	var temp: String = path + TEMP_SUFFIX
 	var backup: String = path + BACKUP_SUFFIX
-	# 2. Yeni kayıt geçici dosyaya; bayt bayt doğrulanır.
+	# 2. Kurtarılacak tek kopya olan `.tmp`'nin üzerine yazılmaz: önce kanonik ada.
+	if FileAccess.file_exists(temp) and _read_dict(path) == null and _read_dict(temp) != null:
+		var promoted: Error = ERR_FILE_CANT_WRITE if injected == Fault.RECOVER_MOVE \
+			else DirAccess.rename_absolute(temp, path)
+		if promoted != OK:
+			return _fail(path, "recover", promoted)
+	# 3. Yeni kayıt geçici dosyaya; bayt bayt doğrulanır.
 	var err: Error = _write_temp(temp, bytes, injected)
 	if err != OK:
 		_remove(temp)
 		return _fail(path, "temp", err)
 	if injected == Fault.CRASH_AFTER_TEMP:
 		return false
-	# 3. Eski kanonik kayıt kenara (varsa). Olmazsa kanonik kayıt yerinde, işlem yok. Duran
-	#    bir `.bak` (terfisi olmamış bir kurtarmanın tek iyi kopyası olabilir) yalnız eski
-	#    kanonik GEÇERLİYSE ezilir; bozuk kanonik kenara alınmaz, yeni kayıt onun yerine geçer.
+	# 4. Eski kanonik kayıt kenara (bir önceki kayıt). Olmazsa kanonik kayıt yerinde, işlem yok.
 	var moved_old: bool = false
 	if FileAccess.file_exists(path) and (not FileAccess.file_exists(backup) or _read_dict(path) != null):
 		err = ERR_FILE_CANT_WRITE if injected == Fault.BACKUP_MOVE else DirAccess.rename_absolute(path, backup)
@@ -92,24 +110,17 @@ static func write_save(path: String, text: String) -> bool:
 		moved_old = true
 		if injected == Fault.CRASH_AFTER_BACKUP:
 			return false
-	# 4. Yeni kayıt kanonik ada (hedef boş).
+	# 5. Yeni kayıt kanonik ada.
 	var commit_fails: bool = injected == Fault.COMMIT or injected == Fault.COMMIT_AND_ROLLBACK
 	err = ERR_FILE_CANT_WRITE if commit_fails else DirAccess.rename_absolute(temp, path)
 	if err != OK:
-		if not moved_old:
+		if moved_old and injected != Fault.COMMIT_AND_ROLLBACK:
+			DirAccess.rename_absolute(backup, path)
+		# `.tmp` yalnız kanonik ad doluyken silinir; boşsa (geri alma da olmadı / Windows hedefi
+		# silip taşıyamadı) doğrulanmış yeni kaydın tek kopyasıdır — `read_save` kurtarır.
+		if FileAccess.file_exists(path):
 			_remove(temp)
-		else:
-			var back: Error = ERR_FILE_CANT_WRITE if injected == Fault.COMMIT_AND_ROLLBACK \
-				else DirAccess.rename_absolute(backup, path)
-			if back == OK:
-				_remove(temp)
-			# Geri alma da olmadıysa `.tmp` (yeni, doğrulanmış) + `.bak` (eski) diskte kalır:
-			# `read_save` kurtarır (kural 2). Hiçbiri silinmez.
 		return _fail(path, "commit", err)
-	if injected == Fault.CRASH_AFTER_COMMIT:
-		return true
-	# 5. Yeni kayıt yerinde: eski kopya (ve önceki yarım işlemden kalan) gereksiz.
-	_remove(backup)
 	return true
 
 
@@ -121,12 +132,13 @@ static func read_save(path: String) -> Dictionary:
 	var temp: String = path + TEMP_SUFFIX
 	var backup: String = path + BACKUP_SUFFIX
 	var existed: bool = FileAccess.file_exists(path)
+	var had_temp: bool = FileAccess.file_exists(temp)
 	var source: Source = Source.CANONICAL
 	var data: Variant = _read_dict(path)
 	if data == null:
 		source = Source.TEMP
 		data = _read_dict(temp)
-	if data == null:
+	if data == null and (existed or had_temp):
 		source = Source.BACKUP
 		data = _read_dict(backup)
 	if data == null:
@@ -134,15 +146,12 @@ static func read_save(path: String) -> Dictionary:
 	match source:
 		Source.CANONICAL:
 			_remove(temp)
-			_remove(backup)
 		Source.TEMP:
-			# Terfi: kanonik ad boşsa düz taşıma, bozuk dosya duruyorsa onun yerine. Olmazsa
-			# `.tmp` tek iyi kopya olarak kalır; `.bak` ancak terfi olunca gereksizdir.
-			if DirAccess.rename_absolute(temp, path) == OK:
-				_remove(backup)
+			# Kanonik ad boşsa düz taşıma, bozuk dosya duruyorsa onun yerine. Olmazsa `.tmp` tek
+			# iyi kopya olarak kalır (sonraki kayıt önce onu taşır). `.bak` bir önceki kayıt.
+			DirAccess.rename_absolute(temp, path)
 		Source.BACKUP:
 			_remove(temp)
-			DirAccess.rename_absolute(backup, path)
 		Source.NONE:
 			_remove(temp)
 			_remove(backup)
