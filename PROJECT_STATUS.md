@@ -1718,18 +1718,22 @@ formatına yalnız `haptics_enabled` (varsayılan true) eklendi. Ayrıntı ve
   kurtarılan kayıtta yaş bandı bellekte `UNKNOWN`'a düşer — reklam SDK'sı / UMP başlamaz, yaş
   yeniden sorulur (bozuk kayıtla aynı fail-closed sonuç); geçiş günü (doğum gününe eşdeğer)
   silinince (ADULT) `.bak` da atılır ("ADULT olunca silinir" sözü o kopya için de geçerli).
-- **Çekişmeli inceleme (6 mercek + ikinci tur; salt okuma):** BLOCKER 0 · HIGH 0. MEDIUM 3 → hepsi
-  giderildi: kurtarılacak tek kopya `.tmp`'nin üzerine yazılıyordu (önce terfi) · `.bak`
-  taahhütten hemen sonra siliniyordu, yeniden adlandırma boş ada olduğu için ext4'ün
-  "üzerine yeniden adlandırma" yıkama sezgisi yoktu → zorla yeniden başlatmada kurtarılacak kayıt
-  kalmayabiliyordu (`.bak` artık bir önceki kuşak) · `.bak` kurtarması kanonik ad boşken kendi
-  `.tmp` izini silip bir sonraki açılışta "bilerek silinmiş kayıt" sanılıyordu (kanonik önce
-  `.bak`'tan geri kurulur; hata yolları `.tmp`'yi yalnız kanonik ad doluyken atar). LOW → giderilen:
-  MAĞAZAYA GİT hedef kartı kaybediyordu · `.bak` kurtarmasında bayat yaş bandı · ADULT sonrası
-  `.bak`'ta geçiş günü · geçici kilitli dosya (kısa yeniden deneme) · iki güç kontrolü bekleme
-  süresi yüzünden düzeltmesiz de geçiyordu (güçlendirildi) · günlük "yazılmadı" kontrolü yazmayı
-  göremiyordu (bellek işareti) · şema kendi kendisiyle karşılaştırılıyordu (sabit anahtar
-  listesi). **Bilerek bırakılan / kapsam dışı (owner kararı ya da TASK/045.1 öncesi):** iki
+- **Çekişmeli inceleme (6 mercek + ikinci tur; salt okuma):** BLOCKER 0 · HIGH 0. MEDIUM 5 → 4
+  giderildi, 1 hafifletildi. Giderilen: kurtarılacak tek kopya `.tmp`'nin üzerine yazılıyordu
+  (önce terfi) · `.bak` taahhütten hemen sonra siliniyordu, yeniden adlandırma boş ada olduğu için
+  ext4'ün "üzerine yeniden adlandırma" yıkama sezgisi yoktu → zorla yeniden başlatmada
+  kurtarılacak kayıt kalmayabiliyordu (`.bak` artık bir önceki kuşak) · `.bak` kurtarması kanonik
+  ad boşken kendi `.tmp` izini silip bir sonraki açılışta "bilerek silinmiş kayıt" sanılıyordu
+  (kanonik önce `.bak`'tan geri kurulur; hata yolları `.tmp`'yi yalnız kanonik ad doluyken atar) ·
+  iki güç kontrolü bekleme süresi yüzünden düzeltmesiz de geçiyordu (güçlendirildi). Hafifletilen
+  (kod değişmedi): gerçek kaydı yazan eski suite'ler sahibin `.bak`'ına test verisi bırakıyor /
+  taze kurulum benzetiminde siliyor → aileyi geri koyan koşucu + belge (aşağıda "Masaüstü test
+  notu"); eski harness'lerin geri koyma yardımcılarına ortak bir aile koruyucusu eklemek ayrı bir
+  izleme işi olabilir. LOW → giderilen: MAĞAZAYA GİT hedef kartı kaybediyordu · `.bak`
+  kurtarmasında bayat yaş bandı · ADULT sonrası `.bak`'ta geçiş günü · geçici kilitli dosya (kısa
+  yeniden deneme) · günlük "yazılmadı" kontrolü yazmayı göremiyordu (bellek işareti) · şema kendi
+  kendisiyle karşılaştırılıyordu (sabit anahtar listesi) · eksik ön koşullar · Windows
+  `rename` biçimli hata enjeksiyonları. **Bilerek bırakılan / kapsam dışı (owner kararı ya da TASK/045.1 öncesi):** iki
   parmakta, hedefleme parmağı basılıyken İKİNCİ parmağın bağımsız dokunuşu düşürür (ayrı dizi —
   tasarım gereği, testli); `canceled` normal dokunuş düşürür (öncesi); Android'de Ayarlar dişlisi
   sonrası 300 ms yatışma dokunuş odağını dişlide bırakabilir (TASK/044 — A36 kapısında
