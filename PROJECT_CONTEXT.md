@@ -78,15 +78,16 @@ alınacak — şimdi tahmin/vaat yok.
 [Current release blockers](#current-release-blockers) +
 [Next action](#next-action); aşağıdaki "Milestone tarihçesi" değil.
 
-- **Repo:** `main == origin/main` (2026-09-28): **TASK/044 owner onayıyla ff-only main'e
-  alındı** (`task/044-player-meta-v1`: `d2832dc` + `e6c1c07` + `c5b4db5` + `239f2e7` A36
-  kapısı düzeltmeleri; `327dd60 → 239f2e7`, merge commit yok, ağaç eşit — A36 doğrulanmış
-  ağaç); üstünde yalnız bu durum doküman commit'i. Önce 2026-09-27: **TASK/043** ff-only
+- **Repo:** `main == origin/main` (2026-09-28): **TASK/045 owner onayıyla ff-only main'e
+  alındı** (`task/045-player-level-achievements`: `514ec9a` + `285856c` + `d4c8548`;
+  `115252c → d4c8548`, merge commit yok, ağaç eşit — Samsung A36'da doğrulanmış ağaç);
+  üstünde yalnız bu durum doküman commit'i. Aynı gün önce **TASK/044** ff-only
+  (`327dd60 → 239f2e7`, durum commit'i `115252c`); 2026-09-27: **TASK/043** ff-only
   (`249a6e1 → 753503a`, durum commit'i `327dd60`), `task/042-gma25-production` (`83b86a9`
   kod + `3d15402` doküman / A36 kapısı kaydı; `cbdcb8f → 3d15402`),
   `task/041-fix-request-configuration` (`7e1e378` + `d32a4d3`, durum commit'i `cbdcb8f`) ve
   `task/040-global-teen-compliance` (`025214a` + `e152986`, durum commit'i `ee01841`) — hepsi
-  owner onayıyla, merge commit yok. `task/014`…`task/044` dallarının hepsi main'de
+  owner onayıyla, merge commit yok. `task/014`…`task/045` dallarının hepsi main'de
   (referans için duruyor).
   Main'e bilerek girmeyen iki dal: `task/m8.6-03-home` (reddedildi, asla
   birleştirilmez) ve `task/ui-layerlab-style-spike` (seçilen parçaları
@@ -104,10 +105,13 @@ alınacak — şimdi tahmin/vaat yok.
   `highest_tier_created`; salt okunur güç stoğu; koleksiyon ilerlemesi), **Ayarlar
   Profil'in dişli çarkında** (tek SettingsPanel; oyun içi HUD ayarları aynen). Profil
   banner yüzeyi değil. Ekonomi, sandık oranları, fiyatlar, reklam sözleşmesi, TASK/043
-  yaş yönlendirmesi, fizik / merge DEĞİŞMEDİ. XP / seviye / başarım / görev YOK
-  (TASK/045–047). Ayrıntı: GAME_DESIGN §5.3 / §5.8, UI_VISUAL_SYSTEM §17 / §22.
-- **TASK/045 Player Progression V1 — DALDA, yerel A36 kapısı BEKLİYOR, main'e ALINMADI**
-  (`task/045-player-level-achievements`, başlangıç main `115252c`; 2026-09-28). Yerel
+  yaş yönlendirmesi, fizik / merge DEĞİŞMEDİ. ~~XP / seviye / başarım / görev YOK
+  (TASK/045–047)~~ → XP / seviye / başarım / unvan TASK/045 ile geldi (aşağıda); görev YOK
+  (TASK/046–047). Ayrıntı: GAME_DESIGN §5.3 / §5.8, UI_VISUAL_SYSTEM §17 / §22.
+- **TASK/045 Player Progression V1 — TAMAM, main'de** (`task/045-player-level-achievements`,
+  başlangıç main `115252c`; **Samsung A36 yerel kapısı GEÇTİ 2026-09-28** — yalnız QA paketi,
+  bulgu yok, düzeltme commit'i yok; owner onayıyla ff-only main'e alındı `115252c → d4c8548`,
+  2026-09-28). Yerel
   Oyuncu Seviyesi: tek gerçek kümülatif `player_xp`, seviye türetilir (gereksinim
   `min(400, 60 + 20·(L−1))`, seviye tavanı yok); XP yalnız round kesin bitince (+1 /
   merge, +20 sabit level bitişi, +10 / YENİ yıldız), mevcut round kaydında, round başına
@@ -149,6 +153,9 @@ alınacak — şimdi tahmin/vaat yok.
   *(TASK/044, main'de: meta / kabuk UI — Koleksiyon, Profil, Ana Sayfa avatarı — ve
   gameplay skin katmanının kaldırılması; fizik, merge, skor, ekonomi, reklam
   sözleşmesi AYNI.)*
+  *(TASK/045, main'de: yerel oyuncu ilerlemesi — XP / seviye / başarım / unvan, Profil
+  pencereleri, sonuç ekranı XP şeridi; fizik, merge, skor, ekonomi, reklam sözleşmesi,
+  TASK/043 yaş yönlendirmesi AYNI.)*
 - **Kalıcı paket kimliği KİLİTLENDİ (owner kararı, 2026-09-24):** üretim / Play
   = `com.obappstudio.squishymerge` (project.godot `squishy/release/android_package_id`
   + yerel release presetleri); QA / test = `com.obappstudio.squishymerge.qa` (debug
@@ -385,11 +392,18 @@ kayıtları; owner'ın masaüstü kaydı salt okunur — telefondaki `com.exampl
 owner talimatıyla açılmadı), gameplay kanonik, sayaçlar, oyun içi ayarlar / mola, TASK/043
 Profil yolu, reklam yüzeyleri. Giderilen: geçiş sonrası 300 ms parmak yatışması (hızlı
 çift dokunuş), günlük reveal başlığı. Ayrıntı: PROJECT_STATUS §4.20. ~~TASK/045
-(Oyuncu Seviyesi + XP + Başarımlar + Unvanlar) BAŞLAMADI~~ → **TASK/045 dalda
-(`task/045-player-level-achievements`) — bulut kapısı (testler + ekran görüntüleri) geçti,
-sıradaki: owner'ın yerel / Samsung A36 kapısı, sonra owner onayıyla main.** TASK/046
-(Günlük/Haftalık Görevler) ve TASK/047 (Günlük Merge Challenge) **BAŞLAMADI** — sıradaki
-ürün görevi TASK/046.
+(Oyuncu Seviyesi + XP + Başarımlar + Unvanlar) BAŞLAMADI~~ → **TASK/045 Player Progression
+V1: ✅ TAMAM, main'de** (bulut kapısı + Samsung A36 yerel kapısı GEÇTİ 2026-09-28, yalnız QA
+paketi, bulgu yok; owner onayıyla ff-only `115252c → d4c8548`). Ayrıntı: PROJECT_STATUS
+§4.21. TASK/046 (Günlük/Haftalık Görevler) ve TASK/047 (Günlük Merge Challenge)
+**BAŞLAMADI** — sıradaki ürün görevi TASK/046 (owner başlatır).
+
+**Kararlılık takibi (öneri, BAŞLAMADI — TASK/045 engeli değil):** (A) `save_game()` kaydı
+yerinde kesip yeniden yazıyor — çökmeye dayanıklı atomik kayıt yok (geçici dosya + yedekten
+kurtarma önerisi); (B) güç hedefleme bırakış-düşürme: Büyütücü ve Bomba hedef dokunuşunun
+bırakışı bekleyen parçayı da düşürebilir (TASK/044'te Büyütücü, TASK/045 A36 kapısında
+Bomba ile de görüldü); (C) Koleksiyon detayı otomatik günlük pencere kapısında yok (TASK/044
+artığı).
 
 Her madde owner girdisi ister; hiçbiri tahmin edilmez ya da uydurulmaz.
 Gizlilik politikası, upload anahtarı ve AdMob kimliklerinde repoda yalnız
