@@ -155,7 +155,19 @@ Günde **en fazla bir kez**: `Main._maybe_auto_open_daily_rewards()` —
 `_ready` sonunda (giriş ödülü BİR KEZ çözüldükten sonra), her `_show_tab`'da
 ve öne dönüşte (`NOTIFICATION_APPLICATION_RESUMED` → `DailyRewards.observe_day`).
 Koşullar: onboarding tamam, `popup_seen_day != day_key`, kabuk ekranında
-(oyun / sonuç yok), başka pencere açık değil, tam ekran reklam yok. Gösterim
+(oyun / sonuç yok), başka pencere açık değil — Profil'in Başarımlar / Unvanlar
+penceresi (TASK/045) ve **Koleksiyon parça detayı (TASK/045.1)** dahil —, tam
+ekran reklam yok. Pencere yüzünden atlanan açılış pencereyi TÜKETMEZ (görüldü
+işaretlenmez, "due" kalır): pencere kapandıktan sonraki ilk `_show_tab` / öne
+dönüşte açılır (kapanışın kendisi tetik değil). Profil vitrini → parça detayı
+geçişinde otomatik açılış detay açıldıktan SONRA denenir (eskiden pencere önce
+açılıp detay altında kalıyordu); detaydaki MAĞAZAYA GİT (hedef karta kaydıran
+Mağaza geçişi) otomatik açılışı hiç denemez — pencerenin kapanış tazelemesi hedef
+kartı kaybettirirdi. **Bilinen bağ (TASK/045.1 öncesinden):** öne dönüşte günlük GİRİŞ
+ödülü (+15 / seri) pencere açılırken çözülür; pencere herhangi bir kapı (oyun, Ayarlar,
+Profil penceresi, Koleksiyon detayı) yüzünden ertelenip oyuncu kabuğa hiç dönmeden
+uygulamayı ertesi güne kadar arka planda bırakırsa o günün girişi sayılmaz — çözüm
+zamanlaması owner kararı, bu görevde değiştirilmedi. Gösterim
 anında `popup_seen_day` yazılır; **kapatmak hiçbir ödül tüketmez**;
 Ana Sayfa madalyonu / Mağaza'dan gün boyu yeniden açılır. Oyun içinde gün
 değişirse pencere kabuğa dönünce açılır (oyun ortasında asla).

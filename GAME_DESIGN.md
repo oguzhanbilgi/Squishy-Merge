@@ -1126,6 +1126,11 @@ Ortak, tekrar kullanılabilir bir durum makinesi
 (`scripts/game/power_up_controller.gd`):
 
 - hedefleme açıkken **normal sürükle-bırak devre dışı**
+- hedefleme açıkken BASILAN dokunuşun tamamı hedeflemenindir (TASK/045.1): güç
+  basışta çözülür (ya da iptal olur); aynı parmağın sürüklemesi ve **bırakışı
+  bekleyen parçayı düşürmez**, nişanı kaydırmaz; sonraki bağımsız dokunuş —
+  sunum penceresinin içinde de — normal düşürür, ikinci bir GÜÇ işlemi üretmez
+  (zamanlayıcı yok — dizi o parmağın bırakışında biter)
 - geçerli hedefler nabız atarak vurgulanır; **geçersiz hedefler hiç
   vurgulanmaz**
 - boş alana dokunmak iptal eder (stok tüketmez)

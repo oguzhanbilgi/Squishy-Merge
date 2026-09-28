@@ -123,6 +123,23 @@ alınacak — şimdi tahmin/vaat yok.
   kompakt "+XP / SEVİYE ATLADIN! / Başarım açıldı" şeridi. Ekonomi, reklam sözleşmesi,
   TASK/043, gameplay DEĞİŞMEDİ; başarım ekonomik ödül VERMEZ. Hesap / takma ad / backend /
   skor tablosu YOK. Ayrıntı: GAME_DESIGN §5.9, UI_VISUAL_SYSTEM §23, PROJECT_STATUS §4.21.
+- **TASK/045.1 Kalıcılık ve girdi sağlamlaştırması — DALDA, yerel A36 kapısı ve main'e
+  alınması owner onayı bekliyor** (`task/045-1-persistence-input-hardening`, başlangıç main
+  `017f2dc`; TASK/045'in üç kararlılık takibi). (A) **Çökmeye dayanıklı kayıt:**
+  `save_game()` kanonik dosyayı artık yerinde kesip yazmıyor — `SaveFile` işlemi (yük bellekte
+  doğrulanır → aynı klasörde `.tmp` + bayt bayt geri okuma → eski kayıt `.bak`'a taşınır ve
+  **bir önceki kayıt olarak kalır** → `.tmp` kanonik ada taşınır; hiçbir adım
+  üzerine-atomik-yeniden-adlandırmaya güvenmez); başarısız kayıt `false` döner, önceki kayıt
+  korunur, içerik loglanmaz. Açılışta deterministik kurtarma: geçerli kanonik kazanır; kanonik
+  yok / bozuksa geçerli `.tmp`, sonra (kanonik ad doluyken ya da `.tmp` izi varken) `.bak`;
+  bilerek silinmiş kayıt temiz başlangıçtır. Yol, JSON şeması ve biçim aynı; göç yok. `.bak`'tan
+  kurtarılan kayıtta yaş bandı `UNKNOWN`'a düşer (TASK/043 fail-closed), ADULT olunca `.bak` da
+  atılır. (B) **Güç hedefleme bırakışı:** Bomba / Büyütücü hedef dokunuşunun bırakışı artık
+  bekleyen parçayı düşürmüyor (hedefleme modunda basılan dokunuşun tamamı hedeflemenin; durum
+  tabanlı, zamanlayıcı yok). (C) **Koleksiyon detayı günlük pencere kapısında:** otomatik
+  günlük pencere detayın üstüne açılmaz, "due" kalır, sonraki güvenli fırsatta açılır.
+  Gameplay / ekonomi / XP / reklam sözleşmesi / yaş yönlendirmesi DEĞİŞMEDİ. Ayrıntı:
+  PROJECT_STATUS §4.22.
 - **M0–M8 tamamlandı.** Oyun uçtan uca oynanabilir: 10 level + sonsuz mod,
   sandık/koleksiyon/mağaza, günlük ödül, Home hub + `ScreenTopBar` gezinmesi
   (M8.5'in 4 sekmeli alt çubuğu M8.6-06'da kalktı), owner'ın görsel
@@ -398,12 +415,14 @@ paketi, bulgu yok; owner onayıyla ff-only `115252c → d4c8548`). Ayrıntı: PR
 §4.21. TASK/046 (Günlük/Haftalık Görevler) ve TASK/047 (Günlük Merge Challenge)
 **BAŞLAMADI** — sıradaki ürün görevi TASK/046 (owner başlatır).
 
-**Kararlılık takibi (öneri, BAŞLAMADI — TASK/045 engeli değil):** (A) `save_game()` kaydı
+~~**Kararlılık takibi (öneri, BAŞLAMADI — TASK/045 engeli değil):** (A) `save_game()` kaydı
 yerinde kesip yeniden yazıyor — çökmeye dayanıklı atomik kayıt yok (geçici dosya + yedekten
 kurtarma önerisi); (B) güç hedefleme bırakış-düşürme: Büyütücü ve Bomba hedef dokunuşunun
 bırakışı bekleyen parçayı da düşürebilir (TASK/044'te Büyütücü, TASK/045 A36 kapısında
 Bomba ile de görüldü); (C) Koleksiyon detayı otomatik günlük pencere kapısında yok (TASK/044
-artığı).
+artığı).~~ → **TASK/045.1 dalda (A + B + C giderildi):** sıradaki adım owner'ın Samsung A36
+yerel kapısı (QA paketi) → owner onayıyla main'e ff-only. **TASK/046 BAŞLAMADI** — TASK/045.1
+yerel kapıyı geçince sıradaki ürün görevi.
 
 Her madde owner girdisi ister; hiçbiri tahmin edilmez ya da uydurulmaz.
 Gizlilik politikası, upload anahtarı ve AdMob kimliklerinde repoda yalnız
@@ -1451,6 +1470,32 @@ yapılandırma değişir (checklist §3); 13–17 yaş bandı yönlendirmesi kod
   istatistiği değiştiren işlemin kendi yazmasında (ek disk yazması yok). Başarım / seviye
   ekonomik ödül VERMEZ (yalnız rozet + unvan). Unvan açıkları saklanmaz (türetilir), yeni
   unvan otomatik seçilmez, geçersiz seçim varsayılana düşer ve geri yazılmaz
+- **Kayıt kalıcılığı (TASK/045.1, `scripts/autoload/save_file.gd`):** kanonik kayıt
+  (`user://squishy_merge_save.json`) YALNIZ `SaveFile.write_save` işlemiyle yazılır — yük
+  bellekte geri okunabilir bir sözlük olmalı; kurtarılacak tek kopya olan bir `.tmp` önce
+  kanonik ada taşınır; yeni kayıt `.tmp`'ye yazılıp bayt bayt doğrulanır; eski kayıt `.bak`'a
+  taşınır (bir önceki kayıt olarak KALIR; duran `.bak`'ı yalnız geçerli bir kanonik ezer),
+  `.tmp` kanonik ada taşınır. Başarıda: kanonik + `.bak`, `.tmp` yok; başarısız kayıt `false`
+  döner, önceki kayıt korunur, içerik loglanmaz, bellek değişmez. Okuma: geçerli kanonik HER
+  ZAMAN kazanır (bayat `.tmp` silinir); kanonik yok / bozuksa geçerli `.tmp`, sonra geçerli
+  `.bak` — `.bak` yalnız kanonik ad doluyken ya da `.tmp` izi varken (ad boşsa kanonik
+  `.bak`'tan kopyalanarak geri kurulur); kanonik ad boş ve `.tmp` yoksa kayıt bilerek
+  silinmiştir → temiz başlangıç (artık `.bak` silinir; kendi yollarımız bu duruma düşmez); hiçbiri yoksa eski
+  davranış (dosya yok → yeni oyuncu, bozuk → varsayılanlar, yazma yok). Yol / şema / biçim
+  değişmez. Godot 4.6 fsync sunmaz: süreç çökmesi / öldürülmesi / yazma hatası güvenli; ani güç
+  kaybında en kötü bir kayıt geri (`.bak`). `.bak`'tan kurtarılan kayıtta yaş bandı bellekte
+  `UNKNOWN`'a düşer (TASK/043 fail-closed, yaş yeniden sorulur); yaş geçiş günü silinince (ADULT)
+  `.bak` da atılır. `SaveManager.save_path` ve `SaveFile.fault` YALNIZ test dikişleri. Masaüstü
+  test notu: gerçek kaydı yazan eski suite'ler yalnız kanonik baytları geri koyar — kayıt
+  AİLESİNİ (kanonik + `.tmp` + `.bak`) yedekleyip geri koyan koşucu kullanın
+  (`build/qa_045-1/tests/run_suites.sh` deseni)
+- **Güç hedefleme dokunuşu (TASK/045.1):** hedefleme modunda BASILAN dokunuşun sürüklemesi
+  ve bırakışı hedeflemenindir (bekleyen parçayı düşürmez, nişanı kaydırmaz); dizi o parmağın
+  bırakışında biter, aynı parmağın yeni basışı da kapatır — zamanlayıcı YOK; Main'in 300 ms
+  parmak yatışmasından ayrı bir sistem
+- **Otomatik günlük pencere kapısı:** pencere / sonuç / oyun / Profil Başarımlar–Unvanlar
+  (TASK/045) / Koleksiyon parça detayı (TASK/045.1) açıkken açılmaz; atlanan açılış pencereyi
+  tüketmez ("due" kalır)
 - **Büyük iş akışı kapısı (M8.5-17'den itibaren):** gameplay/render/skin/
   UI/ses/güç/Android işleri → otomatik testler → masaüstü QA → Android
   debug APK → USB'deki telefona kur → başlat → cihaz QA → rapor → commit.

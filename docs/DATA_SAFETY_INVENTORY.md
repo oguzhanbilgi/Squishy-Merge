@@ -22,8 +22,13 @@
 ## 2. Oyunun kendi verisi (kod gerçeği)
 
 - **Dosya:** `user://squishy_merge_save.json` → Android'de uygulamanın özel iç
-  depolaması. Tek yazan `scripts/autoload/save_manager.gd` (başka hiçbir
-  betik `FileAccess ... WRITE` açmıyor).
+  depolaması. Tek yazan `scripts/autoload/save_manager.gd`; disk işlemi
+  TASK/045.1'den beri onun yardımcısı `scripts/autoload/save_file.gd`'de (başka
+  hiçbir üretim betiği kayıt için `FileAccess ... WRITE` açmıyor). Çökmeye
+  dayanıklı yazma aynı klasörde işlem süresince `squishy_merge_save.json.tmp` kullanır
+  (başarıdan sonra kalmaz) ve bir önceki kaydı `squishy_merge_save.json.bak` olarak
+  tutar (aynı içerik türü, yeni veri türü YOK; yalnız cihazda, kanonik kayıt bozulursa
+  kurtarma için).
 - **İçerik:** oyun ilerlemesi (açılan en yüksek level, level yıldızları, sonsuz
   mod rekoru, toplam merge; TASK/044: oynanan tur sayısı, oluşturulan en yüksek
   tier), oyun içi para (Hamur), sahip olunan koleksiyon parçaları (Squishy; alan
@@ -47,7 +52,8 @@
   `age_ad_band` (UNKNOWN / UNDER_13 / TEEN / ADULT) ve UNDER_13 / TEEN için
   `next_age_transition_date` (13. / 18. yaş günü, `YYYY-MM-DD`; ADULT'ta boş). Dürüst not:
   UNDER_13 / TEEN bandında bu geçiş günü doğum tarihine matematiksel olarak eşdeğerdir
-  (geçiş − 13 / 18 yıl); yalnız cihazdaki kayıtta durur, ADULT olunca silinir.
+  (geçiş − 13 / 18 yıl); yalnız cihazdaki kayıtta durur, ADULT olunca silinir (TASK/045.1:
+  kaydın bir önceki kuşak kopyası `.bak` de o kayıtta atılır).
 - **Ağ:** oyun kodu hiçbir sunucuya bağlanmaz — `scripts/` ve `scenes/`
   altında `HTTPRequest` / `HTTPClient` / `WebSocket` / TCP-UDP kullanımı YOK
   (M9-01 taraması). Tek dış bağlantı: Ayarlar'daki "Gizlilik politikası"

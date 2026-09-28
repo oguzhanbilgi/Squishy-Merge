@@ -943,7 +943,9 @@ seçimine düşmez; Android geri kilide takılmaz. Detay AÇILIRKEN de kısa par
 yatışması var (Main, 300 ms — §22.3): karta çift dokunuşun ikincisi karartmaya
 düşüp detayı hemen kapatmaz (A36 kapısı). Aynı sekmede tazeleme (günlük
 pencere kapanışı, Hamur yenilemesi) açık detayı **korur**; sekmeden çıkınca
-detay kapanır. Başarı: sanat pop + 8 altın
+detay kapanır. **Otomatik günlük pencere detay açıkken açılmaz** (TASK/045.1,
+Main kapısı `CollectionScreen.is_detail_open`; pencere "due" kalır, detay
+kapandıktan sonraki sekme geçişi / öne dönüşte açılır). Başarı: sanat pop + 8 altın
 yıldız patlaması (`Fx`), kart plakası pop, `ui_equip` sesi (id tarihsel) +
 hafif titreşim. Koleksiyon'da `purchase` / `spend_dough` / `add_dough` /
 `grant_skin` / `save_game` / `data[` / `equip_skin` / `TAKILI` yok (kaynak
@@ -965,11 +967,11 @@ KALDIRILDI (TASK/044). Kart yalnız `selected(id)` yayar.
 | Kontrol | Rota |
 |---|---|
 | Home KOLEKSİYON madalyonu · Profil KOLEKSİYONA GİT / boş yuva | `_show_tab(2)` |
-| Profil dolu vitrin yuvası | `_show_tab(2)` + `open_detail(id)` |
+| Profil dolu vitrin yuvası | `_show_tab(2, false)` + `open_detail(id)`, sonra otomatik günlük pencere denemesi (detay açıksa kapı tutar — TASK/045.1) |
 | Geri | → Ana Sayfa |
 | Android geri | değiştirme adımı → detaya; detay → kapanır; yoksa Ana Sayfa |
 | Hamur "+" | → Mağaza |
-| Kilitli MAĞAZAYA GİT | → Mağaza + `focus_skin(id)` |
+| Kilitli MAĞAZAYA GİT | → Mağaza (`_show_tab(3, false)`: detay yüzünden ertelenen otomatik günlük pencere bu hedefli geçişte açılmaz — TASK/045.1) + `focus_skin(id)` |
 
 ### 17.5 Performans
 

@@ -138,7 +138,8 @@ yaş ekranı ──> türetilmiş bant kaydedilir (tek yazma), ham tarih atılı
   doğum tarihi parametresi almaz. Başka anahtar eklenmedi, ilgisiz veri taşınmadı.
 - **Dürüst not:** UNDER_13 / TEEN için saklanan geçiş günü doğum gününden türetilir (13. / 18.
   yıl dönümü) ve o bantta doğum tarihine matematiksel olarak eşdeğerdir (geçiş − 13 / 18 yıl).
-  Yalnız bu cihazda, oyuncunun kayıt dosyasında durur; ADULT olunca silinir. Ayarlar'daki
+  Yalnız bu cihazda, oyuncunun kayıt dosyasında durur; ADULT olunca silinir (TASK/045.1'den beri
+  kaydın bir önceki kuşak kopyası `squishy_merge_save.json.bak` de o kayıtta atılır). Ayarlar'daki
   gizlilik metni bunu açıkça söyler: "Doğum tarihin saklanmaz; cihazda yalnızca yaş grubun ve
   bir sonraki gruba geçiş günün (doğum günün) tutulur; reklam isteğine yalnızca yaş grubuna uygun
   ayar eklenir." (640 px tavanlı pencerede de tek bakışta okunacak uzunlukta —
@@ -148,6 +149,11 @@ yaş ekranı ──> türetilmiş bant kaydedilir (tek yazma), ham tarih atılı
   aktarım (kullanıcının başlattığı taşıma) `allowBackup` ile kapanmaz; bu tüm kayıt için
   (ilerleme dahil, TASK/043'ten önce de) geçerli bir artık risk — §9.9.
 - Kayıt silme / sıfırlama yok: UNDER_13 dahil ilerleme SİLİNMEZ.
+- **Kayıt kurtarma (TASK/045.1):** kanonik kayıt bozulup bir önceki kuşaktan (`.bak`) kurtarılırsa
+  bant o kopyada güncel olmayabilir (ör. son kayıt 13 altı yeniden girişiydi) → yükleme bandı
+  bellekte `UNKNOWN`'a düşürür (geçiş günü boş): reklam SDK'sı / UMP başlamaz, yaş ilk güvenli
+  kabukta yeniden sorulur (fail-closed, bozuk kayıtla aynı sonuç), ilerleme kurtarılır. Yarım
+  kalan işlemin doğrulanmış en yeni kaydından (`.tmp`) kurtarmada bant korunur.
 
 ## 5. Yaş hesabı + geçişler (`scripts/game/age_gate.gd` — saf, autoload'a dokunmaz)
 

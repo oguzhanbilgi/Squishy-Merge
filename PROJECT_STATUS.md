@@ -47,11 +47,16 @@ Ayarlar Profil'in dişli çarkında; Samsung A36 yerel kapısı GEÇTİ (§4.20)
 (2026-09-28, main'de — owner onayıyla ff-only alındı):** Player Progression V1 — oyuncu
 seviyesi + XP (kümülatif `player_xp`, seviye türetilir), 12 başarım, varsayılan + 8 unvan,
 Profil'de seviye / BAŞARIMLAR / pencereler, sonuç ekranında kompakt XP şeridi (§4.21); bulut
-kapısı + Samsung A36 yerel kapısı GEÇTİ (bulgu yok); TASK/046 BAŞLAMADI. Sırada: içerik
+kapısı + Samsung A36 yerel kapısı GEÇTİ (bulgu yok). **TASK/045.1 (2026-09-28, dalda —
+`task/045-1-persistence-input-hardening`; yerel A36 kapısı ve main'e alınması owner onayı
+bekliyor):** çökmeye dayanıklı kayıt (geçici dosya + doğrulama + yer değiştirme, deterministik
+kurtarma), Bomba / Büyütücü hedef dokunuşunun bırakışı artık parça düşürmüyor, otomatik günlük
+pencere Koleksiyon detayının üstüne açılmıyor (§4.22); TASK/046 BAŞLAMADI. Sırada: içerik
 derecesi + yargı bölgesi kararları (owner) → gizlilik
 politikası → upload anahtarı → gerçek AdMob kimlikleri → mağaza varlıkları / Play Console,
 sonra ilk imzalı üretim AAB'si ve M10 (Play kapalı test) ·
-**Branch:** `main` — TASK/045 `task/045-player-level-achievements` (`514ec9a` + `285856c` +
+**Branch:** TASK/045.1 `task/045-1-persistence-input-hardening` dalda (main'e alınmadı —
+yerel A36 kapısı + owner onayı bekliyor; başlangıç `017f2dc`) · `main` — TASK/045 `task/045-player-level-achievements` (`514ec9a` + `285856c` +
 `d4c8548`) owner onayıyla ff-only entegre (`115252c → d4c8548`, 2026-09-28) · önce TASK/044
 `task/044-player-meta-v1` (`d2832dc` + `e6c1c07` + `c5b4db5` +
 `239f2e7`) owner onayıyla ff-only entegre (`327dd60 → 239f2e7`, 2026-09-28) · önce TASK/043
@@ -1661,6 +1666,93 @@ formatına yalnız `haptics_enabled` (varsayılan true) eklendi. Ayrıntı ve
   doğrulanamayan: fiziksel A36, owner masaüstü kaydı, owner-local `export_presets.cfg`,
   telefon paketi.
 
+### 4.22 Kalıcılık ve girdi sağlamlaştırması (TASK/045.1)
+
+> **dalda** — `task/045-1-persistence-input-hardening` (başlangıç main `017f2dc`); yerel
+> Samsung A36 kapısı ve main'e alınması owner onayı bekliyor. TASK/045'in üç kararlılık
+> takibi; kapsam bunlarla sınırlı (TASK/046 BAŞLAMADI).
+
+- **(A) Çökmeye dayanıklı kayıt.** Eski `save_game()` kanonik dosyayı `FileAccess.WRITE` ile
+  yerinde kesip yazıyordu: yazma sırasında çökme / öldürme / disk hatası okunamayan bir kayıt
+  bırakıyor, açılış varsayılanlara dönüp ilerlemeyi siliyordu. Yeni `SaveFile`
+  (`scripts/autoload/save_file.gd`, autoload değil) işlemi: yük bellekte geri okunabilir bir
+  sözlük olarak doğrulanır → kanonik yok / bozukken kurtarılacak tek kopya olan bir `.tmp`
+  önce kanonik ada taşınır (olmazsa kayıt yapılmaz) → aynı klasörde `.tmp`'ye yazılır,
+  kapatılır, bayt bayt geri okunur (FileAccess `close` hatası bildirmiyor) → eski kanonik
+  `.bak`'a TAŞINIR ve **bir önceki kayıt olarak kalır** (duran `.bak`'ın üzerine yalnız geçerli
+  bir kanonik) → `.tmp` artık boş olan kanonik ada TAŞINIR. Godot 4.6.3 kaynağı:
+  `DirAccess.rename` Windows'ta hedefi önce siler sonra taşır (atomik değil), Android / Linux'ta
+  `rename(2)` atomik — bu sıra hiçbir platformda üzerine-atomik-yeniden-adlandırmaya güvenmez.
+  Hata: `false` + push_error (dosya adı + aşama + hata kodu; içerik yok), taahhüt başarısızsa
+  eski kayıt geri taşınır, fazla `.tmp` yalnız kanonik ad doluyken silinir (boşsa doğrulanmış
+  yeni kaydın tek kopyasıdır), bellek değişmez (sonraki kayıt yeniden dener).
+- **Kurtarma (deterministik):** geçerli kanonik HER ZAMAN kazanır (bayat `.tmp` silinir —
+  taahhüt edilmemiş yeni kayıt da; `.bak` kalır); kanonik yok / bozuksa geçerli `.tmp` (yer
+  değiştirme anında kesilen işlemin doğrulanmış yeni kaydı) kanonik ada taşınır, yoksa geçerli
+  `.bak` — yalnız kanonik ad doluyken (bozuk / okunamıyor; ona dokunulmaz, sonraki kayıt
+  onun yerine geçer) ya da `.tmp` izi varken (kanonik ad boşsa `.bak`'tan kopyalanarak geri
+  kurulur, iz ancak ondan sonra atılır). Kanonik ad boş ve `.tmp` yoksa kayıt bilerek
+  silinmiştir → temiz başlangıç (artık `.bak` silinir; mevcut "kaydı sil" test akışları aynen);
+  kendi yazma / kurtarma yollarımız kanonik adı `.tmp` olmadan boş bırakmaz. Hiçbiri yoksa eski davranış (dosya yok → yeni oyuncu + başlangıç hediyesi; bozuk →
+  varsayılanlar, yazma yok). Yol, JSON şeması, biçim aynı; göç yok; geçerli kayıtla yükleme
+  kanonik dosyaya yazmaz. **Sınır:** Godot fsync sunmuyor — ani güç kaybı / zorla yeniden
+  başlatmada yeni kaydın verisi diske inmeden yeniden adlandırmalar inebilir; o zaman bir önceki
+  kayıt (`.bak`) kurtarılır (en kötü bir kayıt geri; saniyeler içinde art arda kayıtlarda o da
+  henüz diskte olmayabilir — o zaman eski yerinde yazıcıyla aynı en kötü durum). Açılamayan dosya
+  kısa aralıklarla yeniden denenir (geçici kilit); hâlâ açılamıyorsa bozuk sayılır.
+- **(B) Güç hedefleme bırakışı.** Kök neden: `_handle_targeting_input` yalnız basışı
+  işliyordu; güç basışta çözülüp silah indiği için aynı parmağın bırakışı normal yola düşüp
+  `_drop()` çağırıyordu (Büyütücü ve Bomba; boşluğa dokunup iptal de). Düzeltme:
+  hedefleme modunda basılan dokunuş parmak indeksine göre "tüketilmiş dizi"; sürüklemesi ve
+  bırakışı yutulur, bırakış diziyi kapatır; aynı parmağın yeni basışı da kapatır (kayıp
+  bırakışta takılı bastırma yok), diğer parmaklar bağımsız, duraklamada gelen bırakış da
+  kapatır. Zamanlayıcı YOK; Main'in 300 ms parmak yatışması ayrı ve aynen. Güç kuralları,
+  stok, efektler, T7→T8 kutlaması, anında güçler DEĞİŞMEDİ.
+- **(C) Koleksiyon detayı günlük pencere kapısında.** `Main._maybe_auto_open_daily_rewards`
+  detay açıkken (`CollectionScreen.is_detail_open`) "görüldü" işaretinden ÖNCE döner: pencere
+  tüketilmez, sonraki `_show_tab` / öne dönüşte açılır. Profil vitrini → parça detayı geçişi
+  pencereyi artık detay açıldıktan SONRA dener (eskiden pencere önce açılıp detay altında
+  kalıyordu); detaydaki MAĞAZAYA GİT (hedef karta kaydıran Mağaza geçişi) ertelenen pencereyi
+  hiç denemez. Günlük kadans / ödül / uygunluk DEĞİŞMEDİ.
+- **Yaş bandı + gizlilik (TASK/043 sözleşmesi korunur):** `.bak`'tan (bir önceki kuşak)
+  kurtarılan kayıtta yaş bandı bellekte `UNKNOWN`'a düşer — reklam SDK'sı / UMP başlamaz, yaş
+  yeniden sorulur (bozuk kayıtla aynı fail-closed sonuç); geçiş günü (doğum gününe eşdeğer)
+  silinince (ADULT) `.bak` da atılır ("ADULT olunca silinir" sözü o kopya için de geçerli).
+- **Çekişmeli inceleme (6 mercek + ikinci tur; salt okuma):** BLOCKER 0 · HIGH 0. MEDIUM 3 → hepsi
+  giderildi: kurtarılacak tek kopya `.tmp`'nin üzerine yazılıyordu (önce terfi) · `.bak`
+  taahhütten hemen sonra siliniyordu, yeniden adlandırma boş ada olduğu için ext4'ün
+  "üzerine yeniden adlandırma" yıkama sezgisi yoktu → zorla yeniden başlatmada kurtarılacak kayıt
+  kalmayabiliyordu (`.bak` artık bir önceki kuşak) · `.bak` kurtarması kanonik ad boşken kendi
+  `.tmp` izini silip bir sonraki açılışta "bilerek silinmiş kayıt" sanılıyordu (kanonik önce
+  `.bak`'tan geri kurulur; hata yolları `.tmp`'yi yalnız kanonik ad doluyken atar). LOW → giderilen:
+  MAĞAZAYA GİT hedef kartı kaybediyordu · `.bak` kurtarmasında bayat yaş bandı · ADULT sonrası
+  `.bak`'ta geçiş günü · geçici kilitli dosya (kısa yeniden deneme) · iki güç kontrolü bekleme
+  süresi yüzünden düzeltmesiz de geçiyordu (güçlendirildi) · günlük "yazılmadı" kontrolü yazmayı
+  göremiyordu (bellek işareti) · şema kendi kendisiyle karşılaştırılıyordu (sabit anahtar
+  listesi). **Bilerek bırakılan / kapsam dışı (owner kararı ya da TASK/045.1 öncesi):** iki
+  parmakta, hedefleme parmağı basılıyken İKİNCİ parmağın bağımsız dokunuşu düşürür (ayrı dizi —
+  tasarım gereği, testli); `canceled` normal dokunuş düşürür (öncesi); Android'de Ayarlar dişlisi
+  sonrası 300 ms yatışma dokunuş odağını dişlide bırakabilir (TASK/044 — A36 kapısında
+  doğrulanmalı); güç silahlıyken round donunca önizleme görünür (kozmetik, öncesi); öne dönüşte
+  günlük GİRİŞ ödülü pencereyle çözülür — pencere ertelenip kabuğa hiç dönülmeden ertesi güne
+  kalınırsa o gün sayılmaz (öncesi; DAILY_REWARDS §7); kalıcı okuma hatası (açılamayan dosya)
+  bozuk sayılır (öncesiyle aynı).
+- **Testler / kanıt:** yeni `save_persistence_test` (108), `power_input_test` (58),
+  `daily_popup_gate_test` (29) — üçü de YALNIZ test yolu kullanır (`SaveManager.save_path`
+  yönlendirmesi), sahibin kaydına dokunmaz. Mutasyonlar 20/20 ÖLDÜ (atomik olmayan
+  geri dönüş, başarısız yazmada kanonik yıkımı, tüketim koruması, detay kapısı + inceleme
+  kuralları), kaynak her seferinde HEAD blob'una bayt-aynı geri kondu. Gerçek süreç öldürme
+  dayanıklılık testi (yalıtılmış ayrı proje + ayrı userdata, `build/qa_045-1/soak/`): 360 sert
+  öldürme (TerminateProcess; son commit'in `SaveFile`'ı ile 80), hepsi geçerli kayıt, sayaç
+  gerilemesi 0 (öldürme pencereleri `.tmp` yazımı / taahhüt / yer değiştirme arası — yer
+  değiştirme arasında kalanlar `.tmp`'den kurtarıldı). Tam regresyon: 29 kanonik suite + bot
+  L3 2/2 = 4029 kontrol (başlangıçla aynı) + 3 yeni suite 195 = 4224, 0 hata, 0 SCRIPT ERROR;
+  sahibin masaüstü kaydı bayt-aynı. **Masaüstü test notu:** gerçek kaydı yazan eski
+  suite'ler yalnız kanonik baytları geri koyar; artık kaydın `.bak`'ı (bir önceki kuşak) test
+  verisiyle kalabilir ya da taze kurulum benzetiminde silinebilir — koşucu kayıt AİLESİNİ
+  (kanonik + `.tmp` + `.bak`) yedekleyip her suite'ten sonra geri koymalı
+  (`build/qa_045-1/tests/run_suites.sh`).
+
 ## 5. Dosya/klasör yapısı ve script envanteri
 
 ```
@@ -1697,7 +1789,8 @@ squishy-merge/
 | `autoload/game_state.gd` | Koşu-anı durumu: skor, merge sayısı, aktif level. Sinyal yayar (`score_changed`, `merge_performed`). |
 | `autoload/audio_manager.gd` | Tüm SFX çalma noktası (M8.5-15): `EVENTS` olay tablosu, 12 kanal + öncelikli kanal çalma, soğuma/tavan, yerel RNG, fallback. `play(&"merge")`, `play_merge(tier)`, `play_landing(tier, hız)`. Bus: Master → SFX (limiter) / Music. |
 | `haptics.gd` | `Haptics` statik servisi (M8.5-15): LIGHT/MEDIUM/STRONG/SPECIAL, spam penceresi, editor'de güvenli, test sink'i. |
-| `autoload/save_manager.gd` | Yerel kalıcı kayıt, JSON, `user://`. Bulut yok. |
+| `autoload/save_manager.gd` | Yerel kalıcı kayıt, JSON, `user://`. Bulut yok. `save_game() -> bool` (TASK/045.1); `save_path` yalnız testlerin yönlendirmesi. |
+| `autoload/save_file.gd` | `SaveFile` (autoload DEĞİL, TASK/045.1): çökmeye dayanıklı kayıt işlemi (bellekte doğrulanan yük → kurtarılacak `.tmp` önce terfi → `.tmp` + bayt geri okuma → eski kayıt `.bak`'a, bir önceki kayıt olarak kalır → `.tmp` kanonik ada) ve deterministik kurtarma (geçerli kanonik > geçerli `.tmp` > geçerli `.bak` [kanonik ad dolu ya da `.tmp` izi varken] > yok; bilerek silinmiş kayıt = temiz başlangıç); yalnız testler için tek atımlık hata enjeksiyonu. |
 
 ### Reklam (M8.9-01 — `scripts/ads/`)
 
@@ -1783,6 +1876,9 @@ squishy-merge/
 | `ui_smoke_test.gd` + `ui_smoke_test.tscn` | **Headless UI davranış testi** (57 kontrol, TASK/044): ayar anahtarı, onay diyaloğu, geri tuşu, koleksiyon detayı + VİTRİNE EKLE. |
 | `profile_test.gd` + `.tscn` | **Profil testi** (TASK/044, 135 kontrol): üç ilerleme durumu + eski kayıt, rotalar (avatar / dişli / yuvalar / geri), oyun içi ayarlar + mola, gerçek round sayaçları, sahte arka uçla banner yüzeyi + Profil dişlisinden TASK/043 yaş yeniden girişi, 7 pencere + A36. |
 | `collection_rework_test.gd` + `.tscn` | **Skin emekliliği + vitrin kuralları testi** (TASK/044, 64 kontrol): `equipped_skin` göçü, kanonik gameplay (kaynak taraması dahil), vitrin kuralları + tek yazma, oyuncu dili, dondurulmuş ekonomi. |
+| `save_persistence_test.gd` + `.tscn` | **Çökmeye dayanıklı kayıt testi** (TASK/045.1): işlem (normal / üzerine / ×40 / ~1 MB / Unicode / bayt-aynı biçim / ara dosya yok), her aşamada hata + süreç ölümü enjeksiyonu, kurtarma matrisi, SaveManager entegrasyonu (yeni oyuncu, şema, TASK/044–045 göçleri, başarısız kayıt, çökmeden kurtarma, bozuk kayıt). YALNIZ test yolu — sahibin kaydına dokunmaz. |
+| `power_input_test.gd` + `.tscn` | **Hedefli güç dokunuş tüketimi testi** (TASK/045.1): Bomba / Büyütücü parmak / fare / kod yolu (güç bir kez, stok bir kez, bırakış düşürmez, sonraki dokunuş düşürür), T7→T8, geçersiz hedef, iptal, sürükleme, hızlı / aynı kare / iki parmak, kayıp bırakış, duraklama, stok 0, anında güçler, Main + 300 ms yatışma. Test yolu. |
+| `daily_popup_gate_test.gd` + `.tscn` | **Günlük pencere ↔ Koleksiyon detayı kapısı testi** (TASK/045.1): detay açıkken sekme / kabuk tazeleme, öne dönüş, gün dönümü, değiştirme adımı, Profil vitrini → detay; due kalır, sonraki fırsatta açılır; TASK/045 kapısı aynen. Test yolu. |
 | `profile_shots.gd` + `.tscn` | **Profil çekimleri** (TASK/044): yeni / orta / geç (üst + kaydırma sonu), 0 / 3 vitrin, eski kayıt, Profil'den Ayarlar, Ana Sayfa avatarı, yuva → detay. `--headless` ile çalışmaz. |
 | `secondary_modal_ui_test.gd` + `.tscn` | **Headless ikincil pencere testi** (M8.6-08 / M8.9-02.1, 100 kontrol): shell v2 iskeleti (oturmuş X, gövde/altlık sınırları, tavan + kaydırma, karartma), Ayarlar (kanonik yazma yolu, taşma regresyonu 5 yapılandırma), Günlük = birleşik GÜNLÜK ÖDÜLLER (claim pencereden önce tam bir kez, üst bölge, yeniden açılış +15 yok, kapanış yolları, 540×960), Mola/Sandık (hiyerarşi, z-order, rota). Kaydı byte'ı geri koyar. |
 | `secondary_ui_shots.gd` + `.tscn` | **İkincil pencere çekimleri** (M8.6-07/08): 48 durum × pencere boyutu + A36 simülasyonu; `groups=` ile alt küme. `--headless` ile çalışmaz. |
@@ -2382,10 +2478,11 @@ kaydı salt okunur doğrulandı (sessiz göç, dosya değişmedi); cihazda yaln�
   ("Oyuncu" kalır).
 - **TASK/046** — Günlük / Haftalık Görevler (sıradaki).
 - **TASK/047** — Günlük Merge Challenge.
-- **Kararlılık (öneri — TASK/045 engeli değil):** atomik kayıt (`save_game()` yerinde kesip
+- ~~**Kararlılık (öneri — TASK/045 engeli değil):** atomik kayıt (`save_game()` yerinde kesip
   yazıyor; geçici dosya + yedekten kurtarma) · güç hedefleme bırakış-düşürme (Büyütücü ve
   Bomba hedef dokunuşunun bırakışı bekleyen parçayı da düşürebilir) · Koleksiyon detayı
-  otomatik günlük pencere kapısında değil (TASK/044 artığı).
+  otomatik günlük pencere kapısında değil (TASK/044 artığı).~~ → **TASK/045.1 dalda** (§4.22;
+  yerel A36 kapısı + main'e alınması owner onayı bekliyor).
 
 ### M10 — Play Store submission
 
