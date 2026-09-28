@@ -529,6 +529,22 @@ func _test_ready_completion() -> void:
 		Onboarding.daily_rewards_unlocked())
 	DailyRewards.clock_override = DAY_A
 
+	# TASK/045 (GAME_DESIGN §5.9): tutorial'ı tamamlamak XP VERMEZ; öğretim round'u
+	# normal bir Level 1 round'u — bitince yalnız o round'un XP'si (burada merge'ler)
+	# yazılır ve özet coach yüzeyinde değil, sonuç ekranında görünür.
+	_c("tutorial tamamlanması XP vermedi", SaveManager.player_xp() == 0
+		and int(_disk().get("player_xp", -1)) == 0)
+	var merges: int = GameState.merge_count
+	_c("öğretim round'unda gerçek merge sayıldı", merges >= 1)
+	_board()._finish(false)
+	await get_tree().create_timer(_main.RESULT_DELAY + 0.2).timeout
+	_c("round bitince XP = merge sayısı (kayıp: bitiş / yıldız XP'si yok)",
+		SaveManager.player_xp() == merges and int(_disk().get("player_xp", -1)) == merges)
+	_c("özet sonuç ekranında (tutorial overlay kapalı)", _main._result.visible
+		and _main._result.progress_strip().visible and not _overlay().is_open())
+	_c("sonuç şeridi '+%d XP'" % merges,
+		_main._result.progress_strip().gain_text() == "+%d XP" % merges)
+
 
 # --- 6b. İlk gün KALICILIĞI: diskteki alanlar tek tek (M8.10 kapı 4) --------------
 #

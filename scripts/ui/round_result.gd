@@ -26,6 +26,9 @@ extends CanvasLayer
 ##   ENDLESS  yıldız yok; "YENİ REKOR!" (altın, tepelikli) ya da "TUR
 ##            BİTTİ" (lavanta); skor kahraman çipi, REKOR + HAMUR çipleri,
 ##            varsa bonus sandıklar; TEKRAR OYNA + HARİTA.
+##   (TASK/045, üç modda da) altlıkta özet çiplerinin ÜSTÜNDE kompakt oyuncu
+##   ilerlemesi şeridi (`ResultProgressStrip`): LV rozeti + XP rayı + "+42 XP",
+##   gerekirse "SEVİYE ATLADIN!" ve "Başarım açıldı: …". Bloklamaz, ayrı sayfa değil.
 ##
 ## İskelet `UiKit.modal_shell` (shell v2, 600 geniş, X yok — karar ekranı):
 ## başlık/yıldız/rozet SABİT `hero` bölgesinde, ödül kartları kaydırılan
@@ -125,6 +128,7 @@ var _encourage: Label
 var _endless_host: CenterContainer
 var _endless_chip: PanelContainer
 var _body: VBoxContainer
+var _progress_strip: ResultProgressStrip
 var _summary: HBoxContainer
 var _score_chip: PanelContainer
 var _target_chip: PanelContainer
@@ -232,6 +236,9 @@ func _build_hero() -> void:
 func _build_footer() -> void:
 	var footer: VBoxContainer = _frame.get_meta(&"footer")
 	footer.add_theme_constant_override("separation", UiTokens.SPACE_SM)
+	# TASK/045: kompakt oyuncu ilerlemesi (özet boşsa gizli — eski çağıranlar aynen).
+	_progress_strip = ResultProgressStrip.new()
+	footer.add_child(_progress_strip)
 	_summary = HBoxContainer.new()
 	_summary.name = "Summary"
 	_summary.alignment = BoxContainer.ALIGNMENT_CENTER
@@ -327,6 +334,7 @@ func hide_result() -> void:
 	visible = false
 	_stop_ambient()
 	_clear_cards()
+	_progress_strip.settle()
 
 
 ## `newly_unlocked`: bu round yeni bir level / Sonsuz kilidi açtı (Main
@@ -345,11 +353,14 @@ func show_result(level: LevelData, won: bool, score: int, stars: int,
 	_progress = progress.duplicate(true)
 	_configure(level, won, score, stars, rewards, new_record, newly_unlocked, reached_tier)
 	_build_cards(rewards)
+	_progress_strip.present(_progress)
 	visible = true
 	UiKit.modal_relayout(_frame)
 	(_frame.get_meta(&"scroll") as ScrollContainer).scroll_vertical = 0
 	UiMotion.modal_open(_frame, _dim)
 	_start_ambient()
+	# XP akışı yıldız / sandık reveal'iyle PARALEL (kendi tween'i): CTA'lar ilk kareden aktif.
+	_progress_strip.play()
 	await _run_reveal(sequence, stars)
 
 
@@ -768,6 +779,10 @@ func is_reveal_done() -> bool:
 ## TASK/045: gösterilen ilerleme özeti (boş = şerit gizli).
 func progress_summary() -> Dictionary:
 	return _progress
+
+
+func progress_strip() -> ResultProgressStrip:
+	return _progress_strip
 
 
 func topper() -> TextureRect:

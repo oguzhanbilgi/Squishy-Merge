@@ -7,8 +7,10 @@ extends Node
 ## Kontroller:
 ##   yapı      Main'de 5. ekran; reklam yüzeyi DEĞİL (Surface.NONE); üst satır
 ##             geri · "PROFİL" · dişli çark (Hamur pill'i yok); tek SettingsPanel;
-##             Profil kayda YAZMAZ, satın almaz; sahte XP / seviye / başarım /
-##             kamera / galeri yok; güçler salt okunur (buton yok).
+##             Profil ekranı / modeli kayda YAZMAZ, satın almaz (TASK/045: tek yazma
+##             yolu unvan seçici — progression_ui_test); TASK/045 bölümleri gerçek
+##             (LV rozeti + XP rayı, unvan, BAŞARIMLAR); kamera / galeri yok; güçler
+##             salt okunur (buton yok).
 ##   veri      yeni / orta / geç / eski (partial) kayıt: ad "Oyuncu", avatar (vitrin
 ##             başı ya da kanonik), 3 vitrin yuvası (0 / 1 / 3 dolu), altı
 ##             istatistik kanonik alanlardan (PlayerProfile ile aynı, uydurma
@@ -39,12 +41,13 @@ const A36_SAFE_TOP: float = 61.0
 ## `card_bevel_soft` dudağının üst kenarı: kart alt kenarından 22 px (sprite: yüz
 ## 0–36, dudak 37–47, kontur 48–49, gölge 50–58; alt dilim 30 px).
 const CARD_LIP_TOP: float = 22.0
-## Profil salt okunur: kayıt / ekonomi yazma yolu yok.
+## Profil salt okunur: kayıt / ekonomi yazma yolu yok (TASK/045: unvan seçimi ayrı
+## bileşende, `TitleSelector` → `SaveManager.select_title` — progression_ui_test).
 const FORBIDDEN_CALLS: Array[String] = ["save_game(", "showcase_add(", "showcase_remove(", "showcase_replace(",
-	"showcase_make_first(", "data[", "spend_dough", "add_dough", "purchase", "grant_", "record_"]
-## Sahte sistem yok (owner kararı: takma ad / seviye / başarım TASK/045'e kadar) —
-## oyuncuya görünen metinlerde (dize sabitleri) aranır.
-const FAKE_COPY: Array[String] = ["XP", "Seviye", "SEVİYE", "Başarım", "BAŞARIM", "Unvan", "UNVAN", "Rütbe"]
+	"showcase_make_first(", "data[", "spend_dough", "add_dough", "purchase", "grant_", "record_", "select_title("]
+## TASK/044'te "sahte XP / seviye / başarım yok" kontrolüydü; TASK/045 bu sistemleri
+## GERÇEK olarak getirdi — artık ekranda bulunmaları beklenir.
+const PROGRESSION_COPY: Array[String] = ["BAŞARIMLAR", "TÜM BAŞARIMLAR"]
 ## Kamera / galeri / dosya seçici / izin API'si yok (kodda, kelime sınırıyla).
 const FORBIDDEN_API: Array[String] = ["Camera", "camera", "gallery", "Gallery", "FileDialog", "request_permission"]
 
@@ -148,22 +151,27 @@ func _structure(profile: CanvasLayer) -> void:
 	var fakes: Array[String] = []
 	var word_re := RegEx.new()
 	for text in [src, slot_src, tile_src, model_src, avatar_src]:
-		for literal in _string_literals(text):
-			for word in FAKE_COPY:
-				if literal.contains(word):
-					fakes.append("\"%s\"" % literal)
 		for word in FORBIDDEN_API:
 			word_re.compile("\\b%s\\b" % word)
 			if word_re.search(text) != null:
 				fakes.append(word)
-	_c("sahte XP / seviye / başarım / unvan yok; kamera / galeri / dosya seçici yok %s" % str(fakes), fakes.is_empty())
+	_c("kamera / galeri / dosya seçici / izin API'si yok %s" % str(fakes), fakes.is_empty())
+	var literals: Array[String] = _string_literals(src)
+	var missing: Array[String] = []
+	for word in PROGRESSION_COPY:
+		if not literals.has(word):
+			missing.append(word)
+	_c("TASK/045 gerçek: BAŞARIMLAR bölümü + TÜM BAŞARIMLAR, LV rozeti + XP rayı, unvan eylemi %s" % str(missing),
+		missing.is_empty() and profile.level_bar() != null and profile.title_button() != null
+		and profile.section(&"achievements") != null and profile.achievements_cta() != null)
 	var power_buttons: int = 0
 	for node in _all_nodes(profile.content().get_node("PowerRow")):
 		if node is Button:
 			power_buttons += 1
 	_c("GÜÇLER salt okunur: 4 kutucuk, hiç buton yok (satın alma Mağaza'da)", profile.content().get_node("PowerRow").get_child_count() == 4
 		and power_buttons == 0 and _count_variation(profile, &"ButtonBuyLocked") == 0)
-	_c("bölüm başlıkları VİTRİN / İSTATİSTİKLER / GÜÇLER / KOLEKSİYON", _section_text(profile, &"showcase") == "VİTRİN"
+	_c("bölüm başlıkları VİTRİN / BAŞARIMLAR / İSTATİSTİKLER / GÜÇLER / KOLEKSİYON", _section_text(profile, &"showcase") == "VİTRİN"
+		and _section_text(profile, &"achievements") == "BAŞARIMLAR"
 		and _section_text(profile, &"stats") == "İSTATİSTİKLER" and _section_text(profile, &"powers") == "GÜÇLER"
 		and _section_text(profile, &"collection") == "KOLEKSİYON")
 	_c("kimlik avatarı dokunma ALMAZ (dekor), yuvalar ve CTA alır (PASS: kaydırma yuvanın üstünden de başlar)",
@@ -565,7 +573,8 @@ func _check_layout(profile: CanvasLayer, safe_top: float, window_tag: String) ->
 	# `card_bevel_soft`'un pişmiş alt dudağı kartın alt kenarından 11–22 px yukarıda
 	# (sprite ölçümü): yazı / buton / avatar krem yüzde kalmalı (TASK/044 merceği 6).
 	var lip_ok: bool = true
-	var cards: Array[Control] = [content.get_node("Identity"), content.get_node("CollectionCard")]
+	var cards: Array[Control] = [content.get_node("Identity"), content.get_node("CollectionCard"),
+		content.get_node("AchievementsCard")]
 	for key in [&"endless", &"merges", &"stars", &"levels", &"rounds", &"tier"]:
 		cards.append(profile.stat_tile(key))
 	for tile in content.get_node("PowerRow").get_children():
@@ -695,6 +704,11 @@ func _apply_fresh() -> void:
 	SaveManager.data["total_rounds_played"] = 0
 	SaveManager.data["highest_tier_created"] = 0
 	SaveManager.data["profile_counters_partial"] = false
+	# TASK/045: başarım listesi monoton — önceki fikstürden taşmasın; Profil açılışı
+	# gerçeklerden uzlaştırır.
+	SaveManager.data["player_xp"] = 0
+	SaveManager.data["unlocked_achievements"] = []
+	SaveManager.data["selected_title_id"] = "birlestirici"
 	SaveManager.data["last_login_date"] = Time.get_date_string_from_system()
 
 
@@ -712,6 +726,11 @@ func _apply_mid() -> void:
 	SaveManager.data["total_rounds_played"] = 17
 	SaveManager.data["highest_tier_created"] = 5
 	SaveManager.data["profile_counters_partial"] = false
+	# TASK/045: başarım listesi monoton — önceki fikstürden taşmasın; Profil açılışı
+	# gerçeklerden uzlaştırır.
+	SaveManager.data["player_xp"] = 0
+	SaveManager.data["unlocked_achievements"] = []
+	SaveManager.data["selected_title_id"] = "birlestirici"
 	SaveManager.data["last_login_date"] = Time.get_date_string_from_system()
 
 
@@ -733,6 +752,11 @@ func _apply_late() -> void:
 	SaveManager.data["total_rounds_played"] = 1250
 	SaveManager.data["highest_tier_created"] = 8
 	SaveManager.data["profile_counters_partial"] = false
+	# TASK/045: başarım listesi monoton — önceki fikstürden taşmasın; Profil açılışı
+	# gerçeklerden uzlaştırır.
+	SaveManager.data["player_xp"] = 0
+	SaveManager.data["unlocked_achievements"] = []
+	SaveManager.data["selected_title_id"] = "birlestirici"
 	SaveManager.data["last_login_date"] = Time.get_date_string_from_system()
 
 

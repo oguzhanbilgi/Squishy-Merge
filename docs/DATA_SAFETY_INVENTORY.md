@@ -36,6 +36,11 @@
   e-posta, telefon, konum, kişi listesi, fotoğraf yok). TASK/044 Profil: görünen
   ad sabit "Oyuncu" (kullanıcıdan ad / takma ad ALINMAZ, saklanmaz); avatar yalnız
   bir koleksiyon parçası — kamera / galeri / dosya erişimi ve izin YOK.
+  TASK/045 Oyuncu İlerlemesi: kümülatif oyun içi XP (`player_xp`; seviye saklanmaz,
+  türetilir), açılan başarım kimlikleri (`unlocked_achievements`), seçili unvan kimliği
+  (`selected_title_id`, sabit katalogdan — serbest metin DEĞİL) ve şema sürümü
+  (`player_meta_version`). Hepsi yalnız cihazdaki oyun kaydında; sunucu / hesap / skor
+  tablosu / paylaşım YOK, reklam veya analitiğe gönderilmez.
 - **Yaş bandı (TASK/043, [monetization/AGE_BAND_ROUTING.md](monetization/AGE_BAND_ROUTING.md)):**
   nötr yaş ekranında girilen **doğum tarihi SAKLANMAZ** ve cihazdan çıkmaz (yalnız
   bellekte sınıflandırılıp atılır). Kayda yalnız türetilmiş durum yazılır:

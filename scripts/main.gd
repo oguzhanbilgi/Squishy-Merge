@@ -217,6 +217,8 @@ func _ready() -> void:
 	profile.settings_requested.connect(open_settings)
 	profile.collection_requested.connect(_on_collection_requested)
 	profile.collectible_requested.connect(_on_collectible_requested)
+	# TASK/045: başarımlar / unvan penceresi açılış-kapanışında aynı parmak yatışması.
+	profile.overlay_toggled.connect(settle_touch_input)
 	_screens = [home, select, album, shop, profile]
 	for screen in _screens:
 		add_child(screen)

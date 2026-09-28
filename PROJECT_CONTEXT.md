@@ -106,6 +106,19 @@ alınacak — şimdi tahmin/vaat yok.
   banner yüzeyi değil. Ekonomi, sandık oranları, fiyatlar, reklam sözleşmesi, TASK/043
   yaş yönlendirmesi, fizik / merge DEĞİŞMEDİ. XP / seviye / başarım / görev YOK
   (TASK/045–047). Ayrıntı: GAME_DESIGN §5.3 / §5.8, UI_VISUAL_SYSTEM §17 / §22.
+- **TASK/045 Player Progression V1 — DALDA, yerel A36 kapısı BEKLİYOR, main'e ALINMADI**
+  (`task/045-player-level-achievements`, başlangıç main `115252c`; 2026-09-28). Yerel
+  Oyuncu Seviyesi: tek gerçek kümülatif `player_xp`, seviye türetilir (gereksinim
+  `min(400, 60 + 20·(L−1))`, seviye tavanı yok); XP yalnız round kesin bitince (+1 /
+  merge, +20 sabit level bitişi, +10 / YENİ yıldız), mevcut round kaydında, round başına
+  tek sefer (yinelenen kesinleştirme korumalı). Eski kayıt: bootstrap = merge + 10·yıldız
+  + 20·tamamlanan level (bellekte, bir kez, kutlamasız). 12 başarım (merge / yıldız /
+  level / koleksiyon; monoton, geriye dönük sessiz) + 9 unvan (varsayılan Birleştirici;
+  otomatik seçim yok). Profil: unvan + LV rozeti + XP rayı, BAŞARIMLAR özeti, Profil'e ait
+  Başarımlar / Unvanlar pencereleri (banner yok, Android geri kapatır); sonuç ekranında
+  kompakt "+XP / SEVİYE ATLADIN! / Başarım açıldı" şeridi. Ekonomi, reklam sözleşmesi,
+  TASK/043, gameplay DEĞİŞMEDİ; başarım ekonomik ödül VERMEZ. Hesap / takma ad / backend /
+  skor tablosu YOK. Ayrıntı: GAME_DESIGN §5.9, UI_VISUAL_SYSTEM §23, PROJECT_STATUS §4.21.
 - **M0–M8 tamamlandı.** Oyun uçtan uca oynanabilir: 10 level + sonsuz mod,
   sandık/koleksiyon/mağaza, günlük ödül, Home hub + `ScreenTopBar` gezinmesi
   (M8.5'in 4 sekmeli alt çubuğu M8.6-06'da kalktı), owner'ın görsel
@@ -371,9 +384,12 @@ kaydırma, dişli → Ayarlar), Ana Sayfa avatarı, eski `equipped_skin` göçü
 kayıtları; owner'ın masaüstü kaydı salt okunur — telefondaki `com.example` owner kaydı
 owner talimatıyla açılmadı), gameplay kanonik, sayaçlar, oyun içi ayarlar / mola, TASK/043
 Profil yolu, reklam yüzeyleri. Giderilen: geçiş sonrası 300 ms parmak yatışması (hızlı
-çift dokunuş), günlük reveal başlığı. Ayrıntı: PROJECT_STATUS §4.20. **TASK/045
-(Oyuncu Seviyesi + XP + Başarımlar + Unvanlar), TASK/046 (Günlük/Haftalık Görevler),
-TASK/047 (Günlük Merge Challenge) BAŞLAMADI.**
+çift dokunuş), günlük reveal başlığı. Ayrıntı: PROJECT_STATUS §4.20. ~~TASK/045
+(Oyuncu Seviyesi + XP + Başarımlar + Unvanlar) BAŞLAMADI~~ → **TASK/045 dalda
+(`task/045-player-level-achievements`) — bulut kapısı (testler + ekran görüntüleri) geçti,
+sıradaki: owner'ın yerel / Samsung A36 kapısı, sonra owner onayıyla main.** TASK/046
+(Günlük/Haftalık Görevler) ve TASK/047 (Günlük Merge Challenge) **BAŞLAMADI** — sıradaki
+ürün görevi TASK/046.
 
 Her madde owner girdisi ister; hiçbiri tahmin edilmez ya da uydurulmaz.
 Gizlilik politikası, upload anahtarı ve AdMob kimliklerinde repoda yalnız
@@ -1410,7 +1426,16 @@ yapılandırma değişir (checklist §3); 13–17 yaş bandı yönlendirmesi kod
   `highest_tier_created`) YALNIZ `record_round_finished` ile, round kesin bitince;
   eski kayıtta uydurulmaz (`profile_counters_partial`)
 - **Profil salt okunur ve reklam yüzeyi değil (TASK/044):** Profil kayda yazmaz,
-  satın almaz; Ayarlar tek `SettingsPanel` (Profil dişlisi + oyun içi HUD)
+  satın almaz; Ayarlar tek `SettingsPanel` (Profil dişlisi + oyun içi HUD).
+  *(TASK/045: tek istisna unvan seçimi — `TitleSelector` → `SaveManager.select_title`,
+  açık + farklı unvanda TEK yazma; Başarımlar / Unvanlar pencereleri de banner'sız.)*
+- **Oyuncu ilerlemesi (TASK/045, GAME_DESIGN §5.9):** tek gerçek `player_xp`; seviye
+  SAKLANMAZ. XP yalnız `record_round_finished`'da (round başına tek sefer; +1 / merge ·
+  +20 sabit level bitişi · +10 / yeni yıldız) — reklam / satın alma / sandık / Hamur /
+  güç / günlük ödül XP vermez. Başarımlar monoton, kanonik istatistikten; açılış
+  istatistiği değiştiren işlemin kendi yazmasında (ek disk yazması yok). Başarım / seviye
+  ekonomik ödül VERMEZ (yalnız rozet + unvan). Unvan açıkları saklanmaz (türetilir), yeni
+  unvan otomatik seçilmez, geçersiz seçim varsayılana düşer ve geri yazılmaz
 - **Büyük iş akışı kapısı (M8.5-17'den itibaren):** gameplay/render/skin/
   UI/ses/güç/Android işleri → otomatik testler → masaüstü QA → Android
   debug APK → USB'deki telefona kur → başlat → cihaz QA → rapor → commit.

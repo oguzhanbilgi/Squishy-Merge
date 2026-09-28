@@ -838,15 +838,22 @@ değiştirmez ve diske yazmaz.** Envanter ve Hamur asla negatife inmez.
 
 Oyuncunun uzun vadeli kimliği / vitrini / istatistikleri. Candy dünyada dikey
 bir oyun profili — ayar tablosu ya da dashboard DEĞİL. **Kayda yazmaz**, satın
-almaz; reklam yüzeyi değil (§12.1).
+almaz; reklam yüzeyi değil (§12.1). *(TASK/045: tek istisna unvan seçimi — açık ve
+farklı bir unvan seçilince TEK kayıt yazması, §5.9. Açılış başarımları yalnız
+bellekte uzlaştırır, pencereler yazmaz.)*
 
 - **Giriş:** Ana Sayfa üst-sol avatar. **Avatar = vitrinin İLK parçası**,
   vitrin boşsa kanonik Squishy. Kamera / galeri / yükleme / sunucu YOK.
 - **KİMLİK:** ad **"Oyuncu"** (nötr, yerel; hesap / kimlik iddiası yok).
-  Düzenlenebilir takma ad, **Oyuncu Seviyesi, XP, başarımlar, unvanlar YOK** —
-  TASK/045'e bırakıldı; sahte yer tutucu gösterilmez.
+  ~~Oyuncu Seviyesi, XP, başarımlar, unvanlar YOK — TASK/045'e bırakıldı~~ →
+  **TASK/045 ile geldi (§5.9):** adın altında seçili **unvan** (dokununca unvan
+  seçici), kartın tam genişliğinde **LV. N** rozeti + bir sonraki seviyeye XP rayı
+  ("84 / 180 XP"). Düzenlenebilir takma ad **YOK** (TASK/045 owner brief'i: "Oyuncu"
+  kalır; takma ad / hesap / giriş / bulut profil yok).
 - **VİTRİN:** 3 yuva (ilki AVATAR). Dolu yuva → Koleksiyon'da o parçanın
   detayı; boş yuva → Koleksiyon. Kurallar §5.3.
+- **BAŞARIMLAR (TASK/045, §5.9):** "N / 12" + ray, sıradaki en fazla 3 hedef,
+  **TÜM BAŞARIMLAR** → Profil'e ait pencere (yeni alt sekme yok).
 - **İSTATİSTİKLER** (kanonik alanlardan TÜRETİLİR, kopyalanmaz; değer yoksa "—"):
 
 | istatistik | kaynak | not |
@@ -884,10 +891,107 @@ almaz; reklam yüzeyi değil (§12.1).
   gitmek gerekmez.
 
 **Gelecek görevler (YAPILMADI — bu sürümde hiçbir kodu yok):**
-- **TASK/045** — Oyuncu Seviyesi + XP + Başarımlar + Unvanlar (+ düzenlenebilir
-  takma ad)
-- **TASK/046** — Günlük / Haftalık Görevler
+- ~~**TASK/045** — Oyuncu Seviyesi + XP + Başarımlar + Unvanlar (+ düzenlenebilir
+  takma ad)~~ → **YAPILDI (§5.9)**; takma ad owner brief'iyle kapsam DIŞI.
+- **TASK/046** — Günlük / Haftalık Görevler (sıradaki)
 - **TASK/047** — Günlük Merge Challenge
+
+### 5.9 Oyuncu Seviyesi + XP + Başarımlar + Unvanlar (TASK/045 — owner kararı, KİLİTLİ)
+
+Yerel ilerleme katmanı — hesap / giriş / backend / bulut profil / sosyal / skor
+tablosu / arkadaş YOK. Kimlik "Oyuncu" kalır. **Ekonomiye hiçbir etkisi yok:**
+başarım ve seviye Hamur, güç, sandık, reklam ya da gerçek para ödülü VERMEZ; XP
+reklamla / satın almayla kazanılmaz, XP güçlendirici yok. Gameplay / fizik / skor /
+yıldız / level kuralları değişmedi.
+
+**Oyuncu Seviyesi ve XP**
+- Tek gerçek **`player_xp`** — kümülatif XP. **Seviye SAKLANMAZ**, her okumada
+  XP'den türetilir (kayıt ile seviye ayrışamaz). Başlangıç: seviye 1, 0 XP.
+- Seviye L → L+1 gereksinimi: **`min(400, 60 + 20 × (L − 1))`** — 60, 80, 100 … 380,
+  sonra her seviye 400. Tavan GEREKSİNİMDE; **seviyenin tavanı yok**. Kümülatif
+  eşik kapalı formla (L ≤ 18: 60·(L−1) + 10·(L−1)(L−2); sonra 3740 + 400·(L−18)).
+- Bozukluk sınırı `PlayerProgression.MAX_XP = 1 000 000 000` (tasarım tavanı değil —
+  saniyede bir merge ile 30+ yıl): üstü / negatif / metin / NaN XP geçersizdir.
+
+**XP kaynakları (KİLİTLİ) — yalnız round KESİN bitince, round başına TAM bir kez**
+
+| kaynak | XP |
+|---|---|
+| o round'daki her gerçek merge (`GameState.merge_count`) | **+1** |
+| sabit level BAŞARIYLA bitti (tekrar oynanış da alır; kayıp / sonsuz almaz) | **+20** |
+| önceki en iyiye göre her YENİ kalıcı yıldız (0 → 2: +20 · 2 → 3: +10 · 3 → 3: 0) | **+10** |
+
+Başka hiçbir şey XP vermez: skor, güç / Büyütücü, sandık, koleksiyon, Mağaza,
+Hamur, ödüllü / geçiş reklamı, günlük ödül, ekran açmak. XP, TASK/044'ün mevcut
+round kaydına (`SaveManager.record_round_finished`) katlanır — ek disk yazması yok.
+`Main._on_round_finished` korumalıdır: yinelenen bir round_finished sinyali / çağrısı
+XP'yi, turu, merge'leri, sandıkları ikinci kez yazamaz; yeni round korumayı sıfırlar.
+Terk edilen / yeniden başlatılan round XP almaz. **Tutorial:** tutorial'dan doğan
+gerçek Level 1 round'u gerçek oyundur — round bitince NORMAL kurallarla XP alır;
+tutorial sırasında ilerleme penceresi / kutlama YOK, geri bildirim yalnız sonuç
+ekranında (güvenli an). Tutorial'ın tamamlanması / atlanması XP vermez.
+
+**Eski kayıt göçü (tek seferlik, deterministik)** — ilerleme alanları yoksa XP
+kayıtta ZATEN duran gerçeklerden, round ödülüyle aynı ağırlıklarla türetilir:
+**`bootstrap = toplam merge + 10 × kalıcı yıldız + 20 × tamamlanan sabit level`**
+(örn. 812 + 6×10 + 3×20 = 932). Geçmiş round / skor / güç kullanımı uydurulmaz.
+Yalnız bellekte, yüklemede disk yazması yok (sonraki doğal kayıt kalıcılaştırır),
+idempotent. Göç / geriye dönük açılış için "SEVİYE ATLADIN!", başarım kutlaması ya
+da XP animasyonu GÖSTERİLMEZ — oyuncu Profil'i doğru seviyede açar. Yeni kurulum:
+0 XP / seviye 1. Kayıttaki XP bozuksa (negatif / metin / NaN / saçma büyük) aynı
+bootstrap'la kurtarılır.
+
+**Kayıt alanları:** `player_xp` (int) · `unlocked_achievements` (id dizisi, açılma
+sırası, yalnız sona eklenir) · `selected_title_id` · `player_meta_version` (1).
+`player_level` ve unvan açıkları SAKLANMAZ (türetilir). Okuma her zaman doğrulanır:
+tekrar / biçimsiz / **bilinmeyen başarım id'si yok sayılır** ve bir sonraki kayıtta
+düşer (V1'in her başarımı kanonik istatistikten yeniden türetilebildiği için gerçek
+bir açılış kaybolamaz; Play sürüm düşürmeye izin vermediğinden ileri uyumluluk için
+saklamanın güçlü sebebi yok). Bozuk / kilitli unvan seçimi varsayılana düşer ve kayda
+geri yazılmaz.
+
+**Başarımlar (12, KİLİTLİ; id'ler kalıcı)** — ödül yalnız rozet / açık durum +
+(varsa) unvan:
+
+| id | ad | açıklama | hedef | unvan |
+|---|---|---|---|---|
+| `first_merge` | İlk Squish | İlk birleşmeni yap. | 1 merge | — |
+| `merge_100` | Hamur Isınıyor | Toplam 100 birleşme yap. | 100 merge | Hamur Ustası |
+| `merge_500` | Birleşme Ustası | Toplam 500 birleşme yap. | 500 merge | Birleşme Ustası |
+| `merge_1000` | Bin Bir Squish | Toplam 1000 birleşme yap. | 1000 merge | Efsane Birleştirici |
+| `stars_5` | İlk Parıltılar | Toplam 5 yıldız kazan. | 5 yıldız | — |
+| `stars_15` | Yıldız Avcısı | Toplam 15 yıldız kazan. | 15 yıldız | Yıldız Avcısı |
+| `stars_30` | Gökyüzü Tamam | 30 yıldızın tamamını kazan. | 30 yıldız | Yıldız Ustası |
+| `levels_3` | Yolculuk Başlıyor | 3 bölümü tamamla. | 3 level | — |
+| `levels_10` | Harita Ustası | 10 bölümün tamamını tamamla. | 10 level | Harita Ustası |
+| `collection_5` | İlk Raf | 5 Squishy keşfet. | 5 parça | — |
+| `collection_10` | Koleksiyoncu | 10 Squishy keşfet. | 10 parça | Koleksiyoncu |
+| `collection_20` | Squishy Arşivcisi | 20 Squishy'nin tamamını keşfet. | 20 parça | Squishy Arşivcisi |
+
+- Kanonik girdiler (kopya sayaç yok): `total_merges`; 10 level'daki kalıcı yıldız
+  toplamı (level başına 0–3); tamamlanan sabit level (`highest_level_unlocked − 1`,
+  0–10); sahip olunan KATALOG Squishy'si.
+- **Monoton:** açılan başarım asla kilitlenmez. Eski kayıtta gerçeklerin desteklediği
+  başarımlar ve unvanları SESSİZCE açılır (kutlama / bildirim fırtınası yok).
+- Açılış, kanonik istatistiği değiştiren işlemin KENDİ kayıt yazmasında olur: merge
+  (`add_merges`), yıldız (`record_stars`), level (`complete_level`), koleksiyon
+  (sandık `grant_skin`, Mağaza satın alma, günlük ücretsiz + reklamlı sandık). Profil
+  açılışı ve round kesinleşmesi öncesi bellekte güvenli uzlaştırma yapar.
+- V1'de gizli başarım yok: 12'si de ilerlemesiyle görünür.
+
+**Unvanlar (9)** — varsayılan **Birleştirici** (`birlestirici`) her zaman açık;
+diğer 8'i (Hamur Ustası · Birleşme Ustası · Efsane Birleştirici · Yıldız Avcısı ·
+Yıldız Ustası · Harita Ustası · Koleksiyoncu · Squishy Arşivcisi) YALNIZ yukarıdaki
+başarımlarıyla açılır. Yeni açılan unvan otomatik SEÇİLMEZ; seçim oyuncu değiştirene
+kadar kalır. Açık ve farklı unvan seçmek TEK kayıt yazması; aynı unvan yazmaz; kilitli
+unvan seçilemez.
+
+**Arayüz:** Profil KİMLİK (unvan + LV rozeti + XP rayı) ve BAŞARIMLAR bölümü, TÜM
+BAŞARIMLAR penceresi, UNVANLAR seçicisi — hepsi Profil'e ait, banner'sız, Android geri
+pencereyi kapatır. Sonuç ekranında KOMPAKT, bloklamayan ilerleme şeridi: "+42 XP" +
+LV rozeti + ray, seviye atlanırsa "SEVİYE ATLADIN! · LV. N" (çok seviyede son seviye),
+başarım açıldıysa "Başarım açıldı: X" / "N başarım açıldı" — ayrı sonuç sayfası yok,
+geçiş reklamı zamanlaması / sıklığı değişmedi. Ayrıntı: docs/UI_VISUAL_SYSTEM.md §23.
 
 ## 6. Ses tasarımı
 
@@ -1193,7 +1297,9 @@ kuralları değişmez.
 ### 12.1 Banner yüzeyleri (KİLİTLİ)
 GÖSTER: Ana Sayfa, Harita, Mağaza, Koleksiyon, oyun ekranı. *(TASK/044: yeni
 **Profil** ekranı banner yüzeyi DEĞİL — listeye eklemek owner kararı ister;
-Profil'de ve üstünde açılan Ayarlar'da banner gizli, yuva korunur.)* GİZLE: sonuç ekranı,
+Profil'de ve üstünde açılan Ayarlar'da banner gizli, yuva korunur. TASK/045: Profil'in
+Başarımlar / Unvanlar pencereleri de banner'sız; sonuç ekranının XP şeridi yeni yüzey
+değil.)* GİZLE: sonuç ekranı,
 tam ekran reklam anları, onboarding tamamlanmamış (yuva da yok). Banner gerçek
 ayrılmış alandır (yuva): oyun kabı, güç butonları, nişan/bırakma kontrolleri,
 Harita düğümleri ve OYNA plakasının üstüne ASLA binmez. Oyun: **fizik, kap

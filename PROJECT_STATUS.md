@@ -43,11 +43,16 @@ stratejisi kaydedildi (`teen_ad_treatment = "age_band_routing"`) → main'de kap
 · OWNER 10 · CONFIG 0 (ayrıntı docs/monetization/AGE_BAND_ROUTING.md). **TASK/044
 (2026-09-28, main'de — owner onayıyla ff-only alındı):** Player Meta V1 — gameplay skinleri
 EMEKLİ (parça her zaman kanonik tier sprite'ı), Koleksiyon V1 + Profil + 3 yuva vitrin,
-Ayarlar Profil'in dişli çarkında; Samsung A36 yerel kapısı GEÇTİ (§4.20). Sırada: içerik
+Ayarlar Profil'in dişli çarkında; Samsung A36 yerel kapısı GEÇTİ (§4.20). **TASK/045
+(2026-09-28, DALDA — main'e ALINMADI):** Player Progression V1 — oyuncu seviyesi + XP
+(kümülatif `player_xp`, seviye türetilir), 12 başarım, varsayılan + 8 unvan, Profil'de
+seviye / BAŞARIMLAR / pencereler, sonuç ekranında kompakt XP şeridi (§4.21); bulut kapısı
+geçti, owner'ın yerel / Samsung A36 kapısı + owner onayı bekliyor; TASK/046 BAŞLAMADI. Sırada: içerik
 derecesi + yargı bölgesi kararları (owner) → gizlilik
 politikası → upload anahtarı → gerçek AdMob kimlikleri → mağaza varlıkları / Play Console,
 sonra ilk imzalı üretim AAB'si ve M10 (Play kapalı test) ·
-**Branch:** `main` — TASK/044 `task/044-player-meta-v1` (`d2832dc` + `e6c1c07` + `c5b4db5` +
+**Branch:** TASK/045 `task/045-player-level-achievements` (main `115252c` üzerine; main'e
+alınmadı, yerel kapı bekliyor) · `main` — TASK/044 `task/044-player-meta-v1` (`d2832dc` + `e6c1c07` + `c5b4db5` +
 `239f2e7`) owner onayıyla ff-only entegre (`327dd60 → 239f2e7`, 2026-09-28) · önce TASK/043
 `task/043-age-band-routing` (`b0e69f0` + `753503a`) owner onayıyla ff-only entegre ·
 `main` == origin/main — `task/042-gma25-production` (`83b86a9` kod + `3d15402`

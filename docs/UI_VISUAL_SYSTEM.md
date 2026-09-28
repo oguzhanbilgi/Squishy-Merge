@@ -1684,3 +1684,102 @@ görünen ekran değişince (`_show_tab`), `open_settings` ve Koleksiyon detayı
 (`Main._input`, GUI'den önce: gerçek ScreenTouch + dokunuştan öykünülen fare). Kod
 yolu (`pressed.emit()`) ve masaüstü fare etkilenmez. Test: `profile_test` "yatışma".
 
+## 23. Oyuncu İlerlemesi — seviye / XP / başarımlar / unvanlar (TASK/045 Player Progression V1)
+
+**Karar:** Profil kimlik kartına oyuncu seviyesi + XP rayı, yeni BAŞARIMLAR bölümü,
+Profil'e ait iki pencere (Başarımlar, Unvanlar) ve sonuç ekranında kompakt XP şeridi.
+Candy-night kawaii sistemi (lavanta / krem / altın / cyan; Baloo 2 + Nunito) — RPG
+paneli, Material, dashboard, minik yazı ya da düz bootstrap barı DEĞİL. Yeni sekme,
+yeni tam ekran sonuç sayfası, banner, monetizasyon YOK. Sayılar ve kurallar
+GAME_DESIGN §5.9'da kilitli; bu bölüm yalnız görünüm ve etkileşim.
+
+**Kod:** `scripts/ui/player_level_badge.gd` (`PlayerLevelBadge`),
+`player_level_bar.gd` (`PlayerLevelBar`), `achievement_badge.gd` (`AchievementBadge`),
+`achievement_card.gd` (`AchievementCard`), `achievements_overlay.gd`
+(`AchievementsOverlay`), `title_row.gd` (`TitleRow`), `title_selector.gd`
+(`TitleSelector`), `result_progress_strip.gd` (`ResultProgressStrip`);
+`profile_screen.gd` (kimlik + BAŞARIMLAR + pencereler), `round_result.gd` (şerit).
+Model zinciri: `SaveManager` (tek yazan) → `PlayerProgression` / `AchievementCatalog`
+(saf hesap) → `PlayerProfile` (salt okunur satırlar) → UI. **Test:**
+`tools/progression_ui_test.tscn` (Profil / pencereler / unvan / yatışma / sonuç şeridi /
+5 görünüm + A36 payı / kaynak taraması / banner), `player_progression_test`,
+`achievement_test`, `profile_test`, `tutorial_test`. **Çekim:** `godot --resolution GxY
+--path . res://tools/progression_shots.tscn -- <dir> [GxY] [safe=61] [only=P|A|T|R]`
+(32 kare: P Profil 9 durum + başarım bölümü kareleri, A Başarımlar 5, T Unvanlar 3,
+R Sonuç 5 gerçek round; her karenin piksel boyutu doğrulanır, tutmazsa çıkış 3).
+
+### 23.1 Profil — kimlik kartı ve BAŞARIMLAR
+
+| Bölge | İçerik |
+|---|---|
+| **KİMLİK** (krem kart, içeriğe göre uzar) | avatar 136 · "Oyuncu" (Baloo 40) · **unvan hapı** (lavanta `title_oval`, 48 yüksek: taç + unvan adı 21 px + ok → Unvanlar) · "Bu cihazdaki profilin" · avatar satırı / kural ipucu · ince lavanta çizgi · **`PlayerLevelBar`** tam genişlik: `PlayerLevelBadge` 76 + cyan candy XP rayı (22) + "84 / 180 XP" + "SONRAKİ: LV. 8". Kümülatif XP gösterilmez; tam sınırda "0 / 200 XP". |
+| **BAŞARIMLAR** (VİTRİN ile İSTATİSTİKLER arası; krem kart) | kupa + "7 / 12" (Baloo 32) + "BAŞARIM" · Mint ray · "SIRADAKİ HEDEFLERİN" · en fazla 3 kompakt `AchievementCard` satırı (düz, çizgiyle ayrık — kart içinde kart yok) · cyan **TÜM BAŞARIMLAR** (58, kaydırılabilir candy buton). 12/12: sayı ve ray altın, yıldız, satırlar yerine "Tüm başarımlar tamam — harikasın!". |
+
+Önizleme seçimi: her kategorinin (birleştirme / yıldız / bölüm / koleksiyon) ilk
+açılmamış başarımı, hedefe oranca en yakın önce (eşitse katalog sırası) — oyuncu
+"sıradaki" hedefi görür, ileri kademeler kafa karıştırmaz. Kart iç payı ve alt pay
+≥ 24 §22.1'deki pişmiş dudak kuralıyla aynı (`profile_test` ölçer).
+
+### 23.2 Bileşenler
+
+- **`PlayerLevelBadge`** — lavanta candy kuyu disk: "LV." başlık + sayı; sayı basamak
+  sayısına göre 36 → 14 px küçülür (1.000.000.000 XP bozukluk sınırındaki ~2,5 milyon
+  seviye bile taşmaz). `celebrate()`: altın parlama + pop.
+- **`PlayerLevelBar`** — rozet + ray + "into / required XP" + "SONRAKİ: LV. N".
+  `show_xp` anlık; `animate_xp(from, to)` rayı seviye seviye akıtır (0.75 sn + 0.28 sn /
+  seviye, en çok 1.9 sn), her geçişte rozet kutlar, ray bir an altın olur ve
+  `level_crossed` yayılır. Ray `step = 0` (0.01 kuantalaması yok).
+- **`AchievementBadge`** — starburst halka + owner sanatı (birleştirme: tier 2 / 4 / 6 / 8
+  dumpling; yıldız: yıldız / taç; bölüm: bayrak; koleksiyon: tier 3 / maskot / sepet) +
+  hedef rozeti. Kilitli: buzlu lavanta ton + kilit (çamur gri DEĞİL); açık: altın ışıma.
+- **`AchievementCard`** — tam (pencere; ≥ 132, `card_bevel_soft`, gövde payı 14/12/16/24)
+  ya da kompakt (Profil önizlemesi; ≥ 76, düz). Rozet · ad · "AÇILDI" mint çipi ·
+  açıklama (sarar) · ray (açıkken altın) + "değer / hedef" · varsa taç + "Unvan: X".
+- **`TitleRow`** — 92 yüksek buton: kaynak başarımın rozeti · unvan adı · durum
+  ("SEÇİLİ UNVAN" / "Her zaman açık" / "Açıldı · …" / "Kilitli · <başarım açıklaması>")
+  · işaret diski (seçili altın tik, açık lavanta, kilitli kilit). Kilitli satır `disabled`.
+
+### 23.3 Pencereler (Profil'e ait; yeni sekme YOK)
+
+- **`AchievementsOverlay`** — karartma + `UiKit.modal_shell("BAŞARIMLAR", 600)`: hero
+  (kupa + "N / 12" + ray; 12/12'de "Hepsi tamam!") · kayan gövde: BİRLEŞTİRME / YILDIZ /
+  BÖLÜM / KOLEKSİYON başlıkları altında 12 tam `AchievementCard`.
+- **`TitleSelector`** — karartma + `modal_shell("UNVANLAR", 600)`: not "Unvanın profilinde
+  adının altında görünür. Yeni unvanlar başarımlarla açılır." + 9 `TitleRow`
+  (varsayılan + 8). Açık ve FARKLI unvana dokunuş → `SaveManager.select_title` (tek
+  yazma) → `ui_equip` sesi + hafif titreşim + satır pop + Profil anında güncellenir.
+  Aynı unvan ve kilitli unvan yazmaz (kilitli: `ui_invalid`). 350 ms eylem kilidi.
+- İki pencere birbirini dışlar. Android geri açık pencereyi kapatır (Profil'de kalınır);
+  karartma ya da X da kapatır; Profil gizlenince açık pencere kapanır. Açmak / kapatmak
+  kayda YAZMAZ. Banner yok (Profil `Surface.NONE`; pencereler yeni reklam yüzeyi değil).
+
+### 23.4 Sonuç ekranı — `ResultProgressStrip`
+
+Altlıkta özet çiplerinin ÜSTÜNDE krem `label_round` şerit (lavanta kontur): kompakt
+`PlayerLevelBar` (rozet 58, ray 16) + "+42 XP" (Baloo 26, mint) · koşullu satır
+(`HFlowContainer`): altın "SEVİYE ATLADIN! · LV. 8" hapı (çok seviyede son seviye) ve
+lavanta kupa hapı ("Başarım açıldı: Yıldız Avcısı" / "3 başarım açıldı"). Ray sonuç
+açıldıktan 0.35 sn sonra akar; seviye geçişinde bir kez `level_unlock` sesi + hafif
+titreşim; haplar akıştan sonra belirir (baştan yerleşik, şeffaf → altlık zıplamaz).
+**Bloklamaz:** dokunma almaz, CTA'lar ilk kareden aktif, geçiş reklamı sırası ve
+kadansı değişmedi. Veri yalnız `PlayerProgression.round_summary` (round kesinleşince);
+göç ve geriye dönük açılışlar gösterilmez; özetsiz çağrıda şerit gizli.
+
+### 23.5 Dokunma ve responsive
+
+- **Parmak yatışması (TASK/044 koruması genişletildi):** Profil'in `overlay_toggled`
+  sinyali (Başarımlar / Unvanlar açıldı ya da kapandı — X, karartma, geri, unvan seçimi
+  sonrası kapanış dahil) → `Main.settle_touch_input()` → 300 ms parmak basışı yutulur;
+  hızlı çift dokunuşun ikincisi yeni görünen kontrole düşmez. Kod yolu ve masaüstü
+  fare etkilenmez. Test: `progression_ui_test` "yatışma".
+- Kaydırma: unvan hapı, önizlemeler, TÜM BAŞARIMLAR, `TitleRow` ve kartlar kaydırmayı
+  bloklamaz (`MOUSE_FILTER_PASS` / `make_candy_button_scrollable`); kaydırma başlarken
+  basılı görünüm bırakılır (takılı basılı durum yok).
+- 720 tuval: 320×568, 360×640, 390×844, 360×800, 1080×2340 (+ güvenli alan 61) —
+  kırpma / taşma / üst üste binme yok (`progression_ui_test` her görünümde ölçer).
+
+### 23.6 Şimdilik yapılmayan (bilerek)
+
+Takma ad / hesap / skor tablosu / paylaşım; başarım ödülü (Hamur / sandık / güç) —
+başarımlar ekonomik değil; oyun içi toast / bildirim; yeni tam ekran sonuç sayfası;
+unvan / rozet vitrini. Hepsi owner kararı ister.
