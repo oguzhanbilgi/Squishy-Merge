@@ -508,7 +508,9 @@ func age_restricted_screen() -> CanvasLayer:
 ## Tek bir ekran görünür kalır. Her geçişte refresh() çağrılıyor: Hamur ve
 ## koleksiyon sayacı dört ekranda da gösteriliyor, biri diğerini eskitmesin.
 ## (Ad tarihsel: "sekme" = ekran indeksi; alt sekme çubuğu artık yok.)
-func _show_tab(tab: int) -> void:
+## `auto_daily` false: geçiş hemen bir pencere açacak (Profil vitrini → parça detayı);
+## otomatik günlük pencere bu geçişte denenmez, "due" kalır (TASK/045.1).
+func _show_tab(tab: int, auto_daily: bool = true) -> void:
 	if tab < 0 or tab >= _screens.size():
 		return
 	var changed: bool = tab != _active_tab or not _screens[tab].visible
@@ -535,7 +537,8 @@ func _show_tab(tab: int) -> void:
 		return
 	# Oyundan / sonuçtan kabuğa dönüldü: günlük pencere bugün hiç
 	# gösterilmediyse (açılış oyun içindeyken ertelenmişse) şimdi.
-	_maybe_auto_open_daily_rewards()
+	if auto_daily:
+		_maybe_auto_open_daily_rewards()
 
 
 # --- Ayarlar (M8.5-10) ---
@@ -759,8 +762,11 @@ func _on_profile_requested() -> void:
 ## Profil'in dolu vitrin yuvası (TASK/044): Koleksiyon açılır ve o parçanın
 ## detayı gösterilir (vitrin eylemleri yalnız orada; Profil kayda yazmaz).
 func _on_collectible_requested(skin_id: StringName) -> void:
-	_show_tab(2)
+	_show_tab(2, false)
 	_screens[2].open_detail(skin_id)
+	# Günlük pencere geçişin SON durumunda denenir: detay açıldıysa kapı tutar (due kalır);
+	# açılmadıysa (bilinmeyen id) sıradan bir sekme geçişi.
+	_maybe_auto_open_daily_rewards()
 
 
 ## Ana Sayfa'daki Günlük madalyonu (M8.9-02.1): GÜNLÜK ÖDÜLLER penceresini
@@ -837,6 +843,10 @@ func _maybe_auto_open_daily_rewards() -> void:
 		return
 	# TASK/045: Profil'in Başarımlar / Unvanlar penceresi de bir pencere.
 	if _screens.size() > 4 and _screens[4].has_open_overlay():
+		return
+	# TASK/045.1: Koleksiyon'un parça detayı da (TASK/044 artığı). Pencere "due" kalır —
+	# bugün görüldü işaretlenmez; bir sonraki güvenli fırsatta açılır.
+	if _screens.size() > 2 and _screens[2].is_detail_open():
 		return
 	if _ads != null and _ads.fullscreen_ad_active():
 		return
