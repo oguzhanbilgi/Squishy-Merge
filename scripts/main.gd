@@ -835,6 +835,9 @@ func _maybe_auto_open_daily_rewards() -> void:
 			or (_settings != null and _settings.visible) or (_pause != null and _pause.visible) \
 			or (_chest_info != null and _chest_info.visible) or _revive.visible or _refill.visible:
 		return
+	# TASK/045: Profil'in Başarımlar / Unvanlar penceresi de bir pencere.
+	if _screens.size() > 4 and _screens[4].has_open_overlay():
+		return
 	if _ads != null and _ads.fullscreen_ad_active():
 		return
 	DailyRewards.mark_popup_seen()
@@ -1025,6 +1028,10 @@ func _clear_board() -> void:
 	# iptal: geç gelen ödül callback'i hiçbir şey vermez.
 	_cancel_rewarded_request()
 	if _board != null:
+		# TASK/045: giden board kare sonuna kadar yaşar; geç bir round_finished'i yeni
+		# round'un kesinleştirme korumasını tüketmesin (terk edilen round zaten sayılmaz).
+		if _board.round_finished.is_connected(_on_round_finished):
+			_board.round_finished.disconnect(_on_round_finished)
 		_board.queue_free()
 		_board = null
 
@@ -1329,11 +1336,14 @@ func _on_round_finished(won: bool) -> void:
 	var fixed_cleared: bool = won and not _current_level.is_endless
 	var stars_before: int = SaveManager.stars_for_level(_current_level.level_number) if fixed_cleared else 0
 
+	# TASK/045: rekor / level açılışı / yıldız yalnız bellekte (`save = false`) — hemen
+	# aşağıdaki round kaydı hepsini XP ile TEK yazmada diske indirir; arada bir çökme
+	# yıldızı kaydedip XP'yi kaybettiremez (yıldız farkı kalıcı en iyiye göre ölçülür).
 	if _current_level.is_endless:
-		new_record = SaveManager.record_endless_score(score)
+		new_record = SaveManager.record_endless_score(score, false)
 	elif won:
-		SaveManager.complete_level(_current_level.level_number)
-		SaveManager.record_stars(_current_level.level_number, stars)
+		SaveManager.complete_level(_current_level.level_number, false)
+		SaveManager.record_stars(_current_level.level_number, stars, false)
 	var newly_unlocked: bool = SaveManager.highest_level_unlocked() > unlocked_before
 	# Profil sayaçları (TASK/044): round başına TAM bir kez, burada — terk edilen
 	# round (abandon_run / yeniden başlat) bu yola girmez, sayılmaz. TASK/045: round'un

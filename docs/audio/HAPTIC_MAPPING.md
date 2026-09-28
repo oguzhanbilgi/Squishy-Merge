@@ -58,8 +58,11 @@ Combo does **not** vibrate separately (the merge carries it).
 | Insufficient Hamur (shop) | LIGHT | shop |
 | Vibration toggle switched on | MEDIUM (confirmation) | settings |
 | Reward reveal | Legendary SPECIAL · Epic MEDIUM · skin reward MEDIUM · Hamur LIGHT | round result |
+| TASK/045 Result XP strip: the rail crosses a level (once per result, not per level) | LIGHT | `ResultProgressStrip._on_level_crossed` |
+| TASK/045 title selected (unlocked, different title — the one Profile write) | LIGHT | `TitleSelector._on_row_pressed` |
 
-No haptic event was added in M8.8-02.
+No haptic event was added in M8.8-02. TASK/045 added the two LIGHT rows above (existing
+level, no new pattern); round win / lose itself still has none.
 
 ## 4. Spam window (`MIN_GAP_MS = 70`, unchanged)
 

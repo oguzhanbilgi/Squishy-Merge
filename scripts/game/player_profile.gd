@@ -20,6 +20,12 @@ extends RefCounted
 ## eklemedi). Hesap / sunucu / kimlik iddiası YOK.
 const DEFAULT_NAME: String = "Oyuncu"
 
+## Sabit level numaraları, süreç başına BİR kez taranır (TASK/045): başarım uzlaştırması
+## round sonunda aynı karede birkaç kez yıldız / level sayar ve her `load_levels()`
+## klasörü tarayıp .tres'leri yeniden okuyor (~1 ms). Level'lar res:// verisi —
+## çalışırken değişmez; yeni .tres yine kod değişmeden listeye girer.
+static var _level_numbers: Array[int] = []
+
 
 static func display_name() -> String:
 	return DEFAULT_NAME
@@ -37,14 +43,21 @@ static func showcase_entries() -> Array[SkinEntry]:
 # --- İlerleme -------------------------------------------------------------------
 
 static func level_count() -> int:
-	return LevelLibrary.load_levels().size()
+	return _fixed_level_numbers().size()
 
 
 static func total_stars() -> int:
 	var stars: int = 0
-	for level in LevelLibrary.load_levels():
-		stars += clampi(SaveManager.stars_for_level(level.level_number), 0, 3)
+	for number in _fixed_level_numbers():
+		stars += clampi(SaveManager.stars_for_level(number), 0, 3)
 	return stars
+
+
+static func _fixed_level_numbers() -> Array[int]:
+	if _level_numbers.is_empty():
+		for level in LevelLibrary.load_levels():
+			_level_numbers.append(level.level_number)
+	return _level_numbers
 
 
 static func max_stars() -> int:
@@ -59,9 +72,10 @@ static func is_endless_unlocked() -> bool:
 	return SaveManager.is_endless_unlocked(level_count())
 
 
-## Tamamlanan level sayısı (kilidi açılan en yüksek level'ın öncekiler).
+## Tamamlanan level sayısı (kilidi açılan en yüksek level'ın öncekiler). Önce sıkıştırılır,
+## sonra 1 çıkarılır: uç değerde `- 1` sarmaz (TASK/045: level başarımı + XP göçü okur).
 static func completed_levels() -> int:
-	return clampi(highest_level_unlocked() - 1, 0, level_count())
+	return clampi(highest_level_unlocked(), 1, level_count() + 1) - 1
 
 
 static func endless_high_score() -> int:

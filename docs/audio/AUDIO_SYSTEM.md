@@ -190,6 +190,10 @@ share): `docs/audio/PRODUCTION_FILES.md`.
 | Reward card appears / opens | `chest_open` → `play_reward(rarity)` | Legendary SPECIAL, Epic MEDIUM, skin MEDIUM, Hamur LIGHT |
 | Daily popup claim | `daily_reward` | — |
 | Map node unlock pop | `level_unlock` | — |
+| TASK/045 Profile windows (Başarımlar, Unvanlar) open / close | `ui_modal_open`, `ui_modal_close` | — |
+| TASK/045 title selected (`TitleSelector`, unlocked + different title) | `ui_equip` | LIGHT |
+| TASK/045 locked title via code path only (locked rows are disabled — a finger tap gets no feedback) | `ui_invalid` | — |
+| TASK/045 Result XP strip: rail crosses a level (once per result) | `level_unlock` | LIGHT |
 
 ## 6. Verification
 

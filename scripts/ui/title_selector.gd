@@ -23,8 +23,10 @@ const ACTION_LOCK_MSEC: int = 350
 
 var _dim: ColorRect
 var _frame: Control
+var _anchor: CenterContainer
 var _rows: Array[TitleRow] = []
 var _action_lock_until: int = 0
+var _safe_top_override: float = -1.0
 
 
 func _init() -> void:
@@ -37,14 +39,14 @@ func _init() -> void:
 	_dim.color = Color(0.05, 0.0, 0.06, 0.62)
 	_dim.set_anchors_preset(Control.PRESET_FULL_RECT)
 	add_child(_dim)
-	var anchor := CenterContainer.new()
-	anchor.name = "Anchor"
-	anchor.set_anchors_preset(Control.PRESET_FULL_RECT)
-	anchor.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	add_child(anchor)
+	_anchor = CenterContainer.new()
+	_anchor.name = "Anchor"
+	_anchor.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_anchor.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(_anchor)
 	_frame = UiKit.modal_shell(TITLE, WIDTH, &"ribbon", false, true)
 	_frame.name = "TitleShell"
-	anchor.add_child(_frame)
+	_anchor.add_child(_frame)
 	var hero: VBoxContainer = _frame.get_meta(&"hero")
 	var note := UiKit.label(NOTE, &"LabelCaption", HORIZONTAL_ALIGNMENT_CENTER)
 	note.name = "Note"
@@ -67,14 +69,14 @@ func _init() -> void:
 	UiKit.attach_dim_close(_dim, close)
 	resized.connect(func() -> void:
 		if visible:
-			UiKit.modal_relayout(_frame))
+			UiKit.seat_modal_below_safe_top(_anchor, _frame, _safe_top_override))
 
 
 func open() -> void:
 	var was_open: bool = visible
 	refresh()
 	visible = true
-	UiKit.modal_relayout(_frame)
+	UiKit.seat_modal_below_safe_top(_anchor, _frame, _safe_top_override)
 	(_frame.get_meta(&"scroll") as ScrollContainer).scroll_vertical = 0
 	if not was_open:
 		_action_lock_until = 0
@@ -118,9 +120,12 @@ func _on_row_pressed(id: StringName) -> void:
 			refresh()
 			var row: TitleRow = _row_for(id)
 			if row != null:
-				UiMotion.pop(row, 1.04)
+				# Ertelenir: `pressed` bırakışta gelir ve aynı olayın `button_up`'ı basış
+				# animasyonunu geri alırken pop'u öldürüyordu (lens 5).
+				(func() -> void: UiMotion.pop(row, 1.04)).call_deferred()
 			title_selected.emit(id)
 		SaveManager.TitleResult.LOCKED, SaveManager.TitleResult.UNKNOWN:
+			# Kilitli satır pasif (dokunma almaz) — bu dal yalnız kod yolundan gelen savunma.
 			AudioManager.play(&"ui_invalid")
 
 
@@ -132,6 +137,13 @@ func _row_for(id: StringName) -> TitleRow:
 
 
 # --- Testler / çekim aracı ----------------------------------------------------
+
+## Cihaz güvenli alanı yerine sabit üst pay (tuval px) — Profil'in `_layout_with_safe_top`'u iletir.
+func layout_with_safe_top(safe_top: float) -> void:
+	_safe_top_override = safe_top
+	if visible:
+		UiKit.seat_modal_below_safe_top(_anchor, _frame, _safe_top_override)
+
 
 func frame() -> Control:
 	return _frame

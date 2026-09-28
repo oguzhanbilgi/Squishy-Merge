@@ -922,8 +922,12 @@ yıldız / level kuralları değişmedi.
 | önceki en iyiye göre her YENİ kalıcı yıldız (0 → 2: +20 · 2 → 3: +10 · 3 → 3: 0) | **+10** |
 
 Başka hiçbir şey XP vermez: skor, güç / Büyütücü, sandık, koleksiyon, Mağaza,
-Hamur, ödüllü / geçiş reklamı, günlük ödül, ekran açmak. XP, TASK/044'ün mevcut
-round kaydına (`SaveManager.record_round_finished`) katlanır — ek disk yazması yok.
+Hamur, ödüllü / geçiş reklamı, günlük ödül, ekran açmak. (Ödüllü Devam ya da güç
+refill'inden SONRA round'da yapılan merge'ler sıradan merge'dir: +1, toplam merge ve bonus
+sandık sayacıyla aynı kural — reklamın kendisi XP vermez.) XP, TASK/044'ün mevcut round
+kaydına (`SaveManager.record_round_finished`) katlanır — ek disk yazması yok; aynı round'un
+level açılışı / yeni yıldızları / sonsuz rekoru da bu TEK yazmada diske iner (XP, dayandığı
+yıldız farkından ayrı bir yazmaya bölünmez — araya giren bir çökme XP'yi kaybettiremez).
 `Main._on_round_finished` korumalıdır: yinelenen bir round_finished sinyali / çağrısı
 XP'yi, turu, merge'leri, sandıkları ikinci kez yazamaz; yeni round korumayı sıfırlar.
 Terk edilen / yeniden başlatılan round XP almaz. **Tutorial:** tutorial'dan doğan

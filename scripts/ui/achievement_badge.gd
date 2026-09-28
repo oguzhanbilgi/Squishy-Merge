@@ -36,6 +36,10 @@ const GLOW_OPEN: Color = Color(1.0, 0.82, 0.40, 0.42)
 ## Oranlar (çapa göre).
 const ART_RATIO: float = 0.50
 const PIP_HEIGHT_RATIO: float = 0.27
+## Hedef çipinin halka karesinin altına sarkan kısmı (çip yüksekliğine oranla). Bu pay
+## rozetin KUTUSUNA dahildir: kartlar kutuya göre yerleşir, çip kartın pişmiş alt
+## dudağına binmez (lens 5 bulgusu — çip eskiden kutunun 8–10 px altına taşıyordu).
+const PIP_OVERHANG_RATIO: float = 0.38
 
 var _diameter: float = 84.0
 var _id: StringName = &""
@@ -52,23 +56,21 @@ func _init(diameter: float = 84.0) -> void:
 	_diameter = diameter
 	name = "AchievementBadge"
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
-	custom_minimum_size = Vector2(diameter, diameter)
+	var pip_h: float = maxf(20.0, diameter * PIP_HEIGHT_RATIO)
+	# Kutu = üstte halka karesi + altta çipin sarkan payı.
+	custom_minimum_size = Vector2(diameter, diameter + ceilf(pip_h * PIP_OVERHANG_RATIO))
 	size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	_glow = UiKit.patch("popup_glow", GLOW_OPEN)
-	UiKit.inset(_glow, -diameter * 0.22, -diameter * 0.22, -diameter * 0.22, -diameter * 0.22)
+	_square(_glow, diameter * 0.22)
 	add_child(_glow)
 	_ring = UiKit.art(STARBURST, diameter)
 	_ring.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
-	_ring.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_square(_ring, 0.0)
 	add_child(_ring)
 	var art_size: float = diameter * ART_RATIO
 	_art = UiKit.art(TIER_ART[0], art_size)
 	_art.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
-	_art.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
-	_art.offset_left = -art_size * 0.5
-	_art.offset_right = art_size * 0.5
-	_art.offset_top = -art_size * 0.5
-	_art.offset_bottom = art_size * 0.5
+	_square(_art, -(diameter - art_size) * 0.5)
 	add_child(_art)
 	var lock_size: float = diameter * 0.30
 	_lock = UiKit.art(UiIcons.LOCK, lock_size)
@@ -81,11 +83,12 @@ func _init(diameter: float = 84.0) -> void:
 	_pip = PanelContainer.new()
 	_pip.name = "Pip"
 	_pip.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var pip_h: float = maxf(20.0, diameter * PIP_HEIGHT_RATIO)
+	# Çipin altı kutunun altı; yazı çipten uzunsa YUKARI (halkaya doğru) büyür.
 	_pip.set_anchors_and_offsets_preset(Control.PRESET_CENTER_BOTTOM)
-	_pip.offset_top = -pip_h * 0.62
-	_pip.offset_bottom = pip_h * 0.38
+	_pip.offset_top = -pip_h
+	_pip.offset_bottom = 0.0
 	_pip.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	_pip.grow_vertical = Control.GROW_DIRECTION_BEGIN
 	add_child(_pip)
 	_pip_label = UiKit.label("", &"LabelBadge", HORIZONTAL_ALIGNMENT_CENTER)
 	_pip_label.add_theme_font_size_override("font_size", maxi(11, int(round(diameter * 0.16))))
@@ -108,6 +111,16 @@ func setup(id: StringName, unlocked: bool) -> void:
 	_art.self_modulate = Color.WHITE if unlocked else LOCKED_ART
 	_glow.visible = unlocked
 	_lock.visible = not unlocked
+
+
+## `control`'ü kutunun üstündeki halka karesine yerleştirir; `pad` > 0 dışa taşar
+## (parıltı), < 0 içe çeker (ortadaki sanat).
+func _square(control: Control, pad: float) -> void:
+	control.set_anchors_preset(Control.PRESET_TOP_LEFT)
+	control.offset_left = -pad
+	control.offset_top = -pad
+	control.offset_right = _diameter + pad
+	control.offset_bottom = _diameter + pad
 
 
 static func art_for(id: StringName) -> Texture2D:

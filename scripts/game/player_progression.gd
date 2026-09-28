@@ -38,6 +38,9 @@ const STARS_PER_LEVEL: int = 3
 ## sayılır ve SaveManager onu kayıttaki gerçeklerden kurtarır; ödüller bu sınırda durur
 ## (int taşması yok). Bu sınırda seviye ~2,5 milyon — pratikte ulaşılamaz.
 const MAX_XP: int = 1_000_000_000
+## MAX_XP'deki seviyenin bir üstü (~2,5 milyon): eğri sorguları bununla sınırlanır —
+## saçma büyük `level` girdisi `400 × (L − 18)` çarpımını int'ten taşırmaz.
+const LEVEL_QUERY_CAP: int = CAP_LEVEL + (MAX_XP - XP_AT_CAP_LEVEL) / XP_REQUIREMENT_CAP + 1
 
 
 # --- Eğri ----------------------------------------------------------------------
@@ -53,7 +56,7 @@ static func xp_to_next(level: int) -> int:
 ## `level` seviyesinin BAŞLADIĞI kümülatif XP (seviye 1 = 0, seviye 2 = 60, 3 = 140).
 ## Kapalı form: döngü yok, saçma büyük seviyede de sabit süre.
 static func total_xp_for_level(level: int) -> int:
-	var at: int = maxi(level, 1)
+	var at: int = clampi(level, 1, LEVEL_QUERY_CAP)
 	if at <= CAP_LEVEL:
 		var steps: int = at - 1
 		return XP_BASE * steps + XP_STEP * steps * (steps - 1) / 2

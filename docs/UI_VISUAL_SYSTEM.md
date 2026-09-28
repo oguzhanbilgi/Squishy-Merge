@@ -1702,7 +1702,7 @@ GAME_DESIGN §5.9'da kilitli; bu bölüm yalnız görünüm ve etkileşim.
 Model zinciri: `SaveManager` (tek yazan) → `PlayerProgression` / `AchievementCatalog`
 (saf hesap) → `PlayerProfile` (salt okunur satırlar) → UI. **Test:**
 `tools/progression_ui_test.tscn` (Profil / pencereler / unvan / yatışma / sonuç şeridi /
-5 görünüm + A36 payı / kaynak taraması / banner), `player_progression_test`,
+6 görünüm + A36 güvenli payı / kaynak taraması / banner), `player_progression_test`,
 `achievement_test`, `profile_test`, `tutorial_test`. **Çekim:** `godot --resolution GxY
 --path . res://tools/progression_shots.tscn -- <dir> [GxY] [safe=61] [only=P|A|T|R]`
 (32 kare: P Profil 9 durum + başarım bölümü kareleri, A Başarımlar 5, T Unvanlar 3,
@@ -1731,11 +1731,13 @@ açılmamış başarımı, hedefe oranca en yakın önce (eşitse katalog sıras
   `level_crossed` yayılır. Ray `step = 0` (0.01 kuantalaması yok).
 - **`AchievementBadge`** — starburst halka + owner sanatı (birleştirme: tier 2 / 4 / 6 / 8
   dumpling; yıldız: yıldız / taç; bölüm: bayrak; koleksiyon: tier 3 / maskot / sepet) +
-  hedef rozeti. Kilitli: buzlu lavanta ton + kilit (çamur gri DEĞİL); açık: altın ışıma.
+  altta hedef çipi — halka karesinin altına sarkar ve rozetin KUTUSUNA dahildir (kartlar
+  kutuya göre yerleşir, çip kartın pişmiş dudağına binmez). Kilitli: buzlu lavanta ton +
+  kilit (çamur gri DEĞİL); açık: altın ışıma.
 - **`AchievementCard`** — tam (pencere; ≥ 132, `card_bevel_soft`, gövde payı 14/12/16/24)
   ya da kompakt (Profil önizlemesi; ≥ 76, düz). Rozet · ad · "AÇILDI" mint çipi ·
   açıklama (sarar) · ray (açıkken altın) + "değer / hedef" · varsa taç + "Unvan: X".
-- **`TitleRow`** — 92 yüksek buton: kaynak başarımın rozeti · unvan adı · durum
+- **`TitleRow`** — en az 92 yüksek buton (rozet + çip payıyla ~102; içerikle uzar): kaynak başarımın rozeti · unvan adı · durum
   ("SEÇİLİ UNVAN" / "Her zaman açık" / "Açıldı · …" / "Kilitli · <başarım açıklaması>")
   · işaret diski (seçili altın tik, açık lavanta, kilitli kilit). Kilitli satır `disabled`.
 
@@ -1747,15 +1749,22 @@ açılmamış başarımı, hedefe oranca en yakın önce (eşitse katalog sıras
 - **`TitleSelector`** — karartma + `modal_shell("UNVANLAR", 600)`: not "Unvanın profilinde
   adının altında görünür. Yeni unvanlar başarımlarla açılır." + 9 `TitleRow`
   (varsayılan + 8). Açık ve FARKLI unvana dokunuş → `SaveManager.select_title` (tek
-  yazma) → `ui_equip` sesi + hafif titreşim + satır pop + Profil anında güncellenir.
-  Aynı unvan ve kilitli unvan yazmaz (kilitli: `ui_invalid`). 350 ms eylem kilidi.
+  yazma) → `ui_equip` sesi + hafif titreşim + satır pop (bırakıştan sonra — aynı olayın
+  `button_up`'ı pop'u öldürmesin diye ertelenir) + Profil anında güncellenir. Aynı unvan
+  yazmaz; kilitli satır pasif (dokunuş sessizce yok sayılır; kod yolundan gelirse
+  `ui_invalid`, yazma yok). 350 ms eylem kilidi.
+- Tavana dayanan pencere (Başarımlar her zaman; Unvanlar kısa ekranda) cihazın üst
+  güvenli alanı + kurdele taşmasının ALTINDA ortalanır (`UiKit.seat_modal_below_safe_top`,
+  `round_result` deseni) — A36 benzeri 61 px payda kurdele / X durum çubuğuna girmez.
+- Otomatik günlük pencere Profil penceresi açıkken açılmaz (Main'in kapısı;
+  `ProfileScreen.has_open_overlay`).
 - İki pencere birbirini dışlar. Android geri açık pencereyi kapatır (Profil'de kalınır);
   karartma ya da X da kapatır; Profil gizlenince açık pencere kapanır. Açmak / kapatmak
   kayda YAZMAZ. Banner yok (Profil `Surface.NONE`; pencereler yeni reklam yüzeyi değil).
 
 ### 23.4 Sonuç ekranı — `ResultProgressStrip`
 
-Altlıkta özet çiplerinin ÜSTÜNDE krem `label_round` şerit (lavanta kontur): kompakt
+Altlıkta özet çiplerinin ÜSTÜNDE koyu krem `label_round` şerit: kompakt
 `PlayerLevelBar` (rozet 58, ray 16) + "+42 XP" (Baloo 26, mint) · koşullu satır
 (`HFlowContainer`): altın "SEVİYE ATLADIN! · LV. 8" hapı (çok seviyede son seviye) ve
 lavanta kupa hapı ("Başarım açıldı: Yıldız Avcısı" / "3 başarım açıldı"). Ray sonuç
@@ -1775,8 +1784,10 @@ göç ve geriye dönük açılışlar gösterilmez; özetsiz çağrıda şerit g
 - Kaydırma: unvan hapı, önizlemeler, TÜM BAŞARIMLAR, `TitleRow` ve kartlar kaydırmayı
   bloklamaz (`MOUSE_FILTER_PASS` / `make_candy_button_scrollable`); kaydırma başlarken
   basılı görünüm bırakılır (takılı basılı durum yok).
-- 720 tuval: 320×568, 360×640, 390×844, 360×800, 1080×2340 (+ güvenli alan 61) —
-  kırpma / taşma / üst üste binme yok (`progression_ui_test` her görünümde ölçer).
+- 720 tuval: 320×568, 360×640, 390×844, 360×800, 720×1280, 1080×2340 (+ güvenli alan 61) —
+  kırpma / taşma / üst üste binme yok; pencerelerin kurdele / X'i üst güvenli payın
+  altında; 12 kart ve 9 unvan satırında rozet + çip dudaktan ≥ 22 px yukarıda
+  (`progression_ui_test` her görünümde ölçer).
 
 ### 23.6 Şimdilik yapılmayan (bilerek)
 

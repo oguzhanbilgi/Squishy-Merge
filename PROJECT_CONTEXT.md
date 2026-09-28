@@ -1431,7 +1431,8 @@ yapılandırma değişir (checklist §3); 13–17 yaş bandı yönlendirmesi kod
   açık + farklı unvanda TEK yazma; Başarımlar / Unvanlar pencereleri de banner'sız.)*
 - **Oyuncu ilerlemesi (TASK/045, GAME_DESIGN §5.9):** tek gerçek `player_xp`; seviye
   SAKLANMAZ. XP yalnız `record_round_finished`'da (round başına tek sefer; +1 / merge ·
-  +20 sabit level bitişi · +10 / yeni yıldız) — reklam / satın alma / sandık / Hamur /
+  +20 sabit level bitişi · +10 / yeni yıldız; round'un level açılışı / yıldızı / sonsuz
+  rekoru da `save=false` ile bu TEK yazmaya katlanır) — reklam / satın alma / sandık / Hamur /
   güç / günlük ödül XP vermez. Başarımlar monoton, kanonik istatistikten; açılış
   istatistiği değiştiren işlemin kendi yazmasında (ek disk yazması yok). Başarım / seviye
   ekonomik ödül VERMEZ (yalnız rozet + unvan). Unvan açıkları saklanmaz (türetilir), yeni

@@ -161,11 +161,20 @@ func _curve() -> void:
 		level_100 == 36540 and PlayerProgression.level_for_xp(level_100) == 100
 		and PlayerProgression.level_for_xp(level_100 - 1) == 99
 		and PlayerProgression.level_for_xp(PlayerProgression.total_xp_for_level(1000)) == 1000)
-	var start: int = Time.get_ticks_usec()
 	var top: int = PlayerProgression.level_for_xp(PlayerProgression.MAX_XP)
-	var took: int = Time.get_ticks_usec() - start
-	_c("MAX_XP'de seviye %d (> 2 milyon, sonlu, pozitif) ve sabit süre (%d µs)" % [top, took], top > 2_000_000
-		and top == 18 + (PlayerProgression.MAX_XP - 3740) / 400 and took < 20_000)
+	# Sabit süre: 200 çağrının ortalaması (tek çağrı duvar saati yük altında oynar — lens 8).
+	# 2,5 milyon adımlık bir döngü çağrı başına onlarca ms sürerdi; sınır bunun çok altında.
+	var start: int = Time.get_ticks_usec()
+	for i in 200:
+		PlayerProgression.level_for_xp(PlayerProgression.MAX_XP - i)
+	var took: float = float(Time.get_ticks_usec() - start) / 200.0
+	_c("MAX_XP'de seviye %d (> 2 milyon, sonlu, pozitif) ve sabit süre (ort. %.1f µs)" % [top, took], top > 2_000_000
+		and top == 18 + (PlayerProgression.MAX_XP - 3740) / 400 and took < 1000.0)
+	_c("saçma büyük seviye sorgusu int taşırmaz (INT64_MAX → tavan seviyenin toplamı, pozitif)",
+		PlayerProgression.total_xp_for_level(9223372036854775807) == PlayerProgression.total_xp_for_level(PlayerProgression.LEVEL_QUERY_CAP)
+		and PlayerProgression.total_xp_for_level(9223372036854775807) > PlayerProgression.MAX_XP
+		and PlayerProgression.level_for_xp(PlayerProgression.total_xp_for_level(PlayerProgression.LEVEL_QUERY_CAP) - 1)
+		== PlayerProgression.LEVEL_QUERY_CAP - 1)
 	_c("negatif XP seviye 1 okunur (döngü / taşma yok)", PlayerProgression.level_for_xp(-50) == 1
 		and PlayerProgression.xp_into_level(-50) == 0)
 	_sections_done += 1
@@ -278,10 +287,24 @@ func _migration() -> void:
 	_c("biçimsiz kapsayıcılar (yıldız dizi, sahiplik metin, level null, merge metin) → çökme yok, bootstrap 0",
 		SaveManager.player_xp() == 0 and SaveManager.player_level() == 1 and PlayerProfile.total_stars() == 0
 		and PlayerProfile.collection_count() == 0)
-	_write_save(_legacy({"total_merges": 1e300}))
+	# Lens 1: int64 dışı float'ın `int()` çevirisi platforma bağlı (x86 INT64_MIN, ARM doygun
+	# INT64_MAX) — okuyucu bunu BOZUK sayar: her platformda 0 merge, bootstrap = 60 + 60.
+	for huge: Variant in [1e300, -1e300, 9.5e18]:
+		_write_save(_legacy({"total_merges": huge}))
+		SaveManager.load_game()
+		_c("int64 dışı merge (%s) bozuk sayılır: 0 merge, XP = 6·10 + 3·20 = 120, merge başarımı yok" % str(huge),
+			SaveManager.total_merges() == 0 and SaveManager.player_xp() == 120
+			and not SaveManager.is_achievement_unlocked(&"first_merge"))
+	_write_save(_legacy({"total_merges": "812"}))
 	SaveManager.load_game()
-	_c("saçma büyük merge (1e300) bootstrap'ı taşırmaz (≤ MAX_XP, ≥ 0)", SaveManager.player_xp() >= 0
-		and SaveManager.player_xp() <= PlayerProgression.MAX_XP)
+	SaveManager.add_merges(12)
+	_c("metin merge ('812') okuyucu ve add_merges için AYNI (0 → 12): 12 merge'lük round 100 / 500 başarımı açamaz",
+		SaveManager.total_merges() == 12 and not SaveManager.is_achievement_unlocked(&"merge_100"))
+	_write_save(_legacy({"highest_level_unlocked": "-99999999999999999999"}))
+	SaveManager.load_game()
+	_c("taşan metin level ('-9999…') INT64 ucunda sarmaz: 0 tamamlanan level, Harita Ustası yok",
+		PlayerProfile.completed_levels() == 0 and not SaveManager.is_achievement_unlocked(&"levels_10")
+		and SaveManager.player_xp() == 812 + 60)
 
 	_delete_save()
 	SaveManager.load_game()
@@ -382,6 +405,50 @@ func _round_flow() -> void:
 		SaveManager.player_xp() == 250 and int(shown.get("level_before", -1)) == 1 and int(shown.get("level_after", -1)) == 4
 		and int(shown.get("xp_gained", -1)) == 200 and int(shown.get("levels_gained", -1)) == 3)
 	await _leave_round()
+
+	# 9) Tek yazma (lens 1-2): level açılışı / yıldız / rekor round kaydına katlanır — XP ile
+	#    dayandığı yıldız farkı ayrı yazmalara bölünmez; arada bir çökme yıldızı kaydedip
+	#    XP'yi kaybettiremez (sonraki tekrar yıldızı "sahip olunan" sayardı).
+	SaveManager.data["highest_level_unlocked"] = 5
+	SaveManager.data["level_stars"] = {}
+	SaveManager.save_game()
+	var disk_before: PackedByteArray = _bytes()
+	var xp_w: int = SaveManager.player_xp()
+	SaveManager.complete_level(5, false)
+	SaveManager.record_stars(5, 2, false)
+	SaveManager.record_endless_score(SaveManager.endless_high_score() + 1, false)
+	_c("save=false: level / yıldız / rekor bellekte, disk DOKUNULMADI", _bytes() == disk_before
+		and SaveManager.highest_level_unlocked() == 6 and SaveManager.stars_for_level(5) == 2)
+	SaveManager.record_round_finished(0, 30)
+	var disk: Dictionary = _read_save_file()
+	_c("round kaydı level + yıldız + rekor + XP'yi TEK yazmada diske indirdi", int(disk.get("highest_level_unlocked", 0)) == 6
+		and int((disk.get("level_stars", {}) as Dictionary).get("5", 0)) == 2
+		and int(disk.get("endless_high_score", -1)) == SaveManager.endless_high_score()
+		and int(disk.get("player_xp", -1)) == xp_w + 30)
+	var main_src: String = _strip_comments(FileAccess.get_file_as_string("res://scripts/main.gd"))
+	_c("Main round kesinleştirmesi level / yıldız / rekoru save=false ile işler (yazma round kaydında)",
+		main_src.contains("complete_level(_current_level.level_number, false)")
+		and main_src.contains("record_stars(_current_level.level_number, stars, false)")
+		and main_src.contains("record_endless_score(score, false)"))
+
+	# 10) Giden board'un geç round_finished'i (queue_free karesi) yeni round'un kesinleştirme
+	#     korumasını tüketemez — yoksa yeni round'un gerçek bitişi sonuçsuz kalırdı.
+	_main._start_level(level_2)
+	await _settle(2)
+	var old_board: Node = _main._board
+	_main._start_level(level_2)
+	var xp_s: int = SaveManager.player_xp()
+	var rounds_s: int = SaveManager.total_rounds_played()
+	var disk_s: PackedByteArray = _bytes()
+	old_board.round_finished.emit(true)
+	_c("eski board'un geç round_finished'i yok sayıldı: XP / tur / disk aynı, yeni round kesinleşmedi",
+		SaveManager.player_xp() == xp_s and SaveManager.total_rounds_played() == rounds_s and _bytes() == disk_s
+		and not _main._round_finalized)
+	await _settle(2)
+	_main._board._finish(false)
+	await _settle(1)
+	_c("yeni round'un gerçek bitişi yine kesinleşti (tur +1)", SaveManager.total_rounds_played() == rounds_s + 1)
+	await _leave_round()
 	_main.queue_free()
 	_main = null
 	await _settle(2)
@@ -418,30 +485,43 @@ func _no_xp_sources() -> void:
 	SaveManager.data["dough"] = 100000
 	SaveManager.data["player_xp"] = 321
 	var day: String = "2026-09-28"
+	# Her işlemin GERÇEKTEN gerçekleştiği de doğrulanır (lens 8: sessizce no-op olan bir
+	# işlem "XP vermedi" kontrolünü yanlış sebeple geçirirdi).
 	var skin: SkinData = SkinLibrary.by_rarity(SkinData.Rarity.COMMON)[0]
-	SaveManager.purchase_skin_with_dough(skin.id, Shop.price_of(skin))
-	_c("Mağaza parça satın alma XP vermedi", SaveManager.player_xp() == 321)
-	SaveManager.purchase_powerup_with_dough(PowerUp.Type.BOMB, 3)
-	_c("Mağaza güç satın alma XP vermedi", SaveManager.player_xp() == 321)
+	var bought: bool = SaveManager.purchase_skin_with_dough(skin.id, Shop.price_of(skin))
+	_c("Mağaza parça satın alma gerçekleşti ve XP vermedi", bought and SaveManager.owns_skin(skin.id)
+		and SaveManager.player_xp() == 321)
+	var bombs: int = SaveManager.powerup_count(PowerUp.Type.BOMB)
+	var bought_power: bool = SaveManager.purchase_powerup_with_dough(PowerUp.Type.BOMB, 3)
+	_c("Mağaza güç satın alma gerçekleşti ve XP vermedi", bought_power
+		and SaveManager.powerup_count(PowerUp.Type.BOMB) > bombs and SaveManager.player_xp() == 321)
+	var dough: int = SaveManager.dough()
 	SaveManager.add_dough(500)
-	SaveManager.spend_dough(200)
-	_c("Hamur ekle / harca XP vermedi", SaveManager.player_xp() == 321)
+	var spent: bool = SaveManager.spend_dough(200)
+	_c("Hamur ekle / harca gerçekleşti ve XP vermedi", spent and SaveManager.dough() == dough + 300
+		and SaveManager.player_xp() == 321)
+	var rewards: Array = []
 	for i in 6:
-		ChestSystem.open()
-	ChestSystem.consolation()
-	_c("sandık (level / bonus / teselli) XP vermedi", SaveManager.player_xp() == 321)
+		rewards.append(ChestSystem.open())
+	rewards.append(ChestSystem.consolation())
+	_c("sandık (level / bonus / teselli) açıldı (7 ödül) ve XP vermedi", rewards.size() == 7
+		and not rewards.has(null) and SaveManager.player_xp() == 321)
 	var daily_skin: SkinData = SkinLibrary.by_rarity(SkinData.Rarity.RARE)[1]
-	SaveManager.claim_daily_free_chest(day, 15, daily_skin.id)
-	SaveManager.grant_daily_ad_chest(day, 15, &"", 2)
-	SaveManager.grant_daily_ad_dough(day, 150)
-	_c("günlük ücretsiz / reklamlı sandık + reklamlı +150 Hamur XP vermedi", SaveManager.player_xp() == 321)
-	SaveManager.grant_rewarded_powerup(PowerUp.Type.SHAKE, day)
-	SaveManager.consume_powerup(PowerUp.Type.BOMB)
+	var free_ok: bool = SaveManager.claim_daily_free_chest(day, 15, daily_skin.id)
+	var ad_chest_ok: bool = SaveManager.grant_daily_ad_chest(day, 15, &"", 2)
+	var ad_dough_ok: bool = SaveManager.grant_daily_ad_dough(day, 150)
+	_c("günlük ücretsiz / reklamlı sandık + reklamlı +150 Hamur gerçekleşti ve XP vermedi", free_ok and ad_chest_ok
+		and ad_dough_ok and SaveManager.owns_skin(daily_skin.id) and SaveManager.player_xp() == 321)
+	var refill_ok: bool = SaveManager.grant_rewarded_powerup(PowerUp.Type.SHAKE, day)
+	var used: bool = SaveManager.consume_powerup(PowerUp.Type.BOMB)
+	var upgrades: int = SaveManager.powerup_count(PowerUp.Type.UPGRADE)
 	SaveManager.grant_powerup(PowerUp.Type.UPGRADE, 2)
-	_c("ödüllü güç refill / güç tüketimi / güç hediyesi XP vermedi", SaveManager.player_xp() == 321)
+	_c("ödüllü güç refill / güç tüketimi / güç hediyesi gerçekleşti ve XP vermedi", refill_ok and used
+		and SaveManager.powerup_count(PowerUp.Type.UPGRADE) == upgrades + 2 and SaveManager.player_xp() == 321)
 	SaveManager.record_daily_login(day, 3)
-	SaveManager.record_endless_score(99999)
-	_c("günlük giriş ödülü ve sonsuz rekor kaydı XP vermedi", SaveManager.player_xp() == 321)
+	var record: bool = SaveManager.record_endless_score(99999)
+	_c("günlük giriş ödülü ve sonsuz rekor kaydı gerçekleşti ve XP vermedi", record
+		and SaveManager.daily_streak() == 3 and SaveManager.endless_high_score() == 99999 and SaveManager.player_xp() == 321)
 
 	var writers: Array[String] = []
 	var awarders: Array[String] = []

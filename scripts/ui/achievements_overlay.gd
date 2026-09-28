@@ -32,6 +32,8 @@ var _star: TextureRect
 var _bar: ProgressBar
 var _cards: Array[AchievementCard] = []
 var _group_headers: Array[Control] = []
+var _anchor: CenterContainer
+var _safe_top_override: float = -1.0
 
 
 func _init() -> void:
@@ -44,14 +46,14 @@ func _init() -> void:
 	_dim.color = Color(0.05, 0.0, 0.06, 0.62)
 	_dim.set_anchors_preset(Control.PRESET_FULL_RECT)
 	add_child(_dim)
-	var anchor := CenterContainer.new()
-	anchor.name = "Anchor"
-	anchor.set_anchors_preset(Control.PRESET_FULL_RECT)
-	anchor.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	add_child(anchor)
+	_anchor = CenterContainer.new()
+	_anchor.name = "Anchor"
+	_anchor.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_anchor.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(_anchor)
 	_frame = UiKit.modal_shell(TITLE, WIDTH, &"ribbon", false, true)
 	_frame.name = "AchievementsShell"
-	anchor.add_child(_frame)
+	_anchor.add_child(_frame)
 	_build_hero(_frame.get_meta(&"hero"))
 	var body: VBoxContainer = _frame.get_meta(&"body")
 	body.add_theme_constant_override("separation", 12)
@@ -73,7 +75,7 @@ func _init() -> void:
 	UiKit.attach_dim_close(_dim, close)
 	resized.connect(func() -> void:
 		if visible:
-			UiKit.modal_relayout(_frame))
+			UiKit.seat_modal_below_safe_top(_anchor, _frame, _safe_top_override))
 
 
 func _build_hero(hero: VBoxContainer) -> void:
@@ -132,7 +134,7 @@ func open() -> void:
 	var was_open: bool = visible
 	refresh()
 	visible = true
-	UiKit.modal_relayout(_frame)
+	UiKit.seat_modal_below_safe_top(_anchor, _frame, _safe_top_override)
 	(_frame.get_meta(&"scroll") as ScrollContainer).scroll_vertical = 0
 	if not was_open:
 		UiMotion.modal_open(_frame, _dim)
@@ -176,6 +178,13 @@ func handle_back() -> bool:
 
 
 # --- Testler / çekim aracı ----------------------------------------------------
+
+## Cihaz güvenli alanı yerine sabit üst pay (tuval px) — Profil'in `_layout_with_safe_top`'u iletir.
+func layout_with_safe_top(safe_top: float) -> void:
+	_safe_top_override = safe_top
+	if visible:
+		UiKit.seat_modal_below_safe_top(_anchor, _frame, _safe_top_override)
+
 
 func frame() -> Control:
 	return _frame

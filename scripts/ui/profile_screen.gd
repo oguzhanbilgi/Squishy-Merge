@@ -779,6 +779,12 @@ func open_title_selector() -> void:
 	_titles.open()
 
 
+## Başarımlar ya da unvan penceresi açık mı (Main: otomatik günlük pencere bunun
+## üstüne açılmaz — kapanınca Profil tazelenip pencerenin altında başa kayıyordu).
+func has_open_overlay() -> bool:
+	return (_achievements != null and _achievements.visible) or (_titles != null and _titles.visible)
+
+
 ## Android geri: açık unvan seçici / başarımlar penceresi kapanır (değişiklik yok) →
 ## true; pencere yoksa false (Main Ana Sayfa'ya döner; Ayarlar Main'de).
 func handle_back() -> bool:
@@ -823,6 +829,9 @@ static func _radial_vignette() -> GradientTexture2D:
 func _layout_with_safe_top(safe_top: float) -> void:
 	_safe_top_override = safe_top
 	_layout()
+	# TASK/045: Profil'in pencereleri de aynı üst payın altında ortalanır.
+	_achievements.layout_with_safe_top(safe_top)
+	_titles.layout_with_safe_top(safe_top)
 
 
 func top_bar() -> ScreenTopBar:

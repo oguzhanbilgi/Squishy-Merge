@@ -1641,6 +1641,21 @@ static func set_modal_height_cap(frame: Control, cap: float) -> void:
 	modal_relayout(frame)
 
 
+## TASK/045: tavana dayanan (tam boy) pencere cihazin UST guvenli alaninin ve kurdele
+## tasmasinin ALTINDA ortalanir (round_result deseni) — tavan ust payi zaten dusuyor
+## ama ortalama payin yarisini yukari geri veriyordu (A36 benzeri 61 px'te kurdele / X
+## durum cubuguna giriyordu). `safe_top_px` >= 0: test / cekim araci sabit payi (tavan
+## da ona gore). `anchor`: pencerenin tam ekran CenterContainer'i.
+static func seat_modal_below_safe_top(anchor: Control, frame: Control, safe_top_px: float = -1.0) -> void:
+	var view: Vector2 = anchor.get_viewport_rect().size if anchor.is_inside_tree() else Vector2(720.0, 1280.0)
+	var top: float = safe_top_px if safe_top_px >= 0.0 else safe_top(view)
+	var overhang: float = float(frame.get_meta(&"overhang", MODAL_RIBBON_OVERHANG))
+	anchor.offset_top = top + overhang
+	if safe_top_px >= 0.0:
+		frame.set_meta(&"height_cap", view.y - top - bottom_inset(view) - 2.0 * MODAL_OUTER_MARGIN - overhang)
+	modal_relayout(frame)
+
+
 static func _has_visible_child(container: Control) -> bool:
 	for child in container.get_children():
 		var control := child as Control

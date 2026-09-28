@@ -16,15 +16,19 @@ extends Node
 ##   unvanlar    9 satır, kilitliler pasif + koşul yazısı; kilitli (kod yolu) yazmaz;
 ##               açık TEK yazma + Profil hemen güncellenir; aynı unvan yazmaz; hızlı
 ##               ikinci dokunuş (eylem kilidi) ikinci yazma üretmez; Android geri
-##               değişiklik yapmadan kapatır; seçim yeniden yüklemede kalıcı.
+##               değişiklik yapmadan kapatır; seçim yeniden yüklemede kalıcı; seçim
+##               pop'u gerçek basış sırasında (button_up'tan sonra) görünür.
 ##   yatışma     gerçek parmak (ScreenTouch): Profil → Başarımlar / Unvanlar açılışı,
-##               pencere kapanışı ve seçim sonrası ikinci dokunuş yeni kontrole
-##               düşmez; kod yolu ve masaüstü fare etkilenmez.
+##               pencere kapanışı ve seçim sonrası ikinci dokunuş EYLEMLİ bir kontrole
+##               (açık satır, dişli, karartma, CTA) düşer ve yutulur; kod yolu ve masaüstü
+##               fare etkilenmez; otomatik günlük pencere Profil penceresinin üstüne açılmaz.
 ##   sonuç       gerçek Main round'ları: +XP, seviye atlama (LV metni), başarım (tek /
 ##               çok), çok seviye; göç / geriye dönük açılış sonuç şeridine GİRMEZ;
 ##               eski çağıran (özetsiz) şeridi gizler; CTA'lar ilk kareden aktif.
 ##   yerleşim    320×568 · 360×640 · 390×844 · 360×800 · 720×1280 · 1080×2340 (+A36):
-##               kimlik (uzun unvan + LV 137), pencereler, şerit — kırpma / taşma yok.
+##               kimlik (uzun unvan + LV 137), pencereler (A36 güvenli payında kurdele / X
+##               payın altında), rozet + hedef çipi kart dudağına binmez, şerit — kırpma /
+##               taşma yok.
 ##   kaynak      yeni UI dosyaları kayda / ekonomiye / reklama dokunmaz; tek yazma
 ##               `TitleSelector` → `select_title`.
 ##   reklam      sahte arka uç: Profil + iki pencere banner'sız (yüzey NONE).
@@ -94,6 +98,8 @@ func _ready() -> void:
 	print("-- kayıt")
 	SaveManager.data = _saved
 	_restore_save_file()
+	# Diğer suitlerle aynı: geri konan dosya yeniden yüklenir, yükleme de yazmamalı.
+	SaveManager.load_game()
 	var restored: PackedByteArray = FileAccess.get_file_as_bytes(SaveManager.SAVE_PATH) if _had_save else PackedByteArray()
 	_c("kayıt dosyası byte-identical geri kondu (%d bayt)" % _save_bytes.size(), restored == _save_bytes
 		and FileAccess.file_exists(SaveManager.SAVE_PATH) == _had_save)
@@ -114,6 +120,17 @@ func _exit_tree() -> void:
 
 func _profile_level(profile: CanvasLayer) -> void:
 	print("-- Profil: seviye / unvan / başarım özeti")
+	# Açılış yazmaz: ÖNCE uzlaştırma gerektiren kayıt (150 merge, boş başarım listesi) diske,
+	# anlık görüntü Profil'e GEÇMEDEN alınır (lens 8: görüntü açılıştan sonra alınıyordu).
+	_state(0, 150, 0, 0, 0)
+	SaveManager.save_game()
+	_main._show_tab(0)
+	await _settle(2)
+	var opened_before: PackedByteArray = _bytes()
+	_main._show_tab(4)
+	await _settle(2)
+	_c("uzlaştırma gerektiren kayıtla Profil'e geçmek kayda YAZMADI (açılış yalnız bellekte uzlaştırır)",
+		_bytes() == opened_before and profile.achievements_count_text() == "2 / 12")
 	_state(0, 0, 0, 0, 0)
 	SaveManager.save_game()
 	await _show_profile()
@@ -132,7 +149,7 @@ func _profile_level(profile: CanvasLayer) -> void:
 		and is_zero_approx(profile.achievements_bar().value) and profile.achievements_caption_text() == "SIRADAKİ HEDEFLERİN")
 	_c("yeni oyuncu sıradaki hedefler: İlk Squish · İlk Parıltılar · Yolculuk Başlıyor (kategori başına ilki)",
 		_preview_ids(profile) == [&"first_merge", &"stars_5", &"levels_3"])
-	_c("Profil'i açmak kayda YAZMADI", _bytes() == file_before)
+	_c("Profil kontrolleri okurken kayda YAZMADI", _bytes() == file_before)
 
 	for probe in [[744, "LV. 7", "84 / 180 XP", 84.0 / 180.0, "SONRAKİ: LV. 8"],
 			[839, "LV. 7", "179 / 180 XP", 179.0 / 180.0, "SONRAKİ: LV. 8"],
@@ -291,6 +308,22 @@ func _titles_ui(profile: CanvasLayer) -> void:
 		and _main._active_tab == 4)
 	SaveManager.load_game()
 	_c("seçim yeniden yüklemede kalıcı (Birleştirici)", SaveManager.selected_title_id() == &"birlestirici")
+	# Gerçek dokunuş sırası button_down → pressed → button_up: seçim pop'u bırakışın basış
+	# geri dönüşünden SONRA oynar (lens 5: aynı olaydaki button_up pop'u öldürüyordu).
+	profile.open_title_selector()
+	await get_tree().create_timer(UiMotion.MODAL_TIME + 0.08).timeout
+	var pop_row: TitleRow = selector.row(&"hamur_ustasi")
+	pop_row.button_down.emit()
+	pop_row.pressed.emit()
+	pop_row.button_up.emit()
+	var peak: float = 0.0
+	var until: int = Time.get_ticks_msec() + 350
+	while Time.get_ticks_msec() < until:
+		await get_tree().process_frame
+		peak = maxf(peak, pop_row.scale.x)
+	_c("seçim pop'u gerçek basış sırasında görünür (tepe ölçek %.3f > 1)" % peak, peak > 1.005
+		and SaveManager.selected_title_id() == &"hamur_ustasi")
+	selector.close(false)
 	_state(200, 1200, 3, 1, 2)
 	SaveManager.data["selected_title_id"] = "hamur_ustasi"
 	SaveManager.save_game()
@@ -311,14 +344,19 @@ func _touch_settle(profile: CanvasLayer) -> void:
 	await _wait_settled()
 	var overlay: AchievementsOverlay = profile.achievements_overlay()
 	var selector: TitleSelector = profile.title_selector()
-	# 1) Profil → Unvanlar: aynı noktaya ikinci dokunuş satıra düşmez.
+	# 1) Profil → Unvanlar: açılışın hemen ardından gelen ikinci dokunuş EYLEM yapan bir
+	#    satıra (açık + seçili değil → seçer ve yazar) düşer ve yutulmalı. (Lens 8: eskiden
+	#    ikinci dokunuş zaten eylemsiz başlığa / seçili satıra düşüyordu — kontrol düşemezdi.)
 	var title_pos: Vector2 = _screen_center(profile.title_button())
 	await _finger_tap(title_pos)
 	_c("parmak: unvan eylemi → seçici açık", selector.visible)
-	var under: TitleRow = _row_at(selector, title_pos)
+	var target_row: TitleRow = selector.row(&"hamur_ustasi")
+	var target_pos: Vector2 = _screen_center(target_row)
+	_c("ön koşul: ikinci dokunuşun hedefi eylem yapar (Hamur Ustası açık, seçili değil, noktada o satır)",
+		not target_row.disabled and not target_row.is_selected_shown() and _row_at(selector, target_pos) == target_row)
 	var bytes: PackedByteArray = _bytes()
-	await _finger_tap(title_pos)
-	_c("hemen ikinci dokunuş (%s) yutuldu: seçim / yazma yok" % (String(under.title_id()) if under != null else "karartma"),
+	await _finger_tap(target_pos)
+	_c("açılışın hemen ardından açık satıra dokunuş yutuldu: seçim / yazma yok",
 		_bytes() == bytes and SaveManager.selected_title_id() == &"birlestirici" and selector.visible)
 	await _wait_settled()
 	# 2) Seçim → aynı karede başka satır.
@@ -331,14 +369,22 @@ func _touch_settle(profile: CanvasLayer) -> void:
 	_c("seçimin hemen ardından başka satıra dokunuş ikinci yazma üretmedi", SaveManager.selected_title_id() == &"hamur_ustasi"
 		and _bytes() == bytes)
 	await _wait_settled()
-	# 3) Kapat (X) → aynı noktaya ikinci dokunuş Profil'deki kontrole düşmez.
+	# 3) Kapat (X) → hemen ardından Profil'in EYLEM yapan bir kontrolüne (dişli → Ayarlar)
+	#    düşen dokunuş yutulmalı.
 	var close: Button = selector.frame().get_meta(&"close_button")
 	var close_pos: Vector2 = _screen_center(close)
 	await _finger_tap(close_pos)
 	_c("parmak: X → seçici kapandı", not selector.visible)
-	await _finger_tap(close_pos)
-	_c("kapanışın hemen ardından aynı nokta: Ayarlar / başka ekran açılmadı", not _main._settings.visible
+	var gear: Button = profile.top_bar().action_button()
+	_c("ön koşul: dişli görünür ve etkin (dokunuş Ayarlar'ı açardı)", gear != null and gear.is_visible_in_tree()
+		and not gear.disabled)
+	await _finger_tap(_screen_center(gear))
+	_c("kapanışın hemen ardından dişliye dokunuş yutuldu: Ayarlar / başka ekran açılmadı", not _main._settings.visible
 		and _main._active_tab == 4 and not overlay.visible and not selector.visible)
+	await _wait_settled()
+	await _finger_tap(_screen_center(gear))
+	_c("yatışmadan sonra dişli Ayarlar'ı açar (kontrol gerçekten eylemli)", _main._settings.visible)
+	_main._settings.close_panel()
 	await _wait_settled()
 	# 4) Profil → Başarımlar: CTA'nın yerine düşen ikinci dokunuş karartmaya / karta.
 	var scroll: ScrollContainer = profile.scroll()
@@ -376,6 +422,38 @@ func _touch_settle(profile: CanvasLayer) -> void:
 	_main.settle_touch_input()
 	await _mouse_click(_screen_center(selector.frame().get_meta(&"close_button")))
 	_c("masaüstü fare tıklaması (device 0) yatışma penceresi içinde çalışır → X kapattı", not selector.visible)
+	await _wait_settled()
+
+	# 5) Otomatik günlük pencere Profil penceresinin ÜSTÜNE açılmaz (lens 6: kapanınca Profil
+	#    tazelenip pencerenin altında başa kayıyordu); pencere kapanınca aynı çağrı açar.
+	print("-- otomatik günlük pencere Profil penceresinin üstüne açılmaz")
+	var band_before: int = _main._age_band
+	_main._age_band = AgeGate.Band.ADULT
+	var daily_raw: Dictionary = (SaveManager.data.get("daily_rewards", {}) as Dictionary).duplicate()
+	daily_raw["popup_seen_day"] = ""
+	SaveManager.data["daily_rewards"] = daily_raw
+	DailyRewards.auto_popup_enabled = true
+	_c("ön koşul: otomatik günlük pencere bugün due, yaş kapısı açık", DailyRewards.popup_due()
+		and not _main._age_blocks_monetizable_surfaces())
+	profile.open_achievements()
+	await _settle(1)
+	_main._maybe_auto_open_daily_rewards()
+	await _settle(1)
+	_c("Başarımlar açıkken otomatik günlük pencere açılmadı (hâlâ due)", not _main._daily_rewards.visible
+		and overlay.visible and DailyRewards.popup_due())
+	overlay.close(false)
+	profile.open_title_selector()
+	await _settle(1)
+	_main._maybe_auto_open_daily_rewards()
+	await _settle(1)
+	_c("Unvanlar açıkken de açılmadı", not _main._daily_rewards.visible and selector.visible)
+	selector.close(false)
+	_main._maybe_auto_open_daily_rewards()
+	await _settle(1)
+	_c("pencereler kapanınca aynı çağrı günlük pencereyi açar (kapı yalnız pencere varken)", _main._daily_rewards.visible)
+	_main._daily_rewards.close_popup()
+	DailyRewards.auto_popup_enabled = false
+	_main._age_band = band_before
 	await _wait_settled()
 	_sections_done += 1
 
@@ -564,26 +642,36 @@ func _layout_view(profile: CanvasLayer, view_size: Vector2i, safe_top: float) ->
 	_c("%s kimlik kartı üst satırın altında, güvenli payda" % tag, card.position.y >= safe_top + 4.0)
 	var ach_card: Control = profile.content().get_node("AchievementsCard")
 	_c("%s BAŞARIMLAR kartı yazıları sığıyor" % tag, _labels_fit(ach_card))
-	if safe_top > 0.0:
-		return
-	# Pencereler.
+	# Pencereler — güvenli üst payla da (lens 6: tam boy pencerenin kurdelesi / X'i A36
+	# benzeri payda durum çubuğuna giriyordu). Açılış tween'i bitince ölçülür.
 	profile.open_achievements()
-	await _settle(2)
+	await get_tree().create_timer(UiMotion.MODAL_TIME + 0.08).timeout
 	var overlay: AchievementsOverlay = profile.achievements_overlay()
-	await _check_modal(overlay.frame(), overlay.scroll(), overlay.cards()[overlay.cards().size() - 1], tag + " başarımlar")
+	await _check_modal(overlay.frame(), overlay.scroll(), overlay.cards()[overlay.cards().size() - 1],
+		tag + " başarımlar", safe_top)
 	_c("%s başarım kartı yazıları sığıyor (ad / ilerleme / unvan)" % tag, _cards_fit(overlay.cards()))
+	var lip_ok: bool = true
+	for ach in overlay.cards():
+		lip_ok = lip_ok and _badge_clear_of_lip(ach, ach.badge())
+	_c("%s 12 kartta rozet + hedef çipi kartın pişmiş dudağına binmiyor (≥ 22 px)" % tag, lip_ok)
 	overlay.close(false)
 	profile.open_title_selector()
-	await _settle(2)
+	await get_tree().create_timer(UiMotion.MODAL_TIME + 0.08).timeout
 	var selector: TitleSelector = profile.title_selector()
-	await _check_modal(selector.frame(), selector.scroll(), selector.rows()[selector.rows().size() - 1], tag + " unvanlar")
+	await _check_modal(selector.frame(), selector.scroll(), selector.rows()[selector.rows().size() - 1],
+		tag + " unvanlar", safe_top)
 	var rows_ok: bool = true
+	var rows_lip_ok: bool = true
 	for row in selector.rows():
 		if row.get_global_rect().size.y < 48.0 or not _labels_fit(row):
 			rows_ok = false
+		rows_lip_ok = rows_lip_ok and _badge_clear_of_lip(row, row.badge())
 	_c("%s unvan satırları ≥ 48, adlar kırpılmadı (seçili uzun unvan dahil)" % tag, rows_ok
 		and selector.row(&"efsane_birlestirici").is_selected_shown())
+	_c("%s 9 unvan satırında rozet + hedef çipi dudağa binmiyor (≥ 22 px)" % tag, rows_lip_ok)
 	selector.close(false)
+	if safe_top > 0.0:
+		return
 	# Sonuç şeridi: seviye + başarım birlikte.
 	_state(PlayerProgression.total_xp_for_level(4) - 5, 95, 4, 2, 2)
 	await _play(3, true, 9, "star3")
@@ -594,16 +682,28 @@ func _layout_view(profile: CanvasLayer, view_size: Vector2i, safe_top: float) ->
 	await _leave()
 
 
-func _check_modal(frame: Control, scroll: ScrollContainer, last: Control, tag: String) -> void:
+func _check_modal(frame: Control, scroll: ScrollContainer, last: Control, tag: String, safe_top: float = 0.0) -> void:
 	var view: Rect2 = get_viewport().get_visible_rect()
 	var close: Button = frame.get_meta(&"close_button")
 	_c("%s: pencere ekranda, X ≥ 48 ve ekranda" % tag, view.encloses(frame.get_global_rect())
 		and close.get_global_rect().size.x >= 48.0 and view.encloses(close.get_global_rect()))
+	var ribbon_top: float = frame.get_global_rect().position.y - UiKit.MODAL_RIBBON_OVERHANG
+	_c("%s: kurdele (%.0f) ve X (%.0f) üst güvenli payın (%.0f) altında" % [tag, ribbon_top,
+		close.get_global_rect().position.y, safe_top], ribbon_top >= safe_top and close.get_global_rect().position.y >= safe_top)
 	scroll.scroll_vertical = int(scroll.get_v_scroll_bar().max_value)
 	await _settle(2)
 	var host: Rect2 = (frame.get_meta(&"body_host") as Control).get_global_rect()
 	_c("%s: kaydırma sonunda son öğe gövdede tamamen görünür" % tag, host.grow(1.0).encloses(last.get_global_rect()))
 	scroll.scroll_vertical = 0
+
+
+## Rozet kutusu (hedef çipi dahil) kartın alt kenarından ≥ 22 px yukarıda ve çip kutunun
+## içinde — `card_bevel_soft`'un pişmiş dudağı alt kenardan 11–22 px (TASK/044 kuralı).
+func _badge_clear_of_lip(card: Control, badge: AchievementBadge) -> bool:
+	var box: Rect2 = badge.get_global_rect()
+	var pip := badge.find_child("Pip", false, false) as Control
+	var pip_inside: bool = pip == null or not pip.visible or box.grow(0.5).encloses(pip.get_global_rect())
+	return pip_inside and card.get_global_rect().end.y - box.end.y >= 22.0 - 0.5
 
 
 func _cards_fit(cards: Array[AchievementCard]) -> bool:

@@ -1,8 +1,8 @@
 class_name ResultProgressStrip
 extends PanelContainer
 ## Sonuç ekranının KOMPAKT oyuncu ilerlemesi şeridi (TASK/045) — ayrı bir sonuç
-## sayfası DEĞİL, altlıktaki özet çipleriyle aynı malzeme (krem `label_round` +
-## lavanta kontur). Oyuncu XP'nin varlığını her round Profil'e girmeden görür.
+## sayfası DEĞİL, altlıktaki özet çipleriyle aynı malzeme (koyu krem `label_round`).
+## Oyuncu XP'nin varlığını her round Profil'e girmeden görür.
 ##
 ##   ÜST        kompakt `PlayerLevelBar` (LV rozeti + ray + "84 / 180 XP") + "+42 XP".
 ##   SEVİYE     yalnız seviye atlandıysa: altın "SEVİYE ATLADIN!" rozeti (rozetteki
@@ -38,10 +38,6 @@ func _init() -> void:
 	name = "ProgressStrip"
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_theme_stylebox_override("panel", UiKit.style("label_round", UiTokens.CREAM_DEEP, PANEL_MARGIN))
-	var outline := UiKit.flat_plate("label_round", Color(UiTokens.LAVENDER_SURFACE, 0.9))
-	outline.show_behind_parent = true
-	UiKit.inset(outline, -2.0, -2.0, -2.0, -2.0)
-	add_child(outline)
 	var column := VBoxContainer.new()
 	column.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	column.add_theme_constant_override("separation", 6)

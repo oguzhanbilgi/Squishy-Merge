@@ -33,6 +33,9 @@ const PLAYER_META_VERSION: int = 1
 const ACHIEVEMENTS_RAW_CAP: int = 64
 ## `select_title` sonucu. Yalnız SELECTED kayda yazar.
 enum TitleResult { SELECTED, ALREADY, LOCKED, UNKNOWN }
+## Okunan tamsayı kayıt değerinin mutlak sınırı (int64 ~9.22e18'in altında): üstü bozuk
+## sayılır — `int()` dönüşümü platforma bağlı olmasın, `x ± 1` sarmasın (TASK/045).
+const SAFE_INT_LIMIT: float = 9.0e18
 
 var data: Dictionary = {}
 
@@ -307,12 +310,15 @@ func is_level_unlocked(level_number: int) -> bool:
 
 
 ## Level tamamlandığında bir sonrakini açar. Geriye gitmez. Tamamlanan level
-## başarımları (TASK/045) AYNI yazmada açılır.
-func complete_level(level_number: int) -> void:
+## başarımları (TASK/045) AYNI yazmada açılır. `save = false`: yalnız Main'in round
+## kesinleştirmesi — yazma aynı round'un `record_round_finished` yazmasına katlanır
+## (level + yıldız + XP tek yazmada; araya giren çökme XP'yi yıldızdan ayıramaz).
+func complete_level(level_number: int, save: bool = true) -> void:
 	if level_number + 1 > highest_level_unlocked():
 		data["highest_level_unlocked"] = level_number + 1
 		var unlocked: bool = not _unlock_satisfied_achievements().is_empty()
-		save_game()
+		if save:
+			save_game()
 		if unlocked:
 			player_meta_changed.emit()
 
@@ -326,12 +332,14 @@ func endless_high_score() -> int:
 	return int(data.get("endless_high_score", 0))
 
 
-## Yeni rekor kırıldıysa true döner.
-func record_endless_score(score: int) -> bool:
+## Yeni rekor kırıldıysa true döner. `save = false`: `complete_level` ile aynı
+## (round kaydına katlanır).
+func record_endless_score(score: int, save: bool = true) -> bool:
 	if score <= endless_high_score():
 		return false
 	data["endless_high_score"] = score
-	save_game()
+	if save:
+		save_game()
 	return true
 
 
@@ -507,9 +515,10 @@ func profile_counters_partial() -> bool:
 ## Round KESİN bitti — yalnız Main._on_round_finished, round başına TAM bir kez
 ## (GameBoard._finish + Main kesinleştirme koruması). Tur sayacı +1, bu round'da
 ## oluşturulan en yüksek tier rekoru ve (TASK/045) round'un XP'si
-## (`PlayerProgression.round_xp_award`) — HEPSİ bu TEK yazmada; ikinci bir disk
-## yazması yok. `created_tier` 0 = merge / Büyütücü yok (rekor değişmez); `xp_award`
-## ≤ 0 XP'ye dokunmaz.
+## (`PlayerProgression.round_xp_award`) — HEPSİ bu TEK yazmada; Main'in `save = false`
+## ile hemen önce bellekte işlediği level açılışı / yıldız / sonsuz rekoru da bu yazmayla
+## diske iner (XP ile dayandığı yıldız farkı ayrı yazmalara bölünmez). `created_tier`
+## 0 = merge / Büyütücü yok (rekor değişmez); `xp_award` ≤ 0 XP'ye dokunmaz.
 func record_round_finished(created_tier: int, xp_award: int = 0) -> void:
 	data["total_rounds_played"] = total_rounds_played() + 1
 	var tier: int = clampi(created_tier, 0, TierConfig.MAX_TIER)
@@ -524,26 +533,37 @@ func record_round_finished(created_tier: int, xp_award: int = 0) -> void:
 		player_meta_changed.emit()
 
 
+## Sayı değilse 0. TASK/045: int64 dışı / NaN float da 0 — `int()` bunu platforma göre
+## farklı çevirir (x86 INT64_MIN, ARM doygun INT64_MAX); değer XP göçüne ve başarımlara girer.
 static func _as_int(value: Variant) -> int:
 	match typeof(value):
-		TYPE_INT, TYPE_FLOAT:
-			return int(value)
+		TYPE_INT:
+			return value
+		TYPE_FLOAT:
+			return _safe_int(value, 0)
 	return 0
 
 
 ## `int()` ile aynı sonuç, ama biçimsiz kayıt değeri (null / dizi / sözlük / NaN /
-## int64 dışı float) betik hatası ya da INT64_MIN yerine `fallback` (TASK/045:
-## ilerleme istatistikleri her yüklemede okunur).
+## int64 dışı float ya da metin) betik hatası ya da INT64 uç değeri yerine `fallback`
+## (TASK/045: ilerleme istatistikleri her yüklemede okunur).
 static func _safe_int(value: Variant, fallback: int) -> int:
 	match typeof(value):
 		TYPE_INT:
 			return value
 		TYPE_FLOAT:
 			var number: float = value
-			if is_nan(number) or is_inf(number) or absf(number) >= 9.0e18:
+			if is_nan(number) or is_inf(number) or absf(number) >= SAFE_INT_LIMIT:
 				return fallback
 			return int(number)
-		TYPE_STRING, TYPE_BOOL:
+		TYPE_STRING:
+			# 19+ basamaklı metni `to_int()` motor hatası basıp INT64 ucuna doyurur ("-999…" →
+			# INT64_MIN; sonraki `- 1` sarar). 18 basamak her zaman SAFE_INT_LIMIT'in altında.
+			var text: String = String(value).strip_edges()
+			if text.trim_prefix("-").length() > 18:
+				return fallback
+			return int(text)
+		TYPE_BOOL:
 			return int(value)
 	return fallback
 
@@ -559,7 +579,8 @@ func total_merges() -> int:
 func add_merges(count: int) -> int:
 	if count <= 0:
 		return 0
-	data["total_merges"] = int(data.get("total_merges", 0)) + count
+	# TASK/045: taban, Profil / XP göçü / başarımların okuduğu AYNI doğrulanmış değer.
+	data["total_merges"] = total_merges() + count
 	var pending: int = int(data.get("merges_since_bonus_chest", 0)) + count
 	var chests: int = pending / ChestSystem.MERGES_PER_BONUS_CHEST
 	data["merges_since_bonus_chest"] = pending % ChestSystem.MERGES_PER_BONUS_CHEST
@@ -580,8 +601,9 @@ func stars_for_level(level_number: int) -> int:
 
 
 ## Yıldız sadece yukarı gider — daha kötü bir tekrar oynayış eskisini silmez.
-## Yıldız başarımları (TASK/045) AYNI yazmada açılır.
-func record_stars(level_number: int, stars: int) -> void:
+## Yıldız başarımları (TASK/045) AYNI yazmada açılır. `save = false`: `complete_level`
+## ile aynı (round kaydına katlanır — XP'nin dayandığı yıldız farkı XP ile tek yazmada).
+func record_stars(level_number: int, stars: int, save: bool = true) -> void:
 	if stars <= stars_for_level(level_number):
 		return
 	var raw: Variant = data.get("level_stars", {})
@@ -589,7 +611,8 @@ func record_stars(level_number: int, stars: int) -> void:
 	all_stars[str(level_number)] = stars
 	data["level_stars"] = all_stars
 	var unlocked: bool = not _unlock_satisfied_achievements().is_empty()
-	save_game()
+	if save:
+		save_game()
 	if unlocked:
 		player_meta_changed.emit()
 

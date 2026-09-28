@@ -20,7 +20,9 @@ extends Node
 ##   godot --resolution GxY --path . res://tools/progression_shots.tscn -- <çıktı> [GxY] [safe=61] [only=P|A|T|R]
 ## `--resolution` ŞART (TASK/044 dersi): pencere yöneticisiz X (xvfb) çalışma anındaki
 ## `window_set_size`'ı yok sayar. Araç her karenin piksel boyutunu DOĞRULAR; tutmazsa
-## "BOYUT HATASI" basar ve çıkış kodu 3 olur.
+## "BOYUT HATASI" basar ve çıkış kodu 3 olur (5 PNG yazılamadı, 6 hiç kare yok, 4
+## `--headless` — kayda hiç dokunmadan). Kayıt her çıkışta geri konur: normal bitiş,
+## 600 s bekçisi ve ağaçtan çıkış (pencere kapatma / Ctrl-C).
 
 const MAIN_SCENE: PackedScene = preload("res://scenes/main.tscn")
 const SHOT_SIZE := Vector2i(720, 1280)
@@ -35,9 +37,18 @@ var _safe_top: float = -1.0
 var _only: String = ""
 var _shots: int = 0
 var _size_errors: int = 0
+var _png_errors: int = 0
+var _finished: bool = false
+var _save_captured: bool = false
 
 
 func _ready() -> void:
+	# `--headless` ekran görüntüsü alamaz (frame_post_draw hiç gelmez) — kayda dokunmadan çık.
+	if DisplayServer.get_name() == "headless":
+		print("HATA: --headless ile çalışmaz (ekran görüntüsü). Kayda dokunulmadı.")
+		_finished = true
+		get_tree().quit(4)
+		return
 	DailyRewards.auto_popup_enabled = false
 	var args: PackedStringArray = OS.get_cmdline_user_args()
 	_out_dir = args[0] if args.size() >= 1 else ProjectSettings.globalize_path("user://progression_shots")
@@ -59,6 +70,13 @@ func _ready() -> void:
 	if _had_save:
 		_save_bytes = FileAccess.get_file_as_bytes(SaveManager.SAVE_PATH)
 	_saved_data = SaveManager.data.duplicate(true)
+	_save_captured = true
+	# Bekçi (testlerle aynı): takılırsa kayıt geri konur ve çıkılır. R grubu gerçek round
+	# bitirip XP / yıldız / sandık / parça YAZAR — yarıda kalan çekim kaydı kirletmesin.
+	get_tree().create_timer(600.0).timeout.connect(func() -> void:
+		if not _finished:
+			print("HATA: bekçi — çekim 600 s'de bitmedi, kayıt geri kondu")
+			_finish(2))
 	_base()
 
 	_main = MAIN_SCENE.instantiate()
@@ -78,10 +96,31 @@ func _ready() -> void:
 	if _wants("R"):
 		await _result_states()
 
+	print("bitti -> %s (%d kare, %d boyut hatası, %d PNG hatası)" % [_out_dir, _shots, _size_errors, _png_errors])
+	if _shots == 0:
+		print("HATA: hiç kare çekilmedi (only=%s geçersiz mi?)" % _only)
+	# Çıkış kodu: 3 boyut hatası · 5 PNG yazılamadı · 6 hiç kare yok · 0 tamam.
+	_finish(3 if _size_errors > 0 else (5 if _png_errors > 0 else (6 if _shots == 0 else 0)))
+
+
+## Kaydı geri koyar (tam bir kez) ve çıkar.
+func _finish(code: int) -> void:
+	if _finished:
+		return
+	_finished = true
 	SaveManager.data = _saved_data
 	_restore_save_file()
-	print("bitti -> %s (%d kare, %d boyut hatası)" % [_out_dir, _shots, _size_errors])
-	get_tree().quit(3 if _size_errors > 0 else 0)
+	get_tree().quit(code)
+
+
+## Pencere kapatma / Ctrl-C / beklenmedik çıkış: kayıt yine geri konur.
+func _exit_tree() -> void:
+	if _finished or not _save_captured:
+		return
+	_finished = true
+	print("HATA: çekim bitmeden ağaçtan çıkıldı — kayıt geri kondu")
+	SaveManager.data = _saved_data
+	_restore_save_file()
 
 
 func _wants(group: String) -> bool:
@@ -187,7 +226,7 @@ func _title_states() -> void:
 # --- R: Sonuç ekranı ----------------------------------------------------------------------
 
 func _result_states() -> void:
-	# +XP: LV 3 ortası, 14 merge + bitiş + 1 yeni yıldız = 44.
+	# +XP: LV 3 ortası, 14 merge + bitiş 20 + 2 yeni yıldız·10 = 54.
 	_state(PlayerProgression.total_xp_for_level(3) + 30, 40, 2, 2, 2, [])
 	await _play_result("R_18_plus_xp", 2, true, 14, "star2")
 	# Seviye atlama: 1 XP eksik + 12 merge + bitiş.
@@ -321,6 +360,8 @@ func _capture(name: String) -> void:
 	var file: String = "%s_%s.png" % [name, _tag()]
 	var err: int = img.save_png(_out_dir.path_join(file))
 	_shots += 1
+	if err != OK:
+		_png_errors += 1
 	if img.get_size() != _size:
 		_size_errors += 1
 		print("BOYUT HATASI: %s = %s, beklenen %s" % [file, str(img.get_size()), str(_size)])

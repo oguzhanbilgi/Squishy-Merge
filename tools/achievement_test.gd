@@ -255,10 +255,15 @@ func _malformed() -> void:
 		huge.append("zzz_%d" % i)
 	huge.append("first_merge")
 	SaveManager.data["unlocked_achievements"] = huge
-	var started: int = Time.get_ticks_msec()
-	var read: Array[StringName] = SaveManager.unlocked_achievements()
-	_c("5001 öğelik bozuk liste: ham tavan (%d) sonrası okunmaz, hızlı (%d ms)" % [SaveManager.ACHIEVEMENTS_RAW_CAP,
-		Time.get_ticks_msec() - started], read.is_empty() and Time.get_ticks_msec() - started < 200)
+	# Ortalama süre (tek çağrı duvar saati yük altında oynar — lens 8). Tavansız okuma 5001
+	# öğeyi her çağrıda tarardı; sınır cömert ama o maliyetin çok altında.
+	var started: int = Time.get_ticks_usec()
+	var read: Array[StringName] = []
+	for i in 50:
+		read = SaveManager.unlocked_achievements()
+	var avg_ms: float = float(Time.get_ticks_usec() - started) / 50.0 / 1000.0
+	_c("5001 öğelik bozuk liste: ham tavan (%d) sonrası okunmaz, hızlı (ort. %.2f ms)" % [SaveManager.ACHIEVEMENTS_RAW_CAP,
+		avg_ms], read.is_empty() and avg_ms < 20.0)
 	_sections_done += 1
 
 
@@ -375,15 +380,26 @@ func _live_paths() -> void:
 				consistent = false
 	_c("ChestSystem.open × 120 (seed): her sandıktan sonra koleksiyon başarımları sahiplikle tutarlı (%d Squishy)"
 		% PlayerProfile.collection_count(), consistent and PlayerProfile.collection_count() >= 5)
-	# DailyRewards gerçek yolu (onboarding tamam, yerleşik oyuncu).
-	_fresh()
-	SaveManager.data["onboarding_completed"] = true
-	SaveManager.data["onboarding_completed_day"] = ""
-	for i in 4:
-		SaveManager.grant_skin(catalog[i].id)
-	var reward: DailyChestReward = DailyRewards.claim_free_chest()
-	_c("DailyRewards.claim_free_chest: sonuç ne olursa olsun collection_5 ⇔ sahiplik ≥ 5",
-		reward != null and SaveManager.is_achievement_unlocked(&"collection_5") == (PlayerProfile.collection_count() >= 5))
+	# DailyRewards gerçek yolu (onboarding tamam, yerleşik oyuncu). Kura TOHUMLU; Squishy
+	# çıkaran ilk tohum kullanılır — parça yolu her koşuda sınanır (lens 8: tohumsuz kurada
+	# yalnız ~%30 koşuda sınanıyordu, gerisi Hamur çıkıp kontrolü boşa geçiriyordu).
+	var reward: DailyChestReward = null
+	var rng := RandomNumberGenerator.new()
+	for s in range(1, 80):
+		_fresh()
+		SaveManager.data["onboarding_completed"] = true
+		SaveManager.data["onboarding_completed_day"] = ""
+		for i in 4:
+			SaveManager.grant_skin(catalog[i].id)
+		rng.seed = s
+		DailyRewards.set_rng(rng)
+		reward = DailyRewards.claim_free_chest()
+		if reward != null and reward.skin != null:
+			break
+	DailyRewards.set_rng(null)
+	_c("DailyRewards.claim_free_chest (tohumlu, Squishy çıktı): 5. parça → collection_5 AYNI yazmada, dosyada",
+		reward != null and reward.skin != null and PlayerProfile.collection_count() == 5
+		and SaveManager.is_achievement_unlocked(&"collection_5") and _file_achievements().has("collection_5"))
 	_sections_done += 1
 
 

@@ -1581,6 +1581,84 @@ formatına yalnız `haptics_enabled` (varsayılan true) eklendi. Ayrıntı ve
   `shop_ui_test` (213 → 215), `result_ui_test` / `economy_test` (metin). Tam
   regresyon 25 suite yeşil.
 
+### 4.21 Player Progression V1 — oyuncu seviyesi / XP / başarımlar / unvanlar (TASK/045)
+
+> **DALDA, main'e ALINMADI** — `task/045-player-level-achievements` (başlangıç main
+> `115252c`, 2026-09-28); bulut kapısı geçti, sıradaki owner'ın yerel / Samsung A36 kapısı
+> ve owner onayıyla main. Kural metni: GAME_DESIGN §5.9; UI: UI_VISUAL_SYSTEM §23.
+
+- **Owner kararı:** yerel bir ilerleme katmanı — kimlik "Oyuncu" kalır; hesap / takma ad /
+  giriş / backend / bulut / sosyal / skor tablosu YOK; ekonomiye hiçbir etkisi YOK (başarım
+  ve seviye Hamur / güç / sandık / reklam ödülü vermez; XP reklamla ya da satın almayla
+  kazanılmaz).
+- **Seviye / XP:** tek gerçek `player_xp` (kümülatif), seviye SAKLANMAZ — her okumada
+  türetilir. Gereksinim `min(400, 60 + 20·(L−1))` (L18'den sonra hep 400; kümülatif eşik
+  kapalı formla — 2,5 milyonluk seviye döngüsüz); seviye tavanı yok; bozukluk sınırı
+  `MAX_XP` = 1 milyar. Saf servis `PlayerProgression` (eğri, ödül, göç, round özeti).
+- **Kaynaklar (kilitli):** +1 / gerçek merge · +20 sabit level başarıyla bitince (tekrar da)
+  · +10 / önceki en iyiye göre YENİ kalıcı yıldız. Başka hiçbir şey. Round kesinleştirmesi
+  korumalı (`Main._round_finalized`, `_start_level` sıfırlar); XP TASK/044'ün
+  `record_round_finished` yazmasında — inceleme sonrası level açılışı / yıldız / sonsuz rekor
+  da `save=false` ile AYNI yazmaya katlanır (arada çökme XP'yi yıldızdan ayıramaz) ve giden
+  board'un geç `round_finished`'i bağlantısı kesilerek yok sayılır.
+- **Göç:** TASK/045 öncesi kayıtta bootstrap = merge + 10·yıldız + 20·tamamlanan level
+  (örn. 812 + 60 + 60 = 932); bellekte, bir kez, idempotent, kutlamasız (sonuç şeridine
+  girmez); bozuk XP aynı formülle kurtarılır. Okuyucular (`_safe_int` / `_as_int`) int64
+  dışı / NaN float'ı ve 18 basamaktan uzun metni BOZUK sayar — `int()`'in platforma bağlı
+  çevirisi (x86 INT64_MIN, ARM doygun) göçe / başarıma sızmaz (inceleme).
+- **Başarımlar (12) + unvanlar (varsayılan + 8):** `AchievementCatalog` (saf). Kanonik
+  istatistikten (toplam merge, kalıcı yıldız, tamamlanan level, sahip olunan katalog
+  Squishy'si), monoton, geriye dönük SESSİZ; açılış istatistiği değiştiren işlemin kendi
+  yazmasında (add_merges / record_stars / complete_level / grant_skin / Mağaza / günlük
+  sandıklar). Bilinmeyen id yok sayılır ve sonraki kayıtta düşer. Unvan seçimi Profil'in
+  TEK yazması (açık + farklı); yeni unvan otomatik seçilmez; geçersiz seçim varsayılana
+  düşer, geri yazılmaz. Kayıt alanları: `player_xp`, `unlocked_achievements`,
+  `selected_title_id`, `player_meta_version` (DATA_SAFETY_INVENTORY §2).
+- **UI:** Profil kimliği (unvan hapı + LV rozeti + XP rayı "84 / 180 XP"), BAŞARIMLAR kartı
+  ("N / 12" + 3 sıradaki hedef + TÜM BAŞARIMLAR), Profil'e ait Başarımlar / Unvanlar
+  pencereleri (banner yok, geri kapatır, açmak / kapatmak yazmaz); sonuç ekranında kompakt
+  bloklamayan şerit ("+42 XP", "SEVİYE ATLADIN! · LV. 8", "Başarım açıldı: X"); TASK/044'ün
+  300 ms parmak yatışması pencerelere genişletildi. Tutorial: tamamlanma XP vermez;
+  tutorial'ın Level 1 round'u normal XP alır, geri bildirim yalnız sonuç ekranında.
+- **Değişmeyen (dondurulmuş):** sandık 60/25/12/3 + %30 parça, fiyatlar 50/150/400/900, güç
+  fiyatları 100/120/160/180, Hamur ödülleri, reklam yüzeyleri ve geçiş kadansı, TASK/043
+  yaş yönlendirmesi, fizik / merge / skor / yıldız / level kuralları. Bilinen Büyütücü
+  bırakış-düşürme sorunu (TASK/044 gözlemi) DOKUNULMADI.
+- **8 mercekli çekişmeli inceleme (kayıt / XP / başarım / unvan / UI / dokunma / ekonomi /
+  araç):** BLOCKER 0 · HIGH 0 · MEDIUM 2 → ikisi de giderildi: başarım rozetinin hedef
+  çipi kartın pişmiş dudağına biniyordu (çip rozet kutusuna dahil) · `progression_ui_test`'in
+  "açılışın hemen ardından ikinci dokunuş yutuldu" kontrolü düşemiyordu (ikinci dokunuş
+  artık eylemli hedefe). LOW 10 → hepsi giderildi: platforma bağlı int çevirisi + metin
+  merge tutarlılığı · round kesinleştirmesi tek yazma · round sonunda `progression_stats`
+  her çağrıda 11 .tres'i yeniden okuyordu (~2,5 ms × 5–7; level numarası önbelleği) · A36
+  benzeri üst payda tam boy pencerenin kurdele / X'i durum çubuğuna giriyordu
+  (`UiKit.seat_modal_below_safe_top`) · otomatik günlük pencere Profil penceresinin üstüne
+  açılabiliyordu · seçim pop'u gerçek dokunuşta görünmüyordu (ertelendi) · HAPTIC / AUDIO
+  belgeleri · `progression_shots` anormal çıkışta kaydı geri koymuyordu (bekçi + `_exit_tree`
+  + `--headless` reddi) · yük altında oynayan zamanlama kontrolleri · yanlış sebeple
+  geçebilen kontroller (işlem sonucu doğrulanmıyordu; tohumsuz günlük kura). NIT 8 → 6
+  giderildi; bilerek bırakılan 2: unvan seçiminde üç kez tazeleme (önbellekten sonra
+  ihmal edilebilir; seçici tek başına da doğru kalsın) · seviye + adlı başarım hapı dar
+  ekranda iki satıra sarar (akış kabı; kırpma yok). **Kapsam dışı kayıt (düzeltilmedi):**
+  `save_game()` dosyayı kesip yazıyor (atomik değil) — yazma sırasında öldürülen süreç
+  okunamayan kayıt bırakır ve yükleme varsayılanlara döner (TASK/045 öncesi; ayrı bir görev
+  olarak önerilir: geçici dosyaya yaz + yedekten kurtar). Koleksiyon detayı da otomatik
+  günlük pencere kapısında yok (TASK/044).
+- **Testler / kanıt:** yeni `player_progression_test` (83), `achievement_test` (61),
+  `progression_ui_test` (187); güncellenen `profile_test` (153 → 154), `tutorial_test`
+  (200 → 205: tutorial tamamlanması 0 XP, tutorial round'u = merge XP'si, özet sonuç
+  ekranında). Tam regresyon 28 suite + bot L3 2/2 = 4067 kontrol, 0 hata, 0 SCRIPT ERROR
+  (`revive_test` kontrol sayısı fizik zamanlamasıyla değişir — grant başına 18 kontrol; önceden
+  de öyle). Not: `economy_test` (tasarımı gereği), `gameplay_shell_test` ve bot kaydı yeniden
+  yazar — owner'ın yerel tam koşusu kaydı DIŞARIDAN yedeklemeli (TASK/045 suitleri kendileri
+  bayt-aynı geri koyar). Mutasyon testleri (XP sınırı,
+  yinelenen kesinleştirme koruması, başarım eşiği, kilitli unvan seçimi, seçili unvan
+  doğrulaması, parmak yatışması + inceleme düzeltmeleri) hepsi ÖLDÜ, kaynak bayt-aynı geri
+  kondu. Ekran görüntüleri 320×568 / 360×640 / 390×844 / 360×800 / 1080×2340 / 1080×2340
+  güvenli pay 61 (`tools/progression_shots.tscn`, boyut doğrulamalı). Bulutta
+  doğrulanamayan: fiziksel A36, owner masaüstü kaydı, owner-local `export_presets.cfg`,
+  telefon paketi.
+
 ## 5. Dosya/klasör yapısı ve script envanteri
 
 ```
@@ -2276,11 +2354,27 @@ doğrulandı; telefondaki `com.example` kaydı owner talimatıyla açılmadı.)*
 - Owner-local `export_presets.cfg` / telefon paketi bulutta doğrulanamadı.
 - Sonra owner onayıyla main'e ff-only.
 
+### TASK/045 — Player Progression V1 — DALDA, yerel kapı BEKLİYOR (2026-09-28)
+
+*(Bulut kapısı geçti — §4.21. Owner'ın yapacağı, bulutta doğrulanamayan:)*
+
+- Masaüstü (Godot 4.6.3): tam regresyon + `progression_shots` (owner kaydı her çıkışta
+  bayt-aynı geri konur; `--headless` ile çalışmaz).
+- Samsung A36 (yalnız QA paketi): Profil seviye satırı / BAŞARIMLAR / iki pencere (kaydırma,
+  geri, karartma, hızlı çift dokunuş), unvan seçimi + yeniden açılışta kalıcılık, gerçek
+  round'larda sonuç şeridi (seviye atlama sesi / titreşimi), tam boy Başarımlar penceresinin
+  kurdele / X'i durum çubuğunun altında, banner yok.
+- Owner'ın gerçek (TASK/045 öncesi) kaydıyla ilk açılış: XP / seviye / başarımlar
+  gerçeklerden sessizce kurulur (kutlama yok), kayıt ancak ilk doğal yazmada değişir.
+- Sonra owner onayıyla main'e ff-only.
+
 ### Gelecek görevler (BAŞLAMADI — kod yok)
 
-- **TASK/045** — Oyuncu Seviyesi + XP + Başarımlar + Unvanlar (+ düzenlenebilir
-  takma ad; Profil'in kimlik kartı buna yer bırakır, sahte yer tutucu yok).
-- **TASK/046** — Günlük / Haftalık Görevler.
+- ~~**TASK/045** — Oyuncu Seviyesi + XP + Başarımlar + Unvanlar (+ düzenlenebilir
+  takma ad; Profil'in kimlik kartı buna yer bırakır, sahte yer tutucu yok).~~ → dalda
+  (yukarıda, §4.21); owner brief'i düzenlenebilir takma adı KAPSAM DIŞI bıraktı
+  ("Oyuncu" kalır).
+- **TASK/046** — Günlük / Haftalık Görevler (sıradaki).
 - **TASK/047** — Günlük Merge Challenge.
 
 ### M10 — Play Store submission
