@@ -1,6 +1,8 @@
 class_name PlayerProfile
 extends RefCounted
 ## Profil (TASK/044) — oyuncu kimliği, vitrin ve istatistiklerin TEK okuma API'si.
+## TASK/045: Oyuncu Seviyesi / XP, başarım satırları ve unvanlar da buradan okunur
+## (kural katmanı PlayerProgression + AchievementCatalog, kayıt SaveManager).
 ##
 ## Hiçbir şey YAZMAZ ve kanonik değerleri KOPYALAMAZ:
 ##   yıldız          level_stars toplamı (LevelLibrary'deki level'lar üzerinden)
@@ -14,9 +16,8 @@ extends RefCounted
 ##
 ## Gameplay'e HİÇBİR etkisi yok: profil, vitrin ve avatar yalnız görüntü.
 
-## Görünen ad (TASK/044): nötr ve yerel. Düzenlenebilir takma ad, seviye, unvan
-## ve başarımlar TASK/045'in işi — burada sahte bir sistem gösterilmez. Hesap /
-## sunucu / kimlik iddiası YOK.
+## Görünen ad (TASK/044): nötr ve yerel. Düzenlenebilir takma ad YOK (TASK/045 de
+## eklemedi). Hesap / sunucu / kimlik iddiası YOK.
 const DEFAULT_NAME: String = "Oyuncu"
 
 
@@ -136,6 +137,111 @@ static func power_counts() -> Dictionary:
 	return counts
 
 
+# --- Oyuncu Seviyesi / başarımlar / unvanlar (TASK/045) ----------------------------
+
+static func player_xp() -> int:
+	return SaveManager.player_xp()
+
+
+static func player_level() -> int:
+	return PlayerProgression.level_for_xp(player_xp())
+
+
+## Seviye içi ilerleme: {level, xp, into, required, ratio} — ray "into / required XP".
+static func level_progress() -> Dictionary:
+	var xp: int = player_xp()
+	return {
+		"level": PlayerProgression.level_for_xp(xp),
+		"xp": xp,
+		"into": PlayerProgression.xp_into_level(xp),
+		"required": PlayerProgression.xp_required_for_next(xp),
+		"ratio": PlayerProgression.level_ratio(xp),
+	}
+
+
+static func selected_title_id() -> StringName:
+	return SaveManager.selected_title_id()
+
+
+static func selected_title_name() -> String:
+	return AchievementCatalog.title_name(selected_title_id())
+
+
+static func achievements_unlocked_count() -> int:
+	return SaveManager.unlocked_achievements().size()
+
+
+static func achievements_total() -> int:
+	return AchievementCatalog.count()
+
+
+## Tek başarımın ekran satırı: {id, name, description, metric, target, value (hedefe
+## kırpılmış; açıksa hedef), unlocked, title_id, title_name}. Bilinmeyen id boş.
+static func achievement_row(id: StringName) -> Dictionary:
+	return _achievement_row(id, SaveManager.progression_stats(), SaveManager.unlocked_achievements())
+
+
+## Katalog sırasıyla bütün başarım satırları (başarımlar penceresi).
+static func achievement_rows() -> Array[Dictionary]:
+	var stats: Dictionary = SaveManager.progression_stats()
+	var unlocked: Array[StringName] = SaveManager.unlocked_achievements()
+	var rows: Array[Dictionary] = []
+	for id in AchievementCatalog.ids():
+		rows.append(_achievement_row(id, stats, unlocked))
+	return rows
+
+
+## Profil özeti: sıradaki hedefler (AchievementCatalog.next_goals — en fazla 3).
+static func next_goal_rows(limit: int = 3) -> Array[Dictionary]:
+	var stats: Dictionary = SaveManager.progression_stats()
+	var unlocked: Array[StringName] = SaveManager.unlocked_achievements()
+	var rows: Array[Dictionary] = []
+	for id in AchievementCatalog.next_goals(stats, unlocked, limit):
+		rows.append(_achievement_row(id, stats, unlocked))
+	return rows
+
+
+static func _achievement_row(id: StringName, stats: Dictionary, unlocked: Array) -> Dictionary:
+	var entry: Dictionary = AchievementCatalog.find(id)
+	if entry.is_empty():
+		return {}
+	var goal: int = int(entry["target"])
+	var is_open: bool = unlocked.has(id)
+	var title_id: StringName = AchievementCatalog.title_for_achievement(id)
+	return {
+		"id": id,
+		"name": String(entry["name"]),
+		"description": String(entry["description"]),
+		"metric": entry["metric"],
+		"target": goal,
+		"value": goal if is_open else mini(AchievementCatalog.progress(id, stats), goal),
+		"unlocked": is_open,
+		"title_id": title_id,
+		"title_name": AchievementCatalog.title_name(title_id) if title_id != &"" else "",
+	}
+
+
+## Unvan seçicinin satırları (katalog sırası): {id, name, unlocked, selected,
+## source_id, source_name, source_description}.
+static func title_rows() -> Array[Dictionary]:
+	var unlocked: Array = SaveManager.unlocked_achievements()
+	var selected: StringName = selected_title_id()
+	var rows: Array[Dictionary] = []
+	for id in AchievementCatalog.title_ids():
+		var source: StringName = AchievementCatalog.title_source(id)
+		var source_entry: Dictionary = AchievementCatalog.find(source)
+		rows.append({
+			"id": id,
+			"name": AchievementCatalog.title_name(id),
+			"unlocked": AchievementCatalog.is_title_unlocked(id, unlocked),
+			"selected": id == selected,
+			"source_id": source,
+			"source_name": String(source_entry.get("name", "")),
+			"source_description": String(source_entry.get("description", "")),
+		})
+	return rows
+
+
 ## Testler / çekim aracı için tek anlık görüntü.
 static func snapshot() -> Dictionary:
 	return {
@@ -154,4 +260,9 @@ static func snapshot() -> Dictionary:
 		"collection_count": collection_count(),
 		"collection_total": collection_total(),
 		"powers": power_counts(),
+		"player_xp": player_xp(),
+		"player_level": player_level(),
+		"title": String(selected_title_id()),
+		"achievements_unlocked": achievements_unlocked_count(),
+		"achievements_total": achievements_total(),
 	}

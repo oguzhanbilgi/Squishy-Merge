@@ -129,6 +129,10 @@ var _daily_pending_kind: String = ""
 var _daily_pending_day: String = ""
 ## Sonuç ekranı geçişi (M8.9-02): round bitişi başına tam bir kez.
 var _result_seq: int = 0
+## Round kesinleştirme koruması (TASK/045): `_on_round_finished` round başına TAM bir
+## kez işler — yinelenen bir round_finished sinyali / geri çağrısı XP'yi, turu,
+## merge'leri ve sandıkları ikinci kez yazamaz. Yeni round (`_start_level`) sıfırlar.
+var _round_finalized: bool = false
 ## _ready tamamlandı: otomatik günlük pencere ancak bundan sonra (açılış
 ## sırasındaki _show_tab günlük giriş ödülünün önüne geçmesin).
 var _booted: bool = false
@@ -978,6 +982,7 @@ func _refresh_shell_dough() -> void:
 ## akışta boş — DropBag birebir eskisi gibi çalışır.
 func _start_level(level: LevelData, tutorial_queue: Array[int] = []) -> void:
 	_current_level = level
+	_round_finalized = false
 	_hide_shell()
 	_result.hide_result()
 	_clear_board()
@@ -1285,6 +1290,11 @@ func _clear_refill_request() -> void:
 
 
 func _on_round_finished(won: bool) -> void:
+	# TASK/045: yinelenen kesinleştirme (aynı round için ikinci sinyal / çağrı) hiçbir
+	# şey yazmaz — XP, tur, merge, yıldız, sandık round başına tam bir kez.
+	if _round_finalized:
+		return
+	_round_finalized = true
 	# Round gerçekten bitti: teklif penceresi her hâlükârda kapanır (kazanma
 	# fail-pending sırasında da gerçekleşebiliyor).
 	_revive.hide_offer()
@@ -1308,6 +1318,14 @@ func _on_round_finished(won: bool) -> void:
 	var unlocked_before: int = SaveManager.highest_level_unlocked()
 	var reached_tier: int = _board.max_tier_reached() \
 		if _board != null and is_instance_valid(_board) else 0
+	# Oyuncu ilerlemesi (TASK/045): önce bekleyen başarım varsa SESSİZCE uzlaşır (bu
+	# round'a mal edilmez), sonra "önce" görüntüsü alınır. Yıldız farkı yazımdan ÖNCEKİ
+	# kalıcı en iyiye göre — tekrar oynanan level'da sahip olunan yıldız XP vermez.
+	SaveManager.reconcile_achievements()
+	var xp_before: int = SaveManager.player_xp()
+	var achievements_before: Array[StringName] = SaveManager.unlocked_achievements()
+	var fixed_cleared: bool = won and not _current_level.is_endless
+	var stars_before: int = SaveManager.stars_for_level(_current_level.level_number) if fixed_cleared else 0
 
 	if _current_level.is_endless:
 		new_record = SaveManager.record_endless_score(score)
@@ -1316,10 +1334,17 @@ func _on_round_finished(won: bool) -> void:
 		SaveManager.record_stars(_current_level.level_number, stars)
 	var newly_unlocked: bool = SaveManager.highest_level_unlocked() > unlocked_before
 	# Profil sayaçları (TASK/044): round başına TAM bir kez, burada — terk edilen
-	# round (abandon_run / yeniden başlat) bu yola girmez, sayılmaz.
-	SaveManager.record_round_finished(GameState.highest_tier_created)
+	# round (abandon_run / yeniden başlat) bu yola girmez, sayılmaz. TASK/045: round'un
+	# XP'si (merge + sabit level bitişi + yeni yıldız) AYNI yazmada.
+	var xp_award: int = PlayerProgression.round_xp_award(merges, fixed_cleared, stars_before,
+		stars if fixed_cleared else 0)
+	SaveManager.record_round_finished(GameState.highest_tier_created, xp_award)
 
 	var rewards: Array[ChestReward] = _collect_rewards(won, merges)
+	# Sonuç ekranının kompakt ilerleme özeti: yalnız BU round'un XP'si ve bu round'un
+	# (merge / yıldız / level / sandıktan gelen koleksiyon) açtığı başarımlar.
+	var progress: Dictionary = PlayerProgression.round_summary(xp_before, SaveManager.player_xp(),
+		achievements_before, SaveManager.unlocked_achievements())
 
 	await get_tree().create_timer(RESULT_DELAY).timeout
 	# Doğal mola (M8.9-02): round KESİN bitti, devam kararları tamamlandı,
@@ -1328,16 +1353,17 @@ func _on_round_finished(won: bool) -> void:
 	# reklam yüklemesi ya da bekleme için sonuç asla bekletilmez.
 	_result_seq += 1
 	var present: Callable = _present_result.bind(_result_seq, won, score, stars, rewards,
-		new_record, newly_unlocked, reached_tier)
+		new_record, newly_unlocked, reached_tier, progress)
 	if _ads != null and _ads.try_show_interstitial("round_finish", present):
 		return
 	present.call()
 
 
 ## Sonuç ekranını açar — round bitişi başına tam bir kez (`seq`; geç gelen
-## reklam callback'i ikinci bir sonuç üretemez, sonuç kaybolmaz).
+## reklam callback'i ikinci bir sonuç üretemez, sonuç kaybolmaz). `progress`:
+## TASK/045 kompakt XP / seviye / başarım özeti (PlayerProgression.round_summary).
 func _present_result(seq: int, won: bool, score: int, stars: int, rewards: Array[ChestReward],
-		new_record: bool, newly_unlocked: bool, reached_tier: int) -> void:
+		new_record: bool, newly_unlocked: bool, reached_tier: int, progress: Dictionary = {}) -> void:
 	if seq != _result_seq or _current_level == null:
 		return
 	if _board == null or not is_instance_valid(_board):
@@ -1346,7 +1372,7 @@ func _present_result(seq: int, won: bool, score: int, stars: int, rewards: Array
 	_result_seq += 1
 	_set_ad_surface(MonetizationManager.Surface.RESULT)
 	_result.show_result(_current_level, won, score, stars, rewards, new_record,
-		newly_unlocked, reached_tier)
+		newly_unlocked, reached_tier, progress)
 
 
 ## GAME_DESIGN.md §5.2: level tamamlanınca 1 sandık, ayrıca her 75 merge'de

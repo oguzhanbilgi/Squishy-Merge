@@ -139,6 +139,9 @@ var _rewards: Array[ChestReward] = []
 var _sequence_id: int = 0
 var _balance_shown: int = 0
 var _reveal_done: bool = false
+## TASK/045: bu sonucun oyuncu ilerlemesi özeti (PlayerProgression.round_summary);
+## boş = eski çağıran (araç / test) — ilerleme şeridi gizli.
+var _progress: Dictionary = {}
 var _sparkle_tween: Tween = null
 var _scroll_tween: Tween = null
 
@@ -332,13 +335,14 @@ func hide_result() -> void:
 ## (testler, araçlar) altı parametreyle çalışmaya devam eder.
 func show_result(level: LevelData, won: bool, score: int, stars: int,
 		rewards: Array[ChestReward], new_record: bool,
-		newly_unlocked: bool = false, reached_tier: int = 0) -> void:
+		newly_unlocked: bool = false, reached_tier: int = 0, progress: Dictionary = {}) -> void:
 	_sequence_id += 1
 	var sequence: int = _sequence_id
 	_stop_ambient()
 	_clear_cards()
 	_level = level
 	_rewards = rewards.duplicate()
+	_progress = progress.duplicate(true)
 	_configure(level, won, score, stars, rewards, new_record, newly_unlocked, reached_tier)
 	_build_cards(rewards)
 	visible = true
@@ -759,6 +763,11 @@ func encourage_text() -> String:
 
 func is_reveal_done() -> bool:
 	return _reveal_done
+
+
+## TASK/045: gösterilen ilerleme özeti (boş = şerit gizli).
+func progress_summary() -> Dictionary:
+	return _progress
 
 
 func topper() -> TextureRect:

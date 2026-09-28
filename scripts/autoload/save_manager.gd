@@ -12,6 +12,10 @@ signal skin_granted(id: StringName)
 ## Profil vitrini değişti (TASK/044). Argüman: doğrulanmış vitrin (en fazla 3 id,
 ## ilk eleman avatar).
 signal showcase_changed(ids: Array)
+## Oyuncu ilerlemesi (TASK/045) kayda yazıldı: XP, başarım listesi ya da seçili
+## unvan değişti. Abone yalnız Profil (görünürken tazelenir); gameplay abone DEĞİL.
+## Yükleme göçü ve Profil'in bellek içi uzlaştırması YAYMAZ (kutlama / bildirim yok).
+signal player_meta_changed
 
 ## Vitrin yuvası sayısı (TASK/044, owner kararı).
 const SHOWCASE_MAX: int = 3
@@ -21,6 +25,14 @@ const SHOWCASE_MAX: int = 3
 const SHOWCASE_RAW_CAP: int = 32
 ## `showcase_add` sonucu. Yalnız ADDED kayda yazar.
 enum ShowcaseResult { ADDED, ALREADY, FULL, NOT_OWNED, UNKNOWN }
+## Oyuncu ilerlemesi kayıt şeması (TASK/045). Kayıtta yoksa kayıt TASK/045 öncesidir:
+## load_game tek seferlik göç yapar (bkz. _migrate_player_meta).
+const PLAYER_META_VERSION: int = 1
+## Ham başarım listesinin okunan tavanı (bozuk kayıtta binlerce öğe açılışı
+## kilitlemesin). Geçerli liste en fazla katalog kadar (12).
+const ACHIEVEMENTS_RAW_CAP: int = 64
+## `select_title` sonucu. Yalnız SELECTED kayda yazar.
+enum TitleResult { SELECTED, ALREADY, LOCKED, UNKNOWN }
 
 var data: Dictionary = {}
 
@@ -56,6 +68,20 @@ const DEFAULT_DATA: Dictionary = {
 	"total_rounds_played": 0,
 	"highest_tier_created": 0,
 	"profile_counters_partial": false,
+	## Oyuncu Seviyesi + başarımlar + unvanlar (TASK/045 — GAME_DESIGN §5.9):
+	##   player_xp              KÜMÜLATİF XP, tek gerçek. Seviye SAKLANMAZ (XP'den türetilir,
+	##                          PlayerProgression). Yalnız `record_round_finished` artırır.
+	##   unlocked_achievements  açılan başarım id'leri, açılma sırasıyla; yalnız sona eklenir,
+	##                          HİÇ çıkarılmaz (monoton). Unvan açıkları SAKLANMAZ — buradan
+	##                          türer (AchievementCatalog).
+	##   selected_title_id      seçili unvan; okuma her zaman doğrulanır (bilinmeyen / kilitli →
+	##                          varsayılan "birlestirici"). Yalnız `select_title` yazar.
+	##   player_meta_version    şema sürümü; kayıtta yoksa kayıt TASK/045 öncesidir → tek
+	##                          seferlik göç (bkz. _migrate_player_meta).
+	"player_xp": 0,
+	"unlocked_achievements": [],
+	"selected_title_id": "birlestirici",
+	"player_meta_version": 1,
 	"total_merges": 0,
 	"merges_since_bonus_chest": 0,
 	"daily_streak": 0,
@@ -142,6 +168,7 @@ func load_game() -> void:
 	_migrate_legacy_equip(parsed)
 	_sanitize_showcase()
 	_migrate_profile_counters(parsed)
+	_migrate_player_meta(parsed)
 	_grant_starter_powerups()
 
 
@@ -221,6 +248,32 @@ func _migrate_profile_counters(parsed: Dictionary) -> void:
 	data["profile_counters_partial"] = has_progress_evidence()
 
 
+## Oyuncu ilerlemesi (TASK/045): deterministik, idempotent, YALNIZ bellekte — yüklemede
+## disk yazması yok, sonraki doğal kayıt kalıcılaştırır (diğer göçlerle aynı ilke;
+## yazılmadan kapanırsa bir sonraki açılışta aynı sonuç).
+##   - İlerleme alanı YOKSA (TASK/045 öncesi kayıt): XP kayıttaki gerçeklerden BİR KEZ
+##     türetilir — merge + 10·yıldız + 20·tamamlanan level (PlayerProgression.bootstrap_xp).
+##     Round yeniden kurulmaz; skor / güç kullanımı / geçmiş UYDURULMAZ.
+##   - Varsa XP doğrulanır; bozuksa (negatif / metin / NaN / saçma büyük) aynı bootstrap'la
+##     KURTARILIR — kayıttaki gerçeklerin kanıtladığı XP, fazlası değil.
+##   - Başarım listesi biçim olarak temizlenir (yalnız katalogdaki id'ler, tekrarsız);
+##     kayıttaki gerçeklerin desteklediği başarımlar SESSİZCE açılır (sinyal / kutlama yok).
+##     Bilinmeyen id: yok sayılır ve bir sonraki kayıtta düşer — V1'in her başarımı kanonik
+##     istatistikten yeniden türetilebildiği için gerçek bir açılış kaybolamaz; Play sürüm
+##     düşürmeye izin vermediğinden ileri uyumluluk için saklamanın güçlü bir sebebi yok.
+##   - Seçili unvan doğrulanır: bilinmeyen / kilitli → varsayılan (geçersiz unvan kayda
+##     geri yazılmaz).
+func _migrate_player_meta(parsed: Dictionary) -> void:
+	var stored_xp: int = -1
+	if parsed.has("player_meta_version") or parsed.has("player_xp"):
+		stored_xp = PlayerProgression.sanitize_xp(parsed.get("player_xp"))
+	data["player_xp"] = stored_xp if stored_xp >= 0 else _bootstrap_xp()
+	data["player_meta_version"] = PLAYER_META_VERSION
+	_store_achievement_ids(unlocked_achievements())
+	_unlock_satisfied_achievements()
+	data["selected_title_id"] = String(selected_title_id())
+
+
 ## Kayıtta oynanmışlık kanıtı var mı (onboarding migration kuralı).
 func has_progress_evidence() -> bool:
 	if highest_level_unlocked() > 1:
@@ -246,18 +299,22 @@ func save_game() -> void:
 # --- İlerleme (M2) ---
 
 func highest_level_unlocked() -> int:
-	return int(data.get("highest_level_unlocked", 1))
+	return _safe_int(data.get("highest_level_unlocked", 1), 1)
 
 
 func is_level_unlocked(level_number: int) -> bool:
 	return level_number <= highest_level_unlocked()
 
 
-## Level tamamlandığında bir sonrakini açar. Geriye gitmez.
+## Level tamamlandığında bir sonrakini açar. Geriye gitmez. Tamamlanan level
+## başarımları (TASK/045) AYNI yazmada açılır.
 func complete_level(level_number: int) -> void:
 	if level_number + 1 > highest_level_unlocked():
 		data["highest_level_unlocked"] = level_number + 1
+		var unlocked: bool = not _unlock_satisfied_achievements().is_empty()
 		save_game()
+		if unlocked:
+			player_meta_changed.emit()
 
 
 ## Sonsuz mod level 10 bitince açılır (GAME_DESIGN.md §4).
@@ -299,22 +356,29 @@ func spend_dough(amount: int) -> bool:
 	return true
 
 
+## Sahiplik listesi; biçimsiz kayıt değeri (dizi değil) boş sayılır (TASK/045:
+## koleksiyon başarımı her yüklemede okur — bozuk kayıt açılışı düşürmesin).
 func owned_skins() -> Array:
-	return data.get("unlocked_skins", [])
+	var raw: Variant = data.get("unlocked_skins", [])
+	return raw if raw is Array else []
 
 
 func owns_skin(id: StringName) -> bool:
 	return owned_skins().has(String(id))
 
 
+## Sandıktan parça. Koleksiyon başarımları (TASK/045) AYNI yazmada açılır.
 func grant_skin(id: StringName) -> void:
 	if owns_skin(id):
 		return
 	var owned: Array = owned_skins().duplicate()
 	owned.append(String(id))
 	data["unlocked_skins"] = owned
+	var unlocked: bool = not _unlock_satisfied_achievements().is_empty()
 	save_game()
 	skin_granted.emit(id)
+	if unlocked:
+		player_meta_changed.emit()
 
 
 # --- Profil vitrini (TASK/044) ---
@@ -441,14 +505,23 @@ func profile_counters_partial() -> bool:
 
 
 ## Round KESİN bitti — yalnız Main._on_round_finished, round başına TAM bir kez
-## (GameBoard._finish korumalı). Tur sayacı +1 ve bu round'da oluşturulan en yüksek
-## tier rekoru, TEK yazma. `created_tier` 0 = merge / Büyütücü yok (rekor değişmez).
-func record_round_finished(created_tier: int) -> void:
+## (GameBoard._finish + Main kesinleştirme koruması). Tur sayacı +1, bu round'da
+## oluşturulan en yüksek tier rekoru ve (TASK/045) round'un XP'si
+## (`PlayerProgression.round_xp_award`) — HEPSİ bu TEK yazmada; ikinci bir disk
+## yazması yok. `created_tier` 0 = merge / Büyütücü yok (rekor değişmez); `xp_award`
+## ≤ 0 XP'ye dokunmaz.
+func record_round_finished(created_tier: int, xp_award: int = 0) -> void:
 	data["total_rounds_played"] = total_rounds_played() + 1
 	var tier: int = clampi(created_tier, 0, TierConfig.MAX_TIER)
 	if tier > highest_tier_created():
 		data["highest_tier_created"] = tier
+	var xp_before: int = player_xp()
+	if xp_award > 0:
+		data["player_xp"] = PlayerProgression.add_xp(xp_before, xp_award)
+	var unlocked: bool = not _unlock_satisfied_achievements().is_empty()
 	save_game()
+	if unlocked or player_xp() != xp_before:
+		player_meta_changed.emit()
 
 
 static func _as_int(value: Variant) -> int:
@@ -458,6 +531,23 @@ static func _as_int(value: Variant) -> int:
 	return 0
 
 
+## `int()` ile aynı sonuç, ama biçimsiz kayıt değeri (null / dizi / sözlük / NaN /
+## int64 dışı float) betik hatası ya da INT64_MIN yerine `fallback` (TASK/045:
+## ilerleme istatistikleri her yüklemede okunur).
+static func _safe_int(value: Variant, fallback: int) -> int:
+	match typeof(value):
+		TYPE_INT:
+			return value
+		TYPE_FLOAT:
+			var number: float = value
+			if is_nan(number) or is_inf(number) or absf(number) >= 9.0e18:
+				return fallback
+			return int(number)
+		TYPE_STRING, TYPE_BOOL:
+			return int(value)
+	return fallback
+
+
 ## Kanonik toplam merge sayısı (profil istatistiği; biçimsiz değer 0).
 func total_merges() -> int:
 	return maxi(_as_int(data.get("total_merges", 0)), 0)
@@ -465,6 +555,7 @@ func total_merges() -> int:
 
 ## Round sonunda çağrılır. Toplam merge sayacını ilerletir ve hak edilen
 ## bonus sandık sayısını döner (GAME_DESIGN.md §5.2: her 75 merge'de bir).
+## Merge başarımları (TASK/045) AYNI yazmada açılır.
 func add_merges(count: int) -> int:
 	if count <= 0:
 		return 0
@@ -472,22 +563,147 @@ func add_merges(count: int) -> int:
 	var pending: int = int(data.get("merges_since_bonus_chest", 0)) + count
 	var chests: int = pending / ChestSystem.MERGES_PER_BONUS_CHEST
 	data["merges_since_bonus_chest"] = pending % ChestSystem.MERGES_PER_BONUS_CHEST
+	var unlocked: bool = not _unlock_satisfied_achievements().is_empty()
 	save_game()
+	if unlocked:
+		player_meta_changed.emit()
 	return chests
 
 
+## Biçimsiz kayıt (sözlük değil / sayı değil) 0 yıldız okunur (TASK/045: yıldız
+## başarımı ve XP göçü her yüklemede okur).
 func stars_for_level(level_number: int) -> int:
-	return int(data.get("level_stars", {}).get(str(level_number), 0))
+	var all_stars: Variant = data.get("level_stars", {})
+	if not all_stars is Dictionary:
+		return 0
+	return _safe_int((all_stars as Dictionary).get(str(level_number), 0), 0)
 
 
 ## Yıldız sadece yukarı gider — daha kötü bir tekrar oynayış eskisini silmez.
+## Yıldız başarımları (TASK/045) AYNI yazmada açılır.
 func record_stars(level_number: int, stars: int) -> void:
 	if stars <= stars_for_level(level_number):
 		return
-	var all_stars: Dictionary = data.get("level_stars", {}).duplicate()
+	var raw: Variant = data.get("level_stars", {})
+	var all_stars: Dictionary = (raw as Dictionary).duplicate() if raw is Dictionary else {}
 	all_stars[str(level_number)] = stars
 	data["level_stars"] = all_stars
+	var unlocked: bool = not _unlock_satisfied_achievements().is_empty()
 	save_game()
+	if unlocked:
+		player_meta_changed.emit()
+
+
+# --- Oyuncu ilerlemesi (TASK/045 — GAME_DESIGN §5.9) ---
+#
+# Tek gerçek `player_xp` (seviye türetilir), monoton `unlocked_achievements`, doğrulanan
+# `selected_title_id`. Kural katmanı saf: PlayerProgression (XP eğrisi / ödül / göç) ve
+# AchievementCatalog (başarım + unvan). Burada yalnız doğrulanmış okuma ve mutasyon.
+#
+# Başarımlar kanonik istatistik DEĞİŞTİREN her transaction'ın KENDİ yazmasında açılır
+# (merge / yıldız / level / koleksiyon: add_merges, record_stars, complete_level,
+# grant_skin, purchase_skin_with_dough, günlük sandık) — ek disk yazması yok. XP yalnız
+# `record_round_finished`'da. Yükleme göçü ve Profil'in uzlaştırması yalnız bellekte.
+
+## Doğrulanmış kümülatif XP. Bozuk değer (negatif / metin / NaN / saçma büyük) kayıttaki
+## gerçeklerden kurtarılır (bootstrap) — okuma YAZMAZ.
+func player_xp() -> int:
+	var xp: int = PlayerProgression.sanitize_xp(data.get("player_xp", 0))
+	return xp if xp >= 0 else _bootstrap_xp()
+
+
+## XP'den türetilir; SAKLANMAZ.
+func player_level() -> int:
+	return PlayerProgression.level_for_xp(player_xp())
+
+
+## Açık başarımlar: yalnız katalogdaki id'ler, tekrarsız, açılma sırasıyla (bozuk öğe /
+## bilinmeyen id yok sayılır). YAZMAZ.
+func unlocked_achievements() -> Array[StringName]:
+	var out: Array[StringName] = []
+	var raw: Variant = data.get("unlocked_achievements", [])
+	if not raw is Array:
+		return out
+	var scanned: int = 0
+	for item: Variant in raw:
+		scanned += 1
+		if scanned > ACHIEVEMENTS_RAW_CAP:
+			break
+		if typeof(item) != TYPE_STRING and typeof(item) != TYPE_STRING_NAME:
+			continue
+		var id := StringName(String(item))
+		if out.has(id) or not AchievementCatalog.is_known(id):
+			continue
+		out.append(id)
+	return out
+
+
+func is_achievement_unlocked(id: StringName) -> bool:
+	return unlocked_achievements().has(id)
+
+
+## Seçili unvan: bilinen ve AÇIK değilse varsayılan "birlestirici". YAZMAZ.
+func selected_title_id() -> StringName:
+	return AchievementCatalog.resolve_title(data.get("selected_title_id", ""), unlocked_achievements())
+
+
+## Unvan seçimi — Profil'in unvan seçicisi. Yalnız bilinen + AÇIK ve şu an seçili
+## OLMAYAN unvan TEK yazmayla kaydedilir; kilitli / bilinmeyen / aynı seçim hiçbir
+## alanı değiştirmez ve diske yazmaz. Yeni açılan unvan asla otomatik seçilmez.
+func select_title(id: StringName) -> TitleResult:
+	if not AchievementCatalog.is_title(id):
+		return TitleResult.UNKNOWN
+	if not AchievementCatalog.is_title_unlocked(id, unlocked_achievements()):
+		return TitleResult.LOCKED
+	if selected_title_id() == id and String(data.get("selected_title_id", "")) == String(id):
+		return TitleResult.ALREADY
+	data["selected_title_id"] = String(id)
+	save_game()
+	player_meta_changed.emit()
+	return TitleResult.SELECTED
+
+
+## Güvenli yedek uzlaştırma (Profil açılışı, Main round kesinleşmeden önce): kanonik
+## istatistiğin desteklediği ama listede olmayan başarımları BELLEKTE açar ve döner.
+## DİSKE YAZMAZ, sinyal / kutlama yaymaz — sonraki doğal kayıt kalıcılaştırır.
+## Monoton + idempotent: ikinci çağrı boş döner.
+func reconcile_achievements() -> Array[StringName]:
+	return _unlock_satisfied_achievements()
+
+
+## Başarım değerlendirmesinin kanonik girdileri (PlayerProfile ile AYNI kaynaklar —
+## kopya sayaç yok): toplam merge, 10 level'daki kalıcı yıldız toplamı, tamamlanan
+## sabit level, sahip olunan katalog Squishy'si.
+func progression_stats() -> Dictionary:
+	return {
+		AchievementCatalog.METRIC_MERGES: total_merges(),
+		AchievementCatalog.METRIC_STARS: PlayerProfile.total_stars(),
+		AchievementCatalog.METRIC_LEVELS: PlayerProfile.completed_levels(),
+		AchievementCatalog.METRIC_COLLECTION: PlayerProfile.collection_count(),
+	}
+
+
+## Kayıttaki gerçeklerin kanıtladığı XP (göç + bozuk XP kurtarma).
+func _bootstrap_xp() -> int:
+	return PlayerProgression.bootstrap_xp(total_merges(), PlayerProfile.total_stars(),
+		PlayerProfile.completed_levels())
+
+
+## Desteklenen yeni başarımları listenin SONUNA ekler (yalnız bellek); eklenenleri döner.
+func _unlock_satisfied_achievements() -> Array[StringName]:
+	var current: Array[StringName] = unlocked_achievements()
+	var fresh: Array[StringName] = AchievementCatalog.newly_satisfied(progression_stats(), current)
+	if not fresh.is_empty():
+		current.append_array(fresh)
+		_store_achievement_ids(current)
+	return fresh
+
+
+func _store_achievement_ids(ids: Array[StringName]) -> void:
+	var raw: Array = []
+	for id in ids:
+		raw.append(String(id))
+	data["unlocked_achievements"] = raw
 
 
 # --- Güç envanteri (M8.5-03) ---
@@ -636,8 +852,12 @@ func purchase_skin_with_dough(id: StringName, cost: int) -> bool:
 	owned.append(String(id))
 	data["unlocked_skins"] = owned
 	data["dough"] = dough() - cost
+	# Koleksiyon başarımları (TASK/045) aynı transaction'da — ekonomi aynen.
+	var unlocked: bool = not _unlock_satisfied_achievements().is_empty()
 	save_game()
 	skin_granted.emit(id)
+	if unlocked:
+		player_meta_changed.emit()
 	return true
 
 
@@ -881,6 +1101,10 @@ func _apply_daily_chest(raw: Dictionary, dough_amount: int, skin_id: StringName)
 		owned.append(String(skin_id))
 		data["unlocked_skins"] = owned
 		granted_skin = true
+	# Koleksiyon başarımları (TASK/045) aynı transaction'da (ücretsiz + reklamlı sandık).
+	var unlocked: bool = not _unlock_satisfied_achievements().is_empty()
 	save_game()
 	if granted_skin:
 		skin_granted.emit(skin_id)
+	if unlocked:
+		player_meta_changed.emit()
