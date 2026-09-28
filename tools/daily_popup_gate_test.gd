@@ -30,6 +30,7 @@ var _fails: int = 0
 var _checks: int = 0
 var _sections_done: int = 0
 var _finished: bool = false
+var _popup_flag_before: bool = true
 
 
 func _c(name: String, ok: bool) -> void:
@@ -40,6 +41,7 @@ func _c(name: String, ok: bool) -> void:
 
 
 func _ready() -> void:
+	_popup_flag_before = DailyRewards.auto_popup_enabled
 	DailyRewards.auto_popup_enabled = false
 	await get_tree().process_frame
 	_owner_state = _owner_snapshot()
@@ -89,7 +91,7 @@ func _exit_tree() -> void:
 
 
 func _teardown() -> void:
-	DailyRewards.auto_popup_enabled = true
+	DailyRewards.auto_popup_enabled = _popup_flag_before
 	DailyRewards.clock_override = ""
 	SaveManager.save_path = SaveManager.SAVE_PATH
 	SaveManager.data = _saved_data.duplicate(true)
@@ -128,7 +130,9 @@ func _gate(album: CanvasLayer) -> void:
 	await _settle(2)
 	_make_due()
 	var seen_before: String = SaveManager.daily_popup_seen_day()
-	var bytes_before: PackedByteArray = FileAccess.get_file_as_bytes(PATH)
+	# Bellek işareti: bu aralıkta HERHANGİ bir kayıt (ör. "bugün görüldü" yazması) onu dosyaya
+	# taşırdı — dosyada görünmemesi yazma olmadığını kanıtlar (bayt karşılaştırması yetmez).
+	SaveManager.data["qa_gate_marker"] = 1
 	_c("ön koşul: detay açık (%s), pencere due" % DETAIL_ID, album.is_detail_open() and DailyRewards.popup_due())
 
 	_main._show_tab(2)
@@ -136,15 +140,18 @@ func _gate(album: CanvasLayer) -> void:
 	_c("sekme tazeleme (_show_tab aynı sekme): pencere AÇILMADI, due, detay açık", _blocked(album))
 	_main._refresh_shell_dough()
 	await _settle(2)
-	_c("kabuk tazeleme (_refresh_shell_dough): pencere yok, due", _blocked(album))
+	_c("kabuk tazeleme (Hamur, _refresh_shell_dough) otomatik pencereyi hiç denemez — değişmedi; detay açık, due",
+		_blocked(album))
 	get_tree().root.propagate_notification(NOTIFICATION_APPLICATION_RESUMED)
 	await _settle(2)
 	_c("öne dönüş (APPLICATION_RESUMED): pencere AÇILMADI, due, detay açık", _blocked(album))
 	_main._maybe_auto_open_daily_rewards()
 	await _settle(2)
 	_c("doğrudan otomatik açılış çağrısı: kapı tuttu", _blocked(album))
-	_c("bugün görüldü işaretlenmedi, kayıt dosyası YAZILMADI", SaveManager.daily_popup_seen_day() == seen_before
-		and FileAccess.get_file_as_bytes(PATH) == bytes_before)
+	_c("bugün görüldü işaretlenmedi, bu aralıkta hiç kayıt YAZILMADI (bellek işareti dosyada yok)",
+		SaveManager.daily_popup_seen_day() == seen_before
+		and not FileAccess.get_file_as_string(PATH).contains("qa_gate_marker"))
+	SaveManager.data.erase("qa_gate_marker")
 
 	print("-- gün dönümü + öne dönüş, detay açık")
 	DailyRewards.clock_override = _tomorrow()

@@ -30,7 +30,10 @@ const SECTIONS: int = 7
 var _board: Node2D
 var _main: Node2D
 var _drops: int = 0
+## Son düşüşün nişanı (dünya x) — düşüş `_set_aim(drop_x)` sonrası yayılır.
+var _last_drop_aim: float = 0.0
 var _refills: Array[int] = []
+var _popup_flag_before: bool = true
 var _saved_data: Dictionary = {}
 var _owner_state: Dictionary = {}
 var _fails: int = 0
@@ -47,6 +50,7 @@ func _c(name: String, ok: bool) -> void:
 
 
 func _ready() -> void:
+	_popup_flag_before = DailyRewards.auto_popup_enabled
 	DailyRewards.auto_popup_enabled = false
 	await get_tree().process_frame
 	_owner_state = _owner_snapshot()
@@ -84,7 +88,7 @@ func _exit_tree() -> void:
 
 
 func _teardown() -> void:
-	DailyRewards.auto_popup_enabled = true
+	DailyRewards.auto_popup_enabled = _popup_flag_before
 	SaveManager.save_path = SaveManager.SAVE_PATH
 	SaveManager.data = _saved_data.duplicate(true)
 	for path in [PATH, PATH + SaveFile.TEMP_SUFFIX, PATH + SaveFile.BACKUP_SUFFIX]:
@@ -193,9 +197,10 @@ func _edge_cases() -> void:
 	await _make_board(8, 2)
 	await _frames(5)
 	_arm(PowerUp.Type.BOMB)
+	var armed_first: bool = _board._powerups.is_armed()
 	_arm(PowerUp.Type.BOMB)
-	_c("aynı butona ikinci basış iptal etti, stok aynı", not _board._powerups.is_armed()
-		and SaveManager.powerup_count(PowerUp.Type.BOMB) == 2)
+	_c("ön koşul silahlandı; aynı butona ikinci basış iptal etti, stok aynı", armed_first
+		and not _board._powerups.is_armed() and SaveManager.powerup_count(PowerUp.Type.BOMB) == 2)
 	await _tap(_empty_point())
 	_c("butonla iptal sonrası dokunuş normal düşürdü (tüketilmiş dizi yok)", _drops == 1)
 
@@ -203,17 +208,27 @@ func _edge_cases() -> void:
 	await _make_board(8, 2)
 	var target: Dumpling = _spawn(3, Vector2(_board._center_x(), _board.FLOOR_Y - 38.0))
 	await _frames(40)
+	# Ön koşul: hedefleme dışında aynı sürükleme nişanı GERÇEKTEN kaydırır (bırakmadan).
+	var free_world := Vector2(_board._center_x() + 150.0, _board.overflow_line_y() + 40.0)
+	await _touch(_win(free_world), true, 3)
+	var aim_pressed: float = _board._aim_x
+	await _drag(_win(free_world + Vector2(-200.0, 0.0)), 3)
+	var dragged: bool = _board._aim_x < aim_pressed - 100.0
+	await _touch(_win(free_world + Vector2(-200.0, 0.0)), false, 3)
+	await _wait(0.45)
 	var aim_before: float = _board._aim_x
+	var drops_before: int = _drops
 	_arm(PowerUp.Type.BOMB)
 	var at: Vector2 = _win(target.global_position)
 	await _touch(at, true)
-	await _drag(at + Vector2(-160.0, -40.0))
-	await _drag(at + Vector2(-240.0, -90.0))
-	await _touch(at + Vector2(-240.0, -90.0), false)
-	_c("sürükleme nişanı KAYDIRMADI, bırakış düşürmedi, güç bir kez", is_equal_approx(_board._aim_x, aim_before)
-		and _drops == 0 and SaveManager.powerup_count(PowerUp.Type.BOMB) == 1)
+	await _drag(_win(target.global_position + Vector2(-160.0, -40.0)))
+	await _drag(_win(target.global_position + Vector2(-240.0, -90.0)))
+	await _touch(_win(target.global_position + Vector2(-240.0, -90.0)), false)
+	_c("ön koşul: normal sürükleme nişanı kaydırır; hedefleme dokunuşunun sürüklemesi KAYDIRMADI, bırakışı düşürmedi, güç bir kez",
+		dragged and is_equal_approx(_board._aim_x, aim_before) and _drops == drops_before
+		and SaveManager.powerup_count(PowerUp.Type.BOMB) == 1)
 	await _tap(_empty_point(-1))
-	_c("sonraki dokunuş normal", _drops == 1)
+	_c("sonraki dokunuş normal", _drops == drops_before + 1)
 
 	print("-- hızlı dokunuşlar: hedef + hemen ikinci dokunuş")
 	await _make_board(8, 2)
@@ -223,10 +238,16 @@ func _edge_cases() -> void:
 	at = _win(target.global_position)
 	await _touch(at, true)
 	await _touch(at, false)
-	await _touch(at, true)
-	await _touch(at, false)
-	_c("ikinci hızlı dokunuş bağımsız: tam bir drop, İKİNCİ güç işlemi YOK (stok 1)", _drops == 1
-		and SaveManager.powerup_count(PowerUp.Type.BOMB) == 1 and not _board._powerups.is_armed())
+	_c("ilk (hedefleme) dokunuşun bırakışı düşürmedi (drop 0, bekleme süresi yok)", _drops == 0
+		and _board._drop_cooldown == 0.0)
+	# İkinci dokunuş hedefin 90 px (board) sağında: düşüş o x'te olmalı.
+	var want_x: float = target.global_position.x + 90.0
+	var second: Vector2 = _win(Vector2(want_x, target.global_position.y))
+	await _touch(second, true)
+	await _touch(second, false)
+	_c("ikinci hızlı dokunuş bağımsız: tam bir drop (kendi x'inde: %.0f ≈ %.0f), İKİNCİ güç işlemi YOK (stok 1)"
+		% [_last_drop_x(), want_x], _drops == 1 and SaveManager.powerup_count(PowerUp.Type.BOMB) == 1
+		and not _board._powerups.is_armed() and absf(_last_drop_x() - want_x) < 60.0)
 	await _wait(BombTiming.SETTLE)
 	_c("hedef bir kez kaldırıldı", not is_instance_valid(target))
 
@@ -256,9 +277,12 @@ func _edge_cases() -> void:
 	await _touch(_empty_point(), true, 1)
 	await _touch(_empty_point(), false, 1)
 	_c("ikinci parmak normal düşürdü (1)", _drops == 1)
+	# Bekleme süresi dolsun: parmak 0'ın bırakışı düşürseydi GERÇEKTEN düşürebilirdi.
+	await _wait(0.45)
+	var cooldown_clear: bool = _board._drop_cooldown == 0.0
 	await _touch(at, false, 0)
-	_c("hedefleme parmağının bırakışı yine düşürmedi (hâlâ 1), güç bir kez", _drops == 1
-		and SaveManager.powerup_count(PowerUp.Type.BOMB) == 1)
+	_c("bekleme süresi bittikten sonra da hedefleme parmağının bırakışı düşürmedi (hâlâ 1), güç bir kez",
+		cooldown_clear and _drops == 1 and SaveManager.powerup_count(PowerUp.Type.BOMB) == 1)
 
 	print("-- kaybolan bırakış: bastırma takılı kalmaz")
 	await _make_board(8, 2)
@@ -266,9 +290,10 @@ func _edge_cases() -> void:
 	await _frames(40)
 	_arm(PowerUp.Type.BOMB)
 	await _touch(_win(target.global_position), true)
+	var registered: bool = _board._targeting_touches.has(0) and SaveManager.powerup_count(PowerUp.Type.BOMB) == 1
 	await _tap(_empty_point())
-	_c("aynı parmağın YENİ basışı diziyi kapattı: normal düşürdü (1)", _drops == 1
-		and _board._targeting_touches.is_empty())
+	_c("ön koşul: hedefleme basışı kaydedildi; aynı parmağın YENİ basışı diziyi kapattı, normal düşürdü (1)",
+		registered and _drops == 1 and _board._targeting_touches.is_empty())
 
 	print("-- duraklamada gelen bırakış")
 	await _make_board(8, 2)
@@ -277,9 +302,11 @@ func _edge_cases() -> void:
 	_arm(PowerUp.Type.BOMB)
 	at = _win(target.global_position)
 	await _touch(at, true)
+	var pressed_ok: bool = _board._targeting_touches.has(0) and SaveManager.powerup_count(PowerUp.Type.BOMB) == 1
 	_board.set_menu_paused(true)
 	await _touch(at, false)
-	_c("duraklamadaki bırakış diziyi kapattı, düşürmedi", _drops == 0 and _board._targeting_touches.is_empty())
+	_c("ön koşul: basış hedeflemede kaydedildi; duraklamadaki bırakış diziyi kapattı, düşürmedi", pressed_ok
+		and _drops == 0 and _board._targeting_touches.is_empty())
 	_board.set_menu_paused(false)
 	await _frames(2)
 	await _tap(_empty_point())
@@ -477,7 +504,9 @@ func _make_board(level: int, stock: int) -> void:
 		else "res://resources/levels/level_%02d.tres" % level
 	_board = GAME_BOARD_SCENE.instantiate()
 	_board.setup(load(path))
-	_board.dumpling_dropped.connect(func(_tier: int) -> void: _drops += 1)
+	_board.dumpling_dropped.connect(func(_tier: int) -> void:
+		_drops += 1
+		_last_drop_aim = _board._aim_x)
 	_board.power_refill_offered.connect(func(type: int) -> void: _refills.append(type))
 	add_child(_board)
 	_drops = 0
@@ -505,6 +534,10 @@ func _spawn(tier: int, at: Vector2) -> Dumpling:
 ## Dünya noktası → Input.parse_input_event'in beklediği PENCERE pikseli.
 func _win(world: Vector2) -> Vector2:
 	return get_viewport().get_screen_transform() * _board.world_to_screen(world)
+
+
+func _last_drop_x() -> float:
+	return _last_drop_aim
 
 
 ## Kabın içinde, parçalardan uzak boş bir nokta (pencere pikseli).

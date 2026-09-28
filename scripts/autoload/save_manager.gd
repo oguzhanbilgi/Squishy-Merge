@@ -177,6 +177,12 @@ func load_game() -> void:
 		push_warning("Kayıt, yarım kalan bir kayıt işleminden kurtarıldı (%s)." % SaveFile.source_name(_load_source))
 	for key: String in parsed:
 		data[key] = parsed[key]
+	if _load_source == SaveFile.Source.BACKUP:
+		# Bir önceki kuşaktan kurtarıldı: yaş bandı güncel olmayabilir (ör. son kayıt 13 altı
+		# yeniden girişiydi). TASK/043 fail-closed: bant UNKNOWN → reklam SDK'sı / UMP başlamaz,
+		# yaş ilk güvenli kabukta yeniden sorulur; ilerleme kurtarılır. Yalnız bellekte.
+		data["age_ad_band"] = "UNKNOWN"
+		data["next_age_transition_date"] = ""
 	_migrate_onboarding(parsed)
 	_migrate_legacy_equip(parsed)
 	_sanitize_showcase()
@@ -1006,9 +1012,13 @@ func resolve_age_band_at_launch(on_day: Dictionary) -> int:
 ## türetilmiş bant + (UNDER_13 / TEEN için) geçiş günü; ADULT / UNKNOWN'da tarih boş.
 func store_age_band(band: int, transition: String) -> void:
 	var pair: Array[String] = AgeGate.stored_pair(band, transition)
+	var had_date: bool = not String(data.get("next_age_transition_date", "")).is_empty()
 	data["age_ad_band"] = pair[0]
 	data["next_age_transition_date"] = pair[1]
-	save_game()
+	# TASK/045.1: geçiş günü (doğum gününe eşdeğer) silinince bir önceki kayıt kopyası (`.bak`)
+	# da atılır — "ADULT olunca silinir" sözü o kopya için de geçerli.
+	if save_game() and had_date and pair[1].is_empty():
+		SaveFile.discard_backup(save_path)
 
 
 # --- Günlük ödüller (M8.9-02 — docs/monetization/DAILY_REWARDS.md) ---

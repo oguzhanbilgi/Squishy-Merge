@@ -36,6 +36,15 @@ const PATH: String = DIR + "/save.json"
 const TMP: String = PATH + SaveFile.TEMP_SUFFIX
 const BAK: String = PATH + SaveFile.BACKUP_SUFFIX
 const SECTIONS: int = 5
+## Baseline (017f2dc, TASK/045) yeni kayıt şeması — sabit liste: canlı DEFAULT_DATA ile değil,
+## bununla karşılaştırılır (şema değişikliği bu görevin kapsamı dışında).
+const SCHEMA_KEYS: Array[String] = ["age_ad_band", "daily_rewards", "daily_streak", "dough",
+	"endless_high_score", "haptics_enabled", "highest_level_unlocked", "highest_tier_created",
+	"last_login_date", "level_stars", "merges_since_bonus_chest", "next_age_transition_date",
+	"onboarding_completed", "onboarding_completed_day", "player_meta_version", "player_xp",
+	"powerup_starter_granted", "powerups", "profile_counters_partial", "profile_showcase",
+	"rewarded_power_date", "rewarded_power_grants", "selected_title_id", "sfx_enabled",
+	"total_merges", "total_rounds_played", "unlocked_achievements", "unlocked_skins"]
 
 var _fails: int = 0
 var _checks: int = 0
@@ -169,6 +178,7 @@ func _fault_injection() -> void:
 		[SaveFile.Fault.TEMP_WRITE, "temp", ".tmp yazımı yarıda kaldı", true],
 		[SaveFile.Fault.TEMP_SHORT, "temp", ".tmp sessizce kısa yazıldı (geri okuma yakaladı)", true],
 		[SaveFile.Fault.BACKUP_MOVE, "backup", "eski kayıt kenara alınamadı", true],
+		[SaveFile.Fault.BACKUP_TARGET_DELETED, "backup", "Windows rename'i: .bak silinip eski kayıt taşınamadı", false],
 		[SaveFile.Fault.COMMIT, "commit", "yeni kayıt yerine konamadı → geri alındı", false],
 	]
 	for case in cases:
@@ -177,12 +187,19 @@ func _fault_injection() -> void:
 		var ok: bool = SaveFile.write_save(PATH, new)
 		_c("%s: false, aşama '%s', enjeksiyon tek atımlık" % [case[2], case[1]], not ok
 			and SaveFile.last_error_stage == case[1] and SaveFile.fault == SaveFile.Fault.NONE)
-		# COMMIT: eski kayıt kenara alınıp geri taşındı — daha eski .bak kuşağı düşer, kanonik aynen.
+		# COMMIT: eski kayıt kenara alınıp geri taşındı; Windows rotasyon hatası `.bak`'ı silmiş olabilir —
+		# iki durumda da yalnız daha eski .bak kuşağı düşer, kanonik aynen.
 		var bak_ok: bool = _bytes(BAK) == prev.to_utf8_buffer() if case[3] else not _exists(BAK)
-		_c("%s: önceki kanonik kayıt bayt-aynı, .tmp YOK, .bak %s" % [case[2], "aynen" if case[3] else "geri taşındı"],
+		_c("%s: önceki kanonik kayıt bayt-aynı, .tmp YOK, .bak %s" % [case[2], "aynen" if case[3] else "yok (eski kuşak düştü)"],
 			_bytes(PATH) == old.to_utf8_buffer() and not _exists(TMP) and bak_ok)
 		_c("%s: sonraki kayıt normal (takılı durum yok)" % case[2], SaveFile.write_save(PATH, new)
 			and _bytes(PATH) == new.to_utf8_buffer() and _bytes(BAK) == old.to_utf8_buffer() and not _exists(TMP))
+
+	var stale: String = _payload({"gen": "stale_uncommitted", "xp": 99})
+	_state(old, stale, prev)
+	_c("geçerli kanonik yanında bayat .tmp varken kayıt: true, bayat .tmp ezildi; kanonik = yeni, .bak = eski",
+		SaveFile.write_save(PATH, new) and _bytes(PATH) == new.to_utf8_buffer() and _bytes(BAK) == old.to_utf8_buffer()
+		and not _exists(TMP))
 
 	print("-- çökme benzetimi: disk durumu + okuma kuralı")
 	_reset_with([prev, old])
@@ -235,6 +252,14 @@ func _fault_injection() -> void:
 	_c("  … açılış yine o kopyayı kurtarır", read["source"] == SaveFile.Source.TEMP
 		and _same(read["data"], JSON.parse_string(only)))
 
+	_state("", "{\"yarım\": ", prev)
+	SaveFile.fault = SaveFile.Fault.TEMP_WRITE
+	var evidence: bool = not SaveFile.write_save(PATH, new) and not _exists(PATH) and _exists(TMP)
+	read = SaveFile.read_save(PATH)
+	_c("kanonik ad boşken .tmp yazımı yarıda kalırsa .tmp izi bırakıldı; açılış .bak'ı kurtarır (silinmiş kayıt sanılmaz)",
+		evidence and read["source"] == SaveFile.Source.BACKUP and _same(read["data"], JSON.parse_string(prev))
+		and _bytes(PATH) == prev.to_utf8_buffer() and not _exists(TMP))
+
 	_state(torn, "", prev)
 	_c("bozuk kanonik + geçerli .bak iken kayıt: true, kanonik = yeni, .bak (bir önceki) EZİLMEDİ",
 		SaveFile.write_save(PATH, new) and _bytes(PATH) == new.to_utf8_buffer() and _bytes(BAK) == prev.to_utf8_buffer()
@@ -245,6 +270,15 @@ func _fault_injection() -> void:
 	read = SaveFile.read_save(PATH)
 	_c("  … taahhüt de başarısızsa .bak bozuk kanonikle EZİLMEDİ; açılış .bak'ı kurtarır (varsayılan değil)",
 		kept and read["source"] == SaveFile.Source.BACKUP and _same(read["data"], JSON.parse_string(prev)))
+
+	_state(torn, "", prev)
+	SaveFile.fault = SaveFile.Fault.COMMIT_TARGET_DELETED
+	var deleted_target: bool = (not SaveFile.write_save(PATH, new) and not _exists(PATH)
+		and _bytes(TMP) == new.to_utf8_buffer() and _bytes(BAK) == prev.to_utf8_buffer())
+	read = SaveFile.read_save(PATH)
+	_c("Windows rename'i: bozuk hedef silinip taşıma başarısızsa yeni kayıt .tmp'de kaldı; açılış onu kurtarır, .bak aynen",
+		deleted_target and read["source"] == SaveFile.Source.TEMP and _bytes(PATH) == new.to_utf8_buffer()
+		and _bytes(BAK) == prev.to_utf8_buffer() and not _exists(TMP))
 
 	_clean()
 	SaveFile.fault = SaveFile.Fault.COMMIT
@@ -307,7 +341,11 @@ func _recovery_rules() -> void:
 		_src(r, "backup") and _same(r["data"], JSON.parse_string(k)))
 	_state("", "{\"yarım\": ", k)
 	r = SaveFile.read_save(PATH)
-	_c("güç kaybı biçimi: kanonik ad boş + bozuk .tmp izi + .bak → .bak", _src(r, "backup") and not _exists(TMP))
+	_c("güç kaybı biçimi: kanonik ad boş + bozuk .tmp izi + .bak → .bak; kanonik .bak'tan geri kuruldu, .bak kaldı",
+		_src(r, "backup") and _bytes(PATH) == k.to_utf8_buffer() and _bytes(BAK) == k.to_utf8_buffer() and not _exists(TMP))
+	r = SaveFile.read_save(PATH)
+	_c("  … kayıttan önce süreç ölse de sonraki açılış kanonik (silinmiş kayıt SANILMAZ, .bak atılmaz)",
+		_src(r, "canonical") and _bytes(BAK) == k.to_utf8_buffer())
 	_put(PATH, PackedByteArray())
 	_put(TMP, t.to_utf8_buffer())
 	r = SaveFile.read_save(PATH)
@@ -358,9 +396,11 @@ func _save_manager_integration() -> void:
 		_bytes(PATH) == JSON.stringify(SaveManager.data, "\t").to_utf8_buffer())
 	var keys: Array = (JSON.parse_string(FileAccess.get_file_as_string(PATH)) as Dictionary).keys()
 	keys.sort()
-	var expected: Array = SaveManager.DEFAULT_DATA.keys()
+	var expected: Array = []
+	for key in SCHEMA_KEYS:
+		expected.append(key)
 	expected.sort()
-	_c("şema aynı: yeni kaydın anahtarları = DEFAULT_DATA anahtarları (%d)" % expected.size(), keys == expected)
+	_c("şema aynı: yeni kaydın anahtarları = TASK/045 şeması (sabit %d anahtar)" % expected.size(), keys == expected)
 
 	# Eski (TASK/043 dönemi) kayıt: normal yüklenir, TASK/044 + TASK/045 göçleri bellekte.
 	var legacy: Dictionary = {"highest_level_unlocked": 4, "level_stars": {"1": 2, "2": 3, "3": 3},
@@ -418,6 +458,8 @@ func _save_manager_integration() -> void:
 	_c("load_game kurtardı: kaynak TEMP, XP 3000, Hamur 335; kanonik = 3000, .bak = 2000, .tmp yok",
 		SaveManager.load_source() == SaveFile.Source.TEMP and SaveManager.player_xp() == 3000
 		and SaveManager.dough() == 335 and _xp_in(PATH) == 3000 and _xp_in(BAK) == 2000 and not _exists(TMP))
+	_c("  … .tmp kurtarması (doğrulanmış en yeni kayıt) yaş bandını KORUR (ADULT)",
+		String(SaveManager.data.get("age_ad_band", "")) == "ADULT")
 
 	# Bozuk kanonik (ör. güç kaybı): bir önceki kayıt; kurtarılacak yoksa varsayılanlar, yazma yok.
 	var torn: String = FileAccess.get_file_as_string(PATH).substr(0, 40)
@@ -426,6 +468,9 @@ func _save_manager_integration() -> void:
 	_c("bozuk kanonik + .bak: kaynak BACKUP, XP 2000 (bir önceki kayıt), bozuk dosyaya dokunulmadı",
 		SaveManager.load_source() == SaveFile.Source.BACKUP and SaveManager.player_xp() == 2000
 		and SaveManager.dough() == 335 and _bytes(PATH) == torn.to_utf8_buffer())
+	_c("  … bir önceki kuşaktan kurtarmada yaş bandı UNKNOWN (TASK/043 fail-closed: yaş yeniden sorulur), geçiş günü boş",
+		String(SaveManager.data["age_ad_band"]) == "UNKNOWN" and String(SaveManager.data["next_age_transition_date"]) == ""
+		and SaveManager.stored_age_band(AgeGate.today()) == AgeGate.Band.UNKNOWN)
 	_c("  … sonraki kayıt bozuk kanoniğin yerine geçer (.bak ezilmez)", SaveManager.save_game()
 		and SaveFile.read_save(PATH)["source"] == SaveFile.Source.CANONICAL and _xp_in(PATH) == 2000
 		and _xp_in(BAK) == 2000 and not _exists(TMP))
@@ -435,6 +480,18 @@ func _save_manager_integration() -> void:
 	_c("bozuk kanonik, kurtarılacak yok: varsayılanlar (XP 0, Hamur 0), kaynak NONE", SaveManager.load_source()
 		== SaveFile.Source.NONE and SaveManager.player_xp() == 0 and SaveManager.dough() == 0)
 	_c("  … bozuk dosyaya yazılmadı (başlangıç hediyesi kaydı yok — eski davranış)", _bytes(PATH) == torn.to_utf8_buffer())
+
+	# Gizlilik (TASK/043 sözü): yaş geçiş günü silinince bir önceki kayıt kopyası da atılır.
+	SaveManager.store_age_band(AgeGate.Band.TEEN, "2031-05-05")
+	SaveManager.store_age_band(AgeGate.Band.TEEN, "2031-05-05")
+	_c("TEEN: geçiş günü kanonikte ve .bak'ta (bir önceki kuşak)", FileAccess.get_file_as_string(PATH).contains("2031-05-05")
+		and FileAccess.get_file_as_string(BAK).contains("2031-05-05"))
+	SaveManager.store_age_band(AgeGate.Band.ADULT, "")
+	_c("ADULT olunca geçiş günü hiçbir kayıt dosyasında kalmadı (.bak atıldı), kanonik geçerli",
+		not _family_contains("2031-05-05") and not _exists(BAK) and not _exists(TMP)
+		and SaveFile.read_save(PATH)["source"] == SaveFile.Source.CANONICAL)
+	SaveManager.save_game()
+	_c("  … sonraki kayıt .bak'ı (bir önceki kuşak) yeniden kurar, tarih yok", _exists(BAK) and not _family_contains("2031-05-05"))
 
 	# Kayıt bilerek silinirse (geliştirici / test sıfırlaması) duran .bak geri getirilmez.
 	SaveManager.data["player_xp"] = 4000
@@ -519,6 +576,13 @@ func _bytes(path: String) -> PackedByteArray:
 func _showcase_rare02() -> bool:
 	var showcase: Array[StringName] = SaveManager.profile_showcase()
 	return showcase.size() == 1 and showcase[0] == &"rare_02"
+
+
+func _family_contains(needle: String) -> bool:
+	for path in [PATH, TMP, BAK]:
+		if _exists(path) and FileAccess.get_file_as_string(path).contains(needle):
+			return true
+	return false
 
 
 func _xp_in(path: String) -> int:
