@@ -928,8 +928,22 @@ func _draw_danger() -> void:
 #
 # Bir güç silahlıyken normal drop AKIŞI TAMAMEN DEVRE DIŞI: dokunuş hedef
 # seçimi olarak yorumlanıyor, boşluğa dokunmak iptal ediyor.
+#
+# TASK/045.1: hedefleme modunda BASILAN dokunuşun tamamı hedeflemenindir. Güç
+# basışta çözülür ve silah iner; aynı parmağın sürüklemesi ve BIRAKIŞI normal
+# akışa düşmez (bırakış bekleyen parçayı düşürüyordu — A36'da Büyütücü ve
+# Bomba). Zamanlayıcı yok: dizi aynı parmağın bırakışında biter; sonraki
+# bağımsız dokunuş hemen normal çalışır.
+
+## Hedeflemenin tükettiği dokunuş dizileri: parmak indeksi → true.
+var _targeting_touches: Dictionary = {}
+
 
 func _unhandled_input(event: InputEvent) -> void:
+	# Tüketilmiş dizinin olayı hiçbir duruma düşmez — duraklatılmışken gelen
+	# bırakış da diziyi kapatır.
+	if _consume_targeting_touch(event):
+		return
 	# Bir overlay acikken oyun girdisi tamamen kapali: ne nisan, ne birakma,
 	# ne hedefleme. Tek etkilesim overlay'in kendi butonlari. Tutorial adimi
 	# da ayni kapiyi kullanir (M8.10: adim basina acik/kapali).
@@ -954,13 +968,31 @@ func _unhandled_input(event: InputEvent) -> void:
 		_drop()
 
 
+## Hedeflemenin tükettiği dizinin sürüklemesi / bırakışı mı? Bırakış diziyi
+## kapatır. Aynı parmağın YENİ basışı (bırakış hiç gelmediyse) diziyi kapatıp
+## normal işlenir — bastırma takılı kalamaz. Diğer parmaklar etkilenmez.
+func _consume_targeting_touch(event: InputEvent) -> bool:
+	if _targeting_touches.is_empty():
+		return false
+	var touch := event as InputEventScreenTouch
+	if touch != null:
+		if not _targeting_touches.has(touch.index):
+			return false
+		_targeting_touches.erase(touch.index)
+		return not touch.pressed
+	var drag := event as InputEventScreenDrag
+	return drag != null and _targeting_touches.has(drag.index)
+
+
 ## Hedefleme modundaki dokunuş: geçerli bir dumpling'e denk gelirse güç
 ## uygulanır, gelmezse iptal edilir. İkisi de stok açısından güvenli —
-## iptal hiçbir şey tüketmez.
+## iptal hiçbir şey tüketmez. Dokunuşun geri kalanı (sürükleme + bırakış)
+## hedeflemeye aittir (`_consume_targeting_touch`).
 func _handle_targeting_input(event: InputEvent) -> void:
 	var touch := event as InputEventScreenTouch
 	if touch == null or not touch.pressed:
 		return
+	_targeting_touches[touch.index] = true
 	var target: Dumpling = _dumpling_at(screen_to_world(touch.position))
 	if target == null:
 		_powerups.cancel()
