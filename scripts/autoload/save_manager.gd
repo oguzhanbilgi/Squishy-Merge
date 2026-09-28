@@ -1,7 +1,14 @@
 extends Node
-## Yerel kalıcı kayıt (bulut yok). JSON olarak user:// altında tutulur.
+## Yerel kalıcı kayıt (bulut yok). JSON olarak user:// altında tutulur. Disk işlemi
+## (TASK/045.1) SaveFile'da: çökmeye dayanıklı yazma (geçici dosya + doğrulama + yer
+## değiştirme) ve yarım kalan işlemden deterministik kurtarma.
 
 const SAVE_PATH: String = "user://squishy_merge_save.json"
+## Kayıt dosyasının yolu. Üretimde HER ZAMAN SAVE_PATH; yalnız testler bir test yoluna
+## çevirir (TASK/045.1 — sahibin gerçek kaydına dokunmadan kayıt / kurtarma testleri).
+var save_path: String = SAVE_PATH
+## Son `load_game`'in kaynağı (SaveFile.Source) — teşhis / testler.
+var _load_source: int = SaveFile.Source.NONE
 
 ## Koleksiyon parçası (Squishy) kazanıldı (M8.5-13; TASK/044'ten beri oyuncuya
 ## "Yeni Squishy keşfedildi"). Abone yalnız Koleksiyon (görünürken anında,
@@ -151,20 +158,23 @@ func _ready() -> void:
 	load_game()
 
 
+## Kanonik kayıt geçerliyse o; değilse yarım kalan kayıt işleminin geçerli ara dosyası
+## (SaveFile kuralları). Kurtarılacak kayıt yoksa TASK/045.1 öncesi davranış: kanonik
+## dosya hiç yoksa yeni oyuncu (başlangıç hediyesi + kayıt), varsa okunamıyor / bozuk →
+## varsayılanlar, diske yazılmaz. Geçerli kanonik kayıtla yükleme kanonik dosyaya YAZMAZ.
 func load_game() -> void:
 	data = DEFAULT_DATA.duplicate(true)
-	if not FileAccess.file_exists(SAVE_PATH):
-		_grant_starter_powerups()
+	var loaded: Dictionary = SaveFile.read_save(save_path)
+	_load_source = int(loaded["source"])
+	var parsed: Variant = loaded["data"]
+	if parsed == null:
+		if not bool(loaded["canonical_exists"]):
+			_grant_starter_powerups()
+			return
+		push_warning("Kayıt dosyası okunamadı ya da bozuk, varsayılanlara dönülüyor.")
 		return
-	var file := FileAccess.open(SAVE_PATH, FileAccess.READ)
-	if file == null:
-		push_warning("Kayıt dosyası açılamadı: %s" % SAVE_PATH)
-		return
-	var parsed: Variant = JSON.parse_string(file.get_as_text())
-	file.close()
-	if typeof(parsed) != TYPE_DICTIONARY:
-		push_warning("Kayıt dosyası bozuk, varsayılanlara dönülüyor.")
-		return
+	if _load_source != SaveFile.Source.CANONICAL:
+		push_warning("Kayıt, yarım kalan bir kayıt işleminden kurtarıldı (%s)." % SaveFile.source_name(_load_source))
 	for key: String in parsed:
 		data[key] = parsed[key]
 	_migrate_onboarding(parsed)
@@ -290,13 +300,18 @@ func has_progress_evidence() -> bool:
 	return not owned_skins().is_empty()
 
 
-func save_game() -> void:
-	var file := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
-	if file == null:
-		push_error("Kayıt dosyası yazılamadı: %s" % SAVE_PATH)
-		return
-	file.store_string(JSON.stringify(data, "\t"))
-	file.close()
+## Kaydı çökmeye dayanıklı işlemle yazar (SaveFile; biçim aynı: sekme girintili JSON).
+## true = yeni kayıt kanonik dosyada. false = yazma başarısız: ÖNCEKİ geçerli kayıt diskte
+## aynen duruyor, hata push_error ile bildirildi (içerik loglanmaz); bellekteki `data`
+## değişmez — bir sonraki kayıt yeniden dener.
+func save_game() -> bool:
+	return SaveFile.write_save(save_path, JSON.stringify(data, "\t"))
+
+
+## Son yüklemenin kaynağı (SaveFile.Source): CANONICAL normal açılış, TEMP / BACKUP
+## yarım kalan bir kayıt işleminden kurtarma, NONE kayıt yok / bozuk.
+func load_source() -> int:
+	return _load_source
 
 
 # --- İlerleme (M2) ---
@@ -796,10 +811,10 @@ func consume_powerup(type: PowerUp.Type, amount: int = 1) -> bool:
 # davranışı: spend_dough() sonra grant_skin()) aradaki bir çökme Hamur'u
 # yakıp ödülü vermeyebilirdi.
 #
-# Bu, tam bir atomic-file/journaling sistemi DEĞİL — dosyanın kendisi hâlâ
-# tek `store_string` ile yazılıyor. Çözülen şey uygulama seviyesindeki
-# "yarım işlem" penceresi: bellekteki durum tek seferde tutarlı hale
-# getiriliyor ve tek seferde diske iniyor.
+# Buradaki kural uygulama seviyesindeki "yarım işlem" penceresi: bellekteki
+# durum tek seferde tutarlı hale getiriliyor ve tek seferde diske iniyor.
+# Dosya seviyesi (TASK/045.1): o tek yazma da SaveFile işlemiyle — kanonik
+# kayıt ya eski ya yeni haliyle, hiçbir zaman yarım yazılmış olarak kalmaz.
 
 ## Hamur ile güç satın alır (GAME_DESIGN.md §5.7).
 ##
