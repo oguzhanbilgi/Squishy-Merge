@@ -78,18 +78,20 @@ alınacak — şimdi tahmin/vaat yok.
 [Current release blockers](#current-release-blockers) +
 [Next action](#next-action); aşağıdaki "Milestone tarihçesi" değil.
 
-- **Repo:** `main == origin/main` (2026-09-29): **TASK/045.1 owner onayıyla ff-only main'e
-  alındı** (`task/045-1-persistence-input-hardening`: `aac0895` + `8957f6f` + `427c18c` +
-  `2cf0dfc` + `947dda5` + `9c2b56e` + `b6c17dd` + `5b1f952` A36 kapısı düzeltmesi;
-  `017f2dc → 5b1f952`, merge commit yok, ağaç eşit — Samsung A36'da doğrulanmış ağaç);
-  üstünde yalnız bu durum doküman commit'i. 2026-09-28: **TASK/045** ff-only
+- **Repo:** `main == origin/main` (2026-09-29): **TASK/045.2 owner onayıyla ff-only main'e
+  alındı** (`task/045-2-settings-back-input-focus`: `c990b63` + `a32ee2d`; `e474fb3 → a32ee2d`,
+  merge commit yok, ağaç eşit — Samsung A36'da doğrulanmış ağaç); üstünde yalnız bu durum
+  doküman commit'i. Aynı gün önce **TASK/045.1** ff-only (`task/045-1-persistence-input-hardening`:
+  `aac0895` + `8957f6f` + `427c18c` + `2cf0dfc` + `947dda5` + `9c2b56e` + `b6c17dd` +
+  `5b1f952` A36 kapısı düzeltmesi; `017f2dc → 5b1f952`, durum commit'i `e474fb3`).
+  2026-09-28: **TASK/045** ff-only
   (`115252c → d4c8548`, durum commit'i `017f2dc`), önce **TASK/044** ff-only
   (`327dd60 → 239f2e7`, durum commit'i `115252c`); 2026-09-27: **TASK/043** ff-only
   (`249a6e1 → 753503a`, durum commit'i `327dd60`), `task/042-gma25-production` (`83b86a9`
   kod + `3d15402` doküman / A36 kapısı kaydı; `cbdcb8f → 3d15402`),
   `task/041-fix-request-configuration` (`7e1e378` + `d32a4d3`, durum commit'i `cbdcb8f`) ve
   `task/040-global-teen-compliance` (`025214a` + `e152986`, durum commit'i `ee01841`) — hepsi
-  owner onayıyla, merge commit yok. `task/014`…`task/045-1` dallarının hepsi main'de
+  owner onayıyla, merge commit yok. `task/014`…`task/045-2` dallarının hepsi main'de
   (referans için duruyor).
   Main'e bilerek girmeyen iki dal: `task/m8.6-03-home` (reddedildi, asla
   birleştirilmez) ve `task/ui-layerlab-style-spike` (seçilen parçaları
@@ -144,9 +146,12 @@ alınacak — şimdi tahmin/vaat yok.
   günlük pencere detayın üstüne açılmaz, "due" kalır, sonraki güvenli fırsatta açılır.
   Gameplay / ekonomi / XP / reklam sözleşmesi / yaş yönlendirmesi DEĞİŞMEDİ. Ayrıntı:
   PROJECT_STATUS §4.22.
-- **TASK/045.2 Ayarlar geri girdi odağı — DALDA, main'de DEĞİL**
+- **TASK/045.2 Ayarlar geri girdi odağı — TAMAM, main'de**
   (`task/045-2-settings-back-input-focus`, başlangıç main `e474fb3`; bulut kapısı geçti;
-  **Samsung A36 yerel kapısı GEREKLİ**, sonra owner onayıyla ff-only). Hata: oyun içi dişli →
+  **Samsung A36 yerel kapısı GEÇTİ 2026-09-29** — yalnız QA paketi, bulgu yok, düzeltme
+  commit'i yok: dişli → GERİ → ilk tahta dokunuşu 5/5 (+2) tek drop, düzeltmesiz temel APK aynı
+  sürücüyle 2/2 eski hatayı gösterdi; owner onayıyla ff-only main'e alındı `e474fb3 → a32ee2d`,
+  2026-09-29). Hata: oyun içi dişli →
   Ayarlar → Android geri ile kapatınca ilk tahta dokunuşunun bırakışı kayboluyordu (A36 3/3;
   KAPAT / karartma sorunsuz). **Kök neden (bulutta deterministik yeniden üretildi, Godot 4.6.3
   kaynağıyla doğrulandı):** dişlinin `pressed`'i dokunuştan öykünen fare bırakışında gelip 300 ms
@@ -196,6 +201,10 @@ alınacak — şimdi tahmin/vaat yok.
   *(TASK/045.1, main'de: kayıt dosyası işlemi — çökmeye dayanıklı `SaveFile` + deterministik
   kurtarma —, güç hedefleme dokunuşunun bırakışı, Koleksiyon detayı günlük pencere kapısı;
   fizik, merge, skor, ekonomi, XP, reklam sözleşmesi, TASK/043 yaş yönlendirmesi AYNI.)*
+  *(TASK/045.2, main'de: yalnız `Main._input` — geçiş sonrası 300 ms parmak yatışması dizi
+  bazında (oyun içi Ayarlar → GERİ sonrası ilk tahta dokunuşu); süre aynen, yeni zamanlayıcı
+  yok; fizik, merge, skor, ekonomi, XP, kayıt, reklam sözleşmesi, TASK/043 yaş yönlendirmesi
+  AYNI.)*
 - **Kalıcı paket kimliği KİLİTLENDİ (owner kararı, 2026-09-24):** üretim / Play
   = `com.obappstudio.squishymerge` (project.godot `squishy/release/android_package_id`
   + yerel release presetleri); QA / test = `com.obappstudio.squishymerge.qa` (debug
@@ -453,14 +462,17 @@ oyun içi Ayarlar dişlisiyle açılıp Android geri tuşuyla kapatılınca ilk 
 bırakışı kayboluyor (parça düşmez; ikinci dokunuş normal). Samsung A36'da 3/3; KAPAT ve
 karartma dokunuşuyla kapatınca yok. TASK/045.1 öncesinden: TASK/044'ün 300 ms parmak
 yatışması dişlinin kendi dokunuş bırakışını yutuyor, GUI dokunuş odağı dişlide kalıyor.~~
-→ **TASK/045.2: DALDA** (`task/045-2-settings-back-input-focus`; kök neden kanıtlandı, yatışma
-dizi bazında, 300 ms aynen; bulut kapısı geçti). **Sıradaki adım: Samsung A36 yerel kapısı**
-(yalnız QA paketi: oyun içi dişli → GERİ → ilk dokunuş düşürür; KAPAT / karartma; Profil
-dişlisi; hızlı çift dokunuşlar; Bomba / Büyütücü; 3 tuşlu ve hareketle gezinme geri), sonra
-owner onayıyla main'e ff-only. Ayrıntı: PROJECT_STATUS §4.23. Kapsam dışı, önceden var olan
-gözlem (owner kararı bekler): iptal edilen dokunuş (hareketle gezinmede kenardan geri
-kaydırmanın ACTION_CANCEL'ı) tahtada parça düşürür — düzeltmesi gameplay girdisini değiştirir,
-ayrı görev. **TASK/046 BAŞLAMADI.**
+→ **TASK/045.2: ✅ TAMAM, main'de** (kök neden kanıtlandı, yatışma dizi bazında, 300 ms aynen;
+bulut kapısı + Samsung A36 yerel kapısı GEÇTİ 2026-09-29, yalnız QA paketi, bulgu yok: oyun içi
+dişli → GERİ → ilk dokunuş 5/5 (+2) tek drop; KAPAT / karartma; Profil dişlisi; hızlı çift
+dokunuşlar; Bomba / Büyütücü; Mola / Refill / Devam; owner onayıyla ff-only `e474fb3 →
+a32ee2d`). Ayrıntı: PROJECT_STATUS §4.23. Kapsam dışı, önceden var olan gözlemler (owner kararı
+bekler, düzeltilmedi): (1) iptal edilen dokunuş (Android ACTION_CANCEL — hareketle gezinmede
+kenardan geri kaydırmanınki) tahtada parça düşürür — A36'da gerçek ACTION_CANCEL ile 2/2
+(telefon 3 tuşlu gezinmede; hareketle gezinme denenmedi); düzeltmesi gameplay girdisini
+değiştirir, ayrı görev; (2) Koleksiyon kartı basılıyken GERİ → detay Godot'un gizleme anındaki
+sentetik bırakışında açılır — A36'da 5/5 gizleme anında, 0/5 fiziksel bırakışta; `Main._input`
+ile ilgisiz. **TASK/046 BAŞLAMADI** — sıradaki ürün görevi (owner başlatır).
 
 Her madde owner girdisi ister; hiçbiri tahmin edilmez ya da uydurulmaz.
 Gizlilik politikası, upload anahtarı ve AdMob kimliklerinde repoda yalnız

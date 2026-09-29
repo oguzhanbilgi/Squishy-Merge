@@ -51,15 +51,17 @@ kapısı + Samsung A36 yerel kapısı GEÇTİ (bulgu yok). **TASK/045.1 (2026-09
 owner onayıyla ff-only alındı; Samsung A36 yerel kapısı GEÇTİ, iki kurtarma bulgusu
 giderildi):** çökmeye dayanıklı kayıt (geçici dosya + doğrulama + yer değiştirme, deterministik
 kurtarma), Bomba / Büyütücü hedef dokunuşunun bırakışı artık parça düşürmüyor, otomatik günlük
-pencere Koleksiyon detayının üstüne açılmıyor (§4.22). **TASK/045.2 (2026-09-29, DALDA — main'de
-değil; bulut kapısı geçti, Samsung A36 yerel kapısı bekliyor):** oyun içi Ayarlar → Android geri
+pencere Koleksiyon detayının üstüne açılmıyor (§4.22). **TASK/045.2 (2026-09-29, main'de —
+owner onayıyla ff-only alındı; bulut kapısı + Samsung A36 yerel kapısı GEÇTİ, bulgu yok):** oyun içi Ayarlar → Android geri
 sonrası kaybolan ilk tahta bırakışı düzeltildi — 300 ms parmak yatışması artık dizi bazında
 (pencerede başlayan dizi tamamen yutulur, pencereden önce başlamış dizi bölünmez), süre aynen
 (§4.23); TASK/046 BAŞLAMADI. Sırada: içerik
 derecesi + yargı bölgesi kararları (owner) → gizlilik
 politikası → upload anahtarı → gerçek AdMob kimlikleri → mağaza varlıkları / Play Console,
 sonra ilk imzalı üretim AAB'si ve M10 (Play kapalı test) ·
-**Branch:** `main` — TASK/045.1 `task/045-1-persistence-input-hardening` (`aac0895` …
+**Branch:** `main` — TASK/045.2 `task/045-2-settings-back-input-focus` (`c990b63` + `a32ee2d`)
+owner onayıyla ff-only entegre (`e474fb3 → a32ee2d`, 2026-09-29; A36 kapısı geçti, düzeltme
+commit'i yok) · önce TASK/045.1 `task/045-1-persistence-input-hardening` (`aac0895` …
 `5b1f952`, 8 commit; son commit A36 kapısı düzeltmesi) owner onayıyla ff-only entegre
 (`017f2dc → 5b1f952`, 2026-09-29) · önce TASK/045 `task/045-player-level-achievements` (`514ec9a` + `285856c` +
 `d4c8548`) owner onayıyla ff-only entegre (`115252c → d4c8548`, 2026-09-28) · önce TASK/044
@@ -1786,13 +1788,14 @@ formatına yalnız `haptics_enabled` (varsayılan true) eklendi. Ayrıntı ve
   oyun içi Ayarlar dişlisiyle açılıp Android geri tuşuyla kapatılınca ilk tahta dokunuşunun
   bırakışı kayboluyor (düşürmüyor; ikinci dokunuş normal) — 300 ms yatışma dişlinin kendi
   dokunuş bırakışını yutuyor, GUI dokunuş odağı dişlide kalıyor (TASK/044; KAPAT / karartma
-  dokunuşuyla kapatınca yok). *(→ TASK/045.2 dalında düzeltildi, §4.23.)*
+  dokunuşuyla kapatınca yok). *(→ TASK/045.2 ile düzeltildi, main'de `a32ee2d`, §4.23.)*
 
 ### 4.23 Ayarlar geri girdi odağı (TASK/045.2)
 
-> **DALDA, main'de DEĞİL** — `task/045-2-settings-back-input-focus` (başlangıç main `e474fb3`);
-> bulut kapısı geçti; **Samsung A36 yerel kapısı GEREKLİ** (bulutta cihaz yok), sonra owner
-> onayıyla ff-only. Kapsam yalnız bu hata (TASK/046 BAŞLAMADI).
+> **main'de** — `task/045-2-settings-back-input-focus` (başlangıç main `e474fb3`); bulut kapısı
+> geçti; **Samsung A36 yerel kapısı GEÇTİ (2026-09-29)** — yalnız QA paketi, bulgu yok, düzeltme
+> commit'i yok; owner onayıyla ff-only main'e alındı `e474fb3 → a32ee2d` (merge commit yok, ağaç
+> eşit). Kapsam yalnız bu hata (TASK/046 BAŞLAMADI).
 
 - **Hata (A36, 3/3):** oyun içi dişli → Ayarlar → Android geri → 300 ms'den sonra ilk tahta
   dokunuşunun bırakışı kayboluyor (parça düşmez; ikinci dokunuş normal); KAPAT / karartma
@@ -1867,12 +1870,17 @@ formatına yalnız `haptics_enabled` (varsayılan true) eklendi. Ayrıntı ve
   albümde açılır — 25 turluk ölçüm temel 11 / düzeltme 10, fiziksel bırakışla 0 / 0; `Main._input`
   ile ilgisiz. (3) Yatışma olayın dağıtım anına göre ölçülür; geçişten sonra 300 ms'yi aşan ilk
   çizim takılması gerçek bir çift dokunuşu geçirebilir (temelle aynı; sertleştirme owner kararı).
-- **Samsung A36 yerel kapısı (BEKLİYOR, yalnız QA paketi):** oyun içi dişli → GERİ → ilk
-  dokunuş düşürür (tekrar tekrar), KAPAT / karartma, Profil dişlisi üç yol, hızlı çift
-  dokunuşlar (TASK/044 / 045 korumaları), Bomba / Büyütücü, Mola / Refill / Devam; geri hem 3
-  tuşlu gezinmeyle hem hareketle (kenardan kaydırma) denenmeli — hareketle gezinmede tahta
-  üstünden başlayan geri kaydırması önceden var olan iptal-bırakış davranışını (yukarıda (1))
-  gösterebilir; bu TASK/045.2 gerilemesi DEĞİLDİR, ayrı not edilmeli.
+- **Samsung A36 yerel kapısı (GEÇTİ 2026-09-29, yalnız QA paketi, 3 tuşlu gezinme):** oyun içi
+  dişli → GERİ → ilk tahta dokunuşu 5/5 (+0,4 sn beklemeyle 2/2): basış + bırakış tahtaya,
+  nişan dokunulan x'e, bırakışta tam bir drop, ikinci dokunuş gerekmedi (dişlinin kendi
+  bırakışı dişliye ulaştı); düzeltmesiz temel APK (`e474fb3` main.gd) aynı sürücüyle 2/2 eski
+  hatayı gösterdi. KAPAT 2/2, karartma 2/2, Profil dişlisi üç yol; hızlı GERİ + pencerede
+  başlayan tahta dizisi 4/4 tamamen yutuldu (pencere sonrası bırakış dahil); TASK/044 / 045 çift
+  dokunuşları; basılı sürükleme ve hızlı ikinci dokunuş (cooldown aynen); Bomba / Büyütücü;
+  Mola / Günlük / Detay / Sandık / Refill / Devam; kayıt kurtarma, TASK/043 yönlendirmesi,
+  ilerleme aynen. Önceden var olanlar yeniden üretildi, düzeltilmedi: gerçek ACTION_CANCEL 2/2
+  parça düşürdü (yukarıda (1); hareketle gezinme denenmedi — telefon ayarı değiştirilmedi);
+  basılı kart + GERİ detayı 5/5 gizleme anında açtı, fiziksel bırakışta 0/5 (yukarıda (2)).
 
 ## 5. Dosya/klasör yapısı ve script envanteri
 
@@ -2605,8 +2613,8 @@ kaydı salt okunur doğrulandı (sessiz göç, dosya değişmedi); cihazda yaln�
   Bomba hedef dokunuşunun bırakışı bekleyen parçayı da düşürebilir) · Koleksiyon detayı
   otomatik günlük pencere kapısında değil (TASK/044 artığı).~~ → ✅ **TASK/045.1 ile main'de**
   (§4.22; A36 kapısı GEÇTİ, `017f2dc → 5b1f952`).
-- ~~**TASK/045.2** — girdi odağı cilası (öneri, BAŞLAMADI)~~ → **dalda** (§4.23; bulut kapısı
-  geçti, Samsung A36 yerel kapısı bekliyor). Önceki not: oyun içi Ayarlar dişlisi → Android
+- ~~**TASK/045.2** — girdi odağı cilası (öneri, BAŞLAMADI)~~ → ✅ **main'de** (§4.23; bulut +
+  Samsung A36 kapısı GEÇTİ, `e474fb3 → a32ee2d`). Önceki not: oyun içi Ayarlar dişlisi → Android
   geri ile kapatınca ilk tahta dokunuşunun bırakışı kayboluyor (ikinci dokunuş normal; A36'da
   3/3; KAPAT ve karartma yolları sorunsuz). TASK/045.1 öncesinden — TASK/044'ün 300 ms
   yatışması dişlinin kendi dokunuş bırakışını yutuyor (§4.22 A36 kapısı notu).
