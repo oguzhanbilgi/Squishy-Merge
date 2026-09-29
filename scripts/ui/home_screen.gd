@@ -11,6 +11,10 @@ extends CanvasLayer
 ##   YAN      sol sütun: Günlük (bildirim noktası) · Koleksiyon (en son
 ##            keşfedilen Squishy, N/20 rozeti + nane halka); sağ sütun: Mağaza · Bonus sandık
 ##            (owner sandığı, N/75 rozeti + altın halka) — HomeFeatureButton
+##   GÖREVLER (TASK/046) üst madalyon sırasının ortasında, Günlük ile Mağaza ARASINDA tek
+##            kompakt candy pill: nane hedef kuyusu + "GÖREVLER" + altın "N/6" rozeti (içinde
+##            bulunulan dönemlerde tamamlanan görev; 6/6 nane) → GÖREVLER penceresi (Main).
+##            2+2 madalyon düzeni, maskot, OYNA ve alt gezinme DEĞİŞMEDİ
 ##   HERO     owner maskotu (yeni yüksek çözünürlüklü türev) + lavanta hale +
 ##            yer gölgesi + tier 3 / tier 6 dumpling + pırıltılar; nefes
 ##   OYNA     tek kahraman CTA ALTTA ORTADA, büyük (480×96, cyan candy);
@@ -34,6 +38,8 @@ signal collection_requested
 signal map_requested
 signal daily_requested
 signal chest_requested
+## GÖREVLER girişi (TASK/046) → Main'in GÖREVLER penceresi.
+signal missions_requested
 
 const LOGO_ART: Texture2D = preload("res://assets/visual/ui/logo_lockup.png")
 const HERO_ART: Texture2D = preload("res://assets/visual/ui/hero_mascot.png")
@@ -89,6 +95,12 @@ const LEVEL_HEIGHT: float = 60.0
 const LEVEL_BADGE: float = 56.0
 const LEVEL_BADGE_OVERHANG: float = 10.0
 const LEVEL_PLAY_GAP: float = 12.0
+## GÖREVLER pill'i (TASK/046): üst madalyonların dikey ortasında, genişlik içeriğe göre.
+const MISSIONS_HEIGHT: float = 56.0
+const MISSIONS_WIDTH_MIN: float = 206.0
+const MISSIONS_WIDTH_MAX: float = 260.0
+const MISSIONS_WELL: float = 40.0
+const MISSIONS_TEXT: String = "GÖREVLER"
 const BOTTOM_MARGIN: float = 28.0
 const MASCOT_MIN: float = 320.0
 const MASCOT_MAX: float = 600.0
@@ -140,6 +152,10 @@ var _level_badge_label: Label
 var _level_caption: Label
 var _level_title: Label
 var _level_stars: Label
+var _missions: Button
+var _missions_row: HBoxContainer
+var _missions_badge: PanelContainer
+var _missions_count: Label
 ## ui_smoke_test uyumluluğu: "nereye gidiyorum" ipucu = level plakası başlığı.
 var _play_hint: Label
 var _mascot_home: Rect2 = Rect2()
@@ -160,6 +176,7 @@ func _ready() -> void:
 	_build_top()
 	_build_hero()
 	_build_features()
+	_build_missions_entry()
 	_build_play_row()
 	_root.resized.connect(_layout)
 	visibility_changed.connect(func() -> void:
@@ -296,6 +313,101 @@ func _add_feature(key: StringName, button: HomeFeatureButton) -> void:
 	_root.add_child(button)
 	_features[key] = button
 	_feature_homes[key] = Vector2.ZERO
+
+
+## GÖREVLER girişi (TASK/046): level pill'iyle AYNI candy malzeme (ButtonHomePill + erik
+## gölge + açık halka + gloss) — dashboard kartı değil. Solda nane candy kuyuda beyaz hedef
+## pictosu, ortada "GÖREVLER" (Baloo, beyaz), sağda altın "N/6" rozeti (6/6'da nane). Kayda
+## YAZMAZ; basınca `missions_requested`.
+func _build_missions_entry() -> void:
+	_missions = Button.new()
+	_missions.name = "Missions"
+	_missions.theme_type_variation = &"ButtonHomePill"
+	_missions.focus_mode = Control.FOCUS_NONE
+	_missions.set_anchors_preset(Control.PRESET_TOP_LEFT)
+	_missions.pressed.connect(func() -> void: missions_requested.emit())
+	UiKit.hud_shadow(_missions, 6.0, 0.28, null, 16.0)
+	var rim := UiKit.flat_plate("label_round", UiTokens.LAVENDER_LIGHT)
+	rim.show_behind_parent = true
+	rim.offset_left = -3.0
+	rim.offset_top = -3.0
+	rim.offset_right = 3.0
+	rim.offset_bottom = 3.0
+	_missions.add_child(rim)
+	_root.add_child(_missions)
+	_missions_row = HBoxContainer.new()
+	_missions_row.name = "Row"
+	_missions_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_missions_row.alignment = BoxContainer.ALIGNMENT_CENTER
+	_missions_row.add_theme_constant_override("separation", 8)
+	_missions_row.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_missions_row.offset_left = 8.0
+	_missions_row.offset_right = -10.0
+	_missions_row.offset_top = 1.0
+	_missions_row.offset_bottom = -6.0
+	_missions.add_child(_missions_row)
+	_missions_row.minimum_size_changed.connect(_layout)
+	# Nane candy kuyu (Home madalyon kuyusuyla aynı reçete: koyu taban + kenar + gövde + gloss).
+	var well := Control.new()
+	well.name = "Well"
+	well.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	well.custom_minimum_size = Vector2(MISSIONS_WELL, MISSIONS_WELL)
+	well.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	_missions_row.add_child(well)
+	var base := UiKit.patch("btn_circle_flat", UiTokens.MINT_DEEP)
+	base.offset_top = 3.0
+	base.offset_bottom = 3.0
+	well.add_child(base)
+	var edge := UiKit.patch("btn_circle_flat", Color(1, 1, 1, 0.55))
+	edge.offset_left = -2.0
+	edge.offset_top = -2.0
+	edge.offset_right = 2.0
+	edge.offset_bottom = 1.0
+	well.add_child(edge)
+	well.add_child(UiKit.patch("btn_circle_flat", UiTokens.MINT))
+	var light := UiKit.patch("item_circle_inner", Color(1, 1, 1, 0.36))
+	light.offset_left = MISSIONS_WELL * 0.14
+	light.offset_right = -MISSIONS_WELL * 0.14
+	light.offset_top = MISSIONS_WELL * 0.07
+	light.offset_bottom = -MISSIONS_WELL * 0.50
+	well.add_child(light)
+	var goal := UiKit.icon("goal", MISSIONS_WELL * 0.62, UiTokens.TEXT_ON_DARK)
+	goal.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
+	goal.offset_left = -MISSIONS_WELL * 0.31
+	goal.offset_right = MISSIONS_WELL * 0.31
+	goal.offset_top = -MISSIONS_WELL * 0.31
+	goal.offset_bottom = MISSIONS_WELL * 0.31
+	well.add_child(goal)
+	var title := UiKit.label(MISSIONS_TEXT, &"LabelSectionOnDark")
+	title.name = "Title"
+	title.add_theme_font_size_override("font_size", 19)
+	_missions_row.add_child(title)
+	_missions_badge = UiKit.panel(&"Badge")
+	_missions_badge.name = "CountBadge"
+	_missions_badge.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_missions_badge.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	_missions_count = UiKit.label("0/%d" % Missions.CATALOG.size(), &"LabelBadge", HORIZONTAL_ALIGNMENT_CENTER)
+	_missions_count.name = "Count"
+	_missions_count.add_theme_font_size_override("font_size", 15)
+	_missions_badge.add_child(_missions_count)
+	_missions_row.add_child(_missions_badge)
+	var gloss := UiKit.patch("btn_bevel_light", Color(1, 1, 1, 0.28))
+	gloss.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE)
+	gloss.offset_left = 8.0
+	gloss.offset_right = -8.0
+	gloss.offset_top = 3.0
+	gloss.offset_bottom = MISSIONS_HEIGHT * 0.40
+	_missions.add_child(gloss)
+	# Yazı satırı en üstte: gloss yazıyı soldurmasın (level pill'i / hero_cta ile aynı çözüm).
+	_missions.move_child(_missions_row, _missions.get_child_count() - 1)
+	UiMotion.attach_press(_missions)
+
+
+## GÖREVLER pill'inin genişliği: içerik + paylar, MISSIONS_WIDTH_MIN..MAX.
+func _missions_width() -> float:
+	var text_w: float = _missions_row.get_combined_minimum_size().x + _missions_row.offset_left \
+		- _missions_row.offset_right + 12.0
+	return clampf(text_w, MISSIONS_WIDTH_MIN, MISSIONS_WIDTH_MAX)
 
 
 func _build_play_row() -> void:
@@ -499,6 +611,13 @@ func _layout() -> void:
 	var col_bottom: float = col_top + step + HomeFeatureButton.SIZE.y \
 		+ HomeFeatureButton.PLAQUE_HEIGHT - HomeFeatureButton.PLAQUE_OVERLAP
 
+	# GÖREVLER (TASK/046): üst madalyon sırasının dikey ortasında, Günlük ile Mağaza arasında
+	# ortalı — logonun altında, maskotun dar tepesinin üstünde (madalyon düzeni aynen).
+	var missions_w: float = _missions_width()
+	_missions.position = Vector2((view.x - missions_w) * 0.5,
+		col_top + (HomeFeatureButton.SIZE.y - MISSIONS_HEIGHT) * 0.5)
+	_missions.size = Vector2(missions_w, MISSIONS_HEIGHT)
+
 	# HERO: hero bölgesi logo altı → OYNA üstü; maskot sütunların arasına
 	# yalnız dar tepesiyle sokulur, genişliği tuvale sığar.
 	var hero_top: float = logo_bottom + 4.0
@@ -655,7 +774,30 @@ func refresh() -> void:
 	daily.set_notification(_daily_claimable)
 	if not _daily_claimable:
 		daily.notification_dot().scale = Vector2.ONE
+	refresh_missions()
 	_layout()
+
+
+## GÖREVLER rozeti: içinde bulunulan dönemlerde tamamlanan görev "N/6" (kabul edilen günün
+## dönemi — Missions.current, YAZMAZ). 6/6'da rozet nane. Main öne dönüşte de çağırır (gün
+## değişmiş olabilir).
+func refresh_missions() -> void:
+	var total: int = Missions.CATALOG.size()
+	var done: int = Missions.completed_count(Missions.current())
+	_missions_count.text = "%d/%d" % [done, total]
+	var all_done: bool = done >= total
+	if all_done:
+		_missions_badge.add_theme_stylebox_override("panel",
+			UiKit.style("badge_round", UiTokens.MINT, _badge_margin()))
+	else:
+		_missions_badge.remove_theme_stylebox_override("panel")
+
+
+## Rozet içerik payı (tema Badge'inin kendi payı; nane boyamada aynı ölçü kalsın).
+func _badge_margin() -> Vector4:
+	var box: StyleBox = UiKit.theme().get_stylebox("panel", &"Badge")
+	return Vector4(box.content_margin_left, box.content_margin_top, box.content_margin_right,
+		box.content_margin_bottom)
 
 
 # --- Testler / çekim aracı ---------------------------------------------------
@@ -676,6 +818,19 @@ func profile_button() -> AvatarButton:
 
 func level_button() -> Button:
 	return _level
+
+
+## GÖREVLER girişi (TASK/046).
+func missions_button() -> Button:
+	return _missions
+
+
+func missions_count_text() -> String:
+	return _missions_count.text
+
+
+func missions_badge() -> PanelContainer:
+	return _missions_badge
 
 
 func feature_button(key: StringName) -> HomeFeatureButton:

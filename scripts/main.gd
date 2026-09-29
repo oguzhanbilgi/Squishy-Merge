@@ -23,6 +23,7 @@ const POWER_REFILL_SCENE: PackedScene = preload("res://scenes/ui/power_refill.ts
 const SETTINGS_SCENE: PackedScene = preload("res://scenes/ui/settings_panel.tscn")
 const PAUSE_MENU_SCENE: PackedScene = preload("res://scenes/ui/pause_menu.tscn")
 const CHEST_INFO_SCENE: PackedScene = preload("res://scenes/ui/bonus_chest_info.tscn")
+const MISSIONS_SCENE: PackedScene = preload("res://scenes/ui/missions_overlay.tscn")
 const TUTORIAL_OVERLAY_SCENE: PackedScene = preload("res://scenes/ui/tutorial_overlay.tscn")
 const AGE_GATE_SCENE: PackedScene = preload("res://scenes/ui/age_gate_panel.tscn")
 const AGE_RESTRICTED_SCENE: PackedScene = preload("res://scenes/ui/age_restricted_screen.tscn")
@@ -47,6 +48,9 @@ var _refill: CanvasLayer
 var _settings: CanvasLayer
 var _pause: CanvasLayer
 var _chest_info: CanvasLayer
+## GÖREVLER penceresi (TASK/046): Ana Sayfa'nın GÖREVLER girişi açar; GÜNLÜK ÖDÜLLER /
+## Bonus Sandık gibi Main'e ait ikincil pencere (reklam yüzeyi değil, kayda yazmaz).
+var _missions: MissionsOverlay
 ## Android geri tusu debounce (bkz. _notification).
 const BACK_DEBOUNCE_MSEC: int = 250
 var _last_back_msec: int = -1000
@@ -199,6 +203,8 @@ func _ready() -> void:
 	home.collection_requested.connect(_on_collection_requested)
 	home.daily_requested.connect(_on_daily_requested)
 	home.chest_requested.connect(_on_chest_requested)
+	# TASK/046: GÖREVLER girişi → Main'in GÖREVLER penceresi.
+	home.missions_requested.connect(open_missions)
 	var select: CanvasLayer = LEVEL_SELECT_SCENE.instantiate()
 	select.level_chosen.connect(_start_level)
 	# Harita (M8.6-04): kendi ust satiri — geri -> Ana Sayfa, Hamur "+" -> Magaza.
@@ -262,6 +268,14 @@ func _ready() -> void:
 	_chest_info = CHEST_INFO_SCENE.instantiate()
 	_chest_info.play_pressed.connect(_on_play_pressed)
 	add_child(_chest_info)
+
+	# TASK/046: açılış ve kapanış aynı 300 ms parmak yatışmasını başlatır (Profil pencereleri
+	# gibi): girişe çift dokunuşun ikincisi pencereye, X'e çift dokunuşun ikincisi Ana
+	# Sayfa'ya düşmez.
+	_missions = MISSIONS_SCENE.instantiate()
+	_missions.opened.connect(settle_touch_input)
+	_missions.closed.connect(settle_touch_input)
+	add_child(_missions)
 
 	_tutorial_overlay = TUTORIAL_OVERLAY_SCENE.instantiate()
 	add_child(_tutorial_overlay)
@@ -488,6 +502,8 @@ func _close_secondary_windows() -> void:
 		_chest_info.close_info()
 	if _daily_rewards != null and _daily_rewards.visible:
 		_daily_rewards.close_popup()
+	if _missions != null and _missions.visible:
+		_missions.close_missions(false)
 
 
 ## Uygulamadan çıkış (kısıt ekranı / zorunlu yaş sorusunda geri). Testler bastırır.
@@ -521,6 +537,9 @@ func _show_tab(tab: int, auto_daily: bool = true) -> void:
 	if tab < 0 or tab >= _screens.size():
 		return
 	var changed: bool = tab != _active_tab or not _screens[tab].visible
+	# TASK/046: GÖREVLER penceresi Ana Sayfa'nındır — başka ekrana geçişte sessizce kapanır.
+	if tab != 0 and _missions != null and _missions.visible:
+		_missions.close_missions(false)
 	_active_tab = tab
 	_set_ad_surface(TAB_SURFACES[tab])
 	for i in _screens.size():
@@ -696,6 +715,9 @@ func _notification(what: int) -> void:
 		# Öne dönüş (M8.9-02): gün değişmiş olabilir — en yeni gün kayda işlenir,
 		# günlük pencere o gün için henüz gösterilmediyse uygun ekranda açılır.
 		DailyRewards.observe_day()
+		# TASK/046: görev dönemi de değişmiş olabilir — görünen GÖREVLER rozeti / penceresi
+		# yalnız okuyarak tazelenir (kayıt yazılmaz).
+		_refresh_missions_views()
 		_maybe_auto_open_daily_rewards()
 		return
 	if what != NOTIFICATION_WM_GO_BACK_REQUEST:
@@ -732,6 +754,9 @@ func _notification(what: int) -> void:
 	if _daily_rewards != null and _daily_rewards.visible:
 		_daily_rewards.close_popup()
 		return
+	# TASK/046: GÖREVLER penceresi — geri kapatır, Ana Sayfa'da kalınır.
+	if _missions != null and _missions.handle_back():
+		return
 	# Sonuç ekranı karar bekler: geri tuşu yok sayılır (mola açılmaz, çıkılmaz).
 	if _result != null and _result.visible:
 		return
@@ -760,10 +785,13 @@ func _notification(what: int) -> void:
 	get_tree().quit()
 
 
-## Oyun sırasında ve sonuç ekranında hiçbir kabuk ekranı görünmemeli.
+## Oyun sırasında ve sonuç ekranında hiçbir kabuk ekranı görünmemeli (Ana Sayfa'nın GÖREVLER
+## penceresi de kapanır — TASK/046).
 func _hide_shell() -> void:
 	for screen in _screens:
 		screen.visible = false
+	if _missions != null and _missions.visible:
+		_missions.close_missions(false)
 
 
 func _on_play_pressed() -> void:
@@ -827,6 +855,31 @@ func _on_chest_requested() -> void:
 	_chest_info.open_info()
 
 
+## Ana Sayfa'nın GÖREVLER girişi (TASK/046): görev penceresi — yalnız okur, kayda yazmaz,
+## reklam çağırmaz. Tutorial koçluğunu bölmez; round / yaş ekranı / başka pencere açıkken
+## açılmaz (dokunma yolu zaten karartmalı; bu kod yollarını da kapatır).
+func open_missions() -> void:
+	if _missions == null or _missions.visible or is_tutorial_active():
+		return
+	if _board != null and is_instance_valid(_board):
+		return
+	if _active_tab != 0 or not _screens[0].visible:
+		return
+	if (_age_panel != null and _age_panel.visible) or (_age_restricted != null and _age_restricted.visible):
+		return
+	if _daily_rewards.visible or _chest_info.visible or (_settings != null and _settings.visible):
+		return
+	_missions.open_missions()
+
+
+## Görünen GÖREVLER rozeti / penceresi yeniden okunur (öne dönüş — gün değişmiş olabilir).
+func _refresh_missions_views() -> void:
+	if _missions != null and _missions.visible:
+		_missions.refresh()
+	if not _screens.is_empty() and _screens[0].visible:
+		_screens[0].refresh_missions()
+
+
 ## Günlük giriş ödülü (GAME_DESIGN.md §5.4): yetkili tek işlem
 ## `DailyReward.claim_if_new_day` (günde bir kez; onboarding bitmeden
 ## no-op). Sonuç değişmez görünüm olarak saklanır ve TEK pencerede
@@ -884,6 +937,9 @@ func _maybe_auto_open_daily_rewards() -> void:
 	if _result.visible or _daily_rewards.visible \
 			or (_settings != null and _settings.visible) or (_pause != null and _pause.visible) \
 			or (_chest_info != null and _chest_info.visible) or _revive.visible or _refill.visible:
+		return
+	# TASK/046: GÖREVLER penceresi de bir pencere — günlük pencere üstüne açılmaz, "due" kalır.
+	if _missions != null and _missions.visible:
 		return
 	# TASK/045: Profil'in Başarımlar / Unvanlar penceresi de bir pencere.
 	if _screens.size() > 4 and _screens[4].has_open_overlay():

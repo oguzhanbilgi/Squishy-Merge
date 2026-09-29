@@ -9,6 +9,9 @@ extends PanelContainer
 ##              LV sayısıyla birlikte "SEVİYE ATLADIN! · LV. 8"). Çok seviye: son seviye.
 ##   BAŞARIM    yalnız bu round başarım açtıysa: "Başarım açıldı: Yıldız Avcısı" /
 ##              "2 başarım açıldı".
+##   GÖREV      (TASK/046) yalnız bu round görev tamamladıysa: nane "GÖREV TAMAMLANDI ·
+##              +10 HAMUR" / "2 GÖREV TAMAMLANDI · +50 HAMUR" (günlük + haftalık birlikte;
+##              Hamur zaten round kaydında eklendi — rozet yalnız gösterir, talep YOK).
 ##
 ## BLOKLAMAZ: dokunma almaz, sonuç CTA'ları ilk kareden aktif, geçiş reklamı ve
 ## round sonu akışı değişmedi. Veri yalnız `PlayerProgression.round_summary` (Main,
@@ -20,6 +23,8 @@ const GAIN_FORMAT: String = "+%d XP"
 const LEVEL_UP_TEXT: String = "SEVİYE ATLADIN! · LV. %d"
 const ONE_ACHIEVEMENT: String = "Başarım açıldı: %s"
 const MANY_ACHIEVEMENTS: String = "%d başarım açıldı"
+const ONE_MISSION: String = "GÖREV TAMAMLANDI · +%d HAMUR"
+const MANY_MISSIONS: String = "%d GÖREV TAMAMLANDI · +%d HAMUR"
 const FLOW_DELAY: float = 0.35
 
 var _bar: PlayerLevelBar
@@ -29,6 +34,8 @@ var _level_up: PanelContainer
 var _level_up_label: Label
 var _achievement: PanelContainer
 var _achievement_label: Label
+var _mission: PanelContainer
+var _mission_label: Label
 var _summary: Dictionary = {}
 var _reveal_tween: Tween
 var _celebrated: bool = false
@@ -72,6 +79,10 @@ func _init() -> void:
 	_achievement.name = "Achievement"
 	_achievement_label = _achievement.get_meta(&"label")
 	_extras.add_child(_achievement)
+	_mission = _pill(UiTokens.MINT, UiKit.icon_texture("goal"), UiTokens.TEXT_ON_ACCENT)
+	_mission.name = "Mission"
+	_mission_label = _mission.get_meta(&"label")
+	_extras.add_child(_mission)
 	visible = false
 
 
@@ -121,7 +132,17 @@ func present(summary: Dictionary) -> void:
 		_achievement_label.text = ONE_ACHIEVEMENT % String(AchievementCatalog.find(fresh[0]).get("name", ""))
 	elif fresh.size() > 1:
 		_achievement_label.text = MANY_ACHIEVEMENTS % fresh.size()
-	_extras.visible = leveled or not fresh.is_empty()
+	# TASK/046: bu round'da tamamlanan görevler (Main: SaveManager.record_mission_round sonucu).
+	var missions: Variant = summary.get("missions", {})
+	var done: Array = (missions as Dictionary).get("completed", []) if missions is Dictionary else []
+	var mission_dough: int = int((missions as Dictionary).get("dough", 0)) if missions is Dictionary else 0
+	_mission.visible = not done.is_empty()
+	_mission.modulate.a = 0.0
+	if done.size() == 1:
+		_mission_label.text = ONE_MISSION % mission_dough
+	elif done.size() > 1:
+		_mission_label.text = MANY_MISSIONS % [done.size(), mission_dough]
+	_extras.visible = leveled or not fresh.is_empty() or not done.is_empty()
 
 
 ## Akışı başlatır: XP sayarak dolar (seviye sınırlarında rozet kutlar), sonra
@@ -152,10 +173,11 @@ func settle() -> void:
 	_bar.show_xp(int(_summary.get("xp_after", 0)))
 	_level_up.modulate.a = 1.0
 	_achievement.modulate.a = 1.0
+	_mission.modulate.a = 1.0
 
 
 func _reveal_extras() -> void:
-	for pill in [_level_up, _achievement]:
+	for pill in [_level_up, _achievement, _mission]:
 		var control: Control = pill
 		if control.visible and control.modulate.a < 1.0:
 			control.modulate.a = 1.0
@@ -200,6 +222,15 @@ func level_up_text() -> String:
 
 func achievement_text() -> String:
 	return _achievement_label.text if _achievement.visible else ""
+
+
+## TASK/046: görev rozeti metni (gizliyse boş).
+func mission_text() -> String:
+	return _mission_label.text if visible and _mission.visible else ""
+
+
+func mission_pill() -> PanelContainer:
+	return _mission
 
 
 func summary() -> Dictionary:
