@@ -1404,6 +1404,11 @@ func _on_round_finished(won: bool) -> void:
 	# XP'si (merge + sabit level bitişi + yeni yıldız) AYNI yazmada.
 	var xp_award: int = PlayerProgression.round_xp_award(merges, fixed_cleared, stars_before,
 		stars if fixed_cleared else 0)
+	# TASK/046: günlük / haftalık görevler — bu round'un AYNI kesin gerçekleri (gerçek merge /
+	# tur / sabit level bitişi) ve otomatik görev Hamur'u yalnız bellekte (`save = false`);
+	# hemen aşağıdaki round kaydı hepsini XP ile TEK yazmada diske indirir. XP / başarım /
+	# sandık / reklam YOK; terk edilen round bu yola hiç girmez.
+	var missions: Dictionary = SaveManager.record_mission_round(merges, fixed_cleared, false)
 	SaveManager.record_round_finished(GameState.highest_tier_created, xp_award)
 
 	var rewards: Array[ChestReward] = _collect_rewards(won, merges)
@@ -1411,6 +1416,8 @@ func _on_round_finished(won: bool) -> void:
 	# (merge / yıldız / level / sandıktan gelen koleksiyon) açtığı başarımlar.
 	var progress: Dictionary = PlayerProgression.round_summary(xp_before, SaveManager.player_xp(),
 		achievements_before, SaveManager.unlocked_achievements())
+	# TASK/046: aynı şeritte kompakt görev satırı — bu round'da tamamlanan görevler + Hamur'u.
+	progress["missions"] = missions
 
 	await get_tree().create_timer(RESULT_DELAY).timeout
 	# Doğal mola (M8.9-02): round KESİN bitti, devam kararları tamamlandı,

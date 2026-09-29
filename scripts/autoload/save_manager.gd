@@ -151,6 +151,24 @@ const DEFAULT_DATA: Dictionary = {
 		"popup_seen_day": "",
 		"last_seen_day_key": "",
 	},
+	## Günlük / haftalık görevler (TASK/046 — GAME_DESIGN §5.10): sürümlü TEK durum, kural /
+	## doğrulama Missions'ta. Yeni kayıtta dönem YOK (gün boş) — ilk okuma kabul edilen günün
+	## taze dönemini görür, ilk round kaydı yazar. Eski kayıt: load_game bellekte taze dönem
+	## kurar (geriye dönük ilerleme / Hamur YOK). UI durumu (açık pencere, "görüldü") SAKLANMAZ.
+	##   version              şema (1)
+	##   day_key              görev günü (YYYY-MM-DD) — GÜNLÜK ÖDÜLLER'in kabul edilen günü
+	##   week_start_day_key   o günün haftasının PAZARTESİ tarihi
+	##   daily_progress / weekly_progress   görev id → 0..hedef
+	##   daily_rewarded / weekly_rewarded   ödülü verilmiş görev id'leri (katalog sırası)
+	"missions": {
+		"version": 1,
+		"day_key": "",
+		"week_start_day_key": "",
+		"daily_progress": {},
+		"daily_rewarded": [],
+		"weekly_progress": {},
+		"weekly_rewarded": [],
+	},
 }
 
 
@@ -189,6 +207,7 @@ func load_game() -> void:
 	_sanitize_showcase()
 	_migrate_profile_counters(parsed)
 	_migrate_player_meta(parsed)
+	_migrate_missions(parsed)
 	_grant_starter_powerups()
 	# A36 kapısı: kanonik ad boşken SaveFile `.bak`'ı kanonik ada KOPYALAR — kopya eski bandı
 	# taşır ve bir sonraki açılış onu geçerli kanonik diye okurdu (yaş sorusunda çıkan oyuncuda
@@ -298,6 +317,20 @@ func _migrate_player_meta(parsed: Dictionary) -> void:
 	_store_achievement_ids(unlocked_achievements())
 	_unlock_satisfied_achievements()
 	data["selected_title_id"] = String(selected_title_id())
+
+
+## Görevler (TASK/046): kayıtta geçerli görev durumu yoksa (TASK/046 öncesi kayıt, bozuk yapı,
+## bilinmeyen sürüm) kabul edilen günün TAZE dönemi — ilerleme 0, ödül işareti yok, Hamur
+## verilmez, geçmiş round'lardan geriye dönük ilerleme UYDURULMAZ. Varsa biçim olarak
+## doğrulanır (bilinmeyen id / tekrar / aralık dışı değer temizlenir); dönemi okuma ve round
+## kaydı ilerletir. YALNIZ bellekte (diğer göçlerle aynı ilke: sonraki doğal kayıt
+## kalıcılaştırır; yazılmadan kapanırsa bir sonraki açılışta aynı sonuç).
+func _migrate_missions(parsed: Dictionary) -> void:
+	var state: Dictionary = Missions.sanitize(parsed.get("missions"))
+	if state.is_empty():
+		var day: String = Missions.accepted_day()
+		state = Missions.fresh_state(day) if Missions.is_day_key(day) else DEFAULT_DATA["missions"].duplicate(true)
+	data["missions"] = state
 
 
 ## Kayıtta oynanmışlık kanıtı var mı (onboarding migration kuralı).
@@ -559,6 +592,39 @@ func record_round_finished(created_tier: int, xp_award: int = 0) -> void:
 	save_game()
 	if unlocked or player_xp() != xp_before:
 		player_meta_changed.emit()
+
+
+# --- Günlük / haftalık görevler (TASK/046 — GAME_DESIGN §5.10) ---
+#
+# Kural / doğrulama / dönem SAF Missions'ta; burada yalnız doğrulanmış okuma ve round başına
+# TEK mutasyon. Görev XP, başarım, unvan, sandık, güç ya da reklam ÜRETMEZ; tek ekonomi etkisi
+# otomatik görev Hamur'u.
+
+## Görevlerin kabul edilen gündeki durumu (Missions.for_day): dönem değişimi okumada görünür,
+## kayıttaki dönemin gerisine düşmez. YAZMAZ.
+func missions_state() -> Dictionary:
+	return Missions.for_day(data.get("missions"), Missions.accepted_day())
+
+
+## Round KESİN bitti — yalnız Main._on_round_finished, round başına TAM bir kez (kesinleştirme
+## korumalı): görev ilerlemesi (bu round'un gerçek merge'leri · tur +1 · sabit level başarıyla
+## bittiyse +1) ve hedefine İLK kez ulaşan görevlerin OTOMATİK Hamur ödülü — ilerleme, ödül
+## işareti ve Hamur AYNI mutasyonda. `save = false`: yazma aynı round'un `record_round_finished`
+## yazmasına katlanır (XP / yıldız / level ile TEK yazma). Döner: {completed: Array[StringName]
+## (katalog sırası), dough: int}. Kabul edilen gün yoksa (bozuk saat) hiçbir şey değişmez.
+func record_mission_round(merges: int, fixed_level_cleared: bool, save: bool = true) -> Dictionary:
+	var state: Dictionary = missions_state()
+	var none: Array[StringName] = []
+	if state.is_empty():
+		return {"completed": none, "dough": 0}
+	var result: Dictionary = Missions.advance(state, merges, 1, 1 if fixed_level_cleared else 0)
+	data["missions"] = result["state"]
+	var reward: int = int(result["dough"])
+	if reward > 0:
+		data["dough"] = dough() + reward
+	if save:
+		save_game()
+	return {"completed": result["completed"], "dough": reward}
 
 
 ## Sayı değilse 0. TASK/045: int64 dışı / NaN float da 0 — `int()` bunu platforma göre
