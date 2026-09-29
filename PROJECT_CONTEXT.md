@@ -123,8 +123,9 @@ alınacak — şimdi tahmin/vaat yok.
   kompakt "+XP / SEVİYE ATLADIN! / Başarım açıldı" şeridi. Ekonomi, reklam sözleşmesi,
   TASK/043, gameplay DEĞİŞMEDİ; başarım ekonomik ödül VERMEZ. Hesap / takma ad / backend /
   skor tablosu YOK. Ayrıntı: GAME_DESIGN §5.9, UI_VISUAL_SYSTEM §23, PROJECT_STATUS §4.21.
-- **TASK/045.1 Kalıcılık ve girdi sağlamlaştırması — DALDA, yerel A36 kapısı ve main'e
-  alınması owner onayı bekliyor** (`task/045-1-persistence-input-hardening`, başlangıç main
+- **TASK/045.1 Kalıcılık ve girdi sağlamlaştırması — DALDA, Samsung A36 yerel kapısı GEÇTİ
+  (2026-09-29, yalnız QA paketi; iki kurtarma bulgusu dalda giderildi), main'e alınması owner
+  onayı bekliyor** (`task/045-1-persistence-input-hardening`, başlangıç main
   `017f2dc`; TASK/045'in üç kararlılık takibi). (A) **Çökmeye dayanıklı kayıt:**
   `save_game()` kanonik dosyayı artık yerinde kesip yazmıyor — `SaveFile` işlemi (yük bellekte
   doğrulanır → aynı klasörde `.tmp` + bayt bayt geri okuma → eski kayıt `.bak`'a taşınır ve
@@ -133,8 +134,8 @@ alınacak — şimdi tahmin/vaat yok.
   korunur, içerik loglanmaz. Açılışta deterministik kurtarma: geçerli kanonik kazanır; kanonik
   yok / bozuksa geçerli `.tmp`, sonra (kanonik ad doluyken ya da `.tmp` izi varken) `.bak`;
   bilerek silinmiş kayıt temiz başlangıçtır. Yol, JSON şeması ve biçim aynı; göç yok. `.bak`'tan
-  kurtarılan kayıtta yaş bandı `UNKNOWN`'a düşer (TASK/043 fail-closed), ADULT olunca `.bak` da
-  atılır. (B) **Güç hedefleme bırakışı:** Bomba / Büyütücü hedef dokunuşunun bırakışı artık
+  kurtarılan kayıtta yaş bandı `UNKNOWN`'a düşer (TASK/043 fail-closed; kanonik ad kopyayla geri
+  kurulduysa hemen kalıcılaşır — A36 kapısı), ADULT olunca `.bak` da atılır. (B) **Güç hedefleme bırakışı:** Bomba / Büyütücü hedef dokunuşunun bırakışı artık
   bekleyen parçayı düşürmüyor (hedefleme modunda basılan dokunuşun tamamı hedeflemenin; durum
   tabanlı, zamanlayıcı yok). (C) **Koleksiyon detayı günlük pencere kapısında:** otomatik
   günlük pencere detayın üstüne açılmaz, "due" kalır, sonraki güvenli fırsatta açılır.
@@ -420,9 +421,9 @@ yerinde kesip yeniden yazıyor — çökmeye dayanıklı atomik kayıt yok (geç
 kurtarma önerisi); (B) güç hedefleme bırakış-düşürme: Büyütücü ve Bomba hedef dokunuşunun
 bırakışı bekleyen parçayı da düşürebilir (TASK/044'te Büyütücü, TASK/045 A36 kapısında
 Bomba ile de görüldü); (C) Koleksiyon detayı otomatik günlük pencere kapısında yok (TASK/044
-artığı).~~ → **TASK/045.1 dalda (A + B + C giderildi):** sıradaki adım owner'ın Samsung A36
-yerel kapısı (QA paketi) → owner onayıyla main'e ff-only. **TASK/046 BAŞLAMADI** — TASK/045.1
-yerel kapıyı geçince sıradaki ürün görevi.
+artığı).~~ → **TASK/045.1 dalda (A + B + C giderildi):** Samsung A36 yerel kapısı GEÇTİ
+(2026-09-29, QA paketi; iki kurtarma bulgusu dalda giderildi) → sıradaki adım owner onayıyla
+main'e ff-only. **TASK/046 BAŞLAMADI** — TASK/045.1 main'e alınınca sıradaki ürün görevi.
 
 Her madde owner girdisi ister; hiçbiri tahmin edilmez ya da uydurulmaz.
 Gizlilik politikası, upload anahtarı ve AdMob kimliklerinde repoda yalnız

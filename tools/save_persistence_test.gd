@@ -27,7 +27,8 @@ extends Node
 ##              yüklenir + TASK/044 göçü yazmasız, TASK/045 XP / başarım / unvan kalıcı,
 ##              başarısız kayıt önceki kaydı korur + bellek aynı, çökmeden kurtarma, bozuk
 ##              kanonik → bir önceki kayıt, kurtarılacak yoksa varsayılanlar (yazma yok),
-##              kayıt silinince temiz başlangıç
+##              kayıt silinince temiz başlangıç; `.bak` kurtarması yeniden açılışta da UNKNOWN
+##              (A36 kapısı) ve ADULT girişinde eski kuşağın geçiş günü kalmaz
 ##   sözleşme   SaveManager kanonik kaydı hiç WRITE açmaz; SaveFile'da tek WRITE açılışı
 ##              geçici dosyada; hata logu içerik taşımaz
 
@@ -493,6 +494,29 @@ func _save_manager_integration() -> void:
 	SaveManager.save_game()
 	_c("  … sonraki kayıt .bak'ı (bir önceki kuşak) yeniden kurar, tarih yok", _exists(BAK) and not _family_contains("2031-05-05"))
 
+	# A36 kapısı: `.bak`'tan kurtarma yeniden açılışta da fail-closed kalır ve kurtarılan kuşağın
+	# geçiş gününü ADULT girişinde bırakmaz.
+	var teen_prev: Dictionary = JSON.parse_string(FileAccess.get_file_as_string(PATH))
+	teen_prev["age_ad_band"] = "TEEN"
+	teen_prev["next_age_transition_date"] = "2031-06-06"
+	# Oynanmış kayıt: başlangıç hediyesi verilmiş — yükleme kendi başına kayıt yazmasın (A36 vakası).
+	teen_prev["powerup_starter_granted"] = true
+	_state("", "{ yarım", JSON.stringify(teen_prev, "\t"))
+	SaveManager.load_game()
+	_c("kanonik yok + yarım .tmp + TEEN .bak: BACKUP, bellekte UNKNOWN; geri kurulan kanonik UNKNOWN (tarih yok), .tmp yok",
+		SaveManager.load_source() == SaveFile.Source.BACKUP and String(SaveManager.data["age_ad_band"]) == "UNKNOWN"
+		and _band_in(PATH) == "UNKNOWN" and not FileAccess.get_file_as_string(PATH).contains("2031-06-06") and not _exists(TMP))
+	SaveManager.load_game()
+	_c("  … yaş sorusunda çıkılıp yeniden açılış: kanonik, bant yine UNKNOWN (eski TEEN bandı geri gelmez)",
+		SaveManager.load_source() == SaveFile.Source.CANONICAL
+		and SaveManager.stored_age_band(AgeGate.today()) == AgeGate.Band.UNKNOWN)
+	_state(FileAccess.get_file_as_string(PATH).substr(0, 40), "", JSON.stringify(teen_prev, "\t"))
+	SaveManager.load_game()
+	SaveManager.store_age_band(AgeGate.Band.ADULT, "")
+	_c("bozuk kanonik + TEEN .bak → kurtarma → ADULT girişi: geçiş günü hiçbir kayıt dosyasında kalmadı, kanonik ADULT",
+		SaveManager.load_source() == SaveFile.Source.BACKUP and not _family_contains("2031-06-06")
+		and _band_in(PATH) == "ADULT" and not _exists(TMP))
+
 	# Kayıt bilerek silinirse (geliştirici / test sıfırlaması) duran .bak geri getirilmez.
 	SaveManager.data["player_xp"] = 4000
 	SaveManager.save_game()
@@ -583,6 +607,11 @@ func _family_contains(needle: String) -> bool:
 		if _exists(path) and FileAccess.get_file_as_string(path).contains(needle):
 			return true
 	return false
+
+
+func _band_in(path: String) -> String:
+	var parsed: Variant = JSON.parse_string(FileAccess.get_file_as_string(path)) if FileAccess.file_exists(path) else null
+	return String((parsed as Dictionary).get("age_ad_band", "")) if parsed is Dictionary else "-"
 
 
 func _xp_in(path: String) -> int:

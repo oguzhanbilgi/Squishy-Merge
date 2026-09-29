@@ -180,7 +180,8 @@ func load_game() -> void:
 	if _load_source == SaveFile.Source.BACKUP:
 		# Bir önceki kuşaktan kurtarıldı: yaş bandı güncel olmayabilir (ör. son kayıt 13 altı
 		# yeniden girişiydi). TASK/043 fail-closed: bant UNKNOWN → reklam SDK'sı / UMP başlamaz,
-		# yaş ilk güvenli kabukta yeniden sorulur; ilerleme kurtarılır. Yalnız bellekte.
+		# yaş ilk güvenli kabukta yeniden sorulur; ilerleme kurtarılır. Bellekte; kanonik ad
+		# `.bak`'tan kopyayla geri kurulduysa hemen kalıcılaşır (aşağıda).
 		data["age_ad_band"] = "UNKNOWN"
 		data["next_age_transition_date"] = ""
 	_migrate_onboarding(parsed)
@@ -189,6 +190,12 @@ func load_game() -> void:
 	_migrate_profile_counters(parsed)
 	_migrate_player_meta(parsed)
 	_grant_starter_powerups()
+	# A36 kapısı: kanonik ad boşken SaveFile `.bak`'ı kanonik ada KOPYALAR — kopya eski bandı
+	# taşır ve bir sonraki açılış onu geçerli kanonik diye okurdu (yaş sorusunda çıkan oyuncuda
+	# SDK eski bantla açılıyordu). UNKNOWN burada kalıcılaşır. Bozuk kanonik duruyorsa her açılış
+	# yine `.bak`'tan kurtarır (UNKNOWN); ona yüklemede dokunulmaz (değişmedi).
+	if _load_source == SaveFile.Source.BACKUP and not bool(loaded["canonical_exists"]):
+		save_game()
 
 
 ## Eski kayıt (anahtar yok) için tek seferlik onboarding kararı (M8.9-02).
@@ -1012,7 +1019,10 @@ func resolve_age_band_at_launch(on_day: Dictionary) -> int:
 ## türetilmiş bant + (UNDER_13 / TEEN için) geçiş günü; ADULT / UNKNOWN'da tarih boş.
 func store_age_band(band: int, transition: String) -> void:
 	var pair: Array[String] = AgeGate.stored_pair(band, transition)
-	var had_date: bool = not String(data.get("next_age_transition_date", "")).is_empty()
+	# `.bak`'tan kurtarılan oturumda bellekteki tarih bilerek boşaltıldı, ama `.bak` o kuşağın
+	# geçiş gününü hâlâ taşıyabilir (bozuk kanonik döndürülmeden ezilir) — tarihli sayılır.
+	var had_date: bool = (not String(data.get("next_age_transition_date", "")).is_empty()
+		or _load_source == SaveFile.Source.BACKUP)
 	data["age_ad_band"] = pair[0]
 	data["next_age_transition_date"] = pair[1]
 	# TASK/045.1: geçiş günü (doğum gününe eşdeğer) silinince bir önceki kayıt kopyası (`.bak`)

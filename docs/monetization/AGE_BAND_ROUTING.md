@@ -152,8 +152,12 @@ yaş ekranı ──> türetilmiş bant kaydedilir (tek yazma), ham tarih atılı
 - **Kayıt kurtarma (TASK/045.1):** kanonik kayıt bozulup bir önceki kuşaktan (`.bak`) kurtarılırsa
   bant o kopyada güncel olmayabilir (ör. son kayıt 13 altı yeniden girişiydi) → yükleme bandı
   bellekte `UNKNOWN`'a düşürür (geçiş günü boş): reklam SDK'sı / UMP başlamaz, yaş ilk güvenli
-  kabukta yeniden sorulur (fail-closed, bozuk kayıtla aynı sonuç), ilerleme kurtarılır. Yarım
-  kalan işlemin doğrulanmış en yeni kaydından (`.tmp`) kurtarmada bant korunur.
+  kabukta yeniden sorulur (fail-closed, bozuk kayıtla aynı sonuç), ilerleme kurtarılır. Kanonik
+  ad boşken kayıt `.bak`'tan kopyayla geri kurulursa `UNKNOWN` yüklemede hemen kalıcılaşır —
+  yaş sorusunda uygulamadan çıkılsa da sonraki açılış eski bandı okumaz (A36 kapısı bulgusu,
+  2026-09-29). Böyle kurtarılan oturumda ADULT girişi eski kuşağın geçiş gününü taşıyabilecek
+  `.bak`'ı da atar. Yarım kalan işlemin doğrulanmış en yeni kaydından (`.tmp`) kurtarmada bant
+  korunur.
 
 ## 5. Yaş hesabı + geçişler (`scripts/game/age_gate.gd` — saf, autoload'a dokunmaz)
 

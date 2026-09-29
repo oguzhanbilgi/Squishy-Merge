@@ -48,15 +48,15 @@ Ayarlar Profil'in dişli çarkında; Samsung A36 yerel kapısı GEÇTİ (§4.20)
 seviyesi + XP (kümülatif `player_xp`, seviye türetilir), 12 başarım, varsayılan + 8 unvan,
 Profil'de seviye / BAŞARIMLAR / pencereler, sonuç ekranında kompakt XP şeridi (§4.21); bulut
 kapısı + Samsung A36 yerel kapısı GEÇTİ (bulgu yok). **TASK/045.1 (2026-09-28, dalda —
-`task/045-1-persistence-input-hardening`; yerel A36 kapısı ve main'e alınması owner onayı
-bekliyor):** çökmeye dayanıklı kayıt (geçici dosya + doğrulama + yer değiştirme, deterministik
+`task/045-1-persistence-input-hardening`; yerel A36 kapısı GEÇTİ 2026-09-29 (iki kurtarma
+bulgusu giderildi), main'e alınması owner onayı bekliyor):** çökmeye dayanıklı kayıt (geçici dosya + doğrulama + yer değiştirme, deterministik
 kurtarma), Bomba / Büyütücü hedef dokunuşunun bırakışı artık parça düşürmüyor, otomatik günlük
 pencere Koleksiyon detayının üstüne açılmıyor (§4.22); TASK/046 BAŞLAMADI. Sırada: içerik
 derecesi + yargı bölgesi kararları (owner) → gizlilik
 politikası → upload anahtarı → gerçek AdMob kimlikleri → mağaza varlıkları / Play Console,
 sonra ilk imzalı üretim AAB'si ve M10 (Play kapalı test) ·
 **Branch:** TASK/045.1 `task/045-1-persistence-input-hardening` dalda (main'e alınmadı —
-yerel A36 kapısı + owner onayı bekliyor; başlangıç `017f2dc`) · `main` — TASK/045 `task/045-player-level-achievements` (`514ec9a` + `285856c` +
+yerel A36 kapısı GEÇTİ, owner onayı bekliyor; başlangıç `017f2dc`) · `main` — TASK/045 `task/045-player-level-achievements` (`514ec9a` + `285856c` +
 `d4c8548`) owner onayıyla ff-only entegre (`115252c → d4c8548`, 2026-09-28) · önce TASK/044
 `task/044-player-meta-v1` (`d2832dc` + `e6c1c07` + `c5b4db5` +
 `239f2e7`) owner onayıyla ff-only entegre (`327dd60 → 239f2e7`, 2026-09-28) · önce TASK/043
@@ -1668,9 +1668,10 @@ formatına yalnız `haptics_enabled` (varsayılan true) eklendi. Ayrıntı ve
 
 ### 4.22 Kalıcılık ve girdi sağlamlaştırması (TASK/045.1)
 
-> **dalda** — `task/045-1-persistence-input-hardening` (başlangıç main `017f2dc`); yerel
-> Samsung A36 kapısı ve main'e alınması owner onayı bekliyor. TASK/045'in üç kararlılık
-> takibi; kapsam bunlarla sınırlı (TASK/046 BAŞLAMADI).
+> **dalda** — `task/045-1-persistence-input-hardening` (başlangıç main `017f2dc`); **yerel
+> Samsung A36 kapısı GEÇTİ (2026-09-29)** — iki kurtarma bulgusu aynı dalda giderildi (aşağıda);
+> main'e alınması owner onayı bekliyor. TASK/045'in üç kararlılık takibi; kapsam bunlarla
+> sınırlı (TASK/046 BAŞLAMADI).
 
 - **(A) Çökmeye dayanıklı kayıt.** Eski `save_game()` kanonik dosyayı `FileAccess.WRITE` ile
   yerinde kesip yazıyordu: yazma sırasında çökme / öldürme / disk hatası okunamayan bir kayıt
@@ -1718,6 +1719,8 @@ formatına yalnız `haptics_enabled` (varsayılan true) eklendi. Ayrıntı ve
   kurtarılan kayıtta yaş bandı bellekte `UNKNOWN`'a düşer — reklam SDK'sı / UMP başlamaz, yaş
   yeniden sorulur (bozuk kayıtla aynı fail-closed sonuç); geçiş günü (doğum gününe eşdeğer)
   silinince (ADULT) `.bak` da atılır ("ADULT olunca silinir" sözü o kopya için de geçerli).
+  *(A36 kapısı düzeltmesi: kanonik ad `.bak`'tan kopyayla geri kurulduysa `UNKNOWN` yüklemede
+  hemen kalıcılaşır; `.bak`'tan kurtarılan oturumdaki ADULT girişi de `.bak`'ı atar.)*
 - **Çekişmeli inceleme (6 mercek + ikinci tur; salt okuma):** BLOCKER 0 · HIGH 0. MEDIUM 5 → 4
   giderildi, 1 hafifletildi. Giderilen: kurtarılacak tek kopya `.tmp`'nin üzerine yazılıyordu
   (önce terfi) · `.bak` taahhütten hemen sonra siliniyordu, yeniden adlandırma boş ada olduğu için
@@ -1756,6 +1759,29 @@ formatına yalnız `haptics_enabled` (varsayılan true) eklendi. Ayrıntı ve
   verisiyle kalabilir ya da taze kurulum benzetiminde silinebilir — koşucu kayıt AİLESİNİ
   (kanonik + `.tmp` + `.bak`) yedekleyip her suite'ten sonra geri koymalı
   (`build/qa_045-1/tests/run_suites.sh`).
+- **Samsung A36 yerel kapısı (2026-09-29, yalnız QA paketi `…squishymerge.qa`, Google TEST
+  reklamları; kanıt `build/qa_045-1-gate/`): GEÇTİ — iki bulgu giderildi.** Masaüstü: 32/32 suite
+  4224 kontrol (bulutla aynı), düzeltmeden sonra 4227 (`save_persistence_test` 111), 0 hata, 0
+  SCRIPT ERROR; sahibin kayıt ailesi bayt-aynı. Cihaz: gerçek dokunuşla güç / Squishy satın alma,
+  unvan, vitrin, günlük sandık, round → her kayıtta kanonik = en yeni, `.bak` = bir önceki kuşak,
+  `.tmp` yok; soğuk açılış en yeni ilerleme; kayıt süresi medyan ~2,2 ms (en çok ~7 ms), eylem
+  karelerinde görünür takılma yok. Kurtarma A–E + kanonik yok / bozuk varyantları; kayıt
+  aşamasında gerçek süreç ölümü (SIGKILL) ve dışarıdan sert öldürme sınaması (25 + 13 öldürme,
+  hepsi geçerli, gerileme yok). Bomba / Büyütücü: dokun, hızlı ikinci dokunuş, uzun basış, kısa
+  sürükleme, iptal, geçersiz hedef, T7→T8, iki parmak (A gerçek, B Godot girdi katmanında —
+  cihazda adb çoklu dokunuş SELinux'ta kapalı) — hedef bir kez, stok −1, bırakış düşürmez, sonraki
+  bağımsız dokunuş hemen düşürür. Günlük pencere: Koleksiyon detayı / değiştirme adımı / sekme
+  tazeleme / arka plan-öne dönüş / gün değişimi / MAĞAZAYA GİT / Başarımlar / Unvanlar → pencere
+  açılmaz, "due" kalır, sonraki güvenli geçişte açılır. **Giderilen bulgular** (`[M10] Fix
+  persistence and input A36 gate findings`): (1) kanonik ad boşken `.bak` kanonik ada KOPYALANIP
+  bellekteki `UNKNOWN` diske yazılmadığından, yaş sorusunda çıkılıp yeniden açılışta eski bant
+  (A36'da ADULT) okunup reklam SDK'sı açılıyordu → `UNKNOWN` yüklemede kalıcılaşır; (2) bozuk
+  kanonik + tarihli `.bak`'tan kurtarma sonrası ADULT girişinde `.bak` eski geçiş gününü
+  taşıyordu → o oturumda `.bak` da atılır. **Önceden var olan, kapsam dışı (düzeltilmedi):**
+  oyun içi Ayarlar dişlisiyle açılıp Android geri tuşuyla kapatılınca ilk tahta dokunuşunun
+  bırakışı kayboluyor (düşürmüyor; ikinci dokunuş normal) — 300 ms yatışma dişlinin kendi
+  dokunuş bırakışını yutuyor, GUI dokunuş odağı dişlide kalıyor (TASK/044; KAPAT / karartma
+  dokunuşuyla kapatınca yok).
 
 ## 5. Dosya/klasör yapısı ve script envanteri
 
