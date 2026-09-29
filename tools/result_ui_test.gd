@@ -34,6 +34,13 @@ extends Node
 ##             REKOR çipi, ödülsüz gövde gizli.
 ##   RESPONSIVE 720×1280 / 720×1560 / 540×960 / 1080×2340 / A36 (safe 61):
 ##             çerçeve + tepelik ekranda, altlık çerçevede, CTA ekranda.
+##   GÖREV     (TASK/046) ilerleme şeridinde kompakt görev rozeti: bir günlük "+10" / bir
+##             haftalık "+40" / günlük + haftalık "2 … +50" / "3 … +60"; +XP / seviye atlama /
+##             başarım rozetleriyle birlikte (kırpma / çakışma yok, şerit çerçevede); CTA'lar
+##             reveal bitmeden etkin (bloklamaz), rozet dokunma almaz, tek sonuç çerçevesi,
+##             görev yoksa rozet yok; gerçek Main round'u (TEST kayıt yolunda; gerçek kayıt dosyası
+##             bayt-aynı): Hamur = görev + sandık, çip kanonik. RESPONSIVE'de en uzun şerit (LV. 20 +
+##             en uzun başarım + "6 GÖREV TAMAMLANDI · +150 HAMUR") + 3 ödül her boyutta ve A36'da.
 ##   PERFORMANS düğüm sayısı raporu; reveal sonrası sürekli efekt yalnız
 ##             Legendary'de (≤ 1), diğerlerinde 0.
 
@@ -53,6 +60,8 @@ const LEGACY: Array[String] = ["SB_surface", "CardPanel", "Level listesi", "bann
 	"SecondaryButton", "UiPalette", "CandyButton", "UiType.apply"]
 const FORBIDDEN: Array[String] = ["_visual_source", "layerlab_spike", "layerlab_casual_game", "unitypackage"]
 const ENGLISH_RARITY: Array[String] = ["Common", "Rare", "Epic", "Legendary"]
+## TASK/046 görev bölümünün gerçek round'u bu test yoluna yazar (sahibin kaydına değil).
+const MISSION_DIR: String = "user://qa_result_missions"
 const INTERNAL_TERMS: Array[String] = ["fallback", "duplicate", "Teselli ödülü", "tamamlandı →"]
 
 var _fails: int = 0
@@ -101,6 +110,7 @@ func _ready() -> void:
 	await _test_overflow()
 	await _test_save_safety()
 	await _test_real_path()
+	await _test_missions()
 	await _test_navigation()
 	await _test_level10_endless()
 	await _test_revive_order()
@@ -447,6 +457,7 @@ func _test_real_path() -> void:
 	board._revives_used = board.MAX_REVIVES_PER_ROUND
 	GameState.reset_run()
 	GameState.add_score(410)
+	_pin_missions()
 	var dough_before: int = SaveManager.dough()
 	var merges_before: int = int(SaveManager.data.get("total_merges", 0))
 	board._trigger_overflow_fail()
@@ -487,6 +498,181 @@ func _test_real_path() -> void:
 	_c("terk sonrası sonuç kapalı, harita", not result.visible and _main._active_tab == 1)
 	_main._show_tab(0)
 	await _settle(2)
+
+
+# --- Görev geri bildirimi (TASK/046) -----------------------------------------------------
+
+func _test_missions() -> void:
+	print("-- görev geri bildirimi (TASK/046)")
+	var result: CanvasLayer = _main._result
+	var strip: ResultProgressStrip = result.progress_strip()
+	var base: Dictionary = PlayerProgression.round_summary(700, 742, [], [])
+	var cases: Array = [
+		["bir günlük", [&"daily_clear"], 10, "GÖREV TAMAMLANDI · +10 HAMUR"],
+		["bir haftalık", [&"weekly_rounds"], 40, "GÖREV TAMAMLANDI · +40 HAMUR"],
+		["günlük + haftalık", [&"daily_merges", &"weekly_merges"], 50, "2 GÖREV TAMAMLANDI · +50 HAMUR"],
+		["çoklu (2 günlük + 1 haftalık)", [&"daily_merges", &"daily_rounds", &"weekly_merges"], 60,
+			"3 GÖREV TAMAMLANDI · +60 HAMUR"],
+	]
+	for entry: Array in cases:
+		var progress: Dictionary = base.duplicate(true)
+		progress["missions"] = {"completed": entry[1], "dough": entry[2]}
+		await _open_progress(LEVEL_04, true, 1230, [_dough(SkinData.Rarity.COMMON)], progress)
+		_c("%s: rozet '%s'" % [entry[0], entry[3]], strip.mission_text() == entry[3]
+			and strip.mission_pill().is_visible_in_tree())
+		await _leave()
+	# Birlikte: +XP + seviye atlama + başarım + görev (tek şerit, ayrı sonuç sayfası YOK).
+	var boundary: int = PlayerProgression.total_xp_for_level(5)
+	var together: Dictionary = PlayerProgression.round_summary(boundary - 8, boundary + 30, [], [&"merge_100"])
+	together["missions"] = {"completed": [&"daily_merges", &"weekly_merges"], "dough": 50}
+	var rewards: Array[ChestReward] = [_dough(SkinData.Rarity.RARE), _skin(SkinData.Rarity.EPIC, 1)]
+	await _open_progress(LEVEL_04, true, 1230, rewards, together, false)
+	var anchor: Control = result.frame().get_parent()
+	_c("birlikte: CTA'lar reveal bitmeden etkin (bloklamaz), tek sonuç çerçevesi", not result.is_reveal_done()
+		and not result.primary_button().disabled and result.primary_button().is_visible_in_tree()
+		and not result.secondary_button().disabled and _count_named(anchor, "ResultShell") == 1)
+	await _wait_reveal(result)
+	await get_tree().create_timer(1.6).timeout
+	_c("birlikte: '+38 XP' + 'SEVİYE ATLADIN! · LV. 5' + 'Başarım açıldı: Hamur Isınıyor' + '2 GÖREV TAMAMLANDI · +50 HAMUR'",
+		strip.gain_text() == "+38 XP" and strip.level_up_text() == "SEVİYE ATLADIN! · LV. 5"
+		and strip.achievement_text() == "Başarım açıldı: Hamur Isınıyor"
+		and strip.mission_text() == "2 GÖREV TAMAMLANDI · +50 HAMUR")
+	_check_pills("birlikte", result)
+	_c("görev rozeti dokunma almaz (sonuç ekranında yeni etkileşim yok)", strip.mission_pill().mouse_filter == Control.MOUSE_FILTER_IGNORE
+		and strip.mouse_filter == Control.MOUSE_FILTER_IGNORE)
+	_c("görev yeni kart / ödül ÜRETMEZ (kartlar yalnız sandıklar), altlık CTA'ları aynı", result.cards().size() == 2
+		and result.primary_text() == "HARİTA" and result.secondary_text() == "TEKRAR OYNA")
+	await _leave()
+	var none: Dictionary = base.duplicate(true)
+	none["missions"] = {"completed": [], "dough": 0}
+	await _open_progress(LEVEL_04, false, 90, [_consolation()], none)
+	_c("tamamlanan görev yok → rozet yok, ekstra satır yok", strip.mission_text() == "" and not strip.mission_pill().visible
+		and not strip.find_child("Extras", true, false).visible)
+	await _leave()
+	await _open_progress(LEVEL_04, false, 90, [_consolation()], base)
+	_c("görev anahtarı olmayan özet (eski çağıran) → rozet yok", strip.mission_text() == "")
+	await _leave()
+
+	# Gerçek Main round'u: görev Hamur'u round kaydında, sonuç çipi kanonik bakiyeye varır. Round
+	# level 4'ü açar / XP yazar — yazmalar TEST yoluna gider (sahibin kayıt ailesine değil), bellek
+	# sonra geri konur (sonraki bölümler etkilenmez).
+	var snapshot: Dictionary = SaveManager.data.duplicate(true)
+	var real_path: String = SaveManager.save_path
+	var owner_bytes: PackedByteArray = FileAccess.get_file_as_bytes(real_path) if FileAccess.file_exists(real_path) \
+		else PackedByteArray()
+	DirAccess.make_dir_recursive_absolute(MISSION_DIR)
+	SaveManager.save_path = MISSION_DIR + "/save.json"
+	var today: String = Missions.accepted_day()
+	SaveManager.data["missions"] = Missions.fresh_state(today)
+	var dough_before: int = SaveManager.dough()
+	_main._start_level(load(LEVEL_04))
+	await get_tree().process_frame
+	await get_tree().process_frame
+	GameState.reset_run()
+	for i in 3:
+		GameState.register_merge(3, Vector2(360, 700))
+	GameState.add_score(load(LEVEL_04).star_3_threshold())
+	_main._board._finish(true)
+	var waited: int = 0
+	while not result.visible and waited < 240:
+		await get_tree().process_frame
+		waited += 1
+	await _wait_reveal(result)
+	var chest_dough: int = 0
+	for reward: ChestReward in result._rewards:
+		if not reward.is_skin_reward():
+			chest_dough += reward.dough
+	_c("gerçek round: 'GÖREV TAMAMLANDI · +10 HAMUR' (level görevi), tek sonuç", strip.mission_text()
+		== "GÖREV TAMAMLANDI · +10 HAMUR" and _count_named(anchor, "ResultShell") == 1)
+	_c("gerçek round: Hamur = önceki + görev 10 + sandık (%d); çip kanonik bakiyeye vardı" % chest_dough,
+		SaveManager.dough() == dough_before + 10 + chest_dough and result.dough_text() == GameplayHud._thousands(SaveManager.dough()))
+	var disk: Variant = JSON.parse_string(FileAccess.get_file_as_string(SaveManager.save_path))
+	var owner_after: PackedByteArray = FileAccess.get_file_as_bytes(real_path) if FileAccess.file_exists(real_path) \
+		else PackedByteArray()
+	_c("gerçek round görev durumunu + Hamur'u TEST yoluna yazdı; gerçek kayıt dosyası bu round'da bayt-aynı",
+		disk is Dictionary and int((disk as Dictionary).get("dough", -1)) == SaveManager.dough()
+		and real_path == SaveManager.SAVE_PATH and owner_after == owner_bytes)
+	await _leave()
+	SaveManager.save_path = real_path
+	SaveManager.data = snapshot
+	for suffix in ["", SaveFile.TEMP_SUFFIX, SaveFile.BACKUP_SUFFIX]:
+		var path: String = MISSION_DIR + "/save.json" + suffix
+		if FileAccess.file_exists(path):
+			DirAccess.remove_absolute(ProjectSettings.globalize_path(path))
+	DirAccess.remove_absolute(ProjectSettings.globalize_path(MISSION_DIR))
+
+
+## `_open` gibi, ama ilerleme özetiyle (TASK/045 şeridi + TASK/046 görev rozeti).
+func _open_progress(level_path: String, won: bool, score: int, rewards: Array[ChestReward], progress: Dictionary,
+		wait_reveal: bool = true) -> void:
+	_main._start_level(load(level_path))
+	await get_tree().process_frame
+	await get_tree().process_frame
+	_main._board.round_finished.disconnect(_main._on_round_finished)
+	GameState.reset_run()
+	GameState.add_score(score)
+	var level: LevelData = _main._current_level
+	_main._board._finish(won)
+	_main._revive.hide_offer()
+	_main._result.show_result(level, won, score, level.stars_earned(won, score), rewards, false, false, 0, progress)
+	await get_tree().process_frame
+	if wait_reveal:
+		await _wait_reveal(_main._result)
+		await get_tree().create_timer(1.2).timeout
+
+
+func _pills_fit(pills: Array[Control]) -> bool:
+	for pill in pills:
+		var label: Label = pill.get_meta(&"label")
+		var font: Font = label.get_theme_font("font")
+		var width: float = font.get_string_size(label.text, HORIZONTAL_ALIGNMENT_LEFT, -1,
+			label.get_theme_font_size("font_size")).x
+		if width > label.size.x + 0.5 or not pill.get_global_rect().grow(0.5).encloses(label.get_global_rect()):
+			print("    rozet kırpıldı: '%s' (%.0f > %.0f)" % [label.text, width, label.size.x])
+			return false
+	return true
+
+
+## Seviye / başarım / görev rozetleri: görünür, çakışmıyor, metin kırpılmadı; şerit çerçevede
+## ve ekranda.
+func _check_pills(label: String, result: CanvasLayer) -> void:
+	var strip: ResultProgressStrip = result.progress_strip()
+	var pills: Array[Control] = []
+	var shown: bool = true
+	for pill_name in ["LevelUp", "Achievement", "Mission"]:
+		var pill: Control = strip.find_child(pill_name, true, false)
+		pills.append(pill)
+		shown = shown and pill != null and pill.is_visible_in_tree()
+	var overlap: bool = false
+	for i in pills.size():
+		for j in range(i + 1, pills.size()):
+			var inter: Rect2 = pills[i].get_global_rect().intersection(pills[j].get_global_rect())
+			if inter.size.x > 1.0 and inter.size.y > 1.0:
+				overlap = true
+	var frame_rect: Rect2 = result.frame().get_global_rect()
+	_c("%s: üç rozet görünür, çakışmıyor, metin kırpılmadı; şerit çerçevede ve ekranda" % label, shown and not overlap
+		and _pills_fit(pills) and frame_rect.grow(1.0).encloses(strip.get_global_rect())
+		and get_viewport().get_visible_rect().encloses(strip.get_global_rect()))
+
+
+## En uzun ilerleme şeridi: iki haneli seviye atlama + en uzun başarım adı + altı görev birden.
+func _worst_progress() -> Dictionary:
+	var boundary: int = PlayerProgression.total_xp_for_level(20)
+	var worst: Dictionary = PlayerProgression.round_summary(boundary - 8, boundary + 30, [], [&"collection_20"])
+	worst["missions"] = {"completed": Missions.ids(), "dough": Missions.max_reward(Missions.PERIOD_DAILY)
+		+ Missions.max_reward(Missions.PERIOD_WEEKLY)}
+	return worst
+
+
+## TASK/046: kesin Hamur kontrolleri yalnız teselli / sandık yazımını ölçer — kayıttaki görev
+## ilerlemesi (sahibin kaydı) round'da bir görev tamamlatıp Hamur eklemesin: bugünün altı görevi
+## ödüllü sabitlenir.
+func _pin_missions() -> void:
+	var today: String = Missions.accepted_day()
+	SaveManager.data["missions"] = Missions.sanitize({"version": Missions.VERSION, "day_key": today,
+		"week_start_day_key": Missions.week_start(today), "daily_progress": {}, "weekly_progress": {},
+		"daily_rewarded": Missions.ids_for(Missions.PERIOD_DAILY),
+		"weekly_rewarded": Missions.ids_for(Missions.PERIOD_WEEKLY)})
 
 
 # --- Rotalar ---------------------------------------------------------------------------
@@ -595,6 +781,7 @@ func _test_revive_order() -> void:
 	var board: Node2D = _main._board
 	GameState.reset_run()
 	GameState.add_score(500)
+	_pin_missions()
 	var dough_before: int = SaveManager.dough()
 	board._trigger_overflow_fail()
 	await _settle(4)
@@ -632,6 +819,12 @@ func _test_responsive() -> void:
 		await _settle(6)
 		_check_fit("%dx%d kayıp 2 ödül" % [view_size.x, view_size.y], result, 0.0)
 		await _leave()
+		# TASK/046: en uzun şerit (LV. 20 + en uzun başarım + "6 GÖREV TAMAMLANDI · +150 HAMUR") + 3 ödül.
+		await _open_progress(LEVEL_04, true, 1230, three, _worst_progress())
+		await get_tree().create_timer(0.6).timeout
+		_check_fit("%dx%d üç rozet + 3 ödül" % [view_size.x, view_size.y], result, 0.0)
+		_check_pills("%dx%d en uzun şerit" % [view_size.x, view_size.y], result)
+		await _leave()
 	# A36 simülasyonu: 720×1560 + üst güvenli pay 61 (tepelik bandın altında).
 	await _resize(Vector2i(720, 1560))
 	for screen in _main._screens:
@@ -641,6 +834,12 @@ func _test_responsive() -> void:
 	_main._board._apply_layout(get_viewport().get_visible_rect().size, A36_SAFE_TOP)
 	await _settle(6)
 	_check_fit("A36 (720x1560 safe 61) kazanma 3 ödül", result, A36_SAFE_TOP)
+	await _leave()
+	await _open_progress(LEVEL_04, true, 1230, three, _worst_progress())
+	_main._board._apply_layout(get_viewport().get_visible_rect().size, A36_SAFE_TOP)
+	await get_tree().create_timer(0.6).timeout
+	_check_fit("A36 (720x1560 safe 61) üç rozet + 3 ödül", result, A36_SAFE_TOP)
+	_check_pills("A36 en uzun şerit", result)
 	await _leave()
 	await _resize(VIEWS[0])
 

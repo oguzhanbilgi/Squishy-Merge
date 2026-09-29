@@ -1796,3 +1796,106 @@ göç ve geriye dönük açılışlar gösterilmez; özetsiz çağrıda şerit g
 Takma ad / hesap / skor tablosu / paylaşım; başarım ödülü (Hamur / sandık / güç) —
 başarımlar ekonomik değil; oyun içi toast / bildirim; yeni tam ekran sonuç sayfası;
 unvan / rozet vitrini. Hepsi owner kararı ister.
+
+## 24. Günlük / Haftalık Görevler (TASK/046 Missions V1)
+
+**Karar:** Ana Sayfa'ya TEK kompakt GÖREVLER girişi, Main'e ait GÖREVLER penceresi ve sonuç
+ekranının TASK/045 şeridinde kompakt görev rozeti. Aynı candy-night kawaii sistemi (lavanta /
+krem / nane / altın; Baloo 2 + Nunito) — görev panosu / dashboard / liste uygulaması DEĞİL.
+Yeni ekran, alt gezinme, sekme, tam ekran ödül penceresi, talep butonu, banner, reklam YOK.
+Sayılar ve kurallar GAME_DESIGN §5.10'da kilitli; bu bölüm yalnız görünüm ve etkileşim.
+
+**Kod:** `scripts/ui/missions_overlay.gd` (`MissionsOverlay`, `scenes/ui/missions_overlay.tscn`,
+katman 12), `mission_card.gd` (`MissionCard`), `home_screen.gd` (GÖREVLER girişi +
+`refresh_missions`), `result_progress_strip.gd` (görev rozeti), `main.gd` (`open_missions`,
+geri / pencere kapıları). Model zinciri: `SaveManager` (tek yazan: `record_mission_round`,
+round kesinleşmesinde) → `Missions` (saf katalog / dönem / doğrulama) → UI (yalnız okur).
+**Test:** `tools/missions_ui_test.tscn` (giriş + N/6, pencere içeriği ve durumları, TAMAMLANDI
+çipi + durum halkası, geri / X / karartma / hızlı çift dokunuş / yeniden açılış, kapılar —
+sandık / ayarlar / günlük / yaş / kısıt ekranı açıkken açılmaz, ekran değişimi / round /
+pencereleri kapatma kapatır —, 5 görünüm + A36 üst payı: giriş / sayaç / not / başlık / kart
+metinleri kırpılmaz, halkalar kırpılmaz; uzun metin, dil, sahte arka uçla banner / yüzey,
+kayıt yazılmaz (bayt + yazma girişimi dedektörü), günlük pencere kapısı, öne dönüşte gün
+dönümü pencereyi ve Ana Sayfa rozetini aynı yeni döneme tazeler), `missions_test` (çekirdek),
+`result_ui_test` "görev geri bildirimi" + en uzun şerit (LV. 20 + en uzun başarım + "6 GÖREV
+TAMAMLANDI · +150 HAMUR") her boyutta ve A36'da. **Çekim:** `godot --resolution GxY
+--path . res://tools/missions_shots.tscn -- <dir> [GxY] [safe=61] [only=H|M|R]` (14 kare: H Ana
+Sayfa 3 durum, M pencere 7 durum — uzun metin provası dahil, R sonuç 4 gerçek round; kayıt
+test yoluna yönlendirilir, her karenin piksel boyutu doğrulanır, tutmazsa çıkış 3).
+
+### 24.1 Ana Sayfa girişi
+
+- **Yer:** üst madalyon sırasının DİKEY ortasında, Günlük ile Mağaza ARASINDA, yatayda ortalı —
+  logonun altında, maskotun dar tepesinin üstünde (her görünümde maskotun opak piksellerine
+  değmez). 2+2 madalyon düzeni, avatar / seri / Hamur satırı, level pill'i, OYNA ve banner
+  yuvası DEĞİŞMEDİ (`home_ui_test` aynen geçer).
+- **Anatomi:** level pill'iyle AYNI malzeme — `ButtonHomePill` gövde (56 yüksek, genişlik
+  içeriğe göre 206..260) + erik gölge + açık lavanta halka + üst gloss; solda nane candy kuyu
+  (40, koyu taban + kenar + gövde + gloss) içinde beyaz hedef pictosu (`goal`); ortada
+  "GÖREVLER" (Baloo 19, beyaz); sağda "N/6" rozeti — altın `Badge`, altısı tamamlanınca nane.
+  Basış `UiMotion` squash. Kayda YAZMAZ.
+- **N/6:** içinde bulunulan dönemlerde (bugün + bu pazartesi haftası) ödülü verilmiş görev
+  sayısı; her `refresh()`, öne dönüşte ve pencere açılırken yeniden okunur (gün değişmiş
+  olabilir — rozet ile pencere hep aynı dönemi gösterir).
+
+### 24.2 GÖREVLER penceresi
+
+`UiKit.modal_shell("GÖREVLER", 600)` — pembe kurdele + oturmuş X (GÜNLÜK ÖDÜLLER / Bonus Sandık
+ile aynı iskelet), tavana dayanırsa üst güvenli pay + kurdele taşmasının ALTINDA ortalanır
+(`seat_modal_below_safe_top`), banner varken yuvanın ÜSTÜNE oturur.
+
+| Bölge | İçerik |
+|---|---|
+| **Hero** (sabit) | pembe hedef picto + "2 / 6" (Baloo 32) + "GÖREV" · nane ray (6/6'da altın + yıldız) · not "Ödüller görev tamamlanınca otomatik eklenir." (6/6: "Hepsi tamam!", altın) |
+| **Gövde** (kayar) | "GÜNLÜK" başlığı + ince lavanta çizgi + takvim picto + "Yarın yenilenir" · 3 kart · "HAFTALIK" + "Pazartesi yenilenir" · 3 kart. İpuçları SABİT metin (ikincil erik, 15 px — kremde okunur kontrast) — canlı geri sayım yok. |
+
+**`MissionCard`** (GÜNLÜK ÖDÜLLER seçenek kartının malzemesi: bir ton geri krem
+`card_bevel_soft` gövde + gövdeyi çevreleyen 3 px durum halkası — açıkta lavanta `#dccbe8`,
+tamamda nane; ≥ 96). Yapı: kök düz `Control` → halka (kartın tam dikdörtgeni) → gövde
+`PanelContainer` her yandan 3 px içeride — halka gövdenin çocuğu olsaydı `PanelContainer` onu
+içerik payına oturtup opak gövdenin altında saklardı; kartın dışına taşsaydı pencerenin
+`ScrollContainer`'ı yan kenarlarını kırpardı (`missions_ui_test` her görünümde ölçer). Solda
+metrik kuyusu (`candy_well` 56 — merge: owner dumpling'i / pembe · tur: oyna pictosu / cyan ·
+level: owner bayrağı / altın) · görev metni
+(Baloo 20, tek satır, uzun metinde üç nokta — kart taşmaz) + durum çipi · nane ilerleme rayı
+(14) + sabit genişlikte sağa yaslı "x / y" (altı rayın boyu hizalı) · sağda owner Hamur sanatı
+(34) + "+10" / "+40" (altın fiyat dili). **Tamamlanan kart:** açık nane gövde + nane halka, ray
+dolu, sayaç nane, "✓ TAMAMLANDI" nane çipi — ödül zaten eklendi, basılacak buton YOK
+(pencerede tek buton X). Kartlar dokunma almaz; kaydırma üstlerinden başlar.
+
+### 24.3 Sonuç ekranı — görev rozeti
+
+`ResultProgressStrip`'in koşullu satırına üçüncü hap: nane gövde + hedef picto + "GÖREV
+TAMAMLANDI · +10 HAMUR" (tek) / "2 GÖREV TAMAMLANDI · +50 HAMUR" (çok; günlük + haftalık
+birlikte). "SEVİYE ATLADIN!" ve "Başarım açıldı" haplarıyla aynı akış: baştan şeffaf yerleşir
+(altlık zıplamaz), XP akışından sonra belirir; sığmazsa alt satıra kayar (kırpma yok).
+Bloklamaz: dokunma almaz, CTA'lar ilk kareden aktif, geçiş reklamı sırası / kadansı değişmedi;
+yeni kart / ayrı sonuç sayfası yok. Hamur çipi kanonik bakiyeyi gösterir (görev Hamur'u round
+kaydında zaten eklenmiştir; çip yalnız sandık Hamur'unu sayarak ekler).
+
+### 24.4 Dokunma, geri tuşu, responsive
+
+- **Parmak yatışması:** pencerenin `opened` ve `closed` sinyalleri → `Main.settle_touch_input()`
+  (TASK/045.2 dizi kuralı, 300 ms aynen): girişe hızlı çift dokunuşun ikincisi karartmaya
+  düşüp pencereyi kapatmaz; X'e çift dokunuşun ikincisi Ana Sayfa kontrolüne (Hamur "+" vb.)
+  düşmez; yatışmadan sonra ilk dokunuş çalışır. Kod yolu / masaüstü fare etkilenmez.
+- **Geri:** Main zincirinde Ayarlar / Sandık / Günlük'ten sonra — açık pencere kapanır, Ana
+  Sayfa'da kalınır (uygulama kapanmaz). X ve karartma bırakışı da kapatır.
+- **Kapılar:** tutorial koçluğu, round, başka ekran, yaş / kısıt ekranı, başka ikincil pencere
+  açıkken açılmaz; açıkken otomatik günlük pencere açılmaz ("due" kalır), sandık bilgisi / günlük
+  pencere kod yolundan da altına açılmaz (aynı katman 12); kabuk gizlenince / başka ekrana
+  geçişte sessizce kapanır; yaş sorusu gelince diğer ikincil pencerelerle kapanır.
+- **Responsive:** 720 tuval — 320×568, 360×640, 390×844, 360×800, 1080×2340 (+ A36 üst payı 61):
+  giriş ≥ 48, güvenli alanda, hiçbir Ana Sayfa kontrolüyle çakışmaz; pencerenin kurdele / X'i
+  üst payın altında, altı kart erişilebilir (1280 tuvalde kaydırmasız sığar), kırpma / taşma /
+  üst üste binme yok (`missions_ui_test` her görünümde ölçer).
+- **Dil:** tek üretim dili Türkçe; görev id'leri iç kimlik, metin `Missions.TITLE_FORMATS`
+  tablosunda (sayı hedeften). Projede çeviri / RTL katmanı yok → RTL uygulanamaz; "x / y"
+  soldan sağa.
+
+### 24.5 Şimdilik yapılmayan (bilerek)
+
+Talep butonu / ödül animasyonu penceresi; reklamla görev yenileme / tamamlama / ikiye
+katlama; görev serisi / çarpan / "mükemmel hafta"; canlı geri sayım; bildirim noktası /
+"yeni tamamlandı" durumu (UI durumu saklanmaz); görev geçmişi; yeni sekme. Hepsi owner kararı
+ister.

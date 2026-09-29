@@ -359,6 +359,13 @@ func _test_revive_back_and_decline() -> void:
 	var board: Node2D = _board()
 	GameState.reset_run()
 	GameState.add_score(500)
+	# TASK/046: aşağıdaki kesin "+teselli" kontrolü yalnız teselliyi ölçer — kayıttaki görev
+	# ilerlemesi bu round'da bir görev tamamlatıp Hamur eklemesin: bugünün altı görevi ödüllü.
+	var today: String = Missions.accepted_day()
+	SaveManager.data["missions"] = Missions.sanitize({"version": Missions.VERSION, "day_key": today,
+		"week_start_day_key": Missions.week_start(today), "daily_progress": {}, "weekly_progress": {},
+		"daily_rewarded": Missions.ids_for(Missions.PERIOD_DAILY),
+		"weekly_rewarded": Missions.ids_for(Missions.PERIOD_WEEKLY)})
 	var dough_before: int = SaveManager.dough()
 	_main.set_rewarded_provider(null)
 	board._trigger_overflow_fail()

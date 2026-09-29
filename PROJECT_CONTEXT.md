@@ -78,7 +78,9 @@ alınacak — şimdi tahmin/vaat yok.
 [Current release blockers](#current-release-blockers) +
 [Next action](#next-action); aşağıdaki "Milestone tarihçesi" değil.
 
-- **Repo:** `main == origin/main` (2026-09-29): **TASK/045.2 owner onayıyla ff-only main'e
+- **Repo:** **TASK/046 Günlük / Haftalık Görevler V1 dalda** (`task/046-daily-weekly-missions`,
+  main `56106ef`'ten; masaüstü doğrulama tamam — Samsung A36 kapısı + main'e alınması owner onayı
+  bekliyor; main DEĞİŞMEDİ). `main == origin/main` (2026-09-29): **TASK/045.2 owner onayıyla ff-only main'e
   alındı** (`task/045-2-settings-back-input-focus`: `c990b63` + `a32ee2d`; `e474fb3 → a32ee2d`,
   merge commit yok, ağaç eşit — Samsung A36'da doğrulanmış ağaç); üstünde yalnız bu durum
   doküman commit'i. Aynı gün önce **TASK/045.1** ff-only (`task/045-1-persistence-input-hardening`:
@@ -111,7 +113,7 @@ alınacak — şimdi tahmin/vaat yok.
   banner yüzeyi değil. Ekonomi, sandık oranları, fiyatlar, reklam sözleşmesi, TASK/043
   yaş yönlendirmesi, fizik / merge DEĞİŞMEDİ. ~~XP / seviye / başarım / görev YOK
   (TASK/045–047)~~ → XP / seviye / başarım / unvan TASK/045 ile geldi (aşağıda); görev YOK
-  (TASK/046–047). Ayrıntı: GAME_DESIGN §5.3 / §5.8, UI_VISUAL_SYSTEM §17 / §22.
+  (TASK/046–047) *(TASK/046 günlük / haftalık görevleri dalda — aşağıda; TASK/047 BAŞLAMADI)*. Ayrıntı: GAME_DESIGN §5.3 / §5.8, UI_VISUAL_SYSTEM §17 / §22.
 - **TASK/045 Player Progression V1 — TAMAM, main'de** (`task/045-player-level-achievements`,
   başlangıç main `115252c`; **Samsung A36 yerel kapısı GEÇTİ 2026-09-28** — yalnız QA paketi,
   bulgu yok, düzeltme commit'i yok; owner onayıyla ff-only main'e alındı `115252c → d4c8548`,
@@ -165,6 +167,23 @@ alınacak — şimdi tahmin/vaat yok.
   yeni basışı yutulan eski diziyi kapatır (takılı bastırma yok). **300 ms aynen**, yeni
   zamanlayıcı / bekleme yok; TASK/044–045 çift dokunuş korumaları aynen. Gameplay / ekonomi /
   ilerleme / kayıt / reklam / yaş yönlendirmesi DEĞİŞMEDİ. Ayrıntı: PROJECT_STATUS §4.23.
+- **TASK/046 Günlük / Haftalık Görevler V1 — dalda, main'e alınması owner onayı bekliyor**
+  (`task/046-daily-weekly-missions`, başlangıç main `56106ef`; masaüstü doğrulama tamam, Samsung
+  A36 kapısı ayrı owner onaylı adım). Yerel / çevrimdışı 6 KİLİTLİ görev: günlük `daily_merges`
+  15 merge · `daily_rounds` 2 tur · `daily_clear` 1 level (+10 Hamur her biri), haftalık
+  `weekly_merges` 120 · `weekly_rounds` 12 · `weekly_clears` 5 (+40 her biri) — **haftada en
+  fazla 330 Hamur**. İlerleme YALNIZ kesin biten round'dan (TASK/045 XP'siyle aynı gerçek merge
+  sayısı; kayıp merge + tur sayar; level yalnız sabit level başarıyla — tekrar dahil, sonsuz /
+  kayıp değil; terk / yeniden başlatma / yarım round / Büyütücü / tutorial tamamlanması 0). Ödül
+  OTOMATİK (talep butonu yok), dönem başına görev başına bir kez, round kaydının TEK yazmasında;
+  XP / sandık / parça / güç / başarım / unvan / reklam YOK. Gün = GÜNLÜK ÖDÜLLER'in kabul
+  edilen günü (ayrı saat yok), dönem asla geri gitmez; hafta pazartesi başlar. Yeni seri YOK.
+  Kayıt: tek sürümlü `missions` (göç = taze dönem, geriye dönük ilerleme / Hamur yok); SaveFile
+  işlemi aynen. Ana Sayfa'da tek GÖREVLER girişi (N/6, Günlük ile Mağaza arası), Main'e ait
+  GÖREVLER penceresi (GÜNLÜK / HAFTALIK, 3'er kart), sonuç ekranında kompakt "GÖREV TAMAMLANDI ·
+  +10 HAMUR" rozeti. Gameplay / XP eğrisi / başarımlar / fiyatlar / günlük ödüller / reklam
+  sözleşmesi / TASK/043 DEĞİŞMEDİ. Ayrıntı: GAME_DESIGN §5.10, UI_VISUAL_SYSTEM §24,
+  PROJECT_STATUS §4.24.
 - **M0–M8 tamamlandı.** Oyun uçtan uca oynanabilir: 10 level + sonsuz mod,
   sandık/koleksiyon/mağaza, günlük ödül, Home hub + `ScreenTopBar` gezinmesi
   (M8.5'in 4 sekmeli alt çubuğu M8.6-06'da kalktı), owner'ın görsel
@@ -205,6 +224,10 @@ alınacak — şimdi tahmin/vaat yok.
   bazında (oyun içi Ayarlar → GERİ sonrası ilk tahta dokunuşu); süre aynen, yeni zamanlayıcı
   yok; fizik, merge, skor, ekonomi, XP, kayıt, reklam sözleşmesi, TASK/043 yaş yönlendirmesi
   AYNI.)*
+  *(TASK/046, dalda: günlük / haftalık görevler — tek yeni ekonomi kaynağı otomatik görev
+  Hamur'u (haftada ≤ 330); kayıt şemasına sürümlü `missions` eklendi (kayıt işlemi aynı); Ana
+  Sayfa'ya tek GÖREVLER girişi + pencere, sonuç ekranında görev rozeti. Fizik, merge, skor, XP,
+  başarımlar, fiyatlar, sandık oranları, günlük ödüller, reklam sözleşmesi, TASK/043 AYNI.)*
 - **Kalıcı paket kimliği KİLİTLENDİ (owner kararı, 2026-09-24):** üretim / Play
   = `com.obappstudio.squishymerge` (project.godot `squishy/release/android_package_id`
   + yerel release presetleri); QA / test = `com.obappstudio.squishymerge.qa` (debug
@@ -444,8 +467,9 @@ Profil yolu, reklam yüzeyleri. Giderilen: geçiş sonrası 300 ms parmak yatı�
 (Oyuncu Seviyesi + XP + Başarımlar + Unvanlar) BAŞLAMADI~~ → **TASK/045 Player Progression
 V1: ✅ TAMAM, main'de** (bulut kapısı + Samsung A36 yerel kapısı GEÇTİ 2026-09-28, yalnız QA
 paketi, bulgu yok; owner onayıyla ff-only `115252c → d4c8548`). Ayrıntı: PROJECT_STATUS
-§4.21. TASK/046 (Günlük/Haftalık Görevler) ve TASK/047 (Günlük Merge Challenge)
-**BAŞLAMADI** — sıradaki ürün görevi TASK/046 (owner başlatır).
+§4.21. ~~TASK/046 (Günlük/Haftalık Görevler) ve TASK/047 (Günlük Merge Challenge)
+**BAŞLAMADI** — sıradaki ürün görevi TASK/046 (owner başlatır).~~ → TASK/046 dalda (aşağıda);
+TASK/047 (Günlük Merge Challenge) **BAŞLAMADI**.
 
 ~~**Kararlılık takibi (öneri, BAŞLAMADI — TASK/045 engeli değil):** (A) `save_game()` kaydı
 yerinde kesip yeniden yazıyor — çökmeye dayanıklı atomik kayıt yok (geçici dosya + yedekten
@@ -454,8 +478,8 @@ bırakışı bekleyen parçayı da düşürebilir (TASK/044'te Büyütücü, TAS
 Bomba ile de görüldü); (C) Koleksiyon detayı otomatik günlük pencere kapısında yok (TASK/044
 artığı).~~ → **TASK/045.1: ✅ TAMAM, main'de** (A + B + C; Samsung A36 yerel kapısı GEÇTİ
 2026-09-29, QA paketi, iki kurtarma bulgusu giderildi; owner onayıyla ff-only `017f2dc →
-5b1f952`). Ayrıntı: PROJECT_STATUS §4.22. **TASK/046 BAŞLAMADI** — sıradaki ürün görevi
-(owner başlatır).
+5b1f952`). Ayrıntı: PROJECT_STATUS §4.22. ~~**TASK/046 BAŞLAMADI** — sıradaki ürün görevi
+(owner başlatır).~~ → TASK/046 dalda (aşağıda).
 
 ~~**Önerilen TASK/045.2 — girdi odağı cilası (öneri, BAŞLAMADI; TASK/045.1 engeli değildi):**
 oyun içi Ayarlar dişlisiyle açılıp Android geri tuşuyla kapatılınca ilk tahta dokunuşunun
@@ -472,7 +496,17 @@ kenardan geri kaydırmanınki) tahtada parça düşürür — A36'da gerçek ACT
 (telefon 3 tuşlu gezinmede; hareketle gezinme denenmedi); düzeltmesi gameplay girdisini
 değiştirir, ayrı görev; (2) Koleksiyon kartı basılıyken GERİ → detay Godot'un gizleme anındaki
 sentetik bırakışında açılır — A36'da 5/5 gizleme anında, 0/5 fiziksel bırakışta; `Main._input`
-ile ilgisiz. **TASK/046 BAŞLAMADI** — sıradaki ürün görevi (owner başlatır).
+ile ilgisiz. ~~**TASK/046 BAŞLAMADI** — sıradaki ürün görevi (owner başlatır).~~ → aşağıda.
+
+**Ürün işi — TASK/046 Günlük / Haftalık Görevler V1: dalda** (`task/046-daily-weekly-missions`,
+main `56106ef`'ten; masaüstü doğrulama tamam — yeni `missions_test` + `missions_ui_test`, genişletilmiş
+`result_ui_test`, tam regresyon, mutasyonlar, 6 görünümde görsel kanıt). **Sıradaki adım:** owner
+onaylı **Samsung A36 yerel kapısı** (yalnız QA paketi) → owner onayıyla main'e alınma. Ayrıntı:
+PROJECT_STATUS §4.24. **TASK/047 (Günlük Merge Challenge) BAŞLAMADI** — owner başlatır.
+İncelemede TASK/046'dan bağımsız, önceden var olan bir MEDIUM bulundu — **öneri, BAŞLAMADI**
+(owner kararı): sonuç gecikmesi (RESULT_DELAY) bitiren board'a bağlı değil; Mola açıkken
+Büyütücü dönüşümü round'u bitirip 0,8 sn içinde "Yeniden Başlat" basılırsa eski round'un geçiş
+reklamı / sonucu yeni round'un üstüne açılabilir (görev sayımı doğru; §4.24).
 
 Her madde owner girdisi ister; hiçbiri tahmin edilmez ya da uydurulmaz.
 Gizlilik politikası, upload anahtarı ve AdMob kimliklerinde repoda yalnız
@@ -1551,8 +1585,17 @@ yapılandırma değişir (checklist §3); 13–17 yaş bandı yönlendirmesi kod
   (`touch_focus`) yönlendirir, bırakışı yutulan dizi odağı asılı bırakıp sonraki dokunuşun
   sürükleme / bırakışını çalar (TASK/045.2 kök nedeni). Süreyi büyütmek çözüm değildir
 - **Otomatik günlük pencere kapısı:** pencere / sonuç / oyun / Profil Başarımlar–Unvanlar
-  (TASK/045) / Koleksiyon parça detayı (TASK/045.1) açıkken açılmaz; atlanan açılış pencereyi
-  tüketmez ("due" kalır)
+  (TASK/045) / Koleksiyon parça detayı (TASK/045.1) / GÖREVLER penceresi (TASK/046) açıkken
+  açılmaz; atlanan açılış pencereyi tüketmez ("due" kalır)
+- **Günlük / haftalık görevler (TASK/046, GAME_DESIGN §5.10):** 6 kilitli görev, haftada ≤ 330
+  Hamur. Görev durumunu YALNIZ `SaveManager.record_mission_round` değiştirir — yalnız
+  `Main._on_round_finished`'da, kesinleştirme korumasından sonra, `save=false` ile round kaydına
+  katlanır (ilerleme + ödül işareti + Hamur tek yazmada); yüklemedeki göç (`_migrate_missions`)
+  yalnız bellekte doğrular / taze dönem kurar, ilerleme ya da Hamur üretmez. Kural katmanı saf `Missions`; gün =
+  `DailyRewards.day_key()` (ayrı saat yok), dönem kayıttakinin gerisine düşmez, hafta pazartesi.
+  Ödül otomatik, dönem başına görev başına bir kez; XP / başarım / unvan / sandık / güç / reklam
+  yok; görev kodu reklam / rıza / yaş / Age Signals okumaz. GÖREVLER penceresi Main'e ait,
+  kayda yazmaz, yeni banner yüzeyi değil; açılış / kapanış 300 ms parmak yatışması
 - **Büyük iş akışı kapısı (M8.5-17'den itibaren):** gameplay/render/skin/
   UI/ses/güç/Android işleri → otomatik testler → masaüstü QA → Android
   debug APK → USB'deki telefona kur → başlat → cihaz QA → rapor → commit.

@@ -46,6 +46,11 @@
   (`selected_title_id`, sabit katalogdan — serbest metin DEĞİL) ve şema sürümü
   (`player_meta_version`). Hepsi yalnız cihazdaki oyun kaydında; sunucu / hesap / skor
   tablosu / paylaşım YOK, reklam veya analitiğe gönderilmez.
+  TASK/046 Günlük / Haftalık Görevler (dalda): `missions` — şema sürümü, içinde bulunulan gün
+  ve haftanın pazartesisi (`YYYY-MM-DD`, cihazın yerel takvimi; GÜNLÜK ÖDÜLLER'in gün
+  anahtarıyla aynı kaynak), sabit katalogdaki altı görevin sayaçları ve ödülü verilmiş görev
+  kimlikleri. Yalnız oyun içi sayaç — kişisel veri / serbest metin yok; sunucu / hesap /
+  paylaşım YOK, reklam veya analitiğe gönderilmez.
 - **Yaş bandı (TASK/043, [monetization/AGE_BAND_ROUTING.md](monetization/AGE_BAND_ROUTING.md)):**
   nötr yaş ekranında girilen **doğum tarihi SAKLANMAZ** ve cihazdan çıkmaz (yalnız
   bellekte sınıflandırılıp atılır). Kayda yalnız türetilmiş durum yazılır:

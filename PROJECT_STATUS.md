@@ -55,11 +55,18 @@ pencere Koleksiyon detayının üstüne açılmıyor (§4.22). **TASK/045.2 (202
 owner onayıyla ff-only alındı; bulut kapısı + Samsung A36 yerel kapısı GEÇTİ, bulgu yok):** oyun içi Ayarlar → Android geri
 sonrası kaybolan ilk tahta bırakışı düzeltildi — 300 ms parmak yatışması artık dizi bazında
 (pencerede başlayan dizi tamamen yutulur, pencereden önce başlamış dizi bölünmez), süre aynen
-(§4.23); TASK/046 BAŞLAMADI. Sırada: içerik
+(§4.23). **TASK/046 (2026-09-29, dalda `task/046-daily-weekly-missions` — masaüstü doğrulama
+tamam; Samsung A36 yerel kapısı + main'e alınması owner onayı bekliyor, main DEĞİŞMEDİ):**
+Günlük / Haftalık Görevler V1 — 6 kilitli görev (günlük 15 merge / 2 tur / 1 level +10'ar,
+haftalık 120 / 12 / 5 +40'ar; haftada ≤ 330 Hamur), ödül otomatik, gün = GÜNLÜK ÖDÜLLER günü,
+hafta pazartesi; Ana Sayfa GÖREVLER girişi + pencere, sonuç ekranında görev rozeti (§4.24);
+TASK/047 BAŞLAMADI. Sırada: içerik
 derecesi + yargı bölgesi kararları (owner) → gizlilik
 politikası → upload anahtarı → gerçek AdMob kimlikleri → mağaza varlıkları / Play Console,
 sonra ilk imzalı üretim AAB'si ve M10 (Play kapalı test) ·
-**Branch:** `main` — TASK/045.2 `task/045-2-settings-back-input-focus` (`c990b63` + `a32ee2d`)
+**Branch:** `task/046-daily-weekly-missions` (main `56106ef`'ten; 4 commit — çekirdek, arayüz +
+sonuç rozeti, inceleme düzeltmeleri, regresyon / görsel kapı + dokümanlar; main DEĞİŞMEDİ, A36
+kapısı + main owner onayı bekliyor) · `main` — TASK/045.2 `task/045-2-settings-back-input-focus` (`c990b63` + `a32ee2d`)
 owner onayıyla ff-only entegre (`e474fb3 → a32ee2d`, 2026-09-29; A36 kapısı geçti, düzeltme
 commit'i yok) · önce TASK/045.1 `task/045-1-persistence-input-hardening` (`aac0895` …
 `5b1f952`, 8 commit; son commit A36 kapısı düzeltmesi) owner onayıyla ff-only entegre
@@ -1678,7 +1685,7 @@ formatına yalnız `haptics_enabled` (varsayılan true) eklendi. Ayrıntı ve
 > **main'de** — `task/045-1-persistence-input-hardening` (başlangıç main `017f2dc`) owner
 > onayıyla ff-only alındı (`017f2dc → 5b1f952`, 2026-09-29); **Samsung A36 yerel kapısı GEÇTİ
 > (2026-09-29)** — iki kurtarma bulgusu dalda giderildi (aşağıda). TASK/045'in üç kararlılık
-> takibi; kapsam bunlarla sınırlı (TASK/046 BAŞLAMADI).
+> takibi; kapsam bunlarla sınırlı (TASK/046 BAŞLAMADI — o an; sonra dalda, §4.24).
 
 - **(A) Çökmeye dayanıklı kayıt.** Eski `save_game()` kanonik dosyayı `FileAccess.WRITE` ile
   yerinde kesip yazıyordu: yazma sırasında çökme / öldürme / disk hatası okunamayan bir kayıt
@@ -1795,7 +1802,7 @@ formatına yalnız `haptics_enabled` (varsayılan true) eklendi. Ayrıntı ve
 > **main'de** — `task/045-2-settings-back-input-focus` (başlangıç main `e474fb3`); bulut kapısı
 > geçti; **Samsung A36 yerel kapısı GEÇTİ (2026-09-29)** — yalnız QA paketi, bulgu yok, düzeltme
 > commit'i yok; owner onayıyla ff-only main'e alındı `e474fb3 → a32ee2d` (merge commit yok, ağaç
-> eşit). Kapsam yalnız bu hata (TASK/046 BAŞLAMADI).
+> eşit). Kapsam yalnız bu hata (TASK/046 BAŞLAMADI — o an; sonra dalda, §4.24).
 
 - **Hata (A36, 3/3):** oyun içi dişli → Ayarlar → Android geri → 300 ms'den sonra ilk tahta
   dokunuşunun bırakışı kayboluyor (parça düşmez; ikinci dokunuş normal); KAPAT / karartma
@@ -1882,6 +1889,127 @@ formatına yalnız `haptics_enabled` (varsayılan true) eklendi. Ayrıntı ve
   parça düşürdü (yukarıda (1); hareketle gezinme denenmedi — telefon ayarı değiştirilmedi);
   basılı kart + GERİ detayı 5/5 gizleme anında açtı, fiziksel bırakışta 0/5 (yukarıda (2)).
 
+### 4.24 Günlük / Haftalık Görevler V1 (TASK/046)
+
+> **dalda** — `task/046-daily-weekly-missions` (başlangıç main `56106ef`): `efb9763` çekirdek ·
+> `6543492` arayüz + sonuç rozeti · `137c219` inceleme düzeltmeleri · son commit regresyon /
+> görsel kapı araçları + dokümanlar. **Masaüstü doğrulama tamam (2026-09-29); Samsung A36 yerel
+> kapısı YAPILMADI** — owner onaylı ayrı adım, sonra owner onayıyla main'e ff-only. main
+> DEĞİŞMEDİ (`56106ef`). TASK/047 BAŞLAMADI. Kurallar ve sayılar GAME_DESIGN §5.10'da kilitli,
+> görünüm UI_VISUAL_SYSTEM §24.
+
+- **Katalog (kilitli, ayar yok):** günlük `daily_merges` "15 birleşme yap" · `daily_rounds` "2 tur
+  tamamla" · `daily_clear` "1 level tamamla" (+10'ar); haftalık `weekly_merges` 120 ·
+  `weekly_rounds` 12 · `weekly_clears` 5 (+40'ar). Günde ≤ 30, haftalıklardan ≤ 120, haftada ≤ 330
+  Hamur; tek round'da en fazla +150.
+- **Model:** `scripts/game/missions.gd` (`Missions`, saf `RefCounted` — yeni autoload YOK): katalog
+  + metin tablosu, katı gün anahtarı (`YYYY-MM-DD`, gerçek tarih, yıl ≥ 2000), pazartesi haftası
+  (`week_start`), `sanitize` (sözlük değil / bilinmeyen sürüm / bozuk gün → dönem yok; bilinmeyen /
+  öteki dönemin id'si düşer; tekrar işaret tekilleşir; ödüllü = hedef, ödülsüz ≤ hedef − 1; NaN /
+  negatif / dev değer kırpılır; ham dizi 32 ile sınırlı; deterministik, idempotent), `for_day`
+  (dönem kayıttakinin GERİSİNE düşmez; yeni gün günlükleri sıfırlar, aynı pazartesi haftasında
+  haftalık aynen), `advance` (saf; hedefte kırpar, ödüllü görevi atlar, ilk ulaşmada ödül; katalog
+  sırası), `rows`. **SaveManager:** `DEFAULT_DATA.missions` (sürüm 1), `_migrate_missions`
+  (yüklemede yalnız bellekte: geçerli durum doğrulanır, yoksa kabul edilen günün taze dönemi —
+  geriye dönük ilerleme / Hamur / kutlama YOK; ikinci yükleme aynı), `missions_state()` (salt
+  okuma), `record_mission_round(merges, fixed_level_cleared, save)` (tek mutasyon: ilerleme + ödül
+  işareti + Hamur). **Main:** `_on_round_finished`'da kesinleştirme korumasından SONRA, round
+  kaydından ÖNCE `record_mission_round(merges, fixed_cleared, false)` → `record_round_finished`
+  TEK yazma (XP / yıldız / level / görev / görev Hamur'u aynı işlemde); `merges` = TASK/045 XP'siyle
+  aynı `GameState.merge_count`, `fixed_cleared` = sabit level başarıyla (sonsuz / kayıp değil).
+  Terk / yeniden başlatma / `_clear_board` / süreç ölümü görev çağırmaz; giden board'un geç
+  sinyali, bağlantısı kesildiği için ulaşmaz. SaveFile (TASK/045.1) DEĞİŞMEDİ.
+- **Saat:** kabul edilen gün = `DailyRewards.day_key()` (geri alınan saatte görülen en yeni gün —
+  ayrı saat YOK); o bozuksa cihaz günü; o da geçersizse yeni dönem açılmaz (kayıtlı dönem varsa
+  round ona işlenir, ödül işaretleri geçerli). Görevler `last_seen_day_key` YAZMAZ (DailyRewards
+  davranışı donmuş — aşağıda kabul edilen LOW).
+- **Arayüz:** Ana Sayfa'da tek GÖREVLER girişi (`ButtonHomePill` 206..260×56, nane kuyu + hedef
+  picto + "GÖREVLER" + "N/6" rozeti — 6/6'da nane; üst madalyon sırasında Günlük ile Mağaza
+  arasında; 2+2 madalyon, maskot, OYNA, beş ekran aynen). `MissionsOverlay` (katman 12,
+  `modal_shell` "GÖREVLER" 600; hero "N / 6" + ray + otomatik ödül notu; GÜNLÜK / HAFTALIK
+  bölümleri + sabit "Yarın yenilenir" / "Pazartesi yenilenir"; 3'er `MissionCard`; tek buton X;
+  kayda yazmaz). `ResultProgressStrip`'e nane görev hapı ("GÖREV TAMAMLANDI · +10 HAMUR" / "2 GÖREV
+  TAMAMLANDI · +50 HAMUR"; bloklamaz, dokunma almaz). Açılış / kapanış 300 ms parmak yatışmasını
+  başlatır (TASK/045.2 dizi kuralı aynen); geri tuşu Günlük'ten sonra kapatır; tutorial / round /
+  başka ekran / yaş–kısıt ekranı / başka ikincil pencere varken açılmaz; açıkken otomatik günlük
+  pencere "due" kalır; ekran değişimi / round başlangıcı / yaş sorusu kapatır; öne dönüşte ve
+  açılışta rozet + pencere aynı döneme tazelenir.
+- **Reklam / yaş:** görev kodu reklam / rıza / yaş / Age Signals okumaz; yeni banner yüzeyi yok
+  (pencere Ana Sayfa yuvasının üstüne oturur), tamamlanma reklam çağırmaz, sonuç ekranı banner'sız
+  aynen; interstitial kadansı aynen.
+- **Ekonomi (eklemeli analiz, ayar YOK):** `python tools/missions_economy.py` — görev Hamur'unun
+  mevcut haftalık gelire eki: koleksiyon eksik reklamsız +%7 (yoğun, yalnız sonsuz) … +%46
+  (kasual L4–L7), günlük ödüllü reklamlarla +%5 … +%17; koleksiyon tamam +%5 … +%34 / +%4 … +%14.
+  Yalnız sonsuz oynayan haftada en fazla 220 alır. Fiyat / sandık / günlük ödül / kota DEĞİŞMEDİ.
+- **Testler (yalnız test kayıt yolu; sahibin ailesine dokunmaz):** yeni `missions_test`
+  (136 kontrol: katalog, gün / hafta — 1200 ardışık gün kaba kuvvet, doğrulama, dönem, ilerleme,
+  göç / kurtarma — CRASH_AFTER_BACKUP `.tmp` kurtarması + yırtık kanonik `.bak`, saat — geri alma /
+  bozuk saat, gerçek Main round akışı a–m, tutorial round'u, sahte arka uçla reklam yok + sonuç
+  banner'sız, kaynak sözleşmesi) · yeni `missions_ui_test` (139: giriş + N/6, pencere içeriği,
+  TAMAMLANDI çipi + durum halkası, girdi — geri / X / karartma / gerçek parmakla hızlı çift dokunuş,
+  kapılar + kendiliğinden kapanış, 5 görünüm + A36 üst payı — kırpma / çakışma / maskot pikseli /
+  halka kırpılması, uzun metin, dil, banner yuvası, yazma girişimi dedektörü, öne dönüşte gün
+  dönümü) · `result_ui_test` 226 → 265 (görev hapı + TASK/045 hapları birlikte, en uzun şerit
+  her boyutta + A36, gerçek round TEST yolunda + gerçek kayıt bayt-aynı) · `revive_refill_ui_test`
+  ve `result_ui_test`'in kesin "+teselli" kontrolleri bugünün görevleri ödüllü sabitlenerek sahibin
+  kayıt durumundan bağımsız · `save_persistence_test` şema anahtarı. **Tam regresyon (`137c219`
+  ağacı, `--import` sonrası):** 35 koşu (34 test suite'i — 32 mevcut + 2 yeni — ve bot L3 2/2):
+  **4744 kontrol, 0 hata, 0 SCRIPT ERROR**; sahibin kayıt ailesi her suite'ten sonra bayt-aynı
+  (motorun çıkıştaki "resources still in use" satırları bilinen gürültü). Taban (main `56106ef`,
+  dal açılmadan önce): 33 koşu (32 suite + bot), 4387 kontrol, 0 hata.
+- **Mutasyonlar (16/16 öldü — hepsi davranış kontrolüyle, 0 SCRIPT ERROR; kaynak her seferinde
+  bayt-aynı geri kondu, HEAD blob'u):** A tamamlanan görev ikinci ödül · B yinelenen kesinleştirme · C saat geri alınınca eski dönem ·
+  D pazar haftası · E sonsuz round level sayar · F terk ilerletir · G ödül XP verir · H / H2 açılış /
+  kapanış yatışması yok · I tamamlanma reklam çağırır · (inceleme sonrası, Main yolları) J öne
+  dönüş tazelemez · K ekran değişimi kapatmaz · L günlük / sandık / ayarlar üstüne açılır · M yaş /
+  kısıt ekranı üstüne açılır · N round başlangıcı kapatmaz · O pencereleri kapatma atlar.
+- **Görsel kanıt (pencereli, `tools/missions_shots.tscn`):** `137c219` ağacında 6 boyut × 14 kare =
+  **84 PNG** (320×568, 360×640, 390×844, 360×800, 1080×2340, 1080×2340 + A36 üst payı 61): Ana Sayfa 0/6 · 3/6 · 6/6, pencere 0 /
+  kısmi / bir görev / günlükler / altısı / uzun metin / kaydırma sonu, 4 gerçek round sonucu (tek
+  günlük, tek haftalık, günlük + haftalık, görev + seviye atlama + başarım); her karenin piksel
+  boyutu doğrulandı, 0 betik / harness hatası, sahibin kayıt ailesi dokunulmadı. Gözle: açık
+  kartlarda lavanta, tamamlananlarda nane halka görünür; üç hap 320×568'de de sığar.
+- **Çekişmeli inceleme (6 mercek, salt okuma):** BLOCKER 0 · HIGH 1 · MEDIUM 5 · LOW 15 · NIT 15.
+  HIGH: doküman, son koşulardan önce "masaüstü doğrulama tamam" diyordu → iddia yalnız bu son
+  koşulardan sonra yazıldı. MEDIUM: `revive_refill_ui_test` kesin +5 sahibin kaydına bağlıydı →
+  görevler sabitlendi; `result_ui_test` görev round'u sahibin kaydına yazıyordu → TEST yolu +
+  gerçek kayıt bayt kontrolü (suite'in TASK/046 öncesi gerçek kayıt yazmaları miras — koşucu
+  aileyi geri koyar); Main tarafı görev yolları testsizdi → kapı / kendiliğinden kapanış / öne
+  dönüş testleri + J–O mutasyonları; doküman eksikti → tamamlandı; önceden var olan RESULT_DELAY
+  penceresi (aşağıda). Düzeltilen LOW / NIT: kart halkası opak gövdenin altında görünmüyordu
+  (kök `Control` + kardeş halka, kart dikdörtgeninde — kaydırma alanı kırpmaz), Ana Sayfa N/6 gün
+  dönümünde pencereden farklı kalabiliyordu (açılışta tazelenir), sandık / günlük kod yolu
+  korumaları, ipucu kontrastı, bozuk saat yorumları + round testi, ekonomi varsayımı (koleksiyon
+  tamam tablosu), "iki Nadir parça", gelecekteki sürüm göçü notu, UTF-8 çıktı, test
+  totolojileri, yazma girişimi dedektörü, tam renk rozet, TAMAMLANDI metni, kırpma kapsamı, üç
+  hap sığması, sonuç banner'ı, bekçi süreleri / Main önce serbest. **Bilerek bırakılan (owner
+  kararı):** görev tabanı ile DailyRewards tabanı gece yarısı + saat geri alma kombinasyonunda
+  ayrışabilir (ödül tekrarı yok; düzeltmesi DailyRewards'ı değiştirir) · elle bozulmuş kayıt ödül
+  işaretlerini silebilir (yalnız kayıt düzenlemeyle) · round'un `add_merges` yazması ayrı (TASK/045
+  mirası; görevler XP ile tutarlı) · Hamur çipi görev tutarını ayrıca saymaz (son değer doğru) ·
+  `dough()` ham `int` (önceden var olan, yalnız bozuk kayıt) · sessiz kapanış da yatışma başlatır
+  (erişilemez) · "birleşme / BİRLEŞTİRME / merge" üç kelime (katalog metni kilitli) ·
+  `progression_shots` / `result_shots` referans kareleri kayıttaki görev durumuna göre rozet
+  gösterebilir.
+- **Önceden var olan, kapsam dışı (düzeltilmedi):** (1) **RESULT_DELAY penceresi bitiren board'a
+  bağlı değil** (inceleme MEDIUM, TASK/046'dan eski): Mola açıkken Büyütücü dönüşümü round'u
+  bitirebilir; 0,8 sn içinde "Yeniden Başlat" → eski round'un geçiş reklamı / sonucu (görev hapı
+  dahil) yeni round'un üstüne açılabilir. Görev sayımı DOĞRU (eski round bir kez, yeni 0) — zarar
+  arayüz / reklam zamanlaması. Öneri (owner onayı): beklemeden önce bitiren board'u yakala, `_board`
+  değiştiyse reklam + sonuç atla; kesinleşmede Mola / Refill'i kapat. (2) §4.23'ün önceden var olan
+  iki girdi sorunu (ACTION_CANCEL parça düşürür; basılı Koleksiyon kartı + GERİ) aynen — dokunulmadı.
+- **Donmuş sözleşmeler aynen:** TASK/043 yaş yönlendirmesi / rıza (görev kodunda reklam–yaş
+  jetonu yok, `release_config_test` taramaları aynen) · TASK/045 XP eğrisi / başarımlar / unvanlar
+  / şerit (görev hapı gizliyken düzen aynı) · TASK/045.1 SaveFile işlemi, kurtarma önceliği, yaş
+  fail-closed · TASK/045.2 `_input` ve 300 ms · günlük ödüller, onboarding, fiyatlar, sandık
+  oranları, monetizasyon yöneticisi.
+- **Samsung A36 yerel kapısı (YAPILMADI — sıradaki owner onaylı adım, yalnız QA paketi):** gerçek
+  round'larla günlük / haftalık ilerleme ve otomatik Hamur (tek + çok görev hapı), GÖREVLER girişi
+  güvenli alanda / çakışmasız, pencere geri / X / karartma, girişe ve X'e hızlı çift dokunuş, 300 ms
+  sonrası ilk dokunuş, banner yuvası, kayıt kurtarma, TASK/043–045.2 korumaları aynen. Gün / hafta
+  dönümü ve saat geri alma masaüstünde saat kancasıyla doğrulandı; cihazda tarih değiştirmek
+  telefon ayarıdır → yalnız owner isterse.
+
 ## 5. Dosya/klasör yapısı ve script envanteri
 
 ```
@@ -1949,6 +2077,7 @@ squishy-merge/
 | `game/daily_reward.gd` | Günlük GİRİŞ ödülü + streak (GAME_DESIGN §5.4; ekonomi değişmedi). M8.9-02.1: onboarding false iken `claim_if_new_day` / `is_claimable` no-op (kayıt mutasyonu yok); `claimed_today()` / `view()` pencere görünümü. |
 | `game/daily_rewards.gd` | `DailyRewards` (M8.9-02) — GÜNLÜK ÖDÜLLER modelinin tek yetkili noktası: yerel gün anahtarı + geri alma koruması, üç ayrı kota (ücretsiz sandık 1 / reklamlı sandık 2 / reklamlı +150 Hamur 1), tek transaction grant'ler, otomatik pencere işareti; RNG enjekte edilir. |
 | `game/daily_chest_loot.gd` / `daily_chest_reward.gd` | `DailyChestLoot` (DAILY reçetesi: +15 garanti, %30 skin, 60/25/12/3, sahip olunmayan skin, tükenmişse +15 bonus) + `DailyChestReward` (değişmez sonuç). Level sandığı reçetesi (`chest_system.gd`) DEĞİŞMEDİ. |
+| `game/missions.gd` | `Missions` (TASK/046, saf `RefCounted` — autoload DEĞİL): 6 kilitli görevin kataloğu + metin tablosu, katı gün anahtarı, pazartesi haftası, kayıt durumunun doğrulanması (`sanitize`), dönem (`for_day` — kayıttakinin gerisine düşmez), saf ilerleme / ödül (`advance`), görünüm satırları. Kayda yazmaz; tek mutasyon `SaveManager.record_mission_round` (round kesinleşmesinde). |
 | `game/pop_effect.gd` | Merge parçacık patlaması. |
 
 ### UI
@@ -1956,7 +2085,7 @@ squishy-merge/
 | script | işi |
 |---|---|
 | `main.gd` | Ekranlar (Ana Sayfa hub / Harita / Koleksiyon / Mağaza) ↔ oyun ↔ sonuç akışını bağlar. Kurallar burada DEĞİL. Alt sekme çubuğu M8.6-06'da kalktı. |
-| `ui/home_screen.gd` | Ana sayfa: logo, streak, Hamur, "Oyna"; Günlük madalyonu → GÜNLÜK ÖDÜLLER penceresi (M8.9-02.1); TASK/044: üst-sol profil avatarı (eski ayarlar butonu), Koleksiyon madalyonunda en son keşfedilen Squishy. |
+| `ui/home_screen.gd` | Ana sayfa: logo, streak, Hamur, "Oyna"; Günlük madalyonu → GÜNLÜK ÖDÜLLER penceresi (M8.9-02.1); TASK/044: üst-sol profil avatarı (eski ayarlar butonu), Koleksiyon madalyonunda en son keşfedilen Squishy. TASK/046: Günlük ile Mağaza arasında tek GÖREVLER girişi + "N/6" rozeti (`refresh_missions`, yalnız okur). |
 | `ui/profile_screen.gd` | Profil (TASK/044): kimlik + 3 yuva vitrin + 6 istatistik + salt okunur güçler + koleksiyon kartı; dişli → Ayarlar. Kayda yazmaz. |
 | `ui/avatar_button.gd` / `profile_showcase_slot.gd` / `profile_stat_tile.gd` / `collectible_stage.gd` | TASK/044 bileşenleri: yuvarlak candy avatar, vitrin yuvası, istatistik kutucuğu, rarity halesi + candy kaide + nefes alan sanat sahnesi (Koleksiyon detayı + Profil yuvası). |
 | `ui/level_select.gd` | Harita: patika üstünde 10 düğüm + durumlar + açılış animasyonu + Sonsuz Mod kapısı (M8.5-12); banner yuvası varken dünya yuvanın üstünde biter (`_fit_world`, 16:9'da ≤ %4 dikey sıkıştırma — M8.9-02). |
@@ -1984,6 +2113,7 @@ squishy-merge/
 | `ui/age_gate_panel.gd` | Nötr yaş ekranı (TASK/043, shell v2, tepeliksiz): Gün / Ay / Yıl + oyun içi tuş takımı, hazır tarih yok, her tarihte aynı onay adımı, geçersiz / gelecek / çok eski için aynı nötr hata; ZORUNLU / YENİDEN GİRİŞ kipleri; rakamlar yalnız bellekte, dışarı yalnız `resolved(band, transition)`. |
 | `ui/age_restricted_screen.gd` | 13 altı nötr kısıt ekranı (TASK/043, katman 30): eşik / tekrar dene / ebeveyn izni yok, ilerleme silinmez, tek eylem ÇIKIŞ. |
 | `ui/pause_menu.gd` / `ui/bonus_chest_info.gd` | Mola ve Bonus Sandık bilgi pencereleri — shell v2, oturmuş X (M8.6-08 cila; eylemler/kural değişmedi). |
+| `ui/missions_overlay.gd` / `ui/mission_card.gd` | GÖREVLER penceresi (TASK/046, Main'e ait, katman 12, shell v2 kurdele + X): hero "N / 6" + ray + otomatik ödül notu, GÜNLÜK / HAFTALIK bölümleri (sabit yenilenme ipuçları), 3'er `MissionCard` (metrik kuyusu, metin, TAMAMLANDI çipi, ray + "x / y", Hamur ödülü, 3 px durum halkası); talep butonu yok, kayda yazmaz. |
 | ~~`ui/candy_button.gd`~~ | **Silindi (M8.6-10):** M8.5-08 candy pill CTA'ları; son kullanıcıları Devam + Refill `UiKit`e geçti. Dokuları (`cta_button_*`, `power_button_*`, `panel_candy.png`) ve M8.5 ikon klasörü (`ui/icons/`) de kaldırıldı. |
 | `ui/revive_offer.gd` | Devam (revive) teklifi (M8.6-10 production yeniden kurulum, shell v2 + tepelik): DEVAM HAKKI plakası (iki kalp, `icon_heart_revive`), DEVAM ET kahraman / BİTİR; sağlayıcı yokken CTA pasif + sebep; talep kilidi; yalnız sinyal yayar, hak vermez. |
 | `ui/power_refill.gd` | Stok 0 refill penceresi (M8.6-10 production yeniden kurulum, shell v2 kurdele + X): güç sanatı kahraman + STOK ×0, ÖDÜLLÜ REKLAM / HAMURLA AL kartları, KAPAT; fiyat `PowerUpEconomy`, kota `RewardedPolicy`; yalnız sinyal yayar, stok/Hamur/kota'ya dokunmaz. |
@@ -2009,10 +2139,14 @@ squishy-merge/
 | `power_input_test.gd` + `.tscn` | **Hedefli güç dokunuş tüketimi testi** (TASK/045.1): Bomba / Büyütücü parmak / fare / kod yolu (güç bir kez, stok bir kez, bırakış düşürmez, sonraki dokunuş düşürür), T7→T8, geçersiz hedef, iptal, sürükleme, hızlı / aynı kare / iki parmak, kayıp bırakış, duraklama, stok 0, anında güçler, Main + 300 ms yatışma. Test yolu. |
 | `daily_popup_gate_test.gd` + `.tscn` | **Günlük pencere ↔ Koleksiyon detayı kapısı testi** (TASK/045.1): detay açıkken sekme / kabuk tazeleme, öne dönüş, gün dönümü, değiştirme adımı, Profil vitrini → detay; due kalır, sonraki fırsatta açılır; TASK/045 kapısı aynen. Test yolu. |
 | `settings_input_test.gd` + `.tscn` | **Ayarlar geri girdi odağı / dizi bazlı yatışma testi** (TASK/045.2): cihaz sırasıyla parmak olayları (öykünen fare önce) + pencere GO_BACK bildirimi; oyun içi dişli → GERİ / KAPAT / karartma → ilk dokunuş (nişan, sürükleme, tek drop), parmak / indeks / masaüstü fare, pencerede başlayan dizi (sonrası dahil) + iptal + kaybolan bırakış, iki parmak (bölünmez / tamamen yutulur), çift dokunuş, Bomba / Büyütücü, Profil dişlisi, Mola / Refill / Devam, Koleksiyon / Başarımlar / Unvanlar / Günlük / Sandık. Test yolu. |
+| `missions_test.gd` + `.tscn` | **Günlük / haftalık görev çekirdek testi** (TASK/046, 136 kontrol, yalnız test yolu): katalog, gün / hafta (1200 gün kaba kuvvet), doğrulama, dönem, ilerleme, göç / kurtarma (`.tmp` / `.bak`), saat (geri alma, bozuk saat), gerçek Main round akışı (kazanma / kayıp / tekrar / sonsuz / terk / yeniden başlatma / süreç ölümü / yinelenen kesinleştirme / eski board / tek yazma), tutorial round'u, sahte arka uçla reklam yok + sonuç banner'sız, kaynak sözleşmesi. |
+| `missions_ui_test.gd` + `.tscn` | **GÖREVLER arayüz testi** (TASK/046, 139 kontrol, yalnız test yolu): Ana Sayfa girişi + N/6, pencere içeriği / durumları, TAMAMLANDI çipi + durum halkası, geri / X / karartma / gerçek parmakla hızlı çift dokunuş, kapılar + kendiliğinden kapanış, 5 görünüm + A36 üst payı (kırpma / çakışma / maskot pikseli), uzun metin, dil, banner yuvası, yazma girişimi dedektörü, öne dönüşte gün dönümü. |
+| `missions_shots.gd` + `.tscn` | **GÖREVLER çekimleri** (TASK/046, pencereli, test yolu): 14 kare — Ana Sayfa 3 durum, pencere 7 durum (uzun metin provası dahil), 4 gerçek round sonucu; `-- <dir> [GxY] [safe=61] [only=H|M|R]`, piksel boyutu doğrulanır. |
+| `missions_economy.py` | Görev Hamur'unun mevcut haftalık gelire eki (TASK/046, deterministik; `shop_economy.py` varsayımları; koleksiyon eksik / tamam iki tablo). Ayar yapmaz. |
 | `profile_shots.gd` + `.tscn` | **Profil çekimleri** (TASK/044): yeni / orta / geç (üst + kaydırma sonu), 0 / 3 vitrin, eski kayıt, Profil'den Ayarlar, Ana Sayfa avatarı, yuva → detay. `--headless` ile çalışmaz. |
 | `secondary_modal_ui_test.gd` + `.tscn` | **Headless ikincil pencere testi** (M8.6-08 / M8.9-02.1, 100 kontrol): shell v2 iskeleti (oturmuş X, gövde/altlık sınırları, tavan + kaydırma, karartma), Ayarlar (kanonik yazma yolu, taşma regresyonu 5 yapılandırma), Günlük = birleşik GÜNLÜK ÖDÜLLER (claim pencereden önce tam bir kez, üst bölge, yeniden açılış +15 yok, kapanış yolları, 540×960), Mola/Sandık (hiyerarşi, z-order, rota). Kaydı byte'ı geri koyar. |
 | `secondary_ui_shots.gd` + `.tscn` | **İkincil pencere çekimleri** (M8.6-07/08): 48 durum × pencere boyutu + A36 simülasyonu; `groups=` ile alt küme. `--headless` ile çalışmaz. |
-| `result_ui_test.gd` + `.tscn` | **Headless round sonu testi** (M8.6-09, 226 kontrol): yapı (eski iskelet yok, kayda yazma çağrısı yok), kazanma / kayıp / ödül kartları / dil taraması, 6 ödül taşma + sürükleme, kayıt güvenliği + gerçek kayıp yolu (teselli tam bir kez), rotalar + Android geri, L10 / Sonsuz, devam sırası, 5 yapılandırma, performans. Kaydı byte'ı geri koyar. |
+| `result_ui_test.gd` + `.tscn` | **Headless round sonu testi** (M8.6-09, 226 kontrol): yapı (eski iskelet yok, kayda yazma çağrısı yok), kazanma / kayıp / ödül kartları / dil taraması, 6 ödül taşma + sürükleme, kayıt güvenliği + gerçek kayıp yolu (teselli tam bir kez), rotalar + Android geri, L10 / Sonsuz, devam sırası, 5 yapılandırma, performans. Kaydı byte'ı geri koyar. TASK/046: görev hapı + TASK/045 hapları birlikte, en uzun şerit her boyutta + A36, gerçek round TEST yolunda (265 kontrol). |
 | `result_shots.gd` + `.tscn` | **Round sonu çekimleri** (M8.6-09): 31 kare (kazanma/kayıp, yıldızlar, 4 rarity Hamur + skin, geri düşüş, çoklu/5/6 ödül + kaydırma, L10, Sonsuz, retry/Harita basış) × pencere boyutu + A36; `only=` ile alt küme. `--headless` ile çalışmaz. |
 | `result_device.gd` + `.tscn` | **Cihaz kapısı sürücüsü** (M8.6-09.1): `result_shots`'ı miras alır, cihazda gerçek çözünürlükte her durumda DURUR (`user://qa_cmd.txt` komut kanalı, `user://qa_state.txt` durum/istatistik: kart sayısı, kaydırma, kare profili, yıldız/kart ms'leri, kayıt özeti). Komutlar: start/next/stats/scroll_top/scroll_end/dup_show/dup_finish/timeline/quit. Ek durumlar: D4 (4 ödül), R1/R2 (gerçek kanonik kazanma ve gerçek taşma → Devam → sonuç). **Ayrı pakette** (`…squishymerge.qa`) export edilir — owner kaydına dokunamaz. |
 | `make_result_art.py` | Owner kontur yıldızından yeniden boyanabilir `icon_star_empty_soft.png` türetir (M8.6-09). |
@@ -2600,14 +2734,28 @@ kaydı salt okunur doğrulandı (sessiz göç, dosya değişmedi); cihazda yaln�
   gerçeklerden sessizce kurulur (kutlama yok), kayıt ancak ilk doğal yazmada değişir.
 - Sonra owner onayıyla main'e ff-only.
 
+### TASK/046 — Günlük / Haftalık Görevler V1 — dalda, A36 kapısı bekliyor (2026-09-29)
+
+*(Masaüstü doğrulama tamam — §4.24; `task/046-daily-weekly-missions`, main DEĞİŞMEDİ.
+Owner'ın yapacağı / onaylayacağı:)*
+
+- Samsung A36 yerel kapısı (yalnız QA paketi `…squishymerge.qa`): gerçek round'larla günlük /
+  haftalık ilerleme + otomatik Hamur (tek / çok görev hapı), GÖREVLER girişi ve penceresi
+  (güvenli alan, geri / X / karartma, girişe ve X'e hızlı çift dokunuş, yatışma sonrası ilk
+  dokunuş, banner yuvası), kayıt kurtarma, TASK/043–045.2 korumaları.
+- Önceden var olan RESULT_DELAY bulgusu (§4.24) için ayrı görev isteyip istemediği.
+- Sonra owner onayıyla main'e ff-only.
+
 ### Gelecek görevler (BAŞLAMADI — kod yok)
 
 - ~~**TASK/045** — Oyuncu Seviyesi + XP + Başarımlar + Unvanlar (+ düzenlenebilir
   takma ad; Profil'in kimlik kartı buna yer bırakır, sahte yer tutucu yok).~~ → ✅ main'de
   (yukarıda, §4.21); owner brief'i düzenlenebilir takma adı KAPSAM DIŞI bıraktı
   ("Oyuncu" kalır).
-- **TASK/046** — Günlük / Haftalık Görevler (sıradaki).
-- **TASK/047** — Günlük Merge Challenge.
+- ~~**TASK/046** — Günlük / Haftalık Görevler (sıradaki).~~ → **dalda** (§4.24;
+  `task/046-daily-weekly-missions`, masaüstü doğrulama tamam — Samsung A36 kapısı + main'e
+  alınması owner onayı bekliyor).
+- **TASK/047** — Günlük Merge Challenge (BAŞLAMADI; owner başlatır).
 - ~~**Kararlılık (öneri — TASK/045 engeli değil):** atomik kayıt (`save_game()` yerinde kesip
   yazıyor; geçici dosya + yedekten kurtarma) · güç hedefleme bırakış-düşürme (Büyütücü ve
   Bomba hedef dokunuşunun bırakışı bekleyen parçayı da düşürebilir) · Koleksiyon detayı

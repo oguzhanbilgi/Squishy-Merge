@@ -893,8 +893,9 @@ bellekte uzlaştırır, pencereler yazmaz.)*
 **Gelecek görevler (YAPILMADI — bu sürümde hiçbir kodu yok):**
 - ~~**TASK/045** — Oyuncu Seviyesi + XP + Başarımlar + Unvanlar (+ düzenlenebilir
   takma ad)~~ → **YAPILDI (§5.9)**; takma ad owner brief'iyle kapsam DIŞI.
-- **TASK/046** — Günlük / Haftalık Görevler (sıradaki)
-- **TASK/047** — Günlük Merge Challenge
+- ~~**TASK/046** — Günlük / Haftalık Görevler (sıradaki)~~ → **YAPILDI (§5.10)**, dalda
+  (`task/046-daily-weekly-missions`); Samsung A36 kapısı + main'e alınması owner onayı bekliyor.
+- **TASK/047** — Günlük Merge Challenge (BAŞLAMADI)
 
 ### 5.9 Oyuncu Seviyesi + XP + Başarımlar + Unvanlar (TASK/045 — owner kararı, KİLİTLİ)
 
@@ -997,6 +998,102 @@ LV rozeti + ray, seviye atlanırsa "SEVİYE ATLADIN! · LV. N" (çok seviyede so
 başarım açıldıysa "Başarım açıldı: X" / "N başarım açıldı" — ayrı sonuç sayfası yok,
 geçiş reklamı zamanlaması / sıklığı değişmedi. Ayrıntı: docs/UI_VISUAL_SYSTEM.md §23.
 
+### 5.10 Günlük / Haftalık Görevler (TASK/046 — owner kararı, KİLİTLİ)
+
+Yerel / çevrimdışı görev katmanı — hesap / backend / bulut / skor tablosu / sosyal / analitik
+SDK YOK. Görev ilerlemesi YALNIZ kanonik oyun gerçeklerinden, round KESİN bitince.
+
+**Katalog (6 görev, KİLİTLİ; iç id'ler kalıcı — metin ayrı tabloda, `scripts/game/missions.gd`)**
+
+| id | dönem | görev | hedef | ödül |
+|---|---|---|---|---|
+| `daily_merges` | günlük | 15 birleşme yap | 15 gerçek merge | +10 Hamur |
+| `daily_rounds` | günlük | 2 tur tamamla | 2 kesin biten round | +10 Hamur |
+| `daily_clear` | günlük | 1 level tamamla | 1 sabit level başarıyla | +10 Hamur |
+| `weekly_merges` | haftalık | 120 birleşme yap | 120 gerçek merge | +40 Hamur |
+| `weekly_rounds` | haftalık | 12 tur tamamla | 12 kesin biten round | +40 Hamur |
+| `weekly_clears` | haftalık | 5 level tamamla | 5 sabit level başarıyla | +40 Hamur |
+
+Tavan: günde 30 Hamur + haftalık görevlerden 120 Hamur = **haftada en fazla 330 Hamur**.
+Sayılar owner onayı olmadan ayarlanmaz.
+
+**Ne sayılır** — yalnız `Main._on_round_finished` (round başına tam bir kez, TASK/045
+kesinleştirme koruması; görev durumu aynı round kaydına katlanır):
+- **merge** = TASK/045 XP'siyle AYNI gerçek merge sayısı (`GameState.merge_count`; sonsuzdaki
+  tier 8 yok oluşu dahil). Büyütücü sayılmaz. Normal biten KAYIP da merge'lerini sayar.
+- **tur** = +1: sabit level kazanma ya da kayıp, sonsuz round, tutorial'ın gerçek Level 1
+  round'u (biterse).
+- **level** = sabit level BAŞARIYLA bitti (tekrar oynanış da sayılır). Kayıp ve sonsuz SAYILMAZ.
+- Terk edilen (Mola → Ana Menüye Dön), bitmeden yeniden başlatılan, süreç ölümüyle yarım kalan
+  round, yinelenen kesinleştirme ve giden board'un geç sinyali HİÇBİR görev etkisi üretmez.
+  Tutorial'ın tamamlanması / atlanması görev ilerletmez ve ödül vermez.
+
+**Ödül — OTOMATİK, talep butonu YOK:** görev hedefine dönemi içinde İLK kez ulaşınca ödül
+işareti + tam Hamur ödülü, round kaydının TEK yazmasında (ilerleme + işaret + Hamur; XP /
+yıldız / level ile aynı yazma). Bir görev bir dönemde en fazla bir kez ödül verir; aynı round'da
+birden çok görev tamamlanabilir ve Hamur toplanır (örn. `daily_merges` +10 + `weekly_merges` +40 =
++50). Görev ödülü **XP, sandık, koleksiyon parçası, güç, başarım, unvan ya da reklam VERMEZ.**
+
+**Gün / hafta:** görev günü GÜNLÜK ÖDÜLLER'in kabul edilen günüdür (`DailyRewards.day_key()`:
+cihaz saati geri alınırsa görülen en yeni gün) — ayrı saat gerçeği YOK; dönem ayrıca kayıttaki
+dönemin gerisine hiç düşmez. Geri alınan saat eski bir dönemi geri getirmez, yeni ödül seti
+üretmez, tamamlanmış görevi yeniden ödüllendirmez. Saati İLERİ almak çevrimdışı oyunda
+engellenemez (günlük ödüllerle aynı bilinçli kabul; yeni anti-hile yok). **Yeni gün:** günlük
+ilerleme + ödül işaretleri sıfır, haftalık aynı haftada aynen. **Hafta PAZARTESİ başlar**
+(`week_start_day_key` = o haftanın pazartesi tarihi); yeni pazartesi haftası: haftalık sıfır.
+Ödüller otomatik olduğu için dönem sonunda bekleyen / devreden ödül yoktur.
+
+**Seri YOK:** görev serisi, haftalık seri, "mükemmel hafta", çarpan ya da yeni seri ödülü yok;
+giriş serisi (§5.4) aynen.
+
+**Kayıt:** TEK sürümlü `missions` durumu — `version` (1), `day_key`, `week_start_day_key`,
+`daily_progress` / `weekly_progress` (görev id → 0..hedef), `daily_rewarded` /
+`weekly_rewarded` (ödülü verilmiş id'ler, katalog sırası). Okuma her zaman doğrulanır
+(deterministik, sınırlı): sözlük değil / bilinmeyen sürüm / geçersiz gün → kabul edilen günün
+taze dönemi; bilinmeyen / öteki dönemin id'si düşer; tekrar eden ödül işareti tekilleşir;
+ilerleme 0..hedef (ödüllü = hedef, ödülsüz ≤ hedef − 1); ham dizi okuma tavanlı. UI durumu
+saklanmaz, ayrı görev dosyası yok. **Göç:** eski kayıtta görev yok → kabul edilen günün taze
+dönemi (ilerleme 0, ödül işareti yok, **Hamur verilmez, geçmiş round'lardan geriye dönük ilerleme
+UYDURULMAZ**, kutlama yok) — yalnız bellekte, sonraki doğal kayıt kalıcılaştırır; ikinci
+yükleme aynı sonuç. Kayıt işlemi (TASK/045.1 `.tmp` / `.bak` / kurtarma önceliği / yaş
+fail-closed) DEĞİŞMEDİ: görev durumu normal yükün parçası, kanonik / `.tmp` / `.bak`
+kurtarmasıyla birlikte gelir.
+
+**Arayüz:** Ana Sayfa'da TEK kompakt giriş **GÖREVLER** + "N/6" (içinde bulunulan dönemlerde
+tamamlanan görev; 6/6'da nane rozet) — üst madalyon sırasında Günlük ile Mağaza ARASINDA;
+2+2 madalyon düzeni, maskot, OYNA, alt gezinme / beş ekran DEĞİŞMEDİ. **GÖREVLER penceresi**
+(Main'e ait, GÜNLÜK ÖDÜLLER ile aynı iskelet): GÜNLÜK + HAFTALIK bölümleri, bölüm başına 3 kart
+(görev metni, "x / y", ilerleme rayı, Hamur ödülü, tamamlanınca TAMAMLANDI), sabit ipuçları
+"Yarın yenilenir" / "Pazartesi yenilenir" (canlı sayaç yok). Android geri / X / karartma
+kapatır; açılış ve kapanış 300 ms parmak yatışmasını başlatır (TASK/045.2 dizi kuralı aynen).
+Tutorial koçluğu sırasında açılmaz. **Sonuç ekranı:** kompakt, bloklamayan rozet "GÖREV
+TAMAMLANDI · +10 HAMUR" / "2 GÖREV TAMAMLANDI · +50 HAMUR" (günlük + haftalık birlikte) —
+TASK/045 XP / seviye / başarım şeridinde; ayrı sonuç sayfası, tam ekran ödül penceresi, banner
+YOK. Ayrıntı: docs/UI_VISUAL_SYSTEM.md §24.
+
+**Reklam / yaş:** görevler monetizasyon yüzeyi DEĞİL — reklamla yeniden çekme / tamamlama /
+ikiye katlama yok, görev açılışında ya da tamamlanmasında geçiş reklamı yok, görev tamamlanması
+reklam çağırmaz, yeni banner yüzeyi yok (pencere Ana Sayfa'nın mevcut banner'ının yuvası üstüne
+oturur). Görevler rıza, reklam derecesi ya da Play Age Signals okumaz; 13 yaş altı mevcut kısıt
+akışıyla yönetilir.
+
+**Ekonomi — eklemeli analiz** (`python tools/missions_economy.py`; deterministik beklenti,
+`tools/shop_economy.py` bot varsayımları: level başına merge medyanı + kazanma oranı, sonsuz
+round'u 179 merge; profil = günde 3 / 5 / 10 round; mevcut gelir = giriş +15 + günlük sandık +
+round sandıkları / teselli, isteğe bağlı günlük ödüllü reklamlar). Görev Hamur'unun mevcut
+haftalık Hamur gelirine eki:
+
+| koleksiyon | reklamsız | günlük ödüllü reklamlarla |
+|---|---|---|
+| eksik (sandık parça verebilir) | **+%7** (yoğun, yalnız sonsuz) … **+%46** (kasual, L4-L7) | **+%5 … +%17** |
+| tamam (parça yerine Hamur) | **+%5 … +%34** | **+%4 … +%14** |
+
+Yalnız sonsuz oynayan oyuncu level görevlerini almaz (haftada en fazla 220); level oynayan
+profillerin çoğu 330 tavanına ulaşır. Karşılığı: haftada en fazla 1-3 güç (fiyatı 100-180) ya da
+iki Nadir parça (150) kadar Hamur. **Hiçbir fiyat, sandık oranı, günlük ödül (+15 / ücretsiz sandık
+/ reklamlı +150 / reklamlı sandık kotası), refill / devam kotası DEĞİŞMEDİ; yeniden ayar
+yapılmadı.**
+
 ## 6. Ses tasarımı
 
 > **Ses dosyaları (M8.5-15 → M8.8-02 production):** merkezi olay tablosu
@@ -1037,7 +1134,9 @@ geçiş reklamı zamanlaması / sıklığı değişmedi. Ayrıntı: docs/UI_VISU
 > (vitrinin ilk parçası, boşsa kanonik Squishy) → **Profil** (§5.8). Ana
 > Sayfa'daki ayrı ayarlar butonu kalktı: **Ayarlar = Profil'in dişli çarkı**
 > (aynı tek pencere); oyun içi HUD ayarları ve mola aynen. Yeni alt gezinme
-> çubuğu YOK. Aşağıdaki M8 notu tarihseldir.
+> çubuğu YOK. *(TASK/046: Ana Sayfa'ya tek kompakt GÖREVLER girişi — Günlük ile Mağaza
+> arasında, GÖREVLER penceresini açar; yeni ekran / alt gezinme YOK, §5.10.)* Aşağıdaki M8
+> notu tarihseldir.
 
 > **Navigasyon: alt sekme çubuğu (M8).** Ana Sayfa / Harita / Koleksiyon /
 > Mağaza. Oyun sırasında ve round sonucu ekranında gizleniyor.
@@ -1308,7 +1407,8 @@ GÖSTER: Ana Sayfa, Harita, Mağaza, Koleksiyon, oyun ekranı. *(TASK/044: yeni
 **Profil** ekranı banner yüzeyi DEĞİL — listeye eklemek owner kararı ister;
 Profil'de ve üstünde açılan Ayarlar'da banner gizli, yuva korunur. TASK/045: Profil'in
 Başarımlar / Unvanlar pencereleri de banner'sız; sonuç ekranının XP şeridi yeni yüzey
-değil.)* GİZLE: sonuç ekranı,
+değil. TASK/046: GÖREVLER penceresi yeni yüzey DEĞİL — Ana Sayfa'nın mevcut banner'ı aynen,
+pencere yuvanın üstüne oturur; sonuç ekranının görev rozeti de yeni yüzey değil.)* GİZLE: sonuç ekranı,
 tam ekran reklam anları, onboarding tamamlanmamış (yuva da yok). Banner gerçek
 ayrılmış alandır (yuva): oyun kabı, güç butonları, nişan/bırakma kontrolleri,
 Harita düğümleri ve OYNA plakasının üstüne ASLA binmez. Oyun: **fizik, kap
