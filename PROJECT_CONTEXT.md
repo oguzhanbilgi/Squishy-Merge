@@ -144,6 +144,22 @@ alınacak — şimdi tahmin/vaat yok.
   günlük pencere detayın üstüne açılmaz, "due" kalır, sonraki güvenli fırsatta açılır.
   Gameplay / ekonomi / XP / reklam sözleşmesi / yaş yönlendirmesi DEĞİŞMEDİ. Ayrıntı:
   PROJECT_STATUS §4.22.
+- **TASK/045.2 Ayarlar geri girdi odağı — DALDA, main'de DEĞİL**
+  (`task/045-2-settings-back-input-focus`, başlangıç main `e474fb3`; bulut kapısı geçti;
+  **Samsung A36 yerel kapısı GEREKLİ**, sonra owner onayıyla ff-only). Hata: oyun içi dişli →
+  Ayarlar → Android geri ile kapatınca ilk tahta dokunuşunun bırakışı kayboluyordu (A36 3/3;
+  KAPAT / karartma sorunsuz). **Kök neden (bulutta deterministik yeniden üretildi, Godot 4.6.3
+  kaynağıyla doğrulandı):** dişlinin `pressed`'i dokunuştan öykünen fare bırakışında gelip 300 ms
+  yatışmayı başlatıyor; Godot aynı dokunuşun ScreenTouch bırakışını hemen ARDINDAN dağıtıyor ve
+  eski `Main._input` onu da yutuyordu → Viewport'un parmak odağı (`touch_focus[0]`) dişlide
+  kalıyordu; dokunuşsuz geri kapanışından sonra ilk tahta basışı hiçbir kontrole değmediği için
+  odağı ezmiyor, aynı parmağın sürüklemesi + bırakışı dişliye gidiyordu (KAPAT / karartma
+  dokunuşu odağı yeni basışla eziyordu). **Düzeltme (yalnız `Main._input`):** yatışma DİZİ
+  bazında — pencerede BAŞLAYAN parmak dizisi (basış + sürükleme + bırakış, bırakış pencereden
+  sonra gelse de) tamamen yutulur, pencereden ÖNCE başlamış dizi hiç bölünmez; aynı parmağın
+  yeni basışı yutulan eski diziyi kapatır (takılı bastırma yok). **300 ms aynen**, yeni
+  zamanlayıcı / bekleme yok; TASK/044–045 çift dokunuş korumaları aynen. Gameplay / ekonomi /
+  ilerleme / kayıt / reklam / yaş yönlendirmesi DEĞİŞMEDİ. Ayrıntı: PROJECT_STATUS §4.23.
 - **M0–M8 tamamlandı.** Oyun uçtan uca oynanabilir: 10 level + sonsuz mod,
   sandık/koleksiyon/mağaza, günlük ödül, Home hub + `ScreenTopBar` gezinmesi
   (M8.5'in 4 sekmeli alt çubuğu M8.6-06'da kalktı), owner'ın görsel
@@ -432,11 +448,16 @@ artığı).~~ → **TASK/045.1: ✅ TAMAM, main'de** (A + B + C; Samsung A36 yer
 5b1f952`). Ayrıntı: PROJECT_STATUS §4.22. **TASK/046 BAŞLAMADI** — sıradaki ürün görevi
 (owner başlatır).
 
-**Önerilen TASK/045.2 — girdi odağı cilası (öneri, BAŞLAMADI; TASK/045.1 engeli değildi):**
+~~**Önerilen TASK/045.2 — girdi odağı cilası (öneri, BAŞLAMADI; TASK/045.1 engeli değildi):**
 oyun içi Ayarlar dişlisiyle açılıp Android geri tuşuyla kapatılınca ilk tahta dokunuşunun
 bırakışı kayboluyor (parça düşmez; ikinci dokunuş normal). Samsung A36'da 3/3; KAPAT ve
 karartma dokunuşuyla kapatınca yok. TASK/045.1 öncesinden: TASK/044'ün 300 ms parmak
-yatışması dişlinin kendi dokunuş bırakışını yutuyor, GUI dokunuş odağı dişlide kalıyor.
+yatışması dişlinin kendi dokunuş bırakışını yutuyor, GUI dokunuş odağı dişlide kalıyor.~~
+→ **TASK/045.2: DALDA** (`task/045-2-settings-back-input-focus`; kök neden kanıtlandı, yatışma
+dizi bazında, 300 ms aynen; bulut kapısı geçti). **Sıradaki adım: Samsung A36 yerel kapısı**
+(yalnız QA paketi: oyun içi dişli → GERİ → ilk dokunuş düşürür; KAPAT / karartma; Profil
+dişlisi; hızlı çift dokunuşlar; Bomba / Büyütücü; 3 tuşlu ve hareketle gezinme geri), sonra
+owner onayıyla main'e ff-only. Ayrıntı: PROJECT_STATUS §4.23. **TASK/046 BAŞLAMADI.**
 
 Her madde owner girdisi ister; hiçbiri tahmin edilmez ya da uydurulmaz.
 Gizlilik politikası, upload anahtarı ve AdMob kimliklerinde repoda yalnız
@@ -1507,6 +1528,13 @@ yapılandırma değişir (checklist §3); 13–17 yaş bandı yönlendirmesi kod
   ve bırakışı hedeflemenindir (bekleyen parçayı düşürmez, nişanı kaydırmaz); dizi o parmağın
   bırakışında biter, aynı parmağın yeni basışı da kapatır — zamanlayıcı YOK; Main'in 300 ms
   parmak yatışmasından ayrı bir sistem
+- **Geçiş sonrası parmak yatışması (TASK/044; dizi kuralı TASK/045.2 — `Main._input`):** ekran /
+  pencere geçişinden sonra 300 ms, yalnız PARMAK dizileri (gerçek ScreenTouch / ScreenDrag +
+  dokunuştan öykünen fare; masaüstü fare / kod yolu muaf). DİZİ bazında: basışı pencerede gelen
+  dizi tamamen yutulur (sürüklemesi ve bırakışı da, pencere bitse bile); pencereden önce başlamış
+  dizinin olayı ASLA yutulmaz — Godot Viewport ScreenTouch bırakışını basışın kontrolüne
+  (`touch_focus`) yönlendirir, bırakışı yutulan dizi odağı asılı bırakıp sonraki dokunuşun
+  sürükleme / bırakışını çalar (TASK/045.2 kök nedeni). Süreyi büyütmek çözüm değildir
 - **Otomatik günlük pencere kapısı:** pencere / sonuç / oyun / Profil Başarımlar–Unvanlar
   (TASK/045) / Koleksiyon parça detayı (TASK/045.1) açıkken açılmaz; atlanan açılış pencereyi
   tüketmez ("due" kalır)

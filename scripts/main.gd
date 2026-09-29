@@ -55,6 +55,11 @@ var _last_back_msec: int = -1000
 ## düşmesin. 300 ms = Android'in çift dokunuş penceresi.
 const TOUCH_SETTLE_MSEC: int = 300
 var _touch_settle_until: int = -1
+## Yatışmanın yuttuğu parmak dizileri (TASK/045.2): dizi anahtarı → true. Anahtar gerçek
+## dokunuşta parmak indeksi, dokunuştan öykünen farede EMULATED_MOUSE_SEQUENCE.
+const EMULATED_MOUSE_SEQUENCE: int = -1
+const NO_FINGER_SEQUENCE: int = -2
+var _settled_sequences: Dictionary = {}
 var _board: Node2D
 ## --- İlk açılış tutorial'ı (M8.10 — docs/TUTORIAL_SYSTEM.md) ---
 ## Yeni kayıtta (onboarding false) açılışta otomatik olarak GERÇEK Level 1
@@ -550,22 +555,56 @@ func open_settings() -> void:
 	settle_touch_input()
 
 
-## Ekran / pencere geçişinden sonraki TOUCH_SETTLE_MSEC boyunca parmak basışları
+## Ekran / pencere geçişinden sonraki TOUCH_SETTLE_MSEC boyunca BAŞLAYAN parmak dizileri
 ## yutulur (bkz. _input).
 func settle_touch_input() -> void:
 	_touch_settle_until = Time.get_ticks_msec() + TOUCH_SETTLE_MSEC
 
 
 ## Geçiş sonrası parmak yatışması (TASK/044 A36 kapısı). GUI'den ÖNCE çalışır. Yalnız
-## PARMAK basışları: gerçek ScreenTouch (device ≠ -1) ve dokunuştan öykünülen fare
-## (device -1, Android `emulate_mouse_from_touch`). Kod yolu / `pressed.emit()`,
+## PARMAK olayları: gerçek ScreenTouch / ScreenDrag (device ≠ -1) ve dokunuştan öykünülen
+## fare (device -1, Android `emulate_mouse_from_touch`). Kod yolu / `pressed.emit()`,
 ## masaüstü fare tıklaması ve ondan öykünülen dokunuş ETKİLENMEZ.
+##
+## TASK/045.2 — dizi bazında: basışı yatışma penceresinde gelen dizinin TAMAMI (basış +
+## sürükleme + bırakış, pencere bitse de) yutulur; pencereden ÖNCE başlamış dizi hiç
+## bölünmez. Kök neden (A36): dişlinin öykünen fare bırakışı Ayarlar'ı açıp yatışmayı
+## başlatıyor, aynı dokunuşun hemen ardından gelen ScreenTouch bırakışı yutuluyordu —
+## Viewport'un parmak odağı (`touch_focus`) dişlide kalıyor, dokunuşsuz Android geri
+## kapanışından sonra ilk tahta dokunuşunun sürüklemesi ve bırakışı dişliye gidiyordu
+## (parça düşmüyordu). KAPAT / karartma dokunuşu odağı yeni basışla eziyordu. Süre aynen.
 func _input(event: InputEvent) -> void:
-	if Time.get_ticks_msec() >= _touch_settle_until:
+	var key: int = _finger_sequence_key(event)
+	if key == NO_FINGER_SEQUENCE:
 		return
-	if (event is InputEventScreenTouch and event.device != InputEvent.DEVICE_ID_EMULATION) \
-			or (event is InputEventMouseButton and event.device == InputEvent.DEVICE_ID_EMULATION):
+	var motion: bool = event is InputEventScreenDrag or event is InputEventMouseMotion
+	if not motion and event.is_pressed():
+		# Yeni dizi. Aynı anahtarın eski dizisi kapanır (bırakışı hiç gelmediyse bastırma
+		# takılı kalmaz); yalnız pencerede başlayan dizi yutulur.
+		_settled_sequences.erase(key)
+		if Time.get_ticks_msec() < _touch_settle_until:
+			_settled_sequences[key] = true
+			get_viewport().set_input_as_handled()
+		return
+	if _settled_sequences.has(key):
+		# Yutulan dizinin sürüklemesi / bırakışı; bırakış (iptal dahil) diziyi kapatır.
+		if not motion:
+			_settled_sequences.erase(key)
 		get_viewport().set_input_as_handled()
+
+
+## Parmak dizisinin anahtarı; parmak olayı değilse NO_FINGER_SEQUENCE.
+func _finger_sequence_key(event: InputEvent) -> int:
+	if event.device != InputEvent.DEVICE_ID_EMULATION:
+		var touch := event as InputEventScreenTouch
+		if touch != null:
+			return touch.index
+		var drag := event as InputEventScreenDrag
+		if drag != null:
+			return drag.index
+	elif event is InputEventMouseButton or event is InputEventMouseMotion:
+		return EMULATED_MOUSE_SEQUENCE
+	return NO_FINGER_SEQUENCE
 
 
 func close_settings() -> void:

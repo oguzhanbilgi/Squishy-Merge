@@ -51,7 +51,11 @@ kapısı + Samsung A36 yerel kapısı GEÇTİ (bulgu yok). **TASK/045.1 (2026-09
 owner onayıyla ff-only alındı; Samsung A36 yerel kapısı GEÇTİ, iki kurtarma bulgusu
 giderildi):** çökmeye dayanıklı kayıt (geçici dosya + doğrulama + yer değiştirme, deterministik
 kurtarma), Bomba / Büyütücü hedef dokunuşunun bırakışı artık parça düşürmüyor, otomatik günlük
-pencere Koleksiyon detayının üstüne açılmıyor (§4.22); TASK/046 BAŞLAMADI. Sırada: içerik
+pencere Koleksiyon detayının üstüne açılmıyor (§4.22). **TASK/045.2 (2026-09-29, DALDA — main'de
+değil; bulut kapısı geçti, Samsung A36 yerel kapısı bekliyor):** oyun içi Ayarlar → Android geri
+sonrası kaybolan ilk tahta bırakışı düzeltildi — 300 ms parmak yatışması artık dizi bazında
+(pencerede başlayan dizi tamamen yutulur, pencereden önce başlamış dizi bölünmez), süre aynen
+(§4.23); TASK/046 BAŞLAMADI. Sırada: içerik
 derecesi + yargı bölgesi kararları (owner) → gizlilik
 politikası → upload anahtarı → gerçek AdMob kimlikleri → mağaza varlıkları / Play Console,
 sonra ilk imzalı üretim AAB'si ve M10 (Play kapalı test) ·
@@ -1782,7 +1786,65 @@ formatına yalnız `haptics_enabled` (varsayılan true) eklendi. Ayrıntı ve
   oyun içi Ayarlar dişlisiyle açılıp Android geri tuşuyla kapatılınca ilk tahta dokunuşunun
   bırakışı kayboluyor (düşürmüyor; ikinci dokunuş normal) — 300 ms yatışma dişlinin kendi
   dokunuş bırakışını yutuyor, GUI dokunuş odağı dişlide kalıyor (TASK/044; KAPAT / karartma
-  dokunuşuyla kapatınca yok).
+  dokunuşuyla kapatınca yok). *(→ TASK/045.2 dalında düzeltildi, §4.23.)*
+
+### 4.23 Ayarlar geri girdi odağı (TASK/045.2)
+
+> **DALDA, main'de DEĞİL** — `task/045-2-settings-back-input-focus` (başlangıç main `e474fb3`);
+> bulut kapısı geçti; **Samsung A36 yerel kapısı GEREKLİ** (bulutta cihaz yok), sonra owner
+> onayıyla ff-only. Kapsam yalnız bu hata (TASK/046 BAŞLAMADI).
+
+- **Hata (A36, 3/3):** oyun içi dişli → Ayarlar → Android geri → 300 ms'den sonra ilk tahta
+  dokunuşunun bırakışı kayboluyor (parça düşmez; ikinci dokunuş normal); KAPAT / karartma
+  dokunuşuyla kapatınca yok.
+- **Yeniden üretim (bulut, düzeltmeden ÖNCE):** gerçek Main + Level 8; parmak olayları
+  `Input.parse_input_event` ile (cihaz sırası: öykünen fare önce, ScreenTouch sonra), geri =
+  pencerenin GO_BACK bildirimi yayılımı. Olay kaydı: dişli basışı (fare + ScreenTouch) dişliye;
+  fare bırakışı dişliye → Ayarlar + yatışma; aynı dokunuşun ScreenTouch bırakışı `Main._input`'ta
+  yutuldu, dişliye ULAŞMADI. Geri → ilk tahta dokunuşu: basış tahtaya (nişan 640 → 760),
+  sürükleme ve bırakış DİŞLİNİN `gui_input`'una (nişan 760'ta kaldı, drop 0); ikinci dokunuş
+  drop 1. KAPAT / karartma: kapanış dokunuşu odağı ezdi, ilk dokunuş drop 1 (nişan sürüklemeyi
+  izledi).
+- **Kök neden (Godot 4.6.3 kaynağıyla doğrulandı):** `Input::_parse_input_event_impl`
+  dokunuştan öykünen fare olayını aynı ScreenTouch'tan ÖNCE dağıtır. Dişlinin `pressed`'i
+  (öykünen bırakışta) yatışmayı başlatınca eski `_input` pencerede HER parmak olayını (bırakış
+  dahil) yuttuğu için aynı dokunuşun ScreenTouch bırakışı GUI'ye hiç ulaşmadı. `Viewport`
+  ScreenTouch basışında `gui.touch_focus[index]` kaydeder, yalnız o indeksin bırakışı GUI'ye
+  ulaşınca siler; sürükleme ve bırakış bu kayda yönlendirilir. Odak dişlide asılı kaldı;
+  dokunuşsuz geri kapanışından sonra ilk tahta basışı kontrole değmediği için odağı ezmedi,
+  sürükleme + bırakış MOUSE_FILTER_STOP dişliye gidip tüketildi (GameBoard bırakışı hiç
+  görmedi). Profil yolunda belirti yoktu: sonraki basış her zaman bir kontrole değip odağı ezer,
+  Profil butonları öykünen fareyle çalışır.
+- **Düzeltme (yalnız `scripts/main.gd` `_input`):** yatışma DİZİ bazında. Anahtar: gerçek
+  ScreenTouch / ScreenDrag'de parmak indeksi, dokunuştan öykünen farede tek anahtar. Pencerede
+  BAŞLAYAN dizi (basış) yutulur ve kaydedilir; sürüklemesi / öykünen hareketi ve bırakışı (iptal
+  dahil, pencere bitmiş olsa da) yutulur, bırakış kaydı kapatır; aynı anahtarın yeni basışı eski
+  kaydı kapatır (kaybolan bırakışta takılı bastırma yok). Pencereden önce başlamış dizi hiç
+  bölünmez → dişlinin kendi bırakışı GUI'ye ulaşır, odak kapanır; bırakış basışın kontrolüne
+  gittiği için yeni açılan pencerenin karartmasına / tahtaya düşmez. 300 ms, masaüstü fare / kod
+  yolu muafiyeti aynen; yeni zamanlayıcı / bekleme yok.
+- **Korunan:** TASK/044 çift dokunuş (avatar ↔ Profil geri, Profil dişlisi → Ayarlar
+  karartması, parça detayı karartması, KOLEKSİYONA GİT → kart) ve TASK/045 Başarımlar /
+  Unvanlar korumaları (profile_test, progression_ui_test, collection_ui_test aynen geçiyor;
+  yatışmayı kapatan mutasyonu yakalıyorlar); TASK/045.1 hedefli güç tüketimi; Sarsıntı /
+  Temizleyici; gameplay, ekonomi, ilerleme, kayıt işlemi, günlük pencere, reklam sözleşmesi,
+  TASK/043 DEĞİŞMEDİ.
+- **Testler:** yeni `settings_input_test` (138 kontrol, yalnız test yolu; sahibin kayıt ailesine
+  dokunmaz): oyun içi dişli → GERİ / KAPAT / karartma (tek kapanış, dişli kendi bırakışını alır,
+  yatışma biter, İLK bağımsız dokunuş: basış + sürükleme nişanı taşır, bırakış tam bir drop;
+  cooldown aynen, güç yok), parmak 1 + indeks 0 yeniden kullanımı, masaüstü fare, yatışma içinde
+  geri + pencerede başlayan tahta dizisi (tamamen yutulur, pencere sonrası sürükleme / bırakış
+  dahil), kaybolan bırakış, çift dokunuş, Bomba / Büyütücü silahlıyken GERİ → ilk dokunuş hedef
+  (bırakış tüketilir, dizi kapanır), Profil dişlisi üç yol + çift dokunuş, Mola / Refill / Devam,
+  Koleksiyon detayı / Başarımlar / Unvanlar / Günlük / Sandık (GERİ → ilk dokunuş). Negatif
+  kontrol: düzeltmesiz (`e474fb3`) Main ile 18 FAIL, 0 SCRIPT ERROR. Mutasyonlar 4/4 öldü
+  (düzeltme atlama, yatışma kapalı → profile / progression_ui de düşer, yalnız-bırakış koruması,
+  hedefleme tüketimi kapalı → power_input de düşer); kaynak her seferinde bayt-aynı geri kondu.
+  Tam regresyon: 31 kanonik suite + yeni suite + bot L3 2/2, 0 hata, 0 SCRIPT ERROR.
+- **Samsung A36 yerel kapısı (BEKLİYOR, yalnız QA paketi):** oyun içi dişli → GERİ → ilk
+  dokunuş düşürür (tekrar tekrar), KAPAT / karartma, Profil dişlisi üç yol, hızlı çift
+  dokunuşlar (TASK/044 / 045 korumaları), Bomba / Büyütücü, Mola / Refill / Devam; geri hem 3
+  tuşlu gezinmeyle hem hareketle (kenardan kaydırma) denenmeli.
 
 ## 5. Dosya/klasör yapısı ve script envanteri
 
@@ -2514,7 +2576,8 @@ kaydı salt okunur doğrulandı (sessiz göç, dosya değişmedi); cihazda yaln�
   Bomba hedef dokunuşunun bırakışı bekleyen parçayı da düşürebilir) · Koleksiyon detayı
   otomatik günlük pencere kapısında değil (TASK/044 artığı).~~ → ✅ **TASK/045.1 ile main'de**
   (§4.22; A36 kapısı GEÇTİ, `017f2dc → 5b1f952`).
-- **TASK/045.2** — girdi odağı cilası (öneri, BAŞLAMADI): oyun içi Ayarlar dişlisi → Android
+- ~~**TASK/045.2** — girdi odağı cilası (öneri, BAŞLAMADI)~~ → **dalda** (§4.23; bulut kapısı
+  geçti, Samsung A36 yerel kapısı bekliyor). Önceki not: oyun içi Ayarlar dişlisi → Android
   geri ile kapatınca ilk tahta dokunuşunun bırakışı kayboluyor (ikinci dokunuş normal; A36'da
   3/3; KAPAT ve karartma yolları sorunsuz). TASK/045.1 öncesinden — TASK/044'ün 300 ms
   yatışması dişlinin kendi dokunuş bırakışını yutuyor (§4.22 A36 kapısı notu).
