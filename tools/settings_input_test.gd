@@ -84,7 +84,9 @@ func _ready() -> void:
 	get_tree().create_timer(300.0).timeout.connect(func() -> void:
 		if not _finished:
 			print("  [FAIL] bekçi: test 300 s'de bitmedi")
-			_teardown()
+			# Main hâlâ çalışıyor: kayıt yolu gerçek dosyaya DÖNDÜRÜLMEZ (yol, Main ağaçtan
+			# çıktıktan sonra _exit_tree'de döner).
+			_teardown(false)
 			get_tree().quit(2))
 	get_window().size = Vector2i(720, 1280)
 	await get_tree().process_frame
@@ -120,10 +122,11 @@ func _exit_tree() -> void:
 		_teardown()
 
 
-func _teardown() -> void:
+func _teardown(restore_path: bool = true) -> void:
 	DailyRewards.auto_popup_enabled = _popup_flag_before
-	SaveManager.save_path = SaveManager.SAVE_PATH
-	SaveManager.data = _saved_data.duplicate(true)
+	if restore_path:
+		SaveManager.save_path = SaveManager.SAVE_PATH
+		SaveManager.data = _saved_data.duplicate(true)
 	for path in [PATH, PATH + SaveFile.TEMP_SUFFIX, PATH + SaveFile.BACKUP_SUFFIX]:
 		if FileAccess.file_exists(path):
 			DirAccess.remove_absolute(path)
@@ -148,8 +151,8 @@ func _gameplay_close_paths() -> void:
 		_c("%s: Ayarlar TAM BİR kez kapandı, board çözüldü" % _mode_name(mode), not _main._settings.visible
 			and _closes == closes_before + 1 and not _board._is_menu_paused)
 		await _wait_settled()
-		_c("%s: yatışma bitti, bastırılan dizi yok" % _mode_name(mode), Time.get_ticks_msec() >= _main._touch_settle_until
-			and _no_settled())
+		_c("%s: ön koşul — yatışma bitti, bastırılan dizi yok" % _mode_name(mode),
+			Time.get_ticks_msec() >= _main._touch_settle_until and _no_settled())
 		await _first_touch_drops(_mode_name(mode))
 		await _rapid_second_touch(_mode_name(mode))
 	_sections_done += 1
@@ -166,6 +169,8 @@ func _first_touch_drops(label: String, index: int = 0) -> void:
 	_drops = 0
 	_drop_aims.clear()
 	_drop_tiers.clear()
+	_c("%s: ön koşul — drop cooldown bitti (düşmeme hatası cooldown'dan olamaz)" % label,
+		_board._drop_cooldown == 0.0 and not _board._is_paused())
 	await _finger(p, true, index)
 	var aim_press: float = _board._aim_x
 	await _finger_drag(q, p, index)
@@ -183,8 +188,10 @@ func _first_touch_drops(label: String, index: int = 0) -> void:
 ## Hızlı ikinci bağımsız dokunuş: drop cooldown'u (0.4 s, oyun kuralı — DEĞİŞMEDİ) içinde
 ## ikinci parça yok (çift drop yok); cooldown biter bitmez sonraki dokunuş düşürür.
 func _rapid_second_touch(label: String) -> void:
-	await _finger_tap(_board_point(40.0))
-	_c("%s: hızlı ikinci dokunuş cooldown içinde çift drop üretmedi" % label, _drops == 1)
+	var rapid: Vector2 = _board_point(40.0)
+	await _finger_tap(rapid)
+	_c("%s: hızlı ikinci dokunuş tahtaya ulaştı (nişan taşındı) ama cooldown içinde çift drop üretmedi" % label,
+		_drops == 1 and _near(_board._aim_x, _world_x(rapid)) and _board._drop_cooldown > 0.0)
 	await _wait(_board.DROP_COOLDOWN + 0.12)
 	await _finger_tap(_board_point(40.0))
 	_c("%s: cooldown'dan sonra bağımsız dokunuş hemen düşürdü" % label, _drops == 2
@@ -224,18 +231,22 @@ func _input_variants() -> void:
 	_c("ön koşul: hızlı GERİ Ayarlar'ı kapattı, yatışma penceresi hâlâ açık", not _main._settings.visible
 		and not _board._is_menu_paused and Time.get_ticks_msec() + 120 < _main._touch_settle_until)
 	var aim: float = _board._aim_x
+	# Dişli kendi dokunuşunu (basış + bırakış) aldı; bundan sonra ona hiçbir şey gitmemeli —
+	# yutan Main olmalı, asılı bir GUI odağı değil.
+	var gear_seen: int = _watched.size()
 	_drops = 0
 	var a: Vector2 = _board_point(130.0)
 	var b: Vector2 = _board_point(-130.0)
 	await _finger(a, true)
 	_c("pencerede başlayan basış yutuldu (nişan aynı)", _near(_board._aim_x, aim) and _settled_has(0))
 	await _finger_drag(b, a)
-	_c("aynı dizinin sürüklemesi de yutuldu (nişan aynı)", _near(_board._aim_x, aim))
+	_c("aynı dizinin sürüklemesi Main'de yutuldu (nişan aynı, dişliye de gitmedi)", _near(_board._aim_x, aim)
+		and _watched.size() == gear_seen)
 	await _wait_until_msec(_main._touch_settle_until + 80)
 	await _finger_drag(a, b)
 	await _finger(a, false)
-	_c("pencere BİTTİKTEN sonra gelen sürükleme / bırakış da yutuldu: drop yok, nişan aynı (yarım dizi sızmadı)",
-		_drops == 0 and _near(_board._aim_x, aim))
+	_c("pencere BİTTİKTEN sonra gelen sürükleme / bırakış da Main'de yutuldu: drop yok, nişan aynı, dişliye gitmedi",
+		_drops == 0 and _near(_board._aim_x, aim) and _watched.size() == gear_seen)
 	_c("dizi bırakışla kapandı (takılı bastırma yok)", _no_settled())
 	await _finger_tap(a)
 	_c("sonraki bağımsız dokunuş hemen düşürdü", _drops == 1)
@@ -251,6 +262,61 @@ func _input_variants() -> void:
 	await _finger_tap(_board_point(-100.0))
 	_c("bırakışı hiç gelmeyen dizi yeni basışla kapandı, yeni dokunuş düşürdü", _drops == 1
 		and _no_settled())
+
+	print("-- iptal edilen bırakış (Android ACTION_CANCEL) yutulan diziyi kapatır")
+	await _start_round()
+	await _gear_tap()
+	await _back()
+	_drops = 0
+	var cancel_at: Vector2 = _board_point(90.0)
+	await _finger(cancel_at, true)
+	_c("ön koşul: pencerede basış yutuldu", _settled_has(0))
+	var canceled := _touch_event(cancel_at, false, 0)
+	canceled.canceled = true
+	Input.parse_input_event(canceled)
+	Input.flush_buffered_events()
+	await get_tree().process_frame
+	_c("iptal edilen bırakış da yutuldu ve diziyi kapattı: drop yok, bastırma yok", _drops == 0 and _no_settled())
+	await _wait_settled()
+	await _finger_tap(_board_point(-90.0))
+	_c("iptalden sonra bağımsız dokunuş hemen düşürdü", _drops == 1)
+
+	print("-- iki parmak: pencereden önce basan parmak 0 bölünmez, pencerede basan parmak 1 tamamen yutulur")
+	await _start_round()
+	_drops = 0
+	var p0: Vector2 = _board_point(120.0)
+	var p1: Vector2 = _board_point(-60.0)
+	var p1_end: Vector2 = _board_point(-140.0)
+	await _finger(p0, true, 0)
+	_main.settle_touch_input()
+	await _finger(p1, true, 1)
+	_c("pencerede basan parmak 1 yutuldu (nişan parmak 0'da), yalnız onun dizisi kayıtlı",
+		_near(_board._aim_x, _world_x(p0)) and _settled_has(1) and not _settled_has(0))
+	await _finger(p0, false, 0)
+	_c("pencereden önce başlamış parmak 0 dizisi bölünmedi: bırakışı pencere içinde hemen düşürdü", _drops == 1
+		and _near(_drop_aims[0], _world_x(p0)))
+	await _wait_settled()
+	await _finger_drag(p1_end, p1, 1)
+	await _finger(p1_end, false, 1)
+	_c("parmak 1'in pencere sonrası sürüklemesi / bırakışı da yutuldu (drop yok, nişan aynı), kayıt kapandı",
+		_drops == 1 and _near(_board._aim_x, _world_x(p0)) and _no_settled())
+
+	print("-- pencereden ÖNCE başlamış tahta dizisi bölünmez (ikinci parmak)")
+	await _start_round()
+	var gear_at: Vector2 = _center(_board._hud.settings_button)
+	var c: Vector2 = _board_point(-110.0)
+	_drops = 0
+	await _finger(gear_at, true, 0)
+	await _finger(c, true, 1)
+	_c("ön koşul: parmak 1 pencereden önce tahtaya bastı (nişan)", _near(_board._aim_x, _world_x(c)))
+	await _finger(gear_at, false, 0)
+	_c("parmak 0 dişliden kalktı → Ayarlar, board donuk", _main._settings.visible and _board._is_menu_paused)
+	await _back()
+	_c("ön koşul: hızlı GERİ kapattı, pencere hâlâ açık", not _main._settings.visible
+		and Time.get_ticks_msec() + 80 < _main._touch_settle_until)
+	await _finger(c, false, 1)
+	_c("parmak 1'in pencere içindeki bırakışı KENDİ dizisini tamamladı: tam bir drop, nişanda", _drops == 1
+		and _near(_drop_aims[0], _world_x(c)) and _no_settled())
 
 	print("-- TASK/044 çift dokunuş koruması: dişli → hemen ikinci dokunuş karartmaya")
 	await _start_round()
@@ -413,15 +479,6 @@ func _gameplay_modals() -> void:
 	_sections_done += 1
 
 
-class ReviveStub:
-	extends RefCounted
-	var requests: int = 0
-
-	func show_rewarded_revive(main: Node) -> void:
-		requests += 1
-		main.grant_revive()
-
-
 # --- 6) Kabuk pencereleri (Android geri kullananlar) -------------------------------------------
 
 func _shell_modals() -> void:
@@ -447,6 +504,27 @@ func _shell_modals() -> void:
 			and _no_settled())
 		await _wait_settled()
 		await _back()
+		await _wait_settled()
+		# Pencereden ÖNCE basılı parmak + GERİ'nin başlattığı pencere: bırakış artık yutulmuyor,
+		# basıştaki (gizlenmiş) karta yönlenir — yeni ekranın aynı noktadaki kontrolüne DÜŞMEZ ve
+		# GERİ'nin kendi sonucuna hiçbir şey EKLEMEZ. (Godot, gizlenen basılı butona gizlenirken
+		# sentetik bırakış gönderir — `_drop_mouse_focus`; kart bazen o anda açılır. Bu motor
+		# davranışı düzeltmeden bağımsızdır: 25 turluk ölçümde temel 11, düzeltme 10 kez GERİ anında,
+		# ikisi de 0 kez bırakışta. Burada yalnız bırakışın etkisi denetlenir.)
+		var held: Vector2 = _center(cards[0])
+		await _finger(held, true)
+		await _back()
+		_c("ön koşul: kart basılıyken GERİ → Ana Sayfa, yatışma penceresi açık", _main._active_tab == 0
+			and Time.get_ticks_msec() + 80 < _main._touch_settle_until)
+		var detail_at_back: bool = album.is_detail_open()
+		await _finger(held, false)
+		_c("basılı kartın pencere içindeki bırakışı GERİ'nin sonucuna eylem eklemedi (detay / pencere / geçiş yok), dizi kapalı",
+			album.is_detail_open() == detail_at_back and _main._active_tab == 0 and not _main._daily_rewards.visible
+			and not _main._chest_info.visible and not _main._settings.visible and _no_settled())
+		if album.is_detail_open():
+			album.close_detail(false)
+		await _wait_settled()
+		_main._show_tab(2)
 		await _wait_settled()
 
 	print("-- Başarımlar: TÜM BAŞARIMLAR (parmak) → GERİ → ilk dokunuş dişli")
@@ -523,6 +601,16 @@ func _source_contract() -> void:
 
 
 # --- Yardımcılar ------------------------------------------------------------------------------------
+
+## Sahte ödüllü sağlayıcı: DEVAM ET talebi hemen devamı verir (reklam yok).
+class ReviveStub:
+	extends RefCounted
+	var requests: int = 0
+
+	func show_rewarded_revive(main: Node) -> void:
+		requests += 1
+		main.grant_revive()
+
 
 func _fixture() -> Dictionary:
 	var d: Dictionary = SaveManager.DEFAULT_DATA.duplicate(true)

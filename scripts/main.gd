@@ -56,7 +56,9 @@ var _last_back_msec: int = -1000
 const TOUCH_SETTLE_MSEC: int = 300
 var _touch_settle_until: int = -1
 ## Yatışmanın yuttuğu parmak dizileri (TASK/045.2): dizi anahtarı → true. Anahtar gerçek
-## dokunuşta parmak indeksi, dokunuştan öykünen farede EMULATED_MOUSE_SEQUENCE.
+## dokunuşta parmak indeksi, dokunuştan öykünen farede EMULATED_MOUSE_SEQUENCE. Kayıt yalnız
+## dizinin bırakışıyla (iptal dahil) ya da aynı anahtarın yeni basışıyla kapanır; odak kaybı /
+## duraklatma / pencere bitişinde TEMİZLENMEZ — kuyruktaki bırakış tahtaya basışsız düşerdi.
 const EMULATED_MOUSE_SEQUENCE: int = -1
 const NO_FINGER_SEQUENCE: int = -2
 var _settled_sequences: Dictionary = {}

@@ -457,7 +457,10 @@ yatışması dişlinin kendi dokunuş bırakışını yutuyor, GUI dokunuş oda�
 dizi bazında, 300 ms aynen; bulut kapısı geçti). **Sıradaki adım: Samsung A36 yerel kapısı**
 (yalnız QA paketi: oyun içi dişli → GERİ → ilk dokunuş düşürür; KAPAT / karartma; Profil
 dişlisi; hızlı çift dokunuşlar; Bomba / Büyütücü; 3 tuşlu ve hareketle gezinme geri), sonra
-owner onayıyla main'e ff-only. Ayrıntı: PROJECT_STATUS §4.23. **TASK/046 BAŞLAMADI.**
+owner onayıyla main'e ff-only. Ayrıntı: PROJECT_STATUS §4.23. Kapsam dışı, önceden var olan
+gözlem (owner kararı bekler): iptal edilen dokunuş (hareketle gezinmede kenardan geri
+kaydırmanın ACTION_CANCEL'ı) tahtada parça düşürür — düzeltmesi gameplay girdisini değiştirir,
+ayrı görev. **TASK/046 BAŞLAMADI.**
 
 Her madde owner girdisi ister; hiçbiri tahmin edilmez ya da uydurulmaz.
 Gizlilik politikası, upload anahtarı ve AdMob kimliklerinde repoda yalnız

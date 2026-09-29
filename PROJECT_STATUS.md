@@ -1829,22 +1829,50 @@ formatına yalnız `haptics_enabled` (varsayılan true) eklendi. Ayrıntı ve
   yatışmayı kapatan mutasyonu yakalıyorlar); TASK/045.1 hedefli güç tüketimi; Sarsıntı /
   Temizleyici; gameplay, ekonomi, ilerleme, kayıt işlemi, günlük pencere, reklam sözleşmesi,
   TASK/043 DEĞİŞMEDİ.
-- **Testler:** yeni `settings_input_test` (138 kontrol, yalnız test yolu; sahibin kayıt ailesine
+- **Testler:** yeni `settings_input_test` (160 kontrol, yalnız test yolu; sahibin kayıt ailesine
   dokunmaz): oyun içi dişli → GERİ / KAPAT / karartma (tek kapanış, dişli kendi bırakışını alır,
   yatışma biter, İLK bağımsız dokunuş: basış + sürükleme nişanı taşır, bırakış tam bir drop;
-  cooldown aynen, güç yok), parmak 1 + indeks 0 yeniden kullanımı, masaüstü fare, yatışma içinde
-  geri + pencerede başlayan tahta dizisi (tamamen yutulur, pencere sonrası sürükleme / bırakış
-  dahil), kaybolan bırakış, çift dokunuş, Bomba / Büyütücü silahlıyken GERİ → ilk dokunuş hedef
-  (bırakış tüketilir, dizi kapanır), Profil dişlisi üç yol + çift dokunuş, Mola / Refill / Devam,
-  Koleksiyon detayı / Başarımlar / Unvanlar / Günlük / Sandık (GERİ → ilk dokunuş). Negatif
-  kontrol: düzeltmesiz (`e474fb3`) Main ile 18 FAIL, 0 SCRIPT ERROR. Mutasyonlar 4/4 öldü
-  (düzeltme atlama, yatışma kapalı → profile / progression_ui de düşer, yalnız-bırakış koruması,
-  hedefleme tüketimi kapalı → power_input de düşer); kaynak her seferinde bayt-aynı geri kondu.
-  Tam regresyon: 31 kanonik suite + yeni suite + bot L3 2/2, 0 hata, 0 SCRIPT ERROR.
+  hızlı ikinci dokunuş tahtaya ulaşır ama cooldown aynen, güç yok), parmak 1 + indeks 0 yeniden
+  kullanımı, masaüstü fare, yatışma içinde geri + pencerede başlayan tahta dizisi (tamamı Main'de
+  yutulur — pencere sonrası sürükleme / bırakış dahil, dişliye de gitmez), kaybolan ve iptal
+  edilen bırakış, iki parmak (pencereden önce basan bölünmez, pencerede basan tamamen yutulur),
+  çift dokunuş, Bomba / Büyütücü silahlıyken GERİ → ilk dokunuş hedef (bırakış tüketilir, dizi
+  kapanır), Profil dişlisi üç yol + çift dokunuş, Mola / Refill / Devam, Koleksiyon detayı (basılı
+  kart + GERİ dahil) / Başarımlar / Unvanlar / Günlük / Sandık (GERİ → ilk dokunuş). Arka arkaya
+  koşularda kararlı. Negatif kontrol: düzeltmesiz (`e474fb3`) Main ile 26 FAIL (21 davranış + 5
+  yapısal: yeni alan / kaynak sözleşmesi), 0 SCRIPT ERROR. Mutasyonlar 5/5 öldü (düzeltme atlama,
+  yatışma kapalı → profile / progression_ui de düşer, yalnız-bırakış koruması, hedefleme tüketimi
+  kapalı → power_input de düşer, tüm parmakları tek anahtara indirme); kaynak her seferinde
+  bayt-aynı geri kondu. Tam regresyon: 31 kanonik suite + yeni suite + bot L3 2/2, 0 hata, 0
+  SCRIPT ERROR (motorun çıkıştaki "resources still in use" satırları koşudan koşuya değişen
+  gürültü; düzeltmesiz Main ile de aynı).
+- **Çekişmeli inceleme (4 mercek, salt okuma):** BLOCKER 0 · HIGH 0. Tüm TASK/044 / TASK/045
+  korumaları olay sırasıyla yürütülüp korunmuş bulundu; kök neden motor kaynağıyla teyit edildi
+  (ayrıca eski davranışın pencereye taşan bir basışta butonun `pressed_down_with_focus`
+  durumunu asılı bırakması da kalktı). MEDIUM 1 (tüm parmakları tek anahtara indiren mutasyon
+  hayatta kalıyordu → iki parmak testi) + LOW 6 (yanlış nedenle geçen kontroller, hızlı dokunuş
+  kanıtı, iptal testi, cooldown ön koşulu, bekçi yolu, basılı kart + GERİ boşluğu) + NIT 5
+  giderildi. Bilerek bırakılan: pencere sınırında (milisaniye altı) bir dokunuşun iki yarısının
+  ayrı karar alması (temelle aynı, iki akış da dengeli) · Ayarlar kapanınca pencereyi sıfırlamak
+  (yatışmayı zayıflatır) · tipli sözlük (kod tabanı idiomu değil) · power_input_test etiketi
+  (TASK/045.1 dondurulmuş). Pencereden önce ikinci parmakla tahtaya basılıp hızlı GERİ'den sonra
+  kaldırılırsa parça düşer — o parmağın kendi dizisi, bilerek (testli).
+- **Önceden var olan, kapsam dışı (düzeltilmedi):** (1) iptal edilen dokunuş (Android
+  ACTION_CANCEL — hareketle gezinmede kenardan geri kaydırma) GameBoard'da normal bırakış gibi
+  parça düşürür ve karartma pencereyi kapatır (TASK/045.1'de de not edildi); hareketle gezinmede
+  cihazda henüz doğrulanmadı. Düzeltmesi gameplay girdisini değiştirir → owner onaylı ayrı görev; Main'de
+  yutmak DEĞİL (asılı odak hatası geri gelir), GameBoard'da `canceled` bırakışı düşürmeden
+  kapatmak. (2) Godot, basılı butonu gizlerken ona sentetik bırakış gönderir
+  (`_drop_mouse_focus`): kart basılıyken GERİ ile Koleksiyon'dan çıkılırsa detay bazen gizli
+  albümde açılır — 25 turluk ölçüm temel 11 / düzeltme 10, fiziksel bırakışla 0 / 0; `Main._input`
+  ile ilgisiz. (3) Yatışma olayın dağıtım anına göre ölçülür; geçişten sonra 300 ms'yi aşan ilk
+  çizim takılması gerçek bir çift dokunuşu geçirebilir (temelle aynı; sertleştirme owner kararı).
 - **Samsung A36 yerel kapısı (BEKLİYOR, yalnız QA paketi):** oyun içi dişli → GERİ → ilk
   dokunuş düşürür (tekrar tekrar), KAPAT / karartma, Profil dişlisi üç yol, hızlı çift
   dokunuşlar (TASK/044 / 045 korumaları), Bomba / Büyütücü, Mola / Refill / Devam; geri hem 3
-  tuşlu gezinmeyle hem hareketle (kenardan kaydırma) denenmeli.
+  tuşlu gezinmeyle hem hareketle (kenardan kaydırma) denenmeli — hareketle gezinmede tahta
+  üstünden başlayan geri kaydırması önceden var olan iptal-bırakış davranışını (yukarıda (1))
+  gösterebilir; bu TASK/045.2 gerilemesi DEĞİLDİR, ayrı not edilmeli.
 
 ## 5. Dosya/klasör yapısı ve script envanteri
 
@@ -1972,6 +2000,7 @@ squishy-merge/
 | `save_persistence_test.gd` + `.tscn` | **Çökmeye dayanıklı kayıt testi** (TASK/045.1): işlem (normal / üzerine / ×40 / ~1 MB / Unicode / bayt-aynı biçim / ara dosya yok), her aşamada hata + süreç ölümü enjeksiyonu, kurtarma matrisi, SaveManager entegrasyonu (yeni oyuncu, şema, TASK/044–045 göçleri, başarısız kayıt, çökmeden kurtarma, bozuk kayıt). YALNIZ test yolu — sahibin kaydına dokunmaz. |
 | `power_input_test.gd` + `.tscn` | **Hedefli güç dokunuş tüketimi testi** (TASK/045.1): Bomba / Büyütücü parmak / fare / kod yolu (güç bir kez, stok bir kez, bırakış düşürmez, sonraki dokunuş düşürür), T7→T8, geçersiz hedef, iptal, sürükleme, hızlı / aynı kare / iki parmak, kayıp bırakış, duraklama, stok 0, anında güçler, Main + 300 ms yatışma. Test yolu. |
 | `daily_popup_gate_test.gd` + `.tscn` | **Günlük pencere ↔ Koleksiyon detayı kapısı testi** (TASK/045.1): detay açıkken sekme / kabuk tazeleme, öne dönüş, gün dönümü, değiştirme adımı, Profil vitrini → detay; due kalır, sonraki fırsatta açılır; TASK/045 kapısı aynen. Test yolu. |
+| `settings_input_test.gd` + `.tscn` | **Ayarlar geri girdi odağı / dizi bazlı yatışma testi** (TASK/045.2): cihaz sırasıyla parmak olayları (öykünen fare önce) + pencere GO_BACK bildirimi; oyun içi dişli → GERİ / KAPAT / karartma → ilk dokunuş (nişan, sürükleme, tek drop), parmak / indeks / masaüstü fare, pencerede başlayan dizi (sonrası dahil) + iptal + kaybolan bırakış, iki parmak (bölünmez / tamamen yutulur), çift dokunuş, Bomba / Büyütücü, Profil dişlisi, Mola / Refill / Devam, Koleksiyon / Başarımlar / Unvanlar / Günlük / Sandık. Test yolu. |
 | `profile_shots.gd` + `.tscn` | **Profil çekimleri** (TASK/044): yeni / orta / geç (üst + kaydırma sonu), 0 / 3 vitrin, eski kayıt, Profil'den Ayarlar, Ana Sayfa avatarı, yuva → detay. `--headless` ile çalışmaz. |
 | `secondary_modal_ui_test.gd` + `.tscn` | **Headless ikincil pencere testi** (M8.6-08 / M8.9-02.1, 100 kontrol): shell v2 iskeleti (oturmuş X, gövde/altlık sınırları, tavan + kaydırma, karartma), Ayarlar (kanonik yazma yolu, taşma regresyonu 5 yapılandırma), Günlük = birleşik GÜNLÜK ÖDÜLLER (claim pencereden önce tam bir kez, üst bölge, yeniden açılış +15 yok, kapanış yolları, 540×960), Mola/Sandık (hiyerarşi, z-order, rota). Kaydı byte'ı geri koyar. |
 | `secondary_ui_shots.gd` + `.tscn` | **İkincil pencere çekimleri** (M8.6-07/08): 48 durum × pencere boyutu + A36 simülasyonu; `groups=` ile alt küme. `--headless` ile çalışmaz. |
