@@ -1,15 +1,20 @@
 class_name MissionCard
-extends PanelContainer
+extends Control
 ## Görev kartı (TASK/046) — GÜNLÜK ÖDÜLLER seçenek kartının malzemesi (bir ton geri krem
-## `card_bevel_soft` gövde + ince lavanta halka). Solda metrik kuyusu (`candy_well`: merge →
-## owner dumpling'i · tur → oyna pictosu · level → owner bayrağı), ortada görev metni (Baloo) +
-## durum çipi, altında ilerleme rayı + "7 / 15"; sağda Hamur ödül rozeti (owner Hamur sanatı +
-## "+10").
+## `card_bevel_soft` gövde) + gövdeyi çevreleyen 3 px durum halkası. Solda metrik kuyusu
+## (`candy_well`: merge → owner dumpling'i · tur → oyna pictosu · level → owner bayrağı), ortada
+## görev metni (Baloo) + durum çipi, altında ilerleme rayı + "7 / 15"; sağda Hamur ödül rozeti
+## (owner Hamur sanatı + "+10").
 ##
 ##   DEVAM       krem gövde, lavanta halka, nane ray kısmi, çip yok.
 ##   TAMAMLANDI  açık nane gövde + nane halka, nane ray tam dolu, nane "✓ TAMAMLANDI" çipi,
 ##               sayaç nane — ödül otomatik eklendi (talep butonu YOK).
 ## Sayaç sabit genişlikte sağa yaslı: altı kartın rayları aynı boyda hizalanır.
+##
+## Yapı: kök düz Control → halka (kökün tam dikdörtgeni) → gövde PanelContainer (her yandan
+## RING_WIDTH içeride). Halka gövdenin çocuğu OLAMAZ (PanelContainer çocuklarını içerik payına
+## oturtur, opak gövdenin altında kalırdı) ve kökün DIŞINA taşamaz (pencere gövdesi bir
+## ScrollContainer: taşan yan kenarlar kırpılırdı). Kök yüksekliği gövdenin içeriğini izler.
 ##
 ## Veri yalnız `Missions.rows()` satırından; kayda YAZMAZ, dokunma ALMAZ (kaydırma kartın
 ## üstünden de başlar).
@@ -21,6 +26,7 @@ const MIN_HEIGHT: float = 96.0
 ## "120 / 120" sığar; bütün kartlarda aynı → raylar hizalı.
 const PROGRESS_WIDTH: float = 84.0
 const RING_WIDTH: float = 3.0
+const RING_OPEN: Color = Color("dccbe8")
 ## Tamamlanan kartın gövdesi: krem → hafif nane (başarı, göz yormadan listede seçilir).
 const BODY_DONE: Color = Color("e3f5e6")
 const DONE_TEXT: String = "TAMAMLANDI"
@@ -31,12 +37,14 @@ const MERGE_ART: Texture2D = preload("res://assets/visual/dumpling_tier3.png")
 const CLEAR_ART: Texture2D = preload("res://assets/visual/ui/icon_flag.png")
 
 var _ring: PanelContainer
+var _panel: PanelContainer
 var _body_open: StyleBoxTexture
 var _body_done: StyleBoxTexture
 var _well_host: Control
 var _well: Control
 var _title: Label
 var _chip: PanelContainer
+var _chip_label: Label
 var _rail: ProgressBar
 var _progress: Label
 var _reward: Label
@@ -50,18 +58,23 @@ func _init() -> void:
 	size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_body_open = UiKit.style("card_bevel_soft", UiTokens.CREAM_DEEP, BODY_MARGIN)
 	_body_done = UiKit.style("card_bevel_soft", BODY_DONE, BODY_MARGIN)
-	add_theme_stylebox_override("panel", _body_open)
 	_ring = UiKit.flat_plate("frame_round20", Color.WHITE)
 	_ring.name = "Ring"
-	_ring.self_modulate = Color(UiTokens.LAVENDER_SURFACE, 0.95)
-	_ring.show_behind_parent = true
-	UiKit.inset(_ring, -RING_WIDTH, -RING_WIDTH, -RING_WIDTH, -RING_WIDTH)
+	_ring.self_modulate = RING_OPEN
 	add_child(_ring)
+	_panel = PanelContainer.new()
+	_panel.name = "Body"
+	_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	UiKit.inset(_panel, RING_WIDTH, RING_WIDTH, RING_WIDTH, RING_WIDTH)
+	_panel.add_theme_stylebox_override("panel", _body_open)
+	add_child(_panel)
+	_panel.minimum_size_changed.connect(func() -> void:
+		custom_minimum_size.y = maxf(MIN_HEIGHT, _panel.get_combined_minimum_size().y + RING_WIDTH * 2.0))
 	var row := HBoxContainer.new()
 	row.name = "Row"
 	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	row.add_theme_constant_override("separation", UiTokens.SPACE_MD)
-	add_child(row)
+	_panel.add_child(row)
 	_well_host = Control.new()
 	_well_host.name = "WellHost"
 	_well_host.custom_minimum_size = Vector2(WELL_SIZE + 8.0, WELL_SIZE + 10.0)
@@ -100,10 +113,10 @@ func _init() -> void:
 	var check := UiKit.icon("check", 16, UiTokens.TEXT_ON_ACCENT)
 	check.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	chip_row.add_child(check)
-	var chip_label := UiKit.label(DONE_TEXT, &"LabelBadge")
-	chip_label.name = "DoneLabel"
-	chip_label.add_theme_font_size_override("font_size", 14)
-	chip_row.add_child(chip_label)
+	_chip_label = UiKit.label(DONE_TEXT, &"LabelBadge")
+	_chip_label.name = "DoneLabel"
+	_chip_label.add_theme_font_size_override("font_size", 14)
+	chip_row.add_child(_chip_label)
 	_chip.visible = false
 	head.add_child(_chip)
 	var bar_row := HBoxContainer.new()
@@ -151,8 +164,8 @@ func setup(row: Dictionary) -> void:
 	_set_well(row.get("metric", &""))
 	_title.text = String(row["title"])
 	_chip.visible = done
-	add_theme_stylebox_override("panel", _body_done if done else _body_open)
-	_ring.self_modulate = UiTokens.MINT if done else Color(UiTokens.LAVENDER_SURFACE, 0.95)
+	_panel.add_theme_stylebox_override("panel", _body_done if done else _body_open)
+	_ring.self_modulate = UiTokens.MINT if done else RING_OPEN
 	_rail.value = float(value) / float(goal)
 	_progress.text = PROGRESS_FORMAT % [value, goal]
 	_progress.add_theme_color_override("font_color", UiTokens.MINT_DEEP if done else UiTokens.TEXT_PRIMARY)
@@ -211,6 +224,10 @@ func is_done_shown() -> bool:
 	return _chip.visible
 
 
+func done_text() -> String:
+	return _chip_label.text if _chip.visible else ""
+
+
 func rail() -> ProgressBar:
 	return _rail
 
@@ -221,3 +238,11 @@ func title_label() -> Label:
 
 func done_chip() -> PanelContainer:
 	return _chip
+
+
+func ring() -> PanelContainer:
+	return _ring
+
+
+func body() -> PanelContainer:
+	return _panel

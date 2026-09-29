@@ -122,13 +122,14 @@ func _section_header(title: String, hint: String) -> Control:
 	line.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	line.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	row.add_child(line)
-	var calendar := UiKit.icon("calendar", 18, UiTokens.TEXT_TERTIARY)
+	var calendar := UiKit.icon("calendar", 18, UiTokens.TEXT_SECONDARY)
 	calendar.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	row.add_child(calendar)
+	# İkincil erik (kremde okunur kontrast; üçüncül ton 14 px'te soluk kalıyordu).
 	var hint_label := UiKit.label(hint, &"LabelCaption")
 	hint_label.name = "Hint"
-	hint_label.add_theme_font_size_override("font_size", 14)
-	hint_label.add_theme_color_override("font_color", UiTokens.TEXT_TERTIARY)
+	hint_label.add_theme_font_size_override("font_size", 15)
+	hint_label.add_theme_color_override("font_color", UiTokens.TEXT_SECONDARY)
 	row.add_child(hint_label)
 	row.set_meta(&"hint_label", hint_label)
 	row.set_meta(&"title_label", label)

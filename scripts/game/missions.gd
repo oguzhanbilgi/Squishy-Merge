@@ -25,7 +25,8 @@ extends RefCounted
 ##   Hafta    PAZARTESİ başlar; anahtar o haftanın pazartesi tarihi (`week_start`).
 ##   Seri     YOK — görev serisi / haftalık seri / çarpan yok (giriş serisi DailyReward'da aynen).
 
-## Kayıttaki görev durumunun şema sürümü.
+## Kayıttaki görev durumunun şema sürümü. İleride artarsa eski sürümün ödül işaretlerini
+## TAŞIYAN bir göç şart: bilinmeyen sürüm `sanitize`'da taze dönem sayılır (işaretler düşer).
 const VERSION: int = 1
 const PERIOD_DAILY: StringName = &"daily"
 const PERIOD_WEEKLY: StringName = &"weekly"
@@ -61,7 +62,8 @@ const KEY_WEEKLY_PROGRESS: String = "weekly_progress"
 const KEY_WEEKLY_REWARDED: String = "weekly_rewarded"
 ## Ham ödül işareti dizisinin okunan tavanı (bozuk kayıtta binlerce öğe açılışı kilitlemesin).
 const RAW_CAP: int = 32
-## Geçerli gün anahtarının en küçük yılı: bundan eski cihaz saati bozuk sayılır (görev işlenmez).
+## Geçerli gün anahtarının en küçük yılı: bundan eski cihaz saati bozuk sayılır (yeni dönem
+## açılmaz — bkz. `accepted_day`).
 const MIN_YEAR: int = 2000
 const SECONDS_PER_DAY: int = 86400
 
@@ -134,7 +136,9 @@ static func rewarded_key(period: StringName) -> String:
 
 ## Görevlerin kabul edilen günü: GÜNLÜK ÖDÜLLER'in günü (`DailyRewards.day_key()` — saat geri
 ## alma koruması aynen, ayrı saat gerçeği YOK). O anahtar biçim olarak bozuksa (kayıttaki "en
-## yeni gün" bozulmuş) cihaz günü; o da geçersizse boş → görev işlenmez, dönem değişmez.
+## yeni gün" bozulmuş) cihaz günü; o da geçersizse boş → yeni dönem AÇILMAZ: kayıtlı bir dönem
+## varsa round'lar o döneme işlenir (geri alınmış saatle aynı; ödül işaretleri geçerli), yoksa
+## görev işlenmez.
 static func accepted_day() -> String:
 	var key: String = DailyRewards.day_key()
 	if is_day_key(key):

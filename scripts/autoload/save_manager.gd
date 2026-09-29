@@ -611,7 +611,9 @@ func missions_state() -> Dictionary:
 ## bittiyse +1) ve hedefine İLK kez ulaşan görevlerin OTOMATİK Hamur ödülü — ilerleme, ödül
 ## işareti ve Hamur AYNI mutasyonda. `save = false`: yazma aynı round'un `record_round_finished`
 ## yazmasına katlanır (XP / yıldız / level ile TEK yazma). Döner: {completed: Array[StringName]
-## (katalog sırası), dough: int}. Kabul edilen gün yoksa (bozuk saat) hiçbir şey değişmez.
+## (katalog sırası), dough: int}. Kabul edilen gün yoksa (bozuk saat) yeni dönem açılmaz: kayıtlı
+## dönem varsa round ona işlenir (ödül işaretleri geçerli — ikinci ödül yok), yoksa hiçbir şey
+## değişmez.
 func record_mission_round(merges: int, fixed_level_cleared: bool, save: bool = true) -> Dictionary:
 	var state: Dictionary = missions_state()
 	var none: Array[StringName] = []

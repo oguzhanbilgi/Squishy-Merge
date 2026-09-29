@@ -852,6 +852,9 @@ func _on_daily_requested() -> void:
 ## Ana Sayfa'daki Bonus sandık madalyonu: kural + ilerleme penceresi
 ## (GAME_DESIGN §5.2), OYNA → harita.
 func _on_chest_requested() -> void:
+	# TASK/046: aynı katmandaki GÖREVLER penceresinin altına açılmasın (dokunuş yolu zaten kapalı).
+	if _missions != null and _missions.visible:
+		return
 	_chest_info.open_info()
 
 
@@ -869,6 +872,8 @@ func open_missions() -> void:
 		return
 	if _daily_rewards.visible or _chest_info.visible or (_settings != null and _settings.visible):
 		return
+	# Pencere ve Ana Sayfa rozeti AYNI dönemi göstersin (gün uygulama açıkken değişmiş olabilir).
+	_screens[0].refresh_missions()
 	_missions.open_missions()
 
 
@@ -960,6 +965,9 @@ func open_daily_rewards() -> void:
 	if _daily_rewards == null or not Onboarding.daily_rewards_unlocked():
 		return
 	if _daily_rewards.visible or _age_blocks_monetizable_surfaces():
+		return
+	# TASK/046: aynı katmandaki GÖREVLER penceresinin altına açılmaz (dokunuş yolu zaten kapalı).
+	if _missions != null and _missions.visible:
 		return
 	_open_daily_rewards_window(false)
 
