@@ -1,6 +1,6 @@
 # PROJECT_STATUS.md — Squishy Merge, tam proje raporu
 
-**Son güncelleme:** 2026-09-28 · **Durum:** M0–M8 tamamlandı; M8.5–M8.10
+**Son güncelleme:** 2026-09-29 · **Durum:** M0–M8 tamamlandı; M8.5–M8.10
 (release/product stabilization: UI yeniden inşası, gameplay cilası, ses,
 AdMob TEST-reklam monetizasyonu + günlük ödüller, ilk açılış tutorial'ı)
 tamamlandı ve main'de; M9-01 production release hazırlığı (kod) tamamlandı,
@@ -47,16 +47,17 @@ Ayarlar Profil'in dişli çarkında; Samsung A36 yerel kapısı GEÇTİ (§4.20)
 (2026-09-28, main'de — owner onayıyla ff-only alındı):** Player Progression V1 — oyuncu
 seviyesi + XP (kümülatif `player_xp`, seviye türetilir), 12 başarım, varsayılan + 8 unvan,
 Profil'de seviye / BAŞARIMLAR / pencereler, sonuç ekranında kompakt XP şeridi (§4.21); bulut
-kapısı + Samsung A36 yerel kapısı GEÇTİ (bulgu yok). **TASK/045.1 (2026-09-28, dalda —
-`task/045-1-persistence-input-hardening`; yerel A36 kapısı GEÇTİ 2026-09-29 (iki kurtarma
-bulgusu giderildi), main'e alınması owner onayı bekliyor):** çökmeye dayanıklı kayıt (geçici dosya + doğrulama + yer değiştirme, deterministik
+kapısı + Samsung A36 yerel kapısı GEÇTİ (bulgu yok). **TASK/045.1 (2026-09-29, main'de —
+owner onayıyla ff-only alındı; Samsung A36 yerel kapısı GEÇTİ, iki kurtarma bulgusu
+giderildi):** çökmeye dayanıklı kayıt (geçici dosya + doğrulama + yer değiştirme, deterministik
 kurtarma), Bomba / Büyütücü hedef dokunuşunun bırakışı artık parça düşürmüyor, otomatik günlük
 pencere Koleksiyon detayının üstüne açılmıyor (§4.22); TASK/046 BAŞLAMADI. Sırada: içerik
 derecesi + yargı bölgesi kararları (owner) → gizlilik
 politikası → upload anahtarı → gerçek AdMob kimlikleri → mağaza varlıkları / Play Console,
 sonra ilk imzalı üretim AAB'si ve M10 (Play kapalı test) ·
-**Branch:** TASK/045.1 `task/045-1-persistence-input-hardening` dalda (main'e alınmadı —
-yerel A36 kapısı GEÇTİ, owner onayı bekliyor; başlangıç `017f2dc`) · `main` — TASK/045 `task/045-player-level-achievements` (`514ec9a` + `285856c` +
+**Branch:** `main` — TASK/045.1 `task/045-1-persistence-input-hardening` (`aac0895` …
+`5b1f952`, 8 commit; son commit A36 kapısı düzeltmesi) owner onayıyla ff-only entegre
+(`017f2dc → 5b1f952`, 2026-09-29) · önce TASK/045 `task/045-player-level-achievements` (`514ec9a` + `285856c` +
 `d4c8548`) owner onayıyla ff-only entegre (`115252c → d4c8548`, 2026-09-28) · önce TASK/044
 `task/044-player-meta-v1` (`d2832dc` + `e6c1c07` + `c5b4db5` +
 `239f2e7`) owner onayıyla ff-only entegre (`327dd60 → 239f2e7`, 2026-09-28) · önce TASK/043
@@ -1668,10 +1669,10 @@ formatına yalnız `haptics_enabled` (varsayılan true) eklendi. Ayrıntı ve
 
 ### 4.22 Kalıcılık ve girdi sağlamlaştırması (TASK/045.1)
 
-> **dalda** — `task/045-1-persistence-input-hardening` (başlangıç main `017f2dc`); **yerel
-> Samsung A36 kapısı GEÇTİ (2026-09-29)** — iki kurtarma bulgusu aynı dalda giderildi (aşağıda);
-> main'e alınması owner onayı bekliyor. TASK/045'in üç kararlılık takibi; kapsam bunlarla
-> sınırlı (TASK/046 BAŞLAMADI).
+> **main'de** — `task/045-1-persistence-input-hardening` (başlangıç main `017f2dc`) owner
+> onayıyla ff-only alındı (`017f2dc → 5b1f952`, 2026-09-29); **Samsung A36 yerel kapısı GEÇTİ
+> (2026-09-29)** — iki kurtarma bulgusu dalda giderildi (aşağıda). TASK/045'in üç kararlılık
+> takibi; kapsam bunlarla sınırlı (TASK/046 BAŞLAMADI).
 
 - **(A) Çökmeye dayanıklı kayıt.** Eski `save_game()` kanonik dosyayı `FileAccess.WRITE` ile
   yerinde kesip yazıyordu: yazma sırasında çökme / öldürme / disk hatası okunamayan bir kayıt
@@ -2511,8 +2512,12 @@ kaydı salt okunur doğrulandı (sessiz göç, dosya değişmedi); cihazda yaln�
 - ~~**Kararlılık (öneri — TASK/045 engeli değil):** atomik kayıt (`save_game()` yerinde kesip
   yazıyor; geçici dosya + yedekten kurtarma) · güç hedefleme bırakış-düşürme (Büyütücü ve
   Bomba hedef dokunuşunun bırakışı bekleyen parçayı da düşürebilir) · Koleksiyon detayı
-  otomatik günlük pencere kapısında değil (TASK/044 artığı).~~ → **TASK/045.1 dalda** (§4.22;
-  yerel A36 kapısı + main'e alınması owner onayı bekliyor).
+  otomatik günlük pencere kapısında değil (TASK/044 artığı).~~ → ✅ **TASK/045.1 ile main'de**
+  (§4.22; A36 kapısı GEÇTİ, `017f2dc → 5b1f952`).
+- **TASK/045.2** — girdi odağı cilası (öneri, BAŞLAMADI): oyun içi Ayarlar dişlisi → Android
+  geri ile kapatınca ilk tahta dokunuşunun bırakışı kayboluyor (ikinci dokunuş normal; A36'da
+  3/3; KAPAT ve karartma yolları sorunsuz). TASK/045.1 öncesinden — TASK/044'ün 300 ms
+  yatışması dişlinin kendi dokunuş bırakışını yutuyor (§4.22 A36 kapısı notu).
 
 ### M10 — Play Store submission
 

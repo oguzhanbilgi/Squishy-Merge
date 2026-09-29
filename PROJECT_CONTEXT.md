@@ -74,20 +74,22 @@ alınacak — şimdi tahmin/vaat yok.
 
 ## Current state
 
-**Kanonik durum — 2026-09-28.** Bugünün gerçeği bu bölüm +
+**Kanonik durum — 2026-09-29.** Bugünün gerçeği bu bölüm +
 [Current release blockers](#current-release-blockers) +
 [Next action](#next-action); aşağıdaki "Milestone tarihçesi" değil.
 
-- **Repo:** `main == origin/main` (2026-09-28): **TASK/045 owner onayıyla ff-only main'e
-  alındı** (`task/045-player-level-achievements`: `514ec9a` + `285856c` + `d4c8548`;
-  `115252c → d4c8548`, merge commit yok, ağaç eşit — Samsung A36'da doğrulanmış ağaç);
-  üstünde yalnız bu durum doküman commit'i. Aynı gün önce **TASK/044** ff-only
+- **Repo:** `main == origin/main` (2026-09-29): **TASK/045.1 owner onayıyla ff-only main'e
+  alındı** (`task/045-1-persistence-input-hardening`: `aac0895` + `8957f6f` + `427c18c` +
+  `2cf0dfc` + `947dda5` + `9c2b56e` + `b6c17dd` + `5b1f952` A36 kapısı düzeltmesi;
+  `017f2dc → 5b1f952`, merge commit yok, ağaç eşit — Samsung A36'da doğrulanmış ağaç);
+  üstünde yalnız bu durum doküman commit'i. 2026-09-28: **TASK/045** ff-only
+  (`115252c → d4c8548`, durum commit'i `017f2dc`), önce **TASK/044** ff-only
   (`327dd60 → 239f2e7`, durum commit'i `115252c`); 2026-09-27: **TASK/043** ff-only
   (`249a6e1 → 753503a`, durum commit'i `327dd60`), `task/042-gma25-production` (`83b86a9`
   kod + `3d15402` doküman / A36 kapısı kaydı; `cbdcb8f → 3d15402`),
   `task/041-fix-request-configuration` (`7e1e378` + `d32a4d3`, durum commit'i `cbdcb8f`) ve
   `task/040-global-teen-compliance` (`025214a` + `e152986`, durum commit'i `ee01841`) — hepsi
-  owner onayıyla, merge commit yok. `task/014`…`task/045` dallarının hepsi main'de
+  owner onayıyla, merge commit yok. `task/014`…`task/045-1` dallarının hepsi main'de
   (referans için duruyor).
   Main'e bilerek girmeyen iki dal: `task/m8.6-03-home` (reddedildi, asla
   birleştirilmez) ve `task/ui-layerlab-style-spike` (seçilen parçaları
@@ -123,10 +125,11 @@ alınacak — şimdi tahmin/vaat yok.
   kompakt "+XP / SEVİYE ATLADIN! / Başarım açıldı" şeridi. Ekonomi, reklam sözleşmesi,
   TASK/043, gameplay DEĞİŞMEDİ; başarım ekonomik ödül VERMEZ. Hesap / takma ad / backend /
   skor tablosu YOK. Ayrıntı: GAME_DESIGN §5.9, UI_VISUAL_SYSTEM §23, PROJECT_STATUS §4.21.
-- **TASK/045.1 Kalıcılık ve girdi sağlamlaştırması — DALDA, Samsung A36 yerel kapısı GEÇTİ
-  (2026-09-29, yalnız QA paketi; iki kurtarma bulgusu dalda giderildi), main'e alınması owner
-  onayı bekliyor** (`task/045-1-persistence-input-hardening`, başlangıç main
-  `017f2dc`; TASK/045'in üç kararlılık takibi). (A) **Çökmeye dayanıklı kayıt:**
+- **TASK/045.1 Kalıcılık ve girdi sağlamlaştırması — TAMAM, main'de**
+  (`task/045-1-persistence-input-hardening`, başlangıç main `017f2dc`; **Samsung A36 yerel
+  kapısı GEÇTİ 2026-09-29** — yalnız QA paketi, iki kurtarma bulgusu `5b1f952` ile giderildi;
+  owner onayıyla ff-only main'e alındı `017f2dc → 5b1f952`, 2026-09-29; TASK/045'in üç
+  kararlılık takibi). (A) **Çökmeye dayanıklı kayıt:**
   `save_game()` kanonik dosyayı artık yerinde kesip yazmıyor — `SaveFile` işlemi (yük bellekte
   doğrulanır → aynı klasörde `.tmp` + bayt bayt geri okuma → eski kayıt `.bak`'a taşınır ve
   **bir önceki kayıt olarak kalır** → `.tmp` kanonik ada taşınır; hiçbir adım
@@ -174,6 +177,9 @@ alınacak — şimdi tahmin/vaat yok.
   *(TASK/045, main'de: yerel oyuncu ilerlemesi — XP / seviye / başarım / unvan, Profil
   pencereleri, sonuç ekranı XP şeridi; fizik, merge, skor, ekonomi, reklam sözleşmesi,
   TASK/043 yaş yönlendirmesi AYNI.)*
+  *(TASK/045.1, main'de: kayıt dosyası işlemi — çökmeye dayanıklı `SaveFile` + deterministik
+  kurtarma —, güç hedefleme dokunuşunun bırakışı, Koleksiyon detayı günlük pencere kapısı;
+  fizik, merge, skor, ekonomi, XP, reklam sözleşmesi, TASK/043 yaş yönlendirmesi AYNI.)*
 - **Kalıcı paket kimliği KİLİTLENDİ (owner kararı, 2026-09-24):** üretim / Play
   = `com.obappstudio.squishymerge` (project.godot `squishy/release/android_package_id`
   + yerel release presetleri); QA / test = `com.obappstudio.squishymerge.qa` (debug
@@ -421,9 +427,16 @@ yerinde kesip yeniden yazıyor — çökmeye dayanıklı atomik kayıt yok (geç
 kurtarma önerisi); (B) güç hedefleme bırakış-düşürme: Büyütücü ve Bomba hedef dokunuşunun
 bırakışı bekleyen parçayı da düşürebilir (TASK/044'te Büyütücü, TASK/045 A36 kapısında
 Bomba ile de görüldü); (C) Koleksiyon detayı otomatik günlük pencere kapısında yok (TASK/044
-artığı).~~ → **TASK/045.1 dalda (A + B + C giderildi):** Samsung A36 yerel kapısı GEÇTİ
-(2026-09-29, QA paketi; iki kurtarma bulgusu dalda giderildi) → sıradaki adım owner onayıyla
-main'e ff-only. **TASK/046 BAŞLAMADI** — TASK/045.1 main'e alınınca sıradaki ürün görevi.
+artığı).~~ → **TASK/045.1: ✅ TAMAM, main'de** (A + B + C; Samsung A36 yerel kapısı GEÇTİ
+2026-09-29, QA paketi, iki kurtarma bulgusu giderildi; owner onayıyla ff-only `017f2dc →
+5b1f952`). Ayrıntı: PROJECT_STATUS §4.22. **TASK/046 BAŞLAMADI** — sıradaki ürün görevi
+(owner başlatır).
+
+**Önerilen TASK/045.2 — girdi odağı cilası (öneri, BAŞLAMADI; TASK/045.1 engeli değildi):**
+oyun içi Ayarlar dişlisiyle açılıp Android geri tuşuyla kapatılınca ilk tahta dokunuşunun
+bırakışı kayboluyor (parça düşmez; ikinci dokunuş normal). Samsung A36'da 3/3; KAPAT ve
+karartma dokunuşuyla kapatınca yok. TASK/045.1 öncesinden: TASK/044'ün 300 ms parmak
+yatışması dişlinin kendi dokunuş bırakışını yutuyor, GUI dokunuş odağı dişlide kalıyor.
 
 Her madde owner girdisi ister; hiçbiri tahmin edilmez ya da uydurulmaz.
 Gizlilik politikası, upload anahtarı ve AdMob kimliklerinde repoda yalnız
