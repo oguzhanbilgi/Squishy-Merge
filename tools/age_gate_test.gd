@@ -1179,6 +1179,7 @@ func _layout_problems(panel: CanvasLayer, safe_top: float) -> PackedStringArray:
 func _test_panel_layout() -> void:
 	print("-- panel: 320×568 / 360×640 / 390×844 / 360×800 / 1080×2340 + A36 üst payı (61 px), her adımda")
 	AgeGate.clock_override = UI_TODAY
+	await _test_backdrop_anchor_guard()
 	var panel: CanvasLayer = await _make_panel()
 	var sizes: Array = []
 	for view in VIEWS:
@@ -1231,6 +1232,37 @@ func _test_panel_layout() -> void:
 	panel.layout_with_safe_top(-1.0)
 	get_window().size = Vector2i(720, 1280)
 	await get_tree().process_frame
+	panel.queue_free()
+	await get_tree().process_frame
+
+
+## A36 kapısı (TASK/046.1): cihazdaki dışa aktarılmış derlemede zemin alt sahnesinin kök çapaları
+## kayboluyordu (çapa 0, boyut 0 → arkadaki Ana Sayfa görünüyordu; editörde görülmüyor). Koruma: sahne
+## çapaları kendisi bildirir VE `_ready` tam ekranı kodla kurar — çapaları sıfırlanmış bir örnekte de.
+func _test_backdrop_anchor_guard() -> void:
+	var state: SceneState = PANEL_SCENE.get_state()
+	var declared: Dictionary = {}
+	for i in state.get_node_count():
+		if String(state.get_node_name(i)) == "Backdrop":
+			for p in state.get_node_property_count(i):
+				declared[String(state.get_node_property_name(i, p))] = state.get_node_property_value(i, p)
+	_c("sahne: zemin örneği tam ekran çapaları KENDİSİ bildirir (layout_mode 1, anchor_right / bottom 1)",
+		int(declared.get("layout_mode", -1)) == 1 and is_equal_approx(float(declared.get("anchor_right", 0.0)), 1.0)
+		and is_equal_approx(float(declared.get("anchor_bottom", 0.0)), 1.0))
+	var panel: CanvasLayer = PANEL_SCENE.instantiate()
+	var lost: Control = panel.get_node("Center/Dim/Backdrop")
+	lost.set_anchors_preset(Control.PRESET_TOP_LEFT)
+	lost.size = Vector2.ZERO
+	add_child(panel)
+	await get_tree().process_frame
+	panel.open_required()
+	await _settle_frames()
+	var canvas: Rect2 = Rect2(Vector2.ZERO, get_viewport().get_visible_rect().size)
+	var bd: Control = panel.backdrop()
+	_c("çapaları sıfırlanmış zemin (cihazdaki kusurun taklidi): _ready tam ekranı kurar, zemin ekranı kaplar",
+		is_equal_approx(bd.anchor_right, 1.0) and is_equal_approx(bd.anchor_bottom, 1.0)
+		and bd.get_global_rect().grow(0.5).encloses(canvas))
+	panel.close_panel()
 	panel.queue_free()
 	await get_tree().process_frame
 

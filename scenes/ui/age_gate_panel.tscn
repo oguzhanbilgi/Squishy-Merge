@@ -19,6 +19,10 @@ anchor_bottom = 1.0
 color = Color(0.05, 0, 0.06, 0.72)
 
 [node name="Backdrop" parent="Center/Dim" instance=ExtResource("3_backdrop")]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
 
 [node name="Anchor" type="CenterContainer" parent="Center"]
 anchor_right = 1.0

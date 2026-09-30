@@ -116,6 +116,10 @@ var _safe_top_override: float = -1.0
 
 func _ready() -> void:
 	visible = false
+	# Opak zemin karartmayı TAM kaplar. A36 kapısı (TASK/046.1): dışa aktarılmış derlemede alt sahne
+	# kökünün (shell_backdrop) tam ekran çapaları kayboluyordu (çapa 0, boyut 0 — arkadaki Ana Sayfa
+	# görünüyordu); editörde görülmüyor. Çapalar burada açıkça kurulur.
+	backdrop().set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	# Tepelik YOK (taç + yıldız sanatı sonuç / ödül ekranlarının dili — yaş ekranında olmaz).
 	_frame = UiKit.modal_shell(TITLE, MODAL_WIDTH, &"heading", false, true)
 	_frame.name = "AgeGateShell"
