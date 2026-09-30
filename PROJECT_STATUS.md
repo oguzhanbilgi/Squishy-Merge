@@ -2014,7 +2014,8 @@ formatına yalnız `haptics_enabled` (varsayılan true) eklendi. Ayrıntı ve
 
 > **dalda** — `task/046-1-age-gate-13plus-redesign`, TASK/046'nın `5092dad`'i üstüne yığılı (TASK/046
 > ve main merge EDİLMEDİ; main `56106ef`). **Masaüstü doğrulama tamam (2026-09-30); Samsung A36
-> kapısı YAPILMADI** — owner onaylı ayrı adım. TASK/047 BAŞLAMADI. Güncel sözleşme
+> yerel kapısı GEÇTİ (2026-09-30)** — bir cihaz bulgusu düzeltildi (`98d209e`, aşağıda); main'e
+> alınma owner kararı. TASK/047 BAŞLAMADI. Güncel sözleşme
 > [AGE_BAND_ROUTING §0.1 / §3.1](docs/monetization/AGE_BAND_ROUTING.md), görünüm UI_VISUAL_SYSTEM
 > §25. TASK/043 tarihçesi (§4.x, AGE_BAND_ROUTING §2–§11) yeniden yazılmadı.
 
@@ -2069,9 +2070,34 @@ formatına yalnız `haptics_enabled` (varsayılan true) eklendi. Ayrıntı ve
   NONE yüzeyi, ızgara açılırken yeniden uyarlama; NIT: seçici satırı içerik genişliğini 6 px
   aşıyordu, reddedilen gönderimde DÜZELT kilidi. Bilinçli bırakılan: yeniden girişte ızgara açıkken
   karartma pencereyi kapatır (geri yalnız ızgarayı) — brif "karartma kapatır".
-- **A36 kapısı için not:** önceki kapıların yerel sürücüleri (ör. `build/qa_046-gate/device/`
-  tuş takımı / `restricted:` ayrıştırması) yeni panel çıktısına göre yeniden yazılmalı (`agepanel:`
-  / `agerects:` s0–s2 + görünür `o<değer>`).
+- **Samsung A36 yerel kapısı — GEÇTİ (2026-09-30):** yalnız QA paketi `com.obappstudio.squishymerge.qa`
+  (debug, Google TEST reklamları; üretim paketi hiç kurulmadı, `com.example.squishymerge` meta verisi
+  önce / sonra birebir). Yerel sürücüler `build/qa_0461-gate/device/` (gitignore'lu): gerçek dokunuşla
+  seçici / ızgara (`picker.sh` / `dob.sh`), `age4.sh`, `verify_apk.py`; TASK/046 kapısının tuş takımı /
+  kısıt ekranı betikleri koruma altına alındı (emekli).
+  - **Bulgu (düzeltildi):** dışa aktarılmış Android derlemesinde yaş panelinin opak zemini (karartmanın
+    çocuğu `shell_backdrop` örneği) çapa 0 / boyut 0 geliyordu → arkadaki Ana Sayfa kontrolleri karartma
+    altından görünüyordu (dokunulamıyordu); editör ikilisinde görülmüyor. Düzeltme `98d209e`: sahne örneği
+    tam ekran çapaları kendisi bildirir + `_ready` `PRESET_FULL_RECT` kurar; `age_gate_test` çapaları
+    sıfırlanmış zemini taklit eder (düzeltme olmadan kırmızı). Tam masaüstü regresyonu 36 koşu 4810
+    kontrol 0 hata; cihazda zemin 720×1560 tam kaplıyor.
+  - **Cihazda doğrulanan:** zorunlu kip güvenli alanın altında, tuş takımı yok, arkadaki OYNA / avatar
+    dokunuşları geçmiyor, Android geri ×2 çıkmıyor; YIL seçicisine çift dokunuş ızgarayı bir kez açar,
+    seçim yok; gerçek kaydırma seçim yapmaz; ızgara 2013 → 1906, 2013'te Ocak–Eylül, Eylül 2013'te 1–30
+    (13 altı tarih YOK); en genç 30 Eylül 2013 onayda, DÜZELT seçimi korur, ONAYLA'ya çift dokunuş TEK
+    TEEN; TEEN + T ve UNSPECIFIED + MA `initialize()`'dan ÖNCE (native geri okuma + logcat sırası);
+    UNKNOWN'da eklenti / UMP / SDK çağrısı yok; eski UNDER_13 denetimli kaydı → UNKNOWN + zorunlu panel,
+    kısıt ekranı yok, eski tarih kayıttan ve `.bak`'tan silindi, ilerleme birebir, yeni seçimle TEEN + T;
+    Ayarlar → Yaş bilgisi boş açılır, X / Vazgeç / karartma / geri kapatır, 120 ms sonraki dokunuş
+    yutulur, sonraki ilk normal dokunuş bir kez çalışır; oyun içinden açıldığında banner panel açıkken
+    gizli, kapanınca geri; aynı bant → reklam sürer, ADULT → TEEN → oturum reklamsız + sonraki açılış
+    TEEN + T; 18. yaş günü geçişi (QA yaş saati) ADULT / MA SDK'dan önce; dört bant soğuk açılış doğru,
+    Play Age Signals 0. TASK/046 ve öncesi: GÖREVLER geri / X / karartma / çift dokunuş, görev ödülü
+    (+10 bir kez), Ayarlar geri → ilk tahta dokunuşu 3/3, Bomba / Büyütücü hedef bırakışı, günlük
+    pencere ↔ Koleksiyon detayı kapısı, Profil / Başarımlar, banner yüzeyleri (Profil'de yok). Logcat
+    (tutulan tüm QA süreçleri): SCRIPT ERROR 0, çökme / ANR 0, sentetik doğum tarihi biçimleri 0.
+  - Kapı sırasında telefon iki kez duraklatıldı (kendiliğinden kilit, gelen çağrı): girdi durdu,
+    yalnız salt okunur bekleme; çağrı süresince QA uygulamasına 0 dokunuş.
 
 ## 5. Dosya/klasör yapısı ve script envanteri
 

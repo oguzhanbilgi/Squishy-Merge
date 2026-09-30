@@ -87,7 +87,9 @@ alınacak — şimdi tahmin/vaat yok.
   ADULT yönlendirmesi ve 18. yaş günü geçişi AYNEN; ham doğum tarihi saklanmaz. **AÇIK uyum
   riski:** yalnız 13+ seçilebilen tarih, Play nötr yaş ekranı rehberiyle çelişebilir — owner "Build
   as specified" seçti, hukuk incelemesi owner'da ([AGE_BAND_ROUTING §0.1 / §9.10](docs/monetization/AGE_BAND_ROUTING.md)).
-  Masaüstü doğrulama tamam; **Samsung A36 kapısı bekliyor**. Ayrıntı: PROJECT_STATUS §4.25.
+  Masaüstü doğrulama tamam; **Samsung A36 yerel kapısı GEÇTİ (2026-09-30)** — cihaz bulgusu (yaş
+  panelinin opak zemini dışa aktarılmış derlemede boyut 0'dı, Ana Sayfa görünüyordu) `98d209e` ile
+  düzeltildi. Ayrıntı: PROJECT_STATUS §4.25.
   (TASK/046'nın kendi yerel A36 kapısı 2026-09-30'da GEÇTİ — kanıt yerel, dala commit edilmedi;
   TASK/046 main'e alınmadı.)
 
@@ -511,10 +513,9 @@ değiştirir, ayrı görev; (2) Koleksiyon kartı basılıyken GERİ → detay G
 sentetik bırakışında açılır — A36'da 5/5 gizleme anında, 0/5 fiziksel bırakışta; `Main._input`
 ile ilgisiz. ~~**TASK/046 BAŞLAMADI** — sıradaki ürün görevi (owner başlatır).~~ → aşağıda.
 
-**TASK/046.1 — yaş ekranı 13+ UX (dalda, TASK/046 üstüne yığılı):** sıradaki adım owner onaylı
-**Samsung A36 yerel kapısı** (yalnız QA paketi; zorunlu kip + geri çıkmaz, 13+ ızgara, eski
-UNDER_13 yeniden sorma, TEEN + T / UNSPECIFIED + MA SDK'dan önce, yeniden giriş, banner yok) →
-owner kararı: önce TASK/046, sonra TASK/046.1 main'e (ff-only). Açık uyum riski (13+ seçim ↔ nötr
+**TASK/046.1 — yaş ekranı 13+ UX (dalda, TASK/046 üstüne yığılı):** ~~Samsung A36 yerel kapısı~~
+✅ GEÇTİ (2026-09-30; bulgu `98d209e` ile düzeltildi). Sıradaki: owner incelemesi / entegrasyon kararı
+— önce TASK/046, sonra TASK/046.1 main'e (ff-only). Açık uyum riski (13+ seçim ↔ nötr
 yaş ekranı rehberi) owner / hukukta — AGE_BAND_ROUTING §9.10. Ayrıntı: PROJECT_STATUS §4.25.
 
 **Ürün işi — TASK/046 Günlük / Haftalık Görevler V1: dalda** (`task/046-daily-weekly-missions`,

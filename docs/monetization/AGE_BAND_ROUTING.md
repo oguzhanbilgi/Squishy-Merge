@@ -5,7 +5,8 @@
 > "age_band_routing"`); owner onayıyla `task/043-age-band-routing` **main'e ff-only alındı**.
 >
 > **TASK/046.1 (2026-09-30, `task/046-1-age-gate-13plus-redesign`, TASK/046 üstüne yığılı —
-> main'e ALINMADI, A36 kapısı BEKLİYOR):** yaş ekranı yalnız **13+** doğum tarihi seçtirir; 13
+> main'e ALINMADI; Samsung A36 yerel kapısı GEÇTİ 2026-09-30, cihaz bulgusu `98d209e` ile düzeltildi —
+> PROJECT_STATUS §4.25):** yaş ekranı yalnız **13+** doğum tarihi seçtirir; 13
 > altı kısıt / çıkış akışı **emekli**. Güncel sözleşme **§0.1**'de; §2 / §3 / §5 / §7 / §8 / §9.8
 > içindeki kısıt ekranı, tuş takımı ve "geri = çık" anlatımı TASK/043 TARİHÇESİDİR (değiştirilmedi,
 > yerine §0.1 geçer). Yönlendirme tablosu (§6), TEEN / ADULT sırası (§7) ve geçiş kuralları

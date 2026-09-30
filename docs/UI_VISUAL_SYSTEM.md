@@ -1902,8 +1902,8 @@ ister.
 
 ## 25. Yaş ekranı — 13+ seçim (TASK/046.1)
 
-> **dalda** — `task/046-1-age-gate-13plus-redesign` (TASK/046 üstüne yığılı; main'e alınmadı,
-> A36 kapısı bekliyor). Kurallar ve uyum notu: [monetization/AGE_BAND_ROUTING.md](monetization/AGE_BAND_ROUTING.md)
+> **dalda** — `task/046-1-age-gate-13plus-redesign` (TASK/046 üstüne yığılı; main'e alınmadı;
+> Samsung A36 yerel kapısı GEÇTİ 2026-09-30). Kurallar ve uyum notu: [monetization/AGE_BAND_ROUTING.md](monetization/AGE_BAND_ROUTING.md)
 > §0.1 / §3.1. TASK/043'ün tuş takımlı nötr ekranı ve 13 altı kısıt / ÇIKIŞ ekranı emekli
 > (§22 ve öncesindeki "yaş / kısıt ekranı" anmaları tarihçedir; kısıt ekranı artık yok).
 
@@ -1913,6 +1913,8 @@ ister.
   katman 14 (Ayarlar 13, günlük 12 üstünde). Zemin: karartmanın çocuğu olarak **opak kabuk
   zemini** (`shell_backdrop` — gece kasabası, sekme ekranlarıyla aynı) → arkadaki Ana Sayfa /
   Ayarlar kontrolleri görünmez; zemin karartmayla birlikte solarak gelir, dokunuşu karartma alır.
+  Tam ekran çapaları sahnede VE `_ready`'de açıkça kurulur (A36 kapısı: dışa aktarılmış derlemede
+  alt sahne kökünün çapaları kayboluyordu).
 - Üst bölge (kaydırılmaz): küçük nötr Squishy (tier 2 sanatı, 92 px) + alt başlık "Devam etmek
   için doğum tarihini seç." ("kaydedildi" adımında yalnız Squishy). Başlık "YAŞINI DOĞRULA".
 - Giriş: üç büyük seçici **GÜN / AY / YIL** (`ButtonSecondary`, 140 / 206 / 164 × 92 px; üstte
