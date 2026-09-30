@@ -59,6 +59,13 @@
   UNDER_13 / TEEN bandında bu geçiş günü doğum tarihine matematiksel olarak eşdeğerdir
   (geçiş − 13 / 18 yıl); yalnız cihazdaki kayıtta durur, ADULT olunca silinir (TASK/045.1:
   kaydın bir önceki kuşak kopyası `.bak` de o kayıtta atılır).
+  **TASK/046.1 (2026-09-30, dal — main'e alınmadı):** yaş ekranı yalnız 13+ doğum tarihi
+  seçtirir; normal giriş artık `UNDER_13` YAZMAZ — yeni kayıtlarda bant yalnız UNKNOWN / TEEN /
+  ADULT, geçiş günü yalnız TEEN'de (18. yaş günü). TASK/043 döneminden kalan `UNDER_13` + 13.
+  yaş günü açılışta TEK yazmayla `UNKNOWN` + boş tarihe çevrilir ve `.bak` kopyası atılır (reklam
+  yok, yaş yeniden sorulur; TEEN / ADULT'a çevrilmez, ilerleme durur) — doğum gününe eşdeğer eski
+  tarih cihazdaki kayıtta da kalmaz. Ham doğum tarihi yine yalnız panel belleğinde (seçim
+  ızgarası; ızgara kapanınca seçenekler de silinir), kayda / loga / ağa GİTMEZ.
 - **Ağ:** oyun kodu hiçbir sunucuya bağlanmaz — `scripts/` ve `scenes/`
   altında `HTTPRequest` / `HTTPClient` / `WebSocket` / TCP-UDP kullanımı YOK
   (M9-01 taraması). Tek dış bağlantı: Ayarlar'daki "Gizlilik politikası"
@@ -128,7 +135,7 @@
 | Aktarımda şifreli mi? | SDK trafiği TLS (Google beyanı); oyun ağ kullanmıyor | — |
 | Kullanıcı silme isteyebilir mi? | oyun verisi yalnız cihazda (kaldırınca silinir); reklam verisi Google'da | ifade owner'ın |
 | Toplama isteğe bağlı mı? | EEA/UK/CH'de UMP rızası; diğer bölgelerde reklam için gerekli | owner |
-| Doğum tarihi / yaş (TASK/043) | Doğum tarihi yalnız cihazda işlenir, saklanmaz, gönderilmez — Google'ın Data safety tanımında yalnız cihazda işlenen veri beyan kapsamı dışında (owner doğrular). AMA yaşa bağlı **reklam işlemi sinyalleri** her reklam isteğiyle Google'a gider: TFAT `TEEN` (13–17) ya da `UNSPECIFIED` (18+) ve en yüksek reklam derecesi `T` / `MA`; 13 altı / bilinmeyen yaşta reklam isteği hiç yok | bu sinyallerin formda (ör. "Diğer kişisel bilgi" / paylaşım) nasıl beyan edileceği **owner kararı — UNVERIFIED**; gizlilik politikası yaş sorusunu ve kullanımını anlatmalı (AGE_BAND_ROUTING §9) |
+| Doğum tarihi / yaş (TASK/043; TASK/046.1: yalnız 13+ seçim) | Doğum tarihi yalnız cihazda işlenir, saklanmaz, gönderilmez — Google'ın Data safety tanımında yalnız cihazda işlenen veri beyan kapsamı dışında (owner doğrular). AMA yaşa bağlı **reklam işlemi sinyalleri** her reklam isteğiyle Google'a gider: TFAT `TEEN` (13–17) ya da `UNSPECIFIED` (18+) ve en yüksek reklam derecesi `T` / `MA`; 13 altı / bilinmeyen yaşta reklam isteği hiç yok | bu sinyallerin formda (ör. "Diğer kişisel bilgi" / paylaşım) nasıl beyan edileceği **owner kararı — UNVERIFIED**; gizlilik politikası yaş sorusunu ve kullanımını anlatmalı (AGE_BAND_ROUTING §9) |
 | Reklam kimliği beyanı | uygulama reklam kimliğini kullanıyor (GMA, `AD_ID` izni) | Play "Advertising ID" formu — ürün kitlesi 13+ (2026-09-25): `AD_ID` izni bugün kalıyor (yalnız çocuklara yönelik kitlede çıkarılırdı, AUDIENCE_DECISION §3); 13–17 genç reklam işlemi / yargı bölgesi uyumu AÇIK (§2.2) ve reklam kimliği kullanımını etkileyebilir; formun cevabı owner'ın |
 | "Contains ads" | **Evet** (banner, ödüllü, geçiş) | Play "Ads" beyanı |
 | Hesap oluşturma | Yok | — |

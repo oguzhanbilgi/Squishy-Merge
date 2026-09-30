@@ -392,16 +392,14 @@ func _gates_and_auto_close() -> void:
 	_open_over("günlük", refused)
 	_main._daily_rewards.close_popup()
 	await _wait_settled()
-	# Yaş ekranları: yalnız görünürlük (kapı bunu okur; yaş akışı çalıştırılmaz).
+	# Yaş ekranı: yalnız görünürlük (kapı bunu okur; yaş akışı çalıştırılmaz). TASK/046.1: 13 altı
+	# kısıt ekranı emekli.
 	_main._age_panel.visible = true
 	_open_over("yaş ekranı", refused)
 	_main._age_panel.visible = false
-	_main._age_restricted.visible = true
-	_open_over("kısıt ekranı", refused)
-	_main._age_restricted.visible = false
 	await _wait_settled()
 	_c("ön koşul: sandık / ayarlar / günlük pencereleri gerçekten açıldı %s" % str(opened), opened.size() == 3)
-	_c("sandık / ayarlar / günlük / yaş / kısıt ekranı açıkken GÖREVLER açılmaz %s" % str(refused), refused.is_empty())
+	_c("sandık / ayarlar / günlük / yaş ekranı açıkken GÖREVLER açılmaz %s" % str(refused), refused.is_empty())
 	# Ters yön: GÖREVLER açıkken aynı katmandaki pencereler kod yolundan da altına açılmaz.
 	await _open()
 	_main._on_chest_requested()

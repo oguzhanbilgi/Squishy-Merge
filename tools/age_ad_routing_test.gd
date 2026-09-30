@@ -10,12 +10,15 @@ extends Node
 ##              uygulanır; SDK sonrası -> oturum reklamsız, işlem DEĞİŞMEZ, sonraki soğuk açılış);
 ##              geri okuma uyuşmazlığında fail-closed
 ##   MAIN       eski kayıt UNKNOWN: Ana Sayfa'da zorunlu yaş ekranı, günlük pencere ve rıza
-##              bekler; ilk açılış: tutorial + tutorial round'u reklamsız, İLK güvenli kabukta
-##              yaş ekranı; 13 altı: kısıt ekranı, SDK / UMP yok; soğuk açılış geçişleri (tam
-##              18. yaş günü -> ADULT, bir gün önce TEEN; 13. yaş günü -> TEEN); Ayarlar →
-##              Yaş bilgisi (yeniden giriş: aynı bant / farklı bant SDK öncesi / sonrası / 13
-##              altı); günlük pencere sırası; geçiş reklamı yaş bilinmeden yok; kayıtta ham
-##              doğum tarihi YOK
+##              bekler, Android geri UYGULAMADAN ÇIKMAZ (TASK/046.1); ilk açılış: tutorial +
+##              tutorial round'u reklamsız, İLK güvenli kabukta yaş ekranı; ESKİ UNDER_13 kaydı
+##              (TASK/046.1): kısıt ekranı YOK, yaş yeniden sorulur, SDK / UMP yok, TEEN / ADULT'a
+##              çevrilmez (13. yaş gününde bile), kayıt UNKNOWN + tarih boş, ilerleme duruyor;
+##              soğuk açılış geçişleri (tam
+##              18. yaş günü -> ADULT, bir gün önce TEEN); Ayarlar → Yaş bilgisi (yeniden giriş:
+##              aynı bant / farklı bant SDK öncesi / sonrası; panel açıkken banner YOK, kapanınca
+##              geri; 13 altı yıl ızgarada YOK); günlük pencere sırası; geçiş reklamı yaş
+##              bilinmeden yok; kayıtta ham doğum tarihi YOK
 ##
 ## Kayda yazar — başta yedekler, sonda byte-identical geri koyar.
 ##
@@ -66,7 +69,7 @@ func _ready() -> void:
 	await _test_consent_in_flight_block()
 	await _test_main_legacy_unknown()
 	await _test_main_first_run()
-	await _test_main_under_13()
+	await _test_main_legacy_under_13()
 	await _test_main_launch_transitions()
 	await _test_main_broken_clock()
 	await _test_main_settings_reentry()
@@ -504,10 +507,20 @@ func _panel() -> CanvasLayer:
 	return _main.age_panel()
 
 
+## TASK/046.1: GÜN / AY / YIL seçicileri — yıl, ay, gün ızgaradan seçilir (kod yolu
+## `pressed.emit()`; parmak yatışması etkilemez), sonra DEVAM ET + ONAYLA.
 func _enter_dob(ddmmyyyy: String) -> void:
 	var panel: CanvasLayer = _panel()
-	for ch in ddmmyyyy:
-		(panel.key_button(ch) as Button).pressed.emit()
+	var values: Array[int] = [int(ddmmyyyy.substr(4, 4)), int(ddmmyyyy.substr(2, 2)), int(ddmmyyyy.substr(0, 2))]
+	var fields: Array[int] = [2, 1, 0]
+	for i in 3:
+		panel.selector_button(fields[i]).pressed.emit()
+		var option: Button = panel.option_button(values[i])
+		if option == null:
+			print("    ızgarada yok: ", values[i])
+			panel.close_picker()
+			continue
+		option.pressed.emit()
 	panel.continue_button().pressed.emit()
 	await _settle(1)
 	panel.confirm_button().pressed.emit()
@@ -534,7 +547,17 @@ func _test_main_legacy_unknown() -> void:
 	await get_tree().create_timer(0.3).timeout
 	_main._notification(Node.NOTIFICATION_WM_GO_BACK_REQUEST)
 	await _settle(1)
-	_c("zorunlu yaş ekranında Android geri -> uygulamadan çıkış (kapatılamaz)", _main.quit_requests == quits + 1 and _panel().visible)
+	_c("zorunlu yaş ekranında Android geri UYGULAMADAN ÇIKMAZ (TASK/046.1): panel açık, çıkış isteği yok",
+		_main.quit_requests == quits and _panel().visible and not _panel().is_reentry())
+	_panel().selector_button(2).pressed.emit()
+	await get_tree().create_timer(0.3).timeout
+	_main._notification(Node.NOTIFICATION_WM_GO_BACK_REQUEST)
+	await _settle(1)
+	_c("ızgara açıkken geri: yalnız ızgara kapandı, panel açık, çıkış yok", _panel().visible and _panel().picker_field() == -1
+		and _main.quit_requests == quits)
+	_c("geçerli seçimden önce: UMP 0 · init 0 · banner 0 · ödüllü 0 · geçiş 0 (arka uca HİÇ çağrı yok)", fake.calls.is_empty()
+		and fake.consent_update_calls == 0 and fake.init_calls == 0 and fake.banner_loads == 0 and fake.rewarded_loads == 0
+		and fake.interstitial_loads == 0 and fake.interstitial_shows.is_empty())
 	var home: CanvasLayer = _main._screens[0]
 	var play_bottom_before: float = home._play_pulse.position.y + home._play_pulse.size.y
 	await _enter_dob("01011990")
@@ -629,43 +652,63 @@ func _test_main_first_run() -> void:
 	await _teardown_main()
 
 
-func _test_main_under_13() -> void:
-	print("-- Main: 13 altı -> kısıt ekranı; SDK / UMP / reklam YOK; kayıt silinmez")
-	_seed(true, "", "", false)
+## Açık ağaçta kısıt / çıkış ekranı metni görünüyor mu (TASK/046.1: hiçbir yolda olmamalı).
+func _restricted_text_visible() -> bool:
+	for node in _main.find_children("*", "Control", true, false):
+		var control := node as Control
+		if not control.is_visible_in_tree():
+			continue
+		var text: String = ""
+		if control is Label:
+			text = (control as Label).text
+		elif control is Button:
+			text = (control as Button).text
+		if text.contains("Üzgünüz") or text.contains("yaş grubun") or text == "ÇIKIŞ":
+			return true
+	return false
+
+
+func _test_main_legacy_under_13() -> void:
+	print("-- Main: ESKİ UNDER_13 kaydı (TASK/043 dönemi) -> kısıt ekranı YOK, yaş yeniden sorulur, SDK / UMP YOK")
+	_seed(true, "UNDER_13", "2029-04-02", false)
 	DailyRewards.auto_popup_enabled = true
 	var fake := FakeAdBackend.new()
 	fake.status = AdBackend.ConsentStatus.NOT_REQUIRED
 	await _boot(fake)
-	await _enter_dob("02042016")
-	var restricted: CanvasLayer = _main.age_restricted_screen()
-	_c("10 yaş -> UNDER_13 kaydı (13. yaş günü), kısıt ekranı açık, yaş paneli kapalı", SaveManager.age_ad_band_raw() == "UNDER_13"
-		and SaveManager.next_age_transition_raw() == "2029-04-02" and restricted.visible and not _panel().visible)
-	_c("arka uca HİÇ çağrı yok (attach / UMP / SDK / yükleme), yuva 0", fake.calls.is_empty() and _main._ads.banner_slot_px() == 0.0)
-	_c("günlük pencere açılmadı, kabuk gizli, ilerleme duruyor (level 5, Hamur korunmuş)", not _main._daily_rewards.visible
-		and not _main._screens[0].visible and SaveManager.highest_level_unlocked() == 5 and SaveManager.dough() >= 300)
+	_c("açılış: bant UNKNOWN (yaş tahmin edilmez), ZORUNLU yaş ekranı Ana Sayfa üstünde, kısıt / çıkış ekranı YOK",
+		_main.age_band() == AgeGate.Band.UNKNOWN and _panel().visible and not _panel().is_reentry() and _main._active_tab == 0
+		and not _restricted_text_visible() and not _main.has_method("age_restricted_screen"))
+	_c("arka uca HİÇ çağrı yok (attach / UMP / SDK / yükleme), yuva 0, günlük pencere yok, tutorial yok", fake.calls.is_empty()
+		and _main._ads.banner_slot_px() == 0.0 and not _main._daily_rewards.visible and not _main.is_tutorial_active())
+	_c("kayıt TEEN / ADULT'a çevrilmedi: UNKNOWN + tarih boş (eski 13. yaş günü silindi), ilerleme duruyor (level 5, Hamur korunmuş)",
+		SaveManager.age_ad_band_raw() == "UNKNOWN" and SaveManager.next_age_transition_raw() == ""
+		and not FileAccess.get_file_as_string(SaveManager.SAVE_PATH).contains("2029-04-02")
+		and SaveManager.highest_level_unlocked() == 5 and SaveManager.dough() >= 300)
 	var quits: int = _main.quit_requests
 	await get_tree().create_timer(0.3).timeout
 	_main._notification(Node.NOTIFICATION_WM_GO_BACK_REQUEST)
-	restricted.exit_button().pressed.emit()
-	_c("kısıt ekranında geri / ÇIKIŞ -> uygulamadan çıkış", _main.quit_requests == quits + 2 and restricted.visible)
+	await _settle(1)
+	_c("Android geri UYGULAMADAN ÇIKMAZ, panel açık", _main.quit_requests == quits and _panel().visible)
+	_main.open_daily_rewards()
+	await _settle(1)
+	_c("günlük pencere (reklamlı girişler) yaş çözülmeden açılmaz", not _main._daily_rewards.visible)
+	await _enter_dob("15062011")
+	_c("yeni 13+ giriş (15 yaş) -> TEEN (geçiş 18. yaş günü), eski 13. yaş günü kayıtta YOK, rota TEEN + T attach / UMP'den ÖNCE",
+		SaveManager.age_ad_band_raw() == "TEEN" and SaveManager.next_age_transition_raw() == "2029-06-15"
+		and not FileAccess.get_file_as_string(SaveManager.SAVE_PATH).contains("2029-04-02")
+		and _ordered(fake, ["set_age_restricted_treatment:TEEN", "set_max_ad_content_rating:T", "attach", "request_consent_update"]))
+	_c("panel kapandı, günlük pencere yaştan SONRA", not _panel().visible and _main._daily_rewards.visible)
+	_main._daily_rewards.close_popup()
 	await _teardown_main()
-	# Soğuk açılış: kayıtlı UNDER_13 -> doğrudan kısıt ekranı.
-	var again := FakeAdBackend.new()
-	await _boot(again)
-	_c("yeniden açılış: kayıtlı UNDER_13 -> kısıt ekranı, tutorial / yaş ekranı / arka uç YOK",
-		_main.age_restricted_screen().visible and not _panel().visible and not _main.is_tutorial_active() and again.calls.is_empty())
-	await _teardown_main()
-	# 13. yaş günü geldi -> TEEN (saklanan tarih kanıtlıyor), SDK'dan önce.
+	# Eski UNDER_13, saklı 13. yaş günü GELMİŞ: yine TEEN'e çevrilmez — yeniden sorulur.
+	_seed(true, "UNDER_13", "2029-04-02", false)
 	AgeGate.clock_override = "2029-04-02"
 	DailyRewards.clock_override = "2029-04-02"
 	var birthday := FakeAdBackend.new()
-	birthday.status = AdBackend.ConsentStatus.NOT_REQUIRED
 	await _boot(birthday)
-	_c("13. yaş günü açılışı: kısıt kalktı, kayıt TEEN (geçiş 2034-04-02), rota TEEN + T SDK'dan ÖNCE", not _main.age_restricted_screen().visible
-		and SaveManager.age_ad_band_raw() == "TEEN" and SaveManager.next_age_transition_raw() == "2034-04-02"
-		and _ordered(birthday, ["set_age_restricted_treatment:TEEN", "set_max_ad_content_rating:T", "attach", "request_consent_update"]))
-	if _main._daily_rewards.visible:
-		_main._daily_rewards.close_popup()
+	_c("saklı 13. yaş günü bugün: bant UNKNOWN, yaş ekranı, arka uç çağrısı YOK (eski tarih yaş kanıtı sayılmaz)",
+		_main.age_band() == AgeGate.Band.UNKNOWN and _panel().visible and birthday.calls.is_empty()
+		and SaveManager.age_ad_band_raw() == "UNKNOWN" and not _restricted_text_visible())
 	await _teardown_main()
 	AgeGate.clock_override = TODAY
 	DailyRewards.clock_override = TODAY
@@ -718,12 +761,13 @@ func _test_main_broken_clock() -> void:
 		and not _main._daily_rewards.visible and _main._active_tab == 0)
 	_c("... kayda hiçbir yaş değeri yazılmadı", SaveManager.age_ad_band_raw() == "UNKNOWN" and SaveManager.next_age_transition_raw() == "")
 	await _teardown_main()
-	# Kayıtlı 13 altı bozuk saatte de kısıtlı kalır (geçiş günü makul aralıkta).
+	# Eski UNDER_13 kaydı bozuk saatte: UNKNOWN, reklam yok, kısıt ekranı YOK (TASK/046.1).
 	_seed(true, "UNDER_13", "2030-05-10")
 	var under := FakeAdBackend.new()
 	await _boot(under)
-	_c("bozuk saat + kayıtlı UNDER_13: kısıt ekranı sürer, arka uca çağrı yok", _main.age_restricted_screen().visible
-		and under.calls.is_empty())
+	_c("bozuk saat + eski UNDER_13: bant UNKNOWN, arka uca çağrı yok, kısıt / çıkış ekranı YOK, kayıt UNKNOWN + tarih boş (yaş sorulmasa da)",
+		_main.age_band() == AgeGate.Band.UNKNOWN and under.calls.is_empty() and not _restricted_text_visible()
+		and SaveManager.age_ad_band_raw() == "UNKNOWN" and SaveManager.next_age_transition_raw() == "")
 	await _teardown_main()
 	AgeGate.clock_override = TODAY
 	DailyRewards.auto_popup_enabled = false
@@ -752,28 +796,34 @@ func _test_main_settings_reentry() -> void:
 		canvas.encloses(sframe.get_global_rect()) and spanel.get_global_rect().encloses(_main._settings.age_info_button().get_global_rect()))
 	_main._settings.age_info_button().pressed.emit()
 	await _settle(2)
-	_c("yeniden giriş paneli Ayarlar'ın ÜSTÜNDE, alanlar boş", _panel().visible and _panel().is_reentry()
-		and _panel().layer > _main._settings.layer and _panel().field_lengths() == [0, 0, 0])
+	var sel: Array[bool] = _panel().selected_fields()
+	_c("yeniden giriş paneli Ayarlar'ın ÜSTÜNDE, seçiciler boş", _panel().visible and _panel().is_reentry()
+		and _panel().layer > _main._settings.layer and not sel[0] and not sel[1] and not sel[2])
+	_c("TASK/046.1: yaş paneli açıkken banner YOK (yüzey NONE, gizlendi), yuva sabit", m.surface() == MonetizationManager.Surface.NONE
+		and fake.banner_hides == [banner] and m.banner_slot_px() > 0.0)
 	# Aynı bant (başka yetişkin tarihi): reklam sürer, not yok.
 	await _enter_dob("10101985")
 	var done_same: PackedStringArray = _panel().visible_texts()
-	_c("aynı bant (ADULT): TAMAM adımı (nötr not), NEXT_LAUNCH değil, reklam sürüyor", _panel().stage() == 2
+	_c("aynı bant (ADULT): TAMAM adımı (nötr not), NEXT_LAUNCH değil, reklam sürüyor", _panel().stage() == _panel().Stage.DONE
 		and _panel().done_note_visible() and not _panel().done_next_launch() and not m.age_session_blocked() and m.is_rewarded_ready())
 	_panel().done_button().pressed.emit()
 	await _settle(1)
-	_c("TAMAM -> panel kapandı, Ayarlar açık", not _panel().visible and _main._settings.visible)
+	_c("TAMAM -> panel kapandı, Ayarlar açık; banner Ana Sayfa yüzeyine GERİ geldi", not _panel().visible
+		and _main._settings.visible and m.surface() == MonetizationManager.Surface.HOME and fake.banner_shows == [banner, banner])
 	# Farklı bant, SDK sonrası: oturum reklamsız.
 	_main._settings.age_info_button().pressed.emit()
 	await _enter_dob("15062011")
 	_c("ADULT -> TEEN (SDK yapılandırılmış): kayıt TEEN, NEXT_LAUNCH; ekrandaki metin aynı bantla BİREBİR aynı (cevap ele verilmez)",
-		SaveManager.age_ad_band_raw() == "TEEN" and _panel().stage() == 2 and _panel().done_next_launch()
+		SaveManager.age_ad_band_raw() == "TEEN" and _panel().stage() == _panel().Stage.DONE and _panel().done_next_launch()
 		and _panel().visible_texts() == done_same)
-	_c("... bu oturumda reklam YOK: banner gizlendi, ödüllü hazır değil, işlem değişmedi (UNSPECIFIED / MA)",
-		m.age_session_blocked() and fake.banner_hides == [banner] and not m.is_rewarded_ready()
+	_c("... bu oturumda reklam YOK: banner gizli, ödüllü hazır değil, işlem değişmedi (UNSPECIFIED / MA)",
+		m.age_session_blocked() and fake.banner_hides == [banner, banner] and not m.is_rewarded_ready()
 		and fake.treatment == AdBackend.AgeRestrictedTreatment.UNSPECIFIED and fake.rating == "MA" and fake.treatment_refusals == 0)
 	_panel().done_button().pressed.emit()
 	_main.close_settings()
 	await _settle(1)
+	_c("... panel kapanınca da banner GERİ GELMEDİ (oturum reklamsız)", fake.banner_shows == [banner, banner]
+		and m.banner_state() != MonetizationManager.BannerState.SHOWN)
 	DailyRewards.auto_popup_enabled = false
 	_main.open_daily_rewards()
 	await _settle(2)
@@ -825,12 +875,41 @@ func _test_main_settings_reentry() -> void:
 	await _settle(1)
 	_c("... rıza sonrası SDK TEEN / T ile yapılandırıldı", _idx(pending, "request_configuration:TEEN:T") != -1
 		and _idx(pending, "request_configuration:UNSPECIFIED:MA") == -1 and pending.init_calls == 1)
-	# Yeniden giriş -> 13 altı: kısıt ekranı, reklam durdu.
+	# TASK/046.1: yeniden girişte 13 altı yıl ızgarada YOK; vazgeçince hiçbir şey değişmez.
 	_main.open_settings()
 	_main._settings.age_info_button().pressed.emit()
-	await _enter_dob("02042016")
-	_c("yeniden giriş 13 altı: kısıt ekranı, Ayarlar kapandı, reklam durdu", _main.age_restricted_screen().visible
-		and not _main._settings.visible and _main._ads.age_session_blocked() and SaveManager.age_ad_band_raw() == "UNDER_13")
+	await _settle(1)
+	_panel().selector_button(2).pressed.emit()
+	var years: Array[int] = _panel().option_values()
+	_c("yeniden giriş yıl ızgarası en genç 2013 (bugün 2026-10-01), 2014+ YOK", not years.is_empty() and years[0] == 2013
+		and _panel().option_button(2014) == null and _panel().option_button(2016) == null)
+	var quits: int = _main.quit_requests
+	await get_tree().create_timer(0.3).timeout
+	_main._notification(Node.NOTIFICATION_WM_GO_BACK_REQUEST)
+	await _settle(1)
+	_c("yeniden girişte geri: önce ızgara kapanır (panel açık)", _panel().visible and _panel().picker_field() == -1)
+	await get_tree().create_timer(0.3).timeout
+	_main._notification(Node.NOTIFICATION_WM_GO_BACK_REQUEST)
+	await _settle(1)
+	_c("ikinci geri: yeniden giriş VAZGEÇ — panel kapandı, Ayarlar açık, kayıt TEEN aynen, çıkış yok", not _panel().visible
+		and _main._settings.visible and SaveManager.age_ad_band_raw() == "TEEN" and _main.quit_requests == quits)
+	# Panel açıkken gelen reklam yüzeyi değişimi (NONE dahil) yalnız hatırlanır, kapanınca uygulanır.
+	var pm: MonetizationManager = _main._ads
+	_main._settings.age_info_button().pressed.emit()
+	await _settle(1)
+	var none_while_open: bool = pm.surface() == MonetizationManager.Surface.NONE
+	_main._set_ad_surface(MonetizationManager.Surface.MAP)
+	var held: bool = pm.surface() == MonetizationManager.Surface.NONE
+	_panel().close_x().pressed.emit()
+	await _settle(1)
+	_c("panel açıkken yüzey NONE; o sırada gelen değişim (MAP) yalnız hatırlandı, kapanınca uygulandı", none_while_open
+		and held and pm.surface() == MonetizationManager.Surface.MAP)
+	_main._settings.age_info_button().pressed.emit()
+	await _settle(1)
+	_main._set_ad_surface(MonetizationManager.Surface.NONE)
+	_panel().close_x().pressed.emit()
+	await _settle(1)
+	_c("... panel açıkken gelen NONE da hatırlandı: kapanınca banner yüzeyine DÖNÜLMEDİ", pm.surface() == MonetizationManager.Surface.NONE)
 	await _teardown_main()
 
 
@@ -850,7 +929,6 @@ func _test_main_interstitial_and_desktop() -> void:
 	await _teardown_main()
 	_seed(true, "", "")
 	await _boot(null)
-	_c("eklentisiz masaüstü (reklam yöneticisi yok): yaş ekranı / kısıt ekranı / Yaş bilgisi satırı YOK (eski davranış)",
-		_main._ads == null and not _panel().visible and not _main.age_restricted_screen().visible
-		and not _main._settings.age_info_row().visible)
+	_c("eklentisiz masaüstü (reklam yöneticisi yok): yaş ekranı / Yaş bilgisi satırı YOK (eski davranış)",
+		_main._ads == null and not _panel().visible and not _main._settings.age_info_row().visible)
 	await _teardown_main()

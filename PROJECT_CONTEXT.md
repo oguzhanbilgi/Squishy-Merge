@@ -78,6 +78,19 @@ alınacak — şimdi tahmin/vaat yok.
 [Current release blockers](#current-release-blockers) +
 [Next action](#next-action); aşağıdaki "Milestone tarihçesi" değil.
 
+- **TASK/046.1 — yaş ekranı 13+ UX yeniden tasarımı (2026-09-30): dalda**
+  (`task/046-1-age-gate-13plus-redesign`, TASK/046'nın `5092dad`'i üstüne yığılı; main ve
+  TASK/046 dalı DEĞİŞMEDİ, hiçbiri merge edilmedi). Owner kararı: yaş ekranı yalnız **13+** doğum
+  tarihi seçtirir (GÜN / AY / YIL seçicileri + seçim ızgarası, tuş takımı emekli); 13 altı kısıt /
+  çıkış ekranı **emekli**; zorunlu kipte Android geri uygulamadan çıkmaz; eski `UNDER_13` kaydı
+  UNKNOWN sayılıp yeniden sorulur (reklam yok, TEEN / ADULT'a çevrilmez, ilerleme durur); TEEN /
+  ADULT yönlendirmesi ve 18. yaş günü geçişi AYNEN; ham doğum tarihi saklanmaz. **AÇIK uyum
+  riski:** yalnız 13+ seçilebilen tarih, Play nötr yaş ekranı rehberiyle çelişebilir — owner "Build
+  as specified" seçti, hukuk incelemesi owner'da ([AGE_BAND_ROUTING §0.1 / §9.10](docs/monetization/AGE_BAND_ROUTING.md)).
+  Masaüstü doğrulama tamam; **Samsung A36 kapısı bekliyor**. Ayrıntı: PROJECT_STATUS §4.25.
+  (TASK/046'nın kendi yerel A36 kapısı 2026-09-30'da GEÇTİ — kanıt yerel, dala commit edilmedi;
+  TASK/046 main'e alınmadı.)
+
 - **Repo:** **TASK/046 Günlük / Haftalık Görevler V1 dalda** (`task/046-daily-weekly-missions`,
   main `56106ef`'ten; masaüstü doğrulama tamam — Samsung A36 kapısı + main'e alınması owner onayı
   bekliyor; main DEĞİŞMEDİ). `main == origin/main` (2026-09-29): **TASK/045.2 owner onayıyla ff-only main'e
@@ -497,6 +510,12 @@ kenardan geri kaydırmanınki) tahtada parça düşürür — A36'da gerçek ACT
 değiştirir, ayrı görev; (2) Koleksiyon kartı basılıyken GERİ → detay Godot'un gizleme anındaki
 sentetik bırakışında açılır — A36'da 5/5 gizleme anında, 0/5 fiziksel bırakışta; `Main._input`
 ile ilgisiz. ~~**TASK/046 BAŞLAMADI** — sıradaki ürün görevi (owner başlatır).~~ → aşağıda.
+
+**TASK/046.1 — yaş ekranı 13+ UX (dalda, TASK/046 üstüne yığılı):** sıradaki adım owner onaylı
+**Samsung A36 yerel kapısı** (yalnız QA paketi; zorunlu kip + geri çıkmaz, 13+ ızgara, eski
+UNDER_13 yeniden sorma, TEEN + T / UNSPECIFIED + MA SDK'dan önce, yeniden giriş, banner yok) →
+owner kararı: önce TASK/046, sonra TASK/046.1 main'e (ff-only). Açık uyum riski (13+ seçim ↔ nötr
+yaş ekranı rehberi) owner / hukukta — AGE_BAND_ROUTING §9.10. Ayrıntı: PROJECT_STATUS §4.25.
 
 **Ürün işi — TASK/046 Günlük / Haftalık Görevler V1: dalda** (`task/046-daily-weekly-missions`,
 main `56106ef`'ten; masaüstü doğrulama tamam — yeni `missions_test` + `missions_ui_test`, genişletilmiş

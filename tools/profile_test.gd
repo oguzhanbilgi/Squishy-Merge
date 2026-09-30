@@ -683,10 +683,17 @@ func _ads_surface() -> void:
 
 # --- Yardımcılar -------------------------------------------------------------------
 
-## Nötr yaş ekranında tarih girişi (TASK/043 paneli; age_ad_routing_test ile aynı yol).
+## Yaş ekranında tarih seçimi (TASK/046.1 GÜN / AY / YIL seçicileri; age_ad_routing_test ile
+## aynı yol): yıl, ay, gün ızgaradan; DEVAM ET; ONAYLA.
 func _enter_dob(panel: CanvasLayer, ddmmyyyy: String) -> void:
-	for ch in ddmmyyyy:
-		(panel.key_button(ch) as Button).pressed.emit()
+	var values: Array[int] = [int(ddmmyyyy.substr(4, 4)), int(ddmmyyyy.substr(2, 2)), int(ddmmyyyy.substr(0, 2))]
+	var fields: Array[int] = [2, 1, 0]
+	for i in 3:
+		panel.selector_button(fields[i]).pressed.emit()
+		if panel.option_button(values[i]) == null:
+			panel.close_picker()
+			continue
+		panel.option_button(values[i]).pressed.emit()
 	panel.continue_button().pressed.emit()
 	await _settle(1)
 	panel.confirm_button().pressed.emit()

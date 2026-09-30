@@ -1899,3 +1899,54 @@ Talep butonu / ödül animasyonu penceresi; reklamla görev yenileme / tamamlama
 katlama; görev serisi / çarpan / "mükemmel hafta"; canlı geri sayım; bildirim noktası /
 "yeni tamamlandı" durumu (UI durumu saklanmaz); görev geçmişi; yeni sekme. Hepsi owner kararı
 ister.
+
+## 25. Yaş ekranı — 13+ seçim (TASK/046.1)
+
+> **dalda** — `task/046-1-age-gate-13plus-redesign` (TASK/046 üstüne yığılı; main'e alınmadı,
+> A36 kapısı bekliyor). Kurallar ve uyum notu: [monetization/AGE_BAND_ROUTING.md](monetization/AGE_BAND_ROUTING.md)
+> §0.1 / §3.1. TASK/043'ün tuş takımlı nötr ekranı ve 13 altı kısıt / ÇIKIŞ ekranı emekli
+> (§22 ve öncesindeki "yaş / kısıt ekranı" anmaları tarihçedir; kısıt ekranı artık yok).
+
+### 25.1 Pencere
+
+- `UiKit.modal_shell` (gövde içi başlık, **tepelik YOK** — taç / yıldız ödül ekranlarının dili),
+  katman 14 (Ayarlar 13, günlük 12 üstünde). Zemin: karartmanın çocuğu olarak **opak kabuk
+  zemini** (`shell_backdrop` — gece kasabası, sekme ekranlarıyla aynı) → arkadaki Ana Sayfa /
+  Ayarlar kontrolleri görünmez; zemin karartmayla birlikte solarak gelir, dokunuşu karartma alır.
+- Üst bölge (kaydırılmaz): küçük nötr Squishy (tier 2 sanatı, 92 px) + alt başlık "Devam etmek
+  için doğum tarihini seç." ("kaydedildi" adımında yalnız Squishy). Başlık "YAŞINI DOĞRULA".
+- Giriş: üç büyük seçici **GÜN / AY / YIL** (`ButtonSecondary`, 140 / 206 / 164 × 92 px; üstte
+  küçük başlık, içte değer 30 px + küçük `arrow_down`; boşken soluk "Seç"). Altta gizlilik notu
+  "Doğum tarihin cihazından çıkmaz." (17 px, ikincil renk); CTA **DEVAM ET** (tarih tam değilken
+  pasif görünüm).
+- Seçim ızgarası pencerenin İÇİNDE (yeni pencere / açılır liste yok): başlık satırı "Geri"
+  (`arrow_prev`) + "Yıl seç" / "Ay seç" / "Gün seç"; seçenekler 70 px, sütun 4 (yıl) / 3 (ay
+  adları) / 6 (gün); seçili değer `ButtonPrimary`, diğerleri `ButtonSecondary`. Yıl listesi en
+  genç yıldan başlar; gövde gerekirse kaydırılır (solma bandı), seçili değer görünür alana gelir.
+- Onay: "Seçtiğin tarih" + tarih (`LabelDisplay`, ör. "30 Eylül 2008") + "Doğru mu?"; altlıkta
+  DÜZELT (`ButtonSecondary`) / ONAYLA (CTA) yan yana. Yeniden girişte ayrıca "Vazgeç" ve X.
+- Tek nötr hata: "Tarihi kontrol edip tekrar dene." (20 px, `9a4a12` — krem zeminde ≥ 4.5:1).
+- Metin nötrlüğü: "13+", "18+", eşik, yaş grubu, TEEN / ADULT, reklam, ödül, kilit, çıkış sözü
+  YOK; ödül / sandık / para / yıldız / konfeti sanatı YOK (`age_gate_test` görünen metin ve
+  dokuları tarar).
+
+### 25.2 Dokunma, geri, responsive
+
+- Seçenek butonları `MOUSE_FILTER_PASS` (kaydırma seçenek üstünden başlar; kaydırma başlayınca
+  basış bırakılır — seçim olmaz). Açılış, ızgara aç / seç / kapat, onay, "kaydedildi", kapanış
+  Main'in 300 ms dizi bazlı parmak yatışmasını başlatır: seçiciye çift dokunuşun ikincisi
+  ızgaradan değer seçmez, ONAYLA'ya çift dokunuş tek sonuç verir ve arkaya düşmez; yatışmadan
+  sonra ilk dokunuş çalışır (`age_gate_ui_test`, gerçek parmak olayları).
+- Geri: zorunlu kipte uygulamadan ÇIKMAZ (ızgara / onay açıksa bir adım geri, yoksa yok sayılır);
+  yeniden girişte vazgeç / tamam. Karartma: zorunlu kipte kapatmaz; yeniden girişte giriş ve
+  ızgara adımında kapatır (onay / "kaydedildi" adımında yanlış dokunuşa karşı kapatmaz).
+- Banner: panel açıkken gösterilmez (yüzey NONE, yuva sabit — düzen zıplamaz).
+- 720 tuval — 320×568, 360×640, 390×844, 360×800, 1080×2340 (+ A36 üst payı 61): her adımda
+  pencere ekranda ve üst payın altında, seçiciler / not / hata / seçenekler kaydırma alanında ve
+  altlığın üstünde, dokunma hedefleri ≥ 56 px, kırpma yok (`age_gate_test`); görsel kanıt
+  `tools/age_gate_shots.tscn` (6 boyut × 11 kare).
+
+### 25.3 Şimdilik yapılmayan (bilerek)
+
+Kaydırmalı çark (wheel) seçici; önceki / sonraki okları; kayıtlı yaşı / tarihi gösterme;
+serbest metin girişi; 13 altı için ayrı ekran. Hepsi owner kararı ister.

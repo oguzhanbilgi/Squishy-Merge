@@ -795,8 +795,10 @@ func _test_monetization_defer() -> void:
 	# Yaş saati model gününden (AgeGate.MODEL_START_DAY) önce olamaz — öncesi "bozuk saat"
 	# sayılır ve tarih sınıflandırılmaz; günlük ödül saati (DAY_A) ayrı.
 	AgeGate.clock_override = AgeGate.MODEL_START_DAY
-	for ch in "01011990":
-		(_main.age_panel().key_button(ch) as Button).pressed.emit()
+	# TASK/046.1: GÜN / AY / YIL seçicileri (1 Ocak 1990).
+	for pick: Array in [[2, 1990], [1, 1], [0, 1]]:
+		_main.age_panel().selector_button(pick[0]).pressed.emit()
+		_main.age_panel().option_button(pick[1]).pressed.emit()
 	_main.age_panel().continue_button().pressed.emit()
 	await get_tree().process_frame
 	_main.age_panel().confirm_button().pressed.emit()

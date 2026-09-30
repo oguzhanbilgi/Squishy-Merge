@@ -3,6 +3,13 @@
 > **Durum (2026-09-27):** kod + deterministik testler + çekişmeli inceleme tamam; **Samsung A36
 > cihaz kapısı GEÇTİ** (§11); owner stratejisi kaydedildi (`teen_ad_treatment =
 > "age_band_routing"`); owner onayıyla `task/043-age-band-routing` **main'e ff-only alındı**.
+>
+> **TASK/046.1 (2026-09-30, `task/046-1-age-gate-13plus-redesign`, TASK/046 üstüne yığılı —
+> main'e ALINMADI, A36 kapısı BEKLİYOR):** yaş ekranı yalnız **13+** doğum tarihi seçtirir; 13
+> altı kısıt / çıkış akışı **emekli**. Güncel sözleşme **§0.1**'de; §2 / §3 / §5 / §7 / §8 / §9.8
+> içindeki kısıt ekranı, tuş takımı ve "geri = çık" anlatımı TASK/043 TARİHÇESİDİR (değiştirilmedi,
+> yerine §0.1 geçer). Yönlendirme tablosu (§6), TEEN / ADULT sırası (§7) ve geçiş kuralları
+> (18. yaş günü) DEĞİŞMEDİ.
 > Bu doküman hukuki tavsiye DEĞİLDİR; Google'ın resmî sayfalarının sade Türkçe özetine
 > dayanır (kaynaklar §12, 2026-09-27'de okundu; sözcüğü sözcüğüne alıntılar yerel kanıtta
 > `build/qa_043/research/`). Mimari evrensel bir hukuki garanti DEĞİLDİR — §9'daki açık
@@ -20,6 +27,45 @@
 | Yaş bilinmiyor | reklam SDK'sı **başlamaz**, UMP **yok**, reklam **yok** (ASLA yetişkin yoluna düşmez) |
 | Yaş kaynağı | uygulamanın kendi **nötr doğum tarihi ekranı** — Play Age Signals reklamda **ASLA** |
 | Ham doğum tarihi | saklanmaz, loglanmaz, hiçbir yere gönderilmez |
+
+## 0.1 TASK/046.1 — yalnız 13+ seçim, 13 altı çıkış akışı emekli (2026-09-30, GÜNCEL)
+
+Owner kararı (TASK/046.1 brifi): kullanıcı arayüzü yalnız 13 yaş ve üstü kendi beyanı doğum
+tarihlerine izin verir. Normal yaş girişinden "yaşın uygun değil" / "oynanamıyor" / kısıt ekranı /
+zorla çıkış YOK.
+
+| konu | güncel davranış |
+|---|---|
+| Seçilebilir aralık | en genç = bugünden tam **13 yıl** önceki gün (`AgeGate.youngest_allowed_birth_date`; 29 Şubat "bugün"de ve 29 Şubat doğumlularda projenin yıl dönümü kuralıyla — 13'ü doldurmamış gün sunulmaz), en eski = 120 yıl (`MAX_AGE_YEARS`, `oldest_allowed_birth_date`). Daha yeni tarih **seçilemez** (ızgarada yok) |
+| UI | **GÜN / AY / YIL** seçicileri (dokun → pencere içi seçim ızgarası; rakam tuş takımı EMEKLİ), DEVAM ET, onay adımı ("30 Eylül 2008 — Doğru mu?" DÜZELT / ONAYLA) — §3.1 |
+| Eşik söylenmez | "13+", "18+", yaş grubu, TEEN / ADULT, reklam, ödül sözü yok; aralık dışı bir tarih doğrulamaya yine de ulaşırsa (bozuk / geri alınmış saat) TEK nötr mesaj **"Tarihi kontrol edip tekrar dene."** — çıkış ekranı YOK |
+| Sınıflandırıcı | panel yalnız `AgeGate.classify_selected_birth_date` kullanır: seçilebilir aralıktaki tarih TEEN / ADULT alır, aralık dışı = hata (bant UNKNOWN, hiçbir şey yazılmaz) — **UNDER_13 üretmez** |
+| 13–17 / 18+ | DEĞİŞMEDİ: TEEN → TFAT TEEN + T; ADULT → UNSPECIFIED + MA, ikisi de SDK'dan önce |
+| UNKNOWN | DEĞİŞMEDİ: SDK / UMP / reklam yok, zorunlu yaş ekranı |
+| Eski UNDER_13 kaydı (TASK/043 dönemi) | açılışta **UNKNOWN** sayılır (`AgeGate.resolve_stored` → `legacy_under_13`): kısıt ekranı YOK, SDK / UMP / reklam YOK, zorunlu yaş ekranı yeniden; TEEN / ADULT'a **çevrilmez** (saklı 13. yaş günü yaş kanıtı sayılmaz, 13. yaş günü gelmiş olsa da); açılışta TEK yazmayla kayıt `"UNKNOWN"` + boş tarih olur ve `.bak` kopyası atılır (artık okunmayan, doğum gününe eşdeğer 13. yaş günü kayıtta kalmaz — bozuk saatte, yaş sorulmasa da); ilerleme SİLİNMEZ |
+| Zorunlu kip | kapatılamaz (X yok, karartma kapatmaz); Android geri **uygulamadan ÇIKMAZ** (ızgara / onay açıksa bir adım geri, yoksa yok sayılır). Uygulamadan tek çıkış: Ana Sayfa'da, açık pencere yokken geri |
+| Yeniden giriş (Ayarlar → Yaş bilgisi) | X / Vazgeç / karartma / geri kapatır (kayıt aynen); seçiciler her açılışta boş; sonuç yalnız TEEN / ADULT |
+| Banner | yaş ekranı açıkken reklam yüzeyi NONE (banner gizli), kapanınca bırakılan yüzey geri gelir; yuva sabit (§2 zorunlu kipte zaten SDK yok) |
+| Zemin | opak kabuk zemini (gece kasabası) — arkadaki Ana Sayfa / Ayarlar kontrolleri görünmez |
+| Kayıt | yalnız `age_ad_band` (UNKNOWN / TEEN / ADULT) + `next_age_transition_date` (TEEN: 18. yaş günü; ADULT / UNKNOWN: boş). `stored_pair` UNDER_13 için tarih YAZMAZ. Ham doğum tarihi saklanmaz / loglanmaz / gönderilmez (yalnız panel belleğinde, onay / vazgeç / kapanışta silinir) |
+| 18. yaş günü | DEĞİŞMEDİ: soğuk açılışta TEEN → ADULT otomatik (tek yazma, SDK'dan önce) |
+| Bozuk saat | DEĞİŞMEDİ: zorunlu ekran açılmaz, bant UNKNOWN (reklam yok), ASLA ADULT çıkarımı; panel açıkken saat bozulursa aynı nötr hata |
+| Release kapısı | `AgeGate.routing_contract_problems()` 13+ seçim sözleşmesini de denetler (en küçük seçilebilir yaş 13; 13'ten bir gün genç tarih kabul edilmez) — fark CODE engeli |
+| Play Age Signals / TFCD / TFUA / GMA / UMP | DEĞİŞMEDİ (Age Signals yok) |
+
+**AÇIK uyum riski (owner kararıyla bilinçli — hukuki sonuç DEĞİL):** §1'de özetlenen Play "nötr
+yaş ekranı" rehberi, Google'ın örneğinde kullanıcının doğum tarihini serbestçe girmesini
+("freely enter their month, day, and year of birth") gösteriyor; yanlış kurulum örnekleri
+arasında doğum tarihini gereken yaşa ayarlı getirmek ve belli bir yaşın gerektiğini belirtmek
+var. Yalnız 13+ tarihlerin seçilebildiği bir ızgara bu rehbere göre "belli bir yaş gerekiyor"
+sinyali verebilir (13 yaşından genç biri kendi yılını listede bulamaz). Bu risk TASK/046.1
+başlamadan owner'a söylendi; owner **"Build as specified"** seçti (2026-09-30). Ekran eşiği
+yazıyla söylemez ve hazır tarih getirmez, ama bunun rehberi karşıladığı İDDİA EDİLMEZ — owner /
+hukuk incelemesinde AÇIK (§9.10). Bu belgede yeni bir resmî alıntı yok; §1'deki özet
+2026-09-27 okumasıdır.
+
+Kanıt (yerel, gitignore'lu): `build/qa_0461/tests/` (masaüstü suite logları),
+`build/qa_0461/shots/final/` (6 boyut × 11 kare). Fiziksel A36 kapısı sonra.
 
 ## 1. Resmî araştırmanın kullandığı gerçekler (özet — hukuki sonuç DEĞİL)
 
@@ -125,6 +171,34 @@ yaş ekranı ──> türetilmiş bant kaydedilir (tek yazma), ham tarih atılı
 - 720×1280 (en kısa tuval), 320 / 360 / 390 dp oranları (640×1422, 720×1600, 780×1688), A36
   (1080×2340) ve 540×960'ta pencere ekranda, tuşlar / alanlar / DEVAM panelde, gövde
   kaydırılmıyor (`age_gate_test`). Dil yalnız Türkçe; oyunda RTL yok.
+
+### 3.1 TASK/046.1 yeniden tasarım (GÜNCEL — yukarıdaki §3 TASK/043 tarihçesi)
+
+- Candy pencere (`UiKit.modal_shell`, tepelik YOK), opak kabuk zemini üstünde; üstte küçük nötr
+  Squishy (tier 2, 92 px), başlık **"YAŞINI DOĞRULA"**, alt başlık **"Devam etmek için doğum
+  tarihini seç."**, üç büyük seçici **GÜN / AY / YIL** (boşken "Seç"; 92 px yükseklik, değer +
+  küçük aşağı ok), gizlilik notu **"Doğum tarihin cihazından çıkmaz."**, **DEVAM ET** (tarih tam
+  değilken pasif).
+- Seçiciye dokun → pencere içinde seçim ızgarası ("Geri" + "Yıl seç" / "Ay seç" / "Gün seç";
+  seçenek 70 px): YIL en genç yıl İLK (bugün 2026-09-30 → 2013 … 1906), AY / GÜN o yılın / ayın
+  seçilebilir aralığı (ör. 2013'te Ocak–Eylül; Eylül 2013'te 1–30). Kırılgan özel çark YOK —
+  Godot `GridContainer` + `ScrollContainer`; kaydırma seçenek üstünden başlarsa basış bırakılır.
+  Bir alan değişince diğerleri uyarlanır (`AgeGate.clamp_selection`): **takvim** kırpılır (31 →
+  ayın son günü, 29 Şubat → artık olmayan yılda 28); seçilebilir **aralıkla çelişen** alan "Seç"e
+  döner — başka bir değere kaydırılmaz (ör. 15 Aralık seçiliyken 2013 seçilirse ay silinir; tarih
+  kendiliğinden en genç izinli güne, tam 13. yaş gününe dönüşmez — inceleme M1). Izgara açılırken
+  saat kaydıysa seçim önce yeniden uyarlanır; ızgara kapanınca seçenekler de silinir.
+- Onay: "Seçtiğin tarih — 30 Eylül 2008 — Doğru mu?" + DÜZELT (seçim KORUNUR, bir alan
+  değiştirilir) / ONAYLA (bugünkü tarihe göre yeniden sınıflandırılır, tek gönderim).
+- Tek nötr hata "Tarihi kontrol edip tekrar dene." (20 px, koyu turuncu) — yalnız bozuk / geri
+  alınmış saatte ulaşılabilir; seçim değişince kalkar.
+- Parmak güvenliği: panel açılışı, ızgara aç / seç / kapat, onay, "kaydedildi", kapanış Main'in
+  TASK/045.2 dizi bazlı 300 ms yatışmasını başlatır (`opened` / `settle_requested`) — seçiciye
+  çift dokunuşun ikincisi ızgaradan değer seçemez, ONAYLA'ya çift dokunuş tek sonuç verir ve
+  arkaya düşmez. Global girdi anlamı değişmedi.
+- 320×568 / 360×640 / 390×844 / 360×800 / 1080×2340 + A36 üst payı 61 px: her adımda (boş,
+  ızgaralar, tam seçim, onay, hata) pencere ekranda, üst güvenli alanın altında, kontroller panelde
+  ve altlığın üstünde, kırpma yok (`age_gate_test`; gerçek parmak girdisi `age_gate_ui_test`).
 
 ## 4. Veri azaltma — kayıt biçimi (SaveManager, geriye uyumlu)
 
@@ -295,7 +369,8 @@ Release kapısında iki ayrı OWNER / UYUM engeli bunları görünür tutar (§1
    "Doğum tarihin bu cihazdan çıkmaz; yalnızca sana uygun ayarları seçmek için kullanılır." ve
    Ayarlar gizlilik metni (§4). İnceleme L6: ham tarih için doğru; türetilmiş sinyal Google'a
    gider (Ayarlar metni söylüyor). Gizlilik politikası metni bunlarla tutarlı olmalı.
-8. **13 altı yazım hatası uygulamada geri alınamaz** (inceleme L2-F4, owner kararı): onaylanmış
+8. *(TASK/046.1 ile KONU DIŞI — 13 altı tarih seçilemez, kısıt ekranı emekli; tarihçe:)*
+   **13 altı yazım hatası uygulamada geri alınamaz** (inceleme L2-F4, owner kararı): onaylanmış
    yanlış bir tarih (ör. 2009 yerine 2019) UNDER_13 kısıt ekranına götürür; tasarım gereği
    uygulama içi "tekrar dene" YOK (yaşı değiştirmeye teşvik etmemek). Çıkış yolu uygulama
    verisini temizlemek — ilerleme de silinir. Onay adımı tarihi sözcükle gösterir; DÜZELT /
@@ -313,6 +388,14 @@ Release kapısında iki ayrı OWNER / UYUM engeli bunları görünür tutar (§1
    bugün hiçbir sağlayıcıya gitmiyor — ileride analitik eklenirse sebep değerleri yaş sinyali
    taşımayacak biçimde gözden geçirilmeli.
 
+10. **Yalnız 13+ seçilebilen yaş ekranı ↔ Play nötr yaş ekranı rehberi (TASK/046.1, AÇIK):**
+    §0.1. Owner "Build as specified" seçti; rehberi karşıladığı iddia edilmez, owner / hukuk
+    incelemesi bekler. Seçenekler (owner'ın): serbest tarih girişine dönüp 13 altını reklamsız ve
+    nötr biçimde karşılamak (TASK/043 benzeri) ya da mevcut tasarımı hukuk görüşüyle sürdürmek.
+11. **Eski UNDER_13 kayıtları (TASK/046.1):** TASK/043 döneminde 13 altı beyan eden bir cihaz
+    artık yeniden sorulur; yeni beyan 13+ olmak zorunda (ızgara başka yıl sunmaz). Eski kayıt
+    kendiliğinden TEEN / ADULT'a çevrilmez; reklam yeni beyana kadar kapalı kalır.
+
 Owner bir yargı bölgesi kararı verince (ör. hukuk incelemesi, dağıtım dışı ülkeler) bunu bu
 bölüme yazar ve `android_export.cfg [Audience] jurisdiction_age_review = "recorded"` yapar.
 
@@ -323,7 +406,7 @@ bölüme yazar ve `android_export.cfg [Audience] jurisdiction_age_review = "reco
 | 13–17 genç reklam işlemi stratejisi (UYUM) | OWNER | `[Audience] teen_ad_treatment = "age_band_routing"` **VE** kod tablosu owner tablosuyla birebir (`AgeGate.routing_contract_problems()` boş). Kodda yazılı bayrak YOK. **KALKTI (2026-09-27):** A36 kapısı geçtikten sonra kaydedildi; kapı raporu stratejiyi "hukuki garanti DEĞİL" notuyla gösterir. |
 | Yargı bölgesi yaş yükümlülükleri (UYUM) | OWNER | owner / hukuk kararı §9'a yazılır + `jurisdiction_age_review = "recorded"` |
 | Play Uygunsuz Reklamlar — uygulama içerik derecesi (UYUM) | OWNER | `app_content_rating` (3+ … 18+) yönlendirmenin T / MA reklamlarına izin veriyor (T ≥ 12+, MA ≥ 16+) ya da owner yönlendirme derecelerini düşürür |
-| Kod tablosu owner tablosundan sapıyor | CODE | tablo düzeltilir |
+| Kod tablosu owner tablosundan sapıyor (TASK/046.1'den beri 13+ seçim sözleşmesi dahil) | CODE | tablo / seçim aralığı düzeltilir |
 | Release preset'inde `user_data_backup/allow=true` (kayıt otomatik yedeğe) | CONFIG | preset'te `false` (bugün üç preset'te de `false`) |
 
 Üç değer de yalnız kapı içindir; çalışma zamanı davranışını DEĞİŞTİRMEZ. Kapı bunları

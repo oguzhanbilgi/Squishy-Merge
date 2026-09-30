@@ -2010,6 +2010,69 @@ formatına yalnız `haptics_enabled` (varsayılan true) eklendi. Ayrıntı ve
   dönümü ve saat geri alma masaüstünde saat kancasıyla doğrulandı; cihazda tarih değiştirmek
   telefon ayarıdır → yalnız owner isterse.
 
+### 4.25 Yaş ekranı 13+ UX yeniden tasarımı (TASK/046.1)
+
+> **dalda** — `task/046-1-age-gate-13plus-redesign`, TASK/046'nın `5092dad`'i üstüne yığılı (TASK/046
+> ve main merge EDİLMEDİ; main `56106ef`). **Masaüstü doğrulama tamam (2026-09-30); Samsung A36
+> kapısı YAPILMADI** — owner onaylı ayrı adım. TASK/047 BAŞLAMADI. Güncel sözleşme
+> [AGE_BAND_ROUTING §0.1 / §3.1](docs/monetization/AGE_BAND_ROUTING.md), görünüm UI_VISUAL_SYSTEM
+> §25. TASK/043 tarihçesi (§4.x, AGE_BAND_ROUTING §2–§11) yeniden yazılmadı.
+
+- **Owner kararı (2026-09-30):** yaş ekranı yalnız kendi beyanı **13+** doğum tarihi seçtirir; normal
+  girişten "yaşın uygun değil" / kısıt ekranı / zorla çıkış YOK. **Uyum riski AÇIK:** yalnız 13+
+  seçilebilen tarih Play'in nötr yaş ekranı rehberiyle (serbest tarih girişi örneği; gereken yaşı
+  hissettirmemek) çelişebilir — görev başında owner'a söylendi, owner "Build as specified" seçti;
+  hukuk incelemesi owner'da (AGE_BAND_ROUTING §9.10). Uyduğu iddia EDİLMEZ.
+- **Model (`AgeGate`, tek kaynak):** `MIN_SELECTABLE_AGE = TEEN_AGE`; `youngest_allowed_birth_date`
+  (bugünden 13 yıl önce; yıl dönümü kuralıyla doğrulanır — 29 Şubat "bugün"de 28 Şubat),
+  `oldest_allowed_birth_date` (120 yıl), `is_selectable_birth_date`, `selectable_year / month /
+  day_range`, `clamp_selection` (takvim kırpılır; aralıkla çelişen alan SIFIRLANIR — en genç izinli
+  güne kaydırılmaz), `classify_selected_birth_date` (aralık dışı → hata, bant UNKNOWN; **UNDER_13
+  üretmez**). DOB tabanlı sınıflandırma ve 18. yaş günü geçişi AYNEN. `routing_contract_problems`
+  13+ sözleşmesini de denetler (release kapısı: fark → CODE).
+- **UI (`age_gate_panel`):** tuş takımı emekli; "YAŞINI DOĞRULA", küçük nötr Squishy, "Devam etmek
+  için doğum tarihini seç.", GÜN / AY / YIL seçicileri → pencere içi seçim ızgarası (yıl en genç
+  ilk), DEVAM ET, onay ("30 Eylül 2008 — Doğru mu?" DÜZELT / ONAYLA, tek gönderim), tek nötr hata
+  "Tarihi kontrol edip tekrar dene.", gizlilik notu "Doğum tarihin cihazından çıkmaz.", opak kabuk
+  zemini (arkadaki kontroller görünmez). Zorunlu: X yok, karartma kapatmaz, Android geri ÇIKMAZ.
+  Yeniden giriş: X / Vazgeç / karartma / geri; seçiciler boş açılır.
+- **Emekli:** `age_restricted_screen.gd` / `.tscn` / `.uid` silindi; Main'den kısıt yolu, zorunlu
+  sorudaki "geri = çık" kaldırıldı (tek çıkış: Ana Sayfa'da geri, `_quit_app`). Test: üretim
+  `scripts/` + `scenes/` içinde "Üzgünüz" / "yaş grubun için" / "ÇIKIŞ" / kısıt rotası YOK.
+- **Eski UNDER_13 kaydı:** açılışta UNKNOWN (reklam / UMP / SDK yok, zorunlu panel); TEK yazmayla
+  "UNKNOWN" + boş tarih, `.bak` atılır (doğum gününe eşdeğer 13. yaş günü kalmaz); TEEN / ADULT'a
+  çevrilmez; ilerleme aynen.
+- **Main:** panel `opened` / `settle_requested` → TASK/045.2 300 ms dizi yatışması (global girdi
+  anlamı aynen); panel açıkken reklam yüzeyi NONE (banner yok), kapanınca bırakılan yüzey (oyun içi
+  Ayarlar'dan açıldıysa GAMEPLAY) geri gelir, arada gelen yüzey değişimi yalnız hatırlanır.
+- **Gizlilik:** seçim yalnız panel belleğinde; onay / vazgeç / kapanışta ve ızgara kapanınca silinir;
+  log / analitik / ağ yok (statik tarama); kayıt yalnız `age_ad_band` + `next_age_transition_date`
+  (TEEN: 18. yaş günü; ADULT / UNKNOWN boş). QA harness'ı (`tools/ads_device.gd`) seçilen değeri
+  yazmaz, yalnız görünür ızgara seçeneklerinin konumunu.
+- **Testler:** `age_gate_test` 137 → 207 (13+ aralık: 1600 günlük kaba kuvvet, 29 Şubat, uyarlama
+  değişmezi; panel: ızgaralar 13 altını hiç göstermez, en genç tarih, uyarlama, onay / DÜZELT / tek
+  ONAYLA, bozuk / geri saat → nötr hata, kipler, nötr metin / sanat, 5 boyut + A36 61 her adımda,
+  emekli akış); `age_ad_routing_test` 112 → 122 (eski UNDER_13 yeniden sorma, geri çıkmaz, seçimden
+  önce UMP / init / banner / ödüllü / geçiş 0, yeniden girişte banner gizli + geri gelir);
+  **yeni `age_gate_ui_test`** 26 (gerçek parmak olayları: arkaya sızma yok, seçiciye / DEVAM ET'e /
+  ONAYLA'ya çift dokunuş, yeniden girişte X / Vazgeç / karartma / geri + kapanış sonrası ilk
+  dokunuş); `release_config_test` 202 (13+ sözleşmesi kapıda); `profile_test`, `tutorial_test`,
+  `missions_ui_test` yeni seçicilere uyarlandı. Tam regresyon 36 koşu 4808 kontrol, 0 hata,
+  0 SCRIPT ERROR. Mutasyon 14: 13 öldü (ilk turda sağ kalan tek gönderim mutasyonu testi
+  güçlendirilince öldü), 1 eşdeğer (en genç tarih döngüsü 13 yıllık aralıkta hiç dönmez — koruyucu).
+  Görsel kanıt `tools/age_gate_shots.tscn`: 6 boyut × 11 kare (boş, kısmi, ızgaralar, en genç 13,
+  genç, yetişkin, onay, nötr hata, Ayarlar yeniden giriş + kaydedildi).
+- **İnceleme (6 mercek, 2 okuyucu):** BLOCKER 0 · HIGH 0. Giderilen: M1 uyarlama en genç izinli
+  güne kaydırıyordu (eşiği ima ediyor, seçilmemiş tarih üretiyordu) → çelişen alan sıfırlanır; M2
+  eski UNDER_13'ün 13. yaş günü kayıtta süresiz kalıyordu → açılışta temizlenir; LOW: `.bak`'tan
+  kurtarılmış oturumda eski kuşak, kapalı ızgarada kalan seçenekler (harness), panel açıkken gelen
+  NONE yüzeyi, ızgara açılırken yeniden uyarlama; NIT: seçici satırı içerik genişliğini 6 px
+  aşıyordu, reddedilen gönderimde DÜZELT kilidi. Bilinçli bırakılan: yeniden girişte ızgara açıkken
+  karartma pencereyi kapatır (geri yalnız ızgarayı) — brif "karartma kapatır".
+- **A36 kapısı için not:** önceki kapıların yerel sürücüleri (ör. `build/qa_046-gate/device/`
+  tuş takımı / `restricted:` ayrıştırması) yeni panel çıktısına göre yeniden yazılmalı (`agepanel:`
+  / `agerects:` s0–s2 + görünür `o<değer>`).
+
 ## 5. Dosya/klasör yapısı ve script envanteri
 
 ```

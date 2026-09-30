@@ -574,6 +574,9 @@ func _test_current_project_state() -> void:
 		and (inputs["age_routing_problems"] as PackedStringArray).is_empty()
 		and _notes_have(result, "13–17 genç reklam işlemi stratejisi: age_band_routing")
 		and _notes_have(result, "hukuki garanti DEĞİL"))
+	_c("TASK/046.1: yaş ekranı 13+ seçim sözleşmesi kapının yönlendirme denetiminde (en küçük seçilebilir yaş 13, 13 altı tarih kabul edilmez) ve temiz",
+		AgeGate.MIN_SELECTABLE_AGE == AgeGate.TEEN_AGE and AgeGate.routing_contract_problems().is_empty()
+		and FileAccess.get_file_as_string("res://scripts/game/age_gate.gd").contains("problems.append(\"yaş ekranı yalnız 13+ doğum tarihi kabul etmeli\")"))
 	_c("TASK/043: yargı bölgesi yaş yükümlülükleri değerlendirmesi kayıtta değil -> ayrı OWNER UYUM engeli",
 		not bool(inputs["jurisdiction_age_review_recorded"]) and _blocked_by(result, "OWNER", ReleaseReadiness.JURISDICTION_REVIEW_BLOCKER))
 	_c("TASK/043: Play Uygunsuz Reklamlar — uygulamanın içerik derecesi kayıtta değil, yönlendirme T + MA -> ayrı OWNER UYUM engeli",
