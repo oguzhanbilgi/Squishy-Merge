@@ -1902,10 +1902,10 @@ ister.
 
 ## 25. Yaş ekranı — 13+ seçim (TASK/046.1)
 
-> **dalda** — `task/046-1-age-gate-13plus-redesign` (TASK/046 üstüne yığılı; main'e alınmadı;
-> Samsung A36 yerel kapısı GEÇTİ 2026-09-30). Kurallar ve uyum notu: [monetization/AGE_BAND_ROUTING.md](monetization/AGE_BAND_ROUTING.md)
+> **main'de** — `task/046-1-age-gate-13plus-redesign` (TASK/046 ile birlikte ff-only `56106ef →
+> b90bc3c`, 2026-09-30; Samsung A36 yerel kapısı GEÇTİ). Kurallar ve uyum notu: [monetization/AGE_BAND_ROUTING.md](monetization/AGE_BAND_ROUTING.md)
 > §0.1 / §3.1. TASK/043'ün tuş takımlı nötr ekranı ve 13 altı kısıt / ÇIKIŞ ekranı emekli
-> (§22 ve öncesindeki "yaş / kısıt ekranı" anmaları tarihçedir; kısıt ekranı artık yok).
+> (§24 ve öncesindeki "yaş / kısıt ekranı" anmaları tarihçedir; kısıt ekranı artık yok).
 
 ### 25.1 Pencere
 

@@ -893,9 +893,12 @@ bellekte uzlaştırır, pencereler yazmaz.)*
 **Gelecek görevler (YAPILMADI — bu sürümde hiçbir kodu yok):**
 - ~~**TASK/045** — Oyuncu Seviyesi + XP + Başarımlar + Unvanlar (+ düzenlenebilir
   takma ad)~~ → **YAPILDI (§5.9)**; takma ad owner brief'iyle kapsam DIŞI.
-- ~~**TASK/046** — Günlük / Haftalık Görevler (sıradaki)~~ → **YAPILDI (§5.10)**, dalda
-  (`task/046-daily-weekly-missions`); Samsung A36 kapısı + main'e alınması owner onayı bekliyor.
-- **TASK/047** — Günlük Merge Challenge (BAŞLAMADI)
+- ~~**TASK/046** — Günlük / Haftalık Görevler (sıradaki)~~ → **YAPILDI (§5.10), main'de**
+  (Samsung A36 kapısı GEÇTİ; 2026-09-30'da TASK/046.1 yaş ekranı yeniden tasarımıyla birlikte owner
+  onayıyla ff-only main'e alındı).
+- **TASK/047** — Günlük Merge Challenge (**BAŞLAMADI** — sıradaki planlı ürün görevi; hedef,
+  ödül, sıfırlama, arayüz, kayıt, reklam, XP ve görev etkileşimi TASARLANMADI — uygulamadan önce
+  owner onaylı sözleşme gerekir)
 
 ### 5.9 Oyuncu Seviyesi + XP + Başarımlar + Unvanlar (TASK/045 — owner kararı, KİLİTLİ)
 

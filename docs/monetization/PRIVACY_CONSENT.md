@@ -37,12 +37,12 @@
 > verilir). Yaş ekranı ilk güvenli kabukta, rızadan ÖNCE (§0). Ayrıntı:
 > [AGE_BAND_ROUTING.md](AGE_BAND_ROUTING.md).
 
-## 0. Yaş kapısı (TASK/043)
+## 0. Yaş kapısı (TASK/043; TASK/046.1)
 
 | bant | UMP `update_consent_info` | rıza formu | `canRequestAds` → SDK | reklam |
 |---|---|---|---|---|
 | UNKNOWN | YOK | YOK | YOK | YOK |
-| UNDER_13 | YOK | YOK | YOK | YOK (kısıt ekranı) |
+| UNDER_13 | YOK | YOK | YOK | YOK — TASK/046.1'den beri normal girişle yazılmaz; eski kayıt açılışta UNKNOWN (yaş yeniden sorulur; kısıt ekranı emekli) |
 | TEEN | her açılışta (onboarding sonrası) | EEA / UK / CH'de gerekiyorsa | evet → TFAT TEEN + derece T ile yapılandır + geri oku → init | evet |
 | ADULT | her açılışta (onboarding sonrası) | EEA / UK / CH'de gerekiyorsa | evet → UNSPECIFIED + derece MA ile yapılandır + geri oku → init | evet |
 

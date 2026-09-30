@@ -39,7 +39,9 @@ Bu bölüm **güncel durumdur**; «TASK/042 durumu» ve §B–§H kayıt olarak 
 - **Owner seçimi (iş kararı, TASK/043 brifi):** Strateji **B** — nötr doğum tarihi ekranı;
   13–17 → TFAT **TEEN** + en yüksek derece **T**; 18+ → **UNSPECIFIED** + **MA** (yetişkin
   envanteri korunur); 13 yaş altı → reklam SDK'sı / UMP / reklam YOK + kısıt ekranı; bilinmeyen
-  yaş → reklam SDK'sı / UMP / reklam YOK. Dağıtım dünya geneli.
+  yaş → reklam SDK'sı / UMP / reklam YOK. Dağıtım dünya geneli. *(Sonra: TASK/046.1 — main'de
+  2026-09-30 — yaş ekranı yalnız 13+ tarih sunar, 13 altı kısıt ekranı emekli, eski UNDER_13
+  kaydı UNKNOWN + yeniden sorma; TEEN / ADULT yönlendirmesi aynen — AGE_BAND_ROUTING §0.1.)*
 - **Uygulama:** [AGE_BAND_ROUTING.md](AGE_BAND_ROUTING.md) — ham doğum tarihi saklanmaz
   (yalnız bant + geçiş günü), soğuk açılış geçişleri SDK'dan önce, rota rızadan ve attach'ten
   önce, yapılandırma + geri okuma `MobileAds.initialize()` öncesi, SDK yapılandırılınca kilit

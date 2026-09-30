@@ -1,6 +1,6 @@
 # PROJECT_STATUS.md — Squishy Merge, tam proje raporu
 
-**Son güncelleme:** 2026-09-29 · **Durum:** M0–M8 tamamlandı; M8.5–M8.10
+**Son güncelleme:** 2026-09-30 · **Durum:** M0–M8 tamamlandı; M8.5–M8.10
 (release/product stabilization: UI yeniden inşası, gameplay cilası, ses,
 AdMob TEST-reklam monetizasyonu + günlük ödüller, ilk açılış tutorial'ı)
 tamamlandı ve main'de; M9-01 production release hazırlığı (kod) tamamlandı,
@@ -55,18 +55,25 @@ pencere Koleksiyon detayının üstüne açılmıyor (§4.22). **TASK/045.2 (202
 owner onayıyla ff-only alındı; bulut kapısı + Samsung A36 yerel kapısı GEÇTİ, bulgu yok):** oyun içi Ayarlar → Android geri
 sonrası kaybolan ilk tahta bırakışı düzeltildi — 300 ms parmak yatışması artık dizi bazında
 (pencerede başlayan dizi tamamen yutulur, pencereden önce başlamış dizi bölünmez), süre aynen
-(§4.23). **TASK/046 (2026-09-29, dalda `task/046-daily-weekly-missions` — masaüstü doğrulama
-tamam; Samsung A36 yerel kapısı + main'e alınması owner onayı bekliyor, main DEĞİŞMEDİ):**
+(§4.23). **TASK/046 (2026-09-29; main'de 2026-09-30 — masaüstü + Samsung A36 yerel kapısı
+GEÇTİ, TASK/046.1 ile birlikte owner onayıyla ff-only alındı):**
 Günlük / Haftalık Görevler V1 — 6 kilitli görev (günlük 15 merge / 2 tur / 1 level +10'ar,
 haftalık 120 / 12 / 5 +40'ar; haftada ≤ 330 Hamur), ödül otomatik, gün = GÜNLÜK ÖDÜLLER günü,
-hafta pazartesi; Ana Sayfa GÖREVLER girişi + pencere, sonuç ekranında görev rozeti (§4.24);
-TASK/047 BAŞLAMADI. Sırada: içerik
-derecesi + yargı bölgesi kararları (owner) → gizlilik
+hafta pazartesi; Ana Sayfa GÖREVLER girişi + pencere, sonuç ekranında görev rozeti (§4.24).
+**TASK/046.1 (2026-09-30, main'de — masaüstü + Samsung A36 yerel kapısı GEÇTİ, tek cihaz bulgusu
+`98d209e` ile düzeltildi):** yaş ekranı yalnız 13+ doğum tarihi sunar (GÜN / AY / YIL seçicisi;
+tuş takımı ve 13 altı kısıt / ÇIKIŞ ekranı EMEKLİ), eski UNDER_13 → UNKNOWN + yeniden sorma,
+TEEN / ADULT yönlendirmesi ve 18. yaş günü geçişi aynen, yaş arayüzü açıkken banner yok (§4.25);
+**AÇIK uyum riski** — 13+ seçim ↔ Play nötr yaş ekranı rehberi (owner "Build as specified";
+AGE_BAND_ROUTING §9.10). **TASK/047 (Günlük Merge Challenge) BAŞLAMADI** — sıradaki planlı ürün
+görevi, uygulamadan önce owner onaylı brif gerekir. Release izi ayrı. Sırada: içerik
+derecesi + yargı bölgesi kararları + 13+ seçici uyum riski (owner) → gizlilik
 politikası → upload anahtarı → gerçek AdMob kimlikleri → mağaza varlıkları / Play Console,
 sonra ilk imzalı üretim AAB'si ve M10 (Play kapalı test) ·
-**Branch:** `task/046-daily-weekly-missions` (main `56106ef`'ten; 4 commit — çekirdek, arayüz +
-sonuç rozeti, inceleme düzeltmeleri, regresyon / görsel kapı + dokümanlar; main DEĞİŞMEDİ, A36
-kapısı + main owner onayı bekliyor) · `main` — TASK/045.2 `task/045-2-settings-back-input-focus` (`c990b63` + `a32ee2d`)
+**Branch / main:** `main` == origin/main == `b90bc3c` — TASK/046 `task/046-daily-weekly-missions`
+(`efb9763` … `5092dad`, 4 commit) + TASK/046.1 `task/046-1-age-gate-13plus-redesign` (`bc40da1` …
+`b90bc3c`, 5 commit) owner onayıyla BİRLİKTE ff-only entegre (`56106ef → b90bc3c`, 2026-09-30;
+merge commit / rebase / squash / cherry-pick yok; dallar duruyor) · önce TASK/045.2 `task/045-2-settings-back-input-focus` (`c990b63` + `a32ee2d`)
 owner onayıyla ff-only entegre (`e474fb3 → a32ee2d`, 2026-09-29; A36 kapısı geçti, düzeltme
 commit'i yok) · önce TASK/045.1 `task/045-1-persistence-input-hardening` (`aac0895` …
 `5b1f952`, 8 commit; son commit A36 kapısı düzeltmesi) owner onayıyla ff-only entegre
@@ -1685,7 +1692,7 @@ formatına yalnız `haptics_enabled` (varsayılan true) eklendi. Ayrıntı ve
 > **main'de** — `task/045-1-persistence-input-hardening` (başlangıç main `017f2dc`) owner
 > onayıyla ff-only alındı (`017f2dc → 5b1f952`, 2026-09-29); **Samsung A36 yerel kapısı GEÇTİ
 > (2026-09-29)** — iki kurtarma bulgusu dalda giderildi (aşağıda). TASK/045'in üç kararlılık
-> takibi; kapsam bunlarla sınırlı (TASK/046 BAŞLAMADI — o an; sonra dalda, §4.24).
+> takibi; kapsam bunlarla sınırlı (TASK/046 BAŞLAMADI — o an; sonra main'de, §4.24).
 
 - **(A) Çökmeye dayanıklı kayıt.** Eski `save_game()` kanonik dosyayı `FileAccess.WRITE` ile
   yerinde kesip yazıyordu: yazma sırasında çökme / öldürme / disk hatası okunamayan bir kayıt
@@ -1802,7 +1809,7 @@ formatına yalnız `haptics_enabled` (varsayılan true) eklendi. Ayrıntı ve
 > **main'de** — `task/045-2-settings-back-input-focus` (başlangıç main `e474fb3`); bulut kapısı
 > geçti; **Samsung A36 yerel kapısı GEÇTİ (2026-09-29)** — yalnız QA paketi, bulgu yok, düzeltme
 > commit'i yok; owner onayıyla ff-only main'e alındı `e474fb3 → a32ee2d` (merge commit yok, ağaç
-> eşit). Kapsam yalnız bu hata (TASK/046 BAŞLAMADI — o an; sonra dalda, §4.24).
+> eşit). Kapsam yalnız bu hata (TASK/046 BAŞLAMADI — o an; sonra main'de, §4.24).
 
 - **Hata (A36, 3/3):** oyun içi dişli → Ayarlar → Android geri → 300 ms'den sonra ilk tahta
   dokunuşunun bırakışı kayboluyor (parça düşmez; ikinci dokunuş normal); KAPAT / karartma
@@ -1891,11 +1898,12 @@ formatına yalnız `haptics_enabled` (varsayılan true) eklendi. Ayrıntı ve
 
 ### 4.24 Günlük / Haftalık Görevler V1 (TASK/046)
 
-> **dalda** — `task/046-daily-weekly-missions` (başlangıç main `56106ef`): `efb9763` çekirdek ·
-> `6543492` arayüz + sonuç rozeti · `137c219` inceleme düzeltmeleri · son commit regresyon /
-> görsel kapı araçları + dokümanlar. **Masaüstü doğrulama tamam (2026-09-29); Samsung A36 yerel
-> kapısı YAPILMADI** — owner onaylı ayrı adım, sonra owner onayıyla main'e ff-only. main
-> DEĞİŞMEDİ (`56106ef`). TASK/047 BAŞLAMADI. Kurallar ve sayılar GAME_DESIGN §5.10'da kilitli,
+> **main'de** — `task/046-daily-weekly-missions` (başlangıç main `56106ef`): `efb9763` çekirdek ·
+> `6543492` arayüz + sonuç rozeti · `137c219` inceleme düzeltmeleri · `5092dad` regresyon /
+> görsel kapı araçları + dokümanlar. Masaüstü doğrulama (2026-09-29) + **Samsung A36 yerel kapısı
+> GEÇTİ (2026-09-30)** — yalnız QA paketi, TASK/046 bulgusu yok, düzeltme commit'i yok; TASK/046.1
+> ile birlikte owner onayıyla ff-only main'e alındı `56106ef → b90bc3c` (merge commit yok).
+> TASK/047 BAŞLAMADI. Kurallar ve sayılar GAME_DESIGN §5.10'da kilitli,
 > görünüm UI_VISUAL_SYSTEM §24.
 
 - **Katalog (kilitli, ayar yok):** günlük `daily_merges` "15 birleşme yap" · `daily_rounds` "2 tur
@@ -2003,19 +2011,22 @@ formatına yalnız `haptics_enabled` (varsayılan true) eklendi. Ayrıntı ve
   / şerit (görev hapı gizliyken düzen aynı) · TASK/045.1 SaveFile işlemi, kurtarma önceliği, yaş
   fail-closed · TASK/045.2 `_input` ve 300 ms · günlük ödüller, onboarding, fiyatlar, sandık
   oranları, monetizasyon yöneticisi.
-- **Samsung A36 yerel kapısı (YAPILMADI — sıradaki owner onaylı adım, yalnız QA paketi):** gerçek
-  round'larla günlük / haftalık ilerleme ve otomatik Hamur (tek + çok görev hapı), GÖREVLER girişi
+- **Samsung A36 yerel kapısı (GEÇTİ 2026-09-30 — yalnız QA paketi, TASK/046 bulgusu yok; kanıt
+  yerel `build/qa_046-gate/`; kapsam):** gerçek round'larla günlük / haftalık ilerleme ve otomatik Hamur (tek + çok görev hapı), GÖREVLER girişi
   güvenli alanda / çakışmasız, pencere geri / X / karartma, girişe ve X'e hızlı çift dokunuş, 300 ms
   sonrası ilk dokunuş, banner yuvası, kayıt kurtarma, TASK/043–045.2 korumaları aynen. Gün / hafta
   dönümü ve saat geri alma masaüstünde saat kancasıyla doğrulandı; cihazda tarih değiştirmek
-  telefon ayarıdır → yalnız owner isterse.
+  telefon ayarıdır → yalnız owner isterse. *(Kapıda gün / hafta dönümü QA saat kancasıyla
+  doğrulandı — telefon saati değişmedi; önceden var olan RESULT_DELAY yarışı cihazda 1/1 yeniden
+  üretildi, görev sayımı doğru — düzeltilmedi, owner kararı.)*
 
 ### 4.25 Yaş ekranı 13+ UX yeniden tasarımı (TASK/046.1)
 
-> **dalda** — `task/046-1-age-gate-13plus-redesign`, TASK/046'nın `5092dad`'i üstüne yığılı (TASK/046
-> ve main merge EDİLMEDİ; main `56106ef`). **Masaüstü doğrulama tamam (2026-09-30); Samsung A36
-> yerel kapısı GEÇTİ (2026-09-30)** — bir cihaz bulgusu düzeltildi (`98d209e`, aşağıda); main'e
-> alınma owner kararı. TASK/047 BAŞLAMADI. Güncel sözleşme
+> **main'de** — `task/046-1-age-gate-13plus-redesign`, TASK/046'nın `5092dad`'i üstüne yığılı
+> (`bc40da1` · `ed08b07` · `1ff0ba1` · `98d209e` · `b90bc3c`). **Masaüstü doğrulama tamam
+> (2026-09-30); Samsung A36 yerel kapısı GEÇTİ (2026-09-30)** — bir cihaz bulgusu düzeltildi
+> (`98d209e`, aşağıda); TASK/046 ile birlikte owner onayıyla ff-only main'e alındı `56106ef →
+> b90bc3c` (merge commit yok). TASK/047 BAŞLAMADI. Güncel sözleşme
 > [AGE_BAND_ROUTING §0.1 / §3.1](docs/monetization/AGE_BAND_ROUTING.md), görünüm UI_VISUAL_SYSTEM
 > §25. TASK/043 tarihçesi (§4.x, AGE_BAND_ROUTING §2–§11) yeniden yazılmadı.
 
@@ -2199,8 +2210,8 @@ squishy-merge/
 | `ui/settings_panel.gd` | Ayarlar penceresi (M8.6-08 yeniden kurulum, shell v2): ses efektleri, titreşim (M8.5-15), gizlilik (gövdede açılır, taşmaz; metin M8.9-01'de AdMob'u anlatır), **"Gizlilik seçenekleri" satırı yalnız UMP form sunuyorsa** (M8.9-01), sürüm; yalnız `set_sfx_enabled` / `set_haptics_enabled` yazar. *(TASK/043: "Yaş bilgisi → Güncelle" satırı yalnız TEEN / ADULT'ta — nötr yaş ekranını yeniden giriş kipinde açar; gizlilik metnine yaş cümlesi.)* |
 | ~~`ui/daily_reward_popup.gd`~~ | **Silindi (M8.9-02.1):** M8.6-08 giriş ödülü penceresi; işlevi birleşik GÜNLÜK ÖDÜLLER penceresinin üst bölgesine taşındı (`StreakStrip` yeniden kullanılıyor). |
 | `ui/daily_rewards_popup.gd` | GÜNLÜK ÖDÜLLER penceresi (M8.9-02 / 02.1, shell v2 kurdele + X) — oyuncunun TEK günlük ödül penceresi: üst bölge "N. GÜN · +15 HAMUR · ALINDI" + seri şeridi (giriş ödülü pencereden önce `DailyReward` ile yazılmış gelir; ilk açılışta kutlama), üç seçenek kartı (ücretsiz sandık AÇ / +150 Hamur REKLAM İZLE / reklamlı sandık REKLAM İZLE), durum rozetleri, sağlayıcı notları, in-modal reveal (RewardGem → +N HAMUR → YENİ SKİN kartı hale payıyla, DEVAM). Ödül vermez, kayda yazmaz; yalnız sinyal. |
-| `ui/age_gate_panel.gd` | Nötr yaş ekranı (TASK/043, shell v2, tepeliksiz): Gün / Ay / Yıl + oyun içi tuş takımı, hazır tarih yok, her tarihte aynı onay adımı, geçersiz / gelecek / çok eski için aynı nötr hata; ZORUNLU / YENİDEN GİRİŞ kipleri; rakamlar yalnız bellekte, dışarı yalnız `resolved(band, transition)`. |
-| `ui/age_restricted_screen.gd` | 13 altı nötr kısıt ekranı (TASK/043, katman 30): eşik / tekrar dene / ebeveyn izni yok, ilerleme silinmez, tek eylem ÇIKIŞ. |
+| `ui/age_gate_panel.gd` | Yaş ekranı (TASK/043; **TASK/046.1 yeniden tasarım**, shell v2, tepeliksiz, opak kabuk zemini): GÜN / AY / YIL seçicileri + pencere içi seçim ızgarası yalnız 13+ tarih sunar (`AgeGate.selectable_*`), hazır tarih yok, onay adımı (DÜZELT / ONAYLA, tek gönderim), tek nötr hata; ZORUNLU (geri çıkmaz) / YENİDEN GİRİŞ kipleri; seçim yalnız bellekte, dışarı yalnız `resolved(band, transition)` (TEEN / ADULT). *(TASK/043'ün tuş takımı emekli.)* |
+| ~~`ui/age_restricted_screen.gd`~~ | **Silindi (TASK/046.1):** TASK/043'ün 13 altı nötr kısıt / ÇIKIŞ ekranı (katman 30); normal girişten ulaşılamıyordu, eski UNDER_13 kaydı artık UNKNOWN + yeniden sorma. |
 | `ui/pause_menu.gd` / `ui/bonus_chest_info.gd` | Mola ve Bonus Sandık bilgi pencereleri — shell v2, oturmuş X (M8.6-08 cila; eylemler/kural değişmedi). |
 | `ui/missions_overlay.gd` / `ui/mission_card.gd` | GÖREVLER penceresi (TASK/046, Main'e ait, katman 12, shell v2 kurdele + X): hero "N / 6" + ray + otomatik ödül notu, GÜNLÜK / HAFTALIK bölümleri (sabit yenilenme ipuçları), 3'er `MissionCard` (metrik kuyusu, metin, TAMAMLANDI çipi, ray + "x / y", Hamur ödülü, 3 px durum halkası); talep butonu yok, kayda yazmaz. |
 | ~~`ui/candy_button.gd`~~ | **Silindi (M8.6-10):** M8.5-08 candy pill CTA'ları; son kullanıcıları Devam + Refill `UiKit`e geçti. Dokuları (`cta_button_*`, `power_button_*`, `panel_candy.png`) ve M8.5 ikon klasörü (`ui/icons/`) de kaldırıldı. |
@@ -2825,6 +2836,9 @@ kaydı salt okunur doğrulandı (sessiz göç, dosya değişmedi); cihazda yaln�
 
 ### TASK/046 — Günlük / Haftalık Görevler V1 — dalda, A36 kapısı bekliyor (2026-09-29)
 
+*(Sonra — 2026-09-30: ✅ Samsung A36 yerel kapısı GEÇTİ; TASK/046.1 ile birlikte owner onayıyla
+ff-only main'e alındı `56106ef → b90bc3c`. RESULT_DELAY için ayrı görev kararı owner'da.)*
+
 *(Masaüstü doğrulama tamam — §4.24; `task/046-daily-weekly-missions`, main DEĞİŞMEDİ.
 Owner'ın yapacağı / onaylayacağı:)*
 
@@ -2841,10 +2855,13 @@ Owner'ın yapacağı / onaylayacağı:)*
   takma ad; Profil'in kimlik kartı buna yer bırakır, sahte yer tutucu yok).~~ → ✅ main'de
   (yukarıda, §4.21); owner brief'i düzenlenebilir takma adı KAPSAM DIŞI bıraktı
   ("Oyuncu" kalır).
-- ~~**TASK/046** — Günlük / Haftalık Görevler (sıradaki).~~ → **dalda** (§4.24;
-  `task/046-daily-weekly-missions`, masaüstü doğrulama tamam — Samsung A36 kapısı + main'e
-  alınması owner onayı bekliyor).
-- **TASK/047** — Günlük Merge Challenge (BAŞLAMADI; owner başlatır).
+- ~~**TASK/046** — Günlük / Haftalık Görevler (sıradaki).~~ → ✅ **main'de** (§4.24; masaüstü +
+  Samsung A36 kapısı GEÇTİ; TASK/046.1 ile birlikte ff-only `56106ef → b90bc3c`, 2026-09-30).
+- **TASK/046.1** — yaş ekranı 13+ UX yeniden tasarımı → ✅ **main'de** (§4.25; A36 kapısı GEÇTİ,
+  cihaz bulgusu `98d209e`; açık uyum riski owner / hukukta).
+- **TASK/047** — Günlük Merge Challenge — **BAŞLAMADI**; sıradaki planlı ürün görevi. Ayrıntılı
+  sözleşmesi (hedef / ödül / sıfırlama / arayüz / kayıt / reklam / XP / görev etkileşimi)
+  tasarlanmadı — uygulamadan önce owner onaylı brif gerekir.
 - ~~**Kararlılık (öneri — TASK/045 engeli değil):** atomik kayıt (`save_game()` yerinde kesip
   yazıyor; geçici dosya + yedekten kurtarma) · güç hedefleme bırakış-düşürme (Büyütücü ve
   Bomba hedef dokunuşunun bırakışı bekleyen parçayı da düşürebilir) · Koleksiyon detayı

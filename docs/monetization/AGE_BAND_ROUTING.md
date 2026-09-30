@@ -4,9 +4,9 @@
 > cihaz kapısı GEÇTİ** (§11); owner stratejisi kaydedildi (`teen_ad_treatment =
 > "age_band_routing"`); owner onayıyla `task/043-age-band-routing` **main'e ff-only alındı**.
 >
-> **TASK/046.1 (2026-09-30, `task/046-1-age-gate-13plus-redesign`, TASK/046 üstüne yığılı —
-> main'e ALINMADI; Samsung A36 yerel kapısı GEÇTİ 2026-09-30, cihaz bulgusu `98d209e` ile düzeltildi —
-> PROJECT_STATUS §4.25):** yaş ekranı yalnız **13+** doğum tarihi seçtirir; 13
+> **TASK/046.1 (2026-09-30, `task/046-1-age-gate-13plus-redesign` — main'de: TASK/046 ile birlikte
+> owner onayıyla ff-only `56106ef → b90bc3c`; masaüstü + Samsung A36 yerel kapısı GEÇTİ, cihaz
+> bulgusu `98d209e` ile düzeltildi — PROJECT_STATUS §4.25):** yaş ekranı yalnız **13+** doğum tarihi seçtirir; 13
 > altı kısıt / çıkış akışı **emekli**. Güncel sözleşme **§0.1**'de; §2 / §3 / §5 / §7 / §8 / §9.8
 > içindeki kısıt ekranı, tuş takımı ve "geri = çık" anlatımı TASK/043 TARİHÇESİDİR (değiştirilmedi,
 > yerine §0.1 geçer). Yönlendirme tablosu (§6), TEEN / ADULT sırası (§7) ve geçiş kuralları
@@ -66,7 +66,9 @@ hukuk incelemesinde AÇIK (§9.10). Bu belgede yeni bir resmî alıntı yok; §1
 2026-09-27 okumasıdır.
 
 Kanıt (yerel, gitignore'lu): `build/qa_0461/tests/` (masaüstü suite logları),
-`build/qa_0461/shots/final/` (6 boyut × 11 kare). Fiziksel A36 kapısı sonra.
+`build/qa_0461/shots/final/` (6 boyut × 11 kare). Fiziksel Samsung A36 kapısı GEÇTİ (2026-09-30;
+yerel kanıt `build/qa_0461-gate/device/GATE_LOG.md`) — dışa aktarılmış derlemede zemin boyutu
+bulgusu `98d209e` ile düzeltildi. Uyum riski (aşağıda) kapıdan etkilenmez, AÇIK kalır.
 
 ## 1. Resmî araştırmanın kullandığı gerçekler (özet — hukuki sonuç DEĞİL)
 

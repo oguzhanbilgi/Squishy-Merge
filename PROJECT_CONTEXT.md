@@ -74,28 +74,32 @@ alınacak — şimdi tahmin/vaat yok.
 
 ## Current state
 
-**Kanonik durum — 2026-09-29.** Bugünün gerçeği bu bölüm +
+**Kanonik durum — 2026-09-30.** Bugünün gerçeği bu bölüm +
 [Current release blockers](#current-release-blockers) +
 [Next action](#next-action); aşağıdaki "Milestone tarihçesi" değil.
 
-- **TASK/046.1 — yaş ekranı 13+ UX yeniden tasarımı (2026-09-30): dalda**
-  (`task/046-1-age-gate-13plus-redesign`, TASK/046'nın `5092dad`'i üstüne yığılı; main ve
-  TASK/046 dalı DEĞİŞMEDİ, hiçbiri merge edilmedi). Owner kararı: yaş ekranı yalnız **13+** doğum
-  tarihi seçtirir (GÜN / AY / YIL seçicileri + seçim ızgarası, tuş takımı emekli); 13 altı kısıt /
-  çıkış ekranı **emekli**; zorunlu kipte Android geri uygulamadan çıkmaz; eski `UNDER_13` kaydı
-  UNKNOWN sayılıp yeniden sorulur (reklam yok, TEEN / ADULT'a çevrilmez, ilerleme durur); TEEN /
-  ADULT yönlendirmesi ve 18. yaş günü geçişi AYNEN; ham doğum tarihi saklanmaz. **AÇIK uyum
-  riski:** yalnız 13+ seçilebilen tarih, Play nötr yaş ekranı rehberiyle çelişebilir — owner "Build
-  as specified" seçti, hukuk incelemesi owner'da ([AGE_BAND_ROUTING §0.1 / §9.10](docs/monetization/AGE_BAND_ROUTING.md)).
-  Masaüstü doğrulama tamam; **Samsung A36 yerel kapısı GEÇTİ (2026-09-30)** — cihaz bulgusu (yaş
-  panelinin opak zemini dışa aktarılmış derlemede boyut 0'dı, Ana Sayfa görünüyordu) `98d209e` ile
-  düzeltildi. Ayrıntı: PROJECT_STATUS §4.25.
-  (TASK/046'nın kendi yerel A36 kapısı 2026-09-30'da GEÇTİ — kanıt yerel, dala commit edilmedi;
-  TASK/046 main'e alınmadı.)
-
-- **Repo:** **TASK/046 Günlük / Haftalık Görevler V1 dalda** (`task/046-daily-weekly-missions`,
-  main `56106ef`'ten; masaüstü doğrulama tamam — Samsung A36 kapısı + main'e alınması owner onayı
-  bekliyor; main DEĞİŞMEDİ). `main == origin/main` (2026-09-29): **TASK/045.2 owner onayıyla ff-only main'e
+- **Repo (2026-09-30):** `main == origin/main == b90bc3c38b72e232edb5afe6d099da9e5e902072`.
+  **TASK/046 + TASK/046.1 owner onayıyla BİRLİKTE ff-only main'e alındı** — doğrulanmış doğrusal
+  zincir `56106ef` → TASK/046 (`efb9763` · `6543492` · `137c219` · `5092dad`) → TASK/046.1
+  (`bc40da1` · `ed08b07` · `1ff0ba1` · `98d209e` · `b90bc3c`); merge commit / rebase / squash /
+  cherry-pick YOK. Dallar referans için duruyor (`task/046-daily-weekly-missions` = `5092dad`,
+  `task/046-1-age-gate-13plus-redesign` = `b90bc3c`). **TASK/047 BAŞLAMADI.**
+- **TASK/046.1 — yaş ekranı 13+ UX yeniden tasarımı — TAMAM, main'de** (2026-09-30; masaüstü
+  doğrulama + Samsung A36 yerel kapısı GEÇTİ — tek gerçek bulgu yalnız Android'de: dışa aktarılmış
+  derlemede yaş panelinin opak zemini boyut 0'dı (Ana Sayfa görünüyordu), `98d209e` tam ekran
+  zemini açıkça kuruyor; son A36 sonucu GEÇTİ). Güncel yaş davranışı: kullanıcıya görünen doğum
+  tarihi seçicisi (GÜN / AY / YIL + seçim ızgarası) yalnız geçerli **13+** tarihleri sunar; eski tuş
+  takımı ve 13 altı kısıt / ÇIKIŞ ekranı **emekli**; zorunlu kipte Android geri uygulamadan çıkmaz;
+  eski `UNDER_13` kaydı → UNKNOWN + yeniden sorma (asla kendiliğinden UNDER_13 → TEEN yok,
+  ilerleme durur); TEEN → TFAT TEEN + T; ADULT → UNSPECIFIED + MA; UNKNOWN → UMP / SDK / reklam
+  YOK; ham doğum tarihi yine saklanmaz; 18 yaşında soğuk açılışta TEEN → ADULT geçişi aynen;
+  Ayarlar → Yaş bilgisi aynı yeniden giriş arayüzünü kullanır; yaş arayüzü açıkken banner gizli;
+  Play Age Signals reklam yönlendirmesinde KULLANILMAZ. **AÇIK uyum riski:** yalnız 13+
+  seçilebilen tarih, Play nötr yaş ekranı rehberiyle çelişebilir — owner açıkça "Build as
+  specified" seçti; uyumlu / onaylı / hukuken güvenli DENMEZ, owner / hukuk / release kalemi
+  olarak AÇIK ([AGE_BAND_ROUTING §0.1 / §9.10](docs/monetization/AGE_BAND_ROUTING.md); aşağıda
+  release engeli 3c). Ayrıntı: PROJECT_STATUS §4.25.
+- **Önceki entegrasyonlar:** 2026-09-29: **TASK/045.2 owner onayıyla ff-only main'e
   alındı** (`task/045-2-settings-back-input-focus`: `c990b63` + `a32ee2d`; `e474fb3 → a32ee2d`,
   merge commit yok, ağaç eşit — Samsung A36'da doğrulanmış ağaç); üstünde yalnız bu durum
   doküman commit'i. Aynı gün önce **TASK/045.1** ff-only (`task/045-1-persistence-input-hardening`:
@@ -108,7 +112,7 @@ alınacak — şimdi tahmin/vaat yok.
   kod + `3d15402` doküman / A36 kapısı kaydı; `cbdcb8f → 3d15402`),
   `task/041-fix-request-configuration` (`7e1e378` + `d32a4d3`, durum commit'i `cbdcb8f`) ve
   `task/040-global-teen-compliance` (`025214a` + `e152986`, durum commit'i `ee01841`) — hepsi
-  owner onayıyla, merge commit yok. `task/014`…`task/045-2` dallarının hepsi main'de
+  owner onayıyla, merge commit yok. `task/014`…`task/046-1` dallarının hepsi main'de
   (referans için duruyor).
   Main'e bilerek girmeyen iki dal: `task/m8.6-03-home` (reddedildi, asla
   birleştirilmez) ve `task/ui-layerlab-style-spike` (seçilen parçaları
@@ -128,7 +132,7 @@ alınacak — şimdi tahmin/vaat yok.
   banner yüzeyi değil. Ekonomi, sandık oranları, fiyatlar, reklam sözleşmesi, TASK/043
   yaş yönlendirmesi, fizik / merge DEĞİŞMEDİ. ~~XP / seviye / başarım / görev YOK
   (TASK/045–047)~~ → XP / seviye / başarım / unvan TASK/045 ile geldi (aşağıda); görev YOK
-  (TASK/046–047) *(TASK/046 günlük / haftalık görevleri dalda — aşağıda; TASK/047 BAŞLAMADI)*. Ayrıntı: GAME_DESIGN §5.3 / §5.8, UI_VISUAL_SYSTEM §17 / §22.
+  (TASK/046–047) *(TASK/046 günlük / haftalık görevler main'de — aşağıda; TASK/047 BAŞLAMADI)*. Ayrıntı: GAME_DESIGN §5.3 / §5.8, UI_VISUAL_SYSTEM §17 / §22.
 - **TASK/045 Player Progression V1 — TAMAM, main'de** (`task/045-player-level-achievements`,
   başlangıç main `115252c`; **Samsung A36 yerel kapısı GEÇTİ 2026-09-28** — yalnız QA paketi,
   bulgu yok, düzeltme commit'i yok; owner onayıyla ff-only main'e alındı `115252c → d4c8548`,
@@ -182,9 +186,10 @@ alınacak — şimdi tahmin/vaat yok.
   yeni basışı yutulan eski diziyi kapatır (takılı bastırma yok). **300 ms aynen**, yeni
   zamanlayıcı / bekleme yok; TASK/044–045 çift dokunuş korumaları aynen. Gameplay / ekonomi /
   ilerleme / kayıt / reklam / yaş yönlendirmesi DEĞİŞMEDİ. Ayrıntı: PROJECT_STATUS §4.23.
-- **TASK/046 Günlük / Haftalık Görevler V1 — dalda, main'e alınması owner onayı bekliyor**
-  (`task/046-daily-weekly-missions`, başlangıç main `56106ef`; masaüstü doğrulama tamam, Samsung
-  A36 kapısı ayrı owner onaylı adım). Yerel / çevrimdışı 6 KİLİTLİ görev: günlük `daily_merges`
+- **TASK/046 Günlük / Haftalık Görevler V1 — TAMAM, main'de**
+  (`task/046-daily-weekly-missions`, başlangıç main `56106ef`; masaüstü doğrulama + inceleme /
+  mutasyon / görsel kapı + Samsung A36 yerel kapısı GEÇTİ; TASK/046.1 ile birlikte owner onayıyla
+  ff-only main'e alındı `56106ef → b90bc3c`, 2026-09-30). Yerel / çevrimdışı 6 KİLİTLİ görev: günlük `daily_merges`
   15 merge · `daily_rounds` 2 tur · `daily_clear` 1 level (+10 Hamur her biri), haftalık
   `weekly_merges` 120 · `weekly_rounds` 12 · `weekly_clears` 5 (+40 her biri) — **haftada en
   fazla 330 Hamur**. İlerleme YALNIZ kesin biten round'dan (TASK/045 XP'siyle aynı gerçek merge
@@ -239,10 +244,13 @@ alınacak — şimdi tahmin/vaat yok.
   bazında (oyun içi Ayarlar → GERİ sonrası ilk tahta dokunuşu); süre aynen, yeni zamanlayıcı
   yok; fizik, merge, skor, ekonomi, XP, kayıt, reklam sözleşmesi, TASK/043 yaş yönlendirmesi
   AYNI.)*
-  *(TASK/046, dalda: günlük / haftalık görevler — tek yeni ekonomi kaynağı otomatik görev
+  *(TASK/046, main'de: günlük / haftalık görevler — tek yeni ekonomi kaynağı otomatik görev
   Hamur'u (haftada ≤ 330); kayıt şemasına sürümlü `missions` eklendi (kayıt işlemi aynı); Ana
   Sayfa'ya tek GÖREVLER girişi + pencere, sonuç ekranında görev rozeti. Fizik, merge, skor, XP,
   başarımlar, fiyatlar, sandık oranları, günlük ödüller, reklam sözleşmesi, TASK/043 AYNI.)*
+  *(TASK/046.1, main'de: yaş ekranı arayüzü — yalnız 13+ seçici, kısıt ekranı emekli, eski
+  UNDER_13 yeniden sorulur, yaş arayüzü açıkken banner gizli; TEEN / ADULT yönlendirmesi, TFCD /
+  TFUA, GMA / UMP, ekonomi, görevler, XP AYNI.)*
 - **Kalıcı paket kimliği KİLİTLENDİ (owner kararı, 2026-09-24):** üretim / Play
   = `com.obappstudio.squishymerge` (project.godot `squishy/release/android_package_id`
   + yerel release presetleri); QA / test = `com.obappstudio.squishymerge.qa` (debug
@@ -293,7 +301,10 @@ alınacak — şimdi tahmin/vaat yok.
   (bağımlılık yok). Resmî araştırma iki somut açık madde buldu → kapıda ayrı OWNER / UYUM
   satırları: Play "Uygunsuz reklamlar" (uygulamanın içerik derecesi T / MA'ya uygun
   olmalı) ve yargı bölgesi yaş yükümlülükleri
-  ([AGE_BAND_ROUTING.md](docs/monetization/AGE_BAND_ROUTING.md)).
+  ([AGE_BAND_ROUTING.md](docs/monetization/AGE_BAND_ROUTING.md)). *(Sonra: TASK/046.1 — main'de
+  2026-09-30 — tuş takımı yerine yalnız 13+ tarih sunan GÜN / AY / YIL seçicisi; 13 altı kısıt
+  ekranı EMEKLİ, eski UNDER_13 kaydı UNKNOWN + yeniden sorma, 13 altı → TEEN otomatik geçişi YOK;
+  TEEN / ADULT yönlendirmesi ve 18. yaş günü geçişi aynen — yukarıda.)*
 - **TASK/040 fizibilitesi (2026-09-25; main'de 2026-09-27):** Godot 4.6.3 + vendored
   godot-admob v6.0 + GMA **25.3.0** (UMP 4.0.0) üzerinde `AgeRestrictedTreatment.TEEN`
   **Samsung A36'da kanıtlandı** — MobileAds başlatmadan önce ve her reklam
@@ -386,6 +397,10 @@ Bugün açık olan maddelerin tamamı — adımlar ve ayrıntı:
    Brezilya Digital ECA, ABD eyalet yasaları, AB / BK / İsviçre dijital rıza yaşı,
    Families "bazı yerlerde çocuk"; owner / hukuk kararı → `[Audience]
    jurisdiction_age_review = "recorded"`.
+   **3c. Yalnız 13+ seçilebilen yaş ekranı ↔ Play nötr yaş ekranı rehberi** (TASK/046.1;
+   AGE_BAND_ROUTING §0.1 / §9.10) — AÇIK: owner "Build as specified" seçti; uyumlu / onaylı /
+   hukuken güvenli DENMEZ — owner / hukuk kararı. Release kapısı bunu uyum kararı olarak
+   denetlemez (yalnız kod sözleşmesi olarak 13+ seçim kuralını denetler).
 4. **Gizlilik politikası metni + herkese açık HTTPS URL'i** — project.godot
    `squishy/privacy/policy_url` + Play Console alanı.
 5. **Upload anahtarı** — owner oluşturur (checklist §4); yalnız ortam
@@ -421,8 +436,9 @@ kusurlu `90d35992…` yine CODE; düzeltme `0002` aynen korunuyor, kusur kapalı
 karma / yalnız çocuk kararları hâlâ CODE ile reddedilir, boş karar OWNER.
 13–17 genç reklam işlemi (madde 3) CODE değil OWNER / uyum engeli: owner onaylı yaş
 bandı yönlendirmesi TASK/043 ile kodlandı ve main'e alındı; uyum / hukuki belirleme
-owner'da (A/B kod ister, C hukuki kayıt). *(Sonra: TASK/043 — kod dalda; kapı yaş bandı
-kod tablosunu owner tablosuyla karşılaştırır, her sapma CODE.)*
+owner'da (A/B kod ister, C hukuki kayıt). *(Sonra: TASK/043 — kod main'de; kapı yaş bandı
+kod tablosunu owner tablosuyla karşılaştırır, her sapma CODE; TASK/046.1'den beri 13+ seçim
+kuralı da bu sözleşmede.)*
 
 **Technical debt** — engel DEĞİL, kapalı test hazırlığını durdurmaz:
 - Google Mobile Ads **24.9.0** (legacy) ve eski yaş işleme yolu (TFCD/TFUA);
@@ -465,10 +481,14 @@ kod tablosunu owner tablosuyla karşılaştırır, her sapma CODE.)*
      için yetmezse yönlendirme dereceleri owner kararıyla düşürülür (checklist #28).
    - **3b.** Yargı bölgesi yaş yükümlülükleri değerlendirmesi (owner / hukuk) →
      `[Audience] jurisdiction_age_review = "recorded"` (checklist #29).
-4. Gizlilik politikası (metin + HTTPS URL)
+   - **3c.** Yalnız 13+ seçilebilen yaş ekranı ↔ Play nötr yaş ekranı rehberi — AÇIK uyum
+     riski (owner "Build as specified"; AGE_BAND_ROUTING §9.10) — owner / hukuk kararı.
+4. Gizlilik politikası (metnin son incelemesi + herkese açık HTTPS URL)
 5. Upload anahtarı
 6. Gerçek AdMob kimlikleri (App ID + Banner + Rewarded + Interstitial)
-7. Play Store varlıkları / Play Console alanları
+7. Play Store varlıkları / Play Console alanları (IARC, Data safety, hedef kitle, reklam beyanı)
+8. İlk gerçek imzalı üretim AAB'si (yalnız `tools/release/release_android.sh check` UPLOAD_CANDIDATE dedikten
+   sonra)
 
 **Paralel ürün işi — TASK/044 Player Meta V1:** ✅ **TAMAM, main'de** (owner onayıyla
 ff-only `327dd60 → 239f2e7`, 2026-09-28). **Samsung A36 yerel kapısı GEÇTİ (2026-09-28,
@@ -483,7 +503,7 @@ Profil yolu, reklam yüzeyleri. Giderilen: geçiş sonrası 300 ms parmak yatı�
 V1: ✅ TAMAM, main'de** (bulut kapısı + Samsung A36 yerel kapısı GEÇTİ 2026-09-28, yalnız QA
 paketi, bulgu yok; owner onayıyla ff-only `115252c → d4c8548`). Ayrıntı: PROJECT_STATUS
 §4.21. ~~TASK/046 (Günlük/Haftalık Görevler) ve TASK/047 (Günlük Merge Challenge)
-**BAŞLAMADI** — sıradaki ürün görevi TASK/046 (owner başlatır).~~ → TASK/046 dalda (aşağıda);
+**BAŞLAMADI** — sıradaki ürün görevi TASK/046 (owner başlatır).~~ → TASK/046 ✅ main'de (aşağıda);
 TASK/047 (Günlük Merge Challenge) **BAŞLAMADI**.
 
 ~~**Kararlılık takibi (öneri, BAŞLAMADI — TASK/045 engeli değil):** (A) `save_game()` kaydı
@@ -494,7 +514,7 @@ Bomba ile de görüldü); (C) Koleksiyon detayı otomatik günlük pencere kapı
 artığı).~~ → **TASK/045.1: ✅ TAMAM, main'de** (A + B + C; Samsung A36 yerel kapısı GEÇTİ
 2026-09-29, QA paketi, iki kurtarma bulgusu giderildi; owner onayıyla ff-only `017f2dc →
 5b1f952`). Ayrıntı: PROJECT_STATUS §4.22. ~~**TASK/046 BAŞLAMADI** — sıradaki ürün görevi
-(owner başlatır).~~ → TASK/046 dalda (aşağıda).
+(owner başlatır).~~ → TASK/046 ✅ main'de (aşağıda).
 
 ~~**Önerilen TASK/045.2 — girdi odağı cilası (öneri, BAŞLAMADI; TASK/045.1 engeli değildi):**
 oyun içi Ayarlar dişlisiyle açılıp Android geri tuşuyla kapatılınca ilk tahta dokunuşunun
@@ -513,20 +533,21 @@ değiştirir, ayrı görev; (2) Koleksiyon kartı basılıyken GERİ → detay G
 sentetik bırakışında açılır — A36'da 5/5 gizleme anında, 0/5 fiziksel bırakışta; `Main._input`
 ile ilgisiz. ~~**TASK/046 BAŞLAMADI** — sıradaki ürün görevi (owner başlatır).~~ → aşağıda.
 
-**TASK/046.1 — yaş ekranı 13+ UX (dalda, TASK/046 üstüne yığılı):** ~~Samsung A36 yerel kapısı~~
-✅ GEÇTİ (2026-09-30; bulgu `98d209e` ile düzeltildi). Sıradaki: owner incelemesi / entegrasyon kararı
-— önce TASK/046, sonra TASK/046.1 main'e (ff-only). Açık uyum riski (13+ seçim ↔ nötr
-yaş ekranı rehberi) owner / hukukta — AGE_BAND_ROUTING §9.10. Ayrıntı: PROJECT_STATUS §4.25.
+**Ürün işi — TASK/046 Günlük / Haftalık Görevler V1 + TASK/046.1 yaş ekranı 13+ UX: ✅ TAMAM,
+main'de** (masaüstü + Samsung A36 yerel kapıları GEÇTİ; owner onayıyla birlikte ff-only
+`56106ef → b90bc3c`, 2026-09-30). Ayrıntı: PROJECT_STATUS §4.24 / §4.25. TASK/046.1'in açık uyum
+riski (13+ seçim ↔ nötr yaş ekranı rehberi) release izinde **3c** olarak AÇIK.
 
-**Ürün işi — TASK/046 Günlük / Haftalık Görevler V1: dalda** (`task/046-daily-weekly-missions`,
-main `56106ef`'ten; masaüstü doğrulama tamam — yeni `missions_test` + `missions_ui_test`, genişletilmiş
-`result_ui_test`, tam regresyon, mutasyonlar, 6 görünümde görsel kanıt). **Sıradaki adım:** owner
-onaylı **Samsung A36 yerel kapısı** (yalnız QA paketi) → owner onayıyla main'e alınma. Ayrıntı:
-PROJECT_STATUS §4.24. **TASK/047 (Günlük Merge Challenge) BAŞLAMADI** — owner başlatır.
-İncelemede TASK/046'dan bağımsız, önceden var olan bir MEDIUM bulundu — **öneri, BAŞLAMADI**
-(owner kararı): sonuç gecikmesi (RESULT_DELAY) bitiren board'a bağlı değil; Mola açıkken
-Büyütücü dönüşümü round'u bitirip 0,8 sn içinde "Yeniden Başlat" basılırsa eski round'un geçiş
-reklamı / sonucu yeni round'un üstüne açılabilir (görev sayımı doğru; §4.24).
+**Sıradaki planlı ürün görevi: TASK/047 — Günlük Merge Challenge — BAŞLAMADI.** Ayrıntılı
+sözleşmesi (hedef, ödül, sıfırlama ritmi, arayüz, kayıt şeması, reklam davranışı, XP ve görev
+etkileşimi) henüz TASARLANMADI / ONAYLANMADI — uygulamadan önce owner onaylı bir brif gerekir;
+hiçbir sayı ya da kural tahmin edilmez. Ürün işi yukarıdaki release izini (3a–8) kapatmaz.
+
+Önceden var olan, owner kararı bekleyen öneriler (**BAŞLAMADI**): sonuç gecikmesi
+(RESULT_DELAY) bitiren board'a bağlı değil — Mola açıkken Büyütücü dönüşümü round'u bitirip
+0,8 sn içinde "Yeniden Başlat" basılırsa eski round'un geçiş reklamı / sonucu yeni round'un
+üstüne açılabilir (görev sayımı doğru; TASK/046 A36 kapısında cihazda yeniden üretildi, §4.24);
+ACTION_CANCEL ve basılı Koleksiyon kartı + GERİ gözlemleri (yukarıda, TASK/045.2).
 
 Her madde owner girdisi ister; hiçbiri tahmin edilmez ya da uydurulmaz.
 Gizlilik politikası, upload anahtarı ve AdMob kimliklerinde repoda yalnız

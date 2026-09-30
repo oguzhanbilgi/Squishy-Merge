@@ -46,7 +46,7 @@
   (`selected_title_id`, sabit katalogdan — serbest metin DEĞİL) ve şema sürümü
   (`player_meta_version`). Hepsi yalnız cihazdaki oyun kaydında; sunucu / hesap / skor
   tablosu / paylaşım YOK, reklam veya analitiğe gönderilmez.
-  TASK/046 Günlük / Haftalık Görevler (dalda): `missions` — şema sürümü, içinde bulunulan gün
+  TASK/046 Günlük / Haftalık Görevler (main'de): `missions` — şema sürümü, içinde bulunulan gün
   ve haftanın pazartesisi (`YYYY-MM-DD`, cihazın yerel takvimi; GÜNLÜK ÖDÜLLER'in gün
   anahtarıyla aynı kaynak), sabit katalogdaki altı görevin sayaçları ve ödülü verilmiş görev
   kimlikleri. Yalnız oyun içi sayaç — kişisel veri / serbest metin yok; sunucu / hesap /
@@ -59,7 +59,7 @@
   UNDER_13 / TEEN bandında bu geçiş günü doğum tarihine matematiksel olarak eşdeğerdir
   (geçiş − 13 / 18 yıl); yalnız cihazdaki kayıtta durur, ADULT olunca silinir (TASK/045.1:
   kaydın bir önceki kuşak kopyası `.bak` de o kayıtta atılır).
-  **TASK/046.1 (2026-09-30, dal — main'e alınmadı):** yaş ekranı yalnız 13+ doğum tarihi
+  **TASK/046.1 (2026-09-30, main'de):** yaş ekranı yalnız 13+ doğum tarihi
   seçtirir; normal giriş artık `UNDER_13` YAZMAZ — yeni kayıtlarda bant yalnız UNKNOWN / TEEN /
   ADULT, geçiş günü yalnız TEEN'de (18. yaş günü). TASK/043 döneminden kalan `UNDER_13` + 13.
   yaş günü açılışta TEK yazmayla `UNKNOWN` + boş tarihe çevrilir ve `.bak` kopyası atılır (reklam
