@@ -1,20 +1,28 @@
 class_name AgeGate
 extends RefCounted
-## Nötr yaş ekranı + yaş bandı reklam yönlendirmesinin TEK modeli (TASK/043 —
+## Yaş ekranı + yaş bandı reklam yönlendirmesinin TEK modeli (TASK/043 —
 ## docs/monetization/AGE_BAND_ROUTING.md). Owner iş kararı (2026-09-27): 13–17 reklam
 ## alır (TEEN işlemi + en yüksek derece T), 18+ olağan yetişkin yolu (UNSPECIFIED + MA),
-## 13 yaş altı ve bilinmeyen yaş: reklam SDK'sı HİÇ başlamaz, UMP sorulmaz, reklam yok.
+## bilinmeyen yaş: reklam SDK'sı HİÇ başlamaz, UMP sorulmaz, reklam yok.
 ##
-## GİZLİLİK (veri azaltma): oyuncunun girdiği doğum tarihi yalnız bellekte, yalnız
-## `classify_birth_date()` çağrısı boyunca yaşar; SAKLANMAZ, loglanmaz, analitiğe /
-## reklama / Play Age Signals'a GİTMEZ. Kalıcı olan yalnız türetilmiş durum
+## TASK/046.1 (owner kararı, 2026-09-30 — ürün 13+): oyuncu yalnız 13 yaş ve üstünü
+## gösteren bir doğum tarihi SEÇEBİLİR (`classify_selected_birth_date`, seçici aralığı
+## `selectable_*`); normal giriş UNDER_13 üretmez, 13 altı kısıt / çıkış ekranı emekli.
+## Eski kayıttaki UNDER_13 (TASK/043 dönemi) otomatik TEEN / ADULT'a ÇEVRİLMEZ, yaş TAHMİN
+## EDİLMEZ: `resolve_stored` onu UNKNOWN'a indirir (reklam yok, zorunlu yaş ekranı yeniden).
+## `classify_birth_date` ham sınıflandırıcı olarak kalır (UNDER_13 dönebilir — yalnız eski
+## kayıt / test / QA sentetik bantları için; oyuncu girişi onu doğrudan kullanmaz).
+##
+## GİZLİLİK (veri azaltma): oyuncunun seçtiği doğum tarihi yalnız bellekte, yalnız
+## sınıflandırma çağrısı boyunca yaşar; SAKLANMAZ, loglanmaz, analitiğe / reklama / Play Age
+## Signals'a GİTMEZ. Kalıcı olan yalnız türetilmiş durum
 ## (SaveManager `age_ad_band` + `next_age_transition_date`):
-##   UNDER_13 -> 13. yaş günü   (kısıt o gün kalkar)
 ##   TEEN     -> 18. yaş günü   (o gün ADULT olur, soğuk açılışta, SDK'dan ÖNCE)
 ##   ADULT    -> tarih YOK
-## Dürüst not: UNDER_13 / TEEN için saklanan geçiş günü doğum gününden türetilir (13. /
-## 18. yıl dönümü); o bantta doğum tarihine matematiksel olarak eşdeğerdir. Yalnız bu
-## cihazda, oyuncunun kendi kayıt dosyasında durur; ADULT olunca silinir.
+##   (UNDER_13 -> 13. yaş günü: yalnız TASK/043 döneminden kalma kayıtlarda; artık yazılmaz)
+## Dürüst not: TEEN için saklanan geçiş günü doğum gününden türetilir (18. yıl dönümü); o
+## bantta doğum tarihine matematiksel olarak eşdeğerdir. Yalnız bu cihazda, oyuncunun kendi
+## kayıt dosyasında durur; ADULT olunca silinir.
 ##
 ## TAKVİM KURALLARI (tarih-yalnız; saat / saat dilimi / "gün / 365" YOK):
 ##   - Yaş, takvim yıl dönümüyle: yıl dönümü günü yaş dolar (13. yaş günü TEEN,
@@ -35,13 +43,19 @@ extends RefCounted
 ## / pazarlama / profilleme / analitik kullanımını yasaklıyor — GLOBAL_TEEN_AD_TREATMENT ⚠).
 
 enum Band { UNKNOWN, UNDER_13, TEEN, ADULT }
-## Doğum tarihi girişinin sonucu. Oyuncuya hepsi AYNI nötr mesajla gösterilir.
-enum EntryError { NONE, INVALID, FUTURE, TOO_OLD }
+## Doğum tarihi girişinin sonucu. Oyuncuya hepsi AYNI nötr mesajla gösterilir. TOO_YOUNG
+## (TASK/046.1): seçilebilir aralığın dışında kalan (13 yaşından genç) tarih — seçici bunu hiç
+## göstermez; buraya ancak bozuk / değişmiş bir saatle ulaşılır.
+enum EntryError { NONE, INVALID, FUTURE, TOO_OLD, TOO_YOUNG }
 
 ## Kayıttaki değerler (indeks = Band). Başka her değer bozuk sayılır -> UNKNOWN.
 const BAND_KEYS: Array[String] = ["UNKNOWN", "UNDER_13", "TEEN", "ADULT"]
 const TEEN_AGE: int = 13
 const ADULT_AGE: int = 18
+## TASK/046.1 (owner kararı, 2026-09-30): ürün 13+ — yaş seçici bu yaştan genç bir doğum
+## tarihini HİÇ sunmaz (13 altı kısıt / çıkış akışı emekli). Aralığın tek kaynağı bu sınıf
+## (`youngest_allowed_birth_date` / `selectable_*` / `clamp_selection`); UI takvim hesabı yapmaz.
+const MIN_SELECTABLE_AGE: int = TEEN_AGE
 ## Bundan eski doğum tarihi geçerli sayılmaz (yazım hatası koruması).
 const MAX_AGE_YEARS: int = 120
 ## Saklanan geçiş gününün üst sınırında saat dilimi / küçük saat geri alma payı (gün).
@@ -116,6 +130,20 @@ static func parse_day(text: Variant) -> Dictionary:
 			return {}
 	var date: Dictionary = make_date(int(parts[0]), int(parts[1]), int(parts[2]))
 	return date if is_valid_date(date["year"], date["month"], date["day"]) else {}
+
+
+## Önceki takvim günü.
+static func previous_day(date: Dictionary) -> Dictionary:
+	var year: int = int(date["year"])
+	var month: int = int(date["month"])
+	var day: int = int(date["day"]) - 1
+	if day < 1:
+		month -= 1
+		if month < 1:
+			month = 12
+			year -= 1
+		day = days_in_month(year, month)
+	return make_date(year, month, day)
 
 
 ## Ertesi takvim günü.
@@ -204,15 +232,124 @@ static func classify_birth_date(year: int, month: int, day: int, on_day: Diction
 	return out
 
 
+# --- 13+ seçim aralığı (TASK/046.1) -------------------------------------------------------
+#
+# Oyuncunun seçebileceği doğum tarihleri: [oldest_allowed, youngest_allowed] (iki uç dahil).
+# Bu fonksiyonlar `classify_birth_date`'in KENDİ kurallarından türer (yıl dönümü, 29 Şubat,
+# MAX_AGE_YEARS): aralıktaki her tarih TEEN / ADULT sınıflanır, aralık dışındaki hiçbiri
+# seçilemez. UI yalnız bunları okur.
+
+## `on_day`'de en az MIN_SELECTABLE_AGE yaşında olan EN GEÇ doğum günü: `anniversary(d, 13)
+## <= on_day` olan en büyük d. Çoğu gün `anniversary(on_day, -13)`; 29 Şubat "bugün"ünde 13
+## yıl önce artık yıl değilse 28 Şubat (1 Mart doğumlunun 13. yaş günü henüz gelmedi).
+static func youngest_allowed_birth_date(on_day: Dictionary) -> Dictionary:
+	var year: int = int(on_day["year"]) - MIN_SELECTABLE_AGE
+	var month: int = int(on_day["month"])
+	var candidate: Dictionary = make_date(year, month, mini(int(on_day["day"]), days_in_month(year, month)))
+	while compare(anniversary(candidate, MIN_SELECTABLE_AGE), on_day) > 0:
+		candidate = previous_day(candidate)
+	return candidate
+
+
+## En eski kabul edilen doğum günü — `classify_birth_date`'in TOO_OLD sınırı (MAX_AGE_YEARS).
+static func oldest_allowed_birth_date(on_day: Dictionary) -> Dictionary:
+	return anniversary(on_day, -MAX_AGE_YEARS)
+
+
+static func is_selectable_birth_date(year: int, month: int, day: int, on_day: Dictionary) -> bool:
+	if not is_valid_date(year, month, day):
+		return false
+	var birth: Dictionary = make_date(year, month, day)
+	return compare(birth, oldest_allowed_birth_date(on_day)) >= 0 \
+		and compare(birth, youngest_allowed_birth_date(on_day)) <= 0
+
+
+## Seçicinin yıl aralığı: Vector2i(en eski yıl, en genç yıl).
+static func selectable_year_range(on_day: Dictionary) -> Vector2i:
+	return Vector2i(int(oldest_allowed_birth_date(on_day)["year"]), int(youngest_allowed_birth_date(on_day)["year"]))
+
+
+## `year` yılında seçilebilecek aylar: Vector2i(ilk, son); yıl aralık dışındaysa boş (x > y).
+static func selectable_month_range(year: int, on_day: Dictionary) -> Vector2i:
+	var years: Vector2i = selectable_year_range(on_day)
+	if year < years.x or year > years.y:
+		return Vector2i(1, 0)
+	var first: int = int(oldest_allowed_birth_date(on_day)["month"]) if year == years.x else 1
+	var last: int = int(youngest_allowed_birth_date(on_day)["month"]) if year == years.y else 12
+	return Vector2i(first, last)
+
+
+## Seçilebilecek günler: Vector2i(ilk, son). `month` 0 = henüz seçilmedi (1..31); `year` 0 =
+## henüz seçilmedi (ayın en uzun hali — Şubat 29). Ay o yıl seçilemiyorsa boş (x > y).
+static func selectable_day_range(year: int, month: int, on_day: Dictionary) -> Vector2i:
+	if month < 1 or month > 12:
+		return Vector2i(1, 31)
+	if year == 0:
+		return Vector2i(1, 29 if month == 2 else days_in_month(2001, month))
+	var months: Vector2i = selectable_month_range(year, on_day)
+	if month < months.x or month > months.y:
+		return Vector2i(1, 0)
+	var first: int = 1
+	var last: int = days_in_month(year, month)
+	var young: Dictionary = youngest_allowed_birth_date(on_day)
+	var old: Dictionary = oldest_allowed_birth_date(on_day)
+	if year == int(young["year"]) and month == int(young["month"]):
+		last = mini(last, int(young["day"]))
+	if year == int(old["year"]) and month == int(old["month"]):
+		first = maxi(first, int(old["day"]))
+	return Vector2i(first, last)
+
+
+## Oyuncu bir alanı değiştirdi: seçili diğer alanlar uyarlanır (0 = seçilmedi).
+##   - TAKVİM uyarlaması kırpar: gün ayın son gününe (31 → 30; 29 Şubat → artık olmayan yılda
+##     28 Şubat; yıl yokken Şubat 29).
+##   - Seçilebilir ARALIKLA çelişen alan SIFIRLANIR ("Seç") — başka bir değere kaydırılmaz: ör.
+##     15 Aralık seçiliyken en genç yıl seçilirse ay silinir, tarih kendiliğinden en genç izinli
+##     güne (tam 13. yaş gününe) dönüşmez; oyuncunun seçmediği bir tarih oluşmaz, eşik ima edilmez.
+## Dönüş {"day", "month", "year"} — üçü de doluysa sonuç her zaman seçilebilir bir tarihtir.
+static func clamp_selection(day: int, month: int, year: int, on_day: Dictionary) -> Dictionary:
+	if year != 0:
+		var years: Vector2i = selectable_year_range(on_day)
+		if year < years.x or year > years.y:
+			year = 0
+	if year != 0 and month != 0:
+		var months: Vector2i = selectable_month_range(year, on_day)
+		if month < months.x or month > months.y:
+			month = 0
+	if month != 0 and day != 0:
+		var longest: int = days_in_month(year, month) if year != 0 else (29 if month == 2 else days_in_month(2001, month))
+		day = mini(day, longest)
+		var days: Vector2i = selectable_day_range(year, month, on_day)
+		if day < days.x or day > days.y:
+			day = 0
+	return {"day": day, "month": month, "year": year}
+
+
+## Oyuncu girişinin TEK sınıflandırıcısı (TASK/046.1): yalnız seçilebilir aralıktaki tarih
+## bant alır (TEEN / ADULT). Aralık dışı: geçersiz / gelecek / çok eski / 13'ten genç ->
+## hata, bant UNKNOWN, geçiş boş — oyuncuya hepsi AYNI nötr mesaj, hiçbir şey saklanmaz.
+static func classify_selected_birth_date(year: int, month: int, day: int, on_day: Dictionary) -> Dictionary:
+	var out: Dictionary = classify_birth_date(year, month, day, on_day)
+	if not bool(out["ok"]):
+		return out
+	if int(out["band"]) == Band.UNDER_13 or not is_selectable_birth_date(year, month, day, on_day):
+		return {"ok": false, "error": EntryError.TOO_YOUNG, "band": Band.UNKNOWN, "transition": ""}
+	return out
+
+
 # --- Kayıttaki durum (doğrulama + geçişler) --------------------------------------------
 
 ## Kayıttaki ham değerleri `on_day` gününe göre doğrular ve geçişleri uygular. Dönüş:
-##   {"band": Band, "transition": String, "changed": bool, "corrupt": bool}
-## `changed` = geçiş oldu (UNDER_13 -> TEEN, TEEN -> ADULT): çağıran kaydeder.
+##   {"band": Band, "transition": String, "changed": bool, "corrupt": bool, "legacy_under_13": bool}
+## `changed` = geçiş oldu (TEEN -> ADULT, 18. yaş günü): çağıran kaydeder.
 ## `corrupt` = kayıt tutarsız: UNKNOWN döner (reklam yok, yaş yeniden sorulur), hiçbir
 ## şey yazılmaz — bir sonraki giriş üzerine yazar.
+## `legacy_under_13` (TASK/046.1) = TASK/043 döneminden kalma UNDER_13: UNKNOWN döner (reklam
+## yok, zorunlu yaş ekranı yeniden) — TEEN / ADULT'a ÇEVRİLMEZ, saklı 13. yaş günü okunmaz
+## (yaş tahmin edilmez). Kayda yazılmaz; yeni giriş üzerine yazar.
 static func resolve_stored(band_value: Variant, transition_value: Variant, on_day: Dictionary) -> Dictionary:
-	var unknown: Dictionary = {"band": Band.UNKNOWN, "transition": "", "changed": false, "corrupt": false}
+	var unknown: Dictionary = {"band": Band.UNKNOWN, "transition": "", "changed": false, "corrupt": false,
+		"legacy_under_13": false}
 	if typeof(band_value) != TYPE_STRING or not BAND_KEYS.has(String(band_value)):
 		unknown["corrupt"] = true
 		return unknown
@@ -222,26 +359,22 @@ static func resolve_stored(band_value: Variant, transition_value: Variant, on_da
 		Band.UNKNOWN:
 			unknown["corrupt"] = not transition_text.is_empty()
 			return unknown
+		Band.UNDER_13:
+			unknown["legacy_under_13"] = true
+			return unknown
 		Band.ADULT:
 			if not transition_text.is_empty():
 				unknown["corrupt"] = true
 				return unknown
-			return {"band": Band.ADULT, "transition": "", "changed": false, "corrupt": false}
+			return {"band": Band.ADULT, "transition": "", "changed": false, "corrupt": false, "legacy_under_13": false}
 	var transition: Dictionary = parse_day(transition_text)
-	var span: int = TEEN_AGE if band == Band.UNDER_13 else ADULT_AGE - TEEN_AGE
-	if not _transition_plausible(transition, span, on_day):
+	if not _transition_plausible(transition, ADULT_AGE - TEEN_AGE, on_day):
 		unknown["corrupt"] = true
 		return unknown
-	var changed: bool = false
-	if band == Band.UNDER_13 and compare(on_day, transition) >= 0:
-		# Saklanan 13. yaş günü geldi: aynı (kendi beyanı) standartla TEEN kanıtlandı; 18. yaş
-		# günü = 13. yaş günü + 5 yıl (13. yaş günü hiçbir zaman 29 Şubat değil — tam gün).
-		band = Band.TEEN
-		transition = anniversary(transition, ADULT_AGE - TEEN_AGE)
-		changed = true
-	if band == Band.TEEN and compare(on_day, transition) >= 0:
-		return {"band": Band.ADULT, "transition": "", "changed": true, "corrupt": false}
-	return {"band": band, "transition": format_day(transition), "changed": changed, "corrupt": false}
+	if compare(on_day, transition) >= 0:
+		return {"band": Band.ADULT, "transition": "", "changed": true, "corrupt": false, "legacy_under_13": false}
+	return {"band": Band.TEEN, "transition": format_day(transition), "changed": false, "corrupt": false,
+		"legacy_under_13": false}
 
 
 ## Geçiş günü bu bant için mümkün mü: gerçek gün, 29 Şubat DEĞİL (13. / 18. yıl dönümü
@@ -269,10 +402,11 @@ static func _transition_plausible(transition: Dictionary, span_years: int, on_da
 # yönlendirme tablosunu okumak için onu derler. Kalıcılık SaveManager'da
 # (`resolve_age_band_at_launch`, `store_age_band`).
 
-## Kayda gidecek (bant anahtarı, geçiş günü) çifti: ADULT / UNKNOWN için geçiş günü boş.
+## Kayda gidecek (bant anahtarı, geçiş günü) çifti: yalnız TEEN geçiş günü (18. yaş günü)
+## taşır; ADULT / UNKNOWN için boş. (TASK/046.1: UNDER_13 artık yazılmaz — gelirse geçiş günü
+## saklanmaz, doğum gününe eşdeğer tarih kayda girmez.)
 static func stored_pair(band: int, transition: String) -> Array[String]:
-	var keep: bool = band == Band.UNDER_13 or band == Band.TEEN
-	return [band_name(band), transition if keep else ""]
+	return [band_name(band), transition if band == Band.TEEN else ""]
 
 
 # --- Reklam yönlendirmesi ---------------------------------------------------------------
@@ -296,7 +430,8 @@ static func band_name(band: int) -> String:
 
 
 ## Release kapısı (TASK/043): çalışma zamanı eşlemesi owner tablosuyla birebir mi? Boş
-## liste = evet. Tek fark bile kapının 13–17 UYUM engelini açık tutar.
+## liste = evet. Tek fark bile kapının 13–17 UYUM engelini açık tutar. TASK/046.1: yaş
+## ekranının 13+ seçim sözleşmesi de burada denetlenir (fark -> CODE engeli).
 static func routing_contract_problems() -> PackedStringArray:
 	var problems: PackedStringArray = PackedStringArray()
 	for band in [Band.UNKNOWN, Band.UNDER_13]:
@@ -310,4 +445,12 @@ static func routing_contract_problems() -> PackedStringArray:
 	if not adult["ads"] or adult["treatment"] != AdBackend.AgeRestrictedTreatment.UNSPECIFIED \
 			or adult["max_ad_content_rating"] != "MA":
 		problems.append("ADULT -> TFAT UNSPECIFIED + derece MA olmalı")
+	# TASK/046.1: yaş ekranı yalnız 13+ doğum tarihi sunar / kabul eder (tek kaynak bu sınıf).
+	var probe: Dictionary = parse_day(MODEL_START_DAY)
+	var youngest: Dictionary = youngest_allowed_birth_date(probe)
+	var younger: Dictionary = next_day(youngest)
+	if MIN_SELECTABLE_AGE != TEEN_AGE \
+			or int(classify_birth_date(youngest["year"], youngest["month"], youngest["day"], probe)["band"]) != Band.TEEN \
+			or bool(classify_selected_birth_date(younger["year"], younger["month"], younger["day"], probe)["ok"]):
+		problems.append("yaş ekranı yalnız 13+ doğum tarihi kabul etmeli")
 	return problems

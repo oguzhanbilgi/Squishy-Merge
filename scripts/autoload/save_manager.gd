@@ -130,11 +130,13 @@ const DEFAULT_DATA: Dictionary = {
 	##                       bastırma YOK, bugünün tarihi UYDURULMAZ.
 	"onboarding_completed_day": "",
 	## Yaş bandı (TASK/043, docs/monetization/AGE_BAND_ROUTING.md) — reklam yönlendirmesinin
-	## tek girdisi (AgeGate). HAM DOĞUM TARİHİ BURADA YOK: nötr yaş ekranındaki tarih
-	## sınıflandırılıp atılır; yalnız türetilmiş bant ("UNKNOWN" / "UNDER_13" / "TEEN" /
-	## "ADULT") ve UNDER_13 / TEEN için bir sonraki bant geçiş günü (13. / 18. yaş günü,
-	## YYYY-MM-DD; ADULT'ta boş) saklanır. Eski kayıtlarda anahtar yok -> "UNKNOWN": reklam
-	## SDK'sı başlamaz, yaş ilk güvenli kabukta sorulur; ilerleme SİLİNMEZ.
+	## tek girdisi (AgeGate). HAM DOĞUM TARİHİ BURADA YOK: yaş ekranında seçilen tarih
+	## sınıflandırılıp atılır; yalnız türetilmiş bant ("UNKNOWN" / "TEEN" / "ADULT") ve TEEN
+	## için 18. yaş günü (YYYY-MM-DD; ADULT'ta boş) saklanır. Eski kayıtlarda anahtar yok ->
+	## "UNKNOWN": reklam SDK'sı başlamaz, yaş ilk güvenli kabukta sorulur; ilerleme SİLİNMEZ.
+	## TASK/046.1: yaş ekranı yalnız 13+ tarih sunar; "UNDER_13" artık YAZILMAZ — TASK/043
+	## döneminden kalan "UNDER_13" açılışta "UNKNOWN" + boş tarihe yazılır (reklam yok, yaş
+	## yeniden sorulur; TEEN / ADULT'a çevrilmez, ilerleme silinmez).
 	"age_ad_band": "UNKNOWN",
 	"next_age_transition_date": "",
 	## Günlük ödüller (M8.9-02, docs/monetization/DAILY_REWARDS.md): yerel
@@ -196,8 +198,8 @@ func load_game() -> void:
 	for key: String in parsed:
 		data[key] = parsed[key]
 	if _load_source == SaveFile.Source.BACKUP:
-		# Bir önceki kuşaktan kurtarıldı: yaş bandı güncel olmayabilir (ör. son kayıt 13 altı
-		# yeniden girişiydi). TASK/043 fail-closed: bant UNKNOWN → reklam SDK'sı / UMP başlamaz,
+		# Bir önceki kuşaktan kurtarıldı: yaş bandı güncel olmayabilir (ör. son kayıt bir yeniden
+		# girişti). TASK/043 fail-closed: bant UNKNOWN → reklam SDK'sı / UMP başlamaz,
 		# yaş ilk güvenli kabukta yeniden sorulur; ilerleme kurtarılır. Bellekte; kanonik ad
 		# `.bak`'tan kopyayla geri kurulduysa hemen kalıcılaşır (aşağıda).
 		data["age_ad_band"] = "UNKNOWN"
@@ -1074,28 +1076,39 @@ func stored_age_band(on_day: Dictionary) -> int:
 
 
 ## Soğuk açılış (Main._ready, reklam yöneticisi SDK'ya dokunmadan ÖNCE): kaydı doğrular,
-## geçişi (13. yaş günü -> TEEN, 18. yaş günü -> ADULT) TEK yazmayla kalıcılaştırır, bandı
-## döner. Bozuk kayıt -> UNKNOWN, yazma YOK (bir sonraki giriş üzerine yazar).
+## geçişi (18. yaş günü -> ADULT) TEK yazmayla kalıcılaştırır, bandı döner. Bozuk kayıt ->
+## UNKNOWN, yazma YOK (bir sonraki giriş üzerine yazar). Eski UNDER_13 (TASK/046.1) -> UNKNOWN,
+## TEK yazmayla "UNKNOWN" + tarih boş (13. yaş günü silinir; ilerleme aynen).
 func resolve_age_band_at_launch(on_day: Dictionary) -> int:
 	var result: Dictionary = AgeGate.resolve_stored(age_ad_band_raw(), next_age_transition_raw(), on_day)
 	if bool(result["changed"]):
 		store_age_band(int(result["band"]), String(result["transition"]))
+	elif bool(result.get("legacy_under_13", false)):
+		# TASK/046.1: eski UNDER_13 → UNKNOWN + tarih boş, TEK yazma (`.bak` de atılır): artık
+		# okunmayan 13. yaş günü (doğum gününe eşdeğer) kayıtta kalmaz. Dönüşüm DEĞİL — yaş
+		# yeniden sorulur, reklam yok, ilerleme aynen.
+		store_age_band(AgeGate.Band.UNKNOWN, "")
 	return int(result["band"])
 
 
-## Nötr yaş ekranının sonucu ya da soğuk açılış geçişi: iki alan, TEK yazma. Yalnız
-## türetilmiş bant + (UNDER_13 / TEEN için) geçiş günü; ADULT / UNKNOWN'da tarih boş.
+## Yaş ekranının sonucu ya da soğuk açılış geçişi: iki alan, TEK yazma. Yalnız türetilmiş
+## bant + (TEEN için) 18. yaş günü; ADULT / UNKNOWN'da tarih boş.
 func store_age_band(band: int, transition: String) -> void:
 	var pair: Array[String] = AgeGate.stored_pair(band, transition)
 	# `.bak`'tan kurtarılan oturumda bellekteki tarih bilerek boşaltıldı, ama `.bak` o kuşağın
 	# geçiş gününü hâlâ taşıyabilir (bozuk kanonik döndürülmeden ezilir) — tarihli sayılır.
 	var had_date: bool = (not String(data.get("next_age_transition_date", "")).is_empty()
 		or _load_source == SaveFile.Source.BACKUP)
+	# TASK/046.1: eski UNDER_13'ün 13. yaş günü (bellekte hâlâ UNDER_13 ise) ya da `.bak`'tan
+	# kurtarılmış oturumun eski kuşağı (bellek UNKNOWN'a zorlanmış, `.bak` eski bandı + tarihi
+	# taşıyabilir) yeni girişten sonra `.bak` kopyasında da kalmaz.
+	var drop_old_generation: bool = str(data.get("age_ad_band", "")) == "UNDER_13" \
+		or _load_source == SaveFile.Source.BACKUP
 	data["age_ad_band"] = pair[0]
 	data["next_age_transition_date"] = pair[1]
 	# TASK/045.1: geçiş günü (doğum gününe eşdeğer) silinince bir önceki kayıt kopyası (`.bak`)
 	# da atılır — "ADULT olunca silinir" sözü o kopya için de geçerli.
-	if save_game() and had_date and pair[1].is_empty():
+	if save_game() and had_date and (pair[1].is_empty() or drop_old_generation):
 		SaveFile.discard_backup(save_path)
 
 
