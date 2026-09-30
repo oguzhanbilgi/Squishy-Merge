@@ -26,7 +26,6 @@ const CHEST_INFO_SCENE: PackedScene = preload("res://scenes/ui/bonus_chest_info.
 const MISSIONS_SCENE: PackedScene = preload("res://scenes/ui/missions_overlay.tscn")
 const TUTORIAL_OVERLAY_SCENE: PackedScene = preload("res://scenes/ui/tutorial_overlay.tscn")
 const AGE_GATE_SCENE: PackedScene = preload("res://scenes/ui/age_gate_panel.tscn")
-const AGE_RESTRICTED_SCENE: PackedScene = preload("res://scenes/ui/age_restricted_screen.tscn")
 
 ## Round bitip sonuç ekranı açılmadan önceki kısa nefes payı — son merge'in
 ## efekti ekranda kalsın diye.
@@ -114,8 +113,10 @@ static var ads_backend_override: AdBackend = null
 ## HİÇ gelmez — panel yalnız türetilmiş bandı yayar.
 var _age_band: int = AgeGate.Band.UNKNOWN
 var _age_panel: CanvasLayer
-var _age_restricted: CanvasLayer
-## Test kancası: true iken `_quit_app` uygulamayı kapatmaz (yalnız sayar).
+## TASK/046.1: yaş ekranı açılırken bırakılan reklam yüzeyi (kapanınca geri gelir); -1 = yok.
+var _surface_before_age: int = -1
+## Test kancası: true iken `_quit_app` uygulamayı kapatmaz (yalnız sayar). TASK/046.1: tek
+## çıkış yolu Ana Sayfa'da (açık pencere yokken) Android geri — yaş ekranı çıkış YAPTIRMAZ.
 static var quit_suppressed: bool = false
 var quit_requests: int = 0
 
@@ -171,8 +172,8 @@ func _ready() -> void:
 	_ads = MonetizationManager.create(ads_backend_override)
 	if _ads != null:
 		# TASK/043: yaş bandı reklam SDK'sına dokunulmadan ÖNCE çözülür — kayıt doğrulanır,
-		# soğuk açılış geçişi (13. yaş günü -> TEEN, 18. yaş günü -> ADULT) burada
-		# kalıcılaşır; bozuk kayıt -> UNKNOWN (reklam yok, yaş yeniden sorulur).
+		# soğuk açılış geçişi (18. yaş günü -> ADULT) burada kalıcılaşır; bozuk kayıt -> UNKNOWN
+		# (reklam yok, yaş yeniden sorulur). TASK/046.1: eski UNDER_13 -> UNKNOWN (tarih silinir).
 		_age_band = SaveManager.resolve_age_band_at_launch(AgeGate.today())
 		# Onboarding (tutorial, M8.10) bitmeden yuva 0 ve reklam yok; kayıt
 		# karar verir (eski kayıt ilerleme kanıtıyla tamamlanmış sayılır).
@@ -285,14 +286,17 @@ func _ready() -> void:
 	_tutorial.completed.connect(_on_tutorial_completed)
 	add_child(_tutorial)
 
-	# TASK/043: nötr yaş ekranı (katman 14) + 13 yaş altı kısıt ekranı (katman 30).
+	# TASK/043 → TASK/046.1: yaş ekranı (katman 14; yalnız 13+ doğum tarihi seçilebilir). 13 yaş
+	# altı kısıt / çıkış ekranı EMEKLİ. Panelin açılış / kapanış / adım değişimleri TASK/045.2
+	# dizi bazlı 300 ms parmak yatışmasını başlatır (seçimde çift dokunuş sızmaz). Panel açıkken
+	# banner YOK (yeniden girişte de).
 	_age_panel = AGE_GATE_SCENE.instantiate()
 	_age_panel.resolved.connect(_on_age_resolved)
 	_age_panel.closed.connect(_on_age_panel_closed)
+	_age_panel.opened.connect(settle_touch_input)
+	_age_panel.settle_requested.connect(settle_touch_input)
+	_age_panel.visibility_changed.connect(_on_age_panel_visibility_changed)
 	add_child(_age_panel)
-	_age_restricted = AGE_RESTRICTED_SCENE.instantiate()
-	_age_restricted.exit_requested.connect(_quit_app)
-	add_child(_age_restricted)
 	_settings.age_info_requested.connect(_open_age_reentry)
 	_refresh_age_settings_row()
 
@@ -309,10 +313,9 @@ func _ready() -> void:
 	DailyRewards.observe_day()
 	_resolve_daily_login()
 	_booted = true
-	if _ads != null and _age_band == AgeGate.Band.UNDER_13:
-		# Kayıtlı 13 yaş altı: oyun kısıt ekranında durur (tutorial da açılmaz).
-		_show_age_restricted()
-	elif fresh:
+	# TASK/046.1: eski kayıttaki UNDER_13 kısıt ekranı AÇMAZ — `SaveManager` onu UNKNOWN'a indirir
+	# (reklam yok), aşağıdaki yol zorunlu yaş ekranını yeniden sorar.
+	if fresh:
 		_begin_first_run_tutorial()
 	elif not _maybe_request_age():
 		# Yaş biliniyor (ya da reklam yok): günlük pencere her zamanki gibi. Bilinmiyorsa
@@ -398,15 +401,12 @@ func is_tutorial_active() -> bool:
 # reklam SDK'sı, UMP ve reklamlı yüzeyler (günlük pencere) kapalı. Doğum tarihi buraya
 # GELMEZ: panel yalnız türetilmiş bandı + geçiş gününü yayar; burada log / analitik YOK.
 
-## Yaş ekranı (bant bilinmiyorsa) ya da 13 altı kısıt ekranı şu an gerekli mi — gerekiyorsa
-## açar. true = yaş / kısıt ekranı ekranda (çağıran günlük pencereyi açmaz).
+## Yaş ekranı (bant bilinmiyorsa — eski UNDER_13 kaydı da buraya iner) şu an gerekli mi —
+## gerekiyorsa açar. true = yaş ekranı ekranda (çağıran günlük pencereyi açmaz).
 func _maybe_request_age() -> bool:
 	if _ads == null or not _booted:
 		return false
-	if _age_band == AgeGate.Band.UNDER_13:
-		_show_age_restricted()
-		return true
-	if _age_band != AgeGate.Band.UNKNOWN:
+	if _age_band != AgeGate.Band.UNKNOWN and _age_band != AgeGate.Band.UNDER_13:
 		return false
 	if not SaveManager.onboarding_completed() or _monetization_deferred:
 		return false
@@ -425,12 +425,12 @@ func _maybe_request_age() -> bool:
 
 
 ## Reklam başlatabilecek yüzeyler (günlük pencere: reklamlı sandık / +150 Hamur) yaş
-## çözülmeden açılmaz: bant bilinmiyor / 13 altı / yaş ya da kısıt ekranı açık.
+## çözülmeden açılmaz: bant bilinmiyor (eski UNDER_13 dahil) / yaş ekranı açık.
 func _age_blocks_monetizable_surfaces() -> bool:
 	if _ads == null:
 		return false
 	return _age_band == AgeGate.Band.UNKNOWN or _age_band == AgeGate.Band.UNDER_13 \
-		or (_age_panel != null and _age_panel.visible) or (_age_restricted != null and _age_restricted.visible)
+		or (_age_panel != null and _age_panel.visible)
 
 
 ## Panel sonucu (zorunlu ilk giriş ya da Ayarlar'dan yeniden giriş): TEK kayıt yazması
@@ -438,6 +438,10 @@ func _age_blocks_monetizable_surfaces() -> bool:
 ## yapılandırdıysa işlemi DEĞİŞTİRMEZ — reklam oturum boyunca kapanır, yeni bant bir
 ## sonraki soğuk açılışta; oyuncu kısa bir not görür.
 func _on_age_resolved(band: int, transition: String) -> void:
+	# TASK/046.1: panel yalnız TEEN / ADULT yayar (13+ seçim). Başka bir bant gelirse hiçbir şey
+	# yazılmaz, reklam açılmaz — fail-closed (yaş sorusu açık kalır).
+	if band != AgeGate.Band.TEEN and band != AgeGate.Band.ADULT:
+		return
 	var reentry: bool = _age_panel.is_reentry()
 	SaveManager.store_age_band(band, transition)
 	_age_band = band
@@ -445,10 +449,6 @@ func _on_age_resolved(band: int, transition: String) -> void:
 	if _ads != null:
 		change = _ads.set_age_band(band)
 	_refresh_age_settings_row()
-	if band == AgeGate.Band.UNDER_13:
-		_age_panel.close_panel()
-		_show_age_restricted()
-		return
 	if reentry:
 		_age_panel.show_done(change == MonetizationManager.AgeBandChange.NEXT_LAUNCH)
 		return
@@ -461,6 +461,22 @@ func _on_age_resolved(band: int, transition: String) -> void:
 ## Yeniden giriş penceresi kapandı (vazgeç / tamam): Ayarlar açık kalır.
 func _on_age_panel_closed() -> void:
 	_refresh_age_settings_row()
+
+
+## TASK/046.1: yaş sorusu ekrandayken banner gösterilmez — yüzey NONE; panel kapanınca
+## bırakılan yüzey (sekme / oyun ekranı — Ayarlar oyun içinden de açılır) geri gelir. Yuva
+## SABİT kalır (düzen zıplamaz).
+func _on_age_panel_visibility_changed() -> void:
+	if _ads == null:
+		return
+	if _age_panel.visible:
+		if _surface_before_age < 0:
+			_surface_before_age = _ads.surface()
+		_ads.set_surface(MonetizationManager.Surface.NONE)
+	elif _surface_before_age >= 0:
+		var surface: int = _surface_before_age
+		_surface_before_age = -1
+		_set_ad_surface(surface)
 
 
 ## Ayarlar → "Yaş bilgisi". Yalnız bant biliniyorken (TEEN / ADULT).
@@ -476,25 +492,6 @@ func _refresh_age_settings_row() -> void:
 			and (_age_band == AgeGate.Band.TEEN or _age_band == AgeGate.Band.ADULT))
 
 
-## 13 yaş altı: oyun kısıt ekranında durur (terminal). Açık round terk edilir (sonuç /
-## ödül YOK), pencereler kapanır; kayıt SİLİNMEZ. Ekran ÖNCE açılır — pencere kapanış
-## zincirleri (günlük pencere -> _show_tab) buraya geri döndüğünde erken çıkar.
-func _show_age_restricted() -> void:
-	if _age_restricted.visible:
-		return
-	_age_restricted.open_screen()
-	if _age_panel.visible:
-		_age_panel.close_panel()
-	if _board != null and is_instance_valid(_board):
-		_clear_board()
-	_result.hide_result()
-	if _pause.visible:
-		_pause.close_menu()
-	_close_secondary_windows()
-	_hide_shell()
-	_set_ad_surface(MonetizationManager.Surface.NONE)
-
-
 func _close_secondary_windows() -> void:
 	if _settings != null and _settings.visible:
 		close_settings()
@@ -506,7 +503,9 @@ func _close_secondary_windows() -> void:
 		_missions.close_missions(false)
 
 
-## Uygulamadan çıkış (kısıt ekranı / zorunlu yaş sorusunda geri). Testler bastırır.
+## Uygulamadan çıkış — TEK yol: Ana Sayfa'da, kapatılacak pencere yokken Android geri.
+## (TASK/046.1: 13 altı kısıt ekranı ve zorunlu yaş sorusundaki "geri = çık" emekli.) Testler
+## bastırır ve sayar.
 func _quit_app() -> void:
 	quit_requests += 1
 	if not quit_suppressed:
@@ -520,10 +519,6 @@ func age_band() -> int:
 
 func age_panel() -> CanvasLayer:
 	return _age_panel
-
-
-func age_restricted_screen() -> CanvasLayer:
-	return _age_restricted
 
 
 # --- Ekranlar ---
@@ -730,15 +725,10 @@ func _notification(what: int) -> void:
 	if now - _last_back_msec < BACK_DEBOUNCE_MSEC:
 		return
 	_last_back_msec = now
-	# TASK/043: 13 yaş altı kısıt ekranı terminal — geri = uygulamadan çık. Zorunlu yaş
-	# sorusu kapatılamaz — geri = uygulamadan çık (bir sonraki açılışta yine sorulur);
-	# yeniden girişte (Ayarlar) geri = vazgeç / tamam.
-	if _age_restricted != null and _age_restricted.visible:
-		_quit_app()
-		return
+	# TASK/046.1: yaş ekranında geri UYGULAMADAN ÇIKMAZ — panel tüketir: seçim ızgarası / onay
+	# açıksa bir adım geri, yeniden girişte (Ayarlar) vazgeç / tamam, zorunlu kipte yok sayılır.
 	if _age_panel != null and _age_panel.visible:
-		if not _age_panel.handle_back():
-			_quit_app()
+		_age_panel.handle_back()
 		return
 	# Tutorial açıkken geri: küçük onay (DEVAM ET / ATLA). Onboarding false
 	# iken monetize edilmiş Ana Sayfa'ya ASLA düşülmez (§12).
@@ -782,7 +772,7 @@ func _notification(what: int) -> void:
 		_show_tab(0)
 		return
 	# Ana sayfada, kapatacak pencere yok: uygulamadan cik (Android beklentisi).
-	get_tree().quit()
+	_quit_app()
 
 
 ## Oyun sırasında ve sonuç ekranında hiçbir kabuk ekranı görünmemeli (Ana Sayfa'nın GÖREVLER
@@ -868,7 +858,7 @@ func open_missions() -> void:
 		return
 	if _active_tab != 0 or not _screens[0].visible:
 		return
-	if (_age_panel != null and _age_panel.visible) or (_age_restricted != null and _age_restricted.visible):
+	if _age_panel != null and _age_panel.visible:
 		return
 	if _daily_rewards.visible or _chest_info.visible or (_settings != null and _settings.visible):
 		return
@@ -1222,8 +1212,14 @@ func _on_rewarded_availability_changed() -> void:
 
 
 func _set_ad_surface(surface: int) -> void:
-	if _ads != null:
-		_ads.set_surface(surface as MonetizationManager.Surface)
+	if _ads == null:
+		return
+	# TASK/046.1: yaş ekranı açıkken gelen yüzey değişimi (NONE dahil) yalnız hatırlanır —
+	# kapanınca uygulanır.
+	if _age_panel != null and _age_panel.visible:
+		_surface_before_age = surface
+		return
+	_ads.set_surface(surface as MonetizationManager.Surface)
 
 
 ## Board devam teklifi açtı: round HENÜZ BİTMEDİ, hiçbir ödül/sonuç akışı

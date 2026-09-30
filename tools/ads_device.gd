@@ -85,16 +85,22 @@ extends Node
 ##     keep                   kaydı OLDUĞU GİBİ kullan (vitrin / fresh uygulanmaz) — "sonraki
 ##                            soğuk açılış" kanıtı (yeniden giriş, geçiş)
 ##     age=unknown            yaş anahtarları silinir (eski kayıt = UNKNOWN)
-##     age=teen|under13|adult sentetik bant: TEEN = 15 yaş, UNDER_13 = 10 yaş (geçiş günü
-##                            AgeGate'ten), ADULT tarihsiz — kayda yalnız türetilmiş durum
+##     age=teen|adult         sentetik bant: TEEN = 15 yaş (geçiş günü AgeGate'ten), ADULT
+##                            tarihsiz — kayda yalnız türetilmiş durum
+##     age=under13            TASK/046.1: TASK/043 döneminden kalma ESKİ kayıt taklidi — ham
+##                            "UNDER_13" + 13. yaş günü doğrudan kayda (normal giriş artık
+##                            UNDER_13 üretmez); açılışta UNKNOWN + tarih boş yazılır, yaş
+##                            yeniden sorulur
 ##     agetrans=YYYY-MM-DD    age=teen / under13 ile: geçiş gününü açıkça ver (CASE F)
 ##     ageclock=YYYY-MM-DD    AgeGate.clock_override (cihaz saati DEĞİŞMEZ) — soğuk açılış
 ##                            geçişi SDK'dan ÖNCE çözülür
 ##   ageclock YYYY-MM-DD|none komut: yalnız bir SONRAKİ Main kurulumuna (relaunch) etkiler
 ##   age_reentry              Ayarlar → Yaş bilgisi ile aynı yol (kod yolu; cihazda GERÇEK
 ##                            dokunuş tercih — `settings:` satırındaki age= dikdörtgeni)
-##   (durum satırları `age:` / `agepanel:` / `agerects:` / `restricted:`; `tfat:` = arka uç +
-##    native geri okuma)
+##   (durum satırları `age:` / `agepanel:` / `agerects:`; `tfat:` = arka uç + native geri okuma.
+##    TASK/046.1: yaş ekranı GÜN / AY / YIL seçicileri + pencere içi seçim ızgarası — `agerects:`
+##    seçici / ızgara seçeneği dikdörtgenleri (seçenek DEĞERİ yazılır, seçilen tarih YAZILMAZ);
+##    13 altı kısıt ekranı emekli, `restricted:` satırı kaldırıldı)
 ## Play Age Signals'a hiçbir bağlantı YOK.
 
 const MAIN_SCENE: PackedScene = preload("res://scenes/main.tscn")
@@ -572,11 +578,18 @@ func _apply_age_boot(words: PackedStringArray) -> void:
 			SaveManager.data.erase("next_age_transition_date")
 		"adult":
 			SaveManager.store_age_band(AgeGate.Band.ADULT, "")
-		"teen", "under13":
-			var years: int = 15 if band == "teen" else 10
-			var born: Dictionary = AgeGate.anniversary(today, -years)
+		"teen":
+			var born: Dictionary = AgeGate.anniversary(today, -15)
 			var result: Dictionary = AgeGate.classify_birth_date(born["year"], born["month"], born["day"], today)
 			SaveManager.store_age_band(result["band"], trans if not trans.is_empty() else String(result["transition"]))
+		"under13":
+			# TASK/046.1: eski kayıt taklidi — store_age_band artık UNDER_13 tarihini yazmaz; ham
+			# değerler doğrudan (TASK/043 dönemi biçimi: 13. yaş günü) kayda.
+			var born13: Dictionary = AgeGate.anniversary(today, -10)
+			var turns_13: Dictionary = AgeGate.anniversary(born13, AgeGate.TEEN_AGE)
+			SaveManager.data["age_ad_band"] = "UNDER_13"
+			SaveManager.data["next_age_transition_date"] = trans if not trans.is_empty() else AgeGate.format_day(turns_13)
+			SaveManager.save_game()
 	if not band.is_empty():
 		_age_boot = "age=%s%s%s" % [band, " agetrans" if not trans.is_empty() else "",
 			" ageclock" if not AgeGate.clock_override.is_empty() else ""]
@@ -783,23 +796,27 @@ func _write_state(label: String) -> void:
 		str(st.privacy_policy_row() != null and st.privacy_policy_row().visible),
 		str(st.age_info_row() != null and st.age_info_row().visible), st.privacy_policy_url(),
 		_rect_px(st.privacy_options_button()), _rect_px(st.age_info_button()), _rect_px(st._close)])
-	# TASK/043: nötr yaş ekranı + kısıt ekranı (rakamlar ve onay metni YAZILMAZ — yalnız hane
-	# sayıları ve onay metninin var olup olmadığı; tarih ekran görüntüsünde, sentetik).
+	# TASK/043 → TASK/046.1: yaş ekranı (seçilen tarih ve onay metni YAZILMAZ — yalnız hangi
+	# alanların seçili olduğu ve onay metninin var olup olmadığı; tarih ekran görüntüsünde, sentetik).
 	var ap: CanvasLayer = _main.age_panel()
-	lines.append("agepanel: visible=%s reentry=%s stage=%d field=%d lengths=%s complete=%s error=%s confirm=%s done_note=%s next_launch=%s save_band=%s save_trans=%s" % [
-		str(ap.visible), str(ap.is_reentry()), ap.stage(), ap.active_field(), str(ap.field_lengths()), str(ap.is_complete()),
+	lines.append("agepanel: visible=%s reentry=%s stage=%d picker=%d selected=%s complete=%s error=%s confirm=%s done_note=%s next_launch=%s save_band=%s save_trans=%s quit_requests=%d" % [
+		str(ap.visible), str(ap.is_reentry()), ap.stage(), ap.picker_field(), str(ap.selected_fields()), str(ap.is_complete()),
 		str(ap.error_visible()), "set" if not ap.confirm_text().is_empty() else "-", str(ap.done_note_visible()),
 		str(ap.done_next_launch()),
-		str(SaveManager.age_ad_band_raw()), "set" if not str(SaveManager.next_age_transition_raw()).is_empty() else "-"])
-	var key_rects: PackedStringArray = PackedStringArray()
-	for key_name in ["1", "2", "3", "4", "5", "6", "7", "8", "9", "0", "del", "clear"]:
-		key_rects.append("k%s=%s" % [key_name, _rect_px(ap.key_button(key_name))])
-	lines.append("agerects: %s f0=%s f1=%s f2=%s continue=%s confirm=%s fix=%s cancel=%s done=%s x=%s" % [" ".join(key_rects),
-		_rect_px(ap.field_button(0)), _rect_px(ap.field_button(1)), _rect_px(ap.field_button(2)),
+		str(SaveManager.age_ad_band_raw()), "set" if not str(SaveManager.next_age_transition_raw()).is_empty() else "-",
+		_main.quit_requests])
+	# Açık seçim ızgarasında YALNIZ kaydırma alanında görünen seçenekler (değer=dikdörtgen).
+	var opts: PackedStringArray = PackedStringArray()
+	var view: Rect2 = (ap.frame().get_meta(&"scroll") as Control).get_global_rect()
+	for value in ap.option_values():
+		var option: Button = ap.option_button(value)
+		if option != null and option.is_visible_in_tree() and view.encloses(option.get_global_rect()):
+			opts.append("o%d=%s" % [value, _rect_px(option)])
+	lines.append("agerects: s0=%s s1=%s s2=%s continue=%s confirm=%s fix=%s cancel=%s done=%s x=%s pick_back=%s %s" % [
+		_rect_px(ap.selector_button(0)), _rect_px(ap.selector_button(1)), _rect_px(ap.selector_button(2)),
 		_rect_px(ap.continue_button()), _rect_px(ap.confirm_button()), _rect_px(ap.fix_button()),
-		_rect_px(ap.cancel_button()), _rect_px(ap.done_button()), _rect_px(ap.close_x())])
-	var rs: CanvasLayer = _main.age_restricted_screen()
-	lines.append("restricted: visible=%s exit=%s quit_requests=%d" % [str(rs.visible), _rect_px(rs.exit_button()), _main.quit_requests])
+		_rect_px(ap.cancel_button()), _rect_px(ap.done_button()), _rect_px(ap.close_x()), _rect_px(ap.picker_back_button()),
+		" ".join(opts)])
 	lines.append("result: visible=%s pause: %s" % [str(_main._result.visible), str(_main._pause.visible)])
 	var home: CanvasLayer = _main._screens[0]
 	lines.append("home: play=%s profile=%s daily_medal=%s daily_dot=%s" % [_rect_px(home._play), _rect_px(home._avatar_button),
