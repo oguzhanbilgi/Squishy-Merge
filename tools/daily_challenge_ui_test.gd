@@ -591,6 +591,35 @@ func _result_states() -> void:
 		not result.visible and _main._challenge_attempt == attempt + 1 and _main._board != null
 		and _main._board.is_daily_challenge() and _main._board.drops_used() == 0)
 	await _leave_round()
+	# Açık kayıp sonucu gece yarısını geçer: TEKRAR DENE'ye hızlı çift parmak — ilki sonucu "Gün değişti"ye
+	# yeniler (+300 ms yatışma), ikincisi YUTULUR; yeni günün meydan okuması ancak yatışmadan sonra başlar.
+	_main.start_daily_challenge()
+	await _settle(3)
+	failed = _main._board
+	attempt = _main._challenge_attempt
+	failed._finish(false)
+	guard = 0
+	while not result.visible and guard < 240:
+		await get_tree().process_frame
+		guard += 1
+	await _wait_settled()
+	DailyRewards.clock_override = FRI
+	primary_pos = _screen_center(result.primary_button())
+	await _finger_tap(primary_pos)
+	await _finger_tap(primary_pos)
+	await _settle(2)
+	_c("gece yarısını açık geçen kayıp sonucu: TEKRAR DENE'ye çift parmak — sonuç 'Gün değişti'ye yenilendi, ikinci dokunuş yeni günü BAŞLATMADI",
+		result.visible and result.challenge_body_text() == "Gün değişti · yeni meydan okuma hazır."
+		and result.primary_text() == "YENİ MEYDAN OKUMA" and _main._challenge_attempt == attempt
+		and _main._board == failed)
+	await _wait_settled()
+	await _finger_tap(_screen_center(result.primary_button()))
+	await _settle(3)
+	_c("  … yatışmadan sonra YENİ MEYDAN OKUMA: cumanın meydan okuması (bütçe 36)", not result.visible
+		and _main._challenge_day == FRI and _main._board != null and _main._board.drop_budget() == 36)
+	await _leave_round()
+	DailyRewards.clock_override = THU
+	SaveManager.data["daily_rewards"]["last_seen_day_key"] = THU
 	_sections_done += 1
 
 

@@ -42,7 +42,9 @@ extends CanvasLayer
 ## pitch rampası), kartlar 0.45 s arayla belirir, 0.35 s sonra sandık
 ## açılır (4+ ödülde 0.30 / 0.25 — uzun tur dizisi sıkışır;
 ## `chest_open` → `AudioManager.play_reward(rarity)` + titreşim).
-## Butonlar İLK KAREDEN aktif ("hemen tekrar dene" — GAME_DESIGN §5.1/4).
+## Butonlar İLK KAREDEN aktif ("hemen tekrar dene" — GAME_DESIGN §5.1/4). TASK/047 meydan okuma
+## sonucunda Main açılışta mevcut 300 ms parmak yatışmasını kurar (o pencerede BAŞLAYAN parmak dizisi
+## yutulur — UI_VISUAL_SYSTEM §26.5); normal sonuç aynen.
 ## `_sequence_id` gizleme / yeniden açılışta eski reveal'i geçersiz kılar.
 ## Android geri tuşu yok sayılır (Main: karar bekleyen uç durum).
 ##
@@ -544,7 +546,8 @@ func _reset_challenge_parts() -> void:
 
 
 ## Başarı ödülü: HAMUR çipi kanonik bakiyeye +20 SAYARAK varır (Hamur zaten yazıldı). Butonlar ilk
-## kareden aktif; gizleme / yeniden açılış eski reveal'i geçersiz kılar.
+## kareden aktif (parmak için Main'in 300 ms açılış yatışması); gizleme / yeniden açılış eski reveal'i
+## geçersiz kılar.
 func _run_challenge_reveal(sequence: int) -> void:
 	await get_tree().process_frame
 	var reward: int = int(_challenge.get("reward", 0)) if bool(_challenge.get("rewarded", false)) else 0

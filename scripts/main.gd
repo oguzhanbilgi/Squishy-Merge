@@ -1780,6 +1780,7 @@ func _on_retry_pressed() -> void:
 		# sessizce başlamaz; ikinci basış (YENİ MEYDAN OKUMA) başlatır.
 		if _result.challenge_fail_day_stale(DailyChallenge.current_day()):
 			_result.refresh_challenge_day_changed()
+			settle_touch_input()
 			return
 		_retry_daily_challenge()
 		return
