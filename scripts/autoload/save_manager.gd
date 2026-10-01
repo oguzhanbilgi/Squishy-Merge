@@ -171,6 +171,15 @@ const DEFAULT_DATA: Dictionary = {
 		"weekly_progress": {},
 		"weekly_rewarded": [],
 	},
+	## Günlük meydan okuma (TASK/047 — GAME_DESIGN §5.11): sürümlü EN KÜÇÜK blok, kural /
+	## doğrulama DailyChallenge'da. `completed_day_key` = ilk başarısı ödüllendirilen EN YENİ gün
+	## (+20 Hamur ile AYNI yazmada). Preset / hedef / bütçe / dizi / deneme / UI durumu
+	## SAKLANMAZ. Eski kayıt: load_game bellekte varsayılan blok kurar (geriye dönük tamamlanma /
+	## Hamur YOK, yalnız bu yüzden diske yazma YOK).
+	"daily_challenge": {
+		"version": 1,
+		"completed_day_key": "",
+	},
 }
 
 
@@ -210,6 +219,7 @@ func load_game() -> void:
 	_migrate_profile_counters(parsed)
 	_migrate_player_meta(parsed)
 	_migrate_missions(parsed)
+	_migrate_daily_challenge(parsed)
 	_grant_starter_powerups()
 	# A36 kapısı: kanonik ad boşken SaveFile `.bak`'ı kanonik ada KOPYALAR — kopya eski bandı
 	# taşır ve bir sonraki açılış onu geçerli kanonik diye okurdu (yaş sorusunda çıkan oyuncuda
@@ -333,6 +343,13 @@ func _migrate_missions(parsed: Dictionary) -> void:
 		var day: String = Missions.accepted_day()
 		state = Missions.fresh_state(day) if Missions.is_day_key(day) else DEFAULT_DATA["missions"].duplicate(true)
 	data["missions"] = state
+
+
+## Günlük meydan okuma (TASK/047): blok yoksa (TASK/047 öncesi kayıt) varsayılan — tamamlanma yok,
+## Hamur verilmez; bozuk yapı / bilinmeyen sürüm / geçersiz gün de varsayılana iner. YALNIZ
+## bellekte (diğer göçlerle aynı ilke: sonraki doğal kayıt kalıcılaştırır).
+func _migrate_daily_challenge(parsed: Dictionary) -> void:
+	data["daily_challenge"] = DailyChallenge.sanitize(parsed.get("daily_challenge"))
 
 
 ## Kayıtta oynanmışlık kanıtı var mı (onboarding migration kuralı).
@@ -629,6 +646,38 @@ func record_mission_round(merges: int, fixed_level_cleared: bool, save: bool = t
 	if save:
 		save_game()
 	return {"completed": result["completed"], "dough": reward}
+
+
+# --- Günlük meydan okuma (TASK/047 — GAME_DESIGN §5.11) ---
+#
+# Kural / doğrulama SAF DailyChallenge'da; burada yalnız doğrulanmış okuma ve TEK mutasyon. Meydan
+# okuma XP, görev, başarım, sandık, yıldız, level, istatistik ya da reklam ÜRETMEZ; tek ekonomi
+# etkisi ilk başarının +20 Hamur'u.
+
+## Doğrulanmış blok (kopya) — YAZMAZ.
+func daily_challenge_state() -> Dictionary:
+	return DailyChallenge.sanitize(data.get("daily_challenge"))
+
+
+## İlk başarısı ödüllendirilen en yeni gün (YYYY-MM-DD) ya da boş.
+func daily_challenge_completed_day() -> String:
+	return String(daily_challenge_state()[DailyChallenge.KEY_COMPLETED])
+
+
+## İlk başarı — TEK, idempotent işlem: gün geçerli ve kayıttaki tamamlanma gününden YENİ ise
+## `completed_day_key` = `day_key` + tam DailyChallenge.REWARD_DOUGH Hamur, AYNI `save_game()`
+## yazmasında (ayrı "ödül verildi" bayrağı YOK — tamamlanma günü ödülün kendisidir). Aynı / eski
+## gün, geçersiz gün → hiçbir alan değişmez, diske yazılmaz, false. `day_key` = denemenin
+## BAŞLADIĞI kabul edilen gün (gece yarısı kuralı: Main).
+func complete_daily_challenge(day_key: String) -> bool:
+	var block: Dictionary = daily_challenge_state()
+	if not DailyChallenge.can_complete(block, day_key):
+		return false
+	block[DailyChallenge.KEY_COMPLETED] = day_key
+	data["daily_challenge"] = block
+	data["dough"] = dough() + DailyChallenge.REWARD_DOUGH
+	save_game()
+	return true
 
 
 ## Sayı değilse 0. TASK/045: int64 dışı / NaN float da 0 — `int()` bunu platforma göre
