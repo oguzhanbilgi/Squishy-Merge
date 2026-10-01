@@ -145,6 +145,19 @@ var _result_seq: int = 0
 ## kez işler — yinelenen bir round_finished sinyali / geri çağrısı XP'yi, turu,
 ## merge'leri ve sandıkları ikinci kez yazamaz. Yeni round (`_start_level`) sıfırlar.
 var _round_finalized: bool = false
+## --- Günlük meydan okuma (TASK/047 — GAME_DESIGN §5.11) ---
+## Round türü AÇIK tutulur: board'un hangi akışa ait olduğu meydan okumanın level numarasından
+## (nöbetçi 0) ÇIKARILMAZ. NORMAL = sabit level / sonsuz / tutorial (mevcut akış, değişmedi);
+## DAILY_CHALLENGE = ayrı başlatma / bitiş / tekrar / çıkış yolu (P1 yalıtım).
+enum RoundKind { NORMAL, DAILY_CHALLENGE }
+var _round_kind: RoundKind = RoundKind.NORMAL
+## Meydan okuma denemesinin BAŞLADIĞI kabul edilen gün — gece yarısını geçen deneme bu güne
+## yazılır; tekrar dene ise her zaman o anki günün meydan okumasını başlatır.
+var _challenge_day: String = ""
+## Deneme kimliği: her meydan okuma başlangıcında +1. Gecikmeli (RESULT_DELAY) meydan okuma sonucu
+## yalnız kendi denemesi hâlâ ekrandayken açılır (normal round'un ayrı, açık RESULT_DELAY yarışı bu
+## işte DEĞİŞMEDİ).
+var _challenge_attempt: int = 0
 ## _ready tamamlandı: otomatik günlük pencere ancak bundan sonra (açılış
 ## sırasındaki _show_tab günlük giriş ödülünün önüne geçmesin).
 var _booted: bool = false
@@ -685,6 +698,10 @@ func resume_game() -> void:
 
 func _on_pause_restart() -> void:
 	_pause.close_menu()
+	# TASK/047: meydan okuma kendi başlatma yolundan (o anki günün meydan okuması, baştan).
+	if _round_kind == RoundKind.DAILY_CHALLENGE:
+		_retry_daily_challenge()
+		return
 	if _current_level != null:
 		_start_level(_current_level)
 
@@ -692,6 +709,10 @@ func _on_pause_restart() -> void:
 ## Round'u terk et: board silinir, harita sekmesine dönülür.
 func abandon_run() -> void:
 	_pause.close_menu()
+	# TASK/047: meydan okumadan çıkış Ana Sayfa'ya (giriş yeri); terk edilen deneme yazmaz.
+	if _round_kind == RoundKind.DAILY_CHALLENGE:
+		_leave_daily_challenge()
+		return
 	_result.hide_result()
 	_clear_board()
 	_show_tab(1)
@@ -1094,6 +1115,21 @@ func _refresh_shell_dough() -> void:
 ## `tutorial_queue`: yalnız ilk açılış tutorial'ı doldurur (T1, T1). Normal
 ## akışta boş — DropBag birebir eskisi gibi çalışır.
 func _start_level(level: LevelData, tutorial_queue: Array[int] = []) -> void:
+	_begin_round(level, RoundKind.NORMAL)
+	if not tutorial_queue.is_empty():
+		_board.setup_tutorial_queue(tutorial_queue)
+	_board.round_finished.connect(_on_round_finished)
+	add_child(_board)
+
+
+## Round sınırı — normal round ve meydan okuma ORTAK (TASK/047'de `_start_level`'dan çıkarıldı,
+## davranış aynen): kabuk / sonuç / eski board / pencereler temizlenir, yeni board kurulur ve
+## ortak sinyalleri bağlanır. Round türüne özel kurulum + round_finished bağı + add_child
+## ÇAĞIRANDA.
+func _begin_round(level: LevelData, kind: RoundKind) -> void:
+	_round_kind = kind
+	if kind != RoundKind.DAILY_CHALLENGE:
+		_challenge_day = ""
 	_current_level = level
 	_round_finalized = false
 	_hide_shell()
@@ -1112,14 +1148,118 @@ func _start_level(level: LevelData, tutorial_queue: Array[int] = []) -> void:
 	_set_ad_surface(MonetizationManager.Surface.GAMEPLAY)
 	_board = GAME_BOARD_SCENE.instantiate()
 	_board.setup(level)
-	if not tutorial_queue.is_empty():
-		_board.setup_tutorial_queue(tutorial_queue)
-	_board.round_finished.connect(_on_round_finished)
 	_board.revive_offered.connect(_on_revive_offered)
 	_board.power_refill_offered.connect(_on_power_refill_offered)
 	_board.settings_requested.connect(_on_board_settings_requested)
 	_board.pause_requested.connect(open_pause_menu)
+
+
+# --- Günlük meydan okuma (TASK/047 — GAME_DESIGN §5.11) ---
+#
+# Sorumluluk dağılımı:
+#   DailyChallenge  : preset / gün / dizi / level / kayıt bloğu kuralları (SAF)
+#   GameBoard       : bütçe, yatışma, sebep, güç ve devam kapalı (mekanik dikiş)
+#   SaveManager     : ilk başarı → +20 Hamur + tamamlanma günü, TEK işlem
+#   Main (bu)       : açık round türü, başlatma / bitiş / tekrar / çıkış yönlendirmesi, gece yarısı,
+#                     gecikmeli sonucun deneme kimliği
+#
+# P1 YALITIM: meydan okuma round'u normal `_on_round_finished`'a HİÇ girmez — XP, tur, merge /
+# bonus sandık sayacı, görev, başarım, yıldız, level, rekor, en yüksek tier, sandık, teselli ve
+# geçiş reklamı denemesi YOK. Tek kalıcı etki ilk başarının +20 Hamur'u + tamamlanma günü.
+
+## Kabul edilen GÜNÜN meydan okuması (şimdi okunur) — dizinin başından, tam bütçeyle. Girişler:
+## Ana Sayfa sayfasının BAŞLA'sı, sonuç TEKRAR DENE / YENİ MEYDAN OKUMA, mola Yeniden Başlat.
+## Gün gerçeği yok / bugün tamamlandı (tekrar oynanmaz) / onboarding bitmedi → başlamaz (false).
+func start_daily_challenge() -> bool:
+	if not Onboarding.is_completed() or is_tutorial_active():
+		return false
+	var view: Dictionary = DailyChallenge.current_view()
+	if view.is_empty() or bool(view["completed"]):
+		return false
+	var day: String = String(view["day_key"])
+	var level: LevelData = DailyChallenge.make_level(day)
+	if level == null:
+		return false
+	_challenge_attempt += 1
+	_begin_round(level, RoundKind.DAILY_CHALLENGE)
+	_challenge_day = day
+	_board.setup_challenge(DailyChallenge.Sequence.new(day), int(view["drop_budget"]))
+	_board.round_finished.connect(_on_challenge_round_finished)
 	add_child(_board)
+	# Mevcut 300 ms geçiş yatışması (yeni kural değil): BAŞLA / TEKRAR DENE dokunuşunun bırakışı ya da
+	# hızlı ikinci dokunuşu yeni board'a bırakış olarak düşmez.
+	settle_touch_input()
+	return true
+
+
+## TEKRAR DENE / YENİ MEYDAN OKUMA / mola Yeniden Başlat: o anki günün meydan okuması baştan (gün
+## değiştiyse yeni günün). Başlatılamazsa (gün gerçeği yok / bugün tamamlandı) Ana Sayfa.
+func _retry_daily_challenge() -> void:
+	if not start_daily_challenge():
+		_leave_daily_challenge()
+
+
+## Meydan okumadan çıkış (sonuç ANA SAYFA / mola Ana Menüye Dön): board gider, Ana Sayfa (giriş
+## yeri). Terk edilen deneme hiçbir şey yazmaz.
+func _leave_daily_challenge() -> void:
+	_result.hide_result()
+	_clear_board()
+	_round_kind = RoundKind.NORMAL
+	_challenge_day = ""
+	_show_tab(0)
+
+
+## Meydan okuma round'u KESİN bitti — normal `_on_round_finished`'ın YERİNE (bkz. P1 yalıtım). İlk
+## başarı ödülü sonuç gecikmesinden ÖNCE yazılır (süreç ölse de tam bir kez); kayıp kayda yazmaz.
+## Gece yarısı: ödül denemenin BAŞLADIĞI güne.
+func _on_challenge_round_finished(won: bool) -> void:
+	if _round_finalized:
+		return
+	_round_finalized = true
+	_revive.hide_offer()
+	var board: Node2D = _board
+	var attempt: int = _challenge_attempt
+	var day: String = _challenge_day
+	var outcome: Dictionary = {"won": won, "day_key": day, "rewarded": false, "reward": 0,
+		"fail_reason": DailyChallenge.FailReason.NONE, "drops_used": 0, "drop_budget": 0,
+		"target_tier": 0, "reached_tier": 0, "day_changed": false}
+	if board != null and is_instance_valid(board):
+		outcome["fail_reason"] = board.fail_reason()
+		outcome["drops_used"] = board.drops_used()
+		outcome["drop_budget"] = board.drop_budget()
+		outcome["target_tier"] = board.level.target_tier
+		outcome["reached_tier"] = board.max_tier_reached()
+	if won:
+		var rewarded: bool = SaveManager.complete_daily_challenge(day)
+		outcome["rewarded"] = rewarded
+		outcome["reward"] = DailyChallenge.REWARD_DOUGH if rewarded else 0
+	var today: String = DailyChallenge.current_day()
+	outcome["day_changed"] = not today.is_empty() and today != day
+	await get_tree().create_timer(RESULT_DELAY).timeout
+	if not _challenge_result_current(attempt, board):
+		return
+	_set_ad_surface(MonetizationManager.Surface.RESULT)
+	_result.show_challenge_result(outcome)
+
+
+## Gecikmeli meydan okuma sonucu hâlâ geçerli mi: aynı deneme, aynı board ekranda, round türü meydan
+## okuma. Arada yeniden başlatma / tekrar / çıkış / normal round → eski sonuç AÇILMAZ.
+## (`board` Variant: serbest bırakılmış düğüm Node tipli parametreye verilemez.)
+func _challenge_result_current(attempt: int, board: Variant) -> bool:
+	if attempt != _challenge_attempt or _round_kind != RoundKind.DAILY_CHALLENGE:
+		return false
+	if board == null or not is_instance_valid(board):
+		return false
+	return _board == board
+
+
+## Testler / QA sürücüsü.
+func round_kind() -> int:
+	return _round_kind
+
+
+func is_daily_challenge_round() -> bool:
+	return _round_kind == RoundKind.DAILY_CHALLENGE
 
 
 func _clear_board() -> void:
@@ -1140,6 +1280,8 @@ func _clear_board() -> void:
 		# round'un kesinleştirme korumasını tüketmesin (terk edilen round zaten sayılmaz).
 		if _board.round_finished.is_connected(_on_round_finished):
 			_board.round_finished.disconnect(_on_round_finished)
+		if _board.round_finished.is_connected(_on_challenge_round_finished):
+			_board.round_finished.disconnect(_on_challenge_round_finished)
 		_board.queue_free()
 		_board = null
 
@@ -1230,6 +1372,11 @@ func _on_revive_offered(remaining: int) -> void:
 	# yolları board'u yalnız duraklatılmışken siler).
 	if _board == null or not is_instance_valid(_board):
 		return
+	# TASK/047: meydan okumada devam YOK (board hak 0 verir; bu ikinci kapı) — teklif / ödüllü istek
+	# açılmaz, round kesin kayıpla biter (board donuk kalmaz).
+	if _round_kind == RoundKind.DAILY_CHALLENGE:
+		_board.decline_revive()
+		return
 	_revive.show_offer(remaining, _board.max_revives(), _revive_provider_ready(), _provider_note())
 	_ensure_rewarded()
 
@@ -1302,6 +1449,12 @@ func _power_provider_ready() -> bool:
 
 ## Board stok 0 bir güç istedi ve oyunu dondurdu.
 func _on_power_refill_offered(type: int) -> void:
+	# TASK/047: meydan okumada güç / refill / ödüllü güç isteği YOK (board güçleri kilitler; ikinci
+	# kapı) — pencere açılmaz, board donuk kalmaz.
+	if _round_kind == RoundKind.DAILY_CHALLENGE:
+		if _board != null and is_instance_valid(_board):
+			_board.exit_refill_pending(false)
+		return
 	_clear_refill_request()
 	_refill.show_refill(type as PowerUp.Type, _power_provider_ready(), _provider_note())
 	_ensure_rewarded()
@@ -1526,10 +1679,18 @@ func _collect_rewards(won: bool, merges: int) -> Array[ChestReward]:
 
 
 func _on_retry_pressed() -> void:
+	# TASK/047: meydan okuma tekrarı normal `_start_level` yoluna GİRMEZ (level 0 normal ilerlemeye
+	# hiç düşmez) — o anki günün meydan okuması baştan.
+	if _round_kind == RoundKind.DAILY_CHALLENGE:
+		_retry_daily_challenge()
+		return
 	_start_level(_current_level)
 
 
 func _on_exit_pressed() -> void:
+	if _round_kind == RoundKind.DAILY_CHALLENGE:
+		_leave_daily_challenge()
+		return
 	_result.hide_result()
 	_clear_board()
 	# Oyundan çıkınca haritaya dönülür — oynanan yerin yanına.

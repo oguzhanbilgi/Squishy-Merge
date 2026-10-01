@@ -53,7 +53,9 @@ extends CanvasLayer
 signal retry_pressed
 signal exit_pressed
 
-enum Mode { WIN, FAIL, ENDLESS }
+## CHALLENGE_WIN / CHALLENGE_FAIL (TASK/047): günlük meydan okuma sonucu — `show_challenge_result`;
+## ödül kartı / yıldız / XP şeridi yok, kendi kilitli kopyası (UI_VISUAL_SYSTEM §25).
+enum Mode { WIN, FAIL, ENDLESS, CHALLENGE_WIN, CHALLENGE_FAIL }
 
 const BURST_TEXTURE: Texture2D = preload("res://assets/visual/fx/fx_burst.png")
 const SPARKLE_TEXTURE: Texture2D = preload("res://assets/visual/fx/fx_sparkle.png")
@@ -111,6 +113,24 @@ const CHIP_SCORE: String = "SKOR"
 const CHIP_TARGET: String = "HEDEF"
 const CHIP_RECORD: String = "REKOR"
 const CHIP_DOUGH: String = "HAMUR"
+## TASK/047 günlük meydan okuma sonucu (owner'ın kilitli kopyası).
+const CHALLENGE_TITLE_WIN: String = "MEYDAN OKUMA TAMAM!"
+const CHALLENGE_TITLE_FAIL: String = "OLMADI"
+const CHALLENGE_REWARD: String = "+%d HAMUR"
+const CHALLENGE_ALREADY: String = "Bugünün ödülü zaten alındı."
+const CHALLENGE_OVERFLOW: String = "Kap taştı. Sıra aynı, tekrar dene!"
+const CHALLENGE_MOVES: String = "Hamlen bitti. Sıra aynı, tekrar dene!"
+const CHALLENGE_DAY_CHANGED: String = "Gün değişti · yeni meydan okuma hazır."
+const CHALLENGE_TOMORROW: String = "Yarın yenilenir"
+const CHALLENGE_HOME: String = "ANA SAYFA"
+const CHALLENGE_RETRY: String = "TEKRAR DENE"
+const CHALLENGE_NEW: String = "YENİ MEYDAN OKUMA"
+const CHIP_MOVES: String = "HAMLE"
+const MOVES_FORMAT: String = "%d / %d"
+const CHALLENGE_REWARD_SIZE: int = 32
+const CHALLENGE_BODY_SIZE: int = 21
+## +20'nin HAMUR çipine sayarak varışı (sonuç açıldıktan sonra).
+const CHALLENGE_REWARD_DELAY: float = 0.35
 
 var _frame: Control
 var _glow: NinePatchRect
@@ -136,6 +156,13 @@ var _record_chip: PanelContainer
 var _dough_chip: PanelContainer
 var _primary: Button
 var _secondary: Button
+## TASK/047 meydan okuma parçaları (normal modlarda gizli).
+var _challenge_body_row: HBoxContainer
+var _challenge_icon: TextureRect
+var _challenge_body: Label
+var _challenge_footer: Label
+var _moves_chip: PanelContainer
+var _challenge: Dictionary = {}
 var _mode: Mode = Mode.WIN
 var _level: LevelData = null
 var _cards: Array[ResultRewardCard] = []
@@ -213,6 +240,22 @@ func _build_hero() -> void:
 	_stars.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	hero.add_child(_stars)
 
+	# TASK/047 meydan okuma gövde satırı: ödülde Hamur ikonu + altın "+20 HAMUR", aksi hâlde kopya.
+	_challenge_body_row = HBoxContainer.new()
+	_challenge_body_row.name = "ChallengeBody"
+	_challenge_body_row.alignment = BoxContainer.ALIGNMENT_CENTER
+	_challenge_body_row.add_theme_constant_override("separation", UiTokens.SPACE_SM)
+	_challenge_body_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_challenge_body_row.visible = false
+	hero.add_child(_challenge_body_row)
+	_challenge_icon = UiKit.art(DOUGH_ART, 44)
+	_challenge_icon.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
+	_challenge_icon.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	_challenge_body_row.add_child(_challenge_icon)
+	_challenge_body = UiKit.label("", &"LabelBody", HORIZONTAL_ALIGNMENT_CENTER)
+	_challenge_body.name = "Text"
+	_challenge_body_row.add_child(_challenge_body)
+
 	_encourage = UiKit.label("", &"LabelBody", HORIZONTAL_ALIGNMENT_CENTER)
 	_encourage.name = "Encourage"
 	_encourage.add_theme_color_override("font_color", UiTokens.TEXT_SECONDARY)
@@ -257,6 +300,18 @@ func _build_footer() -> void:
 	_dough_chip = _chip(CHIP_DOUGH, "0", DOUGH_ART)
 	_dough_chip.name = "DoughChip"
 	_summary.add_child(_dough_chip)
+	# TASK/047: meydan okumanın HAMLE çipi ("17 / 18") + altlık notu ("Yarın yenilenir").
+	_moves_chip = _chip(CHIP_MOVES, "0 / 0")
+	_moves_chip.name = "MovesChip"
+	_moves_chip.visible = false
+	_summary.add_child(_moves_chip)
+	_challenge_footer = UiKit.label("", &"LabelCaption", HORIZONTAL_ALIGNMENT_CENTER)
+	_challenge_footer.name = "ChallengeFooter"
+	_challenge_footer.add_theme_font_size_override("font_size", 16)
+	_challenge_footer.add_theme_color_override("font_color", UiTokens.TEXT_SECONDARY)
+	_challenge_footer.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_challenge_footer.visible = false
+	footer.add_child(_challenge_footer)
 	var gap := Control.new()
 	gap.custom_minimum_size = Vector2(0, UiTokens.SPACE_XS)
 	gap.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -364,9 +419,154 @@ func show_result(level: LevelData, won: bool, score: int, stars: int,
 	await _run_reveal(sequence, stars)
 
 
+## TASK/047 — günlük meydan okuma sonucu. YALNIZCA SUNAR: ödül / tamamlanma (`SaveManager.
+## complete_daily_challenge`) bu ekran açılmadan ÖNCE Main'de yazıldı. `outcome` (Main):
+## won, rewarded, reward, fail_reason (DailyChallenge.FailReason), drops_used, drop_budget,
+## target_tier, reached_tier, day_changed. Ödül kartı / sandık / yıldız / XP şeridi / rekor YOK.
+##   Başarı   "MEYDAN OKUMA TAMAM!" · "+20 HAMUR" (ya da "Bugünün ödülü zaten alındı.") · HAMLE
+##            "17 / 18" · "Yarın yenilenir" (gün değiştiyse "Gün değişti · …") · yalnız ANA SAYFA
+##   Kayıp    "OLMADI" · taşma / hamle bitti kopyası (bir tier kalmışsa "Hedefe çok yaklaştın!") ·
+##            HEDEF + HAMLE · TEKRAR DENE + ANA SAYFA; gün değiştiyse "Gün değişti · yeni meydan
+##            okuma hazır." + YENİ MEYDAN OKUMA + ANA SAYFA
+func show_challenge_result(outcome: Dictionary) -> void:
+	_sequence_id += 1
+	var sequence: int = _sequence_id
+	_stop_ambient()
+	_clear_cards()
+	_level = null
+	_progress = {}
+	_configure_challenge(outcome)
+	_progress_strip.present({})
+	visible = true
+	UiKit.modal_relayout(_frame)
+	(_frame.get_meta(&"scroll") as ScrollContainer).scroll_vertical = 0
+	UiMotion.modal_open(_frame, _dim)
+	_start_ambient()
+	await _run_challenge_reveal(sequence)
+
+
+func _configure_challenge(outcome: Dictionary) -> void:
+	_reset_challenge_parts()
+	_challenge = outcome.duplicate()
+	var won: bool = bool(outcome.get("won", false))
+	var rewarded: bool = won and bool(outcome.get("rewarded", false))
+	var reward: int = int(outcome.get("reward", 0)) if rewarded else 0
+	var day_changed: bool = bool(outcome.get("day_changed", false))
+	var reason: int = int(outcome.get("fail_reason", DailyChallenge.FailReason.NONE))
+	var target: int = int(outcome.get("target_tier", 0))
+	var reached: int = int(outcome.get("reached_tier", 0))
+	_mode = Mode.CHALLENGE_WIN if won else Mode.CHALLENGE_FAIL
+	var title: String = CHALLENGE_TITLE_WIN if won else CHALLENGE_TITLE_FAIL
+	# Başlık yeri normal sonuçla aynı dil: başarıda tepelik + altın kurdele, kayıpta lavanta kurdele.
+	_topper.visible = won
+	_rim.visible = won
+	_glow.self_modulate = GLOW_WIN if won else UiTokens.GLOW_SUBTLE
+	_hero_ribbon_host.visible = won
+	_hero_ribbon_label.text = title
+	_ribbon.visible = not won
+	_ribbon_label.text = title
+	_tint_ribbon(_ribbon, RIBBON_FAIL)
+	_anchor.offset_top = UiKit.MODAL_TOPPER_OVERHANG * TOPPER_SCALE if won else UiKit.MODAL_RIBBON_OVERHANG
+	_set_unlock_badge(null, false)
+	_stars.visible = false
+	_endless_host.visible = false
+
+	var body: String
+	if won:
+		body = (CHALLENGE_REWARD % reward) if rewarded else CHALLENGE_ALREADY
+	elif day_changed:
+		body = CHALLENGE_DAY_CHANGED
+	elif reason == DailyChallenge.FailReason.OVERFLOW:
+		body = CHALLENGE_OVERFLOW
+	else:
+		body = CHALLENGE_MOVES
+	_set_challenge_body(body, rewarded)
+	# Kayıpta bir tier kalmışsa mevcut teşvik satırı (yalnız hamle bitti — gün değişmediyse).
+	var close: bool = (not won and not day_changed and reason == DailyChallenge.FailReason.MOVES_EXHAUSTED
+		and target > 1 and reached == target - 1)
+	_encourage.visible = close
+	_encourage.text = ENCOURAGE_CLOSE if close else ""
+	_challenge_footer.visible = won
+	_challenge_footer.text = (CHALLENGE_DAY_CHANGED if day_changed else CHALLENGE_TOMORROW) if won else ""
+
+	# Altlık çipleri: HAMLE her zaman; başarıda HAMUR (ödül sayarak varır), kayıpta HEDEF.
+	_score_chip.visible = false
+	_record_chip.visible = false
+	_target_chip.visible = not won and target > 0
+	if target > 0:
+		_set_chip(_target_chip, TierConfig.tier_name(clampi(target, 1, TierConfig.MAX_TIER)))
+	_moves_chip.visible = true
+	_set_chip(_moves_chip, MOVES_FORMAT % [int(outcome.get("drops_used", 0)), int(outcome.get("drop_budget", 0))])
+	_dough_chip.visible = won
+	_balance_shown = maxi(0, SaveManager.dough() - reward)
+	_set_chip(_dough_chip, GameplayHud._thousands(_balance_shown))
+
+	if won:
+		# Tekrar oynanmaz (V1): tek eylem Ana Sayfa.
+		_set_button_texts(CHALLENGE_HOME, "home", CHALLENGE_HOME, "home")
+		_secondary.visible = false
+	else:
+		_set_button_texts(CHALLENGE_NEW if day_changed else CHALLENGE_RETRY, "play" if day_changed else "refresh",
+			CHALLENGE_HOME, "home")
+		_secondary.visible = true
+	_reveal_done = false
+
+
+## Gövde satırı: ödülde Hamur ikonu + altın büyük metin (sığar, sarılmaz); kopyada ikon yok,
+## satırı dolduran sarılabilir gövde metni.
+func _set_challenge_body(text: String, reward_line: bool) -> void:
+	_challenge_body_row.visible = true
+	_challenge_body.text = text
+	_challenge_icon.visible = reward_line
+	if reward_line:
+		_challenge_body.theme_type_variation = &"LabelTitle"
+		_challenge_body.add_theme_font_size_override("font_size", CHALLENGE_REWARD_SIZE)
+		_challenge_body.add_theme_color_override("font_color", UiTokens.GOLD_DEEP)
+		_challenge_body.autowrap_mode = TextServer.AUTOWRAP_OFF
+		_challenge_body.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	else:
+		_challenge_body.theme_type_variation = &"LabelBody"
+		_challenge_body.add_theme_font_size_override("font_size", CHALLENGE_BODY_SIZE)
+		_challenge_body.add_theme_color_override("font_color", UiTokens.TEXT_PRIMARY)
+		_challenge_body.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		_challenge_body.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+
+
+## Meydan okuma parçalarını gizler, normal sonucun kalıcı düzenini geri verir (normal `_configure`
+## ilk iş çağırır; meydan okuma kendi kurulumundan önce).
+func _reset_challenge_parts() -> void:
+	_challenge = {}
+	_challenge_body_row.visible = false
+	_challenge_footer.visible = false
+	_moves_chip.visible = false
+	_dough_chip.visible = true
+	_secondary.visible = true
+
+
+## Başarı ödülü: HAMUR çipi kanonik bakiyeye +20 SAYARAK varır (Hamur zaten yazıldı). Butonlar ilk
+## kareden aktif; gizleme / yeniden açılış eski reveal'i geçersiz kılar.
+func _run_challenge_reveal(sequence: int) -> void:
+	await get_tree().process_frame
+	var reward: int = int(_challenge.get("reward", 0)) if bool(_challenge.get("rewarded", false)) else 0
+	if reward > 0:
+		await get_tree().create_timer(CHALLENGE_REWARD_DELAY).timeout
+		if sequence != _sequence_id:
+			return
+		_balance_shown = SaveManager.dough()
+		UiKit.set_pill_value(_dough_chip, GameplayHud._thousands(_balance_shown), true)
+		AudioManager.play(&"daily_reward")
+		Haptics.light()
+	if sequence != _sequence_id:
+		return
+	_balance_shown = SaveManager.dough()
+	_reveal_done = true
+
+
 func _configure(level: LevelData, won: bool, score: int, stars: int,
 		rewards: Array[ChestReward], new_record: bool,
 		newly_unlocked: bool, reached_tier: int) -> void:
+	# TASK/047: önceki bir meydan okuma sonucunun parçaları normal sonuçta görünmez.
+	_reset_challenge_parts()
 	if level.is_endless:
 		_mode = Mode.ENDLESS
 	else:
@@ -671,11 +871,12 @@ func _stop_ambient() -> void:
 
 # --- Eylemler -------------------------------------------------------------------
 
-## Kahraman CTA: kazanmada Harita (çıkış), kayıpta / sonsuzda tekrar.
+## Kahraman CTA: kazanmada Harita (çıkış), kayıpta / sonsuzda tekrar. TASK/047 meydan okuma
+## başarısında ANA SAYFA (çıkış), kaybında TEKRAR DENE / YENİ MEYDAN OKUMA (tekrar).
 func _on_primary_pressed() -> void:
 	if not visible:
 		return
-	if _mode == Mode.WIN:
+	if _primary_exits():
 		exit_pressed.emit()
 	else:
 		retry_pressed.emit()
@@ -684,10 +885,17 @@ func _on_primary_pressed() -> void:
 func _on_secondary_pressed() -> void:
 	if not visible:
 		return
-	if _mode == Mode.WIN:
+	# TASK/047: meydan okuma başarısında ikincil buton yok (tekrar oynanmaz).
+	if _mode == Mode.CHALLENGE_WIN:
+		return
+	if _primary_exits():
 		retry_pressed.emit()
 	else:
 		exit_pressed.emit()
+
+
+func _primary_exits() -> bool:
+	return _mode == Mode.WIN or _mode == Mode.CHALLENGE_WIN
 
 
 # --- Okuma (test / araç) --------------------------------------------------------
@@ -730,7 +938,28 @@ func secondary_text() -> String:
 
 ## Görünür eylemin anlamı: "retry" / "exit".
 func primary_action() -> String:
-	return "exit" if _mode == Mode.WIN else "retry"
+	return "exit" if _primary_exits() else "retry"
+
+
+## TASK/047 meydan okuma okuyucuları (görünmeyen parça boş metin).
+func challenge_body_text() -> String:
+	return _challenge_body.text if _challenge_body_row.visible else ""
+
+
+func challenge_moves_text() -> String:
+	return (_moves_chip.get_meta(&"value_label") as Label).text if _moves_chip.visible else ""
+
+
+func challenge_footer_text() -> String:
+	return _challenge_footer.text if _challenge_footer.visible else ""
+
+
+func challenge_outcome() -> Dictionary:
+	return _challenge.duplicate()
+
+
+func moves_chip() -> PanelContainer:
+	return _moves_chip
 
 
 func score_text() -> String:
