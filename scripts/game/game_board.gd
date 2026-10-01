@@ -962,9 +962,12 @@ func _unhandled_input(event: InputEvent) -> void:
 	var touch := event as InputEventScreenTouch
 	if touch == null:
 		return
+	# TASK/046.2: iptal edilen bırakış (Android ACTION_CANCEL → `canceled == true`; ör. sistem
+	# hareketi dokunuşu devralınca) bırakma DEĞİLDİR — dizi parça düşürmeden biter. Nişan
+	# parmağın son konumunda kalır; durum tutulmaz, sonraki bağımsız dokunuş hemen normal.
 	if touch.pressed:
 		_set_aim(screen_to_world(touch.position).x)
-	else:
+	elif not touch.canceled:
 		_drop()
 
 
