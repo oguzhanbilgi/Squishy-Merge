@@ -131,7 +131,8 @@ zorluk dengelemesi — üst tier'lar sadece merge ile elde edilir.
 | 10 | Tier 8 + skor ≥ 5000 | En dar |
 
 > **Süre baskısı YOK (owner kararı, M8).** Hiçbir level'da süre veya hamle
-> limiti yok; tek başarısızlık koşulu taşma. Süre limiti konseptin
+> limiti yok; tek başarısızlık koşulu taşma. *(TASK/047: bırakış bütçesi YALNIZ ayrı, isteğe
+> bağlı günlük MEYDAN OKUMA modunda — §5.11; sabit level'lar ve sonsuz mod aynen.)* Süre limiti konseptin
 > "rahatlatıcı/ASMR" pozisyonuyla çelişiyordu — kasıtlı olarak kaldırıldı,
 > tekrar sorulmasına gerek yok. Süre göstergesi de HUD'dan çıkarıldı.
 >
@@ -896,9 +897,9 @@ bellekte uzlaştırır, pencereler yazmaz.)*
 - ~~**TASK/046** — Günlük / Haftalık Görevler (sıradaki)~~ → **YAPILDI (§5.10), main'de**
   (Samsung A36 kapısı GEÇTİ; 2026-09-30'da TASK/046.1 yaş ekranı yeniden tasarımıyla birlikte owner
   onayıyla ff-only main'e alındı).
-- **TASK/047** — Günlük Merge Challenge (**BAŞLAMADI** — sıradaki planlı ürün görevi; hedef,
-  ödül, sıfırlama, arayüz, kayıt, reklam, XP ve görev etkileşimi TASARLANMADI — uygulamadan önce
-  owner onaylı sözleşme gerekir)
+- ~~**TASK/047** — Günlük Merge Challenge (sıradaki planlı ürün görevi; sözleşme henüz
+  tasarlanmamıştı)~~ → owner onaylı kilitli brifle **sözleşme §5.11**; uygulama
+  `task/047-daily-merge-challenge` dalında (main'e alınması owner onayı bekliyor).
 
 ### 5.9 Oyuncu Seviyesi + XP + Başarımlar + Unvanlar (TASK/045 — owner kararı, KİLİTLİ)
 
@@ -1096,6 +1097,126 @@ profillerin çoğu 330 tavanına ulaşır. Karşılığı: haftada en fazla 1-3 
 iki Nadir parça (150) kadar Hamur. **Hiçbir fiyat, sandık oranı, günlük ödül (+15 / ücretsiz sandık
 / reklamlı +150 / reklamlı sandık kotası), refill / devam kotası DEĞİŞMEDİ; yeniden ayar
 yapılmadı.**
+
+### 5.11 Günlük Merge Challenge — MEYDAN OKUMA (TASK/047 — owner kararı, KİLİTLİ)
+
+İsteğe bağlı (opt-in) günlük mod; oyuncuya adı **MEYDAN OKUMA** (başka ad owner onayı ister). Günde
+bir meydan okuma: **yapılandırılmış hedef tier'ı, sınırlı sayıda GERÇEK bırakışla oluştur.** Süre
+YOK. Yerel / çevrimdışı — backend, skor tablosu, hesap, bildirim, dünya sıralaması, "herkes aynı
+meydan okumada" iddiası YOK.
+
+**Haftalık preset tablosu (KİLİTLİ — prosedürel üretilmez, otomatik ayarlanmaz; oynanabilir
+yükseklik her gün 400):**
+
+| Gün | Hedef | Kap genişliği | Bırakış bütçesi |
+|---|---|---|---|
+| Pazartesi | T5 (Büyük Dumpling) | 600 | 18 |
+| Salı | T5 | 480 | 16 |
+| Çarşamba | T6 (Dev Dumpling) | 600 | 38 |
+| Perşembe | T5 | 420 | 15 |
+| Cuma | T6 | 540 | 36 |
+| Cumartesi | T6 | 480 | 32 |
+| Pazar | T6 | 420 | 30 |
+
+Zorluk yalnız bu tablodan gelir. Test sonuçlarından sessizce değiştirilmez; A36 owner playtest'i
+yeniden ayar önerirse ayrı owner kararıdır.
+
+**Gün — tek saat gerçeği:** görevlerin kabul edilen günü (`Missions.accepted_day()` →
+`DailyRewards.day_key()`: saat geri alınırsa görülen en yeni gün) — ayrı bir saat / gün kabul
+sistemi YOK. Ayrıca kayıttaki tamamlanma günü bir taban: geri alınan saat tamamlanmış günü
+yeniden açmaz. Saati ileri almak yeni günü açar (günlük sistemlerle aynı bilinçli kabul). Gün
+gerçeği yoksa (geçersiz) meydan okuma gizli ve başlatılamaz. Hafta günü takvim tarihinden (UTC
+gece yarısı — saat dilimi / yaz saati kayması yok).
+
+**Parça dizisi (KİLİTLİ, önek `sm-dc-v1`):** her 9'luk torba `[1,1,1,2,2,2,3,3,3]` ile başlar;
+`b`. torba (0'dan) SHA-256(`"sm-dc-v1|" + gün + "|" + b`) baytlarıyla Fisher–Yates karılır —
+j = 8 … 1 için k = bayt[8 − j] mod (j + 1), torba[j] ↔ torba[k]; torbalar gerektiği kadar art arda.
+Her 9 parça tam 3 × T1 + 3 × T2 + 3 × T3. Dizi yalnız gün + torba indeksi + önekin SAF fonksiyonu:
+`seed()` YOK, global RNG'ye dokunulmaz, seed saklanmaz — normal `DropBag` ve sandık kuraları taze
+rastgelelikle aynen. **Test vektörü:** 2026-10-01 → `1,3,1,1,3,2,2,3,2 | 1,3,3,1,2,1,2,3,2`.
+
+**Mod:** production fizik, TierConfig, merge kuralları, T1–T3 havuzu, önizleme ve taşma aynen.
+YOK: güçler (dördü de; refill, stok tüketimi, ödüllü güç isteği, hedefleme), devam (revive),
+meydan okumaya özgü reklam, XP, görevler, başarımlar, bonus sandık merge sayacı, yıldız, level
+tamamlanması, sonsuz rekoru, normal round istatistikleri (tur sayısı / en yüksek tier dahil). Level
+verisi kodda kurulur (`resources/levels/`'e dosya EKLENMEZ, LevelLibrary sabit level kütüphanesi
+kalır); level numarası nöbetçi 0 ama yönlendirme açık round türünden (`RoundKind`) yapılır.
+
+**Bırakış bütçesi:** her başarılı bırakış tam −1. İptal edilen dokunuş (Android ACTION_CANCEL —
+TASK/046.2) ve bekleme süresinde (`DROP_COOLDOWN` 0,4 aynen) reddedilen bırakış saymaz. Son izinli
+bırakıştan sonra yeni bırakış kabul edilmez; tahta fiziksel olarak yaşamaya devam eder (zaten
+bırakılmış parçaların merge zinciri biter, bu sırada hedef oluşursa kazanılır). Bırakılamayacak
+parça önizlemede gösterilmez (SIRADAKİ kartı son bırakışta, bırakış çizgisi parçası bütçe bitince
+gizli); durum yazısı **"Hamle bitti"**.
+
+**Yatışma (KİLİTLİ — yalnız bitiş algılayıcı, oyuncu süresi DEĞİL):** son izinli bırakıştan sonra
+**1,5 sn gerçek merge olmazsa** ya da **mutlak 5,0 sn** dolarsa ve hedef oluşmadıysa kayıp
+(`moves_exhausted`). Sabitler aynen; "tahta mevcut hareketini çözsün" kuralının uygulaması: 1,5 sn'lik
+sessiz pencere son bırakılan parçanın İLK temasından (`has_landed` — zemin, duvar ya da başka bir
+parçayla ilk temas; taşma sayımıyla aynı "indi" tanımı) itibaren sayılır, düşüş süresi (~1,2 sn)
+pencereden yemez; 5,0 sn mutlak tavan son
+bırakıştan sayılır (parça hiç inmese de). Her gerçek merge sessiz pencereyi yeniler; karar aynı
+karenin kuyruktaki merge'leri çözüldükten sonra verilir. Mola / ayarlar açıkken süre işlemez. Mevcut
+merge ↔ taşma aynı-adım sırası DEĞİŞMEDİ.
+
+**Kazanma:** hedef tier gerçek bir merge ile oluştuğu an (son bırakıştan önce, son bırakışta ya
+da yatışmada). Güç olmadığı için Büyütücü hedefi karşılayamaz. **Kayıp:** taşma (`overflow`;
+mevcut taşma kuralı, devam teklifi YOK) ya da hamle bitti (`moves_exhausted`).
+
+**Ödül (KİLİTLİ):** kabul edilen günün İLK başarısı **+20 Hamur** — otomatik, talep butonu yok, günde
+tam bir kez (yedi farklı günde en fazla +140). İkiye katlama, sandık, koleksiyon parçası, güç, XP,
+görev ilerlemesi, reklam bonusu, yeniden çekme YOK. Başarıdan önce sınırsız tekrar: her deneme
+aynı gün, aynı dizi baştan, tam bütçe; terk / yeniden başlatma ödül vermez. Başarıdan sonra o gün
+**tekrar oynanmaz** (V1 — pratik / tekrar modu yok): "✓ TAMAMLANDI · Yarın yenilenir".
+
+**Kayıt (KİLİTLİ, en küçük biçim):** sürümlü blok `daily_challenge { version: 1,
+completed_day_key: "" }`. Preset, hedef, genişlik, bütçe, dizi, deneme sayısı, en iyi sonuç,
+görüldü / UI durumu ve seed SAKLANMAZ (türetilir ya da geçicidir). İlk başarı TEK, idempotent
+işlem: gün geçerli ve kayıttaki tamamlanma gününden YENİ → `completed_day_key` + 20 Hamur AYNI kayıt
+yazmasında (ayrı "ödül verildi" bayrağı yok; ayrı kayıt dosyası yok); aynı / eski / geçersiz gün
++0 ve yazma yok. Eski kayıt: bellekte varsayılan blok — geriye dönük tamamlanma / ödül yok, yalnız
+bu yüzden disk yazması yok; bozuk blok (sözlük değil / bilinmeyen sürüm) varsayılana iner, geçersiz
+gün boş tamamlanmaya iner, fazla alanlar atılır (geçerli `completed_day_key` korunur). SaveFile işlemi
+(`.tmp` / `.bak` / kurtarma önceliği) DEĞİŞMEDİ — blok normal yükün parçası olarak kurtarılır.
+
+**Gece yarısı (KİLİTLİ):** deneme BAŞLADIĞI kabul edilen güne aittir — D'de 23:59'da başlayıp D+1'de
+00:01'de kazanılan deneme D'yi tamamlar / ödüllendirir (D henüz ödüllenmediyse +20); Ana Sayfa
+D+1'i ayrı gösterir. Tekrar her zaman GÜNCEL günün meydan okumasını başlatır. Açık kalan pencerenin
+BAŞLA'sı günü yeniden okur: gün değiştiyse pencere bugünün preset'ine tazelenir ve eski günün
+meydan okuması başlamaz. Gün değişmiş kayıp: "Gün değişti · yeni meydan okuma hazır." + YENİ
+MEYDAN OKUMA + ANA SAYFA — gün, sonuç GÖSTERİLİRKEN okunur (sonuç gecikmesi gece yarısını geçebilir);
+açık kalan kayıp sonucu gece yarısını geçerse TEKRAR DENE (ve öne dönüş) önce sonucu bu kopyaya
+yeniler, yeni günün meydan okumasını ikinci basış başlatır (açık pencerenin BAŞLA'sı gibi). Mola
+"Yeniden Başlat" kopya taşımadığı için doğrudan güncel günü başlatır. **Kalıtılan uç durum (kabul
+edilen gün semantiği, DEĞİŞTİRİLMEDİ):** uygulama gece yarısını ÖN PLANDA geçip (açılış / öne dönüş
+olmadan yeni gün kayda işlenmez) ardından cihaz saati geri alınırsa kabul edilen gün — görevlerle
+birlikte — bir önceki güne dönebilir; tamamlanmış gün yine açılmaz, ikinci ödül oluşmaz. Meydan okuma
+başlangıcında `DailyRewards.observe_day()` çağırmak bunu kapatırdı ama GÜNLÜK ÖDÜLLER / görevler gün
+semantiğine yeni bir yazma noktası ekler — owner kararı.
+
+**Görünürlük:** onboarding / tutorial bitmeden giriş gizli; otomatik pencere, meydan okuma
+tutorial'ı, kayıt mutasyonu YOK. İlk normal Ana Sayfa'dan itibaren açık — GÜNLÜK ÖDÜLLER'in
+"tutorial gününde kapalı" kuralı UYGULANMAZ.
+
+**Arayüz:** Ana Sayfa'da GÖREVLER pill'inin HEMEN altında kompakt pill (bugünün hedef portresi +
+"MEYDAN OKUMA" + "+20" rozeti / tamamlanınca tik) → GÖREVLER ailesinden MEYDAN OKUMA penceresi
+("Büyük Dumpling yap · 18 hamlede", "+20 HAMUR · İlk tamamlayışta", ipucu, **"Görev, XP ve sandık
+ilerlemesine sayılmaz."**, BAŞLA). Oyunda level rozeti "BUGÜN", skor plakası "HAMLE" (kalan
+bırakış), güç tepsileri gizli, hedef kartı aynen. Sonuç: "MEYDAN OKUMA TAMAM!" · "+20 HAMUR" ·
+"HAMLE 17 / 18" · "Yarın yenilenir" · ANA SAYFA; "OLMADI" + taşma / hamle bitti kopyası + TEKRAR
+DENE + ANA SAYFA. Harita'da yok; GÖREVLER "N/6" anlamı aynen. Ayrıntı: docs/UI_VISUAL_SYSTEM.md §26.
+
+**Reklam (owner kararı, KİLİTLİ):** yeni reklam yerleşimi YOK. Meydan okuma bitişi (başarı / kayıp)
+mevcut round-sonu geçiş reklamı denemesini ÇAĞIRMAZ (`try_show_interstitial("round_finish")` yok) —
+temiz tekrar döngüsü. Ödüllü istek yok (ekstra hamle, tekrar, devam, ikiye katlama, yeniden çekme,
+güç refill'i). Oyun banner'ı mevcut oyun yüzeyi sözleşmesiyle (yaş / rıza / SDK izin veriyorsa);
+sonuç ekranında gizli (mevcut kural). Yaş UNKNOWN: normal oyunla aynı — SDK / UMP açılmaz, meydan
+okuma reklam yoluna dokunmaz (üretimde UNKNOWN önce zorunlu yaş ekranını gösterir; meydan okuma
+penceresi o ekran açıkken açılmaz). Normal round geçiş reklamı davranışı DEĞİŞMEDİ.
+
+**Ekonomi:** tek yeni kaynak ilk başarının +20 Hamur'u (günde ≤ 20, haftada ≤ 140) — görev
+ekonomisinin (§5.10) parçası DEĞİL, ayrı kaynak. Fiyatlar, sandık oranları / ödülleri, teselli,
+75 merge bonus sandığı, görev ödülleri, günlük ödüller, ödüllü reklam ekonomisi DEĞİŞMEDİ.
 
 ## 6. Ses tasarımı
 

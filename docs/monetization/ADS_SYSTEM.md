@@ -88,6 +88,16 @@
 Hamur satın alma yolu (`PowerUpEconomy.purchase`) reklamdan tamamen bağımsız
 kaldı; skinler asla reklam/paraya bağlı değil.
 
+> **TASK/047 Günlük meydan okuma (MEYDAN OKUMA — GAME_DESIGN §5.11):** yeni reklam yerleşimi
+> DEĞİL. Meydan okuma round'unun bitişi (başarı / kayıp) round-sonu geçiş reklamı denemesini
+> (`try_show_interstitial("round_finish")`) ÇAĞIRMAZ (owner kararı — temiz tekrar döngüsü);
+> devam, güç refill'i, ekstra hamle, tekrar, ödül ikiye katlama / yeniden çekme için ödüllü istek
+> YOK. Oyun banner'ı mevcut oyun yüzeyi kuralıyla (GAMEPLAY), sonuç ekranında gizli (RESULT);
+> yaş / rıza / SDK yönlendirmesi DEĞİŞMEDİ; yaş UNKNOWN'da normal oyunla aynı — SDK / UMP açılmaz,
+> meydan okuma reklam yoluna dokunmaz (üretimde UNKNOWN önce zorunlu yaş ekranını gösterir). Normal
+> round'ların geçiş reklamı davranışı aynen. Meydan okumada geçen süre mevcut 15 dakikalık aktif süre
+> uygunluğuna sayılır (mevcut sözleşme, yeni yerleşim değil).
+
 ## 2. Seçilen eklenti ve SDK sürümleri (araştırma 2026-09-21)
 
 > **Güncel (TASK/042, 2026-09-27, main'de):** GMA **25.3.0** /

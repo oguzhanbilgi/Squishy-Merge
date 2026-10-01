@@ -1952,3 +1952,102 @@ ister.
 
 Kaydırmalı çark (wheel) seçici; önceki / sonraki okları; kayıtlı yaşı / tarihi gösterme;
 serbest metin girişi; 13 altı için ayrı ekran. Hepsi owner kararı ister.
+
+## 26. Günlük meydan okuma — MEYDAN OKUMA (TASK/047)
+
+**Karar:** Ana Sayfa'ya GÖREVLER'in hemen altında TEK kompakt MEYDAN OKUMA pill'i, GÖREVLER
+ailesinden Main'e ait MEYDAN OKUMA penceresi, oyun HUD'unda dar bir sunum değişikliği (BUGÜN /
+HAMLE / güç tepsileri gizli) ve sonuç ekranında kendi kilitli kopyası. Aynı candy-night kawaii
+sistemi; yeni ekran, alt gezinme, sekme, tam ekran ödül sayfası, talep butonu, banner, reklam,
+seri / takvim / skor tablosu YOK. Sayılar ve kurallar GAME_DESIGN §5.11'de kilitli; bu bölüm
+yalnız görünüm ve etkileşim.
+
+**Kod:** `scripts/ui/daily_challenge_overlay.gd` (`DailyChallengeOverlay`,
+`scenes/ui/daily_challenge_overlay.tscn`, katman 12), `home_screen.gd` (pill +
+`refresh_daily_challenge`), `gameplay_hud.gd` (`set_daily_challenge` / `set_moves` /
+`set_powers_visible` / `set_next_visible`), `power_bar.gd` (`lock_disabled`), `round_result.gd`
+(`show_challenge_result`, `Mode.CHALLENGE_WIN` / `CHALLENGE_FAIL`), `main.gd`
+(`open_daily_challenge`, BAŞLA gün yeniden okuması, pencere kapıları). Model:
+`scripts/game/daily_challenge.gd` (saf) → `SaveManager` (tek yazan:
+`complete_daily_challenge`) → UI yalnız okur.
+**Test:** `tools/daily_challenge_ui_test.tscn` (giriş durumları, pencere içeriği T5 / T6 /
+tamamlandı, geri / X / karartma / KAPAT / hızlı çift dokunuş / BAŞLA bırakışı tahtaya düşmez,
+kapılar, açık pencerede gün dönümü + öne dönüş, oyun HUD'u, sonuç kopyaları, 5 görünüm + A36 üst
+payı + tamamlandı / T6 varyantları: çakışma / maskotun opak pikselleri / kırpma yok, sahte arka
+uçla banner yuvası, kayıt yazılmaz), `daily_challenge_flow_test`, `daily_challenge_board_test`.
+**Çekim:** `godot --resolution GxY --path . res://tools/daily_challenge_shots.tscn -- <dir> [GxY]
+[safe=61] [only=HSGR]` (15 kare: H Ana Sayfa 3 — banner yuvası magenta plakayla işaretli —, S
+pencere 3, G oyun 4, R sonuç 5; kayıt test yoluna yönlendirilir; `safe=61` A36 üst payını kabuğa,
+pencereye VE board'a — HUD üst satırı + kap, sonuç bu board'un üstünde — uygular).
+
+### 26.1 Ana Sayfa girişi
+
+- **Yer:** GÖREVLER pill'inin HEMEN altında (10 px), yatayda ortalı — madalyon sütunlarının
+  arasında, maskotun dar tepesinin üstünde; her görünümde hiçbir kontrolle ve maskotun opak
+  pikselleriyle çakışmaz. Madalyon / maskot / level pill'i / OYNA / banner düzeni DEĞİŞMEDİ.
+- **Anatomi:** GÖREVLER ile AYNI malzeme (`ButtonHomePill`, 56 yüksek, genişlik içeriğe göre
+  236..320, erik gölge + açık lavanta halka + gloss). Ayırt edici: solda **pembe** candy kuyuda
+  bugünün HEDEF portresi (tier sanatı; T5 / T6), ortada "MEYDAN OKUMA" (Baloo 19), sağda altın
+  "+20" rozeti; tamamlanınca rozet nane, içinde tik ikonu (glif değil — §12 font kapsamı).
+- **Görünürlük:** onboarding bitmeden ve gün gerçeği yokken gizli; tutorial'ın bitirildiği gün
+  görünür. `refresh()`, öne dönüş ve pencerenin gün tazelemesi yeniden okur. Kayda YAZMAZ.
+
+### 26.2 MEYDAN OKUMA penceresi
+
+`UiKit.modal_shell("MEYDAN OKUMA", 600)` — pembe kurdele + oturmuş X, `seat_modal_below_safe_top`,
+banner varken yuvanın ÜSTÜNE oturur.
+
+| Bölge | İçerik |
+|---|---|
+| **Hero** (sabit) | hedef portresi (`candy_well` 132 — T5 lavanta, T6 altın kuyu) + ana satır "Büyük Dumpling yap · 18 hamlede" (Baloo 26; hedef adı TierConfig'ten — T6 günlerinde "Dev Dumpling") |
+| **Gövde** | Hamur ikonu + "+20 HAMUR · İlk tamamlayışta" (altın-derin) · ipucu "Her gün yeni meydan okuma. Parça sırası gün boyu aynı; istediğin kadar dene." · yalıtım notu **"Görev, XP ve sandık ilerlemesine sayılmaz."** (gövde yazısı 16 — 320 dp'de de okunur; KALDIRILMAZ) |
+| **Altlık** | BAŞLA (cyan `ButtonCTA` + oyna pictosu) |
+| **Tamamlandı** | ödül + ipucu yerine nane "✓ TAMAMLANDI" çipi (tik ikonu) + "Yarın yenilenir"; altlıkta KAPAT; yalıtım notu durur |
+
+BAŞLA yalnız gösterilen günle talep yayar; Main günü yeniden okur — gün değiştiyse / bugün
+tamamlandıysa pencere bugüne tazelenir ve round başlamaz (oyuncu yeni günü görüp yeniden basar;
+tazeleme 300 ms parmak yatışmasını yeniden kurar — hızlı çift dokunuşun ikincisi yeni günü görmeden
+başlatmaz).
+
+### 26.3 Oyun HUD'u
+
+Level rozeti **"BUGÜN"** (SONSUZ ile aynı 15 px ölçek), skor plakası **"HAMLE"** + kalan bırakış
+(her bırakışta hafif pop; skor metni / "+N" skor pop'u yok), güç tepsileri + madalyonlar + yuvaları
+GİZLİ (mola / ayarlar dönüşünde de — çubuk kilitli), hedef kartı / portre / evrim şeridi aynen.
+SIRADAKİ kartı son izinli bırakışta, bırakış çizgisi parçası bütçe bitince gizli (sahte parça yok);
+yatışma boyunca durum plakası **"Hamle bitti"**. Yeni HUD öğesi YOK.
+
+### 26.4 Sonuç
+
+`show_challenge_result` — ödül kartı / sandık / yıldız / XP şeridi / rekor YOK.
+
+| Durum | Başlık | Gövde | Altlık | Eylem |
+|---|---|---|---|---|
+| İlk başarı | "MEYDAN OKUMA TAMAM!" (tepelik + altın kurdele) | Hamur ikonu + "+20 HAMUR" (çip sayarak varır) | HAMUR + HAMLE "17 / 18" · "Yarın yenilenir" (gün değiştiyse "Gün değişti · yeni meydan okuma hazır.") | yalnız ANA SAYFA |
+| Ödül zaten alındı (savunma) | "MEYDAN OKUMA TAMAM!" | "Bugünün ödülü zaten alındı." | HAMUR + HAMLE · "Yarın yenilenir" | yalnız ANA SAYFA |
+| Taşma | "OLMADI" (lavanta kurdele) | "Kap taştı. Sıra aynı, tekrar dene!" | HEDEF + HAMLE | TEKRAR DENE + ANA SAYFA |
+| Hamle bitti | "OLMADI" | "Hamlen bitti. Sıra aynı, tekrar dene!" (+ bir tier kaldıysa "Hedefe çok yaklaştın!") | HEDEF + HAMLE | TEKRAR DENE + ANA SAYFA |
+| Gün değişti (kayıp) | "OLMADI" | "Gün değişti · yeni meydan okuma hazır." | HEDEF + HAMLE | YENİ MEYDAN OKUMA + ANA SAYFA |
+
+Gün, sonuç gösterilirken okunur. Açık kayıp sonucu gece yarısını geçerse TEKRAR DENE (ve öne
+dönüş) önce sonucu YERİNDE (açılış animasyonu yok) "Gün değişti" satırına yeniler ve 300 ms parmak
+yatışmasını yeniden kurar (hızlı çift dokunuşun ikincisi yeni günü görmeden başlatmaz); ikinci basış
+yeni günün meydan okumasını başlatır. Ardından gelen normal sonuç kendi düzenine döner
+(meydan okuma parçaları gizlenir).
+
+### 26.5 Dokunma, geri tuşu, responsive
+
+Pencere açılış / kapanışı, BAŞLA / TEKRAR DENE ile başlayan round ve meydan okuma sonucunun
+açılışı Main'in 300 ms dizi bazlı parmak yatışmasını başlatır (yeni kural değil): girişe çift
+dokunuşun ikincisi pencereyi kapatmaz, X'in ardından Ana Sayfa'ya düşmez, BAŞLA / TEKRAR DENE
+dokunuşunun bırakışı / ikinci dokunuşu yeni tahtaya bırakış olarak düşmez, "Hamle bitti"
+yatışmasında süren dokunuşlar açılan sonucun düğmesine görünmeden basmaz. Android geri / X / karartma / KAPAT kapatır. Sandık / ayarlar / günlük / GÖREVLER /
+yaş ekranı açıkken açılmaz; açıkken onlar altına açılmaz, otomatik günlük pencere "due" kalır;
+Ana Sayfa dışına geçiş / round başlangıcı kapatır. 320×568, 360×640, 390×844, 360×800, 1080×2340
+(+ A36 üst payı 61) ve banner yuvası ile kırpma / çakışma yok (`daily_challenge_ui_test`).
+
+### 26.6 Şimdilik yapılmayan (bilerek)
+
+Seri, kaçırılan gün cezası, takvim, yedi günlük zincir, günde birden çok meydan okuma, skor
+tablosu / arkadaş / dünya sıralaması, meydan okuma tutorial'ı, bildirim isteği, ödül talep ekranı,
+tekrar / pratik modu. Hepsi owner kararı ister.

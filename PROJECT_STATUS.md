@@ -65,17 +65,25 @@ hafta pazartesi; Ana Sayfa GÖREVLER girişi + pencere, sonuç ekranında görev
 tuş takımı ve 13 altı kısıt / ÇIKIŞ ekranı EMEKLİ), eski UNDER_13 → UNKNOWN + yeniden sorma,
 TEEN / ADULT yönlendirmesi ve 18. yaş günü geçişi aynen, yaş arayüzü açıkken banner yok (§4.25);
 **AÇIK uyum riski** — 13+ seçim ↔ Play nötr yaş ekranı rehberi (owner "Build as specified";
-AGE_BAND_ROUTING §9.10). **TASK/046.2 (2026-10-01, dalda — masaüstü + Samsung A36 yerel kapısı
-GEÇTİ, main'e alınması owner onayı bekliyor):** iptal edilen oyun dokunuşu (Android ACTION_CANCEL →
+AGE_BAND_ROUTING §9.10). **TASK/046.2 (2026-10-01, main'de — masaüstü + Samsung A36 yerel kapısı
+GEÇTİ, owner onayıyla ff-only alındı `afc10be → 6d3dbca`):** iptal edilen oyun dokunuşu (Android ACTION_CANCEL →
 `canceled == true`) artık bekleyen parçayı düşürmez — `GameBoard._unhandled_input`'ta tek satırlık
-koruma, TASK/047'nin önkoşulu (§4.26). **TASK/047 (Günlük Merge Challenge) BAŞLAMADI** — sıradaki planlı ürün
-görevi, uygulamadan önce owner onaylı brif gerekir. Release izi ayrı. Sırada: içerik
+koruma, TASK/047'nin önkoşulu (§4.26). **TASK/047 (2026-10-01, dalda — Günlük Merge Challenge V1,
+oyuncuya "MEYDAN OKUMA"; masaüstü kapıları tamam, Samsung A36 yerel kapısı BEKLİYOR, main'e alınması
+owner onayı bekliyor):** isteğe bağlı günlük mod — hedef tier'ı sınırlı gerçek bırakışla, günün
+deterministik parça dizisiyle oluştur; kilitli haftalık preset tablosu, güç / devam yok, ilerleme
+yalıtımı (XP / görev / başarım / sandık / yıldız / istatistik / sonsuz etkisi yok), ilk başarı günde bir
+kez +20 Hamur, Ana Sayfa'da GÖREVLER'in altında giriş (§4.27). Release izi ayrı. Sırada: içerik
 derecesi + yargı bölgesi kararları + 13+ seçici uyum riski (owner) → gizlilik
 politikası → upload anahtarı → gerçek AdMob kimlikleri → mağaza varlıkları / Play Console,
 sonra ilk imzalı üretim AAB'si ve M10 (Play kapalı test) ·
-**Branch / main:** `task/046-2-action-cancel-drop-guard` (main `afc10be`'den: `471a2ab` · `2149fc3` ·
-`b364a0c` + doküman / kapı kaydı) — dalda, main'e alınması owner onayı bekliyor · `main` == origin/main ==
-`afc10be` (`b90bc3c` üstünde yalnız doküman eşitlemesi) — TASK/046 `task/046-daily-weekly-missions`
+**Branch / main:** `task/047-daily-merge-challenge` (main `6d3dbca`'dan: `befbbbd` model + kayıt ·
+`bf553e0` board · `201764d` akış + yalıtım · `e805736` arayüz + sonuçlar · `54e8411` + `e002dff` inceleme
+düzeltmeleri · kapı / doküman kaydı) — dalda,
+main'e alınması owner onayı bekliyor, merge EDİLMEDİ · `main` == origin/main == `6d3dbca` — TASK/046.2
+`task/046-2-action-cancel-drop-guard` (`471a2ab` · `2149fc3` · `b364a0c` · `6d3dbca` doküman / A36 kapısı
+kaydı) owner onayıyla ff-only entegre (`afc10be → 6d3dbca`, 2026-10-01; merge commit yok; dal duruyor) ·
+önce `afc10be` (`b90bc3c` üstünde yalnız doküman eşitlemesi) — TASK/046 `task/046-daily-weekly-missions`
 (`efb9763` … `5092dad`, 4 commit) + TASK/046.1 `task/046-1-age-gate-13plus-redesign` (`bc40da1` …
 `b90bc3c`, 5 commit) owner onayıyla BİRLİKTE ff-only entegre (`56106ef → b90bc3c`, 2026-09-30;
 merge commit / rebase / squash / cherry-pick yok; dallar duruyor) · önce TASK/045.2 `task/045-2-settings-back-input-focus` (`c990b63` + `a32ee2d`)
@@ -2117,10 +2125,11 @@ formatına yalnız `haptics_enabled` (varsayılan true) eklendi. Ayrıntı ve
 
 ### 4.26 ACTION_CANCEL bırakma koruması (TASK/046.2)
 
-> **dalda, main'e alınması owner onayı bekliyor** — `task/046-2-action-cancel-drop-guard`, main
-> `afc10be`'den (`471a2ab` düzeltme · `2149fc3` test · `b364a0c` test sıkılaştırma · bu doküman / kapı
-> kaydı commit'i). **Masaüstü doğrulama tamam; Samsung A36 yerel kapısı GEÇTİ (2026-10-01).** main
-> DEĞİŞMEDİ. TASK/047'nin önkoşulu olan küçük bir stabilizasyon işi; TASK/047 BAŞLAMADI.
+> **main'de** — `task/046-2-action-cancel-drop-guard`, main `afc10be`'den (`471a2ab` düzeltme ·
+> `2149fc3` test · `b364a0c` test sıkılaştırma · `6d3dbca` doküman / kapı kaydı). **Masaüstü doğrulama
+> tamam; Samsung A36 yerel kapısı GEÇTİ (2026-10-01)**; owner onayıyla ff-only main'e alındı `afc10be →
+> 6d3dbca` (merge commit yok, dal duruyor). TASK/047'nin önkoşulu olan küçük bir stabilizasyon işi
+> (TASK/047 o sırada BAŞLAMAMIŞTI — §4.27).
 
 - **Önceki davranış:** Android ACTION_CANCEL (ör. bir sistem hareketi dokunuşu devralınca) Godot
   4.6.3'e `pressed == false` + `canceled == true` olan bir `InputEventScreenTouch` olarak gelir
@@ -2172,6 +2181,99 @@ formatına yalnız `haptics_enabled` (varsayılan true) eklendi. Ayrıntı ve
   `ShopScreen._on_dim_input` iptal bırakışında da kapatır) ve **kapıdaki yeni gözlem:** güç düğmesi
   üzerinde gerçek ACTION_CANCEL gücü çalıştırır (A36: Sarsıntı stoğu 1 → 0; GUI düğmesi iptal edilmiş
   öykünen bırakışı bırakış sayıyor; parça düşmez) — aynı sınıf, GUI tarafı, ayrı görev adayı.
+
+### 4.27 Günlük Merge Challenge V1 — MEYDAN OKUMA (TASK/047)
+
+> **dalda, main'e alınması owner onayı bekliyor** — `task/047-daily-merge-challenge`, main `6d3dbca`'dan
+> (`befbbbd` model + kayıt · `bf553e0` board · `201764d` akış + yalıtım · `e805736` arayüz + sonuçlar ·
+> `54e8411` + `e002dff` çekişmeli inceleme düzeltmeleri · regresyon / görsel kapı + doküman kaydı).
+> **Masaüstü doğrulama + 5 mercekli çekişmeli inceleme + mutasyon + 6 boyut görsel kapı + tam masaüstü
+> kapısı tamam; Samsung A36 yerel kapısı BEKLİYOR** (telefon kapı sırasında bu bilgisayara bağlı
+> değildi; QA kiti hazır). main DEĞİŞMEDİ. Kurallar ve sayılar GAME_DESIGN §5.11'de kilitli (owner
+> onaylı brif), görünüm UI_VISUAL_SYSTEM §26.
+
+- **Ürün:** isteğe bağlı günlük mod — hedef tier'ı sınırlı GERÇEK bırakışla, günün deterministik parça
+  dizisiyle oluştur; süre yok. Kilitli haftalık preset (Pzt T5·600·18 · Sal T5·480·16 · Çar T6·600·38 ·
+  Per T5·420·15 · Cum T6·540·36 · Cmt T6·480·32 · Paz T6·420·30; yükseklik 400), dizi SHA-256 `sm-dc-v1`
+  torbası (global RNG'ye dokunmaz; 2026-10-01 vektörü kilitli), bütçe yalnız gerçek bırakış (iptal 0),
+  son bırakıştan sonra yatışma (son parça indikten 1,5 sn merge'siz / bırakıştan 5,0 sn tavan), güç ve
+  devam tamamen kapalı, P1 ilerleme yalıtımı (ayrı round-sonu işleyicisi), ilk başarı +20 Hamur günde
+  bir kez tek kayıt yazmasında (`daily_challenge {version, completed_day_key}`), tekrar oynanmaz.
+- **Mimari:** `DailyChallenge` (saf model: preset, dizi, görünüm, `sanitize`, `can_complete`) →
+  `SaveManager.complete_daily_challenge` (tek yazan, idempotent) · GameBoard'a varsayılan KAPALI dikiş
+  (`setup_challenge`: bütçe, yatışma, güç kilidi, devam 0, HUD sunumu) · Main'de açık `RoundKind`, ayrı
+  `_on_challenge_round_finished`, deneme kimliği + board kimliği jetonu (gecikmeli sonuç yalnız kendi
+  denemesine) · `DailyChallengeOverlay` + Ana Sayfa pill'i + HUD + `RoundResult` meydan okuma kipleri.
+- **Brifin açık bıraktığı yerlerde verilen kararlar:** (1) efektif gün = `Missions.accepted_day()`,
+  kayıttaki tamamlanma günü taban (geri alınan saat tamamlanmış günü açmaz); (2) açık pencerenin BAŞLA'sı
+  gün değiştiyse / bugün tamamlandıysa pencereyi tazeler, ikinci basış başlatır (+300 ms yatışma yeniden
+  kurulur); (3) gece yarısını geçen kazanmanın dipnotu "Gün değişti · yeni meydan okuma hazır."; kayıp
+  sonucu günü gösterimde okur, açık kayıp sonucu gece yarısını geçerse TEKRAR DENE / öne dönüş önce onu
+  "Gün değişti"ye yeniler; (4) sonuç çip sırası HAMUR → HAMLE; (5) yatışma penceresi son parçanın ilk
+  temasından (`has_landed`) sayılır — sabitler aynen (inceleme MEDIUM'u, aşağıda); (6) meydan okuma
+  sonucunun açılışı mevcut 300 ms yatışmayı kurar (normal sonuç aynen).
+- **Testler (yeni):** `daily_challenge_test` 72 (model + kayıt + saat), `daily_challenge_board_test` 57
+  (dikiş, bütçe, iptal, yatışma yarışları, taşma, güç / devam), `daily_challenge_flow_test` 76 (Main
+  yönlendirme, P1 yalıtım bellek + disk, gece yarısı, jeton, geç sinyal, global RNG yeniden tohumlama
+  kanıtı, reklam, tutorial), `daily_challenge_ui_test` 149 (gerçek parmak: giriş, pencere, gece yarısı,
+  HUD, sonuçlar, 5 görünüm + A36 üst payı yerleşimi); `save_persistence_test` şema sabiti 30 anahtar
+  (`daily_challenge` eklendi). Hepsi kaydı test yoluna yönlendirir; sahibin kayıt ailesi her koşuda
+  bayt-aynı.
+- **Çekişmeli inceleme (5 mercek: oyun + RNG · kalıcılık + yalıtım + gece yarısı · girdi + akış + jeton
+  + tutorial · reklam / yaş + arayüz + doküman · test yeterliliği; salt okunur, sabit anlık görüntü):**
+  BLOCKER 0, HIGH 0. MEDIUM: yatışma penceresi son parça daha düşerken başlıyordu (geç sekme / yuvarlanma
+  merge'ü kesilebilirdi) → düzeltildi; A36 üst payı oyun / sonuç karelerine uygulanmıyordu (çekim aracı)
+  → düzeltildi; doküman eksik / erken iddia → tamamlandı; üç test boşluğu (değiştirilen board'un geç
+  sinyali, Main yollarında global RNG, eşik karesinde merge yarışı) → testler eklendi. LOW: gece yarısı
+  sonuç kopyası ve tazelenen pencere / sonuç yatışması → düzeltildi; zayıf / eksik kontroller (ödüllü
+  yükleme, iptal öncesi bekleme süresi, tutorial görünürlüğü, çift sinyal, user:// kökü, bellek farkı,
+  Ana Sayfa D+1, 16. bırakış, gerçek parmakla TEKRAR DENE) → eklendi. Düzeltme diff'i ayrıca bir kez daha
+  salt okunur incelendi (BLOCKER / HIGH / MEDIUM 0; LOW 1 — gece yarısında yenilenen kayıp sonucu 300 ms
+  yatışmayı yeniden kurmuyordu → `e002dff`; NIT'ler: "indi" = ilk temas (sıyırma dahil) belgelendi, açık
+  kalan BAŞARI sonucunun dipnotu gece yarısında tazelenmez — tek eylem ANA SAYFA, zararsız). Kayda geçen,
+  düzeltilmeyen: aşağıda.
+- **Mutasyon kanıtı (son aday `e002dff`):** 35 mutant (brifin zorunlu 10'u + 25 ek: ödül, yinelenen tamamlanma, önek / gün,
+  global `seed()` model / Main / Ana Sayfa, `randomize()` sonuçta, ilerlemeye merge, geçiş reklamı,
+  yatışma hemen kayıp / bırakıştan sayım / hiç inmeme / ertelemesiz / yeniden kontrolsüz / bayrak
+  sıfırlanmaz, iptal hamle yer, normal `_start_level` ile tekrar, jeton kapalı, işleyici ayrılmıyor /
+  yanlış bağlı, kesinleştirme kapısı yok, güç / devam açık, bütçe ±1, gece yarısı güncel güne yazar /
+  gecikmeden önce okunur / açık sonuç yenilenmez, onboarding'de pill, eski pencere başlatır / yatışma
+  kurmaz, sonuç yatışması / yenilenen sonuç yatışması yok, geri alınan saat tamamlanmışı açar) — 35/35
+  öldü; her mutasyondan sonra kaynak sha256 ile bayt-aynı geri kondu, sahibin kaydı her koşuda bayt-aynı.
+- **Görsel kapı (`e002dff`):** `tools/daily_challenge_shots` 6 boyut (320×568, 360×640, 390×844, 360×800,
+  1080×2340, 1080×2340 + A36 üst payı 61 — kabuk, pencere VE board) × 15 kare = 90 kare, 0 betik / araç
+  hatası; incelendi: çakışma / kırpma / üst pay ihlali / banner ya da maskot çakışması yok, GÖREVLER 0/6
+  aynen, pill GÖREVLER ailesinde ama ayırt edilir.
+- **Tam masaüstü kapısı (aday ağaç `e002dff`, sonraki commit yalnız doküman + çekim aracı; Godot 4.6.3,
+  sıralı):** 41 koşu (40 suite + bot L3 2/2 KAZANDI), 5262 kontrol, 0 hata, 0 SCRIPT ERROR; içe aktarma
+  rc 0, hata satırı 0; sahibin kayıt ailesi görev başındaki yedekle bayt-aynı, userdata listesi
+  değişmedi, Godot süreci kalmadı. (TASK/046.2 tabanı 37 koşu 4863; fark = 4 yeni suite 356 kontrol +
+  `revive_test`'in fizik yoluna göre değişen `[OK]` satır sayısı — kendi özeti iki koşuda da 120 geçti /
+  0 kaldı.) Sahibin dosyalarında içerik değişmedi; yalnız zaman damgaları: içe aktarma
+  `default_bus_layout.tres`'i aynı baytlarla yeniden yazar, eski bir suite sahibin kaydına aynı baytları
+  yeniden yazar (koşucu bayt karşılaştırır — önceki kapılarla aynı davranış).
+- **Samsung A36 yerel kapısı:** BEKLİYOR — 2026-10-01 22:07–23:2x arası `adb devices` boştu (telefon bu
+  bilgisayara bağlı değil). Kit hazır: `build/qa_047-gate/device` (QA-only overlay `qa047_device` —
+  `dcclock=` ile kabul edilen günü Main'den ÖNCE sabitler, telefon saati değişmez; `c47.sh` güvenlik
+  kontrollü dokunuş / ACTION_CANCEL sürücüsü; `export_qa.sh` yalnız QA paketi; `verify_apk.py` TASK/047
+  kontrolleriyle). Kapı brif §41–§54'e göre koşulacak; geçmeden TASK/047 "hazır" sayılmaz.
+- **Kayda geçen, DÜZELTİLMEYEN (owner kararı / kapsam dışı):** (a) **kalıtılan gün uç durumu** — uygulama
+  gece yarısını ÖN PLANDA geçip ardından cihaz saati geri alınırsa kabul edilen gün (görevlerle birlikte)
+  bir önceki güne dönebilir; tamamlanmış gün açılmaz, ikinci ödül yok; kapatmak için meydan okuma
+  başlangıcına `DailyRewards.observe_day()` eklemek GÜNLÜK ÖDÜLLER / görev gün semantiğine yazma noktası
+  ekler (brif §4 "gün semantiğini değiştirme") — owner kararı; (b) **normal RESULT_DELAY yarışı** (§4.24)
+  ve çapraz örneği: gecikmedeki normal sonuç → Mola / Ana Menüye Dön → Android GERİ (yatışmasız) → pill →
+  BAŞLA ≈ 600 ms + tepki — eski normal sonucu / geçiş reklamı denemesi canlı meydan okuma tahtasının
+  üstüne açılabilir (düğmeleri meydan okumaya gider, ekonomi çift sayımı yok); normal yol bu görevde
+  DEĞİŞTİRİLMEDİ (brif §26 / §31); (c) basılı Koleksiyon kartı + GERİ ve genel GUI ACTION_CANCEL
+  (meydan okumanın yeni düğmeleri de iptalde öteki düğmeler gibi davranır; güç düğmeleri gizli + kilitli
+  olduğundan Sarsıntı varyantı meydan okumada oluşamaz) — açık; (d) HUD hedef kartı T5 adını "Büyük
+  Dumpl…" diye kırpar (önceden var olan kart, normal Level 3'te de; brif "hedef kartını koru"); (e) HAMLE
+  plakası mevcut yıldız süslü skor plakasını kullanır, HUD kalan / sonuç kullanılan / bütçe gösterir
+  (brif kilitli); (f) mola "Yeniden Başlat" gece yarısından sonra kopya taşımadan güncel günü başlatır
+  (brif §20 ile uyumlu); (g) bilinmeyen sürüm bloğu varsayılana iner (görevlerle aynı kural), uzak gelecek
+  tamamlanma günü o güne kadar ✓ gösterir (günlük ödüllerin taban kuralıyla aynı), başarısız kayıt
+  yazmasında bellek ödüllü kalır (mevcut işlem sözleşmesi) — NIT, belgelendi.
 
 ## 5. Dosya/klasör yapısı ve script envanteri
 
@@ -2922,11 +3024,11 @@ Owner'ın yapacağı / onaylayacağı:)*
   Samsung A36 kapısı GEÇTİ; TASK/046.1 ile birlikte ff-only `56106ef → b90bc3c`, 2026-09-30).
 - **TASK/046.1** — yaş ekranı 13+ UX yeniden tasarımı → ✅ **main'de** (§4.25; A36 kapısı GEÇTİ,
   cihaz bulgusu `98d209e`; açık uyum riski owner / hukukta).
-- **TASK/046.2** — ACTION_CANCEL bırakma koruması (TASK/047 önkoşulu) → **dalda**, masaüstü + Samsung
-  A36 kapısı GEÇTİ (§4.26); main'e alınması owner onayı bekliyor.
-- **TASK/047** — Günlük Merge Challenge — **BAŞLAMADI**; sıradaki planlı ürün görevi. Ayrıntılı
-  sözleşmesi (hedef / ödül / sıfırlama / arayüz / kayıt / reklam / XP / görev etkileşimi)
-  tasarlanmadı — uygulamadan önce owner onaylı brif gerekir.
+- **TASK/046.2** — ACTION_CANCEL bırakma koruması (TASK/047 önkoşulu) → ✅ **main'de** (§4.26;
+  masaüstü + Samsung A36 kapısı GEÇTİ; owner onayıyla ff-only `afc10be → 6d3dbca`, 2026-10-01).
+- ~~**TASK/047** — Günlük Merge Challenge — BAŞLAMADI; sözleşmesi tasarlanmamıştı.~~ → owner onaylı
+  kilitli brifle uygulandı, **dalda** (`task/047-daily-merge-challenge`, §4.27, GAME_DESIGN §5.11);
+  main'e alınması Samsung A36 kapısı + owner onayı bekliyor.
 - ~~**Kararlılık (öneri — TASK/045 engeli değil):** atomik kayıt (`save_game()` yerinde kesip
   yazıyor; geçici dosya + yedekten kurtarma) · güç hedefleme bırakış-düşürme (Büyütücü ve
   Bomba hedef dokunuşunun bırakışı bekleyen parçayı da düşürebilir) · Koleksiyon detayı

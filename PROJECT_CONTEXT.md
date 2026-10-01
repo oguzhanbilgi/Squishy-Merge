@@ -78,17 +78,34 @@ alınacak — şimdi tahmin/vaat yok.
 [Current release blockers](#current-release-blockers) +
 [Next action](#next-action); aşağıdaki "Milestone tarihçesi" değil.
 
-- **Repo (2026-10-01):** `main == origin/main == afc10bec6b614b31de287adddf7c9c21ff868bdd`
-  (`b90bc3c` üstünde yalnız doküman eşitlemesi). **TASK/046.2 dalda:**
-  `task/046-2-action-cancel-drop-guard` (`471a2ab` · `2149fc3` · `b364a0c` + doküman / kapı kaydı) —
-  main'e alınması owner onayı bekliyor, merge EDİLMEDİ. Önce (2026-09-30):
+- **Repo (2026-10-01):** `main == origin/main == 6d3dbca6df43aca1f18b14a524422c8c37639f97` —
+  **TASK/046.2 owner onayıyla ff-only main'e alındı** (`afc10be → 6d3dbca`: `471a2ab` · `2149fc3` ·
+  `b364a0c` · `6d3dbca` doküman / A36 kapısı kaydı; merge commit yok, dal duruyor). **TASK/047
+  dalda:** `task/047-daily-merge-challenge` (main `6d3dbca`'dan: `befbbbd` model + kayıt · `bf553e0`
+  board · `201764d` akış + yalıtım · `e805736` arayüz + sonuçlar · `54e8411` + `e002dff` çekişmeli
+  inceleme düzeltmeleri · regresyon / görsel kapı + doküman kaydı) — main'e alınması owner onayı
+  bekliyor, merge EDİLMEDİ. Önce (2026-09-30):
   **TASK/046 + TASK/046.1 owner onayıyla BİRLİKTE ff-only main'e alındı** — doğrulanmış doğrusal
   zincir `56106ef` → TASK/046 (`efb9763` · `6543492` · `137c219` · `5092dad`) → TASK/046.1
   (`bc40da1` · `ed08b07` · `1ff0ba1` · `98d209e` · `b90bc3c`); merge commit / rebase / squash /
   cherry-pick YOK. Dallar referans için duruyor (`task/046-daily-weekly-missions` = `5092dad`,
-  `task/046-1-age-gate-13plus-redesign` = `b90bc3c`). **TASK/047 BAŞLAMADI.**
-- **TASK/046.2 — ACTION_CANCEL bırakma koruması — dalda; masaüstü + Samsung A36 yerel kapısı
-  GEÇTİ (2026-10-01); main'e alınması owner onayı bekliyor.** Önceki davranış: Android ACTION_CANCEL
+  `task/046-1-age-gate-13plus-redesign` = `b90bc3c`).
+- **TASK/047 — Günlük Merge Challenge V1 (oyuncuya "MEYDAN OKUMA") — dalda; masaüstü doğrulama +
+  çekişmeli inceleme + mutasyon + görsel kapı tamam, Samsung A36 yerel kapısı BEKLİYOR; main'e
+  alınması owner onayı bekliyor.** İsteğe bağlı günlük mod: hedef tier'ı sınırlı GERÇEK bırakışla
+  oluştur, süre yok. KİLİTLİ haftalık tablo (Pzt T5·600·18 · Sal T5·480·16 · Çar T6·600·38 · Per
+  T5·420·15 · Cum T6·540·36 · Cmt T6·480·32 · Paz T6·420·30; yükseklik 400); gün = görevlerin kabul
+  edilen günü (ayrı saat yok, tamamlanma günü taban); parça dizisi SHA-256 `sm-dc-v1` torbası
+  (global RNG'ye dokunmaz; 2026-10-01 vektörü kilitli); bütçe yalnız gerçek bırakış (iptal 0), son
+  bırakıştan sonra yatışma (son parça indikten 1,5 sn merge'siz / son bırakıştan 5,0 sn tavan); güç /
+  devam / XP / görev / başarım / bonus sandık / yıldız / level / istatistik / sonsuz / geçiş reklamı
+  denemesi YOK (ayrı round-sonu
+  işleyicisi — P1 yalıtım); ilk başarı **+20 Hamur** tek kayıt yazmasında (`daily_challenge
+  {version, completed_day_key}`), günde bir kez, tekrar oynanmaz; deneme başladığı güne aittir.
+  Ana Sayfa'da GÖREVLER'in altında MEYDAN OKUMA pill'i + pencere; HUD BUGÜN / HAMLE; kendi sonuç
+  kopyası. Ayrıntı: GAME_DESIGN §5.11, UI_VISUAL_SYSTEM §26, PROJECT_STATUS §4.27.
+- **TASK/046.2 — ACTION_CANCEL bırakma koruması — TAMAM, main'de** (masaüstü + Samsung A36 yerel
+  kapısı GEÇTİ 2026-10-01; owner onayıyla ff-only `afc10be → 6d3dbca`). Önceki davranış: Android ACTION_CANCEL
   (ör. bir sistem hareketi dokunuşu devralınca) Godot'a `pressed == false` + `canceled == true`
   dokunuş olarak gelir; GameBoard'un normal dokunuş yolu bunu geçerli bırakış sayıp bekleyen parçayı
   düşürüyordu. Düzeltme yalnız `GameBoard._unhandled_input`: iptal edilen bırakış `_drop()`'a ulaşmaz
@@ -147,7 +164,7 @@ alınacak — şimdi tahmin/vaat yok.
   banner yüzeyi değil. Ekonomi, sandık oranları, fiyatlar, reklam sözleşmesi, TASK/043
   yaş yönlendirmesi, fizik / merge DEĞİŞMEDİ. ~~XP / seviye / başarım / görev YOK
   (TASK/045–047)~~ → XP / seviye / başarım / unvan TASK/045 ile geldi (aşağıda); görev YOK
-  (TASK/046–047) *(TASK/046 günlük / haftalık görevler main'de — aşağıda; TASK/047 BAŞLAMADI)*. Ayrıntı: GAME_DESIGN §5.3 / §5.8, UI_VISUAL_SYSTEM §17 / §22.
+  (TASK/046–047) *(TASK/046 günlük / haftalık görevler main'de — aşağıda; TASK/047 günlük meydan okuma dalda)*. Ayrıntı: GAME_DESIGN §5.3 / §5.8, UI_VISUAL_SYSTEM §17 / §22.
 - **TASK/045 Player Progression V1 — TAMAM, main'de** (`task/045-player-level-achievements`,
   başlangıç main `115252c`; **Samsung A36 yerel kapısı GEÇTİ 2026-09-28** — yalnız QA paketi,
   bulgu yok, düzeltme commit'i yok; owner onayıyla ff-only main'e alındı `115252c → d4c8548`,
@@ -266,6 +283,12 @@ alınacak — şimdi tahmin/vaat yok.
   *(TASK/046.1, main'de: yaş ekranı arayüzü — yalnız 13+ seçici, kısıt ekranı emekli, eski
   UNDER_13 yeniden sorulur, yaş arayüzü açıkken banner gizli; TEEN / ADULT yönlendirmesi, TFCD /
   TFUA, GMA / UMP, ekonomi, görevler, XP AYNI.)*
+  *(TASK/046.2, main'de: yalnız `GameBoard._unhandled_input` — iptal edilen dokunuş parça düşürmez.)*
+  *(TASK/047, dalda: ayrı isteğe bağlı MEYDAN OKUMA modu — GameBoard'a varsayılan KAPALI dikiş
+  (bütçe / yatışma / güç ve devam kapalı), Main'e açık round türü + ayrı round-sonu işleyicisi,
+  kayda sürümlü `daily_challenge` bloğu (tek ekonomi etkisi ilk başarının +20 Hamur'u). Normal
+  level / sonsuz / tutorial, fizik, merge, skor, DropBag, XP, görevler, başarımlar, fiyatlar,
+  sandıklar, günlük ödüller, reklam sözleşmesi, TASK/043 / 046.1 AYNI.)*
 - **Kalıcı paket kimliği KİLİTLENDİ (owner kararı, 2026-09-24):** üretim / Play
   = `com.obappstudio.squishymerge` (project.godot `squishy/release/android_package_id`
   + yerel release presetleri); QA / test = `com.obappstudio.squishymerge.qa` (debug
@@ -519,7 +542,7 @@ V1: ✅ TAMAM, main'de** (bulut kapısı + Samsung A36 yerel kapısı GEÇTİ 20
 paketi, bulgu yok; owner onayıyla ff-only `115252c → d4c8548`). Ayrıntı: PROJECT_STATUS
 §4.21. ~~TASK/046 (Günlük/Haftalık Görevler) ve TASK/047 (Günlük Merge Challenge)
 **BAŞLAMADI** — sıradaki ürün görevi TASK/046 (owner başlatır).~~ → TASK/046 ✅ main'de (aşağıda);
-TASK/047 (Günlük Merge Challenge) **BAŞLAMADI**.
+TASK/047 (Günlük Merge Challenge) ~~**BAŞLAMADI**~~ → dalda (aşağıda).
 
 ~~**Kararlılık takibi (öneri, BAŞLAMADI — TASK/045 engeli değil):** (A) `save_game()` kaydı
 yerinde kesip yeniden yazıyor — çökmeye dayanıklı atomik kayıt yok (geçici dosya + yedekten
@@ -541,7 +564,7 @@ bulut kapısı + Samsung A36 yerel kapısı GEÇTİ 2026-09-29, yalnız QA paket
 dişli → GERİ → ilk dokunuş 5/5 (+2) tek drop; KAPAT / karartma; Profil dişlisi; hızlı çift
 dokunuşlar; Bomba / Büyütücü; Mola / Refill / Devam; owner onayıyla ff-only `e474fb3 →
 a32ee2d`). Ayrıntı: PROJECT_STATUS §4.23. Kapsam dışı, önceden var olan gözlemler (owner kararı
-bekler, düzeltilmedi): (1) *(→ tahta tarafı TASK/046.2'de dalda giderildi, aşağıda)* iptal edilen
+bekler, düzeltilmedi): (1) *(→ tahta tarafı TASK/046.2'de giderildi — main'de, aşağıda)* iptal edilen
 dokunuş (Android ACTION_CANCEL — hareketle gezinmede
 kenardan geri kaydırmanınki) tahtada parça düşürür — A36'da gerçek ACTION_CANCEL ile 2/2
 (telefon 3 tuşlu gezinmede; hareketle gezinme denenmedi); düzeltmesi gameplay girdisini
@@ -554,23 +577,37 @@ main'de** (masaüstü + Samsung A36 yerel kapıları GEÇTİ; owner onayıyla bi
 `56106ef → b90bc3c`, 2026-09-30). Ayrıntı: PROJECT_STATUS §4.24 / §4.25. TASK/046.1'in açık uyum
 riski (13+ seçim ↔ nötr yaş ekranı rehberi) release izinde **3c** olarak AÇIK.
 
-**Stabilizasyon — TASK/046.2 ACTION_CANCEL bırakma koruması: dalda, masaüstü + Samsung A36 yerel
-kapısı GEÇTİ (2026-10-01) — sıradaki adım owner incelemesi + main entegrasyon kararı** (merge
-EDİLMEDİ; `task/046-2-action-cancel-drop-guard`). TASK/047'nin önkoşulu. Ayrıntı: PROJECT_STATUS §4.26.
+**Stabilizasyon — TASK/046.2 ACTION_CANCEL bırakma koruması: ✅ TAMAM, main'de** (masaüstü + Samsung
+A36 yerel kapısı GEÇTİ; owner onayıyla ff-only `afc10be → 6d3dbca`, 2026-10-01). Ayrıntı:
+PROJECT_STATUS §4.26.
 
-**Sıradaki planlı ürün görevi: TASK/047 — Günlük Merge Challenge — BAŞLAMADI.** Ayrıntılı
-sözleşmesi (hedef, ödül, sıfırlama ritmi, arayüz, kayıt şeması, reklam davranışı, XP ve görev
-etkileşimi) henüz TASARLANMADI / ONAYLANMADI — uygulamadan önce owner onaylı bir brif gerekir;
-hiçbir sayı ya da kural tahmin edilmez. Ürün işi yukarıdaki release izini (3a–8) kapatmaz.
+**Ürün işi — TASK/047 Günlük Merge Challenge (MEYDAN OKUMA) V1: dalda** (`task/047-daily-merge-challenge`,
+main `6d3dbca`'dan; owner onaylı kilitli brif — GAME_DESIGN §5.11). Masaüstü doğrulama (4 yeni suite
+356 kontrol), 5 mercekli çekişmeli inceleme (BLOCKER / HIGH 0; MEDIUM'lar giderildi), mutasyon kanıtı
+(35/35), 6 boyut × 15 = 90 kare görsel kapı ve tam masaüstü kapısı (41 koşu, 5262 kontrol, 0 hata, 0
+SCRIPT ERROR; aday `e002dff`) tamam; **sıradaki adım: Samsung A36 yerel kapısı (yalnız QA paketi; telefon
+masaüstü kapıları sırasında bağlı değildi, kit hazır) → owner incelemesi + main entegrasyon kararı**
+(merge EDİLMEDİ). Preset tablosu
+kilitli; A36 playtest'i yeniden ayar önerirse ayrı owner kararı. Ürün işi yukarıdaki release izini
+(3a–8) kapatmaz.
 
 Önceden var olan, owner kararı bekleyen öneriler (**BAŞLAMADI**): sonuç gecikmesi
 (RESULT_DELAY) bitiren board'a bağlı değil — Mola açıkken Büyütücü dönüşümü round'u bitirip
 0,8 sn içinde "Yeniden Başlat" basılırsa eski round'un geçiş reklamı / sonucu yeni round'un
 üstüne açılabilir (görev sayımı doğru; TASK/046 A36 kapısında cihazda yeniden üretildi, §4.24);
 basılı Koleksiyon kartı + GERİ gözlemi (yukarıda, TASK/045.2; ACTION_CANCEL'in tahta tarafı TASK/046.2'de
-dalda giderildi); genel modal / karartma iptal davranışı ve güç düğmesinin iptal edilen dokunuşta
+giderildi — main'de); genel modal / karartma iptal davranışı ve güç düğmesinin iptal edilen dokunuşta
 çalışması (TASK/046.2 A36 kapısı gözlemi: Sarsıntı düğmesinde gerçek ACTION_CANCEL stoğu 1 → 0
-tüketti, parça düşmedi) — GUI tarafı, ayrı görev adayı (§4.26).
+tüketti, parça düşmedi) — GUI tarafı, ayrı görev adayı (§4.26). TASK/047 bunların HİÇBİRİNİ
+düzeltmedi: meydan okuma güç düğmelerini gizleyip kilitlediği için Sarsıntı iptal hatası meydan
+okumayı etkilemez; meydan okumanın KENDİ gecikmeli sonucu deneme kimliğiyle korunur. Normal
+RESULT_DELAY yarışının çapraz örneği (gecikmedeki NORMAL sonuç → hemen başlatılan meydan okuma)
+TASK/047'de DÜZELTİLMEDİ (brif §26 / §31 — normal yol değişmez): Mola → Ana Menüye Dön (Harita) →
+Android GERİ (Ana Sayfa; parmak yatışması yok) → pill (+300 ms) → BAŞLA (+300 ms) ≈ 600 ms + tepki
+süresi; 800 ms'lik gecikmeye pratikte zor ama kuramsal olarak sığar. Olursa eski normal round'un
+geçiş reklamı denemesi ve sonucu (o anki level = meydan okumanın nöbetçi level'ı) canlı meydan okuma
+tahtasının üstüne açılabilir — düğmeleri round türüne göre meydan okumaya gider, ekonomi çift
+sayımı yok. Normal yarışın parçası olarak AÇIK kaydedildi (§4.27).
 
 Her madde owner girdisi ister; hiçbiri tahmin edilmez ya da uydurulmaz.
 Gizlilik politikası, upload anahtarı ve AdMob kimliklerinde repoda yalnız

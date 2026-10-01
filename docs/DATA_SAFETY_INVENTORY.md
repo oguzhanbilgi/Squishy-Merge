@@ -51,6 +51,11 @@
   anahtarıyla aynı kaynak), sabit katalogdaki altı görevin sayaçları ve ödülü verilmiş görev
   kimlikleri. Yalnız oyun içi sayaç — kişisel veri / serbest metin yok; sunucu / hesap /
   paylaşım YOK, reklam veya analitiğe gönderilmez.
+  TASK/047 Günlük meydan okuma (dalda): `daily_challenge` — şema sürümü ve ilk başarısı
+  ödüllendirilen en yeni gün (`completed_day_key`, `YYYY-MM-DD`, cihazın kabul edilen yerel takvim
+  günü). Preset / parça dizisi / deneme / sonuç saklanmaz. Yalnız oyun içi durum — kişisel veri /
+  serbest metin yok; sunucu / hesap / skor tablosu / paylaşım YOK, reklam veya analitiğe
+  gönderilmez.
 - **Yaş bandı (TASK/043, [monetization/AGE_BAND_ROUTING.md](monetization/AGE_BAND_ROUTING.md)):**
   nötr yaş ekranında girilen **doğum tarihi SAKLANMAZ** ve cihazdan çıkmaz (yalnız
   bellekte sınıflandırılıp atılır). Kayda yalnız türetilmiş durum yazılır:
