@@ -1,6 +1,6 @@
 # PROJECT_STATUS.md — Squishy Merge, tam proje raporu
 
-**Son güncelleme:** 2026-09-30 · **Durum:** M0–M8 tamamlandı; M8.5–M8.10
+**Son güncelleme:** 2026-10-01 · **Durum:** M0–M8 tamamlandı; M8.5–M8.10
 (release/product stabilization: UI yeniden inşası, gameplay cilası, ses,
 AdMob TEST-reklam monetizasyonu + günlük ödüller, ilk açılış tutorial'ı)
 tamamlandı ve main'de; M9-01 production release hazırlığı (kod) tamamlandı,
@@ -65,12 +65,17 @@ hafta pazartesi; Ana Sayfa GÖREVLER girişi + pencere, sonuç ekranında görev
 tuş takımı ve 13 altı kısıt / ÇIKIŞ ekranı EMEKLİ), eski UNDER_13 → UNKNOWN + yeniden sorma,
 TEEN / ADULT yönlendirmesi ve 18. yaş günü geçişi aynen, yaş arayüzü açıkken banner yok (§4.25);
 **AÇIK uyum riski** — 13+ seçim ↔ Play nötr yaş ekranı rehberi (owner "Build as specified";
-AGE_BAND_ROUTING §9.10). **TASK/047 (Günlük Merge Challenge) BAŞLAMADI** — sıradaki planlı ürün
+AGE_BAND_ROUTING §9.10). **TASK/046.2 (2026-10-01, dalda — masaüstü + Samsung A36 yerel kapısı
+GEÇTİ, main'e alınması owner onayı bekliyor):** iptal edilen oyun dokunuşu (Android ACTION_CANCEL →
+`canceled == true`) artık bekleyen parçayı düşürmez — `GameBoard._unhandled_input`'ta tek satırlık
+koruma, TASK/047'nin önkoşulu (§4.26). **TASK/047 (Günlük Merge Challenge) BAŞLAMADI** — sıradaki planlı ürün
 görevi, uygulamadan önce owner onaylı brif gerekir. Release izi ayrı. Sırada: içerik
 derecesi + yargı bölgesi kararları + 13+ seçici uyum riski (owner) → gizlilik
 politikası → upload anahtarı → gerçek AdMob kimlikleri → mağaza varlıkları / Play Console,
 sonra ilk imzalı üretim AAB'si ve M10 (Play kapalı test) ·
-**Branch / main:** `main` == origin/main == `b90bc3c` — TASK/046 `task/046-daily-weekly-missions`
+**Branch / main:** `task/046-2-action-cancel-drop-guard` (main `afc10be`'den: `471a2ab` · `2149fc3` ·
+`b364a0c` + doküman / kapı kaydı) — dalda, main'e alınması owner onayı bekliyor · `main` == origin/main ==
+`afc10be` (`b90bc3c` üstünde yalnız doküman eşitlemesi) — TASK/046 `task/046-daily-weekly-missions`
 (`efb9763` … `5092dad`, 4 commit) + TASK/046.1 `task/046-1-age-gate-13plus-redesign` (`bc40da1` …
 `b90bc3c`, 5 commit) owner onayıyla BİRLİKTE ff-only entegre (`56106ef → b90bc3c`, 2026-09-30;
 merge commit / rebase / squash / cherry-pick yok; dallar duruyor) · önce TASK/045.2 `task/045-2-settings-back-input-focus` (`c990b63` + `a32ee2d`)
@@ -1759,7 +1764,7 @@ formatına yalnız `haptics_enabled` (varsayılan true) eklendi. Ayrıntı ve
   kendisiyle karşılaştırılıyordu (sabit anahtar listesi) · eksik ön koşullar · Windows
   `rename` biçimli hata enjeksiyonları. **Bilerek bırakılan / kapsam dışı (owner kararı ya da TASK/045.1 öncesi):** iki
   parmakta, hedefleme parmağı basılıyken İKİNCİ parmağın bağımsız dokunuşu düşürür (ayrı dizi —
-  tasarım gereği, testli); `canceled` normal dokunuş düşürür (öncesi); Android'de Ayarlar dişlisi
+  tasarım gereği, testli); `canceled` normal dokunuş düşürür (öncesi; *TASK/046.2'de dalda giderildi, §4.26*); Android'de Ayarlar dişlisi
   sonrası 300 ms yatışma dokunuş odağını dişlide bırakabilir (TASK/044 — A36 kapısında
   doğrulanmalı); güç silahlıyken round donunca önizleme görünür (kozmetik, öncesi); öne dönüşte
   günlük GİRİŞ ödülü pencereyle çözülür — pencere ertelenip kabuğa hiç dönülmeden ertesi güne
@@ -1874,7 +1879,7 @@ formatına yalnız `haptics_enabled` (varsayılan true) eklendi. Ayrıntı ve
   (yatışmayı zayıflatır) · tipli sözlük (kod tabanı idiomu değil) · power_input_test etiketi
   (TASK/045.1 dondurulmuş). Pencereden önce ikinci parmakla tahtaya basılıp hızlı GERİ'den sonra
   kaldırılırsa parça düşer — o parmağın kendi dizisi, bilerek (testli).
-- **Önceden var olan, kapsam dışı (düzeltilmedi):** (1) iptal edilen dokunuş (Android
+- **Önceden var olan, kapsam dışı (düzeltilmedi):** (1) *(→ TASK/046.2'de dalda giderildi, §4.26)* iptal edilen dokunuş (Android
   ACTION_CANCEL — hareketle gezinmede kenardan geri kaydırma) GameBoard'da normal bırakış gibi
   parça düşürür ve karartma pencereyi kapatır (TASK/045.1'de de not edildi); hareketle gezinmede
   cihazda henüz doğrulanmadı. Düzeltmesi gameplay girdisini değiştirir → owner onaylı ayrı görev; Main'de
@@ -1892,7 +1897,7 @@ formatına yalnız `haptics_enabled` (varsayılan true) eklendi. Ayrıntı ve
   başlayan tahta dizisi 4/4 tamamen yutuldu (pencere sonrası bırakış dahil); TASK/044 / 045 çift
   dokunuşları; basılı sürükleme ve hızlı ikinci dokunuş (cooldown aynen); Bomba / Büyütücü;
   Mola / Günlük / Detay / Sandık / Refill / Devam; kayıt kurtarma, TASK/043 yönlendirmesi,
-  ilerleme aynen. Önceden var olanlar yeniden üretildi, düzeltilmedi: gerçek ACTION_CANCEL 2/2
+  ilerleme aynen. Önceden var olanlar yeniden üretildi, düzeltilmedi: gerçek ACTION_CANCEL *(→ TASK/046.2, §4.26)* 2/2
   parça düşürdü (yukarıda (1); hareketle gezinme denenmedi — telefon ayarı değiştirilmedi);
   basılı kart + GERİ detayı 5/5 gizleme anında açtı, fiziksel bırakışta 0/5 (yukarıda (2)).
 
@@ -2109,6 +2114,64 @@ formatına yalnız `haptics_enabled` (varsayılan true) eklendi. Ayrıntı ve
     (tutulan tüm QA süreçleri): SCRIPT ERROR 0, çökme / ANR 0, sentetik doğum tarihi biçimleri 0.
   - Kapı sırasında telefon iki kez duraklatıldı (kendiliğinden kilit, gelen çağrı): girdi durdu,
     yalnız salt okunur bekleme; çağrı süresince QA uygulamasına 0 dokunuş.
+
+### 4.26 ACTION_CANCEL bırakma koruması (TASK/046.2)
+
+> **dalda, main'e alınması owner onayı bekliyor** — `task/046-2-action-cancel-drop-guard`, main
+> `afc10be`'den (`471a2ab` düzeltme · `2149fc3` test · `b364a0c` test sıkılaştırma · bu doküman / kapı
+> kaydı commit'i). **Masaüstü doğrulama tamam; Samsung A36 yerel kapısı GEÇTİ (2026-10-01).** main
+> DEĞİŞMEDİ. TASK/047'nin önkoşulu olan küçük bir stabilizasyon işi; TASK/047 BAŞLAMADI.
+
+- **Önceki davranış:** Android ACTION_CANCEL (ör. bir sistem hareketi dokunuşu devralınca) Godot
+  4.6.3'e `pressed == false` + `canceled == true` olan bir `InputEventScreenTouch` olarak gelir
+  (motor: `AndroidInputHandler::_cancel_all_touch` → `_parse_all_touch(false, true)`; normal
+  ACTION_UP → `canceled == false`). `GameBoard._unhandled_input`'un normal dokunuş yolu HER
+  `pressed == false` bırakışında `_drop()` çağırıyordu → iptal edilen dokunuş bekleyen parçayı geçerli
+  bir parmak bırakışı gibi düşürüyordu (TASK/045.2 A36 kapısında gerçek ACTION_CANCEL ile 2/2, §4.23).
+- **Düzeltme (dar):** yalnız `GameBoard._unhandled_input`'un bırakış dalı — `else: _drop()` →
+  `elif not touch.canceled: _drop()`. İptal edilen dizi parça düşürmeden biter: bekleyen / sıradaki
+  tier, torba, drop sesi, bekleme süresi, merge / skor / kayıt etkisi YOK; nişan parmağın son konumunda
+  kalabilir (geri alma yok); sonraki bağımsız geçerli dokunuş hemen düşürür. Yeni durum, zamanlayıcı ya
+  da ek yatışma YOK. `_drop()` (araç / bot çağıranları), `DROP_COOLDOWN` 0,4, `Main._input`'un 300 ms
+  yatışması (TASK/045.2 dizi modeli — iptal bırakışı yutulan diziyi zaten kapatıyordu) ve hedefli güç
+  dokunuş tüketimi (TASK/045.1 `_targeting_touches`) DEĞİŞMEDİ; fizik, ekonomi, görevler, yaş, reklam,
+  tutorial, GUI dokunulmadı.
+- **Regresyon kapsamı:** yeni `tools/gameplay_input_cancel_test` (53 kontrol; kayıt
+  `user://qa_input_cancel/` altına yönlendirilir, sahibin kayıt ailesi bayt bayt karşılaştırılır) —
+  doğrudan GameBoard yolu (bas + bırak / bas + sürükle + bırak → 1 drop, önizleme ilerler; bas + iptal,
+  bas + sürükle + iptal, basışsız iptal → 0 ve tier / torba / ses / bekleme / skor / kayıt aynı; iptalden
+  sonra bekleme 0 ve sonraki dokunuş hemen kendi x'inde; bekleme süresinde iptal önceki gibi etkisiz),
+  gerçek `Input.parse_input_event` → Main → GameBoard dağıtımı, Main yatışması, Bomba / Büyütücü hedef
+  basışı + iptal bırakışı, iki parmak (parmak 0 iptal + parmak 1 geçerli; ikisi birden iptal), tutorial
+  FIRST_DROP yardımlı girdisi, masaüstü fare + doğrudan `_drop()`, kaynak sözleşmesi. Değiştirilmemiş
+  temelde (afc10be GameBoard) ilk sürüm 51'de 14, sıkılaştırılmış sürüm 53'te 18 kontrol düştü (hepsi
+  iptal kontrolleri); düzeltmeyle 53/53. Mutasyon: koruma kaldırıldı 14 / 18, tersine çevrildi 23, yanlış
+  özellik (`not is_pressed()`) 14 hata — hepsi yakalandı, kaynak bayt-aynı geri kondu. Bağımsız salt
+  okunur inceleme BLOCKER / HIGH / MEDIUM 0; LOW test bulguları (birikimli sayaçlı takip kontrolleri,
+  eksik pozitif sürükle-bırak) `b364a0c` ile giderildi. Tam masaüstü kapısı (kanonik, aday ağaç
+  `b364a0c`, Godot 4.6.3): 37 koşu, 4863 kontrol, 0 hata, 0 SCRIPT ERROR (taban 36 koşu 4810 + yeni
+  53); sahibin kayıt ailesi bayt-aynı, userdata listesi değişmedi.
+- **Samsung A36 yerel kapısı (GEÇTİ 2026-10-01; yalnız QA paketi `com.obappstudio.squishymerge.qa`,
+  Google TEST reklamları; APK `2149fc3`'ten — sonraki commit'ler yalnız test / doküman):** telefon 3
+  tuşlu gezinmede (`navigation_mode` 0) → kenardan geri hareketi bu yapılandırmada yok, ayar
+  DEĞİŞTİRİLMEDİ; gerçek Android ACTION_CANCEL (`input motionevent DOWN … CANCEL`, aynı işaretçi): 0
+  drop (zaman çizelgesi `T0 CANCEL -> UNH`), bekleyen / sıradaki aynı, sonraki gerçek dokunuş tam bir
+  drop — seviye 2/2, sonsuz 1/1, tutorial FIRST_DROP 1/1 (adım aynen, sonraki dokunuş DROP#1 →
+  match_drop); sentetik Godot `canceled = true` dokunuşu Main / GameBoard yolundan 2/2; sürükle + iptal
+  gerçek 1/1 + sentetik 1/1 (nişan sürüklenen yerde, 0 drop); Bomba / Büyütücü hedef basışı + gerçek
+  iptal: stok bir kez, 0 drop, sonraki dokunuş düşürür (2/2); normal bas → sürükle → bırak 4/4 (tam bir
+  drop, bırakış x'inde); Ayarlar dişlisi → GERİ → ilk tahta dokunuşu 3/3 tam bir drop (TASK/045.2
+  aynen); duman: sonsuz, Mola → Yeniden Başlat, görev ilerlemesi (Level 1 kazanma → günlük 1/1/1 +
+  ödül), Ayarlar → Yaş bilgisi yeniden giriş, sonrasında dokunuş normal. Logcat (tüm QA süreçleri):
+  SCRIPT ERROR 0, çökme / ANR 0. Kapı sonunda QA paketi kaldırıldı; üretim paketi kurulmadı;
+  `com.example.squishymerge` dokunulmadı. (İlk normal dokunuş denemesi geçersiz sayıldı: harness'in
+  `level` komutu Ana Sayfa'yı atladığı için otomatik GÜNLÜK ÖDÜLLER penceresi tahtanın üstünde kaldı —
+  kurulum hatası, ürün bulgusu değil; pencere gerçek KAPAT ile kapatılıp tekrarlandı.)
+- **Ayrı kalan, düzeltilmedi (owner kararı):** RESULT_DELAY yarışı (§4.24); basılı Koleksiyon kartı +
+  GERİ sentetik bırakışı (§4.23); genel modal / karartma iptal davranışı (`UiKit.attach_dim_close`,
+  `ShopScreen._on_dim_input` iptal bırakışında da kapatır) ve **kapıdaki yeni gözlem:** güç düğmesi
+  üzerinde gerçek ACTION_CANCEL gücü çalıştırır (A36: Sarsıntı stoğu 1 → 0; GUI düğmesi iptal edilmiş
+  öykünen bırakışı bırakış sayıyor; parça düşmez) — aynı sınıf, GUI tarafı, ayrı görev adayı.
 
 ## 5. Dosya/klasör yapısı ve script envanteri
 
@@ -2859,6 +2922,8 @@ Owner'ın yapacağı / onaylayacağı:)*
   Samsung A36 kapısı GEÇTİ; TASK/046.1 ile birlikte ff-only `56106ef → b90bc3c`, 2026-09-30).
 - **TASK/046.1** — yaş ekranı 13+ UX yeniden tasarımı → ✅ **main'de** (§4.25; A36 kapısı GEÇTİ,
   cihaz bulgusu `98d209e`; açık uyum riski owner / hukukta).
+- **TASK/046.2** — ACTION_CANCEL bırakma koruması (TASK/047 önkoşulu) → **dalda**, masaüstü + Samsung
+  A36 kapısı GEÇTİ (§4.26); main'e alınması owner onayı bekliyor.
 - **TASK/047** — Günlük Merge Challenge — **BAŞLAMADI**; sıradaki planlı ürün görevi. Ayrıntılı
   sözleşmesi (hedef / ödül / sıfırlama / arayüz / kayıt / reklam / XP / görev etkileşimi)
   tasarlanmadı — uygulamadan önce owner onaylı brif gerekir.
