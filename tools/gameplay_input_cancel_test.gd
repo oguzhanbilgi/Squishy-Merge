@@ -16,7 +16,8 @@ extends Node
 ##   godot --headless --audio-driver Dummy --path . res://tools/gameplay_input_cancel_test.tscn
 ##
 ## Bölümler:
-##   doğrudan yol     GameBoard._unhandled_input: bas + bırak → 1 drop; bas + iptal → 0; bas +
+##   doğrudan yol     GameBoard._unhandled_input: bas (+ sürükle) + bırak → 1 drop, önizleme
+##                    ilerler; bas + iptal → 0; bas +
 ##                    sürükle + iptal → 0 (nişan sürüklenen yerde); basışsız iptal → 0; iptal
 ##                    sonrası dokunuş hemen 1; iptal tier / torba / ses / bekleme / skor / kayıt
 ##                    değiştirmez; bekleme süresinde iptal hiçbir şey yapmaz (önceki gibi)
@@ -130,11 +131,21 @@ func _direct_board_path() -> void:
 	await _make_board(8, 2)
 	var p: Vector2 = _point(-90.0)
 	var sound0: int = _drop_sounds()
+	var next0: int = _board._next_tier
 	await _direct(p, true)
 	await _direct(p, false)
 	_c("A1 bas + geçerli bırakış: tam bir drop, nişanın x'inde, drop sesi bir kez, bekleme süresi başladı",
 		_drops == 1 and _near(_drop_aims[0], p.x) and _drop_sounds() - sound0 == 1
 		and _board._drop_cooldown > 0.0)
+	_c("A1 önizleme ilerledi: eski 'sıradaki' artık bekleyen parça", _board._pending_tier == next0)
+
+	await _make_board(8, 2)
+	var d0: Vector2 = _point(110.0)
+	var d1: Vector2 = _point(-70.0)
+	await _direct(d0, true)
+	await _direct_drag(d1)
+	await _direct(d1, false)
+	_c("A1b bas + sürükle + geçerli bırakış: tam bir drop, sürüklenen x'te", _drops == 1 and _near(_drop_aims[0], d1.x))
 
 	await _make_board(8, 2)
 	var before: Dictionary = _state()
@@ -176,9 +187,13 @@ func _direct_board_path() -> void:
 	_c("A4 basışı olmayan (anlamlı oyun basışı yokken) İPTAL bırakışı: drop 0, durum aynı", _drops == 0
 		and after["pending"] == before["pending"] and after["bag"] == before["bag"]
 		and after["drop_sound"] == before["drop_sound"])
-	await _direct(_point(40.0), true)
-	await _direct(_point(40.0), false)
-	_c("A4 ardından geçerli dokunuş hemen düşürdü", _drops == 1)
+	var cool4: float = _board._drop_cooldown
+	_drops = 0
+	_drop_aims.clear()
+	await _direct(_point(-40.0), true)
+	await _direct(_point(-40.0), false)
+	_c("A4 ardından (bekleme 0) geçerli dokunuş hemen kendi x'inde tam bir drop", is_zero_approx(cool4)
+		and _drops == 1 and _near(_drop_aims[0], _point(-40.0).x))
 
 	print("-- doğrudan yol: bekleme süresinde iptal (önceki gibi hiçbir şey)")
 	await _make_board(8, 2)
@@ -351,9 +366,12 @@ func _multiple_fingers() -> void:
 	await _finger(p1, true, false, 1)
 	await _finger(p0, false, true, 0)
 	_c("F parmak 0'ın İPTAL bırakışı düşürmedi", _drops == 0)
+	var cool_f: float = _board._drop_cooldown
+	_drops = 0
+	_drop_aims.clear()
 	await _finger(p1, false, false, 1)
-	_c("F parmak 1'in geçerli bırakışı tam bir drop (parmak 1'in nişanında)", _drops == 1
-		and _near(_drop_aims[0], p1.x))
+	_c("F parmak 1'in geçerli bırakışı (bekleme 0) tam bir drop, parmak 1'in nişanında", is_zero_approx(cool_f)
+		and _drops == 1 and _near(_drop_aims[0], p1.x))
 
 	print("-- çoklu parmak: Android hepsini iptal eder (iki parmak birden)")
 	await _make_board(8, 2)
@@ -365,9 +383,14 @@ func _multiple_fingers() -> void:
 	var after: Dictionary = _state()
 	_c("F iki parmağın İPTAL bırakışı: drop 0, tier / torba aynı", _drops == 0
 		and after["pending"] == before["pending"] and after["bag"] == before["bag"])
-	await _finger(p0, true, false, 0)
-	await _finger(p0, false, false, 0)
-	_c("F ardından bağımsız dokunuş HEMEN tam bir drop (takılı / genel iptal durumu yok)", _drops == 1)
+	var cool_all: float = _board._drop_cooldown
+	_drops = 0
+	_drop_aims.clear()
+	var p2: Vector2 = _point(10.0)
+	await _finger(p2, true, false, 0)
+	await _finger(p2, false, false, 0)
+	_c("F ardından (bekleme 0) bağımsız dokunuş HEMEN kendi x'inde tam bir drop (takılı / genel iptal durumu yok)",
+		is_zero_approx(cool_all) and _drops == 1 and _near(_drop_aims[0], p2.x))
 	_sections_done += 1
 
 
@@ -399,10 +422,13 @@ func _tutorial_assist() -> void:
 		and _pieces().is_empty() and tutorial.current_step() == TutorialController.Step.FIRST_DROP
 		and _board._pending_tier == pending_before and _board._next_tier == next_before
 		and _board.tutorial_queue_size() == queue_before)
+	var locked_after_cancel: bool = _board.is_tutorial_input_locked()
+	_drops = 0
+	_drop_aims.clear()
 	await _direct(far, true)
 	await _direct(far, false)
-	_c("tutorial: geçerli bırakış tek T1 düşürdü, güvenli bandın içinde (yardım aynen)", _drops == 1
-		and _pieces().size() == 1 and _pieces()[0].tier == 1
+	_c("tutorial: iptalden sonra girdi açık; geçerli bırakış tek T1 düşürdü, güvenli bandın içinde (yardım aynen)",
+		not locked_after_cancel and _drops == 1 and _pieces().size() == 1 and _pieces()[0].tier == 1
 		and absf(_pieces()[0].position.x - center) <= half + 1.0)
 	await _free_main()
 	_sections_done += 1
