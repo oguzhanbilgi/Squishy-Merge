@@ -952,7 +952,8 @@ func open_daily_challenge() -> void:
 
 ## Pencerenin BAŞLA'sı: gün YENİDEN okunur. Gösterilen gün artık bugün değilse (pencere gece
 ## yarısını açık geçti) ya da bugün tamamlandıysa pencere bugüne tazelenir ve round BAŞLAMAZ —
-## eski günün meydan okuması asla başlamaz; oyuncu yeni günü görüp yeniden basar.
+## eski günün meydan okuması asla başlamaz; oyuncu yeni günü görüp yeniden basar (tazelenen pencere
+## mevcut 300 ms parmak yatışmasını yeniden kurar — hızlı ikinci dokunuş yeni günü görmeden başlatmaz).
 func _on_challenge_start_requested(shown_day: String) -> void:
 	var view: Dictionary = DailyChallenge.current_view()
 	if view.is_empty():
@@ -962,6 +963,7 @@ func _on_challenge_start_requested(shown_day: String) -> void:
 	if String(view["day_key"]) != shown_day or bool(view["completed"]):
 		_challenge_sheet.show_view(view)
 		_screens[0].refresh_daily_challenge()
+		settle_touch_input()
 		return
 	_challenge_sheet.close_sheet(false)
 	start_daily_challenge()
@@ -975,6 +977,8 @@ func _refresh_daily_challenge_views() -> void:
 			_challenge_sheet.close_sheet(false)
 		elif view != _challenge_sheet.view():
 			_challenge_sheet.show_view(view)
+	if _round_kind == RoundKind.DAILY_CHALLENGE and _result.challenge_fail_day_stale(DailyChallenge.current_day()):
+		_result.refresh_challenge_day_changed()
 	if not _screens.is_empty() and _screens[0].visible:
 		_screens[0].refresh_daily_challenge()
 
@@ -1318,12 +1322,16 @@ func _on_challenge_round_finished(won: bool) -> void:
 		var rewarded: bool = SaveManager.complete_daily_challenge(day)
 		outcome["rewarded"] = rewarded
 		outcome["reward"] = DailyChallenge.REWARD_DOUGH if rewarded else 0
-	var today: String = DailyChallenge.current_day()
-	outcome["day_changed"] = not today.is_empty() and today != day
 	await get_tree().create_timer(RESULT_DELAY).timeout
 	if not _challenge_result_current(attempt, board):
 		return
+	# Gün, sonuç GÖSTERİLİRKEN okunur (gecikme gece yarısını geçebilir).
+	var today: String = DailyChallenge.current_day()
+	outcome["day_changed"] = not today.is_empty() and today != day
 	_set_ad_surface(MonetizationManager.Surface.RESULT)
+	# "Hamle bitti" yatışmasında reddedilen dokunuşlar sürerken açılan sonucun düğmeleri, açılış
+	# görünmeden yeni başlayan bir dokunuşla basılmasın: mevcut 300 ms parmak yatışması.
+	settle_touch_input()
 	_result.show_challenge_result(outcome)
 
 
@@ -1767,6 +1775,12 @@ func _on_retry_pressed() -> void:
 	# TASK/047: meydan okuma tekrarı normal `_start_level` yoluna GİRMEZ (level 0 normal ilerlemeye
 	# hiç düşmez) — o anki günün meydan okuması baştan.
 	if _round_kind == RoundKind.DAILY_CHALLENGE:
+		# Açık kayıp sonucu gece yarısını geçtiyse önce "Gün değişti" kopyasına yenilenir (açık
+		# pencerenin BAŞLA'sı gibi): bayat "Sıra aynı" kopyasının altından yeni günün meydan okuması
+		# sessizce başlamaz; ikinci basış (YENİ MEYDAN OKUMA) başlatır.
+		if _result.challenge_fail_day_stale(DailyChallenge.current_day()):
+			_result.refresh_challenge_day_changed()
+			return
 		_retry_daily_challenge()
 		return
 	_start_level(_current_level)

@@ -14,7 +14,9 @@ extends Node
 ##   akış         TEKRAR DENE → aynı gün baştan; mola Yeniden Başlat → meydan okuma (normal
 ##                `_start_level` DEĞİL); ANA SAYFA / Ana Menüye Dön → Ana Sayfa; normal round aynen
 ##   gece yarısı  deneme D'de başlar, D+1'de kazanır → D ödüllenir, D+1 ayrı; D+1'e geçen kayıp →
-##                "YENİ MEYDAN OKUMA" → D+1; geri alınan saat tamamlanmış günü yeniden açmaz
+##                "YENİ MEYDAN OKUMA" → D+1; geri alınan saat tamamlanmış günü yeniden açmaz; gün
+##                sonuç gecikmesinde değişirse gösterimde okunur; açık kayıp sonucu gece yarısını
+##                geçerse TEKRAR DENE / öne dönüş önce "Gün değişti" kopyasına yeniler
 ##   eski sonuç   gecikmeli meydan okuma sonucu yeni denemenin / Ana Sayfa'nın / normal round'un
 ##                üstüne AÇILMAZ; gecikmedeki normal sonuç da meydan okumanın üstüne açılmaz
 ##   reklam       sahte arka uç: meydan okuma bitişinde geçiş reklamı denemesi / ödüllü istek YOK
@@ -24,6 +26,7 @@ extends Node
 ##                meydan okumayı bilmez
 
 const MAIN_SCENE: PackedScene = preload("res://scenes/main.tscn")
+const DUMPLING_VISUAL: GDScript = preload("res://scripts/game/dumpling_visual.gd")
 const DIR: String = "user://qa_daily_challenge_flow"
 const PATH: String = DIR + "/save.json"
 const SECTIONS: int = 9
@@ -197,6 +200,13 @@ func _isolation_win() -> void:
 		and result.challenge_moves_text() == "2 / 15" and result.challenge_footer_text() == "Yarın yenilenir"
 		and result.primary_text() == "ANA SAYFA" and not result.secondary_button().visible
 		and result.primary_action() == "exit")
+	# Yinelenen bitiş sinyali (Main'in `_round_finalized` kapısı): sonuç ve ödül değişmez.
+	var bytes_won: PackedByteArray = _bytes()
+	_main._board.round_finished.emit(true)
+	await _wait_result()
+	_c("yinelenen round_finished(true): sonuç '+20 HAMUR' kalır, Hamur 355, kayıt baytı aynı",
+		result.visible and result.challenge_body_text() == "+20 HAMUR" and SaveManager.dough() == 355
+		and _bytes() == bytes_won)
 	_c("Ana Sayfa'ya dönüş: tamamlandı görünümü, yeniden başlatma yok", await _exit_ok())
 	_sections_done += 1
 
@@ -229,13 +239,17 @@ func _isolation_fail() -> void:
 	_main._board.level.target_tier = 8
 	for i in 15:
 		await _quick_drop(i)
+	await _quick_drop(15)
+	_c("16. bırakış (bütçe 15 doldu) REDDEDİLDİ: kullanılan 15", _main._board.drops_used() == 15
+		and _main._board.drops_remaining() == 0)
 	await _until_finished(600)
 	await _wait_result()
 	_c("hamle bitti kaybı: 'OLMADI' + 'Hamlen bitti. Sıra aynı, tekrar dene!' + HAMLE 15 / 15",
 		result.visible and result.title_text() == "OLMADI"
 		and result.challenge_body_text() == "Hamlen bitti. Sıra aynı, tekrar dene!"
 		and result.challenge_moves_text() == "15 / 15" and _main._board.fail_reason() == DailyChallenge.FailReason.MOVES_EXHAUSTED)
-	_c("  … kayıt baytı yine aynı, yazma girişimi YOK", _bytes() == bytes and SaveFile.fault == SaveFile.Fault.TEMP_OPEN)
+	_c("  … kayıt baytı yine aynı, yazma girişimi YOK, bellek aynı", _bytes() == bytes
+		and SaveFile.fault == SaveFile.Fault.TEMP_OPEN and _diff_keys(before, SaveManager.data).is_empty())
 	# Terk + yeniden başlatma.
 	_main._on_retry_pressed()
 	await _settle(3)
@@ -249,9 +263,9 @@ func _isolation_fail() -> void:
 	await _settle(2)
 	_main.abandon_run()
 	await _settle(3)
-	_c("yeniden başlatma + terk: kayıt baytı aynı, yazma YOK, tamamlanma / Hamur yok", _bytes() == bytes
+	_c("yeniden başlatma + terk: kayıt baytı aynı, yazma YOK, bellek aynı, tamamlanma / Hamur yok", _bytes() == bytes
 		and SaveFile.fault == SaveFile.Fault.TEMP_OPEN and SaveManager.daily_challenge_completed_day() == ""
-		and SaveManager.dough() == 335)
+		and SaveManager.dough() == 335 and _diff_keys(before, SaveManager.data).is_empty())
 	SaveFile.fault = SaveFile.Fault.NONE
 	_sections_done += 1
 
@@ -309,7 +323,41 @@ func _flow_paths() -> void:
 	_main._on_exit_pressed()
 	await _settle(3)
 	_c("normal level çıkışı aynen Harita'ya (sekme 1)", _main._active_tab == 1)
+	# Global RNG: Main'in meydan okuma yolları (pencere aç / kapat, başlat, bitiş işleyicisi, sonuç,
+	# tekrar, kazanma yazması, çıkış, Ana Sayfa tazeleme — eşzamanlı, arada kare yok) global RNG'yi
+	# YENİDEN TOHUMLAMAZ (farklı başlangıç tohumu → farklı sonraki akış) ve zamana bağlı tohumlamaz
+	# (aynı tohum → aynı sonraki akış). Motorun parçacık yeniden başlatmaları gibi tüketimler
+	# belirlenimli olduğu sürece serbest (normal round'larda da var); üretimde global RNG'yi yalnız
+	# DropBag ve sandık kuraları kullanır.
+	var a: Array[int] = await _rng_flow(4747)
+	var b: Array[int] = await _rng_flow(4747)
+	var c: Array[int] = await _rng_flow(9191)
+	_c("global RNG: meydan okuma akışı sonrası aynı tohum → aynı 3 randi() (randomize / saat tohumu yok), farklı tohum → farklı (yeniden tohumlama yok)",
+		_same(a, b) and not _same(a, c) and SaveManager.daily_challenge_completed_day() == THU and SaveManager.dough() == 355)
 	_sections_done += 1
+
+
+## Taze kayıt + Main, sonra `seed(k)` ve meydan okuma yollarının EŞZAMANLI turu; dönüş: sonraki 3 randi().
+func _rng_flow(k: int) -> Array[int]:
+	await _fresh(THU)
+	seed(k)
+	_main.open_daily_challenge()
+	_main._challenge_sheet.close_sheet()
+	_main.start_daily_challenge()
+	_main._board._finish(false)
+	_main._result.show_challenge_result({"won": false, "day_key": THU, "fail_reason": DailyChallenge.FailReason.OVERFLOW,
+		"drops_used": 0, "drop_budget": 15, "target_tier": 5, "reached_tier": 1, "day_changed": false})
+	_main._retry_daily_challenge()
+	_main._board._finish(true)
+	_main._result.show_challenge_result({"won": true, "day_key": THU, "rewarded": true, "reward": 20,
+		"fail_reason": DailyChallenge.FailReason.NONE, "drops_used": 0, "drop_budget": 15, "target_tier": 5,
+		"reached_tier": 5, "day_changed": false})
+	_main._leave_daily_challenge()
+	_main._screens[0].refresh_daily_challenge()
+	var got: Array[int] = [randi(), randi(), randi()]
+	# Bekleyen gecikmeli işleyiciler Main canlıyken döner (jeton onları zaten eler).
+	await _wait_result()
+	return got
 
 
 # --- 5) Gece yarısı ----------------------------------------------------------------------------------
@@ -333,6 +381,10 @@ func _midnight() -> void:
 	var view: Dictionary = DailyChallenge.current_view()
 	_c("Ana Sayfa: D+1 (cuma T6·540·36) ayrı, tamamlanmamış meydan okuma", String(view.get("day_key", "")) == FRI
 		and not bool(view.get("completed", true)) and int(view.get("drop_budget", 0)) == 36)
+	var home: CanvasLayer = _main._screens[0]
+	_c("  … Ana Sayfa girişi de D+1: '+20' rozeti + T6 portresi (tamamlandı işareti yok)",
+		home.visible and home.challenge_badge_text() == "+20" and not home.is_challenge_done_shown()
+		and home.challenge_portrait_texture() == DUMPLING_VISUAL.TEXTURES[5])
 	_c("D+1 başlatılabilir ve kendi bütçesiyle", _main.start_daily_challenge() and _main._challenge_day == FRI
 		and _main._board.drop_budget() == 36)
 	await _settle(3)
@@ -360,6 +412,72 @@ func _midnight() -> void:
 	_c("geri alınan saat (cuma) tamamlanmış cumartesiyi yeniden AÇMAZ: görünüm cumartesi + tamam, başlatma yok",
 		String(DailyChallenge.current_view()["day_key"]) == SAT and bool(DailyChallenge.current_view()["completed"])
 		and not _main.start_daily_challenge())
+	# Gece yarısı SONUÇ GECİKMESİNDE geçerse: gün, sonuç gösterilirken okunur.
+	await _fresh(THU)
+	_main.start_daily_challenge()
+	await _settle(3)
+	await _drop_twice()
+	await _pile_kings()
+	await _until_finished(900)
+	DailyRewards.clock_override = FRI
+	await _wait_result()
+	result = _main._result
+	_c("taşma D'de, sonuç gecikmesinde D+1: 'Gün değişti · yeni meydan okuma hazır.' + YENİ MEYDAN OKUMA",
+		result.visible and result.challenge_body_text() == "Gün değişti · yeni meydan okuma hazır."
+		and result.primary_text() == "YENİ MEYDAN OKUMA")
+	await _fresh(THU)
+	_main.start_daily_challenge()
+	await _settle(3)
+	await _win()
+	DailyRewards.clock_override = FRI
+	await _wait_result()
+	_c("kazanma D'de, sonuç gecikmesinde D+1: ödül D'ye (+20), dipnot 'Gün değişti · yeni meydan okuma hazır.'",
+		SaveManager.daily_challenge_completed_day() == THU and SaveManager.dough() == 355
+		and _main._result.challenge_footer_text() == "Gün değişti · yeni meydan okuma hazır.")
+	# Kayıp sonucu AÇIKKEN gece yarısı geçerse: TEKRAR DENE önce yeniler (açık pencerenin BAŞLA'sı gibi).
+	await _fresh(THU)
+	_main.start_daily_challenge()
+	await _settle(3)
+	await _drop_twice()
+	await _pile_kings()
+	await _until_finished(900)
+	await _wait_result()
+	result = _main._result
+	var failed_id: int = _main._board.get_instance_id()
+	var attempt: int = _main._challenge_attempt
+	_c("ön koşul: D'de taşma sonucu 'Kap taştı. Sıra aynı, tekrar dene!' + TEKRAR DENE",
+		result.challenge_body_text() == "Kap taştı. Sıra aynı, tekrar dene!" and result.primary_text() == "TEKRAR DENE")
+	_main._notification(NOTIFICATION_APPLICATION_RESUMED)
+	await _settle(2)
+	_c("kontrol: gün aynıyken öne dönüş sonucu DEĞİŞTİRMEZ", result.primary_text() == "TEKRAR DENE"
+		and result.challenge_body_text() == "Kap taştı. Sıra aynı, tekrar dene!")
+	DailyRewards.clock_override = FRI
+	_main._on_retry_pressed()
+	await _settle(3)
+	_c("sonuç açıkken gece yarısı → TEKRAR DENE önce sonucu yeniler ('Gün değişti' + YENİ MEYDAN OKUMA), yeni deneme YOK",
+		result.visible and result.challenge_body_text() == "Gün değişti · yeni meydan okuma hazır."
+		and result.primary_text() == "YENİ MEYDAN OKUMA" and result.secondary_text() == "ANA SAYFA"
+		and _main._board.get_instance_id() == failed_id and _main._challenge_attempt == attempt
+		and _main._challenge_day == THU)
+	_main._on_retry_pressed()
+	await _settle(3)
+	_c("  … ikinci basış GÜNCEL günün (cuma T6·540·36) meydan okumasını baştan başlatır", not result.visible
+		and _main._challenge_day == FRI and _main._board.get_instance_id() != failed_id
+		and _main._board.drop_budget() == 36 and _main._board.drops_used() == 0)
+	await _fresh(THU)
+	_main.start_daily_challenge()
+	await _settle(3)
+	await _drop_twice()
+	await _pile_kings()
+	await _until_finished(900)
+	await _wait_result()
+	DailyRewards.clock_override = FRI
+	_main._notification(NOTIFICATION_APPLICATION_RESUMED)
+	await _settle(2)
+	result = _main._result
+	_c("öne dönüşte (gün değişti) açık kayıp sonucu yerinde 'Gün değişti' + YENİ MEYDAN OKUMA'ya yenilenir",
+		result.visible and result.challenge_body_text() == "Gün değişti · yeni meydan okuma hazır."
+		and result.primary_text() == "YENİ MEYDAN OKUMA" and _main._challenge_day == THU)
 	_sections_done += 1
 
 
@@ -398,9 +516,9 @@ func _stale_results() -> void:
 		not _main._result.visible and not _main._board.is_daily_challenge() and SaveManager.dough() == 355
 		and SaveManager.daily_challenge_completed_day() == THU)
 	# Ters yön (gecikmedeki NORMAL sonuç → meydan okuma) BİLEREK sınanmaz: o, normal round'un ayrı,
-	# AÇIK RESULT_DELAY yarışıdır (PROJECT_STATUS §4.24 — bu işte düzeltilmez). Gerçek dokunuşla
-	# ulaşılamaz: meydan okuma ancak Mola → Harita → Ana Sayfa → sayfa → BAŞLA ile başlar; üç geçişin
-	# her biri 300 ms parmak yatışması açar (≥ ~900 ms) — 800 ms'lik gecikme o arada board'suz biter.
+	# AÇIK RESULT_DELAY yarışıdır (PROJECT_STATUS §4.24 / §4.27 — bu işte düzeltilmez, normal yol
+	# değişmez). Gerçek dokunuşla pratikte zor ama kuramsal olarak mümkün: Mola → Ana Menüye Dön →
+	# Android GERİ (yatışmasız) → pill (+300 ms) → BAŞLA (+300 ms) ≈ 600 ms + tepki < 800 ms olabilir.
 	await _fresh(THU)
 	_main.start_daily_challenge()
 	await _settle(3)
@@ -410,6 +528,20 @@ func _stale_results() -> void:
 	await _wait_result()
 	_c("kontrol: araya giren yoksa meydan okuma sonucu gecikmeden sonra açılır", _main._result.visible
 		and _main._result.mode() == _result_mode("CHALLENGE_FAIL"))
+	# Değiştirilen board'un GEÇ round_finished'ı (aynı kare — board henüz serbest değil): `_clear_board`
+	# meydan okuma işleyicisini ayırır → ödül / tamamlanma / kayıt / sonuç YOK, yeni deneme kesinleşmez.
+	await _fresh(THU)
+	_main.start_daily_challenge()
+	await _settle(3)
+	var bytes_late: PackedByteArray = _bytes()
+	var old: Node2D = _main._board
+	_main._on_pause_restart()
+	old.round_finished.emit(true)
+	await _wait_result()
+	_c("değiştirilen board'un geç round_finished(true)'u: +20 / tamamlanma / kayıt / sonuç YOK, yeni deneme sürüyor",
+		SaveManager.dough() == 335 and SaveManager.daily_challenge_completed_day() == "" and _bytes() == bytes_late
+		and not _main._round_finalized and not _main._result.visible and _main._board != null
+		and _main._board.is_daily_challenge() and not _main._board.is_finished())
 	_sections_done += 1
 
 
@@ -422,8 +554,13 @@ func _ads() -> void:
 	var ads: MonetizationManager = _main._ads
 	_c("ön koşul: geçiş reklamı UYGUN + HAZIR (normal round bitişi gösterirdi)", ads.interstitial_eligible()
 		and ads.is_interstitial_ready())
+	# Bekleyen ödüllü yükleme tamamlanır (READY): sonraki yükleme ancak bir gösterim / istek tetiklerse.
+	while not fake.pending_rewarded.is_empty():
+		fake.complete_rewarded_load(true)
+	await _settle(2)
 	var shows: int = fake.interstitial_shows.size()
 	var rewarded: int = fake.rewarded_shows.size()
+	var rewarded_loads: int = fake.rewarded_loads
 	AdEvents.clear_recent()
 	_main.start_daily_challenge()
 	await _settle(3)
@@ -436,6 +573,8 @@ func _ads() -> void:
 		fake.rewarded_shows.size() == rewarded and AdEvents.count(&"rewarded_requested") == 0
 		and fake.interstitial_shows.size() == shows and AdEvents.count(&"interstitial_skipped_not_ready") == 0
 		and AdEvents.count(&"interstitial_showed") == 0 and ads.interstitial_eligible() and ads.is_interstitial_ready())
+	_c("  … devam / refill penceresi hiç görünmedi, yeni ödüllü YÜKLEME yok", not _main._revive.visible
+		and not _main._refill.visible and fake.rewarded_loads == rewarded_loads)
 	_c("  … sonuç ekranı yüzeyi RESULT (banner gizli)", ads.surface() == MonetizationManager.Surface.RESULT)
 	_main._on_retry_pressed()
 	await _settle(3)
@@ -488,8 +627,23 @@ func _tutorial() -> void:
 	await _boot()
 	_c("tutorial açık: meydan okuma başlatılamaz, board tutorial'ın Level 1'i", _main.is_tutorial_active()
 		and not _main.start_daily_challenge() and _main._board != null and not _main._board.is_daily_challenge())
+	_main._screens[0].refresh_daily_challenge()
+	_main.open_daily_challenge()
+	await _settle(2)
+	_c("tutorial sırasında: Ana Sayfa girişi gizli, pencere kendiliğinden açılmadı, kod yolu da açmadı",
+		not _main._screens[0].challenge_button().visible and not _main._challenge_sheet.visible)
 	_c("onboarding alanları değişmedi, meydan okuma bloğu varsayılan", not SaveManager.onboarding_completed()
 		and SaveManager.onboarding_completed_day() == "" and SaveManager.daily_challenge_completed_day() == "")
+	# Gerçek tamamlanma yolu (ATLA → Onboarding.complete) → ilk normal Ana Sayfa: giriş GÖRÜNÜR (ilk gün
+	# kuralı yok), pencere kendiliğinden açılmaz, blok varsayılan.
+	_main._tutorial.skip()
+	await _settle(3)
+	await _home()
+	var home: CanvasLayer = _main._screens[0]
+	_c("tutorial bitti → ilk normal Ana Sayfa: giriş GÖRÜNÜR ('+20'), pencere kendiliğinden AÇILMADI, blok varsayılan",
+		SaveManager.onboarding_completed() and home.visible and home.challenge_button().is_visible_in_tree()
+		and home.challenge_badge_text() == "+20" and not _main._challenge_sheet.visible
+		and SaveManager.daily_challenge_completed_day() == "")
 	await _teardown_main()
 	_sections_done += 1
 

@@ -400,16 +400,23 @@ func _midnight_sheet() -> void:
 	await _show_home()
 	await _wait_settled()
 	await _open()
+	await _wait_settled()
 	_c("ön koşul: pencere perşembeyi gösteriyor", sheet.shown_day() == THU)
 	DailyRewards.clock_override = FRI
-	sheet.start_button().pressed.emit()
+	var start_pos: Vector2 = _screen_center(sheet.start_button())
+	await _finger_tap(start_pos)
 	await _settle(2)
-	_c("gün döndü: BAŞLA round BAŞLATMADI, pencere bugüne (cuma T6·540·36) tazelendi", _main._board == null
+	_c("gün döndü: parmakla BAŞLA round BAŞLATMADI, pencere bugüne (cuma T6·540·36) tazelendi", _main._board == null
 		and sheet.visible and sheet.shown_day() == FRI and sheet.goal_text() == "Dev Dumpling yap · 36 hamlede")
 	_c("  … Ana Sayfa girişi de cumaya tazelendi (T6 portresi)", _home().challenge_portrait_texture() == DUMPLING_VISUAL.TEXTURES[5])
-	sheet.start_button().pressed.emit()
+	await _finger_tap(start_pos)
+	await _settle(2)
+	_c("tazelemenin hemen ardından hızlı ikinci parmak dokunuşu YUTULDU (300 ms yatışma): yeni gün görülmeden başlamadı",
+		_main._board == null and sheet.visible and sheet.shown_day() == FRI)
+	await _wait_settled()
+	await _finger_tap(_screen_center(sheet.start_button()))
 	await _settle(3)
-	_c("ikinci BAŞLA: cumanın meydan okuması başlar (bütçe 36)", _main._board != null and _main._challenge_day == FRI
+	_c("yatışmadan sonra BAŞLA: cumanın meydan okuması başlar (bütçe 36)", _main._board != null and _main._challenge_day == FRI
 		and _main._board.drop_budget() == 36)
 	await _leave_round()
 	DailyRewards.clock_override = THU
@@ -557,6 +564,33 @@ func _result_states() -> void:
 		and result.secondary_text() == "HARİTA" and result.dough_text() != "")
 	result.hide_result()
 	await _settle(2)
+	# Gerçek akış (Main): sonuç açılırken mevcut 300 ms yatışma kurulur — açılışın hemen ardından başlayan
+	# dokunuş düğmeye basmaz; yatışmadan sonra parmakla TEKRAR DENE, hızlı ikinci dokunuş yeni board'a düşmez.
+	await _show_home()
+	await _wait_settled()
+	_main.start_daily_challenge()
+	await _settle(3)
+	var failed: Node2D = _main._board
+	var attempt: int = _main._challenge_attempt
+	failed._finish(false)
+	var guard: int = 0
+	while not result.visible and guard < 240:
+		await get_tree().process_frame
+		guard += 1
+	await _finger_tap(_screen_center(result.primary_button()))
+	await _settle(2)
+	_c("sonuç açılır açılmaz parmak dokunuşu TEKRAR DENE'ye BASMADI (300 ms yatışma): aynı deneme, sonuç açık",
+		result.visible and _main._challenge_attempt == attempt and _main._board == failed)
+	await _wait_settled()
+	var primary_pos: Vector2 = _screen_center(result.primary_button())
+	await _finger_tap(primary_pos)
+	await _physics(2)
+	await _finger_tap(primary_pos)
+	await _physics(4)
+	_c("yatışmadan sonra parmakla TEKRAR DENE: yeni deneme baştan; hızlı ikinci dokunuş yeni board'a bırakış OLMADI",
+		not result.visible and _main._challenge_attempt == attempt + 1 and _main._board != null
+		and _main._board.is_daily_challenge() and _main._board.drops_used() == 0)
+	await _leave_round()
 	_sections_done += 1
 
 

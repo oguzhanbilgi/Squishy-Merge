@@ -301,11 +301,16 @@ var _challenge_active: bool = false
 var _drop_budget: int = 0
 var _drops_used: int = 0
 ## Son izinli bırakıştan sonraki yatışma — yalnız bitiş algılayıcı (oyuncuya süre DEĞİL):
-## merge'siz geçen süre ve toplam süre (DailyChallenge.SETTLE_QUIET_SEC / SETTLE_CAP_SEC).
+## merge'siz geçen süre (son parça İNDİKTEN sonra sayılır) ve son bırakıştan beri toplam süre
+## (DailyChallenge.SETTLE_QUIET_SEC / SETTLE_CAP_SEC).
 var _settle_active: bool = false
 var _settle_elapsed: float = 0.0
 var _settle_quiet: float = 0.0
 var _settle_check_queued: bool = false
+## Son bırakılan parça ve ilk teması (`Dumpling.has_landed` — taşma sayımıyla aynı "indi" tanımı):
+## düşüş süresi sessiz pencereden yemez. Parça bir merge'de yok olduysa o merge pencereyi yeniledi.
+var _settle_piece: Dumpling = null
+var _settle_landed: bool = false
 ## Bu board'un round başına devam hakkı: normalde MAX_REVIVES_PER_ROUND (2), meydan okumada 0 —
 ## taşma doğrudan kesin kayıp, teklif / ödüllü istek hiç açılmaz.
 var _max_revives: int = MAX_REVIVES_PER_ROUND
@@ -652,7 +657,8 @@ func _apply_challenge_mode() -> void:
 	_hud.set_daily_challenge(drops_remaining())
 	_refresh_challenge_previews()
 	if drops_remaining() <= 0:
-		_begin_challenge_settle()
+		# Bütçe 0 (savunma): havada parça yok — sessiz pencere hemen başlar.
+		_begin_challenge_settle(null)
 
 
 ## Meydan okumada birakilacak parca kaldi mi? Normal oyunda HER ZAMAN true (onizleme kurallari
@@ -673,7 +679,7 @@ func _refresh_challenge_previews() -> void:
 
 ## Basarili bir `_drop()` (parca dogdu): hamle tam +1, HAMLE plakasi, onizlemeler, son birakista
 ## yatisma.
-func _on_challenge_drop() -> void:
+func _on_challenge_drop(dropped: Dumpling) -> void:
 	_drops_used += 1
 	var remaining: int = drops_remaining()
 	_hud.set_moves(remaining)
@@ -681,31 +687,38 @@ func _on_challenge_drop() -> void:
 	_refresh_challenge_previews()
 	drops_changed.emit(remaining)
 	if remaining <= 0:
-		_begin_challenge_settle()
+		_begin_challenge_settle(dropped)
 
 
 ## Son izinli birakis yapildi: yeni birakis yok, tahta fiziksel olarak yasamaya devam eder; zaten
 ## birakilmis parcalarin merge zinciri bitebilir, yatisma sirasinda hedef olusursa kazanilir.
-func _begin_challenge_settle() -> void:
+func _begin_challenge_settle(final_piece: Dumpling) -> void:
 	if _settle_active or _is_finished:
 		return
 	_settle_active = true
 	_settle_elapsed = 0.0
 	_settle_quiet = 0.0
+	_settle_piece = final_piece
+	_settle_landed = false
 	_hud.set_status(CHALLENGE_SETTLE_STATUS)
 
 
-## Fizik adiminda (duraklatilmisken calismaz — mola / ayarlar suresi sayilmaz). Esik dolunca
-## karar ERTELENIR: ayni karenin kuyruktaki merge'leri (ertelenmis `_resolve_merge`) once cozulur
-## — hedefi kuran son merge kayba donmez. Tasma ayni adimda kesinlestirirse o kazanir (kayip).
+## Fizik adiminda (duraklatilmisken calismaz — mola / ayarlar suresi sayilmaz). Sessiz pencere son
+## parca indikten sonra sayar; mutlak tavan son birakistan. Esik dolunca karar ERTELENIR: ayni
+## karenin kuyruktaki merge'leri (ertelenmis `_resolve_merge`) once cozulur — hedefi kuran son
+## merge kayba donmez. Tasma ayni adimda kesinlestirirse o kazanir (kayip).
 func _tick_challenge_settle(delta: float) -> void:
 	if not _settle_active:
 		return
 	_settle_elapsed += delta
-	_settle_quiet += delta
+	if _settle_landed:
+		_settle_quiet += delta
+	elif _settle_piece == null or not is_instance_valid(_settle_piece) or _settle_piece.has_landed:
+		_settle_landed = true
+		_settle_quiet = 0.0
 	if _settle_check_queued:
 		return
-	if _settle_quiet >= DailyChallenge.SETTLE_QUIET_SEC or _settle_elapsed >= DailyChallenge.SETTLE_CAP_SEC:
+	if _settle_due():
 		_settle_check_queued = true
 		_finish_challenge_settle.call_deferred()
 
@@ -714,11 +727,17 @@ func _finish_challenge_settle() -> void:
 	_settle_check_queued = false
 	if _is_finished or not _settle_active or _is_paused():
 		return
-	if _settle_quiet < DailyChallenge.SETTLE_QUIET_SEC and _settle_elapsed < DailyChallenge.SETTLE_CAP_SEC:
+	if not _settle_due():
 		# Bu karede bir merge yatismayi yeniledi: zincir surer.
 		return
 	_fail_reason = DailyChallenge.FailReason.MOVES_EXHAUSTED
 	_finish(false)
+
+
+## Yatisma bitti mi: son parca indikten sonra 1,5 sn merge yok YA DA son birakistan 5,0 sn.
+func _settle_due() -> bool:
+	return ((_settle_landed and _settle_quiet >= DailyChallenge.SETTLE_QUIET_SEC)
+		or _settle_elapsed >= DailyChallenge.SETTLE_CAP_SEC)
 
 
 ## Yatisma suresince gercek merge (istek ani — ayni karede cozulur) sessiz pencereyi yeniler.
@@ -1807,13 +1826,13 @@ func _drop() -> void:
 	var drop_x: float = _assisted_drop_x(_aim_x)
 	var dropped_tier: int = _pending_tier
 	AudioManager.play_drop()
-	_spawn_dumpling(dropped_tier, Vector2(drop_x, drop_line_y()))
+	var dropped: Dumpling = _spawn_dumpling(dropped_tier, Vector2(drop_x, drop_line_y()))
 	_pending_tier = _next_tier
 	_next_tier = _next_drop_tier()
 	_drop_cooldown = DROP_COOLDOWN
 	_set_aim(drop_x)
 	if _challenge_active:
-		_on_challenge_drop()
+		_on_challenge_drop(dropped)
 	dumpling_dropped.emit(dropped_tier)
 
 
@@ -2491,11 +2510,12 @@ func max_tier_reached() -> int:
 func _trigger_overflow_fail() -> void:
 	if _is_finished or _is_fail_pending:
 		return
+	# TASK/047: meydan okumada taşma her yoldan OVERFLOW kaybı (Main'in yedek devam kapısı dahil).
+	if _challenge_active:
+		_fail_reason = DailyChallenge.FailReason.OVERFLOW
 	if revives_remaining() <= 0:
 		# Haklar bitti: normal final loss yolu, mevcut davranışın aynısı. TASK/047 meydan okumada
 		# devam hiç yok (hak 0): taşma doğrudan kesin kayıp, teklif / ödüllü istek açılmaz.
-		if _challenge_active:
-			_fail_reason = DailyChallenge.FailReason.OVERFLOW
 		_finish(false)
 		return
 	_enter_fail_pending()

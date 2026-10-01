@@ -13,8 +13,10 @@ extends Node
 ##   bütçe       gerçek bırakış tam −1 (sinyal bir kez); bekleme süresinde reddedilen bırakış 0;
 ##               ACTION_CANCEL 0; sürükle + iptal 0; sonraki dokunuş hemen −1; son bırakış kabul,
 ##               fazlası (kod / dokunuş) red; "Hamle bitti"; mola / ayarlar dönüşünde sahte parça yok
-##   yatışma     merge'siz 1.5 s → hamle bitti kaybı; zincir yatışmayı uzatır; yatışmada hedef →
-##               kazanma; son bırakışta / önce hedef → kazanma; 5.0 s mutlak tavan; mola süresi sayılmaz
+##   yatışma     son parça İNDİKTEN sonra merge'siz 1.5 s → hamle bitti kaybı; zincir yatışmayı uzatır;
+##               yatışmada / inişten sonra geç merge'le hedef → kazanma; son bırakışta / önce hedef →
+##               kazanma; eşik karesindeki merge isteği (ertelenmiş karar + yeniden kontrol); 5.0 s
+##               mutlak tavan son bırakıştan (parça hiç inmese de); mola süresi sayılmaz
 ##   taşma       meydan okumada taşma = kesin kayıp (devam teklifi / fail-pending YOK, round_finished
 ##               bir kez, sebep OVERFLOW); yatışmada taşma; normal board aynı taşmada devam teklifi
 ##   güç         tepsi / madalyon / yuva gizli; dört güç basışı ve stok 0 refill isteği hiçbir şey
@@ -198,6 +200,8 @@ func _budget() -> void:
 	_board._drop()
 	_c("bekleme süresinde dokunuş + kod bırakışı: reddedildi, hamle düşmedi", _drops == 1 and _board.drops_used() == 1)
 	await _wait(0.45)
+	# Bekleme süresi KESİN bitmiş: iptal bir parça düşürseydi bekleme süresi onu engelleyemezdi.
+	_board._drop_cooldown = 0.0
 	var before: Dictionary = _state()
 	await _direct(_point(90.0), true)
 	await _direct(_point(90.0), false, true)
@@ -246,14 +250,17 @@ func _board_const(name: String) -> float:
 
 func _settle() -> void:
 	print("-- son bırakıştan sonra yatışma (1.5 s merge'siz / 5.0 s tavan)")
-	# a) Merge'siz: son bırakış boş kaba → 1.5 s sonra hamle bitti kaybı.
+	# a) Merge'siz: son bırakış boş kaba → parça İNDİKTEN 1.5 s sonra hamle bitti kaybı (düşüş süresi
+	#    sessiz pencereden yemez).
 	await _make_challenge(_level(8, 600.0), 1)
 	_board._set_aim(_board._center_x())
 	var drop_frame: int = await _drop_now()
+	var land_frame: int = await _until_landed(_board._settle_piece, 200)
 	await _until_finished(400)
-	var waited: int = _finish_frame - drop_frame
-	_c("merge'siz yatışma: ~1.5 s (%d fizik karesi) sonra KAYIP, sebep MOVES_EXHAUSTED, sinyal bir kez" % waited,
-		_same(_finished_events, [false]) and _board.fail_reason() == DailyChallenge.FailReason.MOVES_EXHAUSTED
+	var waited: int = _finish_frame - land_frame
+	_c("merge'siz yatışma: son parça İNDİKTEN ~1.5 s (%d fizik karesi; düşüş %d kare) sonra KAYIP, sebep MOVES_EXHAUSTED, sinyal bir kez"
+		% [waited, land_frame - drop_frame], _same(_finished_events, [false])
+		and _board.fail_reason() == DailyChallenge.FailReason.MOVES_EXHAUSTED and land_frame - drop_frame >= 30
 		and waited >= QUIET_FRAMES - 1 and waited <= QUIET_FRAMES + 6)
 	_c("  … devam teklifi yok, sonuç plakası 'Bitti'", _revive_offers == 0 and _board._hud.status_label.text == "Bitti")
 
@@ -309,21 +316,98 @@ func _settle() -> void:
 		_same(_finished_events, [false]) and _board.fail_reason() == DailyChallenge.FailReason.MOVES_EXHAUSTED
 		and waited >= CAP_FRAMES - 1 and waited <= CAP_FRAMES + 6)
 
-	# f) Mola süresi sayılmaz.
+	# f) Mola süresi sayılmaz (parça indikten 30 kare sonra 150 kare mola).
 	await _make_challenge(_level(8, 600.0), 1)
 	_board._set_aim(_board._center_x())
 	drop_frame = await _drop_now()
+	land_frame = await _until_landed(_board._settle_piece, 200)
 	await _frames(30)
 	_board.set_menu_paused(true)
 	await _frames(150)
 	var paused_ok: bool = _finish_frame < 0 and _board.is_settling()
 	_board.set_menu_paused(false)
 	await _until_finished(400)
-	waited = _finish_frame - drop_frame
-	_c("mola açıkken (150 kare) yatışma işlemez; kapanınca kalan süre işler (toplam %d kare)" % waited,
+	waited = _finish_frame - land_frame
+	_c("mola açıkken (150 kare) yatışma işlemez; kapanınca kalan süre işler (inişten %d kare)" % waited,
 		paused_ok and _same(_finished_events, [false]) and waited >= QUIET_FRAMES + 150 - 2
 		and waited <= QUIET_FRAMES + 150 + 8)
+
+	# g) İnişten SONRA gelen geç merge (sekme / yuvarlanma): son parça yere iner, 30 kare sonra eşi
+	#    üstüne düşüp hedefi kurar → KAZANMA. (Pencere bırakıştan sayılsaydı ~90. karede kayıptı.)
+	await _make_challenge(_level(2, 600.0), 1)
+	_board._set_aim(_board._center_x())
+	drop_frame = await _drop_now()
+	var final_piece: Dumpling = _board._settle_piece
+	land_frame = await _until_landed(final_piece, 200)
+	await _frames(30)
+	var partner_frame: int = Engine.get_physics_frames()
+	if is_instance_valid(final_piece):
+		_spawn(1, final_piece.position + Vector2(0.0, -60.0))
+	await _until_finished(400)
+	_c("geç merge (eş inişten %d, bırakıştan %d kare sonra): hedef → KAZANMA, sebep yok"
+		% [partner_frame - land_frame, partner_frame - drop_frame], _same(_finished_events, [true])
+		and _board.fail_reason() == DailyChallenge.FailReason.NONE and partner_frame - drop_frame > QUIET_FRAMES)
+
+	# h) Eşik karesinde merge isteği (yarış): karar ertelenir + yeniden kontrol → hedef kazanır.
+	var pair: Array[Dumpling] = await _race_setup(_level(2, 600.0))
+	_board._tick_challenge_settle(1.6)
+	_board._on_merge_requested(pair[0], pair[1], (pair[0].position + pair[1].position) * 0.5)
+	await _frames(3)
+	_c("eşik karesinde gelen merge isteği hedefi kurar → KAZANMA (ertelenmiş karar + yeniden kontrol)",
+		_same(_finished_events, [true]) and _board.fail_reason() == DailyChallenge.FailReason.NONE)
+
+	# i) Aynı yarış, hedefe ulaşmayan merge: zincir sürer; kayıp ~1.5 s SONRA yine gelir.
+	pair = await _race_setup(_level(8, 600.0))
+	_board._tick_challenge_settle(1.6)
+	_board._on_merge_requested(pair[0], pair[1], (pair[0].position + pair[1].position) * 0.5)
+	var race_frame: int = Engine.get_physics_frames()
+	await _until_finished(300)
+	waited = _finish_frame - race_frame
+	_c("eşik karesinde hedefe ulaşmayan merge: kayıp ertelendi, ~1.5 s sonra MOVES_EXHAUSTED (%d kare)" % waited,
+		_same(_finished_events, [false]) and _board.fail_reason() == DailyChallenge.FailReason.MOVES_EXHAUSTED
+		and waited >= QUIET_FRAMES - 2 and waited <= QUIET_FRAMES + 8)
+
+	# j) Son parça hiç inmezse (yerçekimsiz — beyaz kutu) sessiz pencere başlamaz; tavan bırakıştan 5.0 s.
+	await _make_challenge(_level(8, 600.0), 1)
+	_board._set_aim(_board._center_x())
+	drop_frame = await _drop_now()
+	var hover: Dumpling = _board._settle_piece
+	hover.gravity_scale = 0.0
+	hover.linear_velocity = Vector2.ZERO
+	await _until_finished(400)
+	waited = _finish_frame - drop_frame
+	_c("son parça inmezse: mutlak tavan son bırakıştan 5.0 s (%d kare) → MOVES_EXHAUSTED" % waited,
+		is_instance_valid(hover) and not hover.has_landed and _same(_finished_events, [false])
+		and _board.fail_reason() == DailyChallenge.FailReason.MOVES_EXHAUSTED
+		and waited >= CAP_FRAMES - 1 and waited <= CAP_FRAMES + 6)
 	_sections_done += 1
+
+
+## Yarış kurulumu: bütçe 1, son parça sola iner; sağda birbirine değmeyen iki T1 (merge isteği elle).
+func _race_setup(level: LevelData) -> Array[Dumpling]:
+	await _make_challenge(level, 1)
+	_board._set_aim(_board._left_x() + 60.0)
+	await _drop_now()
+	await _until_landed(_board._settle_piece, 200)
+	var floor_y: float = _board_const("FLOOR_Y")
+	var a: Dumpling = _spawn(1, Vector2(_board._right_x() - 150.0, floor_y - 22.0))
+	var b: Dumpling = _spawn(1, Vector2(_board._right_x() - 40.0, floor_y - 22.0))
+	await _frames(2)
+	# Dumpling._on_body_entered'ın yaptığı gibi iki taraf da kilitlenir.
+	a.is_merging = true
+	b.is_merging = true
+	return [a, b]
+
+
+## Parçanın ilk temasının (has_landed) fizik karesi; parça merge'de yok olduysa o kare; yoksa -1.
+func _until_landed(piece: Dumpling, max_frames: int) -> int:
+	var guard: int = 0
+	while guard < max_frames:
+		if piece == null or not is_instance_valid(piece) or piece.has_landed:
+			return Engine.get_physics_frames()
+		await get_tree().physics_frame
+		guard += 1
+	return -1
 
 
 # --- 5) Taşma ------------------------------------------------------------------------------------

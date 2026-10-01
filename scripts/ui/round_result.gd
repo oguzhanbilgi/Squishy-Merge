@@ -898,6 +898,25 @@ func _primary_exits() -> bool:
 	return _mode == Mode.WIN or _mode == Mode.CHALLENGE_WIN
 
 
+## TASK/047: açık meydan okuma KAYIP sonucu `today`'den başka bir güne mi ait (gece yarısını açık
+## geçti) ve henüz "Gün değişti" kopyasında değil mi?
+func challenge_fail_day_stale(today: String) -> bool:
+	return (visible and _mode == Mode.CHALLENGE_FAIL and not bool(_challenge.get("day_changed", false))
+		and not today.is_empty() and today != String(_challenge.get("day_key", "")))
+
+
+## TASK/047: açık kayıp sonucunu YERİNDE "Gün değişti · yeni meydan okuma hazır." + YENİ MEYDAN OKUMA
+## durumuna yeniler (açılış animasyonu / sayım yok). Main çağırır (TEKRAR DENE, öne dönüş).
+func refresh_challenge_day_changed() -> void:
+	if not visible or _mode != Mode.CHALLENGE_FAIL:
+		return
+	var outcome: Dictionary = _challenge.duplicate()
+	outcome["day_changed"] = true
+	_configure_challenge(outcome)
+	_reveal_done = true
+	UiKit.modal_relayout(_frame)
+
+
 # --- Okuma (test / araç) --------------------------------------------------------
 
 func frame() -> Control:

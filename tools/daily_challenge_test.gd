@@ -508,10 +508,11 @@ func _persistence() -> void:
 	SaveManager.load_game()
 	_c(".bak kurtarması (kanonik bozuk) bloğu taşır", SaveManager.load_source() == SaveFile.Source.BACKUP
 		and SaveManager.daily_challenge_completed_day() == TUE)
-	# i) Ayrı kayıt dosyası yok.
+	# i) Ayrı kayıt dosyası yok — ne test klasöründe ne user:// kökünde.
 	_clean()
 	_write_fixture({})
 	SaveManager.load_game()
+	var root_before: Array = Array(DirAccess.get_files_at("user://"))
 	SaveManager.complete_daily_challenge(THU)
 	SaveManager.complete_daily_challenge(FRI)
 	var names: Array = Array(DirAccess.get_files_at(DIR))
@@ -519,7 +520,11 @@ func _persistence() -> void:
 	for file_name: String in names:
 		if not file_name in ["save.json", "save.json.bak", "save.json.tmp"]:
 			only_family = false
-	_c("ayrı meydan okuma dosyası YOK (klasörde yalnız kayıt ailesi)", only_family and names.has("save.json"))
+	var root_after: Array = Array(DirAccess.get_files_at("user://"))
+	root_before.sort()
+	root_after.sort()
+	_c("ayrı meydan okuma dosyası YOK (klasörde yalnız kayıt ailesi; user:// kökünde yeni dosya yok)",
+		only_family and names.has("save.json") and root_after == root_before)
 	DailyRewards.clock_override = ""
 	_sections_done += 1
 
