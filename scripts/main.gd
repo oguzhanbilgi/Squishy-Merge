@@ -24,6 +24,7 @@ const SETTINGS_SCENE: PackedScene = preload("res://scenes/ui/settings_panel.tscn
 const PAUSE_MENU_SCENE: PackedScene = preload("res://scenes/ui/pause_menu.tscn")
 const CHEST_INFO_SCENE: PackedScene = preload("res://scenes/ui/bonus_chest_info.tscn")
 const MISSIONS_SCENE: PackedScene = preload("res://scenes/ui/missions_overlay.tscn")
+const DAILY_CHALLENGE_SCENE: PackedScene = preload("res://scenes/ui/daily_challenge_overlay.tscn")
 const TUTORIAL_OVERLAY_SCENE: PackedScene = preload("res://scenes/ui/tutorial_overlay.tscn")
 const AGE_GATE_SCENE: PackedScene = preload("res://scenes/ui/age_gate_panel.tscn")
 
@@ -50,6 +51,9 @@ var _chest_info: CanvasLayer
 ## GÖREVLER penceresi (TASK/046): Ana Sayfa'nın GÖREVLER girişi açar; GÜNLÜK ÖDÜLLER /
 ## Bonus Sandık gibi Main'e ait ikincil pencere (reklam yüzeyi değil, kayda yazmaz).
 var _missions: MissionsOverlay
+## MEYDAN OKUMA penceresi (TASK/047): Ana Sayfa'nın MEYDAN OKUMA girişi açar; GÖREVLER ile aynı aile
+## (Main'e ait ikincil pencere, reklam yüzeyi değil, kayda yazmaz — BAŞLA yalnız talep yayar).
+var _challenge_sheet: DailyChallengeOverlay
 ## Android geri tusu debounce (bkz. _notification).
 const BACK_DEBOUNCE_MSEC: int = 250
 var _last_back_msec: int = -1000
@@ -219,6 +223,8 @@ func _ready() -> void:
 	home.chest_requested.connect(_on_chest_requested)
 	# TASK/046: GÖREVLER girişi → Main'in GÖREVLER penceresi.
 	home.missions_requested.connect(open_missions)
+	# TASK/047: MEYDAN OKUMA girişi → Main'in MEYDAN OKUMA penceresi.
+	home.challenge_requested.connect(open_daily_challenge)
 	var select: CanvasLayer = LEVEL_SELECT_SCENE.instantiate()
 	select.level_chosen.connect(_start_level)
 	# Harita (M8.6-04): kendi ust satiri — geri -> Ana Sayfa, Hamur "+" -> Magaza.
@@ -290,6 +296,13 @@ func _ready() -> void:
 	_missions.opened.connect(settle_touch_input)
 	_missions.closed.connect(settle_touch_input)
 	add_child(_missions)
+
+	# TASK/047: MEYDAN OKUMA penceresi — GÖREVLER ile aynı 300 ms açılış / kapanış yatışması.
+	_challenge_sheet = DAILY_CHALLENGE_SCENE.instantiate()
+	_challenge_sheet.opened.connect(settle_touch_input)
+	_challenge_sheet.closed.connect(settle_touch_input)
+	_challenge_sheet.start_requested.connect(_on_challenge_start_requested)
+	add_child(_challenge_sheet)
 
 	_tutorial_overlay = TUTORIAL_OVERLAY_SCENE.instantiate()
 	add_child(_tutorial_overlay)
@@ -514,6 +527,8 @@ func _close_secondary_windows() -> void:
 		_daily_rewards.close_popup()
 	if _missions != null and _missions.visible:
 		_missions.close_missions(false)
+	if _challenge_sheet != null and _challenge_sheet.visible:
+		_challenge_sheet.close_sheet(false)
 
 
 ## Uygulamadan çıkış — TEK yol: Ana Sayfa'da, kapatılacak pencere yokken Android geri.
@@ -548,6 +563,9 @@ func _show_tab(tab: int, auto_daily: bool = true) -> void:
 	# TASK/046: GÖREVLER penceresi Ana Sayfa'nındır — başka ekrana geçişte sessizce kapanır.
 	if tab != 0 and _missions != null and _missions.visible:
 		_missions.close_missions(false)
+	# TASK/047: MEYDAN OKUMA penceresi de Ana Sayfa'nın.
+	if tab != 0 and _challenge_sheet != null and _challenge_sheet.visible:
+		_challenge_sheet.close_sheet(false)
 	_active_tab = tab
 	_set_ad_surface(TAB_SURFACES[tab])
 	for i in _screens.size():
@@ -734,6 +752,8 @@ func _notification(what: int) -> void:
 		# TASK/046: görev dönemi de değişmiş olabilir — görünen GÖREVLER rozeti / penceresi
 		# yalnız okuyarak tazelenir (kayıt yazılmaz).
 		_refresh_missions_views()
+		# TASK/047: meydan okuma günü de — giriş / açık pencere yalnız okuyarak tazelenir.
+		_refresh_daily_challenge_views()
 		_maybe_auto_open_daily_rewards()
 		return
 	if what != NOTIFICATION_WM_GO_BACK_REQUEST:
@@ -767,6 +787,9 @@ func _notification(what: int) -> void:
 		return
 	# TASK/046: GÖREVLER penceresi — geri kapatır, Ana Sayfa'da kalınır.
 	if _missions != null and _missions.handle_back():
+		return
+	# TASK/047: MEYDAN OKUMA penceresi — aynı.
+	if _challenge_sheet != null and _challenge_sheet.handle_back():
 		return
 	# Sonuç ekranı karar bekler: geri tuşu yok sayılır (mola açılmaz, çıkılmaz).
 	if _result != null and _result.visible:
@@ -803,6 +826,8 @@ func _hide_shell() -> void:
 		screen.visible = false
 	if _missions != null and _missions.visible:
 		_missions.close_missions(false)
+	if _challenge_sheet != null and _challenge_sheet.visible:
+		_challenge_sheet.close_sheet(false)
 
 
 func _on_play_pressed() -> void:
@@ -864,7 +889,8 @@ func _on_daily_requested() -> void:
 ## (GAME_DESIGN §5.2), OYNA → harita.
 func _on_chest_requested() -> void:
 	# TASK/046: aynı katmandaki GÖREVLER penceresinin altına açılmasın (dokunuş yolu zaten kapalı).
-	if _missions != null and _missions.visible:
+	# TASK/047: MEYDAN OKUMA penceresi de aynı katmanda.
+	if (_missions != null and _missions.visible) or (_challenge_sheet != null and _challenge_sheet.visible):
 		return
 	_chest_info.open_info()
 
@@ -883,6 +909,9 @@ func open_missions() -> void:
 		return
 	if _daily_rewards.visible or _chest_info.visible or (_settings != null and _settings.visible):
 		return
+	# TASK/047: MEYDAN OKUMA penceresinin altına açılmaz.
+	if _challenge_sheet != null and _challenge_sheet.visible:
+		return
 	# Pencere ve Ana Sayfa rozeti AYNI dönemi göstersin (gün uygulama açıkken değişmiş olabilir).
 	_screens[0].refresh_missions()
 	_missions.open_missions()
@@ -894,6 +923,60 @@ func _refresh_missions_views() -> void:
 		_missions.refresh()
 	if not _screens.is_empty() and _screens[0].visible:
 		_screens[0].refresh_missions()
+
+
+## Ana Sayfa'nın MEYDAN OKUMA girişi (TASK/047): bugünün meydan okuma penceresi — yalnız okur, kayda
+## yazmaz, reklam çağırmaz. Onboarding / tutorial / round / yaş ekranı / başka pencere açıkken ya da
+## gün gerçeği yokken açılmaz (dokunma yolu zaten karartmalı; bu, kod yollarını da kapatır).
+func open_daily_challenge() -> void:
+	if _challenge_sheet == null or _challenge_sheet.visible or is_tutorial_active():
+		return
+	if not Onboarding.is_completed():
+		return
+	if _board != null and is_instance_valid(_board):
+		return
+	if _active_tab != 0 or not _screens[0].visible:
+		return
+	if _age_panel != null and _age_panel.visible:
+		return
+	if _daily_rewards.visible or _chest_info.visible or (_settings != null and _settings.visible) \
+			or (_missions != null and _missions.visible):
+		return
+	var view: Dictionary = DailyChallenge.current_view()
+	if view.is_empty():
+		return
+	# Pencere ve Ana Sayfa girişi AYNI günü göstersin.
+	_screens[0].refresh_daily_challenge()
+	_challenge_sheet.open_sheet(view)
+
+
+## Pencerenin BAŞLA'sı: gün YENİDEN okunur. Gösterilen gün artık bugün değilse (pencere gece
+## yarısını açık geçti) ya da bugün tamamlandıysa pencere bugüne tazelenir ve round BAŞLAMAZ —
+## eski günün meydan okuması asla başlamaz; oyuncu yeni günü görüp yeniden basar.
+func _on_challenge_start_requested(shown_day: String) -> void:
+	var view: Dictionary = DailyChallenge.current_view()
+	if view.is_empty():
+		_challenge_sheet.close_sheet()
+		_screens[0].refresh_daily_challenge()
+		return
+	if String(view["day_key"]) != shown_day or bool(view["completed"]):
+		_challenge_sheet.show_view(view)
+		_screens[0].refresh_daily_challenge()
+		return
+	_challenge_sheet.close_sheet(false)
+	start_daily_challenge()
+
+
+## Öne dönüş (gün değişmiş olabilir): giriş ve açık pencere yalnız okuyarak tazelenir.
+func _refresh_daily_challenge_views() -> void:
+	if _challenge_sheet != null and _challenge_sheet.visible:
+		var view: Dictionary = DailyChallenge.current_view()
+		if view.is_empty():
+			_challenge_sheet.close_sheet(false)
+		elif view != _challenge_sheet.view():
+			_challenge_sheet.show_view(view)
+	if not _screens.is_empty() and _screens[0].visible:
+		_screens[0].refresh_daily_challenge()
 
 
 ## Günlük giriş ödülü (GAME_DESIGN.md §5.4): yetkili tek işlem
@@ -955,7 +1038,8 @@ func _maybe_auto_open_daily_rewards() -> void:
 			or (_chest_info != null and _chest_info.visible) or _revive.visible or _refill.visible:
 		return
 	# TASK/046: GÖREVLER penceresi de bir pencere — günlük pencere üstüne açılmaz, "due" kalır.
-	if _missions != null and _missions.visible:
+	# TASK/047: MEYDAN OKUMA penceresi de.
+	if (_missions != null and _missions.visible) or (_challenge_sheet != null and _challenge_sheet.visible):
 		return
 	# TASK/045: Profil'in Başarımlar / Unvanlar penceresi de bir pencere.
 	if _screens.size() > 4 and _screens[4].has_open_overlay():
@@ -978,7 +1062,8 @@ func open_daily_rewards() -> void:
 	if _daily_rewards.visible or _age_blocks_monetizable_surfaces():
 		return
 	# TASK/046: aynı katmandaki GÖREVLER penceresinin altına açılmaz (dokunuş yolu zaten kapalı).
-	if _missions != null and _missions.visible:
+	# TASK/047: MEYDAN OKUMA penceresi de aynı katmanda.
+	if (_missions != null and _missions.visible) or (_challenge_sheet != null and _challenge_sheet.visible):
 		return
 	_open_daily_rewards_window(false)
 

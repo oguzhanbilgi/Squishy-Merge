@@ -54,7 +54,7 @@ signal retry_pressed
 signal exit_pressed
 
 ## CHALLENGE_WIN / CHALLENGE_FAIL (TASK/047): günlük meydan okuma sonucu — `show_challenge_result`;
-## ödül kartı / yıldız / XP şeridi yok, kendi kilitli kopyası (UI_VISUAL_SYSTEM §25).
+## ödül kartı / yıldız / XP şeridi yok, kendi kilitli kopyası (UI_VISUAL_SYSTEM §26).
 enum Mode { WIN, FAIL, ENDLESS, CHALLENGE_WIN, CHALLENGE_FAIL }
 
 const BURST_TEXTURE: Texture2D = preload("res://assets/visual/fx/fx_burst.png")

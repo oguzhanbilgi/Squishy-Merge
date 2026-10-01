@@ -39,8 +39,9 @@ const BAK: String = PATH + SaveFile.BACKUP_SUFFIX
 const SECTIONS: int = 5
 ## Baseline (017f2dc, TASK/045) yeni kayıt şeması — sabit liste: canlı DEFAULT_DATA ile değil,
 ## bununla karşılaştırılır (şema değişikliği bu görevin kapsamı dışında). TASK/046: bilinçli
-## tek ekleme "missions" (sürümlü görev durumu — GAME_DESIGN §5.10); kayıt işlemi aynen.
-const SCHEMA_KEYS: Array[String] = ["age_ad_band", "daily_rewards", "daily_streak", "dough",
+## tek ekleme "missions" (sürümlü görev durumu — GAME_DESIGN §5.10); TASK/047: bilinçli tek ekleme
+## "daily_challenge" (sürümlü meydan okuma bloğu — GAME_DESIGN §5.11); kayıt işlemi aynen.
+const SCHEMA_KEYS: Array[String] = ["age_ad_band", "daily_challenge", "daily_rewards", "daily_streak", "dough",
 	"endless_high_score", "haptics_enabled", "highest_level_unlocked", "highest_tier_created",
 	"last_login_date", "level_stars", "merges_since_bonus_chest", "missions", "next_age_transition_date",
 	"onboarding_completed", "onboarding_completed_day", "player_meta_version", "player_xp",
@@ -402,7 +403,7 @@ func _save_manager_integration() -> void:
 	for key in SCHEMA_KEYS:
 		expected.append(key)
 	expected.sort()
-	_c("şema aynı: yeni kaydın anahtarları = TASK/045 şeması + TASK/046 missions (sabit %d anahtar)" % expected.size(), keys == expected)
+	_c("şema aynı: yeni kaydın anahtarları = TASK/045 şeması + TASK/046 missions + TASK/047 daily_challenge (sabit %d anahtar)" % expected.size(), keys == expected)
 
 	# Eski (TASK/043 dönemi) kayıt: normal yüklenir, TASK/044 + TASK/045 göçleri bellekte.
 	var legacy: Dictionary = {"highest_level_unlocked": 4, "level_stars": {"1": 2, "2": 3, "3": 3},

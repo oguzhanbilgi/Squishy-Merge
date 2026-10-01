@@ -40,6 +40,8 @@ signal daily_requested
 signal chest_requested
 ## GÖREVLER girişi (TASK/046) → Main'in GÖREVLER penceresi.
 signal missions_requested
+## MEYDAN OKUMA girişi (TASK/047) → Main'in MEYDAN OKUMA penceresi.
+signal challenge_requested
 
 const LOGO_ART: Texture2D = preload("res://assets/visual/ui/logo_lockup.png")
 const HERO_ART: Texture2D = preload("res://assets/visual/ui/hero_mascot.png")
@@ -101,6 +103,11 @@ const MISSIONS_WIDTH_MIN: float = 206.0
 const MISSIONS_WIDTH_MAX: float = 260.0
 const MISSIONS_WELL: float = 40.0
 const MISSIONS_TEXT: String = "GÖREVLER"
+## MEYDAN OKUMA pill'i (TASK/047): GÖREVLER'in HEMEN altında (aynı yükseklik / kuyu / candy aile),
+## ortalı; genişlik içeriğe göre.
+const CHALLENGE_GAP: float = 10.0
+const CHALLENGE_WIDTH_MIN: float = 236.0
+const CHALLENGE_WIDTH_MAX: float = 320.0
 const BOTTOM_MARGIN: float = 28.0
 const MASCOT_MIN: float = 320.0
 const MASCOT_MAX: float = 600.0
@@ -156,6 +163,13 @@ var _missions: Button
 var _missions_row: HBoxContainer
 var _missions_badge: PanelContainer
 var _missions_count: Label
+var _challenge: Button
+var _challenge_row: HBoxContainer
+var _challenge_title: Label
+var _challenge_art: TextureRect
+var _challenge_badge: PanelContainer
+var _challenge_reward: Label
+var _challenge_check: TextureRect
 ## ui_smoke_test uyumluluğu: "nereye gidiyorum" ipucu = level plakası başlığı.
 var _play_hint: Label
 var _mascot_home: Rect2 = Rect2()
@@ -177,6 +191,7 @@ func _ready() -> void:
 	_build_hero()
 	_build_features()
 	_build_missions_entry()
+	_build_challenge_entry()
 	_build_play_row()
 	_root.resized.connect(_layout)
 	visibility_changed.connect(func() -> void:
@@ -403,6 +418,111 @@ func _build_missions_entry() -> void:
 	UiMotion.attach_press(_missions)
 
 
+## MEYDAN OKUMA girişi (TASK/047): GÖREVLER ile AYNI candy malzeme (ButtonHomePill + erik gölge +
+## açık halka + gloss) — ayırt edici: pembe candy kuyuda bugünün HEDEF portresi (tier sanatı),
+## "MEYDAN OKUMA", altın "+20" rozeti (tamamlanınca nane tik). Kayda YAZMAZ; basınca
+## `challenge_requested`.
+func _build_challenge_entry() -> void:
+	_challenge = Button.new()
+	_challenge.name = "Challenge"
+	_challenge.theme_type_variation = &"ButtonHomePill"
+	_challenge.focus_mode = Control.FOCUS_NONE
+	_challenge.set_anchors_preset(Control.PRESET_TOP_LEFT)
+	_challenge.pressed.connect(func() -> void: challenge_requested.emit())
+	UiKit.hud_shadow(_challenge, 6.0, 0.28, null, 16.0)
+	var rim := UiKit.flat_plate("label_round", UiTokens.LAVENDER_LIGHT)
+	rim.show_behind_parent = true
+	rim.offset_left = -3.0
+	rim.offset_top = -3.0
+	rim.offset_right = 3.0
+	rim.offset_bottom = 3.0
+	_challenge.add_child(rim)
+	_root.add_child(_challenge)
+	_challenge_row = HBoxContainer.new()
+	_challenge_row.name = "Row"
+	_challenge_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_challenge_row.alignment = BoxContainer.ALIGNMENT_CENTER
+	_challenge_row.add_theme_constant_override("separation", 8)
+	_challenge_row.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_challenge_row.offset_left = 8.0
+	_challenge_row.offset_right = -10.0
+	_challenge_row.offset_top = 1.0
+	_challenge_row.offset_bottom = -6.0
+	_challenge.add_child(_challenge_row)
+	_challenge_row.minimum_size_changed.connect(_layout)
+	# Pembe candy kuyu (GÖREVLER'in nane kuyusuyla aynı reçete) + hedef portresi.
+	var well := Control.new()
+	well.name = "Well"
+	well.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	well.custom_minimum_size = Vector2(MISSIONS_WELL, MISSIONS_WELL)
+	well.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	_challenge_row.add_child(well)
+	var base := UiKit.patch("btn_circle_flat", UiTokens.PINK_DEEP)
+	base.offset_top = 3.0
+	base.offset_bottom = 3.0
+	well.add_child(base)
+	var edge := UiKit.patch("btn_circle_flat", Color(1, 1, 1, 0.55))
+	edge.offset_left = -2.0
+	edge.offset_top = -2.0
+	edge.offset_right = 2.0
+	edge.offset_bottom = 1.0
+	well.add_child(edge)
+	well.add_child(UiKit.patch("btn_circle_flat", UiTokens.PINK))
+	var light := UiKit.patch("item_circle_inner", Color(1, 1, 1, 0.30))
+	light.offset_left = MISSIONS_WELL * 0.14
+	light.offset_right = -MISSIONS_WELL * 0.14
+	light.offset_top = MISSIONS_WELL * 0.07
+	light.offset_bottom = -MISSIONS_WELL * 0.50
+	well.add_child(light)
+	_challenge_art = UiKit.art(DUMPLING_VISUAL.TEXTURES[4], MISSIONS_WELL * 0.84)
+	_challenge_art.name = "Portrait"
+	_challenge_art.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
+	_challenge_art.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
+	_challenge_art.offset_left = -MISSIONS_WELL * 0.42
+	_challenge_art.offset_right = MISSIONS_WELL * 0.42
+	_challenge_art.offset_top = -MISSIONS_WELL * 0.42
+	_challenge_art.offset_bottom = MISSIONS_WELL * 0.42
+	well.add_child(_challenge_art)
+	_challenge_title = UiKit.label(DailyChallenge.TITLE, &"LabelSectionOnDark")
+	_challenge_title.name = "Title"
+	_challenge_title.add_theme_font_size_override("font_size", 19)
+	_challenge_row.add_child(_challenge_title)
+	_challenge_badge = UiKit.panel(&"Badge")
+	_challenge_badge.name = "RewardBadge"
+	_challenge_badge.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_challenge_badge.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	var badge_row := HBoxContainer.new()
+	badge_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	badge_row.alignment = BoxContainer.ALIGNMENT_CENTER
+	_challenge_badge.add_child(badge_row)
+	_challenge_reward = UiKit.label("+%d" % DailyChallenge.REWARD_DOUGH, &"LabelBadge", HORIZONTAL_ALIGNMENT_CENTER)
+	_challenge_reward.name = "Reward"
+	_challenge_reward.add_theme_font_size_override("font_size", 15)
+	badge_row.add_child(_challenge_reward)
+	# Tamamlandı: glif değil tik ikonu (M8.5-09 — "✓" fontlarda yok).
+	_challenge_check = UiKit.icon("check", 18, UiTokens.TEXT_ON_ACCENT)
+	_challenge_check.name = "Done"
+	_challenge_check.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	_challenge_check.visible = false
+	badge_row.add_child(_challenge_check)
+	_challenge_row.add_child(_challenge_badge)
+	var gloss := UiKit.patch("btn_bevel_light", Color(1, 1, 1, 0.28))
+	gloss.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE)
+	gloss.offset_left = 8.0
+	gloss.offset_right = -8.0
+	gloss.offset_top = 3.0
+	gloss.offset_bottom = MISSIONS_HEIGHT * 0.40
+	_challenge.add_child(gloss)
+	_challenge.move_child(_challenge_row, _challenge.get_child_count() - 1)
+	UiMotion.attach_press(_challenge)
+
+
+func _challenge_width() -> float:
+	var text_w: float = _challenge_row.get_combined_minimum_size().x + _challenge_row.offset_left \
+		- _challenge_row.offset_right + 12.0
+	return clampf(text_w, CHALLENGE_WIDTH_MIN, CHALLENGE_WIDTH_MAX)
+
+
 ## GÖREVLER pill'inin genişliği: içerik + paylar, MISSIONS_WIDTH_MIN..MAX.
 func _missions_width() -> float:
 	var text_w: float = _missions_row.get_combined_minimum_size().x + _missions_row.offset_left \
@@ -617,6 +737,11 @@ func _layout() -> void:
 	_missions.position = Vector2((view.x - missions_w) * 0.5,
 		col_top + (HomeFeatureButton.SIZE.y - MISSIONS_HEIGHT) * 0.5)
 	_missions.size = Vector2(missions_w, MISSIONS_HEIGHT)
+	# MEYDAN OKUMA (TASK/047): GÖREVLER'in hemen altında, ortalı — madalyon sütunlarının arasında,
+	# maskotun dar tepesinin üstünde (madalyon / maskot / OYNA düzeni aynen).
+	var challenge_w: float = _challenge_width()
+	_challenge.position = Vector2((view.x - challenge_w) * 0.5, _missions.position.y + MISSIONS_HEIGHT + CHALLENGE_GAP)
+	_challenge.size = Vector2(challenge_w, MISSIONS_HEIGHT)
 
 	# HERO: hero bölgesi logo altı → OYNA üstü; maskot sütunların arasına
 	# yalnız dar tepesiyle sokulur, genişliği tuvale sığar.
@@ -775,6 +900,7 @@ func refresh() -> void:
 	if not _daily_claimable:
 		daily.notification_dot().scale = Vector2.ONE
 	refresh_missions()
+	refresh_daily_challenge()
 	_layout()
 
 
@@ -791,6 +917,26 @@ func refresh_missions() -> void:
 			UiKit.style("badge_round", UiTokens.MINT, _badge_margin()))
 	else:
 		_missions_badge.remove_theme_stylebox_override("panel")
+
+
+## MEYDAN OKUMA girişi: bugünün meydan okuması (DailyChallenge.current_view — YAZMAZ). Onboarding
+## bitmeden / gün gerçeği yokken gizli; tamamlanınca "+20" yerine nane rozette tik. Main öne dönüşte
+## ve pencerenin gün tazelemesinde de çağırır.
+func refresh_daily_challenge() -> void:
+	var view: Dictionary = DailyChallenge.current_view() if Onboarding.is_completed() else {}
+	_challenge.visible = not view.is_empty()
+	if view.is_empty():
+		return
+	var target: int = clampi(int(view["target_tier"]), 1, TierConfig.MAX_TIER)
+	_challenge_art.texture = DUMPLING_VISUAL.TEXTURES[target - 1]
+	var done: bool = bool(view["completed"])
+	_challenge_reward.visible = not done
+	_challenge_check.visible = done
+	if done:
+		_challenge_badge.add_theme_stylebox_override("panel",
+			UiKit.style("badge_round", UiTokens.MINT, _badge_margin()))
+	else:
+		_challenge_badge.remove_theme_stylebox_override("panel")
 
 
 ## Rozet içerik payı (tema Badge'inin kendi payı; nane boyamada aynı ölçü kalsın).
@@ -831,6 +977,28 @@ func missions_count_text() -> String:
 
 func missions_badge() -> PanelContainer:
 	return _missions_badge
+
+
+## MEYDAN OKUMA girişi (TASK/047).
+func challenge_button() -> Button:
+	return _challenge
+
+
+func challenge_title_text() -> String:
+	return _challenge_title.text
+
+
+## "+20" (tamamlanmadan) ya da boş (tik gösteriliyor).
+func challenge_badge_text() -> String:
+	return _challenge_reward.text if _challenge_reward.visible else ""
+
+
+func is_challenge_done_shown() -> bool:
+	return _challenge_check.visible
+
+
+func challenge_portrait_texture() -> Texture2D:
+	return _challenge_art.texture
 
 
 func feature_button(key: StringName) -> HomeFeatureButton:

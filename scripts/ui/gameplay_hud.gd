@@ -500,7 +500,7 @@ func set_reached_tier(tier: int) -> void:
 	strip.set_reached(tier)
 
 
-# --- Günlük meydan okuma (TASK/047 — UI_VISUAL_SYSTEM §25) -----------------------------------
+# --- Günlük meydan okuma (TASK/047 — UI_VISUAL_SYSTEM §26) -----------------------------------
 
 const CHALLENGE_BADGE: String = "BUGÜN"
 const CHALLENGE_MOVES_CAPTION: String = "HAMLE"
