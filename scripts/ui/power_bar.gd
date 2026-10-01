@@ -23,6 +23,9 @@ const SLOT_ORDER: Array[PowerUp.Type] = [
 var _slots: Dictionary = {}
 var _armed: int = PowerUpController.ARMED_NONE
 var _enabled: bool = true
+## TASK/047: bu board'da güç YOK (günlük meydan okuma) — KALICI: sonraki `set_enabled(true)`
+## çağrıları (mola / ayarlar / refill / devam geçişleri) çubuğu açamaz. Normal oyunda false.
+var _locked: bool = false
 
 
 func _ready() -> void:
@@ -61,10 +64,25 @@ func refresh() -> void:
 ## ve stok tüketilemez; stoklar olduğu gibi durur, tekrar açılınca kaldığı
 ## yerden devam eder.
 func set_enabled(enabled: bool) -> void:
+	enabled = enabled and not _locked
 	if enabled == _enabled:
 		return
 	_enabled = enabled
 	refresh()
+
+
+## Çubuğu bu board için kalıcı olarak kapatır (TASK/047 meydan okuma). Geri alınmaz.
+func lock_disabled() -> void:
+	_locked = true
+	set_enabled(false)
+
+
+func is_locked() -> bool:
+	return _locked
+
+
+func is_enabled() -> bool:
+	return _enabled
 
 
 func set_armed(type: int) -> void:

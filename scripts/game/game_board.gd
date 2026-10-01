@@ -23,6 +23,9 @@ signal pause_requested
 ## Oyuncu GERCEK surukle/birak hareketini tamamladi ve parca DOGDU.
 ## TutorialController adim ilerletmek icin dinler; board tutorial'i BILMEZ.
 signal dumpling_dropped(tier: int)
+## Günlük meydan okuma (TASK/047): sayılan bir bırakıştan sonra kalan hamle. Normal oyunda hiç
+## yayılmaz.
+signal drops_changed(remaining: int)
 
 const DUMPLING_SCENE: PackedScene = preload("res://scenes/game/dumpling.tscn")
 const POP_EFFECT_SCENE: PackedScene = preload("res://scenes/game/pop_effect.tscn")
@@ -289,6 +292,28 @@ var _tutorial_queue: Array[int] = []
 var _tutorial_assist: TutorialAssist = TutorialAssist.NONE
 var _tutorial_assist_x: float = 0.0
 var _tutorial_assist_span: float = 0.0
+## --- Günlük meydan okuma (TASK/047 — GAME_DESIGN §5.11) — normal oyunda hepsi kapalı ---
+## `setup_challenge` kurar (add_child'dan ÖNCE). Kapalıyken (varsayılan) level / sonsuz /
+## tutorial yolları birebir aynı: bütçe yok, yatışma yok, güç ve devam açık, production torba.
+var _challenge_active: bool = false
+## Bırakış bütçesi ve sayılan GERÇEK bırakışlar: her başarılı `_drop()` tam +1. İptal edilen
+## dokunuş (TASK/046.2), bekleme süresinde reddedilen bırakış ve bütçe sonrası bırakış sayılmaz.
+var _drop_budget: int = 0
+var _drops_used: int = 0
+## Son izinli bırakıştan sonraki yatışma — yalnız bitiş algılayıcı (oyuncuya süre DEĞİL):
+## merge'siz geçen süre ve toplam süre (DailyChallenge.SETTLE_QUIET_SEC / SETTLE_CAP_SEC).
+var _settle_active: bool = false
+var _settle_elapsed: float = 0.0
+var _settle_quiet: float = 0.0
+var _settle_check_queued: bool = false
+## Bu board'un round başına devam hakkı: normalde MAX_REVIVES_PER_ROUND (2), meydan okumada 0 —
+## taşma doğrudan kesin kayıp, teklif / ödüllü istek hiç açılmaz.
+var _max_revives: int = MAX_REVIVES_PER_ROUND
+## Güçler bu board'da kullanılabilir mi. Meydan okumada KALICI false: tepsiler gizli, çubuk
+## kilitli (mola / ayarlar / refill / devam geçişleri yeniden açamaz), basış ve refill yok sayılır.
+var _powers_enabled: bool = true
+## Kayıp sebebi (DailyChallenge.FailReason) — yalnız meydan okumada doldurulur.
+var _fail_reason: int = DailyChallenge.FailReason.NONE
 ## Sarsıntı sonrası taşma koruması kalan süre (sn). >0 iken taşma birikmiyor.
 var _shake_protection: float = 0.0
 ## Sarsıntının kap kenarındaki parlaması (1 → 0). Yalnızca GÖRSEL; fizik
@@ -375,6 +400,8 @@ func _ready() -> void:
 	_score_pop.text = ""
 	_score_pop.modulate.a = 0.0
 	_setup_powerups()
+	if _challenge_active:
+		_apply_challenge_mode()
 
 
 # --- Yerleşim / kamera (M8.6-02) ---
@@ -454,7 +481,7 @@ func set_menu_paused(paused: bool) -> void:
 		# mevcut durum neyse o sürer.
 		return
 	_is_menu_paused = paused
-	_preview.visible = not paused and not _powerups.is_armed()
+	_preview.visible = not paused and not _powerups.is_armed() and _has_drop_left()
 	_power_bar.set_enabled(not paused)
 	_set_board_frozen(paused)
 
@@ -519,7 +546,7 @@ func set_tutorial_paused(paused: bool) -> void:
 	if paused and (_is_fail_pending or _is_refill_pending or _is_menu_paused):
 		# Zaten donuk: ayri bir dondurma katmani acma.
 		return
-	_preview.visible = not paused and not _powerups.is_armed() and not _tutorial_input_locked
+	_preview.visible = not paused and not _powerups.is_armed() and not _tutorial_input_locked and _has_drop_left()
 	_power_bar.set_enabled(not paused)
 	_set_board_frozen(paused)
 
@@ -535,7 +562,7 @@ func set_tutorial_input_locked(locked: bool) -> void:
 	_tutorial_input_locked = locked
 	if _is_finished:
 		return
-	_preview.visible = not locked and not _is_paused() and not _powerups.is_armed()
+	_preview.visible = not locked and not _is_paused() and not _powerups.is_armed() and _has_drop_left()
 
 
 func is_tutorial_input_locked() -> bool:
@@ -589,6 +616,146 @@ func _assisted_drop_x(x: float) -> float:
 func set_tutorial_pending_tier(tier: int) -> void:
 	_pending_tier = clampi(tier, 1, TierConfig.DROP_POOL_MAX_TIER)
 	_set_aim(_aim_x)
+
+
+# --- Gunluk meydan okuma dikisi (TASK/047 — GAME_DESIGN §5.11) ---------------------------------
+#
+# SORUMLULUK SINIRI: board urunu BILMEZ (gun, odul, kayit, sonuc Main + DailyChallenge'da).
+# Burada yalnizca mekanik kancalar: "parcalar su kaynaktan", "su kadar birakis", "son birakistan
+# sonra yatis", "devam yok", "guc yok". Fizik, TierConfig, merge, onizleme, tasma ve
+# DROP_COOLDOWN AYNI; kip kapaliyken (varsayilan) hicbir yol degismez.
+
+## Sonuc sebebi plakasi: son izinli birakistan sonra yatisma boyunca.
+const CHALLENGE_SETTLE_STATUS: String = "Hamle bitti"
+
+## Meydan okuma kipi (add_child'dan ONCE, `setup` ile birlikte — `_ready` ilk iki parcayi bu
+## kaynaktan ceker). `sequence_source`: production DropBag'in arayuzu (`next_tier()`), global
+## RNG'ye dokunmayan deterministik dizi (DailyChallenge.Sequence). `drop_budget`: izinli birakis.
+func setup_challenge(sequence_source: RefCounted, drop_budget: int) -> void:
+	if is_inside_tree():
+		push_error("setup_challenge add_child'dan ONCE cagrilmali.")
+		return
+	assert(sequence_source != null and sequence_source.has_method("next_tier"))
+	_challenge_active = true
+	_drop_bag = sequence_source
+	_drop_budget = maxi(drop_budget, 0)
+	_drops_used = 0
+	_max_revives = 0
+	_powers_enabled = false
+	_fail_reason = DailyChallenge.FailReason.NONE
+
+
+## `_ready` sonunda: guc kalici kapali + gizli, HUD sunumu (BUGUN / HAMLE), onizlemeler.
+func _apply_challenge_mode() -> void:
+	_powerups.set_round_active(false)
+	_power_bar.lock_disabled()
+	_hud.set_daily_challenge(drops_remaining())
+	_refresh_challenge_previews()
+	if drops_remaining() <= 0:
+		_begin_challenge_settle()
+
+
+## Meydan okumada birakilacak parca kaldi mi? Normal oyunda HER ZAMAN true (onizleme kurallari
+## birebir eskisi gibi).
+func _has_drop_left() -> bool:
+	return not _challenge_active or _drops_used < _drop_budget
+
+
+## Onizlemeler gercek hamleleri gosterir: SIRADAKI yalniz bekleyen parcadan SONRA bir birakis
+## daha kaldiysa; birakis cizgisindeki parca yalniz birakilabilirse (hamle bittiyse sahte parca
+## yok — mola / ayarlar donusunde de `_has_drop_left` kapisi tutar).
+func _refresh_challenge_previews() -> void:
+	var remaining: int = drops_remaining()
+	_hud.set_next_visible(remaining > 1)
+	if remaining <= 0:
+		_preview.visible = false
+
+
+## Basarili bir `_drop()` (parca dogdu): hamle tam +1, HAMLE plakasi, onizlemeler, son birakista
+## yatisma.
+func _on_challenge_drop() -> void:
+	_drops_used += 1
+	var remaining: int = drops_remaining()
+	_hud.set_moves(remaining)
+	UiMotion.pop(_hud.score_plate, 1.06)
+	_refresh_challenge_previews()
+	drops_changed.emit(remaining)
+	if remaining <= 0:
+		_begin_challenge_settle()
+
+
+## Son izinli birakis yapildi: yeni birakis yok, tahta fiziksel olarak yasamaya devam eder; zaten
+## birakilmis parcalarin merge zinciri bitebilir, yatisma sirasinda hedef olusursa kazanilir.
+func _begin_challenge_settle() -> void:
+	if _settle_active or _is_finished:
+		return
+	_settle_active = true
+	_settle_elapsed = 0.0
+	_settle_quiet = 0.0
+	_hud.set_status(CHALLENGE_SETTLE_STATUS)
+
+
+## Fizik adiminda (duraklatilmisken calismaz — mola / ayarlar suresi sayilmaz). Esik dolunca
+## karar ERTELENIR: ayni karenin kuyruktaki merge'leri (ertelenmis `_resolve_merge`) once cozulur
+## — hedefi kuran son merge kayba donmez. Tasma ayni adimda kesinlestirirse o kazanir (kayip).
+func _tick_challenge_settle(delta: float) -> void:
+	if not _settle_active:
+		return
+	_settle_elapsed += delta
+	_settle_quiet += delta
+	if _settle_check_queued:
+		return
+	if _settle_quiet >= DailyChallenge.SETTLE_QUIET_SEC or _settle_elapsed >= DailyChallenge.SETTLE_CAP_SEC:
+		_settle_check_queued = true
+		_finish_challenge_settle.call_deferred()
+
+
+func _finish_challenge_settle() -> void:
+	_settle_check_queued = false
+	if _is_finished or not _settle_active or _is_paused():
+		return
+	if _settle_quiet < DailyChallenge.SETTLE_QUIET_SEC and _settle_elapsed < DailyChallenge.SETTLE_CAP_SEC:
+		# Bu karede bir merge yatismayi yeniledi: zincir surer.
+		return
+	_fail_reason = DailyChallenge.FailReason.MOVES_EXHAUSTED
+	_finish(false)
+
+
+## Yatisma suresince gercek merge (istek ani — ayni karede cozulur) sessiz pencereyi yeniler.
+func _note_challenge_merge() -> void:
+	if _settle_active:
+		_settle_quiet = 0.0
+
+
+func is_daily_challenge() -> bool:
+	return _challenge_active
+
+
+func drop_budget() -> int:
+	return _drop_budget
+
+
+func drops_used() -> int:
+	return _drops_used
+
+
+## Kalan hamle; normal oyunda -1 (butce yok).
+func drops_remaining() -> int:
+	if not _challenge_active:
+		return -1
+	return maxi(0, _drop_budget - _drops_used)
+
+
+func is_settling() -> bool:
+	return _settle_active
+
+
+func fail_reason() -> int:
+	return _fail_reason
+
+
+func powers_enabled() -> bool:
+	return _powers_enabled
 
 
 ## --- Tutorial spot dikdortgenleri (ekran px) ---
@@ -1047,12 +1214,15 @@ func _on_power_armed_changed(type: int) -> void:
 		_highlight_valid_targets()
 		AudioManager.play(&"power_arm")
 	# Silahlıyken önizleme gizleniyor: drop yapılamıyor, sahte umut vermesin.
-	_preview.visible = not _powerups.is_armed()
+	_preview.visible = not _powerups.is_armed() and _has_drop_left()
 
 
 ## Güç butonu. Hedefli güçler hedefleme moduna girer; anında çalışanlar
 ## burada yürütülür. HİÇBİRİ butona basıldığı için stok tüketmez.
 func _on_power_pressed(type_index: int) -> void:
+	# TASK/047: meydan okumada güç YOK — basış hiçbir şey yapmaz (stok / refill / reklam yok).
+	if not _powers_enabled:
+		return
 	if _is_finished or _is_paused():
 		return
 	var type: PowerUp.Type = type_index as PowerUp.Type
@@ -1089,6 +1259,8 @@ func _on_power_pressed(type_index: int) -> void:
 ## Hamur karşılığı söyleniyor, satın alma mağazadan yapılıyor. Round'un
 ## ortasında mağaza açmak oyunu böler — bilinçli olarak yapılmadı.
 func _on_power_refill_requested(type_index: int) -> void:
+	if not _powers_enabled:
+		return
 	if not PowerUp.is_valid_type(type_index):
 		return
 	if _is_finished or _is_paused():
@@ -1628,6 +1800,9 @@ func _drop() -> void:
 		return
 	if _tutorial_input_locked:
 		return
+	# TASK/047: meydan okumada hamle bittiyse yeni bırakış YOK (normal oyunda her zaman geçer).
+	if not _has_drop_left():
+		return
 	# Tutorial yardimi (M8.10): normal oyunda NONE -> `_aim_x` aynen kullanilir.
 	var drop_x: float = _assisted_drop_x(_aim_x)
 	var dropped_tier: int = _pending_tier
@@ -1637,6 +1812,8 @@ func _drop() -> void:
 	_next_tier = _next_drop_tier()
 	_drop_cooldown = DROP_COOLDOWN
 	_set_aim(drop_x)
+	if _challenge_active:
+		_on_challenge_drop()
 	dumpling_dropped.emit(dropped_tier)
 
 
@@ -1661,6 +1838,8 @@ func _spawn_dumpling(tier: int, at: Vector2) -> Dumpling:
 # --- Merge ---
 
 func _on_merge_requested(a: Dumpling, b: Dumpling, point: Vector2) -> void:
+	# TASK/047: istek = gerçek merge (iki parça da kilitli); meydan okuma yatışması yenilenir.
+	_note_challenge_merge()
 	# Fizik callback'i icindeyiz; node ekleme/silme bir sonraki kareye ertelenmeli.
 	_resolve_merge.call_deferred(a, b, point)
 
@@ -1695,6 +1874,7 @@ func _resolve_merge(a: Dumpling, b: Dumpling, point: Vector2) -> void:
 	b.queue_free()
 
 	var merged := _spawn_dumpling(new_tier, point)
+	_note_challenge_merge()
 	var celebratory: bool = new_tier == TierConfig.MAX_TIER
 	# Yeni tier: 0.7 -> 1.12 -> 1.0 acilis. Ust tier'larda biraz daha genis.
 	merged.play_reveal(1.0 + 0.5 * _tier_t(new_tier))
@@ -2170,6 +2350,10 @@ func _physics_process(delta: float) -> void:
 	if _is_finished:
 		return
 
+	# TASK/047: son bırakıştan sonraki yatışma (yalnız meydan okumada; kararı ertelenir — aşağıdaki
+	# taşma bu adımda kesinleşirse o geçerlidir).
+	_tick_challenge_settle(delta)
+
 	# Koruma pencereleri: sarsıntı (GAME_DESIGN.md §10.5) ve devam sonrası
 	# (§11). İkisi de taşma sayacını dondurur, ikisi de STACK ETMEZ; aynı anda
 	# açık olabilirler, o yüzden ikisi de ayrı ayrı eritiliyor.
@@ -2248,10 +2432,10 @@ func exit_refill_pending(resume_intent: bool = false) -> void:
 		return
 	_is_refill_pending = false
 	_set_board_frozen(false)
-	_powerups.set_round_active(true)
+	_powerups.set_round_active(_powers_enabled)
 	_power_bar.set_enabled(true)
 	_refresh_power_bar()
-	_preview.visible = true
+	_preview.visible = _has_drop_left()
 	_refresh_preview()
 
 	if not resume_intent:
@@ -2273,8 +2457,10 @@ func exit_refill_pending(resume_intent: bool = false) -> void:
 # ödülü, ne merge muhasebesi, ne sonuç ekranı çalışır — bunların hepsi
 # main.gd'de round_finished'a bağlı.
 
+## Bu board'un round başına devam hakkı (normal oyunda MAX_REVIVES_PER_ROUND; TASK/047 meydan
+## okumada 0).
 func max_revives() -> int:
-	return MAX_REVIVES_PER_ROUND
+	return _max_revives
 
 
 func revives_used() -> int:
@@ -2282,7 +2468,7 @@ func revives_used() -> int:
 
 
 func revives_remaining() -> int:
-	return maxi(0, MAX_REVIVES_PER_ROUND - _revives_used)
+	return maxi(0, _max_revives - _revives_used)
 
 
 func is_fail_pending() -> bool:
@@ -2306,7 +2492,10 @@ func _trigger_overflow_fail() -> void:
 	if _is_finished or _is_fail_pending:
 		return
 	if revives_remaining() <= 0:
-		# Haklar bitti: normal final loss yolu, mevcut davranışın aynısı.
+		# Haklar bitti: normal final loss yolu, mevcut davranışın aynısı. TASK/047 meydan okumada
+		# devam hiç yok (hak 0): taşma doğrudan kesin kayıp, teklif / ödüllü istek açılmaz.
+		if _challenge_active:
+			_fail_reason = DailyChallenge.FailReason.OVERFLOW
 		_finish(false)
 		return
 	_enter_fail_pending()
@@ -2360,10 +2549,10 @@ func grant_revive() -> bool:
 
 	# Girdi ve güçler geri geliyor; stoklar kaldığı yerden devam ediyor
 	# (kurtarma temizliği Bomba/Temizleyici kullanımı SAYILMAZ).
-	_powerups.set_round_active(true)
+	_powerups.set_round_active(_powers_enabled)
 	_power_bar.set_enabled(true)
 	_drop_cooldown = 0.0
-	_preview.visible = true
+	_preview.visible = _has_drop_left()
 	_refresh_preview()
 
 	AudioManager.play(&"revive")
@@ -2451,6 +2640,12 @@ func _finish(won: bool) -> void:
 ## Skor sadece değişmesin, kazanılan miktar "+N" olarak yukarı doğru büyüyüp
 ## sönerek pop etsin (GAME_DESIGN.md §6'daki combo "xN" deseninin aynısı).
 func _on_score_changed(new_score: int) -> void:
+	if _challenge_active:
+		# TASK/047: skor plakası HAMLE (kalan bırakış) gösterir — skor metni / "+N" pop'u yok;
+		# hedef ilerlemesi aynen.
+		_prev_score = new_score
+		_update_goal_progress()
+		return
 	_hud.set_score(new_score)
 	_update_goal_progress()
 	var delta: int = new_score - _prev_score

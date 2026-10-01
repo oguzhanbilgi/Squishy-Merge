@@ -42,6 +42,7 @@ var exit_button: Button
 var tray_left: PanelContainer
 var tray_right: PanelContainer
 var score_plate: PanelContainer
+var score_caption: Label
 var score_label: Label
 var next_plate: PanelContainer
 var next_art: TextureRect
@@ -173,7 +174,7 @@ func _build_row1() -> void:
 	column.add_theme_constant_override("separation", -10)
 	column.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	row.add_child(column)
-	var score_caption := UiKit.hud_caption("Skor")
+	score_caption = UiKit.hud_caption("Skor")
 	score_caption.add_theme_color_override("font_color", Color(1, 1, 1, 0.92))
 	column.add_child(score_caption)
 	score_label = UiKit.label("0", &"LabelHudScore", HORIZONTAL_ALIGNMENT_CENTER)
@@ -497,6 +498,43 @@ func set_goal_progress(ratio: float) -> void:
 
 func set_reached_tier(tier: int) -> void:
 	strip.set_reached(tier)
+
+
+# --- Günlük meydan okuma (TASK/047 — UI_VISUAL_SYSTEM §25) -----------------------------------
+
+const CHALLENGE_BADGE: String = "BUGÜN"
+const CHALLENGE_MOVES_CAPTION: String = "HAMLE"
+
+
+## Meydan okuma sunumu (yalnız o board): level rozeti "BUGÜN", skor plakası "HAMLE" + kalan
+## bırakış, güç tepsileri gizli. Hedef kartı / portre / evrim şeridi aynen; yeni HUD öğesi yok.
+## Normal round'lar bu yolu hiç çağırmaz.
+func set_daily_challenge(remaining: int) -> void:
+	level_label.text = CHALLENGE_BADGE
+	level_label.add_theme_font_size_override("font_size", 15)
+	score_caption.text = CHALLENGE_MOVES_CAPTION
+	set_moves(remaining)
+	set_powers_visible(false)
+
+
+## HAMLE plakasının değeri: kalan bırakış.
+func set_moves(remaining: int) -> void:
+	score_label.text = str(maxi(remaining, 0))
+
+
+## Güç tepsileri + madalyonlar (dekorları — gölge / taban / gloss / yuva — görünürlüğü izler).
+func set_powers_visible(shown: bool) -> void:
+	tray_left.visible = shown
+	tray_right.visible = shown
+	# Madalyon yuvaları (`hud_socket`) slotun KENDİ görünürlüğünü izler: slotlar da açıkça.
+	for type in PowerBar.SLOT_ORDER:
+		power_bar.slot(int(type)).visible = shown
+	power_bar.visible = shown
+
+
+## SIRADAKİ kartı: gösterilecek bir sonraki GERÇEK bırakış yoksa gizli (sahte parça yok).
+func set_next_visible(shown: bool) -> void:
+	next_plate.visible = shown
 
 
 static func _thousands(value: int) -> String:
