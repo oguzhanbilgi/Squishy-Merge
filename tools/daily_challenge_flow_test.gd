@@ -679,7 +679,7 @@ func _fixture(extra: Dictionary = {}) -> Dictionary:
 		"unlocked_skins": ["common_01", "rare_02"], "profile_showcase": ["rare_02"],
 		"powerups": {"bomb": 2, "upgrade": 1, "shake": 1, "clear_small": 1}, "powerup_starter_granted": true,
 		"onboarding_completed": true, "onboarding_completed_day": "", "daily_streak": 3,
-		"last_login_date": THU, "age_ad_band": "ADULT", "next_age_transition_date": "",
+		"last_login_date": Time.get_date_string_from_system(), "age_ad_band": "ADULT", "next_age_transition_date": "",
 		"player_meta_version": 1, "player_xp": 400, "total_rounds_played": 12, "highest_tier_created": 4,
 		"unlocked_achievements": ["merge_10"],
 		"daily_rewards": {"day_key": THU, "free_chest_claimed": true, "ad_chests_claimed": 2,

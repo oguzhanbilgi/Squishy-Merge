@@ -551,6 +551,24 @@ func _clock() -> void:
 	DailyRewards.clock_override = NEXT_MON
 	_c("saat ileri → yeni gün açılır (pazartesi T5·600·18)", DailyChallenge.current_day() == NEXT_MON
 		and int(DailyChallenge.current_view()["drop_budget"]) == 18)
+	# Monoton gün (açık oturum): meydan okuma ileri günü KABUL edince gün gözlemi kayda işlenir; saat geri
+	# alınınca meydan okuma kabul ettiği günün gerisine düşmez.
+	_clean()
+	_write_fixture({})
+	SaveManager.load_game()
+	DailyRewards.clock_override = THU
+	DailyChallenge.current_day()
+	var seen_before: String = SaveManager.daily_last_seen_day_key()
+	DailyRewards.clock_override = FRI
+	_c("açık oturumda saat D+1: meydan okuma D+1'i kabul etti ve gün gözlemi kayda işlendi (last_seen %s → cuma)"
+		% seen_before, DailyChallenge.current_day() == FRI and SaveManager.daily_last_seen_day_key() == FRI)
+	DailyRewards.clock_override = THU
+	_c("  … saat D'ye geri: meydan okuma (ve gün gerçeği) D+1'de kalır, preset cuma T6·540·36",
+		DailyChallenge.current_day() == FRI and Missions.accepted_day() == FRI
+		and int(DailyChallenge.current_view()["drop_budget"]) == 36)
+	DailyRewards.clock_override = "bozuk-saat"
+	DailyChallenge.current_view()
+	_c("  … geçersiz saat kayda yazılmaz (last_seen cuma kalır)", SaveManager.daily_last_seen_day_key() == FRI)
 	# Tamamlanma günü taban: saat (ve en yeni gün) gerideyken tamamlanmış gün yeniden açılmaz.
 	_clean()
 	_write_fixture({"daily_challenge": {"version": 1, "completed_day_key": FRI}})
@@ -583,9 +601,14 @@ func _source_contract() -> void:
 			clean = false
 			print("    yasak belirteç: ", token)
 	_c("model rastgelelik kullanmaz: seed / randomize / randi / randf / shuffle / RandomNumberGenerator YOK", clean)
-	_c("model kayda yazmaz / UI / reklam / ilerleme bilmez (save_game / add_dough / Monetization / AdEvents / XP yok)",
+	_c("model ilerleme / ödül yazmaz, UI / reklam bilmez (save_game / add_dough / Monetization / AdEvents / XP yok)",
 		not model.contains("save_game") and not model.contains("add_dough") and not model.contains("Monetization")
 		and not model.contains("AdEvents") and not model.contains("player_xp") and not model.contains("record_round"))
+	var day_fn: String = model.substr(model.find("static func current_day("))
+	day_fn = day_fn.substr(0, day_fn.find("\nstatic func ", 1))
+	_c("modelin TEK kayıt yolu gün gözlemi: `DailyRewards.observe_day()` bir kez, yalnız current_day içinde",
+		model.count("observe_day(") == 1 and day_fn.contains("DailyRewards.observe_day()")
+		and not model.contains("record_daily_") and not model.contains("mark_daily_"))
 	var writers: Array[String] = []
 	for path in _scripts("res://scripts"):
 		var text: String = FileAccess.get_file_as_string(path)

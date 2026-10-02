@@ -113,12 +113,20 @@ static func is_completed(block: Dictionary, day_key: String) -> bool:
 
 
 ## Bugünün meydan okumasının günü (kabul edilen gün + kayıttaki taban). Boş = gün gerçeği yok.
+## Monoton gün: meydan okuma bir günü kabul ettiği AN (Ana Sayfa girişi, pencere, BAŞLA, tekrar, sonuç
+## bu fonksiyondan okur) o gün GÜNLÜK ÖDÜLLER'in mevcut gözlem API'siyle kayda işlenir —
+## `DailyRewards.observe_day()`: yalnız ileri, yalnız `last_seen_day_key`, açılış / öne dönüş yazmasının
+## aynısı (ödül / seri / görev / pencere / onboarding YOK). Uygulama gece yarısını ön planda geçip saat
+## geri alınınca meydan okuma kabul ettiği en yeni günün gerisine düşmez. Geçersiz saat kaydedilmez.
 static func current_day() -> String:
+	if Missions.is_day_key(DailyRewards.today_local()):
+		DailyRewards.observe_day()
 	return effective_day(Missions.accepted_day(), SaveManager.daily_challenge_completed_day())
 
 
-## Ekranların okuduğu güncel görünüm: `descriptor` + completed (bool). YAZMAZ. Boş = meydan okuma
-## yok (gün gerçeği yok) — giriş gizlenir, başlatma reddedilir.
+## Ekranların okuduğu güncel görünüm: `descriptor` + completed (bool). Tek yazma `current_day`'in
+## gün gözlemidir (yeni bir gün ilk kez görüldüğünde). Boş = meydan okuma yok (gün gerçeği yok) —
+## giriş gizlenir, başlatma reddedilir.
 static func current_view() -> Dictionary:
 	var day: String = current_day()
 	var view: Dictionary = descriptor(day)

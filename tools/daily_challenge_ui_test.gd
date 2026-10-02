@@ -156,7 +156,7 @@ func _entry() -> void:
 	await _show_home()
 	_c("cuma: T6 hedef portresi, '+20'", home.challenge_portrait_texture() == DUMPLING_VISUAL.TEXTURES[5]
 		and home.challenge_badge_text() == "+20")
-	DailyRewards.clock_override = THU
+	_back_to_thursday()
 	SaveManager.data["onboarding_completed_day"] = THU
 	await _show_home()
 	_c("tutorial'ın bitirildiği gün (günlük ödüller kilitli) giriş GÖRÜNÜR — ilk gün kuralı uygulanmaz",
@@ -213,7 +213,7 @@ func _sheet_content() -> void:
 		sheet.goal_text() == "Dev Dumpling yap · 36 hamlede" and _portrait_texture(sheet) == DUMPLING_VISUAL.TEXTURES[5])
 	sheet.close_sheet(false)
 	await _wait_settled()
-	DailyRewards.clock_override = THU
+	_back_to_thursday()
 	SaveManager.data["daily_challenge"] = {"version": 1, "completed_day_key": THU}
 	await _open()
 	_c("tamamlandı: TAMAMLANDI çipi + 'Yarın yenilenir' + KAPAT; BAŞLA / ödül / ipucu yok, yalıtım notu durur",
@@ -419,7 +419,7 @@ func _midnight_sheet() -> void:
 	_c("yatışmadan sonra BAŞLA: cumanın meydan okuması başlar (bütçe 36)", _main._board != null and _main._challenge_day == FRI
 		and _main._board.drop_budget() == 36)
 	await _leave_round()
-	DailyRewards.clock_override = THU
+	_back_to_thursday()
 	SaveManager.record_daily_last_seen_day(THU)
 	SaveManager.data["daily_rewards"]["last_seen_day_key"] = THU
 	await _show_home()
@@ -638,7 +638,7 @@ func _layout_all() -> void:
 	SaveManager.data["daily_challenge"] = DailyChallenge.default_block()
 	DailyRewards.clock_override = FRI
 	await _layout_view(VIEWS[0], -1.0, "T6")
-	DailyRewards.clock_override = THU
+	_back_to_thursday()
 	await _resize(Vector2i(720, 1280))
 	_home()._layout_with_safe_top(-1.0)
 	_sheet().layout_with_safe_top(-1.0)
@@ -794,7 +794,7 @@ func _write_fixture() -> void:
 		"unlocked_skins": ["common_01", "rare_02"], "profile_showcase": ["rare_02"],
 		"powerups": {"bomb": 2, "upgrade": 1, "shake": 1, "clear_small": 1}, "powerup_starter_granted": true,
 		"onboarding_completed": true, "onboarding_completed_day": "", "daily_streak": 3,
-		"last_login_date": THU, "age_ad_band": "ADULT", "next_age_transition_date": "",
+		"last_login_date": Time.get_date_string_from_system(), "age_ad_band": "ADULT", "next_age_transition_date": "",
 		"player_meta_version": 1, "player_xp": 400, "total_rounds_played": 12, "highest_tier_created": 5,
 		"daily_rewards": {"day_key": THU, "free_chest_claimed": false, "ad_chests_claimed": 0,
 			"dough_ad_claimed": false, "popup_seen_day": THU, "last_seen_day_key": THU}}
@@ -802,6 +802,13 @@ func _write_fixture() -> void:
 	file.store_string(JSON.stringify(content, "\t"))
 	file.close()
 
+
+## Gün simülasyonundan perşembeye dönüş (TEST kurulumu): meydan okuma cumayı kabul ettiğinde monoton gün
+## gözlemi `last_seen_day_key`'i cumaya işledi (ürün davranışı); sonraki perşembe kontrolleri için test
+## kaydı perşembe oturumuna geri kurulur.
+func _back_to_thursday() -> void:
+	DailyRewards.clock_override = THU
+	SaveManager.data["daily_rewards"]["last_seen_day_key"] = THU
 
 func _home() -> CanvasLayer:
 	return _main._screens[0]
