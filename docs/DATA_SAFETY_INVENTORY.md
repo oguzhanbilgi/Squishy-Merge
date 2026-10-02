@@ -51,7 +51,7 @@
   anahtarıyla aynı kaynak), sabit katalogdaki altı görevin sayaçları ve ödülü verilmiş görev
   kimlikleri. Yalnız oyun içi sayaç — kişisel veri / serbest metin yok; sunucu / hesap /
   paylaşım YOK, reklam veya analitiğe gönderilmez.
-  TASK/047 Günlük meydan okuma (dalda): `daily_challenge` — şema sürümü ve ilk başarısı
+  TASK/047 Günlük meydan okuma (main'de): `daily_challenge` — şema sürümü ve ilk başarısı
   ödüllendirilen en yeni gün (`completed_day_key`, `YYYY-MM-DD`, cihazın kabul edilen yerel takvim
   günü). Preset / parça dizisi / deneme / sonuç saklanmaz. Yalnız oyun içi durum — kişisel veri /
   serbest metin yok; sunucu / hesap / skor tablosu / paylaşım YOK, reklam veya analitiğe

@@ -898,8 +898,9 @@ bellekte uzlaştırır, pencereler yazmaz.)*
   (Samsung A36 kapısı GEÇTİ; 2026-09-30'da TASK/046.1 yaş ekranı yeniden tasarımıyla birlikte owner
   onayıyla ff-only main'e alındı).
 - ~~**TASK/047** — Günlük Merge Challenge (sıradaki planlı ürün görevi; sözleşme henüz
-  tasarlanmamıştı)~~ → owner onaylı kilitli brifle **sözleşme §5.11**; uygulama
-  `task/047-daily-merge-challenge` dalında (main'e alınması owner onayı bekliyor).
+  tasarlanmamıştı)~~ → owner onaylı kilitli brifle **sözleşme §5.11** → **YAPILDI (§5.11), main'de**
+  (Samsung A36 kapısı + hedefli monoton gün kapısı GEÇTİ; 2026-10-02'de owner onayıyla ff-only
+  main'e alındı, `6d3dbca → aa6f867`).
 
 ### 5.9 Oyuncu Seviyesi + XP + Başarımlar + Unvanlar (TASK/045 — owner kararı, KİLİTLİ)
 

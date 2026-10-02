@@ -74,29 +74,33 @@ alınacak — şimdi tahmin/vaat yok.
 
 ## Current state
 
-**Kanonik durum — 2026-10-01.** Bugünün gerçeği bu bölüm +
+**Kanonik durum — 2026-10-02.** Bugünün gerçeği bu bölüm +
 [Current release blockers](#current-release-blockers) +
 [Next action](#next-action); aşağıdaki "Milestone tarihçesi" değil.
 
-- **Repo (2026-10-02):** `main == origin/main == 6d3dbca6df43aca1f18b14a524422c8c37639f97` —
-  **TASK/046.2 owner onayıyla ff-only main'e alındı** (`afc10be → 6d3dbca`: `471a2ab` · `2149fc3` ·
-  `b364a0c` · `6d3dbca` doküman / A36 kapısı kaydı; merge commit yok, dal duruyor). **TASK/047
-  dalda:** `task/047-daily-merge-challenge` (main `6d3dbca`'dan: `befbbbd` model + kayıt · `bf553e0`
-  board · `201764d` akış + yalıtım · `e805736` arayüz + sonuçlar · `54e8411` + `e002dff` çekişmeli
-  inceleme düzeltmeleri · `743e5d7` regresyon / görsel kapı + doküman · `7395280` A36 kapısı kaydı ·
-  `f8c8ffb` monoton gün (son engel) · monoton gün doküman / hedefli A36 kaydı; origin'e itildi) —
-  masaüstü + Samsung A36 kapısı + hedefli monoton gün A36 kapısı GEÇTİ, main'e alınması owner onayı
-  bekliyor, merge EDİLMEDİ.
+- **Repo (2026-10-02):** `main == origin/main == aa6f867897d3b11e13a15a9d386e16c5859a5687` —
+  **TASK/047 owner onayıyla ff-only main'e alındı** (`6d3dbca → aa6f867`; merge commit / rebase /
+  squash / cherry-pick / force push YOK). Doğrulanmış doğrusal zincir, 10 commit: `befbbbd` model +
+  kayıt · `bf553e0` board · `201764d` akış + yalıtım · `e805736` arayüz + sonuçlar · `54e8411` +
+  `e002dff` çekişmeli inceleme düzeltmeleri · `743e5d7` regresyon / görsel kapı + doküman · `7395280`
+  A36 kapısı kaydı · `f8c8ffb` monoton gün (son engel) · `aa6f867` monoton gün doküman / hedefli A36
+  kaydı. Dal referans için duruyor (`task/047-daily-merge-challenge` = son incelenen HEAD `aa6f867`,
+  yerelde ve origin'de).
+  Önce (2026-10-01): **TASK/046.2 owner onayıyla ff-only main'e alındı** (`afc10be → 6d3dbca`:
+  `471a2ab` · `2149fc3` · `b364a0c` · `6d3dbca` doküman / A36 kapısı kaydı; merge commit yok, dal
+  duruyor).
   Önce (2026-09-30):
   **TASK/046 + TASK/046.1 owner onayıyla BİRLİKTE ff-only main'e alındı** — doğrulanmış doğrusal
   zincir `56106ef` → TASK/046 (`efb9763` · `6543492` · `137c219` · `5092dad`) → TASK/046.1
   (`bc40da1` · `ed08b07` · `1ff0ba1` · `98d209e` · `b90bc3c`); merge commit / rebase / squash /
   cherry-pick YOK. Dallar referans için duruyor (`task/046-daily-weekly-missions` = `5092dad`,
   `task/046-1-age-gate-13plus-redesign` = `b90bc3c`).
-- **TASK/047 — Günlük Merge Challenge V1 (oyuncuya "MEYDAN OKUMA") — dalda; masaüstü doğrulama +
-  çekişmeli inceleme + mutasyon + görsel kapı tamam, Samsung A36 yerel kapısı GEÇTİ (2026-10-02, yalnız
-  QA paketi, bulgu yok); son engel (monoton gün) kapatıldı ve hedefli A36 kapısı GEÇTİ (2026-10-02);
-  main'e alınması owner onayı bekliyor.** İsteğe bağlı günlük mod: hedef tier'ı sınırlı GERÇEK bırakışla
+- **TASK/047 — Günlük Merge Challenge V1 (oyuncuya "MEYDAN OKUMA") — TAMAM, main'de** (owner onayıyla
+  ff-only `6d3dbca → aa6f867`, 2026-10-02). Entegrasyondan ÖNCE tamamlanan doğrulama: masaüstü doğrulama +
+  çekişmeli inceleme + mutasyon + görsel kapı; monoton gün düzeltmesinden sonra tam masaüstü kapısı (42
+  koşu, 5261 kontrol, 0 hata, 0 SCRIPT ERROR, bot 2/2); Samsung A36 yerel kapısı GEÇTİ (yalnız QA paketi,
+  bulgu yok); son engel (monoton kabul edilen gün) KAPATILDI — main'de — ve hedefli monoton gün A36 kapısı
+  13/13 GEÇTİ (2026-10-02). İsteğe bağlı günlük mod: hedef tier'ı sınırlı GERÇEK bırakışla
   oluştur, süre yok. KİLİTLİ haftalık tablo (Pzt T5·600·18 · Sal T5·480·16 · Çar T6·600·38 · Per
   T5·420·15 · Cum T6·540·36 · Cmt T6·480·32 · Paz T6·420·30; yükseklik 400); gün = görevlerin kabul
   edilen günü (ayrı saat yok, tamamlanma günü taban) ve **monoton** — meydan okuma kabul ettiği günü
@@ -170,7 +174,7 @@ alınacak — şimdi tahmin/vaat yok.
   banner yüzeyi değil. Ekonomi, sandık oranları, fiyatlar, reklam sözleşmesi, TASK/043
   yaş yönlendirmesi, fizik / merge DEĞİŞMEDİ. ~~XP / seviye / başarım / görev YOK
   (TASK/045–047)~~ → XP / seviye / başarım / unvan TASK/045 ile geldi (aşağıda); görev YOK
-  (TASK/046–047) *(TASK/046 günlük / haftalık görevler main'de — aşağıda; TASK/047 günlük meydan okuma dalda)*. Ayrıntı: GAME_DESIGN §5.3 / §5.8, UI_VISUAL_SYSTEM §17 / §22.
+  (TASK/046–047) *(TASK/046 günlük / haftalık görevler main'de — aşağıda; TASK/047 günlük meydan okuma main'de)*. Ayrıntı: GAME_DESIGN §5.3 / §5.8, UI_VISUAL_SYSTEM §17 / §22.
 - **TASK/045 Player Progression V1 — TAMAM, main'de** (`task/045-player-level-achievements`,
   başlangıç main `115252c`; **Samsung A36 yerel kapısı GEÇTİ 2026-09-28** — yalnız QA paketi,
   bulgu yok, düzeltme commit'i yok; owner onayıyla ff-only main'e alındı `115252c → d4c8548`,
@@ -290,7 +294,7 @@ alınacak — şimdi tahmin/vaat yok.
   UNDER_13 yeniden sorulur, yaş arayüzü açıkken banner gizli; TEEN / ADULT yönlendirmesi, TFCD /
   TFUA, GMA / UMP, ekonomi, görevler, XP AYNI.)*
   *(TASK/046.2, main'de: yalnız `GameBoard._unhandled_input` — iptal edilen dokunuş parça düşürmez.)*
-  *(TASK/047, dalda: ayrı isteğe bağlı MEYDAN OKUMA modu — GameBoard'a varsayılan KAPALI dikiş
+  *(TASK/047, main'de: ayrı isteğe bağlı MEYDAN OKUMA modu — GameBoard'a varsayılan KAPALI dikiş
   (bütçe / yatışma / güç ve devam kapalı), Main'e açık round türü + ayrı round-sonu işleyicisi,
   kayda sürümlü `daily_challenge` bloğu (tek ekonomi etkisi ilk başarının +20 Hamur'u). Normal
   level / sonsuz / tutorial, fizik, merge, skor, DropBag, XP, görevler, başarımlar, fiyatlar,
@@ -548,7 +552,7 @@ V1: ✅ TAMAM, main'de** (bulut kapısı + Samsung A36 yerel kapısı GEÇTİ 20
 paketi, bulgu yok; owner onayıyla ff-only `115252c → d4c8548`). Ayrıntı: PROJECT_STATUS
 §4.21. ~~TASK/046 (Günlük/Haftalık Görevler) ve TASK/047 (Günlük Merge Challenge)
 **BAŞLAMADI** — sıradaki ürün görevi TASK/046 (owner başlatır).~~ → TASK/046 ✅ main'de (aşağıda);
-TASK/047 (Günlük Merge Challenge) ~~**BAŞLAMADI**~~ → dalda (aşağıda).
+TASK/047 (Günlük Merge Challenge) ~~**BAŞLAMADI**~~ → ✅ main'de (aşağıda).
 
 ~~**Kararlılık takibi (öneri, BAŞLAMADI — TASK/045 engeli değil):** (A) `save_game()` kaydı
 yerinde kesip yeniden yazıyor — çökmeye dayanıklı atomik kayıt yok (geçici dosya + yedekten
@@ -587,23 +591,29 @@ riski (13+ seçim ↔ nötr yaş ekranı rehberi) release izinde **3c** olarak A
 A36 yerel kapısı GEÇTİ; owner onayıyla ff-only `afc10be → 6d3dbca`, 2026-10-01). Ayrıntı:
 PROJECT_STATUS §4.26.
 
-**Ürün işi — TASK/047 Günlük Merge Challenge (MEYDAN OKUMA) V1: dalda** (`task/047-daily-merge-challenge`,
-main `6d3dbca`'dan; owner onaylı kilitli brif — GAME_DESIGN §5.11). Masaüstü doğrulama (4 yeni suite
+**Ürün işi — TASK/047 Günlük Merge Challenge (MEYDAN OKUMA) V1: ✅ TAMAM, main'de** (owner onayıyla
+ff-only `6d3dbca → aa6f867`, 2026-10-02; merge commit / rebase / squash / cherry-pick / force push yok;
+dal `task/047-daily-merge-challenge` duruyor, son incelenen HEAD `aa6f867`; owner onaylı kilitli brif —
+GAME_DESIGN §5.11). Entegrasyondan ÖNCE tamamlanan doğrulama: masaüstü doğrulama (4 yeni suite
 356 kontrol), 5 mercekli çekişmeli inceleme (BLOCKER / HIGH 0; MEDIUM'lar giderildi), mutasyon kanıtı
 (35/35), 6 boyut × 15 = 90 kare görsel kapı ve tam masaüstü kapısı (41 koşu, 5262 kontrol, 0 hata, 0
 SCRIPT ERROR; aday `e002dff`) ve **Samsung A36 yerel kapısı GEÇTİ (2026-10-02; yalnız QA paketi, Google
 TEST reklamları, telefon saati değişmedi — kabul edilen gün QA kancasıyla; cihaz bulgusu yok, düzeltme
 commit'i yok; QA paketi kaldırıldı, `com.example` dokunulmadı)**. **Son engel — monoton kabul edilen
-gün: KAPATILDI (2026-10-02, `f8c8ffb`)** — saat geri alınınca eski bir meydan okuma artık gösterilmez /
+gün: KAPATILDI (2026-10-02, `f8c8ffb`, main'de)** — saat geri alınınca eski bir meydan okuma artık gösterilmez /
 başlatılmaz: meydan okuma kabul ettiği günü mevcut `DailyRewards.observe_day()` ile kayda işler (yeni
 alan / şema / saat yok; Günlük Ödüller ve görev kuralları aynen). Önce düzeltmesiz `7395280`'de yeniden
 üretildi (yeni gün suite'i 10 hata); düzeltmeyle 38/38, mutasyon M35 / M36 öldü, tam masaüstü kapısı (42
 koşu, 5261 kontrol, 0 hata, 0 SCRIPT ERROR) ve **hedefli Samsung A36 kapısı GEÇTİ** (1–13: D → D+1 → geri D;
 Ana Sayfa / pencere / BAŞLA / TEKRAR DENE / soğuk açılış D+1'de kaldı, eski gün açılmadı, +20 tekrar
 kazanılmadı, yan etki yok, logcat temiz; QA paketi kaldırıldı, üretim paketi kurulmadı, `com.example`
-dokunulmadı) — PROJECT_STATUS §4.27. **Sıradaki adım: owner incelemesi + main entegrasyon kararı**
-(merge EDİLMEDİ). Preset tablosu kilitli; A36 playtest'i
-yeniden ayar önerirse ayrı owner kararı. Ürün işi yukarıdaki release izini (3a–8) kapatmaz.
+dokunulmadı) — PROJECT_STATUS §4.27. Entegrasyon ve bu doküman eşitlemesi sırasında hiçbir kapı
+yeniden koşulmadı.
+Preset tablosu kilitli; A36 playtest'i yeniden ayar önerirse ayrı owner kararı. Ürün işi yukarıdaki
+release izini (3a–8) kapatmaz.
+
+**Sıradaki ürün / stabilizasyon görevi: owner seçer.** Tanımlı bir sonraki görev (TASK/048) YOK;
+aşağıdaki açık maddelerden hiçbiri kendiliğinden sıradaki görev seçilmez.
 
 Önceden var olan, owner kararı bekleyen öneriler (**BAŞLAMADI**): sonuç gecikmesi
 (RESULT_DELAY) bitiren board'a bağlı değil — Mola açıkken Büyütücü dönüşümü round'u bitirip
@@ -621,7 +631,9 @@ Android GERİ (Ana Sayfa; parmak yatışması yok) → pill (+300 ms) → BAŞLA
 süresi; 800 ms'lik gecikmeye pratikte zor ama kuramsal olarak sığar. Olursa eski normal round'un
 geçiş reklamı denemesi ve sonucu (o anki level = meydan okumanın nöbetçi level'ı) canlı meydan okuma
 tahtasının üstüne açılabilir — düğmeleri round türüne göre meydan okumaya gider, ekonomi çift
-sayımı yok. Normal yarışın parçası olarak AÇIK kaydedildi (§4.27).
+sayımı yok. Normal yarışın parçası olarak AÇIK kaydedildi (§4.27). Ayrıca AÇIK: HUD hedef kartı T5
+adını "Büyük Dumpl…" diye kırpar (önceden var olan kart, normal Level 3'te de; TASK/047 brifi
+"hedef kartını koru" — PROJECT_STATUS §4.27 (d)).
 
 Her madde owner girdisi ister; hiçbiri tahmin edilmez ya da uydurulmaz.
 Gizlilik politikası, upload anahtarı ve AdMob kimliklerinde repoda yalnız

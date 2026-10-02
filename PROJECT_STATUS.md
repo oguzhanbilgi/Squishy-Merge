@@ -68,21 +68,24 @@ TEEN / ADULT yönlendirmesi ve 18. yaş günü geçişi aynen, yaş arayüzü a�
 AGE_BAND_ROUTING §9.10). **TASK/046.2 (2026-10-01, main'de — masaüstü + Samsung A36 yerel kapısı
 GEÇTİ, owner onayıyla ff-only alındı `afc10be → 6d3dbca`):** iptal edilen oyun dokunuşu (Android ACTION_CANCEL →
 `canceled == true`) artık bekleyen parçayı düşürmez — `GameBoard._unhandled_input`'ta tek satırlık
-koruma, TASK/047'nin önkoşulu (§4.26). **TASK/047 (2026-10-01, dalda — Günlük Merge Challenge V1,
-oyuncuya "MEYDAN OKUMA"; masaüstü kapıları tamam, Samsung A36 yerel kapısı GEÇTİ 2026-10-02 — bulgu yok;
-son engel "monoton kabul edilen gün" `f8c8ffb` ile kapatıldı, hedefli A36 kapısı GEÇTİ 2026-10-02;
-main'e alınması owner onayı bekliyor):** isteğe bağlı günlük mod — hedef tier'ı sınırlı gerçek bırakışla, günün
+koruma, TASK/047'nin önkoşulu (§4.26). **TASK/047 (2026-10-01; main'de 2026-10-02 — Günlük Merge
+Challenge V1, oyuncuya "MEYDAN OKUMA"; masaüstü kapıları tamam, Samsung A36 yerel kapısı GEÇTİ — bulgu
+yok; son engel "monoton kabul edilen gün" `f8c8ffb` ile kapatıldı, hedefli A36 kapısı 13/13 GEÇTİ;
+owner onayıyla ff-only alındı `6d3dbca → aa6f867`):** isteğe bağlı günlük mod — hedef tier'ı sınırlı gerçek bırakışla, günün
 deterministik parça dizisiyle oluştur; kilitli haftalık preset tablosu, güç / devam yok, ilerleme
 yalıtımı (XP / görev / başarım / sandık / yıldız / istatistik / sonsuz etkisi yok), ilk başarı günde bir
-kez +20 Hamur, Ana Sayfa'da GÖREVLER'in altında giriş (§4.27). Release izi ayrı. Sırada: içerik
+kez +20 Hamur, Ana Sayfa'da GÖREVLER'in altında giriş (§4.27). Sıradaki ürün / stabilizasyon görevi
+owner seçimi bekliyor (TASK/048 tanımlı değil). Release izi ayrı. Sırada: içerik
 derecesi + yargı bölgesi kararları + 13+ seçici uyum riski (owner) → gizlilik
 politikası → upload anahtarı → gerçek AdMob kimlikleri → mağaza varlıkları / Play Console,
 sonra ilk imzalı üretim AAB'si ve M10 (Play kapalı test) ·
-**Branch / main:** `task/047-daily-merge-challenge` (main `6d3dbca`'dan: `befbbbd` model + kayıt ·
-`bf553e0` board · `201764d` akış + yalıtım · `e805736` arayüz + sonuçlar · `54e8411` + `e002dff` inceleme
-düzeltmeleri · `743e5d7` kapı / doküman · `7395280` A36 kapısı kaydı · `f8c8ffb` monoton gün · monoton
-gün doküman / hedefli A36 kaydı; A36 GEÇTİ 2026-10-02, hedefli monoton gün kapısı dahil) — dalda,
-main'e alınması owner onayı bekliyor, merge EDİLMEDİ · `main` == origin/main == `6d3dbca` — TASK/046.2
+**Branch / main:** `main` == origin/main == `aa6f867` — TASK/047 `task/047-daily-merge-challenge`
+(main `6d3dbca`'dan, 10 commit: `befbbbd` model + kayıt · `bf553e0` board · `201764d` akış + yalıtım ·
+`e805736` arayüz + sonuçlar · `54e8411` + `e002dff` inceleme düzeltmeleri · `743e5d7` kapı / doküman ·
+`7395280` A36 kapısı kaydı · `f8c8ffb` monoton gün · `aa6f867` monoton gün doküman / hedefli A36 kaydı;
+A36 GEÇTİ 2026-10-02, hedefli monoton gün kapısı dahil) owner onayıyla ff-only entegre (`6d3dbca →
+aa6f867`, 2026-10-02; merge commit / rebase / squash / cherry-pick / force push yok; dal duruyor, son
+incelenen HEAD `aa6f867`) · önce TASK/046.2
 `task/046-2-action-cancel-drop-guard` (`471a2ab` · `2149fc3` · `b364a0c` · `6d3dbca` doküman / A36 kapısı
 kaydı) owner onayıyla ff-only entegre (`afc10be → 6d3dbca`, 2026-10-01; merge commit yok; dal duruyor) ·
 önce `afc10be` (`b90bc3c` üstünde yalnız doküman eşitlemesi) — TASK/046 `task/046-daily-weekly-missions`
@@ -2186,15 +2189,18 @@ formatına yalnız `haptics_enabled` (varsayılan true) eklendi. Ayrıntı ve
 
 ### 4.27 Günlük Merge Challenge V1 — MEYDAN OKUMA (TASK/047)
 
-> **dalda, main'e alınması owner onayı bekliyor** — `task/047-daily-merge-challenge`, main `6d3dbca`'dan
-> (`befbbbd` model + kayıt · `bf553e0` board · `201764d` akış + yalıtım · `e805736` arayüz + sonuçlar ·
-> `54e8411` + `e002dff` çekişmeli inceleme düzeltmeleri · `743e5d7` regresyon / görsel kapı + doküman ·
-> `7395280` A36 kapısı kaydı · `f8c8ffb` monoton gün · monoton gün doküman / hedefli A36 kaydı).
-> **Masaüstü doğrulama + 5 mercekli çekişmeli inceleme + mutasyon + 6 boyut görsel kapı + tam masaüstü
-> kapısı tamam; Samsung A36 yerel kapısı GEÇTİ (2026-10-02)** — yalnız QA paketi, cihaz bulgusu yok,
-> düzeltme commit'i yok. **Son engel "monoton kabul edilen gün" KAPATILDI (`f8c8ffb`); tam masaüstü
-> kapısı + hedefli Samsung A36 kapısı GEÇTİ (2026-10-02)** — aşağıda. main DEĞİŞMEDİ. Kurallar ve
-> sayılar GAME_DESIGN §5.11'de kilitli (owner onaylı brif), görünüm UI_VISUAL_SYSTEM §26.
+> **TAMAM, main'de** — owner onayıyla ff-only main'e alındı (`6d3dbca → aa6f867`, 2026-10-02; merge
+> commit / rebase / squash / cherry-pick / force push yok). Dal `task/047-daily-merge-challenge` duruyor
+> (son incelenen HEAD `aa6f867`; main `6d3dbca`'dan: `befbbbd` model + kayıt · `bf553e0` board ·
+> `201764d` akış + yalıtım · `e805736` arayüz + sonuçlar · `54e8411` + `e002dff` çekişmeli inceleme
+> düzeltmeleri · `743e5d7` regresyon / görsel kapı + doküman · `7395280` A36 kapısı kaydı · `f8c8ffb`
+> monoton gün · `aa6f867` monoton gün doküman / hedefli A36 kaydı). **Masaüstü doğrulama + 5 mercekli
+> çekişmeli inceleme + mutasyon + 6 boyut görsel kapı + tam masaüstü kapısı tamam; Samsung A36 yerel
+> kapısı GEÇTİ (2026-10-02)** — yalnız QA paketi, cihaz bulgusu yok, düzeltme commit'i yok. **Son engel
+> "monoton kabul edilen gün" KAPATILDI (`f8c8ffb`, main'de); tam masaüstü kapısı (42 koşu, 5261 kontrol,
+> 0 hata, 0 SCRIPT ERROR, bot 2/2) + hedefli Samsung A36 kapısı (13/13) GEÇTİ (2026-10-02)** — aşağıda;
+> hepsi entegrasyondan ÖNCE. Kurallar ve sayılar GAME_DESIGN §5.11'de kilitli (owner onaylı brif),
+> görünüm UI_VISUAL_SYSTEM §26.
 
 - **Ürün:** isteğe bağlı günlük mod — hedef tier'ı sınırlı GERÇEK bırakışla, günün deterministik parça
   dizisiyle oluştur; süre yok. Kilitli haftalık preset (Pzt T5·600·18 · Sal T5·480·16 · Çar T6·600·38 ·
@@ -3101,8 +3107,12 @@ Owner'ın yapacağı / onaylayacağı:)*
 - **TASK/046.2** — ACTION_CANCEL bırakma koruması (TASK/047 önkoşulu) → ✅ **main'de** (§4.26;
   masaüstü + Samsung A36 kapısı GEÇTİ; owner onayıyla ff-only `afc10be → 6d3dbca`, 2026-10-01).
 - ~~**TASK/047** — Günlük Merge Challenge — BAŞLAMADI; sözleşmesi tasarlanmamıştı.~~ → owner onaylı
-  kilitli brifle uygulandı, **dalda** (`task/047-daily-merge-challenge`, §4.27, GAME_DESIGN §5.11);
-  masaüstü + Samsung A36 kapısı GEÇTİ (2026-10-02); main'e alınması owner onayı bekliyor.
+  kilitli brifle uygulandı → ✅ **main'de** (§4.27, GAME_DESIGN §5.11; masaüstü + Samsung A36 kapısı +
+  hedefli monoton gün kapısı GEÇTİ; owner onayıyla ff-only `6d3dbca → aa6f867`, 2026-10-02; dal
+  `task/047-daily-merge-challenge` duruyor).
+- **Sıradaki görev:** owner seçer — TASK/048 tanımlı değil. Açık, ayrı maddeler (normal RESULT_DELAY
+  yarışı + çapraz örneği, Koleksiyon kartı + GERİ, genel GUI ACTION_CANCEL, T5 hedef kartı kırpması —
+  §4.24 / §4.26 / §4.27) kendiliğinden sıradaki görev seçilmez.
 - ~~**Kararlılık (öneri — TASK/045 engeli değil):** atomik kayıt (`save_game()` yerinde kesip
   yazıyor; geçici dosya + yedekten kurtarma) · güç hedefleme bırakış-düşürme (Büyütücü ve
   Bomba hedef dokunuşunun bırakışı bekleyen parçayı da düşürebilir) · Koleksiyon detayı
