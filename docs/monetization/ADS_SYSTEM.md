@@ -98,7 +98,7 @@ kaldı; skinler asla reklam/paraya bağlı değil.
 > round'ların geçiş reklamı davranışı aynen. Meydan okumada geçen süre mevcut 15 dakikalık aktif süre
 > uygunluğuna sayılır (mevcut sözleşme, yeni yerleşim değil).
 
-> **TASK/048 (dalda) — doğal mola round'a aittir (GAME_DESIGN §12.2):** yeni yerleşim / politika DEĞİL.
+> **TASK/048 (main'de, `b9ae345`) — doğal mola round'a aittir (GAME_DESIGN §12.2):** yeni yerleşim / politika DEĞİL.
 > Round kesinleştikten sonraki RESULT_DELAY (0,8 sn) içinde round değiştirilirse (mola "Yeniden Başlat" /
 > "Ana Menüye Dön" → yeni level / Sonsuz / meydan okuma) eski round `try_show_interstitial("round_finish")`
 > DENEMEZ (olay bile yok; uygunluk, hazır reklam ve aktif saat korunur) ve eski sonuç açılmaz; reklam

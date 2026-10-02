@@ -1,6 +1,6 @@
 # PROJECT_STATUS.md — Squishy Merge, tam proje raporu
 
-**Son güncelleme:** 2026-10-02 · **Durum:** M0–M8 tamamlandı; M8.5–M8.10
+**Son güncelleme:** 2026-10-03 · **Durum:** M0–M8 tamamlandı; M8.5–M8.10
 (release/product stabilization: UI yeniden inşası, gameplay cilası, ses,
 AdMob TEST-reklam monetizasyonu + günlük ödüller, ilk açılış tutorial'ı)
 tamamlandı ve main'de; M9-01 production release hazırlığı (kod) tamamlandı,
@@ -74,24 +74,24 @@ yok; son engel "monoton kabul edilen gün" `f8c8ffb` ile kapatıldı, hedefli A3
 owner onayıyla ff-only alındı `6d3dbca → aa6f867`):** isteğe bağlı günlük mod — hedef tier'ı sınırlı gerçek bırakışla, günün
 deterministik parça dizisiyle oluştur; kilitli haftalık preset tablosu, güç / devam yok, ilerleme
 yalıtımı (XP / görev / başarım / sandık / yıldız / istatistik / sonsuz etkisi yok), ilk başarı günde bir
-kez +20 Hamur, Ana Sayfa'da GÖREVLER'in altında giriş (§4.27). **TASK/048 (2026-10-02, dalda — normal
-RESULT_DELAY eski sonuç yarışı koruması; masaüstü + Samsung A36 yerel kapısı GEÇTİ, bulgu yok; main'e alınması
-owner onayı bekliyor):** mola açıkken biten round 0,8 sn içinde değiştirilince (yeniden başlatma / Ana Menüye Dön →
-başka level / Sonsuz / meydan okuma) eski sonuç ve geçiş reklamı artık açılmaz — bellek içi round nesli
-(`_clear_board`'da ilerler) gecikmeden önce yakalanır, sonra doğrulanır; son engel (geçiş reklamı fırlatma aralığı)
-de kapatıldı — reklam SDK'ya verildikten sonra round değişimi mola bitene dek ertelenir; süre, ilerleme, reklam
-politikası ve TASK/047 aynen (§4.28). Sonraki ürün / stabilizasyon görevi owner seçimi. Release izi ayrı. Sırada:
-içerik
-derecesi + yargı bölgesi kararları + 13+ seçici uyum riski (owner) → gizlilik
+kez +20 Hamur, Ana Sayfa'da GÖREVLER'in altında giriş (§4.27). **TASK/048 (2026-10-02; main'de — normal
+RESULT_DELAY eski sonuç yarışı koruması + geçiş reklamı fırlatma sahipliği; masaüstü + Samsung A36 kapıları GEÇTİ;
+owner onayıyla ff-only alındı `848797a → b9ae345`):** mola açıkken biten round 0,8 sn içinde değiştirilince
+(yeniden başlatma / Ana Menüye Dön → başka level / Sonsuz / meydan okuma) eski sonuç ve geçiş reklamı artık açılmaz —
+bellek içi round nesli (`_clear_board`'da ilerler) gecikmeden önce yakalanır, sonra doğrulanır; son engel (geçiş
+reklamı fırlatma aralığı) de kapatıldı — reklam SDK'ya verildikten sonra round değişimi mola bitene dek ertelenir;
+süre, ilerleme, reklam politikası ve TASK/047 aynen (§4.28). Sonraki ürün / stabilizasyon görevi owner seçimi
+(TASK/049 tanımlanmadı).
+Release izi ayrı. Sırada: içerik derecesi + yargı bölgesi kararları + 13+ seçici uyum riski (owner) → gizlilik
 politikası → upload anahtarı → gerçek AdMob kimlikleri → mağaza varlıkları / Play Console,
 sonra ilk imzalı üretim AAB'si ve M10 (Play kapalı test) ·
-**Branch / main:** `task/048-result-delay-race-guard` (main `848797a`'dan: `c58c88d` düzeltme · `9ab9917`
-test · `83dc208` nesil sırası · `2592a1b` test sağlamlaştırma · `0f6996d` doküman / A36 kaydı · son engel `3633d6a`
-düzeltme · `8157b56` + `f5d005a` + `1b5b300` test · `441a114` yorum · doküman / hedefli A36 kaydı; A36 GEÇTİ
-2026-10-02) —
-dalda, main'e alınması owner onayı bekliyor, merge EDİLMEDİ · `main` == origin/main == `848797a` — TASK/047
-doküman eşitlemesi `docs/047-main-sync` owner onayıyla ff-only (`aa6f867 → 848797a`, 2026-10-02; merge commit
-yok; dal duruyor) · önce TASK/047 `task/047-daily-merge-challenge`
+**Branch / main:** `main` == origin/main == `b9ae345` — TASK/048 `task/048-result-delay-race-guard` (main
+`848797a`'dan, 11 commit: `c58c88d` düzeltme · `9ab9917` test · `83dc208` nesil sırası · `2592a1b` test
+sağlamlaştırma · `0f6996d` doküman / A36 kaydı · son engel `3633d6a` düzeltme · `8157b56` + `f5d005a` + `1b5b300`
+test · `441a114` yorum · `b9ae345` doküman / hedefli A36 kaydı; A36 GEÇTİ 2026-10-02) owner onayıyla ff-only entegre
+(`848797a → b9ae345`, 2026-10-02; merge commit / rebase / squash / cherry-pick / force push yok; dal duruyor, son
+incelenen HEAD `b9ae345`) · önce TASK/047 doküman eşitlemesi `docs/047-main-sync` owner onayıyla ff-only (`aa6f867 →
+848797a`, 2026-10-02; merge commit yok; dal duruyor) · önce TASK/047 `task/047-daily-merge-challenge`
 (main `6d3dbca`'dan, 10 commit: `befbbbd` model + kayıt · `bf553e0` board · `201764d` akış + yalıtım ·
 `e805736` arayüz + sonuçlar · `54e8411` + `e002dff` inceleme düzeltmeleri · `743e5d7` kapı / doküman ·
 `7395280` A36 kapısı kaydı · `f8c8ffb` monoton gün · `aa6f867` monoton gün doküman / hedefli A36 kaydı;
@@ -2029,7 +2029,7 @@ formatına yalnız `haptics_enabled` (varsayılan true) eklendi. Ayrıntı ve
   (erişilemez) · "birleşme / BİRLEŞTİRME / merge" üç kelime (katalog metni kilitli) ·
   `progression_shots` / `result_shots` referans kareleri kayıttaki görev durumuna göre rozet
   gösterebilir.
-- **Önceden var olan, kapsam dışı (düzeltilmedi):** (1) *(→ TASK/048'de dalda kapatıldı, §4.28)*
+- **Önceden var olan, kapsam dışı (düzeltilmedi):** (1) *(→ TASK/048 ile kapatıldı — main'de `b9ae345`, §4.28)*
   **RESULT_DELAY penceresi bitiren board'a
   bağlı değil** (inceleme MEDIUM, TASK/046'dan eski): Mola açıkken Büyütücü dönüşümü round'u
   bitirebilir; 0,8 sn içinde "Yeniden Başlat" → eski round'un geçiş reklamı / sonucu (görev hapı
@@ -2194,8 +2194,8 @@ formatına yalnız `haptics_enabled` (varsayılan true) eklendi. Ayrıntı ve
   `com.example.squishymerge` dokunulmadı. (İlk normal dokunuş denemesi geçersiz sayıldı: harness'in
   `level` komutu Ana Sayfa'yı atladığı için otomatik GÜNLÜK ÖDÜLLER penceresi tahtanın üstünde kaldı —
   kurulum hatası, ürün bulgusu değil; pencere gerçek KAPAT ile kapatılıp tekrarlandı.)
-- **Ayrı kalan, düzeltilmedi (owner kararı):** RESULT_DELAY yarışı (§4.24 — *TASK/048'de dalda kapatıldı,
-  §4.28*); basılı Koleksiyon kartı +
+- **Ayrı kalan, düzeltilmedi (owner kararı):** RESULT_DELAY yarışı (§4.24 — *TASK/048 ile kapatıldı — main'de
+  `b9ae345`, §4.28*); basılı Koleksiyon kartı +
   GERİ sentetik bırakışı (§4.23); genel modal / karartma iptal davranışı (`UiKit.attach_dim_close`,
   `ShopScreen._on_dim_input` iptal bırakışında da kapatır) ve **kapıdaki yeni gözlem:** güç düğmesi
   üzerinde gerçek ACTION_CANCEL gücü çalıştırır (A36: Sarsıntı stoğu 1 → 0; GUI düğmesi iptal edilmiş
@@ -2355,8 +2355,8 @@ formatına yalnız `haptics_enabled` (varsayılan true) eklendi. Ayrıntı ve
   dokunuş gönderilmedi, ≥ 60 sn salt okunur yoklamadan sonra durum yeniden okunup devam edildi. Cihaz
   bulgusu yok, düzeltme commit'i yok.
 - **Kayda geçen, DÜZELTİLMEYEN (owner kararı / kapsam dışı):** (a) ~~kalıtılan gün uç durumu~~ → 2026-10-02
-  kapatıldı (yukarıda "Monoton gün"); (b) *(→ TASK/048'de dalda kapatıldı, §4.28)* **normal RESULT_DELAY
-  yarışı** (§4.24)
+  kapatıldı (yukarıda "Monoton gün"); (b) *(→ TASK/048 ile kapatıldı — main'de `b9ae345`, §4.28)* **normal
+  RESULT_DELAY yarışı** (§4.24)
   ve çapraz örneği: gecikmedeki normal sonuç → Mola / Ana Menüye Dön → Android GERİ (yatışmasız) → pill →
   BAŞLA ≈ 600 ms + tepki — eski normal sonucu / geçiş reklamı denemesi canlı meydan okuma tahtasının
   üstüne açılabilir (düğmeleri meydan okumaya gider, ekonomi çift sayımı yok); normal yol bu görevde
@@ -2372,13 +2372,16 @@ formatına yalnız `haptics_enabled` (varsayılan true) eklendi. Ayrıntı ve
 
 ### 4.28 Normal RESULT_DELAY eski sonuç yarışı koruması (TASK/048)
 
-> **dalda, main'e alınması owner onayı bekliyor** — `task/048-result-delay-race-guard`, main `848797a`'dan
-> (`c58c88d` düzeltme · `9ab9917` test · `83dc208` nesil sırası (inceleme) · `2592a1b` test sağlamlaştırma ·
-> `0f6996d` doküman / A36 kaydı). **Önce yeniden üretim, mutasyon 9/9, 5 mercekli inceleme, tam masaüstü kapısı ve
-> Samsung A36 yerel kapısı GEÇTİ (2026-10-02)** — yalnız QA paketi, cihaz bulgusu yok, düzeltme commit'i yok. **Son
-> engel — geçiş reklamı fırlatma aralığı — KAPATILDI** (`3633d6a` düzeltme · `8157b56` + `f5d005a` + `1b5b300` test ·
-> `441a114` yorum; aşağıda "Son engel"): önce yeniden üretim, mutasyon 17/17, çekişmeli inceleme, tam masaüstü kapısı,
-> hedefli A36 kapısı. main DEĞİŞMEDİ.
+> **✅ TAMAM, main'de** — owner onayıyla ff-only `848797a → b9ae345` (2026-10-02; merge commit / rebase / squash /
+> cherry-pick / force push yok; dal `task/048-result-delay-race-guard` duruyor, son incelenen HEAD `b9ae345`). Zincir
+> (main `848797a`'dan, 11 commit): `c58c88d` düzeltme · `9ab9917` test · `83dc208` nesil sırası (inceleme) ·
+> `2592a1b` test sağlamlaştırma · `0f6996d` doküman / A36 kaydı · `3633d6a` son engel düzeltmesi · `8157b56` +
+> `f5d005a` + `1b5b300` test · `441a114` yorum · `b9ae345` doküman / hedefli A36 kaydı. Entegrasyondan ÖNCE: önce
+> yeniden üretim, mutasyon 9/9, 5 mercekli inceleme, tam masaüstü kapısı ve Samsung A36 yerel kapısı GEÇTİ (yalnız
+> QA paketi, cihaz bulgusu yok); **son engel — geçiş reklamı fırlatma aralığı — KAPATILDI** (aşağıda "Son engel"):
+> odak suite 196/196, mutasyon 17/17, çekişmeli inceleme, tam masaüstü kapısı (43 / 43 suite, 5457 kontrol, 0 hata,
+> 0 SCRIPT ERROR, bot 2/2), hedefli A36 kapısı GEÇTİ. Entegrasyon ve doküman eşitlemesi sırasında hiçbir kapı yeniden
+> koşulmadı.
 
 - **Eski yarış (§4.24'te kayıtlı, TASK/046 A36 kapısında cihazda 1/1 üretilmişti):** normal round kesinleşince
   (`Main._on_round_finished`) ilerleme hemen yazılır, sonuç ve doğal mola geçiş reklamı RESULT_DELAY (0,8 sn) SONRA
@@ -3258,7 +3261,8 @@ Owner'ın yapacağı / onaylayacağı:)*
   haftalık ilerleme + otomatik Hamur (tek / çok görev hapı), GÖREVLER girişi ve penceresi
   (güvenli alan, geri / X / karartma, girişe ve X'e hızlı çift dokunuş, yatışma sonrası ilk
   dokunuş, banner yuvası), kayıt kurtarma, TASK/043–045.2 korumaları.
-- Önceden var olan RESULT_DELAY bulgusu (§4.24) için ayrı görev isteyip istemediği.
+- Önceden var olan RESULT_DELAY bulgusu (§4.24) için ayrı görev isteyip istemediği. *(→ TASK/048 olarak yapıldı —
+  main'de `b9ae345`, 2026-10-02, §4.28.)*
 - Sonra owner onayıyla main'e ff-only.
 
 ### Gelecek görevler (BAŞLAMADI — kod yok)
@@ -3278,11 +3282,12 @@ Owner'ın yapacağı / onaylayacağı:)*
   hedefli monoton gün kapısı GEÇTİ; owner onayıyla ff-only `6d3dbca → aa6f867`, 2026-10-02; dal
   `task/047-daily-merge-challenge` duruyor).
 - **TASK/048** — normal RESULT_DELAY eski sonuç yarışı koruması (normal + çapraz kip) + son engel (geçiş reklamı
-  fırlatma aralığı) → **dalda** (§4.28; masaüstü + Samsung A36 kapıları GEÇTİ; main'e alınması owner onayı bekliyor).
-- **Sıradaki görev:** owner seçer. Açık, ayrı maddeler (Koleksiyon kartı + GERİ, genel GUI ACTION_CANCEL,
-  T5 hedef kartı kırpması — §4.26 / §4.27; TASK/048 incelemesinin kaydettiği mola altında açılan sonuç /
-  `_start_level` yatışması — §4.28; geçiş reklamı açılış aralığı son engelde kapatıldı) kendiliğinden sıradaki görev
-  seçilmez.
+  fırlatma aralığı) → ✅ **main'de** (§4.28; masaüstü + Samsung A36 kapıları GEÇTİ; owner onayıyla ff-only `848797a →
+  b9ae345`, 2026-10-02; dal `task/048-result-delay-race-guard` duruyor).
+- **Sıradaki görev:** owner seçer (TASK/049 tanımlanmadı). Açık, ayrı maddeler — mola altında açılan sonuç ·
+  `_start_level` yatışması / çift dokunuş / basılı parmak · hiç bitmeyen molada molanın çıkış kapısı · erteleme
+  sürerken Ayarlar (görsel) — §4.28; Koleksiyon kartı + GERİ · genel GUI ACTION_CANCEL · T5 hedef kartı kırpması —
+  §4.26 / §4.27 — kendiliğinden sıradaki görev seçilmez.
 - ~~**Kararlılık (öneri — TASK/045 engeli değil):** atomik kayıt (`save_game()` yerinde kesip
   yazıyor; geçici dosya + yedekten kurtarma) · güç hedefleme bırakış-düşürme (Büyütücü ve
   Bomba hedef dokunuşunun bırakışı bekleyen parçayı da düşürebilir) · Koleksiyon detayı
