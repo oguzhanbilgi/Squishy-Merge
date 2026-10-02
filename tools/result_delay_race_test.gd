@@ -37,15 +37,20 @@ extends Node
 ##   M nesil      board değişimi (yeni / yeniden / terk / çıkış) ilerletir; mola / Ayarlar / öne dönüş /
 ##                sekme / sonuç sunumu ilerletmez; eski nesil reddedilir; yalnız bellekte
 ##   N reklam     geçerli normal sonuç geçiş reklamı yolu aynen (arka plan / öne dönüş dahil); eski round
-##                reklam DENEMEZ; reklam açıkken değiştirilen round'un sonucu kapanışta / gösterim hatasında
-##                açılmaz ve yönetici temiz kalır; meydan okuma hiç denemez
+##                reklam DENEMEZ; reklam açıkken ertelenmeyen yoldan değiştirilen round'un sonucu kapanışta /
+##                gösterim hatasında açılmaz ve yönetici temiz kalır; meydan okuma hiç denemez
+##   P fırlatma   sahiplik doğrulandı, reklam SDK'ya VERİLDİ, tam ekran henüz açılmadı: açık molanın GERÇEK
+##                Devam Et / Yeniden Başlat / Ana Menüye Dön dokunuşu — reklam yalnız onu isteyen round
+##                ekranın sahibiyken açılır; round değişimi molanın sonunda (kapanış / gösterim hatası / onay
+##                zaman aşımı / öne dönüş payı) eski sonucun YERİNE; yeni round'un reklamı + sonucu aynen,
+##                meydan okuma hiç denemez, ilerleme bir kez
 ##   O kaynak     RESULT_DELAY 0,8 / 300 ms / iptal koruması aynen; nesil tek noktada; kayıt şeması aynı
 
 const MAIN_SCENE: PackedScene = preload("res://scenes/main.tscn")
 const ENDLESS: String = "res://resources/levels/endless.tres"
 const DIR: String = "user://qa_result_delay_race"
 const PATH: String = DIR + "/save.json"
-const SECTIONS: int = 15
+const SECTIONS: int = 16
 const MON: String = "2026-09-28"
 const THU: String = "2026-10-01"
 const BACK_GAP_MSEC: int = 320
@@ -112,6 +117,7 @@ func _ready() -> void:
 	await _tutorial()
 	await _generation()
 	await _ads()
+	await _launch_window()
 	_source_contract()
 	_c("%d/%d bölüm sonuna kadar koştu (betik hatası yok)" % [_sections_done, SECTIONS], _sections_done == SECTIONS)
 
@@ -840,8 +846,9 @@ func _ads() -> void:
 	else:
 		_c("yeni round'un geçerli bitişi geçiş reklamını gösterdi (politika aynen)", false)
 
-	# N4 / N5 — reklam açıkken round değişir (üretimde reklam oyunu örter — savunma; QA kancası: mola Yeniden
-	# Başlat işleyicisi): kapanışta da, gösterim hatasında da eski sonuç açılmaz, yönetici temiz kalır.
+	# N4 / N5 — reklam açıkken round ERTELENMEYEN bir yoldan değişir (Harita kartı işleyicisi — üretimde
+	# erişilemez: kabuk gizli, reklam oyunu örter; savunma, QA kancası. Molanın kendi eylemleri ertelenir — P):
+	# kapanışta da, gösterim hatasında da eski sonuç açılmaz (geri çağrı nesli doğrular), yönetici temiz kalır.
 	for mode: String in ["kapanış", "gösterim hatası"]:
 		await _fresh(true)
 		ads = _main._ads
@@ -855,7 +862,12 @@ func _ads() -> void:
 			and ads.interstitial_state() == MonetizationManager.InterstitialState.SHOWING)
 		if mode == "kapanış":
 			fake.emit_interstitial_showed(id)
-		_main._on_pause_restart()
+			# Mola sürerken ertelenen round değişimi (molanın Yeniden Başlat işleyicisi); ardından gelen ertelenmeyen
+			# değişim onu DÜŞÜRÜR — eski erteleme sonraki round'un sonucunu çalamaz.
+			_main._pause.restart_pressed.emit()
+			await _settle(1)
+			_c("  … ön koşul: reklam açıkken molanın Yeniden Başlat'ı ertelendi (board aynı)", _main._board == board)
+		_main._screens[1].level_chosen.emit(_level(4))
 		await _settle(2)
 		next = _main._board
 		_track(next)
@@ -864,13 +876,21 @@ func _ads() -> void:
 		else:
 			fake.emit_interstitial_show_failed(id)
 		await _settle(3)
-		_c("reklam açıkken değiştirilen round (%s): ESKİ sonuç yeni board'un üstüne AÇILMADI" % mode,
-			not _main._result.visible and _shows == 0 and _main._board == next and not next.is_finished())
+		_c("reklam açıkken ertelenmeyen yoldan değiştirilen round (%s): ESKİ sonuç yeni board'un (level 4) üstüne AÇILMADI"
+			% mode, not _main._result.visible and _shows == 0 and _main._board == next and not next.is_finished()
+			and next.level.level_number == 4)
 		_c("  … yüzey GAMEPLAY (RESULT'a geçmedi)", ads.surface() == MonetizationManager.Surface.GAMEPLAY)
 		_c("  … yönetici temiz: bekleyen mola yok, reklam artık GÖSTERİLMİYOR%s" % (", 60 sn bekleme başladı"
 			if mode == "kapanış" else ""), not ads.break_pending()
 			and ads.interstitial_state() != MonetizationManager.InterstitialState.SHOWING
 			and (mode != "kapanış" or ads.fullscreen_cooldown_sec() > MonetizationManager.FULLSCREEN_AD_COOLDOWN_SEC - 1.0))
+		if mode == "kapanış":
+			var seq4: int = _main._result_seq
+			await _finish_now(next)
+			await _after(_last_timer)
+			_c("  … level 4'ün kendi bitişi KENDİ sonucunu açtı (WIN, level 4, tam bir kez) — düşürülen eski erteleme "
+				+ "çalışmadı, board aynı", _main._result.visible and _main._result.mode() == _mode("WIN")
+				and _shown_level() == 4 and _shows == 1 and _main._result_seq == seq4 + 2 and _main._board == next)
 
 	# N6 — meydan okuma hiç denemez.
 	await _fresh(true)
@@ -888,6 +908,211 @@ func _ads() -> void:
 		fake.interstitial_shows.size() == shows and AdEvents.count(&"interstitial_skipped_not_ready") == 0
 		and _main._result.visible and _main._result.mode() == _mode("CHALLENGE_WIN"))
 	_sections_done += 1
+
+
+# --- P) Geçiş reklamı fırlatma aralığı --------------------------------------------------------------------
+#
+# Sahiplik gecikmeden sonra doğrulandı ve reklam yerel SDK'ya VERİLDİ (gösterim çağrısı gitti — Google SDK'da
+# iptal yok: istenen reklam her hâlükârda açılır), tam ekran henüz açılmadı / kapanmadı. Bu aralıkta açık
+# molanın GERÇEK dokunuşu (üretim işleyicisi). Değişmez: reklam YALNIZ onu isteyen round ekranın sahibiyken
+# görünür — round değişimi molanın sonuna ertelenir ve eski sonucun YERİNE çalışır; ilerleme kesinleşmede bir kez.
+
+const LAUNCH_VARIANTS: Array[String] = ["istekten önce", "dokunuş yok", "devam et", "yeniden başlat · kapanış",
+	"ana menüye dön · kapanış", "yeniden başlat · gösterim hatası", "yeniden başlat · onay zaman aşımı",
+	"yeniden başlat · reklam kapanırken"]
+
+
+func _launch_window() -> void:
+	print("-- P: fırlatma aralığı — reklam SDK'ya verildi, tam ekran henüz açılmadı: açık molanın gerçek dokunuşu")
+	for variant: String in LAUNCH_VARIANTS:
+		await _launch_variant(variant)
+	_sections_done += 1
+
+
+func _launch_variant(variant: String) -> void:
+	await _fresh(true)
+	var ads: MonetizationManager = _main._ads
+	var fake: FakeAdBackend = ads._backend
+	var board: Node2D = await _start(_level(3))
+	await _wait_settled()
+	var ok: bool = await _finish_under_pause(board, false)
+	var timer: SceneTreeTimer = _last_timer
+	var board_id: int = board.get_instance_id()
+	var gen: int = _gen()
+	var rounds: int = _rounds()
+	var xp: int = SaveManager.player_xp()
+	var shows: int = fake.interstitial_shows.size()
+	var seq: int = _main._result_seq
+	var restart: bool = variant.begins_with("yeniden")
+	var leave: bool = variant.begins_with("ana menüye")
+	if variant == "istekten önce":
+		# B — gecikme İÇİNDE (istekten önce) gerçek "Yeniden Başlat": sahiplik gecikmeden sonra düşer, istek gitmez.
+		await _until_left(timer, 0.4)
+		var early: Node2D = await _restart_via_pause(true)
+		await _after(timer)
+		_c("[B] istekten ÖNCE gerçek 'Yeniden Başlat' (gecikmeden %.2f sn kala): yeni board, reklam İSTENMEDİ, " % _replace_left
+			+ "sonuç yok, reklam uygun + hazır kaldı", ok and _differs(early, board_id) and _replace_left > 0.0
+			and fake.interstitial_shows.size() == shows and not _main._result.visible and _shows == 0
+			and ads.interstitial_state() == MonetizationManager.InterstitialState.READY and ads.interstitial_eligible())
+		return
+	await _after(timer, 0)
+	var id: String = fake.interstitial_shows[-1] if fake.interstitial_shows.size() == shows + 1 else ""
+	_c("kurulum (%s): kazanma molada kesinleşti, gecikme doldu, sahiplik doğrulandı → reklam SDK'ya VERİLDİ; " % variant
+		+ "tam ekran henüz açılmadı, mola açık, sonuç yok", ok and id != "" and ads.break_pending()
+		and ads.interstitial_state() == MonetizationManager.InterstitialState.SHOWING and _main.is_pause_open()
+		and not _main._result.visible and _gen() == gen)
+	if id == "":
+		return
+	var button: int = 1 if restart else (2 if leave else 0)
+	var label: String = (["Devam Et", "Yeniden Başlat", "Ana Menüye Dön"] as Array[String])[button]
+	if variant != "dokunuş yok" and variant != "yeniden başlat · reklam kapanırken":
+		await _finger_tap(_center(_main._pause.buttons()[button]))
+		await _settle(2)
+		_c("  … fırlatma aralığında gerçek '%s' dokunuşu: mola kapandı, round DEĞİŞMEDİ (%s) — gösterim geri " % [label,
+			_owner_note(board_id, gen)] + "alınamaz, sahiplik mola bitene dek sürer", not _main.is_pause_open()
+			and _owns(board_id, gen) and not _main._result.visible)
+	match variant:
+		"yeniden başlat · gösterim hatası":
+			fake.emit_interstitial_show_failed(id)
+			await _settle(3)
+		"yeniden başlat · onay zaman aşımı":
+			await _wait(1.0)
+			_c("  … SDK 1 sn sessiz: round hâlâ değişmedi, mola sürüyor (%s)" % _owner_note(board_id, gen),
+				_owns(board_id, gen) and ads.break_pending())
+			await _wait(MonetizationManager.INTERSTITIAL_SHOW_CONFIRM_TIMEOUT)
+			await _settle(3)
+		"yeniden başlat · reklam kapanırken":
+			fake.emit_interstitial_showed(id)
+			await _settle(1)
+			get_tree().root.propagate_notification(NOTIFICATION_APPLICATION_PAUSED)
+			await _settle(2)
+			get_tree().root.propagate_notification(NOTIFICATION_APPLICATION_RESUMED)
+			await _settle(2)
+			await _finger_tap(_center(_main._pause.buttons()[1]))
+			await _settle(2)
+			_c("  … [E] reklam kapanırken (öne dönüş; kapanış olayı henüz yok) gerçek 'Yeniden Başlat': round DEĞİŞMEDİ "
+				+ "(%s), mola sürüyor" % _owner_note(board_id, gen), not _main.is_pause_open() and _owns(board_id, gen)
+				and ads.break_pending() and not _main._result.visible)
+			# Kapanış olayı hiç gelmez: yöneticinin öne dönüş payı molayı bitirir.
+			await _wait(MonetizationManager.SHOW_RESUME_GRACE + 0.3)
+			await _settle(3)
+		_:
+			fake.emit_interstitial_showed(id)
+			await _settle(1)
+			_c("  … [C] tam ekran reklam AÇILDIĞI anda ekranın sahibi hâlâ onu isteyen round (%s) — yeni round / " % _owner_note(
+				board_id, gen) + "Harita reklamın ALTINDA değil", _owns(board_id, gen) and not _main._result.visible)
+			fake.emit_interstitial_dismissed(id)
+			await _settle(3)
+	_c("  … [H] ilerleme kesinleşmede TAM bir kez: tur + XP mola boyunca ve sonrasında değişmedi", _rounds() == rounds
+		and SaveManager.player_xp() == xp)
+	_c("  … yönetici temiz: bekleyen mola yok, reklam artık GÖSTERİLMİYOR", not ads.break_pending()
+		and ads.interstitial_state() != MonetizationManager.InterstitialState.SHOWING)
+	if variant == "dokunuş yok" or variant == "devam et":
+		_c("  … [A] round sahibi kaldı → reklam kapanınca KENDİ sonucu tam bir kez (WIN, level 3), RESULT yüzeyi",
+			_owns(board_id, gen) and _main._result.visible and _main._result.mode() == _mode("WIN") and _shown_level() == 3
+			and _shows == 1 and _main._result_seq == seq + 2 and ads.surface() == MonetizationManager.Surface.RESULT)
+		return
+	_c("  … [D/E] ESKİ sonuç yeni durumun üstüne AÇILMADI (sunum hiç başlamadı)", not _main._result.visible
+		and _shows == 0 and _main._result_seq == seq + 1)
+	if variant.ends_with("kapanış") or variant.ends_with("kapanırken"):
+		_c("  … gerçek gösterim kapandı: 60 sn tam ekran bekleme başladı (politika aynen)",
+			ads.fullscreen_cooldown_sec() > MonetizationManager.FULLSCREEN_AD_COOLDOWN_SEC - 1.0)
+	else:
+		_c("  … gerçek gösterim olmadı: uygunluk kaldı, bekleme yok (politika aynen)", ads.interstitial_eligible()
+			and ads.fullscreen_cooldown_sec() == 0.0)
+	if leave:
+		_c("  … ertelenen 'Ana Menüye Dön' molanın sonunda çalıştı: board kalktı → Harita, yüzey RESULT değil",
+			_main._board == null and _main._active_tab == 1 and _main._screens[1].visible
+			and ads.surface() != MonetizationManager.Surface.RESULT)
+		await _back()
+		await _wait_settled()
+		await _finger_tap(_center(_main._screens[0].missions_button()))
+		await _settle(2)
+		_c("  … Android geri → Ana Sayfa; gerçek dokunuş GÖREVLER penceresini açtı (yeni durum etkileşimli)",
+			_main._active_tab == 0 and _main._missions.visible and not _main._result.visible)
+		await _launch_challenge(ads, fake)
+		return
+	var next: Node2D = _main._board
+	_track(next)
+	_c("  … ertelenen 'Yeniden Başlat' molanın sonunda çalıştı: yeni board etkin (bitmemiş, mola yok, donuk değil, "
+		+ "devam / refill yok, kesinleşmedi), yüzey GAMEPLAY", _differs(next, board_id) and _gen() > gen
+		and not next.is_finished() and not _main.is_pause_open() and not next._is_paused() and not _main._revive.visible
+		and not _main._refill.visible and not _main._round_finalized and ads.surface() == MonetizationManager.Surface.GAMEPLAY)
+	if variant == "yeniden başlat · onay zaman aşımı":
+		# Yönetici vazgeçtikten SONRA gelen gösterim olayları (SDK sözleşme dışı): eski sonuç açılmaz, yeni round aynen.
+		fake.emit_interstitial_showed(id)
+		fake.emit_interstitial_dismissed(id)
+		await _settle(3)
+		_c("  … onay zaman aşımından SONRA gelen geç gösterim / kapanış olayları: eski sonuç açılmadı, yeni round aynen",
+			not _main._result.visible and _shows == 0 and _main._board == next and not next.is_finished())
+	await _wait_settled()
+	var dropped: bool = await _drop_ok(next)
+	_c("  … yeni board GERÇEK dokunuşu aldı: tam 1 bırakış", dropped)
+	if variant == "yeniden başlat · kapanış":
+		await _launch_newer_round(ads, fake, next)
+
+
+## [F] Ertelenen yeniden başlatmanın yeni round'u: kendi geçerli bitişi geçiş reklamını aynı politikayla gösterir,
+## reklam kendi round'unun üstünde açılır, kapanınca YENİ round'un sonucu tam bir kez.
+func _launch_newer_round(ads: MonetizationManager, fake: FakeAdBackend, next: Node2D) -> void:
+	ads._tick_active(MonetizationManager.INTERSTITIAL_INTERVAL_SEC)
+	await _settle(2)
+	while not fake.pending_interstitial.is_empty():
+		fake.complete_interstitial_load(true)
+	await _settle(2)
+	_c("  … [F] ön koşul: yeni round için reklam yeniden UYGUN + HAZIR, bekleme bitti", ads.interstitial_eligible()
+		and ads.is_interstitial_ready() and ads.fullscreen_cooldown_sec() == 0.0)
+	var seq: int = _main._result_seq
+	var shows: int = fake.interstitial_shows.size()
+	var gen: int = _gen()
+	await _finish_now(next)
+	await _after(_last_timer, 0)
+	var id: String = fake.interstitial_shows[-1] if fake.interstitial_shows.size() == shows + 1 else ""
+	_c("  … [F] yeni round'un geçerli bitişi geçiş reklamını istedi (politika aynen)", id != "" and ads.break_pending())
+	fake.emit_interstitial_showed(id)
+	await _settle(1)
+	_c("  … [F] yeni round'un reklamı kendi round'unun üstünde açıldı", _owns(next.get_instance_id(), gen)
+		and not _main._result.visible)
+	fake.emit_interstitial_dismissed(id)
+	await _settle(3)
+	_c("  … [F] kapanınca YENİ round'un sonucu tam bir kez (WIN, level 3)", _main._result.visible
+		and _main._result.mode() == _mode("WIN") and _shown_level() == 3 and _shows == 1 and _main._result_seq == seq + 2)
+
+
+## [G] Ertelenen çıkıştan sonra, reklam UYGUN + HAZIRken meydan okuma: geçiş reklamı denemesi SIFIR (TASK/047 aynen).
+func _launch_challenge(ads: MonetizationManager, fake: FakeAdBackend) -> void:
+	ads._tick_active(MonetizationManager.INTERSTITIAL_INTERVAL_SEC)
+	await _settle(2)
+	while not fake.pending_interstitial.is_empty():
+		fake.complete_interstitial_load(true)
+	await _settle(2)
+	var eligible: bool = ads.interstitial_eligible() and ads.is_interstitial_ready()
+	var shows: int = fake.interstitial_shows.size()
+	AdEvents.clear_recent()
+	_main.start_daily_challenge()
+	await _settle(3)
+	var challenge: Node2D = _main._board
+	_track(challenge)
+	await _win_merge(challenge)
+	await _after(_last_timer)
+	_c("  … [G] reklam UYGUN + HAZIRken meydan okuma bitişi: geçiş reklamı denemesi SIFIR, meydan okuma sonucu açıldı",
+		eligible and _main.is_daily_challenge_round() and fake.interstitial_shows.size() == shows
+		and AdEvents.count(&"interstitial_skipped_not_ready") == 0 and _main._result.visible
+		and _main._result.mode() == _mode("CHALLENGE_WIN"))
+
+
+## Ekranın sahibi hâlâ verilen round mu: aynı board (kimlik) + aynı nesil.
+func _owns(board_id: int, gen: int) -> bool:
+	return _main._board != null and is_instance_valid(_main._board) and _main._board.get_instance_id() == board_id \
+		and _gen() == gen
+
+
+## Sahiplik durumu (rapor için): board aynı mı, nesil istekteki mi.
+func _owner_note(board_id: int, gen: int) -> String:
+	var same: bool = _main._board != null and is_instance_valid(_main._board) \
+		and _main._board.get_instance_id() == board_id
+	return "board %s, nesil istekte %d / şimdi %d, sekme %d" % ["AYNI" if same else ("YOK" if _main._board == null
+		else "YENİ"), gen, _gen(), _main._active_tab]
 
 
 # --- O) Kaynak sözleşmesi --------------------------------------------------------------------------------
@@ -921,6 +1146,28 @@ func _source_contract() -> void:
 	_c("normal sonuç: nesil gecikmeden ÖNCE yakalanır, gecikmeden sonra ve geçiş reklamından ÖNCE doğrulanır",
 		captured >= 0 and waited > captured and checked > waited and advert > checked)
 	_c("sonuç ekranı aşaması da sahipliği doğrular", _function(code, "func _present_result(").contains("_round_still_owned("))
+	var held: int = finish_fn.find("_round_break_generation = generation")
+	_c("fırlatma aralığı: reklam sahipliği sahiplik doğrulandıktan sonra, istekten ÖNCE kurulur (tek noktada)",
+		held > checked and advert > held and code.count("_round_break_generation = generation") == 1)
+	var present_fn: String = _function(code, "func _present_result(")
+	var freed: int = present_fn.find("_round_break_generation = -1")
+	var owned: int = present_fn.find("_round_still_owned(")
+	var change: int = present_fn.find("_deferred_round_change.is_valid()")
+	_c("  … mola sonu (_present_result) sahipliği bırakır, ertelenen değişimi sahiplik doğrulandıktan sonra sonucun "
+		+ "YERİNE çalıştırır", freed >= 0 and owned > freed and change > owned
+		and present_fn.find("_result.show_result(") > change)
+	var restart_fn: String = _function(code, "func _on_pause_restart(")
+	var abandon_fn: String = _function(code, "func abandon_run(")
+	_c("  … mola 'Yeniden Başlat' / 'Ana Menüye Dön' round'u değiştirmeden ÖNCE ertelemeye bakar",
+		restart_fn.find("_defer_round_change(") >= 0 and restart_fn.find("_defer_round_change(") < restart_fn.find("_start_level(")
+		and restart_fn.find("_defer_round_change(") < restart_fn.find("_retry_daily_challenge(")
+		and abandon_fn.find("_defer_round_change(") >= 0 and abandon_fn.find("_defer_round_change(") < abandon_fn.find("_clear_board(")
+		and abandon_fn.find("_defer_round_change(") < abandon_fn.find("_leave_daily_challenge("))
+	_c("  … ertelenen değişim board değişiminde düşer; erteleme yalnız bu round'un molası sürerken",
+		clear_fn.find("_deferred_round_change = Callable()") >= 0
+		and _function(code, "func _defer_round_change(").contains("_round_break_generation != _round_generation"))
+	_c("  … meydan okuma işleyicisi reklam sahipliğine dokunmaz (TASK/047 aynen)",
+		not _function(code, "func _on_challenge_round_finished(").contains("_round_break_generation"))
 	_c("normal işleyici meydan okumayı bilmez (TASK/047 sözleşmesi)", not finish_fn.contains("challenge")
 		and not finish_fn.contains("_round_kind"))
 	_c("meydan okuma kendi deneme kimliğini korur (TASK/047 aynen)", code.contains("func _challenge_result_current(")
