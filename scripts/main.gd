@@ -149,6 +149,11 @@ var _result_seq: int = 0
 ## kez işler — yinelenen bir round_finished sinyali / geri çağrısı XP'yi, turu,
 ## merge'leri ve sandıkları ikinci kez yazamaz. Yeni round (`_start_level`) sıfırlar.
 var _round_finalized: bool = false
+## Round sahipliği (TASK/048): board'un her değişiminde (yeni round, yeniden başlatma, terk, çıkış —
+## hepsi `_clear_board`'dan geçer) +1. Kesinleşen normal round nesli gecikmeden ÖNCE yakalar; gecikmeli
+## sonuç ve geçiş reklamı yalnız nesil hâlâ aynıysa sunulur — eski round'un sonucu yeni round'un / Ana
+## Sayfa'nın / başka bir kipin üstüne açılmaz. Yalnız bellekte (kayda yazılmaz).
+var _round_generation: int = 0
 ## --- Günlük meydan okuma (TASK/047 — GAME_DESIGN §5.11) ---
 ## Round türü AÇIK tutulur: board'un hangi akışa ait olduğu meydan okumanın level numarasından
 ## (nöbetçi 0) ÇIKARILMAZ. NORMAL = sabit level / sonsuz / tutorial (mevcut akış, değişmedi);
@@ -159,8 +164,8 @@ var _round_kind: RoundKind = RoundKind.NORMAL
 ## yazılır; tekrar dene ise her zaman o anki günün meydan okumasını başlatır.
 var _challenge_day: String = ""
 ## Deneme kimliği: her meydan okuma başlangıcında +1. Gecikmeli (RESULT_DELAY) meydan okuma sonucu
-## yalnız kendi denemesi hâlâ ekrandayken açılır (normal round'un ayrı, açık RESULT_DELAY yarışı bu
-## işte DEĞİŞMEDİ).
+## yalnız kendi denemesi hâlâ ekrandayken açılır (normal round'un gecikmeli sonucu TASK/048'de ayrıca
+## round nesliyle korunur — `_round_generation`).
 var _challenge_attempt: int = 0
 ## _ready tamamlandı: otomatik günlük pencere ancak bundan sonra (açılış
 ## sırasındaki _show_tab günlük giriş ödülünün önüne geçmesin).
@@ -1356,6 +1361,8 @@ func is_daily_challenge_round() -> bool:
 
 
 func _clear_board() -> void:
+	# TASK/048: board'un sahipliği bitti — bekleyen gecikmeli normal sonuç / geçiş reklamı artık eski.
+	_round_generation += 1
 	# Round terk ediliyor: tutorial yarıdaysa overlay kapanır ve KAYIT
 	# DEĞİŞMEZ (onboarding false kalır, bir sonraki açılışta baştan, §25).
 	if _tutorial != null and _tutorial.is_active():
@@ -1664,6 +1671,8 @@ func _on_round_finished(won: bool) -> void:
 	if _round_finalized:
 		return
 	_round_finalized = true
+	# TASK/048: gecikmeli sonuç / geçiş reklamı BU round'un — nesil gecikmeden ÖNCE yakalanır.
+	var generation: int = _round_generation
 	# Round gerçekten bitti: teklif penceresi her hâlükârda kapanır (kazanma
 	# fail-pending sırasında da gerçekleşebiliyor).
 	_revive.hide_offer()
@@ -1726,12 +1735,16 @@ func _on_round_finished(won: bool) -> void:
 	progress["missions"] = missions
 
 	await get_tree().create_timer(RESULT_DELAY).timeout
+	# TASK/048: gecikmede round değiştirildiyse (yeniden başlatma / terk / yeni round / başka kip) eski
+	# sonuç ve geçiş reklamı SUNULMAZ. İlerleme yukarıda bir kez yazıldı — geri alınmaz, yinelenmez.
+	if not _round_still_owned(generation):
+		return
 	# Doğal mola (M8.9-02): round KESİN bitti, devam kararları tamamlandı,
 	# sonuç henüz açılmadı. Geçiş reklamı uygun + hazırsa ŞİMDİ gösterilir ve
 	# sonuç reklam kapanınca (tam bir kez) açılır; değilse sonuç HEMEN —
 	# reklam yüklemesi ya da bekleme için sonuç asla bekletilmez.
 	_result_seq += 1
-	var present: Callable = _present_result.bind(_result_seq, won, score, stars, rewards,
+	var present: Callable = _present_result.bind(_result_seq, generation, won, score, stars, rewards,
 		new_record, newly_unlocked, reached_tier, progress)
 	if _ads != null and _ads.try_show_interstitial("round_finish", present):
 		return
@@ -1741,9 +1754,11 @@ func _on_round_finished(won: bool) -> void:
 ## Sonuç ekranını açar — round bitişi başına tam bir kez (`seq`; geç gelen
 ## reklam callback'i ikinci bir sonuç üretemez, sonuç kaybolmaz). `progress`:
 ## TASK/045 kompakt XP / seviye / başarım özeti (PlayerProgression.round_summary).
-func _present_result(seq: int, won: bool, score: int, stars: int, rewards: Array[ChestReward],
+## `generation` (TASK/048): sonucu zamanlayan round'un nesli — reklam açıkken / sonrasında round
+## değiştiyse eski sonuç yeni durumun üstüne açılmaz.
+func _present_result(seq: int, generation: int, won: bool, score: int, stars: int, rewards: Array[ChestReward],
 		new_record: bool, newly_unlocked: bool, reached_tier: int, progress: Dictionary = {}) -> void:
-	if seq != _result_seq or _current_level == null:
+	if seq != _result_seq or _current_level == null or not _round_still_owned(generation):
 		return
 	if _board == null or not is_instance_valid(_board):
 		# Round bu arada terk edildi (harness); sonuç açılmaz.
@@ -1752,6 +1767,12 @@ func _present_result(seq: int, won: bool, score: int, stars: int, rewards: Array
 	_set_ad_surface(MonetizationManager.Surface.RESULT)
 	_result.show_result(_current_level, won, score, stars, rewards, new_record,
 		newly_unlocked, reached_tier, progress)
+
+
+## TASK/048: gecikmeli normal sonuç hâlâ kendisini zamanlayan round'a mı ait — arada board değişmedi mi
+## (nesil yalnız `_clear_board`'da ilerler: yeni round, yeniden başlatma, terk, çıkış).
+func _round_still_owned(generation: int) -> bool:
+	return generation == _round_generation
 
 
 ## GAME_DESIGN.md §5.2: level tamamlanınca 1 sandık, ayrıca her 75 merge'de
