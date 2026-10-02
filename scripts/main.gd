@@ -155,8 +155,9 @@ var _round_finalized: bool = false
 ## Sayfa'nın / başka bir kipin üstüne açılmaz. Yalnız bellekte (kayda yazılmaz).
 var _round_generation: int = 0
 ## Fırlatma aralığı (TASK/048): geçiş reklamı yerel SDK'ya verilen normal round'un nesli (-1 = yok). Gösterim
-## çağrısından sonra reklam GERİ ALINAMAZ (Google SDK'da iptal yok) — o round, mola (kapanış / gösterim hatası /
-## onay zaman aşımı / öne dönüş payı) bitene dek ekranın sahibi kalır.
+## çağrısından sonra reklam GERİ ALINAMAZ (Google SDK'da iptal yok) — o round, yönetici molayı bitirene dek
+## (kapanış / gösterim hatası; SDK susarsa onay zaman aşımı / öne dönüş payı) ekranın sahibi kalır. Sınır: SDK
+## yöneticinin vazgeçmesinden SONRA reklamı yine de açarsa (sözleşme dışı) o geç reklam o anki durumu örtebilir.
 var _round_break_generation: int = -1
 ## Mola sürerken basılan round değişimi (mola "Yeniden Başlat" / "Ana Menüye Dön") — molanın sonunda eski
 ## sonucun YERİNE çalışır.
@@ -1807,7 +1808,7 @@ func _round_still_owned(generation: int) -> bool:
 
 
 ## TASK/048 fırlatma aralığı: bu round'un geçiş reklamı SDK'ya verildi ve mola sürüyorsa round'u değiştiren
-## eylem (`change`) molanın sonuna ertelenir (true) — reklam yalnız onu isteyen round ekranın sahibiyken
+## eylem (`change`) molanın sonuna ertelenir (true) — reklam, mola sürdükçe yalnız onu isteyen round'un üstünde
 ## görünür; round şimdi değişseydi açılan reklam yeni round'un / Harita'nın üstünde kalırdı.
 func _defer_round_change(change: Callable) -> bool:
 	if _round_break_generation != _round_generation:
