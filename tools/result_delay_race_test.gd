@@ -914,8 +914,10 @@ func _ads() -> void:
 #
 # Sahiplik gecikmeden sonra doğrulandı ve reklam yerel SDK'ya VERİLDİ (gösterim çağrısı gitti — Google SDK'da
 # iptal yok: istenen reklam her hâlükârda açılır), tam ekran henüz açılmadı / kapanmadı. Bu aralıkta açık
-# molanın GERÇEK dokunuşu (üretim işleyicisi). Değişmez: reklam YALNIZ onu isteyen round ekranın sahibiyken
-# görünür — round değişimi molanın sonuna ertelenir ve eski sonucun YERİNE çalışır; ilerleme kesinleşmede bir kez.
+# molanın GERÇEK dokunuşu (üretim işleyicisi). Değişmez: yönetici molayı bitirene dek (kapanış / gösterim hatası;
+# SDK susarsa onay zaman aşımı / öne dönüş payı) reklam YALNIZ onu isteyen round'un üstünde görünür — round değişimi
+# molanın sonuna ertelenir ve eski sonucun YERİNE çalışır; ilerleme kesinleşmede bir kez. Sınır (oyun tarafında
+# önlenemez, iptal API'si yok): SDK yönetici vazgeçtikten SONRA reklamı yine açarsa o geç reklam o anki durumu örtebilir.
 
 const LAUNCH_VARIANTS: Array[String] = ["istekten önce", "dokunuş yok", "devam et", "yeniden başlat · kapanış",
 	"ana menüye dön · kapanış", "yeniden başlat · gösterim hatası", "yeniden başlat · onay zaman aşımı",
@@ -935,6 +937,8 @@ func _launch_variant(variant: String) -> void:
 	var fake: FakeAdBackend = ads._backend
 	var board: Node2D = await _start(_level(3))
 	await _wait_settled()
+	var rounds_before: int = _rounds()
+	var xp_before: int = SaveManager.player_xp()
 	var ok: bool = await _finish_under_pause(board, false)
 	var timer: SceneTreeTimer = _last_timer
 	var board_id: int = board.get_instance_id()
@@ -1003,7 +1007,8 @@ func _launch_variant(variant: String) -> void:
 				board_id, gen) + "Harita reklamın ALTINDA değil", _owns(board_id, gen) and not _main._result.visible)
 			fake.emit_interstitial_dismissed(id)
 			await _settle(3)
-	_c("  … [H] ilerleme kesinleşmede TAM bir kez: tur + XP mola boyunca ve sonrasında değişmedi", _rounds() == rounds
+	_c("  … [H] ilerleme TAM bir kez: kesinleşme tur + 1 ve XP yazdı (gecikmeden önce); mola boyunca ve sonrasında "
+		+ "ikinci yazım / geri alma yok", rounds == rounds_before + 1 and xp > xp_before and _rounds() == rounds
 		and SaveManager.player_xp() == xp)
 	_c("  … yönetici temiz: bekleyen mola yok, reklam artık GÖSTERİLMİYOR", not ads.break_pending()
 		and ads.interstitial_state() != MonetizationManager.InterstitialState.SHOWING)
