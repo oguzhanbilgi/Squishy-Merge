@@ -154,6 +154,13 @@ var _round_finalized: bool = false
 ## sonuç ve geçiş reklamı yalnız nesil hâlâ aynıysa sunulur — eski round'un sonucu yeni round'un / Ana
 ## Sayfa'nın / başka bir kipin üstüne açılmaz. Yalnız bellekte (kayda yazılmaz).
 var _round_generation: int = 0
+## Fırlatma aralığı (TASK/048): geçiş reklamı yerel SDK'ya verilen normal round'un nesli (-1 = yok). Gösterim
+## çağrısından sonra reklam GERİ ALINAMAZ (Google SDK'da iptal yok) — o round, mola (kapanış / gösterim hatası /
+## onay zaman aşımı / öne dönüş payı) bitene dek ekranın sahibi kalır.
+var _round_break_generation: int = -1
+## Mola sürerken basılan round değişimi (mola "Yeniden Başlat" / "Ana Menüye Dön") — molanın sonunda eski
+## sonucun YERİNE çalışır.
+var _deferred_round_change: Callable = Callable()
 ## --- Günlük meydan okuma (TASK/047 — GAME_DESIGN §5.11) ---
 ## Round türü AÇIK tutulur: board'un hangi akışa ait olduğu meydan okumanın level numarasından
 ## (nöbetçi 0) ÇIKARILMAZ. NORMAL = sabit level / sonsuz / tutorial (mevcut akış, değişmedi);
@@ -721,6 +728,9 @@ func resume_game() -> void:
 
 func _on_pause_restart() -> void:
 	_pause.close_menu()
+	# TASK/048: bu round'un geçiş reklamı açılırken / açıkken round değişmez — reklam bitince baştan.
+	if _defer_round_change(_on_pause_restart):
+		return
 	# TASK/047: meydan okuma kendi başlatma yolundan (o anki günün meydan okuması, baştan).
 	if _round_kind == RoundKind.DAILY_CHALLENGE:
 		_retry_daily_challenge()
@@ -732,6 +742,9 @@ func _on_pause_restart() -> void:
 ## Round'u terk et: board silinir, harita sekmesine dönülür.
 func abandon_run() -> void:
 	_pause.close_menu()
+	# TASK/048: bu round'un geçiş reklamı açılırken / açıkken round terk edilmez — reklam bitince.
+	if _defer_round_change(abandon_run):
+		return
 	# TASK/047: meydan okumadan çıkış Ana Sayfa'ya (giriş yeri); terk edilen deneme yazmaz.
 	if _round_kind == RoundKind.DAILY_CHALLENGE:
 		_leave_daily_challenge()
@@ -1382,9 +1395,10 @@ func _clear_board() -> void:
 			_board.round_finished.disconnect(_on_challenge_round_finished)
 		_board.queue_free()
 		_board = null
-	# TASK/048: board'un sahipliği bitti — bekleyen gecikmeli normal sonuç / geçiş reklamı artık eski. En
-	# sonda (bağlar koptuktan sonra): yukarıdaki adımlardan biri ileride round_finished'i eşzamanlı yayarsa
-	# yakalanan nesil yine eski kalır.
+	# TASK/048: board'un sahipliği bitti — bekleyen gecikmeli normal sonuç / geçiş reklamı (ve molaya
+	# ertelenen round değişimi) artık eski. En sonda (bağlar koptuktan sonra): yukarıdaki adımlardan biri
+	# ileride round_finished'i eşzamanlı yayarsa yakalanan nesil yine eski kalır.
+	_deferred_round_change = Callable()
 	_round_generation += 1
 
 
@@ -1748,6 +1762,9 @@ func _on_round_finished(won: bool) -> void:
 	_result_seq += 1
 	var present: Callable = _present_result.bind(_result_seq, generation, won, score, stars, rewards,
 		new_record, newly_unlocked, reached_tier, progress)
+	# Fırlatma aralığı (TASK/048): reklam SDK'ya verildiği an geri alınamaz — bu round, mola `_present_result`'ta
+	# bitene dek ekranın sahibi kalır; aradaki round değişimi ertelenir (`_defer_round_change`).
+	_round_break_generation = generation
 	if _ads != null and _ads.try_show_interstitial("round_finish", present):
 		return
 	present.call()
@@ -1757,10 +1774,22 @@ func _on_round_finished(won: bool) -> void:
 ## reklam callback'i ikinci bir sonuç üretemez, sonuç kaybolmaz). `progress`:
 ## TASK/045 kompakt XP / seviye / başarım özeti (PlayerProgression.round_summary).
 ## `generation` (TASK/048): sonucu zamanlayan round'un nesli — reklam açıkken / sonrasında round
-## değiştiyse eski sonuç yeni durumun üstüne açılmaz.
+## değiştiyse eski sonuç yeni durumun üstüne açılmaz; mola sürerken ertelenen round değişimi
+## sonucun YERİNE burada çalışır.
 func _present_result(seq: int, generation: int, won: bool, score: int, stars: int, rewards: Array[ChestReward],
 		new_record: bool, newly_unlocked: bool, reached_tier: int, progress: Dictionary = {}) -> void:
-	if seq != _result_seq or _current_level == null or not _round_still_owned(generation):
+	# TASK/048: mola bitti (reklam kapandı / gösterilemedi / onay gelmedi) — round'un reklam sahipliği serbest.
+	if _round_break_generation == generation:
+		_round_break_generation = -1
+	if not _round_still_owned(generation):
+		return
+	# Mola sürerken basılan round değişimi ŞİMDİ, eski sonucun yerine (ilerleme kesinleşmede bir kez yazıldı).
+	if _deferred_round_change.is_valid():
+		var change: Callable = _deferred_round_change
+		_deferred_round_change = Callable()
+		change.call()
+		return
+	if seq != _result_seq or _current_level == null:
 		return
 	if _board == null or not is_instance_valid(_board):
 		# Round bu arada terk edildi (harness); sonuç açılmaz.
@@ -1775,6 +1804,16 @@ func _present_result(seq: int, generation: int, won: bool, score: int, stars: in
 ## (nesil yalnız `_clear_board`'da ilerler: yeni round, yeniden başlatma, terk, çıkış).
 func _round_still_owned(generation: int) -> bool:
 	return generation == _round_generation
+
+
+## TASK/048 fırlatma aralığı: bu round'un geçiş reklamı SDK'ya verildi ve mola sürüyorsa round'u değiştiren
+## eylem (`change`) molanın sonuna ertelenir (true) — reklam yalnız onu isteyen round ekranın sahibiyken
+## görünür; round şimdi değişseydi açılan reklam yeni round'un / Harita'nın üstünde kalırdı.
+func _defer_round_change(change: Callable) -> bool:
+	if _round_break_generation != _round_generation:
+		return false
+	_deferred_round_change = change
+	return true
 
 
 ## GAME_DESIGN.md §5.2: level tamamlanınca 1 sandık, ayrıca her 75 merge'de
