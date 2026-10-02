@@ -1011,6 +1011,15 @@ func _launch_variant(variant: String) -> void:
 		_c("  … [A] round sahibi kaldı → reklam kapanınca KENDİ sonucu tam bir kez (WIN, level 3), RESULT yüzeyi",
 			_owns(board_id, gen) and _main._result.visible and _main._result.mode() == _mode("WIN") and _shown_level() == 3
 			and _shows == 1 and _main._result_seq == seq + 2 and ads.surface() == MonetizationManager.Surface.RESULT)
+		if variant == "dokunuş yok":
+			# Mola bitti → reklam sahipliği serbest: sonucun üstünde hâlâ açık mola (bilinen LOW — değiştirilmedi) artık
+			# ertelemez; Yeniden Başlat HEMEN çalışır.
+			var open: bool = _main.is_pause_open()
+			await _finger_tap(_center(_main._pause.buttons()[1]))
+			await _settle(2)
+			_c("  … mola bittikten sonra sahiplik serbest: açık molanın gerçek 'Yeniden Başlat'ı ERTELENMEDEN çalıştı "
+				+ "(yeni board, sonuç kapandı)", open and _differs(_main._board, board_id) and not _main._result.visible
+				and not _main._round_finalized)
 		return
 	_c("  … [D/E] ESKİ sonuç yeni durumun üstüne AÇILMADI (sunum hiç başlamadı)", not _main._result.visible
 		and _shows == 0 and _main._result_seq == seq + 1)
