@@ -98,6 +98,13 @@ kaldı; skinler asla reklam/paraya bağlı değil.
 > round'ların geçiş reklamı davranışı aynen. Meydan okumada geçen süre mevcut 15 dakikalık aktif süre
 > uygunluğuna sayılır (mevcut sözleşme, yeni yerleşim değil).
 
+> **TASK/048 (dalda) — doğal mola round'a aittir (GAME_DESIGN §12.2):** yeni yerleşim / politika DEĞİL.
+> Round kesinleştikten sonraki RESULT_DELAY (0,8 sn) içinde round değiştirilirse (mola "Yeniden Başlat" /
+> "Ana Menüye Dön" → yeni level / Sonsuz / meydan okuma) eski round `try_show_interstitial("round_finish")`
+> DENEMEZ (olay bile yok; uygunluk, hazır reklam ve aktif saat korunur) ve eski sonuç açılmaz; reklam
+> açıkken round değişirse kapanış / gösterim hatası geri çağrısı da eski sonucu açmaz. Sahipliği süren
+> round'da davranış birebir aynı (Samsung A36'da gerçek Google TEST geçiş reklamıyla doğrulandı).
+
 ## 2. Seçilen eklenti ve SDK sürümleri (araştırma 2026-09-21)
 
 > **Güncel (TASK/042, 2026-09-27, main'de):** GMA **25.3.0** /

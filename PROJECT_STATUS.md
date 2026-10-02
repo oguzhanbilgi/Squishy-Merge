@@ -74,12 +74,20 @@ yok; son engel "monoton kabul edilen gün" `f8c8ffb` ile kapatıldı, hedefli A3
 owner onayıyla ff-only alındı `6d3dbca → aa6f867`):** isteğe bağlı günlük mod — hedef tier'ı sınırlı gerçek bırakışla, günün
 deterministik parça dizisiyle oluştur; kilitli haftalık preset tablosu, güç / devam yok, ilerleme
 yalıtımı (XP / görev / başarım / sandık / yıldız / istatistik / sonsuz etkisi yok), ilk başarı günde bir
-kez +20 Hamur, Ana Sayfa'da GÖREVLER'in altında giriş (§4.27). Sıradaki ürün / stabilizasyon görevi
-owner seçimi bekliyor (TASK/048 tanımlı değil). Release izi ayrı. Sırada: içerik
+kez +20 Hamur, Ana Sayfa'da GÖREVLER'in altında giriş (§4.27). **TASK/048 (2026-10-02, dalda — normal
+RESULT_DELAY eski sonuç yarışı koruması; masaüstü + Samsung A36 yerel kapısı GEÇTİ, bulgu yok; main'e alınması
+owner onayı bekliyor):** mola açıkken biten round 0,8 sn içinde değiştirilince (yeniden başlatma / Ana Menüye Dön →
+başka level / Sonsuz / meydan okuma) eski sonuç ve geçiş reklamı artık açılmaz — bellek içi round nesli
+(`_clear_board`'da ilerler) gecikmeden önce yakalanır, sonra doğrulanır; süre, ilerleme, reklam politikası ve
+TASK/047 aynen (§4.28). Sonraki ürün / stabilizasyon görevi owner seçimi. Release izi ayrı. Sırada: içerik
 derecesi + yargı bölgesi kararları + 13+ seçici uyum riski (owner) → gizlilik
 politikası → upload anahtarı → gerçek AdMob kimlikleri → mağaza varlıkları / Play Console,
 sonra ilk imzalı üretim AAB'si ve M10 (Play kapalı test) ·
-**Branch / main:** `main` == origin/main == `aa6f867` — TASK/047 `task/047-daily-merge-challenge`
+**Branch / main:** `task/048-result-delay-race-guard` (main `848797a`'dan: `c58c88d` düzeltme · `9ab9917`
+test · `83dc208` nesil sırası · `2592a1b` test sağlamlaştırma · doküman / A36 kaydı; A36 GEÇTİ 2026-10-02) —
+dalda, main'e alınması owner onayı bekliyor, merge EDİLMEDİ · `main` == origin/main == `848797a` — TASK/047
+doküman eşitlemesi `docs/047-main-sync` owner onayıyla ff-only (`aa6f867 → 848797a`, 2026-10-02; merge commit
+yok; dal duruyor) · önce TASK/047 `task/047-daily-merge-challenge`
 (main `6d3dbca`'dan, 10 commit: `befbbbd` model + kayıt · `bf553e0` board · `201764d` akış + yalıtım ·
 `e805736` arayüz + sonuçlar · `54e8411` + `e002dff` inceleme düzeltmeleri · `743e5d7` kapı / doküman ·
 `7395280` A36 kapısı kaydı · `f8c8ffb` monoton gün · `aa6f867` monoton gün doküman / hedefli A36 kaydı;
@@ -2017,7 +2025,8 @@ formatına yalnız `haptics_enabled` (varsayılan true) eklendi. Ayrıntı ve
   (erişilemez) · "birleşme / BİRLEŞTİRME / merge" üç kelime (katalog metni kilitli) ·
   `progression_shots` / `result_shots` referans kareleri kayıttaki görev durumuna göre rozet
   gösterebilir.
-- **Önceden var olan, kapsam dışı (düzeltilmedi):** (1) **RESULT_DELAY penceresi bitiren board'a
+- **Önceden var olan, kapsam dışı (düzeltilmedi):** (1) *(→ TASK/048'de dalda kapatıldı, §4.28)*
+  **RESULT_DELAY penceresi bitiren board'a
   bağlı değil** (inceleme MEDIUM, TASK/046'dan eski): Mola açıkken Büyütücü dönüşümü round'u
   bitirebilir; 0,8 sn içinde "Yeniden Başlat" → eski round'un geçiş reklamı / sonucu (görev hapı
   dahil) yeni round'un üstüne açılabilir. Görev sayımı DOĞRU (eski round bir kez, yeni 0) — zarar
@@ -2181,7 +2190,8 @@ formatına yalnız `haptics_enabled` (varsayılan true) eklendi. Ayrıntı ve
   `com.example.squishymerge` dokunulmadı. (İlk normal dokunuş denemesi geçersiz sayıldı: harness'in
   `level` komutu Ana Sayfa'yı atladığı için otomatik GÜNLÜK ÖDÜLLER penceresi tahtanın üstünde kaldı —
   kurulum hatası, ürün bulgusu değil; pencere gerçek KAPAT ile kapatılıp tekrarlandı.)
-- **Ayrı kalan, düzeltilmedi (owner kararı):** RESULT_DELAY yarışı (§4.24); basılı Koleksiyon kartı +
+- **Ayrı kalan, düzeltilmedi (owner kararı):** RESULT_DELAY yarışı (§4.24 — *TASK/048'de dalda kapatıldı,
+  §4.28*); basılı Koleksiyon kartı +
   GERİ sentetik bırakışı (§4.23); genel modal / karartma iptal davranışı (`UiKit.attach_dim_close`,
   `ShopScreen._on_dim_input` iptal bırakışında da kapatır) ve **kapıdaki yeni gözlem:** güç düğmesi
   üzerinde gerçek ACTION_CANCEL gücü çalıştırır (A36: Sarsıntı stoğu 1 → 0; GUI düğmesi iptal edilmiş
@@ -2341,7 +2351,8 @@ formatına yalnız `haptics_enabled` (varsayılan true) eklendi. Ayrıntı ve
   dokunuş gönderilmedi, ≥ 60 sn salt okunur yoklamadan sonra durum yeniden okunup devam edildi. Cihaz
   bulgusu yok, düzeltme commit'i yok.
 - **Kayda geçen, DÜZELTİLMEYEN (owner kararı / kapsam dışı):** (a) ~~kalıtılan gün uç durumu~~ → 2026-10-02
-  kapatıldı (yukarıda "Monoton gün"); (b) **normal RESULT_DELAY yarışı** (§4.24)
+  kapatıldı (yukarıda "Monoton gün"); (b) *(→ TASK/048'de dalda kapatıldı, §4.28)* **normal RESULT_DELAY
+  yarışı** (§4.24)
   ve çapraz örneği: gecikmedeki normal sonuç → Mola / Ana Menüye Dön → Android GERİ (yatışmasız) → pill →
   BAŞLA ≈ 600 ms + tepki — eski normal sonucu / geçiş reklamı denemesi canlı meydan okuma tahtasının
   üstüne açılabilir (düğmeleri meydan okumaya gider, ekonomi çift sayımı yok); normal yol bu görevde
@@ -2354,6 +2365,94 @@ formatına yalnız `haptics_enabled` (varsayılan true) eklendi. Ayrıntı ve
   (brif §20 ile uyumlu); (g) bilinmeyen sürüm bloğu varsayılana iner (görevlerle aynı kural), uzak gelecek
   tamamlanma günü o güne kadar ✓ gösterir (günlük ödüllerin taban kuralıyla aynı), başarısız kayıt
   yazmasında bellek ödüllü kalır (mevcut işlem sözleşmesi) — NIT, belgelendi.
+
+### 4.28 Normal RESULT_DELAY eski sonuç yarışı koruması (TASK/048)
+
+> **dalda, main'e alınması owner onayı bekliyor** — `task/048-result-delay-race-guard`, main `848797a`'dan
+> (`c58c88d` düzeltme · `9ab9917` test · `83dc208` nesil sırası (inceleme) · `2592a1b` test sağlamlaştırma ·
+> doküman / A36 kaydı). **Önce yeniden üretim, mutasyon 9/9, 5 mercekli inceleme, tam masaüstü kapısı ve Samsung A36
+> yerel kapısı GEÇTİ (2026-10-02)** — yalnız QA paketi, cihaz bulgusu yok, düzeltme commit'i yok. main DEĞİŞMEDİ.
+
+- **Eski yarış (§4.24'te kayıtlı, TASK/046 A36 kapısında cihazda 1/1 üretilmişti):** normal round kesinleşince
+  (`Main._on_round_finished`) ilerleme hemen yazılır, sonuç ve doğal mola geçiş reklamı RESULT_DELAY (0,8 sn) SONRA
+  açılır. Büyütücü dönüşümü board'a bağlı bir tween'dir (0,15 sn anticipation) ve mola dondurmasında da tamamlanır:
+  dönüşüm başlar, mola açılır, hedefe ulaşan dönüşüm round'u açık molanın ALTINDA bitirir; 0,8 sn içinde molanın
+  "Yeniden Başlat"ı ya da "Ana Menüye Dön"ü (→ Harita'dan başka level / Sonsuz, Ana Sayfa → MEYDAN OKUMA) round'u
+  değiştirince eski sonuç (yeni level'ın başlığıyla, eski round'un verisiyle) ve eski geçiş reklamı yeni round'un,
+  Ana Sayfa / Harita'nın ya da meydan okumanın üstüne açılıyordu. Kayıp / Sonsuz bitişi molada OLUŞAMAZ (taşma sayacı
+  donukken ilerlemez; bitişten sonra mola açılmaz) — o yollar aynı üretim işleyicisiyle sınandı.
+- **Kök neden:** gecikmeden sonra round sahipliği hiç denetlenmiyordu. `_present_result` yalnız `seq` ve "herhangi bir
+  board var mı"ya bakıyordu (yeni board geçerli → eski sonuç açılır); `try_show_interstitial` ondan da önce
+  çağrılıyordu (board yokken bile — Ana Sayfa'da eski reklam). `_result_seq` round değişiminde ilerlemiyordu.
+- **Düzeltme (`scripts/main.gd`, en küçük sahiplik mekanizması):** yalnız bellekte `_round_generation` (kayıt şeması
+  aynı). Board'un her değişimi tek noktadan geçer — `_clear_board` (yeni round `_begin_round`'da önce onu çağırır;
+  terk / sonuç çıkışı / meydan okumadan çıkış da onu çağırır) — nesil orada, board bağları koptuktan SONRA +1.
+  `_on_round_finished` nesli gecikmeden ÖNCE yakalar; gecikmeden sonra `_round_still_owned(generation)` değilse
+  geçiş reklamı DENEMEDEN ve sonucu SUNMADAN döner; `_present_result` (reklam kapanış geri çağrısı dahil) nesli
+  yeniden doğrular. Eski devamlar sessizce düşer: mola yeniden açılmaz, gezinme yönlendirilmez, yeni round'un
+  dokunuşu / ilerlemesi / yüzeyi değişmez. Mola / Ayarlar / öne dönüş / sekme / sonuç sunumu nesli DEĞİŞTİRMEZ.
+  TASK/047 meydan okumanın kendi deneme kimliği (`_challenge_attempt` + `_challenge_result_current`) aynen.
+- **İlerleme:** XP, görev ilerlemesi / Hamur'u, yıldız / level kilidi, tur sayısı, sandık (beceri ve bonus), teselli,
+  Sonsuz rekoru kesinleşmede (gecikmeden ÖNCE) TEK yazmada diske iner — sonuç ekranı kayda yazmaz (inceleme
+  doğruladı). Bastırılan sonuç yalnız SUNUMU düşürür: ilerleme geri alınmaz, yinelenmez; yeni round güncel
+  ilerlemeden başlar ve kendi kesinleşmesini bir kez yazar. (Değiştirilen round'un sandık ödülü sonuç ekranı
+  görünmeden yazılmış olur — "Ana Menüye Dön"de önceden de böyleydi; yeniden başlatmada önceden eski sonuç yanlışlıkla
+  yeni round'un üstünde gösteriyordu.)
+- **Reklam:** geçerli (sahipliği süren) normal sonuçta politika birebir (uygunluk / hazırlık / 60 sn bekleme / aktif
+  saat / yaş yönlendirmesi; tek çağrı noktası). Eski round reklam DENEMEZ (olay bile yok, uygunluk ve hazır reklam
+  korunur); meydan okuma bitişi hiç denemez (TASK/047 aynen).
+- **Testler:** yeni `tools/result_delay_race_test` (gerçek Main + board, kayıt `user://qa_result_delay_race/`'e
+  yönlendirilir, sahibin kayıt ailesi bayt bayt karşılaştırılır; "gecikmeden sonra" denetimleri Main'in kendi
+  zamanlayıcısıyla aynı saatte): A geçerli kazanma / kayıp + gecikmede arka plan / öne dönüş · B GERÇEK dokunuş
+  (Büyütücü düğmesi + hedef + HUD geri + "Yeniden Başlat"; dokunuş yeni board'a sızmaz) · C Ana Sayfa · D başka
+  level · E Sonsuz · F meydan okuma (reklamsız + reklam uygun) · G yeni sonuç eskisini yener (B'nin sonucu kilit
+  rozetsiz — ayırt edilebilir) · H iki eski devam · I ilerleme bir kez · J kayıp · K Sonsuz · L tutorial · M nesil
+  değişmezleri · N reklam (geçerli aynen; eski denemez; reklam açıkken değiştirilen round kapanışta / gösterim
+  hatasında sonuç açmaz, yönetici temiz) · O kaynak sözleşmesi. **Düzeltmesiz `848797a`'da 105 kontrolün 29'u
+  DÜŞTÜ** (eski sonuç / reklam her değiştirme yolunda); düzeltmeyle **127/127**. Etkilenen mevcut suite'ler
+  (interstitial, result_ui, missions, player_progression, daily_challenge_flow / _ui, gameplay_shell, tutorial)
+  değişmeden geçti.
+- **Mutasyon 9/9 öldü** (her biri bayt-aynı geri kondu): gecikme sonrası denetim kaldırıldı · yeniden başlatmada /
+  terkte nesil ilerlemez · denetim reklam denemesinden SONRA · sonuç aşaması denetimi kaldırıldı · sahiplik level
+  numarasından · eski nesil kabul · nesil artışı kaldırıldı · nesil gecikmeden SONRA yakalanır.
+- **5 mercekli çekişmeli inceleme** (sahiplik / ilerleme / reklam / girdi-gezinme / yaşam döngüsü + test kalitesi):
+  düzeltmede BLOCKER / HIGH / MEDIUM 0. Uygulanan: nesil artışı bağlar koptuktan sonraya (`83dc208`); testte saat
+  birliği, gerçek güç düğmesi, sızıntı denetimi, reklamsız çapraz kip, yaşam döngüsü, yönetici durumu, ayırt edilebilir
+  sonuç (`2592a1b`).
+- **Tam masaüstü kapısı (`2592a1b`):** 43 koşu, 5431 kontrol, 0 hata, 0 SCRIPT ERROR, bot 2/2; sahibin kayıt ailesi
+  görev öncesi yedekle bayt-aynı; Godot süreci kalmadı.
+- **Samsung A36 yerel kapısı — GEÇTİ (2026-10-02, cihaz saati 15:42–15:51):** yalnız QA paketi (APK `2592a1b`'den,
+  104,325,632 B; `verify_apk.py` PASS — paketlenmiş Main jeton tablosunda `_round_generation` + `_round_still_owned`);
+  Google TEST reklamları; telefon saati ve gezinme kipi DEĞİŞMEDİ; her girdi öncesi güvenlik kontrolü, parti başına
+  dokunuş sayımı (yabancı dokunuş 0, güvenlik durdurması gerekmedi). Büyütücü + mola, 0,15 sn penceresi adb
+  gecikmesinin altında olduğundan QA kancasıyla (üretim mola işleyicisi); DEĞİŞTİRME gerçek dokunuşla. Sonuçlar:
+  **kazanma yarışı** — round molada bitti, gerçek "Yeniden Başlat" 206 / 263 / 265 ms sonra yeni board kurdu; gecikme
+  doldu: eski sonuç YOK, eski geçiş reklamı denemesi YOK (reklam uygun + hazırken), yeni board etkin ve gerçek dokunuşta
+  tam 1 bırakış; **geçerli sonuç** — değiştirilmeyen round'da gerçek Google TEST geçiş reklamı gecikmeden sonra açıldı,
+  gerçek GERİ ile kapandı, sonuç TAM bir kez (eski round'unki hiç); **ilerleme** — Level 4 ilk kazanma (XP +30, tur
+  +1, yıldız, sandık) bellek + diskte bir kez, 3 sn sonra değişmedi; **kayıp** — gerçek VAZGEÇ → üretim yeniden başlatma
+  işleyicisi 212 ms sonra: eski kayıp sonucu yok, teselli +5 bir kez; **çapraz kip** — gerçek "Ana Menüye Dön" 310 ms
+  sonra, meydan okuma 346 ms'de başladı: eski normal sonuç / reklam yok, meydan okuma gerçek dokunuşta 1 hamle, kazanma
+  sonucu aynen (+20, geçiş reklamı denemesi yok); **girdi** — Ayarlar → GERİ → ilk dokunuş 1 bırakış, gerçek
+  ACTION_CANCEL 0 / sonraki 1, canlı round'da mola → Yeniden Başlat çalışır (dokunuş sızmadı). Logcat: SCRIPT ERROR 0,
+  çökme / ANR 0, godot E 0, Play Age Signals 0, yalnız Google örnek reklam kimlikleri. Kapı sonunda QA paketi
+  kaldırıldı; üretim paketi hiç kurulmadı; `com.example.squishymerge` dokunulmadı (0.8.5, zamanlar aynı); masaüstü
+  korunan dosyalar + kayıt ailesi içerik olarak aynı. UNKNOWN / TEEN yaş bandı: reklam / yaş kodu değişmedi →
+  masaüstü regresyonu (age_ad_routing, interstitial, monetization) kapsar.
+- **Aynen kalanlar:** RESULT_DELAY = 0,8 sn; mola kilidi (bitişten sonra mola açılmaz); Android GERİ; TASK/045.2
+  `TOUCH_SETTLE_MSEC = 300`; TASK/046.2 `elif not touch.canceled:`; tutorial; reklam / yaş / rıza; kayıt şeması;
+  TASK/047 meydan okuma (7 preset, dizi, +20, tekrar yok, güç / devam yok, yalıtım, monoton gün, geçiş reklamı yok,
+  kendi eski sonuç koruması). Görsel değişiklik YOK (yalnız davranış).
+- **Kayda geçen, DÜZELTİLMEYEN (inceleme LOW — mola davranışı kilitli, owner kararı):** (1) mola açıkken bitip
+  DEĞİŞTİRİLMEYEN round'un geçerli sonucu açık molanın (katman 12) ALTINDA (katman 10) açılır; o durumda Android
+  GERİ `_result.visible` dalında yutulur — DEVAM ET / X / karartma çözer (önceden var olan); (2) geçerli round'un
+  geçiş reklamı istenip ekranı örtene kadarki kısa aralıkta (≈ 0,1–0,5 sn; SDK takılırsa 5 sn onay zaman aşımına
+  dek) açık molanın "Yeniden Başlat" / "Ana Menüye Dön"ü basılırsa reklam yeni durumun üstünde görünebilir — eski
+  sonuç yine açılmaz, yönetici toparlanır; (3) `_start_level` 300 ms parmak yatışması kurmaz: "Yeniden Başlat" /
+  TEKRAR / Harita kartına hızlı çift dokunuşun ikincisi yeni round'a parça düşürebilir (önceden var olan). Öneri:
+  kesinleşmede mola / refill'i kapatmak (§4.24 önerisinin ikinci yarısı — yarışı kaynağında da kapatır) +
+  `_start_level`'da yatışma — ayrı görev. Ayrı kalan, açık: basılı Koleksiyon kartı + GERİ sentetik bırakışı; genel
+  GUI ACTION_CANCEL (modal / karartma, Sarsıntı düğmesi); T5 hedef kartı kırpması "Büyük Dumpl…".
 
 ## 5. Dosya/klasör yapısı ve script envanteri
 
@@ -3110,9 +3209,11 @@ Owner'ın yapacağı / onaylayacağı:)*
   kilitli brifle uygulandı → ✅ **main'de** (§4.27, GAME_DESIGN §5.11; masaüstü + Samsung A36 kapısı +
   hedefli monoton gün kapısı GEÇTİ; owner onayıyla ff-only `6d3dbca → aa6f867`, 2026-10-02; dal
   `task/047-daily-merge-challenge` duruyor).
-- **Sıradaki görev:** owner seçer — TASK/048 tanımlı değil. Açık, ayrı maddeler (normal RESULT_DELAY
-  yarışı + çapraz örneği, Koleksiyon kartı + GERİ, genel GUI ACTION_CANCEL, T5 hedef kartı kırpması —
-  §4.24 / §4.26 / §4.27) kendiliğinden sıradaki görev seçilmez.
+- **TASK/048** — normal RESULT_DELAY eski sonuç yarışı koruması (normal + çapraz kip) → **dalda** (§4.28;
+  masaüstü + Samsung A36 kapısı GEÇTİ; main'e alınması owner onayı bekliyor).
+- **Sıradaki görev:** owner seçer. Açık, ayrı maddeler (Koleksiyon kartı + GERİ, genel GUI ACTION_CANCEL,
+  T5 hedef kartı kırpması — §4.26 / §4.27; TASK/048 incelemesinin kaydettiği mola altında açılan sonuç / geçiş
+  reklamı açılış aralığı / `_start_level` yatışması — §4.28) kendiliğinden sıradaki görev seçilmez.
 - ~~**Kararlılık (öneri — TASK/045 engeli değil):** atomik kayıt (`save_game()` yerinde kesip
   yazıyor; geçici dosya + yedekten kurtarma) · güç hedefleme bırakış-düşürme (Büyütücü ve
   Bomba hedef dokunuşunun bırakışı bekleyen parçayı da düşürebilir) · Koleksiyon detayı

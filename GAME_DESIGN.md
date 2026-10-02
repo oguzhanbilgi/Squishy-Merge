@@ -1558,6 +1558,10 @@ dikeyde ≤ %4 sıkıştırılır, düğümler aynı dönüşümle).
 - **Gösterim yeri — yalnız doğal mola:** round KESİN bitti + devam kararları
   tamamlandı + sonuç ekranından ÖNCE. Aktif oyunun ortasında, devam teklifinde,
   ödüllü reklamda, sandık reveal'inde, UMP formunda, tutorial'da ASLA.
+  **Mola round'a aittir (TASK/048):** sonuç gecikmesi (RESULT_DELAY) içinde round
+  değiştirilirse (yeniden başlatma / Ana Menüye Dön / yeni level / Sonsuz / meydan
+  okuma) o round'un geçiş reklamı ve sonucu DÜŞER — yeni durumun üstünde açılmaz;
+  round'un kesinleşen ilerlemesi geçerli kalır, uygunluk korunur.
 - **Hazır değilse sonuç HEMEN açılır**; sonuç asla reklam yüklemesi ya da
   bekleme için bekletilmez; uygunluk korunur, sonraki molada denenir.
 - **Saat sıfırlama:** yalnız gerçek tam ekran gösterim başlayınca (SDK
