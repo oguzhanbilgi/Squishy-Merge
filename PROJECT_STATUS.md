@@ -69,7 +69,8 @@ AGE_BAND_ROUTING §9.10). **TASK/046.2 (2026-10-01, main'de — masaüstü + Sam
 GEÇTİ, owner onayıyla ff-only alındı `afc10be → 6d3dbca`):** iptal edilen oyun dokunuşu (Android ACTION_CANCEL →
 `canceled == true`) artık bekleyen parçayı düşürmez — `GameBoard._unhandled_input`'ta tek satırlık
 koruma, TASK/047'nin önkoşulu (§4.26). **TASK/047 (2026-10-01, dalda — Günlük Merge Challenge V1,
-oyuncuya "MEYDAN OKUMA"; masaüstü kapıları tamam, Samsung A36 yerel kapısı GEÇTİ 2026-10-02 — bulgu yok,
+oyuncuya "MEYDAN OKUMA"; masaüstü kapıları tamam, Samsung A36 yerel kapısı GEÇTİ 2026-10-02 — bulgu yok;
+son engel "monoton kabul edilen gün" `f8c8ffb` ile kapatıldı, hedefli A36 kapısı GEÇTİ 2026-10-02;
 main'e alınması owner onayı bekliyor):** isteğe bağlı günlük mod — hedef tier'ı sınırlı gerçek bırakışla, günün
 deterministik parça dizisiyle oluştur; kilitli haftalık preset tablosu, güç / devam yok, ilerleme
 yalıtımı (XP / görev / başarım / sandık / yıldız / istatistik / sonsuz etkisi yok), ilk başarı günde bir
@@ -79,7 +80,8 @@ politikası → upload anahtarı → gerçek AdMob kimlikleri → mağaza varlı
 sonra ilk imzalı üretim AAB'si ve M10 (Play kapalı test) ·
 **Branch / main:** `task/047-daily-merge-challenge` (main `6d3dbca`'dan: `befbbbd` model + kayıt ·
 `bf553e0` board · `201764d` akış + yalıtım · `e805736` arayüz + sonuçlar · `54e8411` + `e002dff` inceleme
-düzeltmeleri · `743e5d7` kapı / doküman · A36 kapısı kaydı; A36 GEÇTİ 2026-10-02) — dalda,
+düzeltmeleri · `743e5d7` kapı / doküman · `7395280` A36 kapısı kaydı · `f8c8ffb` monoton gün · monoton
+gün doküman / hedefli A36 kaydı; A36 GEÇTİ 2026-10-02, hedefli monoton gün kapısı dahil) — dalda,
 main'e alınması owner onayı bekliyor, merge EDİLMEDİ · `main` == origin/main == `6d3dbca` — TASK/046.2
 `task/046-2-action-cancel-drop-guard` (`471a2ab` · `2149fc3` · `b364a0c` · `6d3dbca` doküman / A36 kapısı
 kaydı) owner onayıyla ff-only entegre (`afc10be → 6d3dbca`, 2026-10-01; merge commit yok; dal duruyor) ·
@@ -2187,10 +2189,12 @@ formatına yalnız `haptics_enabled` (varsayılan true) eklendi. Ayrıntı ve
 > **dalda, main'e alınması owner onayı bekliyor** — `task/047-daily-merge-challenge`, main `6d3dbca`'dan
 > (`befbbbd` model + kayıt · `bf553e0` board · `201764d` akış + yalıtım · `e805736` arayüz + sonuçlar ·
 > `54e8411` + `e002dff` çekişmeli inceleme düzeltmeleri · `743e5d7` regresyon / görsel kapı + doküman ·
-> A36 kapısı kaydı). **Masaüstü doğrulama + 5 mercekli çekişmeli inceleme + mutasyon + 6 boyut görsel
-> kapı + tam masaüstü kapısı tamam; Samsung A36 yerel kapısı GEÇTİ (2026-10-02)** — yalnız QA paketi,
-> cihaz bulgusu yok, düzeltme commit'i yok. main DEĞİŞMEDİ. Kurallar ve sayılar GAME_DESIGN §5.11'de
-> kilitli (owner onaylı brif), görünüm UI_VISUAL_SYSTEM §26.
+> `7395280` A36 kapısı kaydı · `f8c8ffb` monoton gün · monoton gün doküman / hedefli A36 kaydı).
+> **Masaüstü doğrulama + 5 mercekli çekişmeli inceleme + mutasyon + 6 boyut görsel kapı + tam masaüstü
+> kapısı tamam; Samsung A36 yerel kapısı GEÇTİ (2026-10-02)** — yalnız QA paketi, cihaz bulgusu yok,
+> düzeltme commit'i yok. **Son engel "monoton kabul edilen gün" KAPATILDI (`f8c8ffb`); tam masaüstü
+> kapısı + hedefli Samsung A36 kapısı GEÇTİ (2026-10-02)** — aşağıda. main DEĞİŞMEDİ. Kurallar ve
+> sayılar GAME_DESIGN §5.11'de kilitli (owner onaylı brif), görünüm UI_VISUAL_SYSTEM §26.
 
 - **Ürün:** isteğe bağlı günlük mod — hedef tier'ı sınırlı GERÇEK bırakışla, günün deterministik parça
   dizisiyle oluştur; süre yok. Kilitli haftalık preset (Pzt T5·600·18 · Sal T5·480·16 · Çar T6·600·38 ·
@@ -2291,11 +2295,47 @@ formatına yalnız `haptics_enabled` (varsayılan true) eklendi. Ayrıntı ve
   dokunuş gönderilmedi, ≥ 60 sn salt okunur yoklamadan sonra devam edildi (yabancı dokunuş 0). Kapı sonunda
   QA paketi kaldırıldı; üretim paketi hiç kurulmadı; `com.example.squishymerge` dokunulmadı (0.8.5, kurulum
   / güncelleme zamanları aynı); masaüstü kayıt ailesi ve sahibin dosyaları içerik olarak aynı.
-- **Kayda geçen, DÜZELTİLMEYEN (owner kararı / kapsam dışı):** (a) **kalıtılan gün uç durumu** — uygulama
-  gece yarısını ÖN PLANDA geçip ardından cihaz saati geri alınırsa kabul edilen gün (görevlerle birlikte)
-  bir önceki güne dönebilir; tamamlanmış gün açılmaz, ikinci ödül yok; kapatmak için meydan okuma
-  başlangıcına `DailyRewards.observe_day()` eklemek GÜNLÜK ÖDÜLLER / görev gün semantiğine yazma noktası
-  ekler (brif §4 "gün semantiğini değiştirme") — owner kararı; (b) **normal RESULT_DELAY yarışı** (§4.24)
+- **Monoton gün — son engel, KAPATILDI (2026-10-02, owner brifi "FINAL BLOCKER: MONOTONIC ACCEPTED DAY"):**
+  önce yeniden üretildi — yeni `tools/daily_challenge_day_test` düzeltmesiz `7395280`'de 35 kontrolün
+  10'unda düştü (açık oturum: Ana Sayfa D+1'i gösterdi ama `last_seen` D kaldı, saat geri → meydan okuma /
+  `day_key` / `accepted_day` D, preset ve Ana Sayfa D; BAŞLA başlatmadı, pencereyi D'ye tazeledi; kayıp
+  "Gün değişti" dedi, TEKRAR DENE D'yi başlattı; soğuk açılış: diskteki `last_seen` D → yeni süreç D;
+  kontrol: öne dönüşün kaydettiği D+1 soğuk açılışta korunuyordu). Düzeltme (`f8c8ffb`, en küçük güvenli
+  değişiklik): meydan okumanın tek gün okuması `DailyChallenge.current_day()` kabul ettiği günü mevcut
+  `DailyRewards.observe_day()` ile kayda işler (yalnız ileri, yalnız `last_seen_day_key`; geçersiz saat
+  yazılmaz) — yeni alan / ikinci saat / şema değişikliği YOK. Eşdeğerlik kanıtı: meydan okumanın kabulü
+  öne dönüş gözlemiyle BAYT-AYNI kayıt yazar ve ortak okumalar (gün, ilk gün kilidi, pencere "due", görev
+  dönemi, giriş / seri / Hamur) saat ileri ve geri iki yolda aynı → yeni ödül / ilerleme kuralı yok; giriş
+  ödülü sistem tarihiyle çalışır (dokunulmaz). Testler: `daily_challenge_day_test` 38 (açık oturum, BAŞLA,
+  tekrar, Ana Sayfa, tamamlanma, soğuk açılış + kontrol, ileri / bozuk saat, ortak sistem, eşdeğerlik),
+  model testi tek yazma yolunu sabitler; mutasyon: düzeltme kaldırıldı 16 hata, bozuk saat koruması
+  kaldırıldı 2 hata — ikisi de öldü, kaynak bayt-aynı. Test fikstürü düzeltmesi: TASK/047 suite'leri
+  `last_login_date`'i gerçek sistem tarihine kurar (açılıştaki giriş ödülü sistem tarihini kullanır;
+  2026-10-01'e sabit fikstür sonraki her günde +15 veriyordu — saatli bomba, ürün hatası değil).
+- **Monoton gün — tam masaüstü kapısı + hedefli Samsung A36 kapısı — GEÇTİ (2026-10-02):** masaüstü
+  (`f8c8ffb`): 42 koşu, 5261 kontrol, 0 hata, 0 SCRIPT ERROR, bot 2/2; sahibin kayıt ailesi bayt-aynı,
+  Godot süreci kalmadı. A36 (cihaz saati 10:37–10:53): yalnız QA paketi (APK `f8c8ffb`'den, 104,273,864 B;
+  `verify_apk.py` PASS — paketlenmiş `daily_challenge` jeton tablosunda `observe_day` var, `743e5d7` APK'sı
+  bu denetimde düşer); telefon saati DEĞİŞMEDİ, gün yalnız QA kancasıyla; gerçek dokunuşlar, parti başına
+  dokunuş sayımı. (1) D = 2026-10-01 gözlendi, başlatıldı, kazanıldı (+20); (2) QA günü → D+1; (3) Ana
+  Sayfa / pencere / BAŞLA D+1'i kabul etti (D+1 günlük penceresi mevcut kuralla açıldı, gerçek dokunuşla
+  kapatıldı); (4) QA günü geri D; (5) Ana Sayfa D+1'de kaldı; (6) pencere D+1; (7) BAŞLA D+1, taşma
+  kaybı "Kap taştı. Sıra aynı, tekrar dene!" ("Gün değişti" değil), gerçek TEKRAR DENE D+1; (8) D+1
+  kazanıldı, tamamlanma günü kabul edilen gün (2026-10-02); tamamlanmış D bir daha hiç gösterilmedi;
+  (9) başlatma RED, pencere D+1 ✓ TAMAMLANDI, Hamur toplamı tam +40 (D bir kez + D+1 bir kez); (10) zorla
+  durdurma + soğuk açılış, QA günü D'de: kabul edilen gün D+1, ✓, başlatma RED, günlük pencere açılmadı;
+  (11) yan etki yok — Günlük Ödüller kotaları / giriş tarihi / seri aynı (yeni giriş ödülü yok), görevler
+  ileri döneme 0 ilerlemeyle damgalandı (mevcut kural), XP / başarım / istatistik / stok / onboarding /
+  yaş bandı aynı; (12) logcat (2 QA süreci): SCRIPT ERROR 0, çökme / ANR 0, godot E 0, yalnız Google
+  test reklam kimlikleri; (13) QA paketi kaldırıldı, üretim paketi hiç kurulmadı, `com.example.squishymerge`
+  dokunulmadı (0.8.5, kurulum / güncelleme zamanları aynı), gezinme kipi 0. Not: QA kancasının durum
+  satırları günü üretimdeki `DailyChallenge.current_day()` ile okur — saat ilerletildikten sonraki ilk
+  okuma kabulün kendisidir; her arayüz yolunun kancasız yazdığını masaüstü gün suite'i kanıtlar. İki
+  güvenlik durdurması (gelen arama, ardından sahibin 2 dokunuşu; Samsung kenar ışığı bildirimi): o an
+  dokunuş gönderilmedi, ≥ 60 sn salt okunur yoklamadan sonra durum yeniden okunup devam edildi. Cihaz
+  bulgusu yok, düzeltme commit'i yok.
+- **Kayda geçen, DÜZELTİLMEYEN (owner kararı / kapsam dışı):** (a) ~~kalıtılan gün uç durumu~~ → 2026-10-02
+  kapatıldı (yukarıda "Monoton gün"); (b) **normal RESULT_DELAY yarışı** (§4.24)
   ve çapraz örneği: gecikmedeki normal sonuç → Mola / Ana Menüye Dön → Android GERİ (yatışmasız) → pill →
   BAŞLA ≈ 600 ms + tepki — eski normal sonucu / geçiş reklamı denemesi canlı meydan okuma tahtasının
   üstüne açılabilir (düğmeleri meydan okumaya gider, ekonomi çift sayımı yok); normal yol bu görevde

@@ -83,8 +83,10 @@ alınacak — şimdi tahmin/vaat yok.
   `b364a0c` · `6d3dbca` doküman / A36 kapısı kaydı; merge commit yok, dal duruyor). **TASK/047
   dalda:** `task/047-daily-merge-challenge` (main `6d3dbca`'dan: `befbbbd` model + kayıt · `bf553e0`
   board · `201764d` akış + yalıtım · `e805736` arayüz + sonuçlar · `54e8411` + `e002dff` çekişmeli
-  inceleme düzeltmeleri · `743e5d7` regresyon / görsel kapı + doküman · A36 kapısı kaydı; origin'e
-  itildi) — masaüstü + Samsung A36 kapısı GEÇTİ, main'e alınması owner onayı bekliyor, merge EDİLMEDİ.
+  inceleme düzeltmeleri · `743e5d7` regresyon / görsel kapı + doküman · `7395280` A36 kapısı kaydı ·
+  `f8c8ffb` monoton gün (son engel) · monoton gün doküman / hedefli A36 kaydı; origin'e itildi) —
+  masaüstü + Samsung A36 kapısı + hedefli monoton gün A36 kapısı GEÇTİ, main'e alınması owner onayı
+  bekliyor, merge EDİLMEDİ.
   Önce (2026-09-30):
   **TASK/046 + TASK/046.1 owner onayıyla BİRLİKTE ff-only main'e alındı** — doğrulanmış doğrusal
   zincir `56106ef` → TASK/046 (`efb9763` · `6543492` · `137c219` · `5092dad`) → TASK/046.1
@@ -93,10 +95,13 @@ alınacak — şimdi tahmin/vaat yok.
   `task/046-1-age-gate-13plus-redesign` = `b90bc3c`).
 - **TASK/047 — Günlük Merge Challenge V1 (oyuncuya "MEYDAN OKUMA") — dalda; masaüstü doğrulama +
   çekişmeli inceleme + mutasyon + görsel kapı tamam, Samsung A36 yerel kapısı GEÇTİ (2026-10-02, yalnız
-  QA paketi, bulgu yok); main'e alınması owner onayı bekliyor.** İsteğe bağlı günlük mod: hedef tier'ı sınırlı GERÇEK bırakışla
+  QA paketi, bulgu yok); son engel (monoton gün) kapatıldı ve hedefli A36 kapısı GEÇTİ (2026-10-02);
+  main'e alınması owner onayı bekliyor.** İsteğe bağlı günlük mod: hedef tier'ı sınırlı GERÇEK bırakışla
   oluştur, süre yok. KİLİTLİ haftalık tablo (Pzt T5·600·18 · Sal T5·480·16 · Çar T6·600·38 · Per
   T5·420·15 · Cum T6·540·36 · Cmt T6·480·32 · Paz T6·420·30; yükseklik 400); gün = görevlerin kabul
-  edilen günü (ayrı saat yok, tamamlanma günü taban); parça dizisi SHA-256 `sm-dc-v1` torbası
+  edilen günü (ayrı saat yok, tamamlanma günü taban) ve **monoton** — meydan okuma kabul ettiği günü
+  mevcut `DailyRewards.observe_day()` ile kayda işler, saat geri alınınca eski bir meydan okuma
+  gösterilmez / başlatılmaz (son engel 2026-10-02'de kapatıldı, `f8c8ffb`); parça dizisi SHA-256 `sm-dc-v1` torbası
   (global RNG'ye dokunmaz; 2026-10-01 vektörü kilitli); bütçe yalnız gerçek bırakış (iptal 0), son
   bırakıştan sonra yatışma (son parça indikten 1,5 sn merge'siz / son bırakıştan 5,0 sn tavan); güç /
   devam / XP / görev / başarım / bonus sandık / yıldız / level / istatistik / sonsuz / geçiş reklamı
@@ -588,8 +593,16 @@ main `6d3dbca`'dan; owner onaylı kilitli brif — GAME_DESIGN §5.11). Masaüst
 (35/35), 6 boyut × 15 = 90 kare görsel kapı ve tam masaüstü kapısı (41 koşu, 5262 kontrol, 0 hata, 0
 SCRIPT ERROR; aday `e002dff`) ve **Samsung A36 yerel kapısı GEÇTİ (2026-10-02; yalnız QA paketi, Google
 TEST reklamları, telefon saati değişmedi — kabul edilen gün QA kancasıyla; cihaz bulgusu yok, düzeltme
-commit'i yok; QA paketi kaldırıldı, `com.example` dokunulmadı)** — PROJECT_STATUS §4.27. **Sıradaki adım:
-owner incelemesi + main entegrasyon kararı** (merge EDİLMEDİ). Preset tablosu kilitli; A36 playtest'i
+commit'i yok; QA paketi kaldırıldı, `com.example` dokunulmadı)**. **Son engel — monoton kabul edilen
+gün: KAPATILDI (2026-10-02, `f8c8ffb`)** — saat geri alınınca eski bir meydan okuma artık gösterilmez /
+başlatılmaz: meydan okuma kabul ettiği günü mevcut `DailyRewards.observe_day()` ile kayda işler (yeni
+alan / şema / saat yok; Günlük Ödüller ve görev kuralları aynen). Önce düzeltmesiz `7395280`'de yeniden
+üretildi (yeni gün suite'i 10 hata); düzeltmeyle 38/38, mutasyon M35 / M36 öldü, tam masaüstü kapısı (42
+koşu, 5261 kontrol, 0 hata, 0 SCRIPT ERROR) ve **hedefli Samsung A36 kapısı GEÇTİ** (1–13: D → D+1 → geri D;
+Ana Sayfa / pencere / BAŞLA / TEKRAR DENE / soğuk açılış D+1'de kaldı, eski gün açılmadı, +20 tekrar
+kazanılmadı, yan etki yok, logcat temiz; QA paketi kaldırıldı, üretim paketi kurulmadı, `com.example`
+dokunulmadı) — PROJECT_STATUS §4.27. **Sıradaki adım: owner incelemesi + main entegrasyon kararı**
+(merge EDİLMEDİ). Preset tablosu kilitli; A36 playtest'i
 yeniden ayar önerirse ayrı owner kararı. Ürün işi yukarıdaki release izini (3a–8) kapatmaz.
 
 Önceden var olan, owner kararı bekleyen öneriler (**BAŞLAMADI**): sonuç gecikmesi

@@ -1187,12 +1187,21 @@ meydan okuması başlamaz. Gün değişmiş kayıp: "Gün değişti · yeni meyd
 MEYDAN OKUMA + ANA SAYFA — gün, sonuç GÖSTERİLİRKEN okunur (sonuç gecikmesi gece yarısını geçebilir);
 açık kalan kayıp sonucu gece yarısını geçerse TEKRAR DENE (ve öne dönüş) önce sonucu bu kopyaya
 yeniler, yeni günün meydan okumasını ikinci basış başlatır (açık pencerenin BAŞLA'sı gibi). Mola
-"Yeniden Başlat" kopya taşımadığı için doğrudan güncel günü başlatır. **Kalıtılan uç durum (kabul
-edilen gün semantiği, DEĞİŞTİRİLMEDİ):** uygulama gece yarısını ÖN PLANDA geçip (açılış / öne dönüş
-olmadan yeni gün kayda işlenmez) ardından cihaz saati geri alınırsa kabul edilen gün — görevlerle
-birlikte — bir önceki güne dönebilir; tamamlanmış gün yine açılmaz, ikinci ödül oluşmaz. Meydan okuma
-başlangıcında `DailyRewards.observe_day()` çağırmak bunu kapatırdı ama GÜNLÜK ÖDÜLLER / görevler gün
-semantiğine yeni bir yazma noktası ekler — owner kararı.
+"Yeniden Başlat" kopya taşımadığı için doğrudan güncel günü başlatır.
+
+**Monoton gün (KİLİTLİ):** meydan okuma bir günü kabul ettikten sonra (Ana Sayfa girişi / pencere /
+BAŞLA / tekrar / sonuç o günü gösterdi ya da başlattı) saat geri alınırsa daha eski bir meydan okumayı
+ASLA göstermez ve başlatmaz — Ana Sayfa, pencere, BAŞLA, tekrar, tamamlanmış gün, ödül, dizi / preset en
+yeni kabul edilen günde kalır; saati ileri almak yeni günü açmaya devam eder. Uygulama: meydan okumanın
+tek gün okuması (`DailyChallenge.current_day()`) kabul ettiği günü GÜNLÜK ÖDÜLLER'in MEVCUT gözlem
+API'siyle kayda işler (`DailyRewards.observe_day()` — yalnız ileri, yalnız `last_seen_day_key`;
+açılış / öne dönüşün yaptığı yazmanın aynısı; geçersiz saat kaydedilmez). Ayrı saat, yeni kayıt alanı,
+şema değişikliği YOK. Ortak etki: aynı gün gerçeğini okuyan sistemler (GÜNLÜK ÖDÜLLER günü / pencere
+"due", görev dönemi, ilk gün kilidi) geri alınmış saatte de en yeni gözlenen günde kalır — öne dönüş o
+günü gözlemlediğinde olanın birebir aynısı (bayt-aynı kayıt, aynı okumalar — testle kanıtlı); giriş
+ödülü / seri (sistem tarihiyle çalışır), görev ilerlemesi / ödülü, onboarding alanları ve Hamur'a
+dokunulmaz. (2026-10-02'ye kadar bu uç durum — ön planda gece yarısı + saat geri → bir önceki gün —
+açık kayıttaydı; owner kararıyla kapatıldı.)
 
 **Görünürlük:** onboarding / tutorial bitmeden giriş gizli; otomatik pencere, meydan okuma
 tutorial'ı, kayıt mutasyonu YOK. İlk normal Ana Sayfa'dan itibaren açık — GÜNLÜK ÖDÜLLER'in

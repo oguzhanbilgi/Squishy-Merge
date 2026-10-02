@@ -1990,7 +1990,9 @@ pencereye VE board'a — HUD üst satırı + kap, sonuç bu board'un üstünde �
   bugünün HEDEF portresi (tier sanatı; T5 / T6), ortada "MEYDAN OKUMA" (Baloo 19), sağda altın
   "+20" rozeti; tamamlanınca rozet nane, içinde tik ikonu (glif değil — §12 font kapsamı).
 - **Görünürlük:** onboarding bitmeden ve gün gerçeği yokken gizli; tutorial'ın bitirildiği gün
-  görünür. `refresh()`, öne dönüş ve pencerenin gün tazelemesi yeniden okur. Kayda YAZMAZ.
+  görünür. `refresh()`, öne dönüş ve pencerenin gün tazelemesi yeniden okur. Giriş kendisi yazmaz;
+  meydan okumanın gün okuması yeni bir günü ilk kez kabul ettiğinde yalnız gün gözlemini
+  (`last_seen_day_key`) işler — GAME_DESIGN §5.11 monoton gün.
 
 ### 26.2 MEYDAN OKUMA penceresi
 
