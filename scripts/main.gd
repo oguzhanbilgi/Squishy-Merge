@@ -1361,8 +1361,6 @@ func is_daily_challenge_round() -> bool:
 
 
 func _clear_board() -> void:
-	# TASK/048: board'un sahipliği bitti — bekleyen gecikmeli normal sonuç / geçiş reklamı artık eski.
-	_round_generation += 1
 	# Round terk ediliyor: tutorial yarıdaysa overlay kapanır ve KAYIT
 	# DEĞİŞMEZ (onboarding false kalır, bir sonraki açılışta baştan, §25).
 	if _tutorial != null and _tutorial.is_active():
@@ -1384,6 +1382,10 @@ func _clear_board() -> void:
 			_board.round_finished.disconnect(_on_challenge_round_finished)
 		_board.queue_free()
 		_board = null
+	# TASK/048: board'un sahipliği bitti — bekleyen gecikmeli normal sonuç / geçiş reklamı artık eski. En
+	# sonda (bağlar koptuktan sonra): yukarıdaki adımlardan biri ileride round_finished'i eşzamanlı yayarsa
+	# yakalanan nesil yine eski kalır.
+	_round_generation += 1
 
 
 # --- Devam etme (revive) — GAME_DESIGN.md §11 ---
