@@ -12,15 +12,23 @@ extends Node
 ## Kayıp / Sonsuz bitişi molada OLUŞAMAZ (taşma sayacı donukken ilerlemez; bitişten sonra mola açılmaz)
 ## — o yollar aynı üretim işleyicisiyle (mola Yeniden Başlat işleyicisi, QA kancası) sınanır.
 ##
+## Zaman: "gecikmeden sonra" denetimleri Main'in KENDİ saatine bağlıdır — her izlenen bitişte (round_finished
+## yayımında, Main'in zamanlayıcısından hemen SONRA) aynı süreli bir SceneTree zamanlayıcısı kurulur; o
+## dolduğunda Main'in gecikmeli kodu aynı karede zaten çalışmıştır (duvar saati / kare süresi farkı yok).
+##
 ## Bölümler:
-##   A geçerli    değiştirilmeyen kazanma / kayıp: ilerleme bir kez, sonuç gecikmeden sonra TAM bir kez
-##   B yeniden    GERÇEK dokunuş: Büyütücü + HUD geri (mola) + "Yeniden Başlat" gecikme içinde → eski
-##                sonuç açılmaz, yeni board örtülmez, dokunuş alır, kendi sonucunu sonra açar
+##   A geçerli    değiştirilmeyen kazanma / kayıp: ilerleme bir kez, sonuç gecikmeden sonra TAM bir kez;
+##                gecikme içinde arka plan + öne dönüş round'u değiştirmez
+##   B yeniden    GERÇEK dokunuş: Büyütücü düğmesi + hedef + HUD geri (mola) + "Yeniden Başlat" gecikme
+##                içinde → eski sonuç açılmaz, dokunuş yeni board'a sızmaz, yeni board örtülmez, dokunuş
+##                alır, kendi sonucunu sonra açar
 ##   C Ana Sayfa  gerçek "Ana Menüye Dön" + Android geri → Ana Sayfa'da sonuç / geçiş reklamı yok
 ##   D level      gecikme içinde Harita'dan başka sabit level → eski sonuç bastırılır
 ##   E sonsuz     gecikme içinde Sonsuz → eski sonuç bastırılır
-##   F meydan     gecikme içinde meydan okuma → eski normal sonuç / reklam yok; meydan okuma aynen
-##   G yeni       A bitti → B değiştirdi ve A'nın gecikmesi bitmeden kendisi bitti: A hiç, B tam bir kez
+##   F meydan     gecikme içinde meydan okuma → eski normal sonuç (reklamsız — üretimin olağan durumu) ve
+##                eski geçiş reklamı (reklam uygunken) yok; meydan okuma sonucu aynen
+##   G yeni       A (level 5 ilk kazanma) bitti → B (yeniden başlatılan) A'nın gecikmesi bitmeden bitti: A
+##                hiç, B tam bir kez — B'nin sonucu (kilit rozeti YOK) A'nınkinden (kilit rozeti) ayrılır
 ##   H çoklu      iki eski devam aynı anda bekler: ikisi de ölü, yalnız güncel nesil sunar
 ##   I ilerleme   meşru kesinleşme bir kez (geri alma yok, çift yok), yeni round güncel ilerlemeden
 ##   J kayıp      kayıp kesinleşti → değiştirildi: eski kayıp sonucu yok, teselli bir kez
@@ -28,8 +36,9 @@ extends Node
 ##   L tutorial   tutorial adımları / geri onayı / ATLA nesli değiştirmez; tutorial round sonucu açılır
 ##   M nesil      board değişimi (yeni / yeniden / terk / çıkış) ilerletir; mola / Ayarlar / öne dönüş /
 ##                sekme / sonuç sunumu ilerletmez; eski nesil reddedilir; yalnız bellekte
-##   N reklam     geçerli normal sonuç geçiş reklamı yolu aynen; eski round reklam DENEMEZ; reklam
-##                açıkken değiştirilen round'un sonucu kapanışta açılmaz; meydan okuma hiç denemez
+##   N reklam     geçerli normal sonuç geçiş reklamı yolu aynen (arka plan / öne dönüş dahil); eski round
+##                reklam DENEMEZ; reklam açıkken değiştirilen round'un sonucu kapanışta / gösterim hatasında
+##                açılmaz ve yönetici temiz kalır; meydan okuma hiç denemez
 ##   O kaynak     RESULT_DELAY 0,8 / 300 ms / iptal koruması aynen; nesil tek noktada; kayıt şeması aynı
 
 const MAIN_SCENE: PackedScene = preload("res://scenes/main.tscn")
@@ -53,10 +62,13 @@ var _main_script: GDScript
 var _shows: int = 0
 ## İzlenen board'ların bırakışları.
 var _drops: int = 0
-## Son izlenen round_finished anı (ms) / mola açılış anı / değiştirme anı.
+## Son izlenen bitişin izleyici zamanlayıcısı (Main'in RESULT_DELAY'iyle aynı saat) ve duvar saati anları.
+var _last_timer: SceneTreeTimer = null
 var _finish_msec: int = -1
 var _pause_msec: int = -1
 var _replace_msec: int = -1
+## Değiştirme anında son bitişin gecikmesinden kalan süre (Main'in saatiyle; > 0 = gecikme içinde).
+var _replace_left: float = -1.0
 var _last_back_msec: int = -100000
 
 
@@ -143,16 +155,35 @@ func _valid_results() -> void:
 	var rounds: int = _rounds()
 	var seq: int = _main._result_seq
 	await _finish_now(board)
-	var t0: int = _finish_msec
-	_c("ön koşul: kazanma kesinleşti (gerçek Büyütücü dönüşümü hedefe ulaştı)", board.is_finished() and t0 > 0)
+	var timer: SceneTreeTimer = _last_timer
+	_c("ön koşul: kazanma kesinleşti (gerçek Büyütücü dönüşümü hedefe ulaştı)", board.is_finished() and timer != null)
 	_c("kesinleşme gecikmeden ÖNCE yazdı: tur + 1", _rounds() == rounds + 1)
-	await _wait_until(t0 + _delay_ms() - 250)
-	_c("gecikme sürerken sonuç henüz yok", not _main._result.visible)
-	await _wait_past_delay(t0)
+	await _until_left(timer, 0.25)
+	_c("gecikme sürerken sonuç henüz yok", not _main._result.visible and timer.time_left > 0.0)
+	await _after(timer)
 	_c("gecikmeden sonra kazanma sonucu açıldı: mod WIN, kendi level'ı (3), tam bir kez (seq + 2)",
 		_main._result.visible and _main._result.mode() == _mode("WIN") and _shown_level() == 3
 		and _shows == 1 and _main._result_seq == seq + 2)
 	_c("  … sonuç ekranı kayda yazmadı (tur hâlâ + 1)", _rounds() == rounds + 1)
+
+	_main._on_retry_pressed()
+	await _settle(3)
+	board = _main._board
+	_track(board)
+	_shows = 0
+	seq = _main._result_seq
+	await _finish_now(board)
+	timer = _last_timer
+	get_tree().root.propagate_notification(NOTIFICATION_APPLICATION_PAUSED)
+	await _settle(2)
+	get_tree().root.propagate_notification(NOTIFICATION_APPLICATION_RESUMED)
+	await _settle(2)
+	_c("kurulum: kazanma kesinleşti, gecikme İÇİNDE uygulama arka plana gidip döndü (board aynı)",
+		board.is_finished() and timer.time_left > 0.0 and _main._board == board)
+	await _after(timer)
+	_c("arka plan / öne dönüş round'u değiştirmez: sonuç TAM bir kez (seq + 2)", _main._result.visible
+		and _shows == 1 and _main._result_seq == seq + 2)
+
 	_main._on_retry_pressed()
 	await _settle(3)
 	board = _main._board
@@ -161,12 +192,13 @@ func _valid_results() -> void:
 	seq = _main._result_seq
 	rounds = _rounds()
 	await _loss(board)
-	t0 = _finish_msec
-	_c("kayıp kesinleşti (devam reddi — üretim yolu): tur + 1", board.is_finished() and t0 > 0 and _rounds() == rounds + 1)
+	timer = _last_timer
+	_c("kayıp kesinleşti (devam reddi — üretim yolu): tur + 1", board.is_finished() and timer != null
+		and _rounds() == rounds + 1)
 	_main.open_pause_menu()
 	await _settle(1)
 	_c("RESULT_DELAY aralığında mola AÇILMAZ (mevcut kilit aynen)", not _main.is_pause_open())
-	await _wait_past_delay(t0)
+	await _after(timer)
 	_c("geçerli kayıp sonucu açıldı: mod FAIL, level 3, tam bir kez", _main._result.visible
 		and _main._result.mode() == _mode("FAIL") and _shown_level() == 3 and _shows == 1 and _main._result_seq == seq + 2)
 	_sections_done += 1
@@ -175,18 +207,24 @@ func _valid_results() -> void:
 # --- B) Gerçek dokunuşla yeniden başlatma ------------------------------------------------------------------
 
 func _restart_real_input() -> void:
-	print("-- B: GERÇEK dokunuş — Büyütücü + HUD geri (mola) + 'Yeniden Başlat' gecikme içinde")
+	print("-- B: GERÇEK dokunuş — Büyütücü düğmesi + hedef + HUD geri (mola) + 'Yeniden Başlat' gecikme içinde")
 	await _fresh()
-	var board: Node2D = await _start(_level(3))
-	await _wait_settled()
-	# Isınma: dönüşüm efektinin ilk kullanımı (hedefin altında — round bitmez).
-	var warm: Dumpling = await _piece(board, 2)
-	await _fire_upgrade(board, warm)
-	await _wait(0.4)
-	var ok: bool = await _finish_under_pause(board, true)
-	var t0: int = _finish_msec
-	_c("kurulum (gerçek dokunuş): Büyütücü hedefe basışta başladı, HUD geri molayı bitişten ÖNCE açtı, dönüşüm "
-		+ "round'u molada bitirdi, mola açık", ok)
+	var board: Node2D = null
+	var ok: bool = false
+	var attempts: int = 0
+	while not ok and attempts < 3:
+		attempts += 1
+		board = await _start(_level(3))
+		await _wait_settled()
+		if attempts == 1:
+			# Isınma: düğme + dönüşüm efektinin ilk kullanımı (hedefin altında — round bitmez).
+			var warm: Dumpling = await _piece(board, 2)
+			await _fire_upgrade(board, warm, true)
+			await _wait(0.4)
+		ok = await _finish_under_pause(board, true)
+	var timer: SceneTreeTimer = _last_timer
+	_c("kurulum (gerçek dokunuş, %d deneme): Büyütücü düğmesi + hedefe basış, HUD geri molayı bitişten ÖNCE açtı, " % attempts
+		+ "dönüşüm round'u molada bitirdi, mola açık", ok)
 	if not ok:
 		_sections_done += 1
 		return
@@ -195,10 +233,12 @@ func _restart_real_input() -> void:
 	var board_id: int = board.get_instance_id()
 	await _wait_until(_pause_msec + 350)
 	var replacement: Node2D = await _restart_via_pause(true)
-	var dt: int = _replace_msec - t0
-	_c("gerçek 'Yeniden Başlat' dokunuşu gecikme İÇİNDE yeni board kurdu (%d ms < %d ms)" % [dt, _delay_ms()],
-		_differs(replacement, board_id) and dt >= 0 and dt < _delay_ms() and not _main._result.visible)
-	await _wait_past_delay(t0)
+	_c("gerçek 'Yeniden Başlat' dokunuşu gecikme İÇİNDE yeni board kurdu (bitişten %d ms; Main'in gecikmesinden %.2f sn kalmıştı)"
+		% [_replace_msec - _finish_msec, _replace_left], _differs(replacement, board_id) and _replace_left > 0.0
+		and not _main._result.visible)
+	_c("  … yeniden başlatma dokunuşu yeni board'a sızmadı (yeni board boş — bırakış yok)", replacement != null
+		and replacement.live_dumplings().is_empty())
+	await _after(timer)
 	_c("eski round'un gecikmesi doldu: ESKİ sonuç yeni round'un üstüne AÇILMADI", not _main._result.visible
 		and _shows == 0)
 	if _abort_if_stale("B"):
@@ -211,8 +251,7 @@ func _restart_real_input() -> void:
 	var dropped: bool = await _drop_ok(replacement)
 	_c("  … yeni board GERÇEK dokunuşu aldı: tam 1 bırakış (dokunuş tüketilmedi)", dropped)
 	await _finish_now(replacement)
-	var t1: int = _finish_msec
-	await _wait_past_delay(t1)
+	await _after(_last_timer)
 	_c("yeni round kendi sonucunu normal açtı: mod WIN, level 3, tam bir kez", _main._result.visible
 		and _main._result.mode() == _mode("WIN") and _shown_level() == 3 and _shows == 1
 		and _main._result_seq == seq + 2)
@@ -231,18 +270,18 @@ func _home() -> void:
 	var board: Node2D = await _start(_level(3))
 	await _wait_settled()
 	var ok: bool = await _finish_under_pause(board, false)
-	var t0: int = _finish_msec
+	var timer: SceneTreeTimer = _last_timer
 	var shows: int = fake.interstitial_shows.size()
 	AdEvents.clear_recent()
 	await _wait_until(_pause_msec + 350)
 	await _finger_tap(_center(_main._pause.buttons()[2]))
 	await _settle(2)
 	_c("kurulum: kazanma molada kesinleşti; gerçek 'Ana Menüye Dön' gecikme içinde board'u kaldırdı → Harita", ok
-		and _main._board == null and _main._active_tab == 1 and Time.get_ticks_msec() - t0 < _delay_ms())
+		and _main._board == null and _main._active_tab == 1 and timer.time_left > 0.0)
 	await _back()
 	_c("  … Android geri → Ana Sayfa (gecikme hâlâ sürüyor)", _main._active_tab == 0 and _main._screens[0].visible
-		and Time.get_ticks_msec() - t0 < _delay_ms())
-	await _wait_past_delay(t0)
+		and timer.time_left > 0.0)
+	await _after(timer)
 	_c("eski round'un gecikmesi doldu: Ana Sayfa'da sonuç AÇILMADI", not _main._result.visible and _shows == 0
 		and _main._screens[0].visible and _main._active_tab == 0)
 	_c("  … eski round geçiş reklamı DENEMEDİ (gösterim / atlama olayı yok), reklam uygun + hazır kaldı",
@@ -264,7 +303,7 @@ func _fixed_to_fixed() -> void:
 	var board: Node2D = await _start(_level(3))
 	await _wait_settled()
 	var ok: bool = await _finish_under_pause(board, false)
-	var t0: int = _finish_msec
+	var timer: SceneTreeTimer = _last_timer
 	var board_id: int = board.get_instance_id()
 	_main._pause.exit_pressed.emit()
 	await _settle(2)
@@ -273,13 +312,14 @@ func _fixed_to_fixed() -> void:
 	var next: Node2D = _main._board
 	_track(next)
 	_c("kurulum: level 3 molada kesinleşti, gecikme içinde Harita kartı (level_chosen) level 4'ü başlattı", ok
-		and _differs(next, board_id) and next.level.level_number == 4 and Time.get_ticks_msec() - t0 < _delay_ms())
-	await _wait_past_delay(t0)
+		and _differs(next, board_id) and next.level.level_number == 4 and timer.time_left > 0.0)
+	await _after(timer)
 	_c("eski level 3 sonucu level 4'ün üstüne AÇILMADI", not _main._result.visible and _shows == 0)
 	if _abort_if_stale("D"):
 		return
 	_c("  … level 4 etkin (bitmemiş, mola yok, donuk değil), kendi kesinleşmesi bekliyor", _main._board == next
 		and not next.is_finished() and not _main.is_pause_open() and not next._is_paused() and not _main._round_finalized)
+	await _wait_settled()
 	var dropped: bool = await _drop_ok(next)
 	_c("  … level 4 gerçek dokunuşu aldı: tam 1 bırakış", dropped)
 	_sections_done += 1
@@ -293,7 +333,7 @@ func _fixed_to_endless() -> void:
 	var board: Node2D = await _start(_level(3))
 	await _wait_settled()
 	var ok: bool = await _finish_under_pause(board, false)
-	var t0: int = _finish_msec
+	var timer: SceneTreeTimer = _last_timer
 	var board_id: int = board.get_instance_id()
 	_main._pause.exit_pressed.emit()
 	await _settle(2)
@@ -302,13 +342,14 @@ func _fixed_to_endless() -> void:
 	var next: Node2D = _main._board
 	_track(next)
 	_c("kurulum: level 3 molada kesinleşti, gecikme içinde Sonsuz başladı", ok and _differs(next, board_id)
-		and next.level.is_endless and Time.get_ticks_msec() - t0 < _delay_ms())
-	await _wait_past_delay(t0)
+		and next.level.is_endless and timer.time_left > 0.0)
+	await _after(timer)
 	_c("eski level 3 sonucu Sonsuz'un üstüne AÇILMADI", not _main._result.visible and _shows == 0)
 	if _abort_if_stale("E"):
 		return
 	_c("  … Sonsuz etkin (bitmemiş, mola yok, donuk değil)", _main._board == next and not next.is_finished()
 		and not _main.is_pause_open() and not next._is_paused())
+	await _wait_settled()
 	var dropped: bool = await _drop_ok(next)
 	_c("  … Sonsuz gerçek dokunuşu aldı: tam 1 bırakış", dropped)
 	_sections_done += 1
@@ -318,29 +359,38 @@ func _fixed_to_endless() -> void:
 
 func _fixed_to_challenge() -> void:
 	print("-- F: gecikme içinde Ana Sayfa → meydan okuma (çapraz kip)")
+	# F1 — reklamsız (üretimde geçiş reklamı çoğu bitişte uygun değil: eski sonuç doğrudan sunulurdu).
+	await _fresh()
+	var board: Node2D = await _start(_level(3))
+	await _wait_settled()
+	var ok: bool = await _cross_to_challenge(board)
+	var timer: SceneTreeTimer = _last_timer
+	var challenge: Node2D = _main._board
+	_track(challenge)
+	_c("F1 kurulum (reklamsız): normal kazanma molada kesinleşti, gecikme içinde Ana Sayfa → BAŞLA meydan okumayı başlattı",
+		ok and challenge != null and challenge.is_daily_challenge() and timer.time_left > 0.0)
+	await _after(timer)
+	_c("F1: eski NORMAL sonuç meydan okumanın üstüne AÇILMADI", not _main._result.visible and _shows == 0)
+	if not _main._result.visible:
+		_c("  … F1: meydan okuma etkin (bitmemiş, mola yok), round türü DAILY_CHALLENGE", _main._board == challenge
+			and not challenge.is_finished() and not _main.is_pause_open() and _main.is_daily_challenge_round())
+	# F2 — reklam uygun + hazır: eski round geçiş reklamı da denemez; meydan okuma sonucu aynen.
 	await _fresh(true)
 	var ads: MonetizationManager = _main._ads
 	var fake: FakeAdBackend = ads._backend
-	var board: Node2D = await _start(_level(3))
+	board = await _start(_level(3))
 	await _wait_settled()
-	var ok: bool = await _finish_under_pause(board, false)
-	var t0: int = _finish_msec
 	var shows: int = fake.interstitial_shows.size()
 	AdEvents.clear_recent()
-	_main._pause.exit_pressed.emit()
-	await _settle(2)
-	_main._show_tab(0)
-	await _settle(2)
-	_main._on_challenge_start_requested(THU)
-	await _settle(3)
-	var challenge: Node2D = _main._board
+	ok = await _cross_to_challenge(board)
+	timer = _last_timer
+	challenge = _main._board
 	_track(challenge)
-	_c("kurulum: normal kazanma molada kesinleşti, gecikme içinde Ana Sayfa → BAŞLA meydan okumayı başlattı", ok
-		and challenge != null and challenge.is_daily_challenge() and _main.is_daily_challenge_round()
-		and Time.get_ticks_msec() - t0 < _delay_ms())
-	await _wait_past_delay(t0)
-	_c("eski NORMAL sonuç meydan okumanın üstüne AÇILMADI", not _main._result.visible and _shows == 0)
-	_c("  … eski normal round geçiş reklamı DENEMEDİ, yüzey GAMEPLAY kaldı", fake.interstitial_shows.size() == shows
+	_c("F2 kurulum (reklam uygun): gecikme içinde meydan okuma başladı", ok and challenge != null
+		and challenge.is_daily_challenge() and timer.time_left > 0.0)
+	await _after(timer)
+	_c("F2: eski NORMAL sonuç meydan okumanın üstüne AÇILMADI", not _main._result.visible and _shows == 0)
+	_c("  … F2: eski normal round geçiş reklamı DENEMEDİ, yüzey GAMEPLAY kaldı", fake.interstitial_shows.size() == shows
 		and AdEvents.count(&"interstitial_skipped_not_ready") == 0
 		and ads.interstitial_state() == MonetizationManager.InterstitialState.READY
 		and ads.surface() == MonetizationManager.Surface.GAMEPLAY)
@@ -356,8 +406,7 @@ func _fixed_to_challenge() -> void:
 	var challenge_shows: int = fake.interstitial_shows.size()
 	AdEvents.clear_recent()
 	await _win_merge(challenge)
-	var t1: int = _finish_msec
-	await _wait_past_delay(t1)
+	await _after(_last_timer)
 	_c("meydan okuma sonucu aynen: CHALLENGE_WIN, tam bir kez, +20 Hamur bir kez", _main._result.visible
 		and _main._result.mode() == _mode("CHALLENGE_WIN") and _shows == 1 and SaveManager.dough() == dough + 20
 		and SaveManager.daily_challenge_completed_day() == THU)
@@ -366,31 +415,45 @@ func _fixed_to_challenge() -> void:
 	_sections_done += 1
 
 
+## Mola açıkken kazanma → Ana Menüye Dön → Ana Sayfa → BAŞLA (sayfanın gösterdiği gün) — hepsi üretim işleyicisi.
+func _cross_to_challenge(board: Node2D) -> bool:
+	var ok: bool = await _finish_under_pause(board, false)
+	_main._pause.exit_pressed.emit()
+	await _settle(2)
+	_main._show_tab(0)
+	await _settle(2)
+	_main._on_challenge_start_requested(THU)
+	await _settle(3)
+	return ok and _main.is_daily_challenge_round()
+
+
 # --- G) Yeni sonuç eskisini yener ----------------------------------------------------------------------
 
 func _newer_beats_older() -> void:
 	print("-- G: A kesinleşti → B değiştirdi ve A'nın gecikmesi bitmeden kesinleşti")
 	await _fresh()
-	var a: Node2D = await _start(_level(3))
+	var a: Node2D = await _start(_level(5))
 	await _wait_settled()
 	var ok: bool = await _finish_under_pause(a, false)
-	var ta: int = _finish_msec
+	var ta: SceneTreeTimer = _last_timer
 	var seq: int = _main._result_seq
 	var a_id: int = a.get_instance_id()
 	var b: Node2D = await _restart_via_pause(false)
 	var b_new: bool = _differs(b, a_id)
 	await _finish_now(b, 4)
-	var tb: int = _finish_msec
-	_c("kurulum: A molada, B (yeniden başlatılan) A'nın gecikmesi içinde kesinleşti (%d ms)" % (tb - ta), ok
-		and b_new and b.is_finished() and tb > ta and tb - ta < _delay_ms() - 150)
-	await _wait_until(ta + _delay_ms() + 100)
+	var tb: SceneTreeTimer = _last_timer
+	_c("kurulum: A (level 5 ilk kazanma — level 6 açıldı) molada, B (yeniden başlatılan) A'nın gecikmesi içinde kesinleşti",
+		ok and b_new and b.is_finished() and tb != ta and ta.time_left > 0.0 and SaveManager.highest_level_unlocked() == 6)
+	await _after(ta)
 	_c("A'nın gecikmesi doldu (B'ninki sürüyor): A'nın sonucu AÇILMADI", not _main._result.visible and _shows == 0
-		and Time.get_ticks_msec() < tb + _delay_ms())
+		and tb.time_left > 0.0)
 	if _abort_if_stale("G"):
 		return
-	await _wait_past_delay(tb)
-	_c("B'nin gecikmesi doldu: B'nin sonucu TAM bir kez (mod WIN, level 3)", _main._result.visible and _shows == 1
-		and _main._result.mode() == _mode("WIN") and _shown_level() == 3 and _main._result_seq == seq + 2)
+	await _after(tb)
+	_c("B'nin gecikmesi doldu: B'nin sonucu TAM bir kez (mod WIN, level 5)", _main._result.visible and _shows == 1
+		and _main._result.mode() == _mode("WIN") and _shown_level() == 5 and _main._result_seq == seq + 2)
+	_c("  … açılan sonuç B'nin: kilit rozeti YOK (A'nın sonucu 'LEVEL 6 AÇILDI' rozeti taşırdı)",
+		_main._result.unlock_badge() == null and _main._result.unlock_text() == "")
 	await _wait(0.9)
 	_c("  … sonra da ikinci (A) sunumu yok", _shows == 1 and _main._result_seq == seq + 2 and _main._result.visible)
 	_sections_done += 1
@@ -404,7 +467,7 @@ func _multiple_stale() -> void:
 	var a: Node2D = await _start(_level(3))
 	await _wait_settled()
 	var ok_a: bool = await _finish_under_pause(a, false)
-	var ta: int = _finish_msec
+	var ta: SceneTreeTimer = _last_timer
 	var seq: int = _main._result_seq
 	var a_id: int = a.get_instance_id()
 	var b: Node2D = await _restart_via_pause(false)
@@ -412,24 +475,23 @@ func _multiple_stale() -> void:
 	var ok_b: bool = false
 	if b_new:
 		ok_b = await _finish_under_pause(b, false, 4)
-	var tb: int = _finish_msec
+	var tb: SceneTreeTimer = _last_timer
 	var b_id: int = b.get_instance_id() if b_new else 0
 	var c: Node2D = await _restart_via_pause(false)
 	var c_new: bool = _differs(c, b_id)
-	var c_after_a: int = _replace_msec - ta
-	_c("kurulum: A ve B molada kesinleşti, C ikisinin de gecikmesi içinde başladı (B−A %d ms, C−A %d ms)"
-		% [tb - ta, c_after_a], ok_a and ok_b and b_new and c_new and c_after_a < _delay_ms() and tb > ta)
-	await _wait_past_delay(tb)
+	_c("kurulum: A ve B molada kesinleşti, C ikisinin de gecikmesi içinde başladı (A'dan %.2f sn, B'den %.2f sn kalmıştı)"
+		% [ta.time_left, tb.time_left], ok_a and ok_b and b_new and c_new and tb != ta and ta.time_left > 0.0
+		and tb.time_left > 0.0)
+	await _after(tb)
 	_c("A ve B'nin gecikmeleri doldu: ikisinin de sonucu AÇILMADI, sunum hiç başlamadı", not _main._result.visible
-		and _shows == 0 and _main._result_seq == seq)
+		and _shows == 0 and _main._result_seq == seq and ta.time_left <= 0.0)
 	if _abort_if_stale("H"):
 		return
 	_c("  … C etkin (bitmemiş, mola yok)", _main._board == c and not c.is_finished() and not _main.is_pause_open())
 	var dropped: bool = await _drop_ok(c)
 	_c("  … C gerçek dokunuşu aldı: tam 1 bırakış", dropped)
 	await _finish_now(c)
-	var tc: int = _finish_msec
-	await _wait_past_delay(tc)
+	await _after(_last_timer)
 	_c("yalnız güncel nesil (C) sundu: tam bir kez", _main._result.visible and _shows == 1 and _main._result_seq == seq + 2)
 	_sections_done += 1
 
@@ -457,13 +519,13 @@ func _progression() -> void:
 		_mission(s1, "daily_rounds") == _mission(s0, "daily_rounds") + 1 and _mission(s1, "daily_clear") == 1
 		and _rewarded(s1).has("daily_clear") and not _rewarded(s0).has("daily_clear"))
 	var keys: Array[String] = ["player_xp", "total_rounds_played", "highest_level_unlocked", "level_stars", "missions",
-		"total_merges", "merges_since_bonus_chest", "highest_tier_created", "unlocked_achievements", "endless_high_score"]
+		"total_merges", "merges_since_bonus_chest", "highest_tier_created", "endless_high_score"]
 	var same_delta: bool = true
 	for key in keys:
 		if JSON.stringify(_norm(_delta(run["s0"], run["s1"], key))) != JSON.stringify(_norm(_delta(control["s0"], control["s1"], key))):
 			same_delta = false
 			print("    fark: %s" % key)
-	_c("  … deneyin kesinleşmesi kontrolünkiyle AYNI (XP, tur, kilit, yıldız, görev, merge, başarım)", same_delta)
+	_c("  … deneyin kesinleşmesi kontrolünkiyle AYNI (XP, tur, kilit, yıldız, görev, merge)", same_delta)
 	_c("yeniden başlatma hiçbir şey yazmadı (bellek + disk aynı)", _same(run["s2"], s1) and run["d2"] == run["d1"])
 	_c("eski round'un gecikmesi doldu: sonuç AÇILMADI", not run["result"])
 	_c("  … ilerleme GERİ ALINMADI, İKİLENMEDİ (bellek + disk kesinleşmedeki gibi)", _same(run["s3"], s1)
@@ -479,7 +541,7 @@ func _progression() -> void:
 	var old: Node2D = _main._board
 	_main._on_pause_restart()
 	old.round_finished.emit(true)
-	await _wait_past_delay(Time.get_ticks_msec())
+	await _after(_last_timer)
 	_c("değiştirilen board'un geç round_finished(true)'u: kesinleşme / kayıt / sonuç YOK", _bytes() == bytes_late
 		and _rounds() == rounds_late and not _main._round_finalized and not _main._result.visible
 		and _main._board != null and not _main._board.is_finished())
@@ -487,8 +549,7 @@ func _progression() -> void:
 	_track(board)
 	_shows = 0
 	await _finish_now(board)
-	var t1: int = _finish_msec
-	await _wait_past_delay(t1)
+	await _after(_last_timer)
 	_c("yeni round kendi ilerlemesini bir kez yazdı (tur + 1) ve sonucunu bir kez açtı", _rounds() == rounds_late + 1
 		and _main._result.visible and _shows == 1)
 	_sections_done += 1
@@ -500,16 +561,16 @@ func _first_clear(replace: bool) -> Dictionary:
 	await _wait_settled()
 	var s0: Dictionary = SaveManager.data.duplicate(true)
 	var ok: bool = await _finish_under_pause(board, false)
-	var t0: int = _finish_msec
+	var timer: SceneTreeTimer = _last_timer
 	var out: Dictionary = {"ok": ok, "s0": s0, "s1": SaveManager.data.duplicate(true), "d1": _bytes(), "replaced": false}
 	if replace:
 		var board_id: int = board.get_instance_id()
 		var next: Node2D = await _restart_via_pause(false)
-		out["replaced"] = _differs(next, board_id) and _replace_msec - t0 < _delay_ms()
+		out["replaced"] = _differs(next, board_id) and _replace_left > 0.0
 		out["next"] = next
 		out["s2"] = SaveManager.data.duplicate(true)
 		out["d2"] = _bytes()
-	await _wait_past_delay(t0)
+	await _after(timer)
 	out["s3"] = SaveManager.data.duplicate(true)
 	out["d3"] = _bytes()
 	out["result"] = _main._result.visible
@@ -525,20 +586,19 @@ func _loss_replaced() -> void:
 	await _wait_settled()
 	var s0: Dictionary = SaveManager.data.duplicate(true)
 	await _loss(board)
-	var t0: int = _finish_msec
+	var timer: SceneTreeTimer = _last_timer
 	var s1: Dictionary = SaveManager.data.duplicate(true)
 	var d1: PackedByteArray = _bytes()
 	_c("kayıp kesinleşti: tur + 1, teselli kesinleşmede (Hamur / sandık değişti), kayıt yazıldı", board.is_finished()
 		and int(s1["total_rounds_played"]) == int(s0["total_rounds_played"]) + 1 and not _same(s1, s0) and d1.size() > 0)
 	var board_id: int = board.get_instance_id()
 	_main._on_pause_restart()
-	var replaced_at: int = Time.get_ticks_msec()
+	var left: float = timer.time_left
 	await _settle(2)
 	var next: Node2D = _main._board
 	_track(next)
-	_c("kurulum: kayıp gecikmesi içinde aynı level yeniden başladı", _differs(next, board_id)
-		and replaced_at - t0 < _delay_ms())
-	await _wait_past_delay(t0)
+	_c("kurulum: kayıp gecikmesi içinde aynı level yeniden başladı", _differs(next, board_id) and left > 0.0)
+	await _after(timer)
 	_c("eski KAYIP sonucu yeniden başlatılan round'un üstüne AÇILMADI", not _main._result.visible and _shows == 0)
 	_c("  … teselli / tur yalnız kesinleşmede: ikinci teselli yok, geri alma yok (bellek + disk aynı)",
 		_same(SaveManager.data, s1) and _bytes() == d1)
@@ -558,8 +618,7 @@ func _endless() -> void:
 	var board: Node2D = await _start(load(ENDLESS))
 	await _wait_settled()
 	await _loss(board)
-	var t0: int = _finish_msec
-	await _wait_past_delay(t0)
+	await _after(_last_timer)
 	_c("geçerli Sonsuz sonucu: mod ENDLESS, tam bir kez", _main._result.visible and _main._result.mode() == _mode("ENDLESS")
 		and _shows == 1)
 	_main._on_retry_pressed()
@@ -568,18 +627,18 @@ func _endless() -> void:
 	_track(board)
 	_shows = 0
 	await _loss(board)
-	var t1: int = _finish_msec
+	var timer: SceneTreeTimer = _last_timer
 	var finished: bool = board.is_finished()
 	var board_id: int = board.get_instance_id()
 	var s1: Dictionary = SaveManager.data.duplicate(true)
 	_main._on_pause_restart()
-	var replaced_at: int = Time.get_ticks_msec()
+	var left: float = timer.time_left
 	await _settle(2)
 	var next: Node2D = _main._board
 	_track(next)
 	_c("kurulum: Sonsuz kesinleşti, gecikme içinde yeni Sonsuz başladı", finished and _differs(next, board_id)
-		and next.level.is_endless and replaced_at - t1 < _delay_ms())
-	await _wait_past_delay(t1)
+		and next.level.is_endless and left > 0.0)
+	await _after(timer)
 	_c("değiştirilen Sonsuz round'unun sonucu AÇILMADI", not _main._result.visible and _shows == 0)
 	_c("  … rekor / tur yalnız kesinleşmede (sonra değişmedi)", _same(SaveManager.data, s1))
 	if _abort_if_stale("K"):
@@ -615,8 +674,7 @@ func _tutorial() -> void:
 	_c("ATLA: onboarding tamamlandı, round sürüyor, nesil ve board aynı", SaveManager.onboarding_completed()
 		and not _main.is_tutorial_active() and _main._board == board and _gen() == g and not board.is_finished())
 	await _win_merge(board)
-	var t0: int = _finish_msec
-	await _wait_past_delay(t0)
+	await _after(_last_timer)
 	_c("tutorial round'unun kazanma sonucu açıldı (bastırılmadı): WIN, level 1, tam bir kez", _main._result.visible
 		and _main._result.mode() == _mode("WIN") and _shown_level() == 1 and _shows == 1)
 	_sections_done += 1
@@ -679,9 +737,8 @@ func _generation() -> void:
 	board = await _start(_level(3))
 	await _wait_settled()
 	await _finish_now(board)
-	var t0: int = _finish_msec
 	var g5: int = _gen()
-	await _wait_past_delay(t0)
+	await _after(_last_timer)
 	_c("geçerli sonuç açıldı; kesinleşme ve sunum nesli değiştirmedi", _main._result.visible and _gen() == g5)
 	var owned: bool = _main.has_method("_round_still_owned") and bool(_main.call("_round_still_owned", g5))
 	var stale: bool = _main.has_method("_round_still_owned") and not bool(_main.call("_round_still_owned", g5 - 1))
@@ -693,7 +750,7 @@ func _generation() -> void:
 		and _main.has_method("_round_still_owned") and not bool(_main.call("_round_still_owned", g5)))
 	_track(_main._board)
 	await _finish_now(_main._board)
-	await _wait_past_delay(_finish_msec)
+	await _after(_last_timer)
 	var g7: int = _gen()
 	_main._on_exit_pressed()
 	await _settle(2)
@@ -708,6 +765,7 @@ func _generation() -> void:
 
 func _ads() -> void:
 	print("-- N: geçiş reklamı — geçerli normal sonuç aynen; eski round denemez; meydan okuma hiç")
+	# N1 — geçerli normal sonuç: politika aynen.
 	await _fresh(true)
 	var ads: MonetizationManager = _main._ads
 	var fake: FakeAdBackend = ads._backend
@@ -715,8 +773,7 @@ func _ads() -> void:
 	await _wait_settled()
 	var seq: int = _main._result_seq
 	await _finish_now(board)
-	var t0: int = _finish_msec
-	await _wait_until(t0 + _delay_ms() + 80)
+	await _after(_last_timer)
 	_c("geçerli normal sonuç: gecikmeden sonra geçiş reklamı gösteriliyor (aynı politika), sonuç HENÜZ yok",
 		fake.interstitial_shows.size() == 1 and ads.interstitial_state() == MonetizationManager.InterstitialState.SHOWING
 		and not _main._result.visible)
@@ -727,19 +784,43 @@ func _ads() -> void:
 	_c("  … reklam kapandı → sonuç tam bir kez, RESULT yüzeyi", _main._result.visible and _shows == 1
 		and _main._result_seq == seq + 2 and ads.surface() == MonetizationManager.Surface.RESULT)
 
+	# N2 — gecikme içinde arka plan + öne dönüş: round değişmedi → reklam bir kez denenir, sonuç bir kez.
+	await _fresh(true)
+	ads = _main._ads
+	fake = ads._backend
+	board = await _start(_level(3))
+	await _wait_settled()
+	seq = _main._result_seq
+	await _finish_now(board)
+	var timer: SceneTreeTimer = _last_timer
+	get_tree().root.propagate_notification(NOTIFICATION_APPLICATION_PAUSED)
+	await _settle(2)
+	get_tree().root.propagate_notification(NOTIFICATION_APPLICATION_RESUMED)
+	await _settle(2)
+	var left: float = timer.time_left
+	await _after(timer)
+	_c("gecikme içinde arka plan / öne dönüş (%.2f sn kalmıştı): geçiş reklamı TAM bir kez denendi" % left, left > 0.0
+		and fake.interstitial_shows.size() == 1 and ads.interstitial_state() == MonetizationManager.InterstitialState.SHOWING)
+	shown = fake.interstitial_shows[0] if not fake.interstitial_shows.is_empty() else ""
+	fake.emit_interstitial_showed(shown)
+	fake.emit_interstitial_dismissed(shown)
+	await _settle(3)
+	_c("  … kapanınca sonuç tam bir kez", _main._result.visible and _shows == 1 and _main._result_seq == seq + 2)
+
+	# N3 — eski round reklam denemez; sonraki geçerli bitiş aynı politikayla gösterir.
 	await _fresh(true)
 	ads = _main._ads
 	fake = ads._backend
 	board = await _start(_level(3))
 	await _wait_settled()
 	var ok: bool = await _finish_under_pause(board, false)
-	t0 = _finish_msec
+	timer = _last_timer
 	var shows: int = fake.interstitial_shows.size()
 	AdEvents.clear_recent()
 	var board_id: int = board.get_instance_id()
 	var next: Node2D = await _restart_via_pause(false)
 	var replaced: bool = _differs(next, board_id)
-	await _wait_past_delay(t0)
+	await _after(timer)
 	_c("eski round (gecikmede yeniden başlatıldı): geçiş reklamı DENEMEDİ, reklam uygun + hazır kaldı", ok
 		and replaced and fake.interstitial_shows.size() == shows and AdEvents.count(&"interstitial_skipped_not_ready") == 0
 		and ads.interstitial_state() == MonetizationManager.InterstitialState.READY and ads.interstitial_eligible())
@@ -748,8 +829,7 @@ func _ads() -> void:
 	if not _main._result.visible and ads.interstitial_state() == MonetizationManager.InterstitialState.READY:
 		seq = _main._result_seq
 		await _finish_now(next)
-		var t1: int = _finish_msec
-		await _wait_until(t1 + _delay_ms() + 80)
+		await _after(_last_timer)
 		_c("yeni round'un geçerli bitişi geçiş reklamını gösterdi (politika aynen)", fake.interstitial_shows.size() == shows + 1
 			and ads.interstitial_state() == MonetizationManager.InterstitialState.SHOWING)
 		var second: String = fake.interstitial_shows[-1]
@@ -760,28 +840,39 @@ func _ads() -> void:
 	else:
 		_c("yeni round'un geçerli bitişi geçiş reklamını gösterdi (politika aynen)", false)
 
-	await _fresh(true)
-	ads = _main._ads
-	fake = ads._backend
-	board = await _start(_level(3))
-	await _wait_settled()
-	await _finish_now(board)
-	t0 = _finish_msec
-	await _wait_until(t0 + _delay_ms() + 80)
-	var id: String = fake.interstitial_shows[0] if not fake.interstitial_shows.is_empty() else ""
-	_c("ön koşul: geçerli bitiş geçiş reklamını açtı", id != "" and ads.interstitial_state() == MonetizationManager.InterstitialState.SHOWING)
-	fake.emit_interstitial_showed(id)
-	# Reklam üstteyken round değişir (üretimde reklam oyunu örter — savunma; QA kancası: mola Yeniden Başlat işleyicisi).
-	_main._on_pause_restart()
-	await _settle(2)
-	next = _main._board
-	_track(next)
-	fake.emit_interstitial_dismissed(id)
-	await _settle(3)
-	_c("reklam açıkken değiştirilen round: kapanışta ESKİ sonuç yeni board'un üstüne AÇILMADI", not _main._result.visible
-		and _shows == 0 and _main._board == next and not next.is_finished())
-	_c("  … yüzey GAMEPLAY (RESULT'a geçmedi)", ads.surface() == MonetizationManager.Surface.GAMEPLAY)
+	# N4 / N5 — reklam açıkken round değişir (üretimde reklam oyunu örter — savunma; QA kancası: mola Yeniden
+	# Başlat işleyicisi): kapanışta da, gösterim hatasında da eski sonuç açılmaz, yönetici temiz kalır.
+	for mode: String in ["kapanış", "gösterim hatası"]:
+		await _fresh(true)
+		ads = _main._ads
+		fake = ads._backend
+		board = await _start(_level(3))
+		await _wait_settled()
+		await _finish_now(board)
+		await _after(_last_timer)
+		var id: String = fake.interstitial_shows[0] if not fake.interstitial_shows.is_empty() else ""
+		_c("ön koşul (%s): geçerli bitiş geçiş reklamını açtı" % mode, id != ""
+			and ads.interstitial_state() == MonetizationManager.InterstitialState.SHOWING)
+		if mode == "kapanış":
+			fake.emit_interstitial_showed(id)
+		_main._on_pause_restart()
+		await _settle(2)
+		next = _main._board
+		_track(next)
+		if mode == "kapanış":
+			fake.emit_interstitial_dismissed(id)
+		else:
+			fake.emit_interstitial_show_failed(id)
+		await _settle(3)
+		_c("reklam açıkken değiştirilen round (%s): ESKİ sonuç yeni board'un üstüne AÇILMADI" % mode,
+			not _main._result.visible and _shows == 0 and _main._board == next and not next.is_finished())
+		_c("  … yüzey GAMEPLAY (RESULT'a geçmedi)", ads.surface() == MonetizationManager.Surface.GAMEPLAY)
+		_c("  … yönetici temiz: bekleyen mola yok, reklam artık GÖSTERİLMİYOR%s" % (", 60 sn bekleme başladı"
+			if mode == "kapanış" else ""), not ads.break_pending()
+			and ads.interstitial_state() != MonetizationManager.InterstitialState.SHOWING
+			and (mode != "kapanış" or ads.fullscreen_cooldown_sec() > MonetizationManager.FULLSCREEN_AD_COOLDOWN_SEC - 1.0))
 
+	# N6 — meydan okuma hiç denemez.
 	await _fresh(true)
 	ads = _main._ads
 	fake = ads._backend
@@ -792,7 +883,7 @@ func _ads() -> void:
 	var challenge: Node2D = _main._board
 	_track(challenge)
 	await _win_merge(challenge)
-	await _wait_past_delay(_finish_msec)
+	await _after(_last_timer)
 	_c("meydan okuma bitişi: geçiş reklamı denemesi YOK (TASK/047 aynen), meydan okuma sonucu açıldı",
 		fake.interstitial_shows.size() == shows and AdEvents.count(&"interstitial_skipped_not_ready") == 0
 		and _main._result.visible and _main._result.mode() == _mode("CHALLENGE_WIN"))
@@ -812,8 +903,10 @@ func _source_contract() -> void:
 	_c("TASK/046.2 iptal koruması aynen", FileAccess.get_file_as_string("res://scripts/game/game_board.gd")
 		.contains("\telif not touch.canceled:"))
 	var clear_fn: String = _function(code, "func _clear_board(")
-	_c("nesil TEK noktada ilerler: _clear_board (her board değişiminin geçtiği yer)",
-		code.count("_round_generation += 1") == 1 and clear_fn.contains("_round_generation += 1"))
+	var bump_at: int = clear_fn.find("_round_generation += 1")
+	_c("nesil TEK noktada ilerler: _clear_board (her board değişiminin geçtiği yer), board bağları koptuktan SONRA",
+		code.count("_round_generation += 1") == 1 and bump_at >= 0
+		and bump_at > clear_fn.find("round_finished.disconnect(_on_round_finished)"))
 	var re := RegEx.new()
 	re.compile("(?m)^\\s*_board\\s*=[^=]")
 	var begin_fn: String = _function(code, "func _begin_round(")
@@ -901,6 +994,7 @@ func _boot(fake: FakeAdBackend = null) -> void:
 	_main_script.set("ads_backend_override", null)
 	_shows = 0
 	_drops = 0
+	_last_timer = null
 	_main._result.visibility_changed.connect(func() -> void:
 		if _main != null and is_instance_valid(_main) and _main._result.visible:
 			_shows += 1)
@@ -922,12 +1016,29 @@ func _start(level: LevelData) -> Node2D:
 	return board
 
 
+## Bırakış sayacı + bitiş izleyicisi: round_finished yayımında (Main'in işleyicisinden SONRA bağlı) Main'in
+## RESULT_DELAY zamanlayıcısıyla aynı süreli bir SceneTree zamanlayıcısı — aynı karede Main'inkinden sonra döner.
 func _track(board: Node2D) -> void:
 	if board == null or board.has_meta(&"qa_tracked"):
 		return
 	board.set_meta(&"qa_tracked", true)
 	board.dumpling_dropped.connect(func(_tier: int) -> void: _drops += 1)
-	board.round_finished.connect(func(_won: bool) -> void: _finish_msec = Time.get_ticks_msec())
+	board.round_finished.connect(func(_won: bool) -> void:
+		_finish_msec = Time.get_ticks_msec()
+		_last_timer = get_tree().create_timer(_delay()))
+
+
+## Bu bitişin gecikmesi doldu (Main'in gecikmeli kodu bu karede çalıştı) + birkaç kare.
+func _after(timer: SceneTreeTimer, frames: int = 3) -> void:
+	if timer != null and timer.time_left > 0.0:
+		await timer.timeout
+	await _settle(frames)
+
+
+## Gecikmeden `seconds` kalana kadar bekle (gecikme SÜRERKEN denetim için).
+func _until_left(timer: SceneTreeTimer, seconds: float) -> void:
+	while timer != null and timer.time_left > seconds:
+		await get_tree().process_frame
 
 
 ## Tabanda bir parça (varsayılan: hedefin bir altı) — Büyütücü hedefi.
@@ -940,11 +1051,14 @@ func _piece(board: Node2D, tier: int = -1, frames: int = 8) -> Dumpling:
 	return piece
 
 
-## Büyütücü GERÇEK dokunuşla: güç butonu (PowerBar sinyali — GameBoard'un gerçek bağlantısı) + hedefe
-## parmak basışı (dönüşüm basışta başlar, 0,15 sn anticipation sonra tamamlanır).
-func _fire_upgrade(board: Node2D, piece: Dumpling) -> void:
-	board._power_bar.power_pressed.emit(int(PowerUp.Type.UPGRADE))
-	await _settle(1)
+## Büyütücü: güç düğmesi (`real_button`: GERÇEK dokunuş, yoksa PowerBar sinyali — GameBoard'un gerçek bağlantısı)
+## + hedefe GERÇEK parmak basışı (dönüşüm basışta başlar, 0,15 sn anticipation sonra tamamlanır).
+func _fire_upgrade(board: Node2D, piece: Dumpling, real_button: bool = false) -> void:
+	if real_button:
+		await _finger_tap(_center(board._power_bar.slot(int(PowerUp.Type.UPGRADE))))
+	else:
+		board._power_bar.power_pressed.emit(int(PowerUp.Type.UPGRADE))
+		await _settle(1)
 	var at: Vector2 = _win(board, piece.global_position)
 	await _finger(at, true)
 	await _finger(at, false)
@@ -956,7 +1070,8 @@ func _fire_upgrade(board: Node2D, piece: Dumpling) -> void:
 func _finish_under_pause(board: Node2D, real: bool, frames: int = 8) -> bool:
 	var piece: Dumpling = await _piece(board, -1, frames)
 	_finish_msec = -1
-	await _fire_upgrade(board, piece)
+	var timer_before: SceneTreeTimer = _last_timer
+	await _fire_upgrade(board, piece, real)
 	if real:
 		await _finger_tap(_center(board._hud.back_button))
 	else:
@@ -965,7 +1080,7 @@ func _finish_under_pause(board: Node2D, real: bool, frames: int = 8) -> bool:
 	var paused_first: bool = _main.is_pause_open() and not board.is_finished() and is_instance_valid(piece) \
 		and piece.is_merging
 	await _until_finished(board)
-	return paused_first and board.is_finished() and _main.is_pause_open() and _finish_msec > 0
+	return paused_first and board.is_finished() and _main.is_pause_open() and _last_timer != timer_before
 
 
 ## Molasız kazanma: Büyütücü dönüşümü hedefe ulaşır.
@@ -1006,6 +1121,7 @@ func _restart_via_pause(real: bool) -> Node2D:
 	else:
 		_main._pause.restart_pressed.emit()
 	_replace_msec = Time.get_ticks_msec()
+	_replace_left = _last_timer.time_left if _last_timer != null else -1.0
 	await _settle(2)
 	var board: Node2D = _main._board
 	if _differs(board, old_id):
@@ -1078,20 +1194,11 @@ func _delay() -> float:
 	return float(_main_script.get_script_constant_map()["RESULT_DELAY"])
 
 
-func _delay_ms() -> int:
-	return int(_delay() * 1000.0)
-
-
 func _wait_until(target_msec: int) -> void:
 	var left: int = target_msec - Time.get_ticks_msec()
 	if left > 0:
 		await get_tree().create_timer(float(left) / 1000.0).timeout
 	await _settle(1)
-
-
-func _wait_past_delay(from_msec: int, extra_ms: int = 250) -> void:
-	await _wait_until(from_msec + _delay_ms() + extra_ms)
-	await _settle(2)
 
 
 func _wait_settled() -> void:
