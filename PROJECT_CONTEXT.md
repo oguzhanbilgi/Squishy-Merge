@@ -81,8 +81,10 @@ alınacak — şimdi tahmin/vaat yok.
 - **Repo (2026-10-02):** `main == origin/main == 848797ae0933ba6913b8ed0fa6e6d74e70cc0277` (TASK/047
   doküman eşitlemesi `docs/047-main-sync` owner onayıyla ff-only `aa6f867 → 848797a`; merge commit yok, dal
   duruyor). **TASK/048 dalda:** `task/048-result-delay-race-guard` (main `848797a`'dan: `c58c88d` düzeltme ·
-  `9ab9917` test · `83dc208` nesil sırası (inceleme) · `2592a1b` test sağlamlaştırma · doküman / A36 kaydı;
-  origin'e itildi) — masaüstü + Samsung A36 kapısı GEÇTİ, main'e alınması owner onayı bekliyor, merge EDİLMEDİ.
+  `9ab9917` test · `83dc208` nesil sırası (inceleme) · `2592a1b` test sağlamlaştırma · `0f6996d` doküman / A36 kaydı ·
+  son engel "geçiş reklamı fırlatma aralığı": `3633d6a` düzeltme · `8157b56` + `f5d005a` + `1b5b300` test · `441a114`
+  yorum · doküman / hedefli A36 kaydı; origin'e itildi) — masaüstü + Samsung A36 kapıları GEÇTİ, main'e alınması owner
+  onayı bekliyor, merge EDİLMEDİ.
   Önce (2026-10-02): **TASK/047 owner onayıyla ff-only main'e alındı** (`6d3dbca → aa6f867`; merge commit / rebase /
   squash / cherry-pick / force push YOK). Doğrulanmış doğrusal zincir, 10 commit: `befbbbd` model +
   kayıt · `bf553e0` board · `201764d` akış + yalıtım · `e805736` arayüz + sonuçlar · `54e8411` +
@@ -110,7 +112,17 @@ alınacak — şimdi tahmin/vaat yok.
   nesli gecikmeden ÖNCE yakalar, gecikmeden sonra (geçiş reklamı denemesinden ÖNCE) ve `_present_result`'ta
   doğrular; eski devamlar sessizce düşer. RESULT_DELAY 0,8 sn, mola / GERİ / 300 ms yatışma, ACTION_CANCEL
   koruması, reklam politikası, kayıt şeması ve TASK/047 meydan okuma akışı AYNEN; meşru kesinleşen ilerleme
-  (XP, görev, yıldız, sandık, teselli) bir kez yazılır, geri alınmaz / yinelenmez. Ayrıntı: PROJECT_STATUS §4.28.
+  (XP, görev, yıldız, sandık, teselli) bir kez yazılır, geri alınmaz / yinelenmez. **Son engel — geçiş reklamı
+  fırlatma aralığı — KAPATILDI (2026-10-02):** sahiplik `try_show_interstitial`'dan önce yalnız BİR KEZ
+  doğrulanıyordu; reklam SDK'ya verildikten sonra geri alınamaz (Google SDK'da iptal yok) — açılış aralığında molanın
+  "Yeniden Başlat" / "Ana Menüye Dön"ü round'u hemen değiştirip eski reklamı yeni round'un / Harita'nın üstünde
+  bırakıyordu. Düzeltme: reklamı isteyen round, yönetici molayı bitirene dek (kapanış / gösterim hatası; SDK susarsa
+  mevcut onay zaman aşımı / öne dönüş payı) ekranın sahibi kalır — molanın round değiştiren eylemleri ertelenir, mola
+  bitince eski sonucun YERİNE çalışır. Önce yeniden üretildi (8 hata), düzeltmeyle 196/196, mutasyon 17/17, tam
+  masaüstü kapısı 43 koşu / 5457 kontrol / 0 hata / 0 SCRIPT ERROR / bot 2/2, hedefli A36 kapısı GEÇTİ (yalnız QA
+  paketi; açılış aralığında mola dokunuşu: reklam isteyen round'un üstünde açıldı, değişim yalnız kapanıştan sonra,
+  eski sonuç yok; meydan okuma denemesi sıfır). Kalan sınır (iptal API'si yok): SDK yönetici vazgeçtikten SONRA
+  reklamı yine açarsa (sözleşme dışı) geç reklam o anki durumu örtebilir. Ayrıntı: PROJECT_STATUS §4.28.
 - **TASK/047 — Günlük Merge Challenge V1 (oyuncuya "MEYDAN OKUMA") — TAMAM, main'de** (owner onayıyla
   ff-only `6d3dbca → aa6f867`, 2026-10-02). Entegrasyondan ÖNCE tamamlanan doğrulama: masaüstü doğrulama +
   çekişmeli inceleme + mutasyon + görsel kapı; monoton gün düzeltmesinden sonra tam masaüstü kapısı (42
@@ -635,9 +647,12 @@ round'un, eski geçiş reklamı Ana Sayfa'nın ve meydan okumanın üstünde); d
 inceleme (düzeltmede BLOCKER / HIGH / MEDIUM 0), tam masaüstü kapısı (43 koşu, 5431 kontrol, 0 hata, 0 SCRIPT ERROR,
 bot 2/2) ve **Samsung A36 yerel kapısı GEÇTİ (2026-10-02; yalnız QA paketi, Google TEST reklamları; gerçek
 "Yeniden Başlat" / "Ana Menüye Dön" dokunuşları gecikme içinde; cihaz bulgusu yok; QA paketi kaldırıldı, üretim
-paketi kurulmadı, `com.example` dokunulmadı)** — PROJECT_STATUS §4.28. **Sıradaki adım: owner incelemesi + main
-entegrasyon kararı** (merge EDİLMEDİ). Sonraki ürün / stabilizasyon görevi yine owner seçimi; aşağıdaki açık
-maddelerden hiçbiri kendiliğinden seçilmez.
+paketi kurulmadı, `com.example` dokunulmadı)** — PROJECT_STATUS §4.28. **Son engel (geçiş reklamı fırlatma aralığı)
+de kapatıldı:** önce yeniden üretildi, düzeltme + 196/196, mutasyon 17/17, tam masaüstü kapısı 43 koşu / 5457
+kontrol / 0 hata / 0 SCRIPT ERROR / bot 2/2, hedefli A36 kapısı GEÇTİ (yalnız QA paketi; açılış aralığında mola
+dokunuşu: reklam isteyen round'un üstünde açıldı, değişim yalnız kapanıştan sonra, eski sonuç yok; meydan okuma
+denemesi sıfır). **Sıradaki adım: owner incelemesi + main entegrasyon kararı** (merge EDİLMEDİ). Sonraki ürün /
+stabilizasyon görevi yine owner seçimi; aşağıdaki açık maddelerden hiçbiri kendiliğinden seçilmez.
 
 Önceden var olan, owner kararı bekleyen öneriler (**BAŞLAMADI**): ~~sonuç gecikmesi
 (RESULT_DELAY) bitiren board'a bağlı değil — Mola açıkken Büyütücü dönüşümü round'u bitirip
@@ -656,12 +671,14 @@ içinde: eski normal sonuç / geçiş reklamı yok, §4.28). Ayrıca AÇIK: HUD 
 adını "Büyük Dumpl…" diye kırpar (önceden var olan kart, normal Level 3'te de; TASK/047 brifi
 "hedef kartını koru" — PROJECT_STATUS §4.27 (d)). **TASK/048 incelemesinin kaydettiği, düzeltilmeyen (mola
 davranışı kilitli — owner kararı):** (1) mola açıkken bitip DEĞİŞTİRİLMEYEN round'un geçerli sonucu açık molanın
-ALTINDA açılır, o durumda Android GERİ yutulur (DEVAM ET / X / karartma çözer; önceden var olan); (2) geçerli
-round'un geçiş reklamı istenip ekranı örtene kadarki kısa aralıkta (≈ 0,1–0,5 sn; SDK takılırsa 5 sn'ye kadar)
-açık molanın "Yeniden Başlat" / "Ana Menüye Dön"ü basılırsa reklam yeni durumun üstünde görünebilir (eski sonuç
-yine açılmaz); (3) `_start_level` 300 ms parmak yatışması kurmaz — "Yeniden Başlat" / TEKRAR / Harita kartına
-hızlı çift dokunuşun ikincisi yeni round'a parça düşürebilir (önceden var olan). Öneri: kesinleşmede mola /
-refill'i kapatmak (§4.24 önerisinin ikinci yarısı) + `_start_level`'da yatışma — ayrı görev.
+ALTINDA açılır, o durumda Android GERİ yutulur (DEVAM ET / X / karartma çözer; önceden var olan); ~~(2) geçiş
+reklamı açılış aralığında molanın "Yeniden Başlat" / "Ana Menüye Dön"ü reklamı yeni durumun üstünde bırakabilir~~ →
+**TASK/048 son engelinde KAPATILDI** (eylem reklam bitene dek ertelenir; kalan sınır: SDK yönetici vazgeçtikten
+sonra reklamı yine açarsa — iptal API'si yok; mola hiç bitmezse — çift SDK / yaşam döngüsü arızası — molanın
+çıkış kapısı ertelemede kalır); (3) `_start_level` 300 ms parmak yatışması kurmaz (ertelenen yeniden başlatmada da:
+mola bittiği anda bitmiş board'da basılı kalan parmağın bırakışı yeni round'a parça düşürebilir) — "Yeniden Başlat" /
+TEKRAR / Harita kartına hızlı çift dokunuşun ikincisi yeni round'a parça düşürebilir (önceden var olan). Öneri:
+kesinleşmede mola / refill'i kapatmak (§4.24 önerisinin ikinci yarısı) + `_start_level`'da yatışma — ayrı görev.
 
 Her madde owner girdisi ister; hiçbiri tahmin edilmez ya da uydurulmaz.
 Gizlilik politikası, upload anahtarı ve AdMob kimliklerinde repoda yalnız

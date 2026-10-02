@@ -104,6 +104,13 @@ kaldı; skinler asla reklam/paraya bağlı değil.
 > DENEMEZ (olay bile yok; uygunluk, hazır reklam ve aktif saat korunur) ve eski sonuç açılmaz; reklam
 > açıkken round değişirse kapanış / gösterim hatası geri çağrısı da eski sonucu açmaz. Sahipliği süren
 > round'da davranış birebir aynı (Samsung A36'da gerçek Google TEST geçiş reklamıyla doğrulandı).
+> **Fırlatma aralığı (TASK/048 son engel):** `try_show_interstitial` → `_backend.show_interstitial` → JNI
+> `Interstitial.show()` (ana Looper'a `interstitialAd.show(activity)`) — Google Mobile Ads'te iptal / kapatma API'si
+> YOK, geri dönülmez nokta arka uç gösterim çağrısıdır. Main o round'un sahipliğini yönetici molayı bitirene dek
+> tutar (`_round_break_generation`): mola sürerken molanın "Yeniden Başlat" / "Ana Menüye Dön"ü ertelenir, mola
+> bitince (kapanış / gösterim hatası / onay zaman aşımı / öne dönüş payı — tek geri çağrı) eski sonucun YERİNE
+> çalışır. Yönetici politikası AYNEN (onay zaman aşımı 5 sn, öne dönüş payı 3 sn, 60 sn bekleme, 900 sn uygunluk).
+> Sınır: SDK yönetici vazgeçtikten SONRA reklamı yine açarsa (sözleşme dışı) geç reklam o anki durumu örtebilir.
 
 ## 2. Seçilen eklenti ve SDK sürümleri (araştırma 2026-09-21)
 
