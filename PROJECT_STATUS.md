@@ -1,6 +1,6 @@
 # PROJECT_STATUS.md — Squishy Merge, tam proje raporu
 
-**Son güncelleme:** 2026-10-01 · **Durum:** M0–M8 tamamlandı; M8.5–M8.10
+**Son güncelleme:** 2026-10-02 · **Durum:** M0–M8 tamamlandı; M8.5–M8.10
 (release/product stabilization: UI yeniden inşası, gameplay cilası, ses,
 AdMob TEST-reklam monetizasyonu + günlük ödüller, ilk açılış tutorial'ı)
 tamamlandı ve main'de; M9-01 production release hazırlığı (kod) tamamlandı,
@@ -69,8 +69,8 @@ AGE_BAND_ROUTING §9.10). **TASK/046.2 (2026-10-01, main'de — masaüstü + Sam
 GEÇTİ, owner onayıyla ff-only alındı `afc10be → 6d3dbca`):** iptal edilen oyun dokunuşu (Android ACTION_CANCEL →
 `canceled == true`) artık bekleyen parçayı düşürmez — `GameBoard._unhandled_input`'ta tek satırlık
 koruma, TASK/047'nin önkoşulu (§4.26). **TASK/047 (2026-10-01, dalda — Günlük Merge Challenge V1,
-oyuncuya "MEYDAN OKUMA"; masaüstü kapıları tamam, Samsung A36 yerel kapısı BEKLİYOR, main'e alınması
-owner onayı bekliyor):** isteğe bağlı günlük mod — hedef tier'ı sınırlı gerçek bırakışla, günün
+oyuncuya "MEYDAN OKUMA"; masaüstü kapıları tamam, Samsung A36 yerel kapısı GEÇTİ 2026-10-02 — bulgu yok,
+main'e alınması owner onayı bekliyor):** isteğe bağlı günlük mod — hedef tier'ı sınırlı gerçek bırakışla, günün
 deterministik parça dizisiyle oluştur; kilitli haftalık preset tablosu, güç / devam yok, ilerleme
 yalıtımı (XP / görev / başarım / sandık / yıldız / istatistik / sonsuz etkisi yok), ilk başarı günde bir
 kez +20 Hamur, Ana Sayfa'da GÖREVLER'in altında giriş (§4.27). Release izi ayrı. Sırada: içerik
@@ -79,7 +79,7 @@ politikası → upload anahtarı → gerçek AdMob kimlikleri → mağaza varlı
 sonra ilk imzalı üretim AAB'si ve M10 (Play kapalı test) ·
 **Branch / main:** `task/047-daily-merge-challenge` (main `6d3dbca`'dan: `befbbbd` model + kayıt ·
 `bf553e0` board · `201764d` akış + yalıtım · `e805736` arayüz + sonuçlar · `54e8411` + `e002dff` inceleme
-düzeltmeleri · kapı / doküman kaydı) — dalda,
+düzeltmeleri · `743e5d7` kapı / doküman · A36 kapısı kaydı; A36 GEÇTİ 2026-10-02) — dalda,
 main'e alınması owner onayı bekliyor, merge EDİLMEDİ · `main` == origin/main == `6d3dbca` — TASK/046.2
 `task/046-2-action-cancel-drop-guard` (`471a2ab` · `2149fc3` · `b364a0c` · `6d3dbca` doküman / A36 kapısı
 kaydı) owner onayıyla ff-only entegre (`afc10be → 6d3dbca`, 2026-10-01; merge commit yok; dal duruyor) ·
@@ -2186,11 +2186,11 @@ formatına yalnız `haptics_enabled` (varsayılan true) eklendi. Ayrıntı ve
 
 > **dalda, main'e alınması owner onayı bekliyor** — `task/047-daily-merge-challenge`, main `6d3dbca`'dan
 > (`befbbbd` model + kayıt · `bf553e0` board · `201764d` akış + yalıtım · `e805736` arayüz + sonuçlar ·
-> `54e8411` + `e002dff` çekişmeli inceleme düzeltmeleri · regresyon / görsel kapı + doküman kaydı).
-> **Masaüstü doğrulama + 5 mercekli çekişmeli inceleme + mutasyon + 6 boyut görsel kapı + tam masaüstü
-> kapısı tamam; Samsung A36 yerel kapısı BEKLİYOR** (telefon kapı sırasında bu bilgisayara bağlı
-> değildi; QA kiti hazır). main DEĞİŞMEDİ. Kurallar ve sayılar GAME_DESIGN §5.11'de kilitli (owner
-> onaylı brif), görünüm UI_VISUAL_SYSTEM §26.
+> `54e8411` + `e002dff` çekişmeli inceleme düzeltmeleri · `743e5d7` regresyon / görsel kapı + doküman ·
+> A36 kapısı kaydı). **Masaüstü doğrulama + 5 mercekli çekişmeli inceleme + mutasyon + 6 boyut görsel
+> kapı + tam masaüstü kapısı tamam; Samsung A36 yerel kapısı GEÇTİ (2026-10-02)** — yalnız QA paketi,
+> cihaz bulgusu yok, düzeltme commit'i yok. main DEĞİŞMEDİ. Kurallar ve sayılar GAME_DESIGN §5.11'de
+> kilitli (owner onaylı brif), görünüm UI_VISUAL_SYSTEM §26.
 
 - **Ürün:** isteğe bağlı günlük mod — hedef tier'ı sınırlı GERÇEK bırakışla, günün deterministik parça
   dizisiyle oluştur; süre yok. Kilitli haftalık preset (Pzt T5·600·18 · Sal T5·480·16 · Çar T6·600·38 ·
@@ -2252,11 +2252,45 @@ formatına yalnız `haptics_enabled` (varsayılan true) eklendi. Ayrıntı ve
   0 kaldı.) Sahibin dosyalarında içerik değişmedi; yalnız zaman damgaları: içe aktarma
   `default_bus_layout.tres`'i aynı baytlarla yeniden yazar, eski bir suite sahibin kaydına aynı baytları
   yeniden yazar (koşucu bayt karşılaştırır — önceki kapılarla aynı davranış).
-- **Samsung A36 yerel kapısı:** BEKLİYOR — 2026-10-01 22:07–23:2x arası `adb devices` boştu (telefon bu
-  bilgisayara bağlı değil). Kit hazır: `build/qa_047-gate/device` (QA-only overlay `qa047_device` —
-  `dcclock=` ile kabul edilen günü Main'den ÖNCE sabitler, telefon saati değişmez; `c47.sh` güvenlik
-  kontrollü dokunuş / ACTION_CANCEL sürücüsü; `export_qa.sh` yalnız QA paketi; `verify_apk.py` TASK/047
-  kontrolleriyle). Kapı brif §41–§54'e göre koşulacak; geçmeden TASK/047 "hazır" sayılmaz.
+- **Samsung A36 yerel kapısı — GEÇTİ (2026-10-02, cihaz saati 08:30–09:10; telefon önceki akşam bağlı
+  değildi):** yalnız QA paketi `com.obappstudio.squishymerge.qa` (Google TEST reklamları; APK `743e5d7`'den
+  — kod `e002dff`, 104,253,700 B; `verify_apk.py` PASS: QA kimliği, debuggable, yalnız Google örnek
+  kimlikleri, TASK/047 kodu + iki inceleme düzeltmesi paketlenmiş jeton tablolarında). Kabul edilen gün
+  yalnız QA kancasıyla sabitlendi (`dcclock=` açılış sözcüğü / `t47_clock`) — telefon saati DEĞİŞMEDİ;
+  gezinme kipi 0 (3 tuş) DEĞİŞMEDİ; her girdi öncesi güvenlik kontrolü (uyanık, kilitsiz, arama / VoIP yok,
+  bildirim perdesi / heads-up yok, QA ya da başlatıcı önde) ve parti başına dokunuş sayımı (yabancı dokunuş
+  0). Sonuçlar: **giriş / pencere** — tutorial'da giriş yok + başlatma reddi, gerçek ATLA → ilk normal Ana
+  Sayfa'da "+20" pill GÖREVLER 0/6'nın hemen altında, otomatik açılmaz; gerçek dokunuşla pencere (T5 / T6
+  kopyası + portre), Android GERİ / X / karartma kapatır, çift dokunuş ve açılıştan ~150 ms sonraki
+  karartma dokunuşu yutulur, Ana Sayfa'ya sızma yok; **dizi** — 2026-10-01'de 15 gerçek bırakış =
+  kilitli vektörün öneki, tekrar aynı önek, Pazartesi 2026-10-05'te 18 gerçek bırakış = bağımsız Python
+  SHA-256 hesabı; aynı günün iki başlangıcından sonra global `randi()` örnekleri FARKLI, normal Level 2
+  iki kez farklı torba dizisi; **bütçe** — her gerçek bırakış tam −1, gerçek ACTION_CANCEL ve sürükle +
+  CANCEL 0, son bırakış kabul, 16. / 19. dokunuş RED; **yatışma** — son bırakış → ilk temas +1175 / +1042 ms
+  → bitiş inişten +1508 / +1515 ms (5 sn tavanın altında), MOVES_EXHAUSTED; **başarı** — gerçek bırakış +
+  QA destekli dikili (hedef − 1) çifti → GERÇEK merge ile hedef: "MEYDAN OKUMA TAMAM!" / "+20 HAMUR" /
+  HAMLE / "Yarın yenilenir" / yalnız ANA SAYFA, Hamur tam +20 (0 → 20, 20 → 40, 40 → 60, TEEN ve UNKNOWN'da
+  da +20), bellek + disk farkı YALNIZ `daily_challenge` + `dough`; soğuk açılışta ✓ korunur, pencere ✓
+  TAMAMLANDI, başlatma RED, ikinci ödül yok; **kayıp / tekrar** — hamle bitti ve taşma kopyaları, gerçek
+  TEKRAR DENE aynı dizi tam bütçe, terk yazmaz; taşmada devam / refill penceresi / ödüllü istek YOK;
+  **gece yarısı** — Cuma denemesi Cumartesiye geçince kazanıldı → Cuma ödüllendi, dipnot "Gün değişti …",
+  Ana Sayfa Cumartesiyi ayrı gösterdi; açık Cumartesi penceresinde gün Pazara dönünce BAŞLA'ya çift dokunuş
+  → pencere Pazara tazelendi, ikinci dokunuş yutuldu; Pazar kaybı Pazartesiye geçince "Gün değişti" + YENİ
+  MEYDAN OKUMA → Pazartesi başladı; Pazartesi tamamlandıktan sonra gün Pazara geri alındı (gerçek öne
+  dönüşle) → hiçbir şey yeniden açılmadı; **eski sonuç jetonu** — bitişten 0,2 sn sonra yeniden başlatma /
+  çıkış: eski sonuç açılmadı; **reklam / yaş** — ADULT ve TEEN (TFAT TEEN + T aynen) meydan okuma
+  bitişlerinde geçiş reklamı / ödüllü olayı 0 (normal round bitişi mevcut yolu çağırdı:
+  `interstitial_skipped_not_ready`); UNKNOWN: SDK bağlanmadı, rıza başlamadı, banner yuvası 0, zorunlu yaş
+  ekranı açıkken pill pencereyi açmadı, QA kancasıyla gizlenince meydan okuma oynandı (+20), olay 0;
+  **preset'ler** — yedi gün cihazda tablo ile birebir; **normal regresyon** — sabit level kazanma / kayıp,
+  Sonsuz, gerçek Sarsıntı (stok 1 → 0), gerçek devam teklifi "2 / 2", görevler (normal Level 2 kazanımı
+  daily_clear, ikinci round daily_rounds; meydan okuma görevlere değmedi), GÜNLÜK penceresi, Ayarlar → Yaş
+  bilgisi yeniden giriş + GERİ, Ayarlar dişlisi → GERİ → ilk dokunuş tam 1 bırakış, normal tahtada gerçek
+  ACTION_CANCEL 0, Harita ↔ Ana Sayfa, mola → gerçek "Yeniden Başlat". Logcat (4 QA süreci): SCRIPT ERROR
+  0, çökme / ANR 0, godot E 0, Play Age Signals 0. Bir güvenlik kontrolü S14'te anlık başarısız oldu: o an
+  dokunuş gönderilmedi, ≥ 60 sn salt okunur yoklamadan sonra devam edildi (yabancı dokunuş 0). Kapı sonunda
+  QA paketi kaldırıldı; üretim paketi hiç kurulmadı; `com.example.squishymerge` dokunulmadı (0.8.5, kurulum
+  / güncelleme zamanları aynı); masaüstü kayıt ailesi ve sahibin dosyaları içerik olarak aynı.
 - **Kayda geçen, DÜZELTİLMEYEN (owner kararı / kapsam dışı):** (a) **kalıtılan gün uç durumu** — uygulama
   gece yarısını ÖN PLANDA geçip ardından cihaz saati geri alınırsa kabul edilen gün (görevlerle birlikte)
   bir önceki güne dönebilir; tamamlanmış gün açılmaz, ikinci ödül yok; kapatmak için meydan okuma
@@ -3028,7 +3062,7 @@ Owner'ın yapacağı / onaylayacağı:)*
   masaüstü + Samsung A36 kapısı GEÇTİ; owner onayıyla ff-only `afc10be → 6d3dbca`, 2026-10-01).
 - ~~**TASK/047** — Günlük Merge Challenge — BAŞLAMADI; sözleşmesi tasarlanmamıştı.~~ → owner onaylı
   kilitli brifle uygulandı, **dalda** (`task/047-daily-merge-challenge`, §4.27, GAME_DESIGN §5.11);
-  main'e alınması Samsung A36 kapısı + owner onayı bekliyor.
+  masaüstü + Samsung A36 kapısı GEÇTİ (2026-10-02); main'e alınması owner onayı bekliyor.
 - ~~**Kararlılık (öneri — TASK/045 engeli değil):** atomik kayıt (`save_game()` yerinde kesip
   yazıyor; geçici dosya + yedekten kurtarma) · güç hedefleme bırakış-düşürme (Büyütücü ve
   Bomba hedef dokunuşunun bırakışı bekleyen parçayı da düşürebilir) · Koleksiyon detayı

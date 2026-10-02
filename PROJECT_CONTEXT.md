@@ -78,21 +78,22 @@ alınacak — şimdi tahmin/vaat yok.
 [Current release blockers](#current-release-blockers) +
 [Next action](#next-action); aşağıdaki "Milestone tarihçesi" değil.
 
-- **Repo (2026-10-01):** `main == origin/main == 6d3dbca6df43aca1f18b14a524422c8c37639f97` —
+- **Repo (2026-10-02):** `main == origin/main == 6d3dbca6df43aca1f18b14a524422c8c37639f97` —
   **TASK/046.2 owner onayıyla ff-only main'e alındı** (`afc10be → 6d3dbca`: `471a2ab` · `2149fc3` ·
   `b364a0c` · `6d3dbca` doküman / A36 kapısı kaydı; merge commit yok, dal duruyor). **TASK/047
   dalda:** `task/047-daily-merge-challenge` (main `6d3dbca`'dan: `befbbbd` model + kayıt · `bf553e0`
   board · `201764d` akış + yalıtım · `e805736` arayüz + sonuçlar · `54e8411` + `e002dff` çekişmeli
-  inceleme düzeltmeleri · regresyon / görsel kapı + doküman kaydı) — main'e alınması owner onayı
-  bekliyor, merge EDİLMEDİ. Önce (2026-09-30):
+  inceleme düzeltmeleri · `743e5d7` regresyon / görsel kapı + doküman · A36 kapısı kaydı; origin'e
+  itildi) — masaüstü + Samsung A36 kapısı GEÇTİ, main'e alınması owner onayı bekliyor, merge EDİLMEDİ.
+  Önce (2026-09-30):
   **TASK/046 + TASK/046.1 owner onayıyla BİRLİKTE ff-only main'e alındı** — doğrulanmış doğrusal
   zincir `56106ef` → TASK/046 (`efb9763` · `6543492` · `137c219` · `5092dad`) → TASK/046.1
   (`bc40da1` · `ed08b07` · `1ff0ba1` · `98d209e` · `b90bc3c`); merge commit / rebase / squash /
   cherry-pick YOK. Dallar referans için duruyor (`task/046-daily-weekly-missions` = `5092dad`,
   `task/046-1-age-gate-13plus-redesign` = `b90bc3c`).
 - **TASK/047 — Günlük Merge Challenge V1 (oyuncuya "MEYDAN OKUMA") — dalda; masaüstü doğrulama +
-  çekişmeli inceleme + mutasyon + görsel kapı tamam, Samsung A36 yerel kapısı BEKLİYOR; main'e
-  alınması owner onayı bekliyor.** İsteğe bağlı günlük mod: hedef tier'ı sınırlı GERÇEK bırakışla
+  çekişmeli inceleme + mutasyon + görsel kapı tamam, Samsung A36 yerel kapısı GEÇTİ (2026-10-02, yalnız
+  QA paketi, bulgu yok); main'e alınması owner onayı bekliyor.** İsteğe bağlı günlük mod: hedef tier'ı sınırlı GERÇEK bırakışla
   oluştur, süre yok. KİLİTLİ haftalık tablo (Pzt T5·600·18 · Sal T5·480·16 · Çar T6·600·38 · Per
   T5·420·15 · Cum T6·540·36 · Cmt T6·480·32 · Paz T6·420·30; yükseklik 400); gün = görevlerin kabul
   edilen günü (ayrı saat yok, tamamlanma günü taban); parça dizisi SHA-256 `sm-dc-v1` torbası
@@ -585,11 +586,11 @@ PROJECT_STATUS §4.26.
 main `6d3dbca`'dan; owner onaylı kilitli brif — GAME_DESIGN §5.11). Masaüstü doğrulama (4 yeni suite
 356 kontrol), 5 mercekli çekişmeli inceleme (BLOCKER / HIGH 0; MEDIUM'lar giderildi), mutasyon kanıtı
 (35/35), 6 boyut × 15 = 90 kare görsel kapı ve tam masaüstü kapısı (41 koşu, 5262 kontrol, 0 hata, 0
-SCRIPT ERROR; aday `e002dff`) tamam; **sıradaki adım: Samsung A36 yerel kapısı (yalnız QA paketi; telefon
-masaüstü kapıları sırasında bağlı değildi, kit hazır) → owner incelemesi + main entegrasyon kararı**
-(merge EDİLMEDİ). Preset tablosu
-kilitli; A36 playtest'i yeniden ayar önerirse ayrı owner kararı. Ürün işi yukarıdaki release izini
-(3a–8) kapatmaz.
+SCRIPT ERROR; aday `e002dff`) ve **Samsung A36 yerel kapısı GEÇTİ (2026-10-02; yalnız QA paketi, Google
+TEST reklamları, telefon saati değişmedi — kabul edilen gün QA kancasıyla; cihaz bulgusu yok, düzeltme
+commit'i yok; QA paketi kaldırıldı, `com.example` dokunulmadı)** — PROJECT_STATUS §4.27. **Sıradaki adım:
+owner incelemesi + main entegrasyon kararı** (merge EDİLMEDİ). Preset tablosu kilitli; A36 playtest'i
+yeniden ayar önerirse ayrı owner kararı. Ürün işi yukarıdaki release izini (3a–8) kapatmaz.
 
 Önceden var olan, owner kararı bekleyen öneriler (**BAŞLAMADI**): sonuç gecikmesi
 (RESULT_DELAY) bitiren board'a bağlı değil — Mola açıkken Büyütücü dönüşümü round'u bitirip
