@@ -1123,9 +1123,18 @@ func _draw_danger() -> void:
 
 ## Hedeflemenin tükettiği dokunuş dizileri: parmak indeksi → true.
 var _targeting_touches: Dictionary = {}
+## TASK/051 — dizi sahipliği: basışı BU board'a ulaşmış parmak dizileri (indeks → true). Sürükleme ve
+## bırakış yalnız bu dizilerde işlenir: board değişiminden (Yeniden Başlat / TEKRAR / Harita / ertelenen
+## değişim) ÖNCE başlamış ve canlı bir arayüz kontrolünün tutmadığı parmak (eski board'da ya da kabukta
+## basılı kalan) yeni board'da parça düşürmez, nişanı oynatmaz. Zamanlayıcı yok: kayıt aynı parmağın
+## bırakışıyla (iptal dahil) ya da yeni basışıyla kapanır.
+var _owned_touches: Dictionary = {}
 
 
 func _unhandled_input(event: InputEvent) -> void:
+	# TASK/051: sahiplik her kapıdan ÖNCE kaydedilir — bu board'da başlamış dizi (duraklatma / tutorial
+	# kilidi sürerken basılmış olsa da) eskisi gibi tamamlanır, kapıda biten dizi de kaydı kapatır.
+	var owned: bool = _note_owned_touch(event)
 	# Tüketilmiş dizinin olayı hiçbir duruma düşmez — duraklatılmışken gelen
 	# bırakış da diziyi kapatır.
 	if _consume_targeting_touch(event):
@@ -1134,6 +1143,9 @@ func _unhandled_input(event: InputEvent) -> void:
 	# ne hedefleme. Tek etkilesim overlay'in kendi butonlari. Tutorial adimi
 	# da ayni kapiyi kullanir (M8.10: adim basina acik/kapali).
 	if _is_finished or _is_paused() or _tutorial_input_locked:
+		return
+	# TASK/051: basışı bu board'a hiç ulaşmamış dizinin sürüklemesi / bırakışı (board değişimini atlatan parmak).
+	if not owned:
 		return
 
 	if _powerups.is_armed():
@@ -1155,6 +1167,19 @@ func _unhandled_input(event: InputEvent) -> void:
 		_set_aim(screen_to_world(touch.position).x)
 	elif not touch.canceled:
 		_drop()
+
+
+## TASK/051: olay, basışı bu board'a ulaşmış bir diziye mi ait? Basış diziyi açar (aynı parmağın eski
+## kaydı yeni basışla ezilir — takılı kalmaz), bırakış (iptal dahil) kapatır. Parmak olayı değilse true.
+func _note_owned_touch(event: InputEvent) -> bool:
+	var touch := event as InputEventScreenTouch
+	if touch != null:
+		if touch.pressed:
+			_owned_touches[touch.index] = true
+			return true
+		return _owned_touches.erase(touch.index)
+	var drag := event as InputEventScreenDrag
+	return drag == null or _owned_touches.has(drag.index)
 
 
 ## Hedeflemenin tükettiği dizinin sürüklemesi / bırakışı mı? Bırakış diziyi

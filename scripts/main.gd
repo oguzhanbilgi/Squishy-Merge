@@ -1228,6 +1228,11 @@ func _start_level(level: LevelData, tutorial_queue: Array[int] = []) -> void:
 		_board.setup_tutorial_queue(tutorial_queue)
 	_board.round_finished.connect(_on_round_finished)
 	add_child(_board)
+	# TASK/051: mevcut 300 ms geçiş yatışması (yeni kural değil; meydan okuma başlangıcıyla aynı nokta: board girdiye
+	# hazır olduğu an) — Yeniden Başlat / TEKRAR / Harita düğmesine hızlı ikinci dokunuş, basılı tutulsa da, yeni board'a
+	# bırakış ya da HUD dokunuşu olarak düşmez. Değişimden ÖNCE başlamış parmağı GameBoard'un dizi sahipliği eler. Tek
+	# kurma: çağıranlar (mola, sonuç, Harita, tutorial, ertelenen değişim) ayrıca kurmaz.
+	settle_touch_input()
 
 
 ## Round sınırı — normal round ve meydan okuma ORTAK (TASK/047'de `_start_level`'dan çıkarıldı,
