@@ -22,32 +22,39 @@ extends Node
 ##   A molasız      pencere yokken kazanma: ilerleme bir kez, gecikme aynen, sonuç bir kez, hiçbir eylem
 ##   B mola · gerçek GERÇEK Büyütücü düğmesi + hedef + HUD geri (mola) dönüşüm sırasında: bitişte mola kapanır, menü
 ##                  dondurması bırakılır, eylem / bırakış yok, sonuç gecikmeden sonra açılır; sonuçta GERİ yok sayılır,
-##                  gerçek dokunuş SONUCA gider (molaya değil)
+##                  gerçek dokunuş SONUCA gider (molaya değil); B2 aynısı mola Android GERİ yoluyla açılınca
 ##   C mola + reklam geçerli geçiş reklamı: mola reklamdan ÖNCE kapalı, kapanışta sonuç bir kez, mola geri gelmez
 ##   D tekrar       temizlik iki kez / pencere yokken / yinelenen round_finished: yan etki yok
-##   E eylemsiz     bitiş anında molanın Yeniden Başlat / Ana Menüye Dön düğmesinde ya da karartmasında BASILI parmak:
-##                  kapanış eylem yaymaz, bırakış da yaymaz, bırakış parça düşürmez
+##   E eylemsiz     bitiş anında molanın Yeniden Başlat / Ana Menüye Dön / Devam Et düğmesinde ya da karartmasında BASILI
+##                  parmak — basıştan sonra İŞLENMEMİŞ bir olay da gelir (Godot gizleme anındaki sentetik bırakışı ancak
+##                  o zaman düğmeye iletir): kapanış eylem yaymaz, bırakış da yaymaz, bırakış parça düşürmez
 ##   F girdi        temizlikten sonra mola GERİ'yi / dokunuşu tutmaz; sonuç tutar; gizli katman dokunuş yutmaz
-##   G ilerleme     ilk kazanma (level 5) mola açıkken: XP / tur / yıldız / kilit / görev / sandık bir kez, bellek = disk,
+##   G ilerleme     ilk kazanma (level 5) mola açıkken, round'da GERÇEK bir merge ve 75'lik bonus sandık eşiği: XP / tur /
+##                  merge / bonus sayaç / yıldız / kilit / görev / sandık (tam 2 kart) / Hamur bir kez, bellek = disk,
 ##                  gecikme / sonuçtan sonra değişmez; molasız kontrolle aynı fark, aynı anahtarlar
 ##   H TASK/048     değiştirilen round eski sonuç / reklam açmaz (üretim yeniden başlatma işleyicisi); fırlatma aralığı
 ##                  ertelemesi aynen; geçerli round geçerli reklam + sonuç
 ##   I Ayarlar      bitişte açık Ayarlar ve gecikmede açılan Ayarlar KAPANMAZ (genel pencere kuralı DEĞİL)
 ##   J refill       stok 0 güç → refill penceresi dönüşüm sırasında: bitişte kapanır; satın alma / ödül / reklam isteği /
-##                  stok / Hamur / kota değişmez; önceden istenmiş ödüllü talep iptal edilmez / verilmez (kendi yolu)
+##                  stok / Hamur / kota değişmez; önceden istenmiş ödüllü talep iptal edilmez / verilmez (kendi yolu:
+##                  kazanılırsa verilir, kazanılmazsa hiçbir şey; pencere geri gelmez)
 ##   K kayıp        normal kayıp aynen
 ##   L sonsuz       Sonsuz sonucu aynen
-##   M meydan       meydan okuma sonucu aynen, geçiş reklamı denemesi yok, işleyicisi temizliğe girmez
+##   M meydan       meydan okuma sonucu aynen, geçiş reklamı denemesi yok, işleyicisi temizliğe girmez (TASK/047 donuk)
 ##   N tutorial     tutorial akışı / sonucu aynen
 ##   O iptal        ACTION_CANCEL 0 bırakış, sonraki bağımsız dokunuş 1; temizlik sonrası yeni round'a sızıntı yok
-##   P kaynak       RESULT_DELAY 0,8 / 300 ms / iptal koruması aynen; temizlik gecikmeden ÖNCE, yalnız normal yolda,
-##                  Ayarlar'a / gezinmeye / kayda dokunmaz
+##   Q canlı mola   bitmemiş round'da GERÇEK mola düğmeleri aynen: Devam Et / karartma devam ettirir, Yeniden Başlat yeni
+##                  board kurar (dokunuş sızmaz, sonraki dokunuş 1), Ana Menüye Dön Harita'ya döner
+##   R başka yol    aynı karede merge: mola açıldıktan sonra raporlanan temasın ertelenmiş merge'i round'u molada bitirir
+##                  (Dumpling'in gönderdiği aynı sinyal — dar dikiş) → aynı temizlik
+##   P kaynak       RESULT_DELAY 0,8 / 300 ms / iptal koruması aynen; temizlik ilerleme yazıldıktan SONRA, gecikmeden ÖNCE,
+##                  yalnız normal yolda; Ayarlar'a / gezinmeye / kayda dokunmaz; kapalı mola hiçbir eylem yaymaz
 
 const MAIN_SCENE: PackedScene = preload("res://scenes/main.tscn")
 const ENDLESS: String = "res://resources/levels/endless.tres"
 const DIR: String = "user://qa_round_finish_modal"
 const PATH: String = DIR + "/save.json"
-const SECTIONS: int = 16
+const SECTIONS: int = 18
 const MON: String = "2026-09-28"
 const THU: String = "2026-10-01"
 const BACK_GAP_MSEC: int = 320
@@ -120,6 +127,8 @@ func _ready() -> void:
 	await _challenge()
 	await _tutorial()
 	await _cancel_touch()
+	await _live_pause()
+	await _merge_path()
 	_source_contract()
 	_c("%d/%d bölüm sonuna kadar koştu (betik hatası yok)" % [_sections_done, SECTIONS], _sections_done == SECTIONS)
 
@@ -165,9 +174,9 @@ func _no_overlay() -> void:
 	await _finish_now(board)
 	var timer: SceneTreeTimer = _last_timer
 	_c("ön koşul: kazanma kesinleşti (Büyütücü dönüşümü hedefe ulaştı), bitişte açık pencere yoktu", board.is_finished()
-		and timer != null and not _at_finish.is_empty() and not _at_finish["pause"] and not _at_finish["refill"])
+		and timer != null and not _af("pause") and not _af("refill"))
 	_c("kesinleşme gecikmeden ÖNCE bir kez yazdı (tur + 1); board donuk değil", _rounds() == rounds + 1
-		and not _at_finish["menu_paused"] and not _at_finish["board_paused"])
+		and not _af("menu_paused") and not _af("board_paused"))
 	await _until_left(timer, 0.25)
 	_c("gecikme sürerken sonuç yok, mola yok", not _main._result.visible and not _main.is_pause_open()
 		and timer.time_left > 0.0)
@@ -176,16 +185,24 @@ func _no_overlay() -> void:
 		and _main._result.mode() == _mode("WIN") and _shown_level() == 3 and _shows == 1 and _main._result_seq == seq + 2)
 	_c("  … hiçbir pencere / sonuç eylemi yok, bırakış yok, tur hâlâ + 1", _no_actions() and _drops == 0
 		and _rounds() == rounds + 1)
-	# Yalnız doğrulama kaydı: SceneTreeTimer kare adımıyla ilerler (bitiş karesinin süresi kadar erken dolabilir).
+	# Yalnız doğrulama kaydı: SceneTreeTimer kare adımıyla ilerler (bitiş karesinin süresi kadar erken dolabilir);
+	# sınırlar yalnız akıl sağlığı (RESULT_DELAY sabitinin kendisi P'de).
 	_c("  … gecikme ölçümü (kayıt): bitişten sonuca %d ms (RESULT_DELAY %.1f sn, kare adımı payıyla)" % [
-		_result_msec - _finish_msec, _delay()], _result_msec - _finish_msec >= 600 and _result_msec - _finish_msec <= 1200)
+		_result_msec - _finish_msec, _delay()], _result_msec - _finish_msec >= 400 and _result_msec - _finish_msec <= 2000)
 	_sections_done += 1
 
 
 # --- B) Mola açıkken bitiş — gerçek yol ----------------------------------------------------------------------
 
 func _pause_real() -> void:
-	print("-- B: GERÇEK yol — Büyütücü düğmesi + hedef + HUD geri (mola) dönüşüm sırasında")
+	print("-- B: GERÇEK yol — Büyütücü düğmesi + hedef + mola (B1 HUD geri dokunuşu, B2 Android geri) dönüşüm sırasında")
+	await _pause_path("hud")
+	await _pause_path("back")
+	_sections_done += 1
+
+
+func _pause_path(opener: String) -> void:
+	var tag: String = "B1 HUD geri" if opener == "hud" else "B2 Android geri"
 	await _fresh()
 	var board: Node2D = null
 	var ok: bool = false
@@ -199,24 +216,22 @@ func _pause_real() -> void:
 			var warm: Dumpling = await _piece(board, 2)
 			await _fire_upgrade(board, warm, true)
 			await _wait(0.4)
-		ok = await _finish_with_pause(board, true)
+		ok = await _finish_with_pause(board, opener, true)
 	var timer: SceneTreeTimer = _last_timer
-	_c("kurulum (gerçek dokunuş, %d deneme): Büyütücü düğmesi + hedefe basış, HUD geri molayı bitişten ÖNCE açtı " % attempts
-		+ "(dönüşüm sürüyordu), dönüşüm round'u bitirdi", ok)
+	_c("[%s] kurulum (gerçek dokunuş, %d deneme): Büyütücü düğmesi + hedefe basış, mola bitişten ÖNCE açıldı " % [tag, attempts]
+		+ "(dönüşüm sürüyordu, board menü duraklamasında), dönüşüm round'u bitirdi", ok)
 	if not ok:
-		_sections_done += 1
 		return
 	var board_id: int = board.get_instance_id()
 	var gen: int = _gen()
 	var rounds: int = _rounds()
 	print("    zaman: mola %d ms → bitiş %d ms (mola açıldıktan %d ms sonra)" % [_pause_msec, _finish_msec,
 		_finish_msec - _pause_msec])
-	_c("BİTİŞ ANINDA (eşzamanlı, gecikmeden önce) mola KAPANDI", not _at_finish["pause"])
+	_c("[%s] BİTİŞ ANINDA (eşzamanlı, gecikmeden önce) mola KAPANDI" % tag, not _af("pause"))
 	_c("  … board'un menü dondurması bırakıldı (menü duraklaması yok, board donuk değil)",
-		not _at_finish["menu_paused"] and not _at_finish["board_paused"])
+		not _af("menu_paused") and not _af("board_paused"))
 	_c("  … kapanış eylemsiz: Devam Et / Yeniden Başlat / Ana Menüye Dön sayısı 0, board ve nesil aynı",
-		_actions_in(_at_finish["actions"], ["resume", "restart", "exit"]) == 0 and _at_finish["board"]
-		and _at_finish["gen"] == gen)
+		_actions_in(_af("actions"), ["resume", "restart", "exit"]) == 0 and _af("board") and _af("gen") == gen)
 	await _until_left(timer, 0.3)
 	_c("gecikme sürerken (dokunuş / GERİ yok): mola kapalı, sonuç henüz yok, board aynı", not _main.is_pause_open()
 		and not _main._result.visible and _owns(board_id, gen))
@@ -224,7 +239,7 @@ func _pause_real() -> void:
 	print("    zaman: bitiş → sonuç %d ms; sonuç açıldığında: sonuç görünür=%s (katman %d), mola görünür=%s (katman %d), board menü duraklaması=%s"
 		% [_result_msec - _finish_msec, str(_main._result.visible), _main._result.layer, str(_main.is_pause_open()),
 		_main._pause.layer, str(board.get("_is_menu_paused"))])
-	_c("gecikmeden sonra sonuç tam bir kez (WIN, level 3); mola sonucun üstünde DEĞİL", _main._result.visible
+	_c("[%s] gecikmeden sonra sonuç tam bir kez (WIN, level 3); mola sonucun üstünde DEĞİL" % tag, _main._result.visible
 		and _main._result.mode() == _mode("WIN") and _shown_level() == 3 and _shows == 1 and not _main.is_pause_open())
 	_c("  … ilerleme bir kez (tur kesinleşmede + 1, sonra değişmedi), bırakış yok", _rounds() == rounds and _drops == 0)
 	await _back()
@@ -236,10 +251,9 @@ func _pause_real() -> void:
 	await _settle(2)
 	print("    sonucun HARİTA noktasına gerçek dokunuş sonrası: eylemler=%s, board=%s, sekme=%d" % [str(_actions),
 		"YOK" if _main._board == null else "VAR", _main._active_tab])
-	_c("sonucun HARİTA düğmesine gerçek dokunuş SONUCA gitti (sonuç çıkışı 1, mola eylemi 0) → Harita",
+	_c("[%s] sonucun HARİTA düğmesine gerçek dokunuş SONUCA gitti (sonuç çıkışı 1, mola eylemi 0) → Harita" % tag,
 		_actions["result_exit"] == 1 and _actions_in(_actions, ["resume", "restart", "exit"]) == 0
 		and _main._board == null and _main._active_tab == 1 and _main._screens[1].visible)
-	_sections_done += 1
 
 
 # --- C) Mola + geçerli geçiş reklamı -------------------------------------------------------------------------
@@ -253,14 +267,14 @@ func _pause_interstitial() -> void:
 	var board: Node2D = await _start(_level(3))
 	await _wait_settled()
 	var rounds_before: int = _rounds()
-	var ok: bool = await _finish_with_pause(board, false)
+	var ok: bool = await _finish_with_pause(board)
 	var timer: SceneTreeTimer = _last_timer
 	var board_id: int = board.get_instance_id()
 	var gen: int = _gen()
 	var rounds: int = _rounds()
 	var shows: int = fake.interstitial_shows.size()
-	_c("kurulum: mola bitişten ÖNCE açıktı; bitiş anında mola KAPANDI, eylem 0", ok and not _at_finish["pause"]
-		and _actions_in(_at_finish["actions"], ["resume", "restart", "exit"]) == 0)
+	_c("kurulum: mola bitişten ÖNCE açıktı; bitiş anında mola KAPANDI, eylem 0", ok and not _af("pause")
+		and _actions_in(_af("actions"), ["resume", "restart", "exit"]) == 0)
 	await _after(timer, 0)
 	var id: String = fake.interstitial_shows[-1] if fake.interstitial_shows.size() == shows + 1 else ""
 	_c("gecikmeden sonra geçerli geçiş reklamı istendi (politika aynen); o anda mola KAPALI, sonuç yok",
@@ -314,12 +328,12 @@ func _idempotent() -> void:
 		_c("canlı round'da, pencere yokken iki çağrı: hiçbir şey olmaz (board canlı, donuk değil, eylem 0, nesil aynı)",
 			_main._board == board and not board.is_finished() and not board._is_paused() and _no_actions()
 			and _gen() == gen0 and not _main.is_pause_open() and not _main._refill.visible)
-	var ok: bool = await _finish_with_pause(board, false)
+	var ok: bool = await _finish_with_pause(board)
 	var timer: SceneTreeTimer = _last_timer
 	var bytes: PackedByteArray = _bytes()
 	var rounds: int = _rounds()
 	var gen: int = _gen()
-	_c("kurulum: mola açıkken kesinleşti, bitişte kapandı", ok and not _at_finish["pause"])
+	_c("kurulum: mola açıkken kesinleşti, bitişte kapandı", ok and not _af("pause"))
 	if has_cleanup:
 		_main.call(CLEANUP)
 		_main.call(CLEANUP)
@@ -345,12 +359,17 @@ func _idempotent() -> void:
 
 func _held_finger() -> void:
 	print("-- E: bitiş anında molada BASILI parmak — kapanış ve bırakış eylem yaymaz, parça düşürmez")
-	for target: String in ["yeniden başlat", "ana menüye dön", "karartma", "devam et"]:
-		await _held_variant(target)
+	# "+ olay": basıştan sonra işlenmemiş bir olay (eşlenmemiş tuş) gelir — Godot gizleme anında odaklı düğmeye sentetik
+	# bırakış yollar ve girdi "işlendi" işaretli DEĞİLSE BaseButton onu tıklama sayar (A36: basılı Koleksiyon kartı +
+	# GERİ). Bu durum yalnız düğmelerin kapalı-pencere koşulunu sınar; düz değişkeler parmak odağı yolunu.
+	for variant: Array in [["yeniden başlat", false], ["yeniden başlat", true], ["ana menüye dön", false],
+			["ana menüye dön", true], ["devam et", false], ["devam et", true], ["karartma", false], ["karartma", true]]:
+		await _held_variant(String(variant[0]), bool(variant[1]))
 	_sections_done += 1
 
 
-func _held_variant(target: String) -> void:
+func _held_variant(button: String, unhandled: bool) -> void:
+	var target: String = button + (" + olay" if unhandled else "")
 	await _fresh()
 	var board: Node2D = await _start(_level(3))
 	await _wait_settled()
@@ -359,17 +378,20 @@ func _held_variant(target: String) -> void:
 	await _fire_upgrade(board, piece)
 	_main.open_pause_menu()
 	await _settle(1)
-	var pos: Vector2 = _pause_point(target)
+	var pos: Vector2 = _pause_point(button)
 	await _finger(pos, true)
-	var held: bool = _main.is_pause_open() and not board.is_finished() and is_instance_valid(piece) and piece.is_merging
+	if unhandled:
+		await _unhandled_key()
+	var held: bool = _main.is_pause_open() and not board.is_finished() and is_instance_valid(piece) and piece.is_merging \
+		and (not unhandled or not get_viewport().is_input_handled())
 	var board_id: int = board.get_instance_id()
 	var gen: int = _gen()
 	await _until_finished(board)
 	var timer: SceneTreeTimer = _last_timer
-	_c("[%s] kurulum: mola açık, parmak düğmede / karartmada BASILI, dönüşüm sürüyordu → round bitti" % target,
-		held and board.is_finished() and not _at_finish.is_empty())
+	_c("[%s] kurulum: mola açık, parmak düğmede / karartmada BASILI%s, dönüşüm sürüyordu → round bitti" % [target,
+		", son olay işlenmemiş" if unhandled else ""], held and board.is_finished() and not _at_finish.is_empty())
 	_c("[%s] bitişte mola kapandı; kapanış eylem yaymadı (Devam / Yeniden / Ana Menü 0), board + nesil aynı" % target,
-		not _at_finish["pause"] and _actions_in(_at_finish["actions"], ["resume", "restart", "exit"]) == 0
+		not _af("pause") and _actions_in(_af("actions"), ["resume", "restart", "exit"]) == 0
 		and _owns(board_id, gen))
 	await _finger(pos, false)
 	await _physics(3)
@@ -402,7 +424,7 @@ func _input_ownership() -> void:
 	await _fresh()
 	var board: Node2D = await _start(_level(3))
 	await _wait_settled()
-	var ok: bool = await _finish_with_pause(board, false)
+	var ok: bool = await _finish_with_pause(board)
 	var timer: SceneTreeTimer = _last_timer
 	var board_id: int = board.get_instance_id()
 	var gen: int = _gen()
@@ -438,24 +460,34 @@ func _input_ownership() -> void:
 # --- G) İlerleme ----------------------------------------------------------------------------------------------
 
 func _progression() -> void:
-	print("-- G: ilk kazanma mola açıkken — ilerleme TAM bir kez, bellek = disk")
-	await _fresh()
+	print("-- G: ilk kazanma mola açıkken (round'da gerçek merge + bonus sandık eşiği) — ilerleme TAM bir kez, bellek = disk")
+	var bonus_due: Dictionary = {"merges_since_bonus_chest": 74}
+	await _fresh(false, true, bonus_due)
 	var control: Dictionary = await _first_clear(false)
-	await _fresh()
+	await _fresh(false, true, bonus_due)
 	var run: Dictionary = await _first_clear(true)
 	var s0: Dictionary = run["s0"]
 	var s1: Dictionary = run["s1"]
-	var stars: int = _level(5).stars_earned(true, 0)
-	var award: int = PlayerProgression.round_xp_award(0, true, 0, stars)
-	_c("kontrol (mola yok) ve deney (mola açıkken; bitişte kapandı) kesinleşti", control["ok"] and run["ok"]
-		and run["pause_at_finish"] == false)
-	_c("kesinleşme gecikmeden ÖNCE: tur + 1, XP + %d, level 6 açıldı, level 5'e %d yıldız" % [award, stars],
-		int(s1["total_rounds_played"]) == int(s0["total_rounds_played"]) + 1
+	var stars: int = _level(5).stars_earned(true, TierConfig.merge_score(3))
+	var award: int = PlayerProgression.round_xp_award(1, true, 0, stars)
+	_c("kontrol (mola yok) ve deney (mola açıkken; bitişte kapandı) kesinleşti; ikisinde de round'da TAM 1 gerçek merge",
+		control["ok"] and run["ok"] and control["merged"] and run["merged"] and run["pause_at_finish"] == false)
+	_c("kesinleşme gecikmeden ÖNCE: tur + 1, XP + %d (merge + level + yıldız), level 6 açıldı, level 5'e %d yıldız" % [
+		award, stars], int(s1["total_rounds_played"]) == int(s0["total_rounds_played"]) + 1
 		and int(s1["player_xp"]) == int(s0["player_xp"]) + award and int(s1["highest_level_unlocked"]) == 6
 		and int(s0["highest_level_unlocked"]) == 5 and int((s1["level_stars"] as Dictionary).get("5", 0)) == stars)
-	_c("  … görev ilerlemesi bir kez: günlük tur + 1, günlük level 1/1 (ödül verildi)",
-		_mission(s1, "daily_rounds") == _mission(s0, "daily_rounds") + 1 and _mission(s1, "daily_clear") == 1
+	_c("  … merge sayaçları bir kez: toplam merge + 1, 75'lik bonus sayaç 74 → 0 (eşik aşıldı)",
+		int(s1["total_merges"]) == int(s0["total_merges"]) + 1 and int(s0["merges_since_bonus_chest"]) == 74
+		and int(s1["merges_since_bonus_chest"]) == 0)
+	_c("  … görev ilerlemesi bir kez: günlük tur + 1, günlük merge + 1, günlük level 1/1 (ödül verildi)",
+		_mission(s1, "daily_rounds") == _mission(s0, "daily_rounds") + 1
+		and _mission(s1, "daily_merges") == _mission(s0, "daily_merges") + 1 and _mission(s1, "daily_clear") == 1
 		and _rewarded(s1).has("daily_clear") and not _rewarded(s0).has("daily_clear"))
+	_c("  … sandıklar kesinleşmede TAM bir kez: sonuçta tam 2 kart (level sandığı + 75'lik bonus sandık) — deney %d, kontrol %d"
+		% [int(run["cards"]), int(control["cards"])], int(run["cards"]) == 2 and int(control["cards"]) == 2)
+	_c("  … Hamur yalnız kesinleşmenin ödülleriyle değişti: başlangıç + görev + sandık = kesinleşme sonrası (deney %s, kontrol %s)"
+		% [run["dough_note"], control["dough_note"]], run["dough_ok"] and control["dough_ok"])
+	# Sandık içerikleri rastgele (Hamur / skin) — karşılaştırma yalnız belirlenimci alanlarda; Hamur yukarıda tam uzlaşır.
 	var keys: Array[String] = ["player_xp", "total_rounds_played", "highest_level_unlocked", "level_stars", "missions",
 		"total_merges", "merges_since_bonus_chest", "highest_tier_created", "endless_high_score", "unlocked_achievements"]
 	var same_delta: bool = true
@@ -463,30 +495,30 @@ func _progression() -> void:
 		if JSON.stringify(_norm(_delta(run["s0"], run["s1"], key))) != JSON.stringify(_norm(_delta(control["s0"], control["s1"], key))):
 			same_delta = false
 			print("    fark: %s" % key)
-	_c("  … deneyin kesinleşmesi molasız kontrolünkiyle AYNI (XP, tur, kilit, yıldız, görev, merge, başarım)", same_delta)
+	_c("  … deneyin kesinleşmesi molasız kontrolünkiyle AYNI (XP, tur, kilit, yıldız, görev, merge, bonus sayaç, başarım)",
+		same_delta)
 	_c("  … kayıt şeması aynı: deneyin ve kontrolün kayıt anahtarları birebir (yeni alan yok)",
 		_keys(run["s1"]) == _keys(control["s1"]) and _keys(run["s1"]) == _keys(run["s0"]))
-	_c("  … sandık ödülü kesinleşmede: sonuçta level sandığı kartı (deney = kontrol)", run["cards"] == control["cards"]
-		and int(run["cards"]) >= 1)
 	_c("bellek = disk (kesinleşmeden hemen sonra)", run["disk_equal_1"])
 	_c("gecikme + sonuç sonrası ilerleme GERİ ALINMADI, İKİLENMEDİ (bellek + disk kesinleşmedeki gibi), bellek = disk",
 		_same(run["s3"], s1) and run["d3"] == run["d1"] and run["disk_equal_3"] and run["result"])
 	_sections_done += 1
 
 
-## Level 5 ilk kazanma; `pause` ise mola açıkken (bitişte kapanır).
+## Level 5 ilk kazanma (round'da önce 1 gerçek merge); `pause` ise mola açıkken (bitişte kapanır).
 func _first_clear(pause: bool) -> Dictionary:
 	var board: Node2D = await _start(_level(5))
 	await _wait_settled()
+	var merged: bool = await _merge_once(board)
 	var s0: Dictionary = SaveManager.data.duplicate(true)
 	var ok: bool = false
 	if pause:
-		ok = await _finish_with_pause(board, false)
+		ok = await _finish_with_pause(board)
 	else:
 		await _finish_now(board)
 		ok = board.is_finished()
 	var timer: SceneTreeTimer = _last_timer
-	var out: Dictionary = {"ok": ok, "s0": s0, "s1": SaveManager.data.duplicate(true), "d1": _bytes(),
+	var out: Dictionary = {"ok": ok, "merged": merged, "s0": s0, "s1": SaveManager.data.duplicate(true), "d1": _bytes(),
 		"pause_at_finish": bool(_at_finish.get("pause", true)), "disk_equal_1": _disk_equals_memory()}
 	await _after(timer)
 	await _wait(0.3)
@@ -495,7 +527,38 @@ func _first_clear(pause: bool) -> Dictionary:
 	out["disk_equal_3"] = _disk_equals_memory()
 	out["result"] = _main._result.visible and _shows == 1
 	out["cards"] = _main._result.cards().size()
+	var mission_dough: int = int((_main._result.progress_summary().get("missions", {}) as Dictionary).get("dough", 0))
+	var chest_dough: int = _shown_chest_dough()
+	out["dough_ok"] = int(out["s1"]["dough"]) == int(s0["dough"]) + mission_dough + chest_dough
+	out["dough_note"] = "%d + %d + %d → %d" % [int(s0["dough"]), mission_dough, chest_dough, int(out["s1"]["dough"])]
 	return out
+
+
+## Gerçek bir merge (fizik): sol kenarda tabanda T2, üstüne bir T2 düşer → T3 (hedefin altında). Dönüş: round'un merge
+## sayacı tam + 1 oldu mu.
+func _merge_once(board: Node2D) -> bool:
+	var before: int = GameState.merge_count
+	var r: float = TierConfig.radius(2)
+	var x: float = board._left_x() + r + 12.0
+	board._spawn_dumpling(2, Vector2(x, _floor_y(board) - r - 1.0))
+	board._spawn_dumpling(2, Vector2(x, _floor_y(board) - 3.0 * r - 30.0))
+	var guard: int = 0
+	while GameState.merge_count == before and guard < 600:
+		await get_tree().physics_frame
+		guard += 1
+	await _physics(30)
+	return GameState.merge_count == before + 1
+
+
+## Açık sonucun sandık kartlarının Hamur'u (kesinleşmede yazılan).
+func _shown_chest_dough() -> int:
+	var total: int = 0
+	var shown: Variant = _main._result.get("_rewards")
+	if shown is Array:
+		for reward: Variant in shown:
+			if reward is ChestReward:
+				total += (reward as ChestReward).dough
+	return total
 
 
 # --- H) TASK/048 savunması aynen ----------------------------------------------------------------------------
@@ -509,7 +572,7 @@ func _task048() -> void:
 	var fake: FakeAdBackend = ads._backend
 	var board: Node2D = await _start(_level(3))
 	await _wait_settled()
-	var ok: bool = await _finish_with_pause(board, false)
+	var ok: bool = await _finish_with_pause(board)
 	var timer: SceneTreeTimer = _last_timer
 	var shows: int = fake.interstitial_shows.size()
 	var board_id: int = board.get_instance_id()
@@ -520,7 +583,7 @@ func _task048() -> void:
 	var next: Node2D = _main._board
 	_track(next)
 	_c("H1 kurulum: bitişte mola kapandı; gecikme İÇİNDE (%.2f sn kala) üretim yeniden başlatma işleyicisi yeni board kurdu" % left,
-		ok and not _at_finish["pause"] and _differs(next, board_id) and left > 0.0)
+		ok and not _af("pause") and _differs(next, board_id) and left > 0.0)
 	await _after(timer)
 	_c("H1: eski sonuç AÇILMADI, eski round geçiş reklamı DENEMEDİ (reklam uygun + hazır kaldı)", not _main._result.visible
 		and _shows == 0 and fake.interstitial_shows.size() == shows
@@ -536,7 +599,7 @@ func _task048() -> void:
 	fake = ads._backend
 	board = await _start(_level(3))
 	await _wait_settled()
-	ok = await _finish_with_pause(board, false)
+	ok = await _finish_with_pause(board)
 	timer = _last_timer
 	board_id = board.get_instance_id()
 	var gen: int = _gen()
@@ -601,8 +664,8 @@ func _settings() -> void:
 	var timer: SceneTreeTimer = _last_timer
 	_c("I1 kurulum: dönüşüm sırasında gerçek dişli dokunuşu Ayarlar'ı açtı (board donuk), round bitti", open_first
 		and board.is_finished() and not _at_finish.is_empty())
-	_c("I1: bitiş anında Ayarlar AÇIK KALDI (temizlik Ayarlar'ı kapatmaz), kapanış sinyali yok", _at_finish["settings"]
-		and _actions_in(_at_finish["actions"], ["settings_closed"]) == 0 and _main._settings.visible)
+	_c("I1: bitiş anında Ayarlar AÇIK KALDI (temizlik Ayarlar'ı kapatmaz), kapanış sinyali yok", _af("settings")
+		and _actions_in(_af("actions"), ["settings_closed"]) == 0 and _main._settings.visible)
 	await _after(timer)
 	_c("  … I1: gecikmeden sonra sonuç açıldı, Ayarlar hâlâ üstünde (mevcut davranış — kayda geçen açık madde)",
 		_main._result.visible and _shows == 1 and _main._settings.visible and _actions["settings_closed"] == 0)
@@ -655,24 +718,19 @@ func _refill() -> void:
 	_c("J1 kurulum (gerçek dokunuş): stok 0 Bomba → refill penceresi dönüşüm sürerken açıldı (board donuk), round bitti",
 		refill_first and bomb == 0 and board.is_finished() and not _at_finish.is_empty())
 	_c("J1: BİTİŞ ANINDA refill penceresi KAPANDI, board refill beklemesinde değil, donuk değil",
-		not _at_finish["refill"] and not _at_finish["refill_pending"] and not _at_finish["board_paused"])
+		not _af("refill") and not _af("refill_pending") and not _af("board_paused"))
 	_c("  … eylemsiz: ödüllü istek / Hamurla alma / kapat sinyali 0, ödüllü reklam gösterilmedi",
 		_actions_in(_actions, ["refill_ad", "refill_dough", "refill_closed"]) == 0
 		and fake.rewarded_shows.size() == rewarded_shows)
 	_c("  … stok / günlük ödüllü kota DEĞİŞMEDİ (Bomba %d → %d, Büyütücü kullanımda düşen %d, kota %d → %d)" % [bomb,
-		int(_at_finish["bomb"]), upgrade_after_use, quota, int(_at_finish["quota"])], int(_at_finish["bomb"]) == bomb
-		and int(_at_finish["quota"]) == quota and int(_at_finish["upgrade"]) == upgrade_after_use)
+		int(_af("bomb")), upgrade_after_use, quota, int(_af("quota"))], int(_af("bomb")) == bomb
+		and int(_af("quota")) == quota and int(_af("upgrade")) == upgrade_after_use)
 	await _after(timer)
 	var mission_dough: int = int((_main._result.progress_summary().get("missions", {}) as Dictionary).get("dough", 0))
-	var chest_dough: int = 0
-	var shown_rewards: Variant = _main._result.get("_rewards")
-	if shown_rewards is Array:
-		for reward: Variant in shown_rewards:
-			if reward is ChestReward:
-				chest_dough += (reward as ChestReward).dough
+	var chest_dough: int = _shown_chest_dough()
 	_c("  … Hamur yalnız kesinleşmenin ödülleriyle değişti (%d + görev %d + sandık %d = %d), satın alma düşümü yok; sonra sabit"
-		% [dough, mission_dough, chest_dough, int(_at_finish["dough"])],
-		int(_at_finish["dough"]) == dough + mission_dough + chest_dough and SaveManager.dough() == int(_at_finish["dough"])
+		% [dough, mission_dough, chest_dough, int(_af("dough"))],
+		int(_af("dough")) == dough + mission_dough + chest_dough and SaveManager.dough() == int(_af("dough"))
 		and SaveManager.powerup_count(PowerUp.Type.BOMB) == bomb and RewardedPolicy.remaining_today() == quota)
 	_c("J1: gecikmeden sonra sonuç tam bir kez; refill penceresi sonucun üstünde DEĞİL", _main._result.visible
 		and _shows == 1 and not _main._refill.visible and not _main.is_pause_open())
@@ -685,18 +743,25 @@ func _refill() -> void:
 		and _actions_in(_actions, ["refill_ad", "refill_dough", "refill_closed"]) == 0 and _main._active_tab == 1
 		and _main._board == null)
 
-	# J2 — QA düzeyi (insan 0,15 sn'de yetişemez): refill'de REKLAM İZLE basılmış, ödüllü reklam açık, round biter.
+	# J2 / J3 — QA düzeyi (insan 0,15 sn'de yetişemez): refill'de REKLAM İZLE basılmış, ödüllü reklam açık, round biter.
 	# Temizlik pencereyi kapatır ama açık talebe DOKUNMAZ: iptal etmez, ödül vermez; oyuncu ödülü kazanırsa kendi token
-	# yolu verir (önceden de böyleydi), kazanmazsa hiçbir şey verilmez.
+	# yolu verir (önceden de böyleydi — J2), kazanmazsa hiçbir şey verilmez, pencere geri gelmez (J3).
+	await _refill_pending(true)
+	await _refill_pending(false)
+	_sections_done += 1
+
+
+func _refill_pending(earned: bool) -> void:
+	var tag: String = "J2 ödül kazanıldı" if earned else "J3 ödül kazanılmadı"
 	await _fresh(true, false)
-	ads = _main._ads
-	fake = ads._backend
-	board = await _start(_level(3))
+	var ads: MonetizationManager = _main._ads
+	var fake: FakeAdBackend = ads._backend
+	var board: Node2D = await _start(_level(3))
 	await _wait_settled()
-	piece = await _piece(board)
-	bomb = SaveManager.powerup_count(PowerUp.Type.BOMB)
-	quota = RewardedPolicy.remaining_today()
-	rewarded_shows = fake.rewarded_shows.size()
+	var piece: Dumpling = await _piece(board)
+	var bomb: int = SaveManager.powerup_count(PowerUp.Type.BOMB)
+	var quota: int = RewardedPolicy.remaining_today()
+	var rewarded_shows: int = fake.rewarded_shows.size()
 	_reset_marks()
 	await _fire_upgrade(board, piece)
 	board._power_bar.power_pressed.emit(int(PowerUp.Type.BOMB))
@@ -707,26 +772,32 @@ func _refill() -> void:
 	await _settle(1)
 	var requested: bool = fake.rewarded_shows.size() == rewarded_shows + 1 and int(_main._refill_pending_token) != 0
 	await _until_finished(board)
-	timer = _last_timer
-	_c("J2 kurulum (QA): refill açık, REKLAM İZLE → ödüllü reklam istendi (talep token'ı açık), round bitti", requested
-		and board.is_finished() and not _at_finish.is_empty())
-	_c("J2: bitişte refill penceresi kapandı; açık ödüllü talep İPTAL EDİLMEDİ ve ödül VERİLMEDİ (stok / kota aynı)",
-		not _at_finish["refill"] and int(_main._refill_pending_token) != 0 and not bool(ads._request.get("cancelled", true))
+	var timer: SceneTreeTimer = _last_timer
+	_c("%s kurulum (QA): refill açık, REKLAM İZLE → ödüllü reklam istendi (talep token'ı açık), round bitti" % tag,
+		requested and board.is_finished() and not _at_finish.is_empty())
+	_c("  … bitişte refill penceresi kapandı; açık ödüllü talep İPTAL EDİLMEDİ ve ödül VERİLMEDİ (stok / kota aynı)",
+		not _af("refill") and int(_main._refill_pending_token) != 0 and not bool(ads._request.get("cancelled", true))
 		and SaveManager.powerup_count(PowerUp.Type.BOMB) == bomb and RewardedPolicy.remaining_today() == quota)
 	var shown: String = fake.rewarded_shows[-1] if fake.rewarded_shows.size() > rewarded_shows else ""
 	if shown != "":
 		fake.emit_rewarded_showed(shown)
-		fake.emit_rewarded_earned(shown, "coins", 1)
+		if earned:
+			fake.emit_rewarded_earned(shown, "coins", 1)
 		fake.emit_rewarded_dismissed(shown)
 	await _settle(3)
-	_c("  … oyuncu ödülü kazandı → kendi token yolu stoğu verdi (+1 Bomba, kota - 1); pencere yeniden AÇILMADI",
-		SaveManager.powerup_count(PowerUp.Type.BOMB) == bomb + 1 and RewardedPolicy.remaining_today() == quota - 1
-		and not _main._refill.visible)
+	if earned:
+		_c("  … oyuncu ödülü kazandı → kendi token yolu stoğu verdi (+1 Bomba, kota - 1), token kapandı; pencere yeniden "
+			+ "AÇILMADI; bellek = disk", SaveManager.powerup_count(PowerUp.Type.BOMB) == bomb + 1
+			and RewardedPolicy.remaining_today() == quota - 1 and int(_main._refill_pending_token) == 0
+			and not _main._refill.visible and _disk_equals_memory())
+	else:
+		_c("  … ödülsüz kapanış → hiçbir şey verilmedi (stok / kota aynı), token kapandı, pencere yeniden AÇILMADI; bellek = disk",
+			shown != "" and SaveManager.powerup_count(PowerUp.Type.BOMB) == bomb and RewardedPolicy.remaining_today() == quota
+			and int(_main._refill_pending_token) == 0 and not _main._refill.visible and _disk_equals_memory())
 	await _after(timer)
 	await _settle(2)
 	_c("  … sonuç tam bir kez, refill / mola üstünde değil", _main._result.visible and _shows == 1
 		and not _main._refill.visible and not _main.is_pause_open())
-	_sections_done += 1
 
 
 # --- K) Normal kayıp ----------------------------------------------------------------------------------------
@@ -742,7 +813,7 @@ func _normal_loss() -> void:
 	var s1: Dictionary = SaveManager.data.duplicate(true)
 	_c("kayıp kesinleşti (devam reddi — üretim yolu): tur + 1, teselli yazıldı; bitişte pencere yoktu", board.is_finished()
 		and int(s1["total_rounds_played"]) == int(s0["total_rounds_played"]) + 1 and not _same(s1, s0)
-		and not _at_finish["pause"] and not _at_finish["refill"])
+		and not _af("pause") and not _af("refill"))
 	_main.open_pause_menu()
 	await _settle(1)
 	_c("RESULT_DELAY aralığında mola AÇILMAZ (mevcut kilit aynen)", not _main.is_pause_open())
@@ -784,7 +855,7 @@ func _challenge() -> void:
 	await _settle(3)
 	var challenge: Node2D = _main._board
 	_track(challenge)
-	_c("ön koşul: meydan okuma başladı, güçler KAPALI (Büyütücü yok — mola altında bitiş yolu yok)", started
+	_c("ön koşul: meydan okuma başladı, güçler KAPALI (Büyütücü dönüşüm yolu yok), kendi bitiş işleyicisi", started
 		and challenge != null and challenge.is_daily_challenge() and not challenge.powers_enabled()
 		and not challenge.round_finished.is_connected(_main._on_round_finished))
 	_main.open_pause_menu()
@@ -846,12 +917,12 @@ func _cancel_touch() -> void:
 	_c("iptal edilen dokunuş (ACTION_CANCEL): 0 bırakış", _drops == 0)
 	var dropped: bool = await _drop_ok(board)
 	_c("  … sonraki bağımsız dokunuş: tam 1 bırakış", dropped)
-	var ok: bool = await _finish_with_pause(board, false)
+	var ok: bool = await _finish_with_pause(board)
 	var timer: SceneTreeTimer = _last_timer
 	var drops: int = _drops
 	await _finger_tap(_board_point(board, 40.0))
 	await _physics(3)
-	_c("mola bitişte kapandı; gecikmede bitmiş board'a dokunuş bırakış ÜRETMEZ", ok and not _at_finish["pause"]
+	_c("mola bitişte kapandı; gecikmede bitmiş board'a dokunuş bırakış ÜRETMEZ", ok and not _af("pause")
 		and _drops == drops)
 	await _after(timer)
 	await _finger_tap(_center(_main._result.secondary_button()))
@@ -864,6 +935,83 @@ func _cancel_touch() -> void:
 	await _wait_settled()
 	dropped = await _drop_ok(next)
 	_c("  … yeni round'da ilk bağımsız dokunuş tam 1 bırakış", dropped)
+	_sections_done += 1
+
+
+# --- Q) Bitmemiş round'da gerçek mola düğmeleri ---------------------------------------------------------------
+
+func _live_pause() -> void:
+	print("-- Q: bitmemiş round'da GERÇEK mola düğmeleri aynen (Devam Et / karartma / Yeniden Başlat / Ana Menüye Dön)")
+	for action: String in ["devam et", "karartma", "yeniden başlat", "ana menüye dön"]:
+		await _fresh()
+		var board: Node2D = await _start(_level(3))
+		await _wait_settled()
+		var board_id: int = board.get_instance_id()
+		var gen: int = _gen()
+		await _finger_tap(_center(board._hud.back_button))
+		await _settle(2)
+		var opened: bool = _main.is_pause_open() and board._is_menu_paused and not board.is_finished()
+		await _wait_settled()
+		await _finger_tap(_pause_point(action))
+		await _settle(2)
+		await _physics(3)
+		match action:
+			"devam et", "karartma":
+				_c("[%s] gerçek HUD geri molayı açtı (board donuk); gerçek dokunuş devam ettirdi: mola kapalı, board aynı, donuk değil, Devam 1, bırakış 0"
+					% action, opened and not _main.is_pause_open() and _owns(board_id, gen) and not board._is_paused()
+					and _actions["resume"] == 1 and _actions_in(_actions, ["restart", "exit"]) == 0 and _drops == 0)
+				await _wait_settled()
+				var dropped: bool = await _drop_ok(board)
+				_c("  … [%s] round sürüyor: gerçek dokunuşta tam 1 bırakış" % action, dropped)
+			"yeniden başlat":
+				var next: Node2D = _main._board
+				_track(next)
+				_c("[%s] gerçek dokunuş yeni board kurdu (nesil + 1, Yeniden 1), dokunuş yeni board'a SIZMADI (parça yok, bırakış 0)"
+					% action, opened and _differs(next, board_id) and _gen() > gen and _actions["restart"] == 1
+					and not _main.is_pause_open() and next.live_dumplings().is_empty() and _drops == 0)
+				await _wait_settled()
+				var dropped_next: bool = await _drop_ok(next)
+				_c("  … [%s] yeni round gerçek dokunuşta tam 1 bırakış" % action, dropped_next)
+			_:
+				_c("[%s] gerçek dokunuş round'u terk etti → Harita (Ana Menü 1, board yok, sonuç yok, ilerleme yazılmadı)" % action,
+					opened and _actions["exit"] == 1 and _main._board == null and _main._active_tab == 1
+					and not _main._result.visible and _rounds() == 12)
+	_sections_done += 1
+
+
+# --- R) Başka bitiş yolu: aynı karede merge ----------------------------------------------------------------
+
+func _merge_path() -> void:
+	print("-- R: aynı karede merge — mola açıldıktan sonra raporlanan temas round'u molada bitirir → aynı temizlik")
+	# Fizik adımı teması kaydeder, raporu (body_entered) bir sonraki adımın başında gelir: o arada girdi molayı açmış
+	# olabilir. Dumpling._on_body_entered'ın yaptığı (iki parçayı kilitle + merge_requested) burada aynen yapılır (dar
+	# dikiş); board'un ertelenmiş _resolve_merge'i molayı denetlemez → hedef merge round'u molada bitirir.
+	await _fresh()
+	var board: Node2D = await _start(_level(3))
+	await _wait_settled()
+	var tier: int = board.level.target_tier - 1
+	var r: float = TierConfig.radius(tier)
+	var a: Dumpling = board._spawn_dumpling(tier, Vector2(board._left_x() + r + 8.0, _floor_y(board) - r - 1.0))
+	var b: Dumpling = board._spawn_dumpling(tier, Vector2(board._right_x() - r - 8.0, _floor_y(board) - r - 1.0))
+	await _physics(20)
+	_reset_marks()
+	var board_id: int = board.get_instance_id()
+	var gen: int = _gen()
+	_main.open_pause_menu()
+	var paused: bool = _main.is_pause_open() and board._is_menu_paused and not board.is_finished()
+	a.is_merging = true
+	b.is_merging = true
+	a.merge_requested.emit(a, b, (a.global_position + b.global_position) * 0.5)
+	await _until_finished(board)
+	var timer: SceneTreeTimer = _last_timer
+	_c("kurulum: mola açıktı (board donuk), ertelenmiş hedef merge round'u molada bitirdi", paused and board.is_finished()
+		and not _at_finish.is_empty())
+	_c("BİTİŞ ANINDA mola kapandı, menü dondurması bırakıldı, eylem 0, board + nesil aynı", not _af("pause")
+		and not _af("menu_paused") and _actions_in(_af("actions"), ["resume", "restart", "exit"]) == 0 and _af("board")
+		and _af("gen") == gen)
+	await _after(timer)
+	_c("gecikmeden sonra sonuç tam bir kez (WIN), mola sonucun üstünde değil, board aynı", _main._result.visible
+		and _main._result.mode() == _mode("WIN") and _shows == 1 and not _main.is_pause_open() and _owns(board_id, gen))
 	_sections_done += 1
 
 
@@ -898,8 +1046,10 @@ func _source_contract() -> void:
 	var guard: int = finish_fn.find("_round_finalized = true")
 	var call_at: int = finish_fn.find("%s()" % CLEANUP)
 	var waited: int = finish_fn.find("await get_tree().create_timer(RESULT_DELAY).timeout")
-	_c("normal bitiş: temizlik kesinleştirme korumasından SONRA, gecikmeden ÖNCE ve tek kez çağrılır",
-		guard >= 0 and call_at > guard and waited > call_at and finish_fn.count("%s()" % CLEANUP) == 1)
+	var written: int = maxi(finish_fn.find("SaveManager.record_round_finished("), finish_fn.find("progress[\"missions\"] = missions"))
+	_c("normal bitiş: temizlik kesinleştirme korumasından SONRA, round'un ilerlemesi yazıldıktan SONRA, gecikmeden ÖNCE ve tek kez",
+		guard >= 0 and written > guard and call_at > written and waited > call_at
+		and finish_fn.count("%s()" % CLEANUP) == 1)
 	var call_sites: int = code.count("%s()" % CLEANUP) - code.count("func %s()" % CLEANUP)
 	_c("  … temizlik yalnız normal bitişte: meydan okuma işleyicisi çağırmaz (TASK/047 aynen), başka çağıran yok (%d)"
 		% call_sites, not _function(code, "func _on_challenge_round_finished(").contains(CLEANUP) and call_sites == 1)
@@ -907,11 +1057,13 @@ func _source_contract() -> void:
 	_c("GameBoard._finish menü dondurmasını da bırakır (refill / devam / tutorial dondurmalarıyla birlikte, sinyalden ÖNCE)",
 		board_finish.contains("_is_menu_paused = false") and board_finish.find("_is_menu_paused = false")
 		< board_finish.find("round_finished.emit("))
-	var dim_at: int = pause_code.find("UiKit.attach_dim_close(_dim,")
-	var dim_hook: String = pause_code.substr(dim_at, 160) if dim_at >= 0 else ""
-	_c("PauseMenu: kapalı pencerenin karartması eylem yaymaz (karartma kancasında görünürlük koşulu)",
-		dim_hook.contains("if visible:") and dim_hook.contains("resume_pressed.emit()")
-		and dim_hook.find("if visible:") < dim_hook.find("resume_pressed.emit()"))
+	var gate: String = _function(pause_code, "func _emit_if_open(")
+	var direct: int = pause_code.count("resume_pressed.emit()") + pause_code.count("restart_pressed.emit()") \
+		+ pause_code.count("exit_pressed.emit()")
+	_c("PauseMenu: kapalı pencere eylem yaymaz — üç düğme + X + karartma (5 kanca) tek görünürlük kapısından, doğrudan yayım yok",
+		gate.contains("if visible:") and gate.contains("action.emit()") and gate.find("if visible:") < gate.find("action.emit()")
+		and pause_code.count("_emit_if_open.bind(") == 5 and direct == 0
+		and pause_code.contains("UiKit.attach_dim_close(_dim, _emit_if_open.bind(resume_pressed))"))
 	_c("TASK/048 sahipliği aynen: nesil kontrolleri + fırlatma ertelemesi yerinde",
 		finish_fn.contains("_round_still_owned(") and _function(code, "func _present_result(").contains("_round_still_owned(")
 		and _function(code, "func _on_pause_restart(").contains("_defer_round_change(")
@@ -948,11 +1100,11 @@ func _write_fixture(extra: Dictionary = {}) -> void:
 
 ## Temiz kayıt + Main. `with_ads`: sahte reklam arka ucu (rıza + init + ödüllü hazır); `interstitial`: geçiş reklamı
 ## da hazır + uygun (aktif süre eşiği dolmuş).
-func _fresh(with_ads: bool = false, interstitial: bool = true) -> void:
+func _fresh(with_ads: bool = false, interstitial: bool = true, extra: Dictionary = {}) -> void:
 	await _teardown_main()
 	_clean()
 	DailyRewards.clock_override = THU
-	_write_fixture()
+	_write_fixture(extra)
 	SaveManager.load_game()
 	if not with_ads:
 		await _boot()
@@ -1053,6 +1205,23 @@ func _track(board: Node2D) -> void:
 		_at_finish = _snapshot(board))
 
 
+## Bitiş görüntüsünden bir alan; görüntü yoksa (kurulum başarısız) kontrolü DÜŞÜREN değer — betik hatası değil FAIL.
+func _af(key: String) -> Variant:
+	if _at_finish.has(key):
+		return _at_finish[key]
+	match key:
+		"settings", "board":
+			return false
+		"gen", "dough", "bomb", "upgrade", "quota":
+			return -999
+		"actions":
+			var spoiled: Dictionary = {}
+			for name in ACTION_KEYS:
+				spoiled[name] = 999
+			return spoiled
+	return true
+
+
 ## Kabul edilen bitişin eşzamanlı sonucu: Main'in round_finished işleyicisi ilk `await`'e kadar çalıştı.
 func _snapshot(board: Node2D) -> Dictionary:
 	return {"pause": _main.is_pause_open(), "refill": _main._refill.visible, "settings": _main._settings.visible,
@@ -1099,17 +1268,27 @@ func _fire_upgrade(board: Node2D, piece: Dumpling, real_button: bool = false) ->
 	await _finger(at, false)
 
 
-## Mola AÇIKKEN kazanma (üretim yolu): Büyütücü dönüşümü başlar, anticipation içinde mola açılır (gerçek HUD geri
-## dokunuşu ya da mola işleyicisi), dönüşüm hedefe ulaşıp round'u bitirir. Dönüş: kurulum doğru mu (mola bitişten
-## ÖNCE açıktı, dönüşüm sürüyordu, round bitti). Bitişin eşzamanlı sonucu `_at_finish`'te.
-func _finish_with_pause(board: Node2D, real: bool, frames: int = 8) -> bool:
+## Mola AÇIKKEN kazanma (üretim yolu): Büyütücü dönüşümü başlar, anticipation içinde mola açılır, dönüşüm hedefe
+## ulaşıp round'u bitirir. `opener`: "hud" = HUD geri düğmesine GERÇEK dokunuş, "back" = Android geri (Main'in
+## GO_BACK yönlendirmesi), "call" = mola işleyicisi (`open_pause_menu` — ikisinin de vardığı yer). `real_button`:
+## Büyütücü düğmesine gerçek dokunuş. Dönüş: kurulum doğru mu (mola bitişten ÖNCE açıktı, dönüşüm sürüyordu, round
+## bitti). Bitişin eşzamanlı sonucu `_at_finish`'te.
+func _finish_with_pause(board: Node2D, opener: String = "call", real_button: bool = false, frames: int = 8) -> bool:
 	var piece: Dumpling = await _piece(board, -1, frames)
+	if opener == "back":
+		# Main'in 250 ms geri debounce'u dönüşüm SIRASINDA yutmasın: önceki geriden yeterince uzaklaş (önce bekle).
+		while Time.get_ticks_msec() - int(_main.get("_last_back_msec")) < BACK_GAP_MSEC:
+			await get_tree().process_frame
 	_reset_marks()
-	await _fire_upgrade(board, piece, real)
-	if real:
-		await _finger_tap(_center(board._hud.back_button))
-	else:
-		_main.open_pause_menu()
+	await _fire_upgrade(board, piece, real_button)
+	match opener:
+		"hud":
+			await _finger_tap(_center(board._hud.back_button))
+		"back":
+			_last_back_msec = Time.get_ticks_msec()
+			get_tree().root.propagate_notification(NOTIFICATION_WM_GO_BACK_REQUEST)
+		_:
+			_main.open_pause_menu()
 	_pause_msec = Time.get_ticks_msec()
 	var paused_first: bool = _main.is_pause_open() and not board.is_finished() and is_instance_valid(piece) \
 		and piece.is_merging and board._is_menu_paused
@@ -1271,6 +1450,19 @@ func _finger(pos: Vector2, pressed: bool, index: int = 0) -> void:
 func _finger_tap(pos: Vector2, index: int = 0) -> void:
 	await _finger(pos, true, index)
 	await _finger(pos, false, index)
+
+
+## Hiçbir şeyin işlemediği bir girdi olayı (eşlenmemiş tuş, basış + bırakış): ardından Viewport'un "işlendi" bayrağı
+## kapalı kalır — gerçek cihazda ör. GERİ tuşunun KeyEvent'i ya da başka bir girdi aygıtı.
+func _unhandled_key() -> void:
+	for pressed: bool in [true, false]:
+		var key := InputEventKey.new()
+		key.keycode = KEY_F13
+		key.physical_keycode = KEY_F13
+		key.pressed = pressed
+		Input.parse_input_event(key)
+		Input.flush_buffered_events()
+		await get_tree().process_frame
 
 
 ## Android ACTION_CANCEL: bırakış `canceled == true` (TASK/046.2).

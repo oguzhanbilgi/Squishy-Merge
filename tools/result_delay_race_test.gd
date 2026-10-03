@@ -251,7 +251,7 @@ func _restart_real_input() -> void:
 	_c("molanın 'Yeniden Başlat' üretim işleyicisi gecikme İÇİNDE yeni board kurdu (bitişten %d ms; Main'in gecikmesinden "
 		% (_replace_msec - _finish_msec) + "%.2f sn kalmıştı)" % _replace_left, _differs(replacement, board_id)
 		and _replace_left > 0.0 and not _main._result.visible)
-	_c("  … yeni board boş (eski round'dan bırakış sızmadı)", replacement != null
+	_c("  … yeni board temiz başladı (parça yok)", replacement != null
 		and replacement.live_dumplings().is_empty())
 	await _after(timer)
 	_c("eski round'un gecikmesi doldu: ESKİ sonuç yeni round'un üstüne AÇILMADI", not _main._result.visible
@@ -923,8 +923,9 @@ func _ads() -> void:
 # --- P) Geçiş reklamı fırlatma aralığı --------------------------------------------------------------------
 #
 # Sahiplik gecikmeden sonra doğrulandı ve reklam yerel SDK'ya VERİLDİ (gösterim çağrısı gitti — Google SDK'da
-# iptal yok: istenen reklam her hâlükârda açılır), tam ekran henüz açılmadı / kapanmadı. Bu aralıkta açık
-# molanın GERÇEK dokunuşu (üretim işleyicisi). Değişmez: yönetici molayı bitirene dek (kapanış / gösterim hatası;
+# iptal yok: istenen reklam her hâlükârda açılır), tam ekran henüz açılmadı / kapanmadı. Bu aralıkta molanın üretim
+# işleyicisi (TASK/049'dan beri mola bitişte kapalı — molanın kendi sinyali, dar dikiş; dokunuş yolu yok). Değişmez:
+# yönetici molayı bitirene dek (kapanış / gösterim hatası;
 # SDK susarsa onay zaman aşımı / öne dönüş payı) reklam YALNIZ onu isteyen round'un üstünde görünür — round değişimi
 # molanın sonuna ertelenir ve eski sonucun YERİNE çalışır; ilerleme kesinleşmede bir kez. Sınır (oyun tarafında
 # önlenemez, iptal API'si yok): SDK yönetici vazgeçtikten SONRA reklamı yine açarsa o geç reklam o anki durumu örtebilir.
@@ -982,9 +983,10 @@ func _launch_variant(variant: String) -> void:
 	if variant != "dokunuş yok" and variant != "yeniden başlat · reklam kapanırken":
 		_pause_action(button)
 		await _settle(2)
-		_c("  … fırlatma aralığında molanın '%s' üretim işleyicisi: mola kapalı, round DEĞİŞMEDİ (%s) — gösterim geri " % [
-			label, _owner_note(board_id, gen)] + "alınamaz, sahiplik mola bitene dek sürer", not _main.is_pause_open()
-			and _owns(board_id, gen) and not _main._result.visible)
+		_c("  … fırlatma aralığında molanın '%s' üretim işleyicisi: mola kapalı, round DEĞİŞMEDİ (%s), reklam sahipliği " % [
+			label, _owner_note(board_id, gen)] + "(mola nesli) BIRAKILMADI — gösterim geri alınamaz, sahiplik mola bitene dek sürer",
+			not _main.is_pause_open() and _owns(board_id, gen) and not _main._result.visible
+			and int(_main.get("_round_break_generation")) == gen)
 	match variant:
 		"yeniden başlat · gösterim hatası":
 			fake.emit_interstitial_show_failed(id)
