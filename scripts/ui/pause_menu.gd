@@ -13,6 +13,8 @@ extends CanvasLayer
 ## ince ayraç / Ana Menüye Dön pembe (çıkış vurgusu, kahramandan zayıf).
 ## Eylemler, terk davranışı, geri tuşu = devam, karartma dokunuşu = devam
 ## DEĞİŞMEDİ; onay penceresi eklenmedi (owner kararı).
+## TASK/049: round açık molanın altında kesinleşirse Main pencereyi EYLEMSİZ
+## kapatır (`close_menu` — hiçbir eylem sinyali yayılmaz).
 
 signal resume_pressed
 signal restart_pressed
@@ -51,7 +53,12 @@ func _ready() -> void:
 	_exit.pressed.connect(func() -> void: exit_pressed.emit())
 	footer.add_child(_exit)
 	(_frame.get_meta(&"close_button") as Button).pressed.connect(func() -> void: resume_pressed.emit())
-	UiKit.attach_dim_close(_dim, func() -> void: resume_pressed.emit())
+	# TASK/049: KAPALI pencerenin karartması eylem yaymaz. Round bitince Main molayı eylemsiz kapatır; Godot gizlenen
+	# karartmanın parmak odağını düşürmez — karartmada basılı kalan parmağın bırakışı yine buraya gelip "Devam Et"
+	# sayılırdı (düğmeler gizlemede ve sonrasında tetiklenmiyor — masaüstü 4.6.3 sondası).
+	UiKit.attach_dim_close(_dim, func() -> void:
+		if visible:
+			resume_pressed.emit())
 	UiKit.modal_relayout(_frame)
 
 

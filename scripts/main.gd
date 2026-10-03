@@ -1693,6 +1693,9 @@ func _on_round_finished(won: bool) -> void:
 	# Round gerçekten bitti: teklif penceresi her hâlükârda kapanır (kazanma
 	# fail-pending sırasında da gerçekleşebiliyor).
 	_revive.hide_offer()
+	# TASK/049: kabul edilen bitiş ekranın sahibi — bu round'un mola / refill penceresi sonuç ve geçiş reklamı
+	# akışının üstünde kalmaz (gecikmeden ÖNCE, eylemsiz).
+	_dismiss_terminal_gameplay_overlays()
 
 	# Savunma (M8.10): tutorial hâlâ açıkken round biterse (Level 1 hedefi
 	# tier 4 olduğu için öğretim merge'i round'u BİTİREMEZ — bu, taşma gibi
@@ -1771,6 +1774,20 @@ func _on_round_finished(won: bool) -> void:
 	present.call()
 
 
+## TASK/049 — kesinleşen round'un oyun içi engelleyici pencereleri sonucun / geçiş reklamının üstünde KALMAZ.
+## Büyütücü dönüşümü board'a bağlı bir tween'dir; mola / refill dondurması ağaç duraklatması değil, özel board
+## dondurmasıdır — dönüşüm o pencere açıkken tamamlanıp round'u bitirebilir. Bitiş kabul edilince mola ve stok 0
+## refill penceresi EYLEMSİZ kapanır: Devam Et / Yeniden Başlat / Ana Menüye Dön, satın alma, ödüllü istek, refill,
+## bırakış, board değişimi, kayıt YOK (board'un menü / refill dondurması `GameBoard._finish`'te bırakıldı). Açık
+## bir ödüllü refill talebine dokunulmaz: iptal edilmez, ödül verilmez — kendi token yolu sürer. Ayarlar bilinçli
+## olarak dışarıda (ayrı açık madde). Pencere yoksa ya da tekrar çağrılırsa hiçbir şey yapmaz.
+func _dismiss_terminal_gameplay_overlays() -> void:
+	if _pause != null and _pause.visible:
+		_pause.close_menu()
+	if _refill != null and _refill.visible:
+		_refill.hide_refill()
+
+
 ## Sonuç ekranını açar — round bitişi başına tam bir kez (`seq`; geç gelen
 ## reklam callback'i ikinci bir sonuç üretemez, sonuç kaybolmaz). `progress`:
 ## TASK/045 kompakt XP / seviye / başarım özeti (PlayerProgression.round_summary).
@@ -1809,7 +1826,9 @@ func _round_still_owned(generation: int) -> bool:
 
 ## TASK/048 fırlatma aralığı: bu round'un geçiş reklamı SDK'ya verildi ve mola sürüyorsa round'u değiştiren
 ## eylem (`change`) molanın sonuna ertelenir (true) — reklam, mola sürdükçe yalnız onu isteyen round'un üstünde
-## görünür; round şimdi değişseydi açılan reklam yeni round'un / Harita'nın üstünde kalırdı.
+## görünür; round şimdi değişseydi açılan reklam yeni round'un / Harita'nın üstünde kalırdı. TASK/049'dan beri
+## mola penceresi kesinleşmede kapandığından düğmeleri bu aralığa ulaşamaz — erteleme savunma olarak kalır
+## (işleyiciyi doğrudan çağıran yollar, ör. QA kancaları, yine buradan geçer).
 func _defer_round_change(change: Callable) -> bool:
 	if _round_break_generation != _round_generation:
 		return false

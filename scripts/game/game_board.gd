@@ -2639,9 +2639,12 @@ func _finish(won: bool) -> void:
 	if _is_finished:
 		return
 	_is_finished = true
-	# Bir overlay açıkken round bitmiş olabilir. Board donmuş kalmasın.
+	# Bir overlay açıkken round bitmiş olabilir (Büyütücü dönüşümü dondurmada da tamamlanır). Board donmuş /
+	# duraklamış kalmasın — TASK/049: menü dondurması (mola / Ayarlar) da bırakılır; bitmiş board'da
+	# `set_menu_paused` artık çalışmadığından bayrak burada inmezse sonsuza dek açık kalırdı.
 	_is_fail_pending = false
 	_is_refill_pending = false
+	_is_menu_paused = false
 	_is_tutorial_paused = false
 	_set_board_frozen(false)
 	_preview.visible = false
