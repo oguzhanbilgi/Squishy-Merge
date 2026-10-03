@@ -1204,7 +1204,7 @@ func _to_map() -> void:
 
 
 ## GERÇEK HUD geri dokunuşu → mola (board donar); pencere açılış hareketi oturur.
-func _pause_hud(board: Node2D) -> bool:
+func _pause_hud(board: Variant) -> bool:
 	if board == null or not is_instance_valid(board):
 		return false
 	await _tap(_center(board._hud.back_button))
@@ -1216,7 +1216,7 @@ func _pause_hud(board: Node2D) -> bool:
 
 
 ## Round'u bitirir (kazanma / kayıp) ve sonucun görünmesini bekler (+ 0,3 sn).
-func _finish_to_result(board: Node2D, won: bool) -> bool:
+func _finish_to_result(board: Variant, won: bool) -> bool:
 	if board == null or not is_instance_valid(board):
 		return false
 	board._finish(won)
@@ -1282,7 +1282,7 @@ func _second_tap(tl: Dictionary, gap: int, hold: int = 0) -> bool:
 
 
 ## Yatışma bittikten sonra İLK gerçekten bağımsız dokunuş: tam bir parça.
-func _first_valid(board: Node2D, tag: String, tl: Dictionary = {}) -> void:
+func _first_valid(board: Variant, tag: String, tl: Dictionary = {}) -> void:
 	if board == null or not is_instance_valid(board):
 		_c("%s yatışmadan sonra ilk bağımsız dokunuş — board yok" % tag, false)
 		return
@@ -1480,13 +1480,19 @@ func _center(control: Control) -> Vector2:
 	return _screen(control.get_global_rect().get_center())
 
 
-## Kabın içinde, parçalardan uzak boş bir nokta (pencere pikseli).
-func _board_point(board: Node2D, dx: float) -> Vector2:
+## Kabın içinde, parçalardan uzak boş bir nokta (pencere pikseli). Board yoksa / serbest bırakıldıysa (yalnız bozuk
+## kodda — mutasyon) ekran dışı bir nokta: dokunuş hiçbir şeye ulaşmaz, kontrol FAIL olur, betik hatası olmaz.
+## (`board` Variant: serbest bırakılmış düğüm Node tipli parametreye verilemez.)
+func _board_point(board: Variant, dx: float) -> Vector2:
+	if board == null or not is_instance_valid(board):
+		return Vector2(-100.0, -100.0)
 	return _screen(board.world_to_screen(Vector2(board._center_x() + dx, board.overflow_line_y() + 60.0)))
 
 
 ## Pencere pikseli → board dünyasında x.
-func _world_x(board: Node2D, window_point: Vector2) -> float:
+func _world_x(board: Variant, window_point: Vector2) -> float:
+	if board == null or not is_instance_valid(board):
+		return -1.0
 	var canvas: Vector2 = get_viewport().get_screen_transform().affine_inverse() * window_point
 	return board.screen_to_world(canvas).x
 
