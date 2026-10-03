@@ -78,12 +78,14 @@ alınacak — şimdi tahmin/vaat yok.
 [Current release blockers](#current-release-blockers) +
 [Next action](#next-action); aşağıdaki "Milestone tarihçesi" değil.
 
-- **Repo (2026-10-03):** `main == origin/main == c543cd1d45953accf180ec2452817dc102c3f1b5` — DEĞİŞMEDİ (`f6cd072`
-  üstünde yalnız TASK/049 doküman eşitlemesi; `docs/049-main-sync` owner onayıyla ff-only `f6cd072 → c543cd1`, merge
-  commit yok, dal duruyor). **TASK/050 dalda — READY FOR OWNER REVIEW, main'e ALINMADI:**
-  `task/050-daily-challenge-terminal-modal-ownership` (main `c543cd1`'den: `43a528d` düzeltme · `9a02bd7` test ·
-  `537e8d8` inceleme sağlamlaştırması (yalnız test) · doküman / A36 kaydı); main'e alınması owner onayı bekliyor, merge
-  EDİLMEDİ.
+- **Repo (2026-10-03):** `main == origin/main == 8f9e25916ab7485e3f5fb813bae03a7b661a731d` — **TASK/050 owner
+  onayıyla ff-only main'e alındı** (`c543cd1 → 8f9e259`; merge commit / rebase / squash / cherry-pick / force push
+  YOK). Doğrulanmış doğrusal zincir, 4 commit: `43a528d` düzeltme · `9a02bd7` test · `537e8d8` inceleme
+  sağlamlaştırması (yalnız test; kapılardan geçen üretim adayı) · `8f9e259` doküman / A36 kaydı (yalnız doküman). Dal
+  referans için duruyor (`task/050-daily-challenge-terminal-modal-ownership` = son incelenen HEAD `8f9e259`, yerelde ve
+  origin'de).
+  Önce (2026-10-03): TASK/049 doküman eşitlemesi `docs/049-main-sync` owner onayıyla ff-only `f6cd072 → c543cd1`
+  (merge commit yok, dal duruyor).
   Önce (2026-10-03): **TASK/049 owner onayıyla ff-only main'e alındı** (`25860df → f6cd072`; merge commit / rebase /
   squash / cherry-pick / force push YOK). Doğrulanmış doğrusal zincir, 8 commit: `8a204bd` düzeltme · `acfb28e` test ·
   `6a17162` TASK/048 suite uyarlaması · `7f46272` sağlamlaştırma · `4649ae7` + `6d247c7` test · `db4564f` doküman / A36
@@ -115,31 +117,44 @@ alınacak — şimdi tahmin/vaat yok.
   (`bc40da1` · `ed08b07` · `1ff0ba1` · `98d209e` · `b90bc3c`); merge commit / rebase / squash /
   cherry-pick YOK. Dallar referans için duruyor (`task/046-daily-weekly-missions` = `5092dad`,
   `task/046-1-age-gate-13plus-redesign` = `b90bc3c`).
-- **TASK/050 — meydan okuma bitişi pencere sahipliği — dalda, READY FOR OWNER REVIEW** (main'e alınmadı; masaüstü +
-  Samsung A36 kapıları GEÇTİ 2026-10-03; main'e alınması owner onayı bekliyor). **Hata (ÖNCEDEN VAR OLAN — TASK/049'un
-  açık madde (7) gözlemi; TASK/049 getirmedi):** fizik adımı iki aynı tier parçanın temasını kaydeder, raporu bir sonraki
-  adımın başında gelir; arada girdi molayı açarsa (özel board dondurması) rapor donmuş parçalara yine ulaşır → ertelenmiş
-  `_resolve_merge` hedef tier'ı yapar → `_finish(true)` → meydan okuma kendi işleyicisinde kesinleşir; işleyici molayı
-  kapatmadığından mola meydan okuma sonucunun üstünde kalıyordu (Android GERİ sonuç dalında yutuluyor, sonucun ANA
-  SAYFA dokunuşu eski molaya gidiyordu). Düzeltmesiz `c543cd1`'de GERÇEK fizikle (dikiş yok) yeniden üretildi.
-  **Kök neden:** TASK/049'un `Main._dismiss_terminal_gameplay_overlays()` temizliği yalnız normal `_on_round_finished`'daydı;
-  `_on_challenge_round_finished` (TASK/047) yalnız devam teklifini kapatıyordu. **Düzeltme (tek çağrı + yorum):** meydan
-  okuma işleyicisi aynı paylaşılan temizliği çağırır — `_round_finalized` korumasından ve ödül / tamamlanma işleminden
-  (`complete_daily_challenge`) SONRA, RESULT_DELAY beklemesinden ÖNCE, tek kez; ortak pencere temizliği, AYRI iş mantığı
-  (meydan okuma normal ilerleme / reklam yoluna girmez; deneme kimliği aynen; temizlik gövdesi değişmedi). Kayıp yolları
-  açık molada kesinleşemez (taşma sayacı / hamle bitti kararı molayı denetler) — uydurulmadı, korunması sınandı.
-  Ayarlar kapsam dışı (açık madde (3)). **Doğrulama:** yeni `daily_challenge_terminal_modal_test` (19 bölüm, 178
-  kontrol; aynı kare penceresi GERÇEK fizikle) düzeltmesiz `c543cd1`'de 53 hata, düzeltmeyle 178/178; TASK/049
-  suite'inin kaynak sınırı "tam iki round bitiş işleyicisi" olarak güncellendi; mutasyon 16/16; 6 mercekli inceleme
-  BLOCKER / HIGH 0 (tek MEDIUM — Ayarlar regresyon testi — giderildi); kontrollü kanonik tam masaüstü kapısı (`537e8d8`)
-  45 / 45 temiz, 5800 kontrol, 0 hata, 0 SCRIPT ERROR, bot 2/2; **Samsung A36 kapısı GEÇTİ** (yalnız QA paketi, Google
-  TEST reklamları, telefon saati değişmedi: HUD geri ve Android GERİ yollarında mola bitişte kapandı, sonuç ~0,8 sn
-  sonra tek başına, gerçek ANA SAYFA çalıştı; +20 ve tamamlanan gün tam bir kez, yalıtım + soğuk açılış kalıcılığı; TEST
-  geçiş reklamı hazır + uygunken meydan okumada sıfır geçiş reklamı olayı, banner kuralı aynen; TASK/049 normal yolu
-  reklamsız ve geçerli TEST geçiş reklamıyla korundu; DEVAM ET / Yeniden Başlat / ACTION_CANCEL, sonuçtan sonra gizli
-  mola katmanı yok; logcat SCRIPT ERROR / çökme / ANR 0; QA kaldırıldı, üretim paketi hiç kurulmadı, `com.example`
-  dokunulmadı). TASK/047 sözleşmesi (preset, torba, dizi, +20 / aynı gün +0, tekrar yok, kayıt bloğu, yalıtım, monoton
-  gün, reklamsızlık), TASK/048, TASK/049, RESULT_DELAY 0,8 sn, TOUCH_SETTLE 300 ms aynen. Ayrıntı: PROJECT_STATUS §4.30.
+- **TASK/050 — meydan okuma bitişi pencere sahipliği — TAMAM, main'de** (owner onayıyla ff-only `c543cd1 → 8f9e259`,
+  2026-10-03; doğrulamanın tamamı entegrasyondan ÖNCE tamamlandı — aşağıda; entegrasyon ve doküman eşitlemesi
+  sırasında hiçbir kapı yeniden koşulmadı). **Hata (ÖNCEDEN VAR OLAN — TASK/049'un açık madde (7) gözlemi; TASK/049
+  getirmedi):** fizik adımı iki aynı tier parçanın temasını kaydeder, raporu bir sonraki adımın başında gelir; arada
+  girdi molayı açarsa (özel board dondurması) rapor donmuş parçalara yine ulaşır → ertelenmiş `_resolve_merge` hedef
+  tier'ı yapar → `_finish(true)` → meydan okuma kendi işleyicisinde meşru biçimde kesinleşir; işleyici molayı
+  kapatmadığından mola meydan okuma sonucunun üstünde kalıyor, girdisini tutuyordu (Android GERİ sonuç dalında
+  yutuluyor, sonucun ANA SAYFA dokunuşu eski molaya gidiyordu). Düzeltmesiz `c543cd1`'de GERÇEK fizikle (dikiş yok)
+  yeniden üretildi. **Kök neden:** TASK/049'un `Main._dismiss_terminal_gameplay_overlays()` temizliği yalnız normal
+  `_on_round_finished`'daydı; `_on_challenge_round_finished` (TASK/047) yalnız devam teklifini kapatıyordu.
+  **Düzeltme (tek çağrı + yorum, `43a528d`):** meydan okuma bitiş işleyicisi aynı paylaşılan temizliği çağırır —
+  `_round_finalized` korumasından ve ödül / tamamlanma işleminden (`complete_daily_challenge`) SONRA, mevcut RESULT_DELAY
+  beklemesine girmeden ÖNCE, eşzamanlı ve tek kez; ortak pencere temizliği, AYRI iş mantığı (genel bir pencere sistemi
+  değil; temizlik gövdesi değişmedi). **Kabul edilen davranış:** o anki meydan okuma denemesinin kimliği belirleyici
+  kalır (TASK/047 deneme jetonu); kabul edilen meydan okuma bitişi oyunun engelleyici pencerelerini kapatır — mola
+  kapanır, menü duraklaması sahipliği bırakılır; temizlik Devam / Yeniden Başlat / Ana Sayfa tetiklemez, basılı /
+  sentetik mola bırakışı eylem üretmez, bırakış sızdırmaz; sonuç zamanlaması (RESULT_DELAY 0,8 sn), ilk başarıda tam
+  +20 Hamur, tamamlanan gün tam bir kez, başarıdan sonra yeniden oynama yok, deterministik parça dizisi, tekrar deneme
+  kuralları, monoton kabul edilen gün ve bozuk saat davranışı aynen; XP / görev / başarım / yıldız / normal istatistik
+  / bonus sandık merge payı / Sonsuz yalıtımı aynen; meydan okuma round bitişi geçiş reklamı SIFIR; TASK/048 savunması
+  ve TASK/049 normal bitiş sahipliği aynen. Kayıp yolları açık molada kesinleşemez (taşma sayacı / hamle bitti kararı
+  molayı denetler) — uydurulmadı, korunması sınandı. Ayarlar kapsam dışı (açık madde (3)). **Doğrulama (entegrasyondan
+  ÖNCE):** yeni `daily_challenge_terminal_modal_test` (19 bölüm; aynı kare penceresi GERÇEK fizikle) düzeltmesiz
+  `c543cd1`'de 178 kontrolün 53'ü DÜŞTÜ; düzeltmeyle odak TASK/050 suite'i 178/178, TASK/048 suite'i 197/197, TASK/049
+  suite'i 164/164 (kaynak sınırı "tam iki round bitiş işleyicisi" olarak güncellendi), etkilenen suite'ler 1082
+  kontrol / 0 hata; mutasyon 16/16 (betik hatasıyla öldürme yok, bayt-aynı geri konuldu); 6 mercekli inceleme BLOCKER /
+  HIGH 0 (tek MEDIUM test boşluğu — Ayarlar regresyonu — son kapılardan önce giderildi); kontrollü kanonik tam masaüstü
+  kapısı (üretim adayı `537e8d8`) 45 / 45 temiz, 5800 kontrol, 0 hata, 0 SCRIPT ERROR, bot 2/2, sahibin kaydı
+  bayt-aynı; **Samsung A36 kapısı GEÇTİ** (yalnız QA paketi, Google TEST / örnek kimlikler; telefonun gezinme kipi ve
+  saati değişmedi): HUD geri ve üretim Android GERİ yollarında meydan okuma bitiş işleyicisi temizliği RESULT_DELAY
+  beklemesinden önce eşzamanlı çağırdı — Main'in işleyicisinden sonra aynı `round_finished` yayımına bağlı dinleyicinin
+  bitiş anı görüntüsü mola=false, menü duraklaması=false, mola eylemi 0 gördü (harness'ın sonraki "PAUSE closed" satırı
+  kare bazında yoklandığından FINISH satırından birkaç ms sonra görünür); eski mola sonucun gösterimine / girdi
+  sahipliğine taşınmadı, sonuç ~0,8 sn sonra tek başına, gerçek ANA SAYFA çalıştı; +20 Hamur tam bir kez, tamamlanma
+  kalıcı, yalıtım korundu; TEST geçiş reklamı hazır + uygunken meydan okumada sıfır geçiş reklamı denemesi; TASK/049
+  normal bitiş davranışı ve uygun normal TEST geçiş reklamı yolu korundu; ACTION_CANCEL regresyonu geçti, gizli mola
+  katmanı kalmadı; SCRIPT ERROR / çökme / ANR 0; QA kaldırıldı, üretim paketi hiç kurulmadı, `com.example`
+  dokunulmadı. Ayrıntı: PROJECT_STATUS §4.30.
 - **TASK/049 — round bitişi pencere sahipliği — TAMAM, main'de** (owner onayıyla ff-only `25860df → f6cd072`,
   2026-10-03; doğrulamanın tamamı entegrasyondan ÖNCE tamamlandı — aşağıda; entegrasyon ve doküman eşitlemesi
   sırasında hiçbir kapı yeniden koşulmadı). **Hata:** Büyütücü dönüşümü (0,15 sn, board'a bağlı tween)
@@ -172,8 +187,8 @@ alınacak — şimdi tahmin/vaat yok.
   işleyicisiyle; canlı round girdileri; refill; logcat SCRIPT ERROR / çökme / ANR 0; QA kaldırıldı, üretim paketi hiç
   kurulmadı, `com.example` dokunulmadı). Ayrı gözlem (ÖNCEDEN VAR OLAN / AYRI — düzeltmesiz `25860df` dosyalarıyla
   sondayla yeniden üretildi; TASK/049 getirmedi, düzeltmedi; TASK/047 donuk, değişmedi): aynı karede merge meydan
-  okumayı molada bitirebilir, mola meydan okuma sonucunun üstünde kalır — açık madde (7) *(→ TASK/050 dalında
-  DÜZELTİLDİ — FIXED ON TASK/050 BRANCH, main'e alınmadı; yukarıda)*. Ayrıntı: PROJECT_STATUS §4.29.
+  okumayı molada bitirebilir, mola meydan okuma sonucunun üstünde kalır — açık madde (7) *(→ TASK/050 ile
+  DÜZELTİLDİ — main'de `8f9e259`; yukarıda)*. Ayrıntı: PROJECT_STATUS §4.29.
 - **TASK/048 — normal RESULT_DELAY eski sonuç yarışı koruması + geçiş reklamı fırlatma sahipliği — TAMAM,
   main'de** (owner onayıyla ff-only `848797a → b9ae345`, 2026-10-02). Entegrasyondan ÖNCE tamamlanan doğrulama: odak
   suite 196/196, mutasyon 17/17, tam masaüstü kapısı (43 / 43 suite, 5457 kontrol, 0 hata, 0 SCRIPT ERROR, bot 2/2)
@@ -750,16 +765,19 @@ SCRIPT ERROR / çökme / ANR 0; QA kaldırıldı, üretim paketi hiç kurulmadı
 §4.29. Entegrasyon ve bu doküman eşitlemesi sırasında hiçbir kapı yeniden koşulmadı. *(Sonra: TASK/050 owner brifiyle
 tanımlandı — aşağıda.)*
 
-**Stabilizasyon — TASK/050 meydan okuma bitişi pencere sahipliği: dalda, READY FOR OWNER REVIEW** (main'e ALINMADI;
-`task/050-daily-challenge-terminal-modal-ownership`, main `c543cd1`'den; main DEĞİŞMEDİ, merge EDİLMEDİ; main'e
-alınması owner onayı bekliyor). Aynı karede merge meydan okumayı açık molada bitirince mola artık meydan okuma
-sonucunun üstünde kalmaz: meydan okuma işleyicisi TASK/049'un paylaşılan temizliğini ödül / tamamlanma işleminden
-sonra, 0,8 sn beklemeden önce çağırır (ayrı iş mantığı; TASK/047 sözleşmesi aynen). Doğrulama: yeni suite düzeltmesiz
-`c543cd1`'de 53 hata → 178/178, mutasyon 16/16, 6 mercekli inceleme BLOCKER / HIGH 0, kontrollü kanonik tam masaüstü
-kapısı 45 / 45 temiz (5800 kontrol, 0 hata, 0 SCRIPT ERROR, bot 2/2), **Samsung A36 kapısı GEÇTİ** (2026-10-03; yalnız
-QA paketi, Google TEST reklamları; QA kaldırıldı, üretim paketi hiç kurulmadı, `com.example` dokunulmadı) —
-PROJECT_STATUS §4.30. **Sıradaki:** TASK/050'nin main'e alınması owner kararı; ondan sonraki ürün / stabilizasyon
-görevi owner seçimi — aşağıdaki açık maddelerden hiçbiri kendiliğinden seçilmez.
+**Stabilizasyon — TASK/050 meydan okuma bitişi pencere sahipliği: ✅ TAMAM, main'de** (owner onayıyla ff-only
+`c543cd1 → 8f9e259`, 2026-10-03; merge commit / rebase / squash / cherry-pick / force push yok; dal
+`task/050-daily-challenge-terminal-modal-ownership` duruyor, son incelenen HEAD `8f9e259`; kapılardan geçen üretim adayı
+`537e8d8`, üstünde yalnız doküman). Aynı karede merge meydan okumayı açık molada meşru biçimde bitirince mola artık
+meydan okuma sonucunun üstünde kalmaz, girdisini tutmaz: meydan okuma bitiş işleyicisi TASK/049'un paylaşılan
+temizliğini ödül / tamamlanma işleminden sonra, 0,8 sn beklemeye girmeden önce eşzamanlı çağırır (ayrı iş mantığı;
+TASK/047 sözleşmesi, TASK/048 savunması ve TASK/049 normal bitiş sahipliği aynen). Entegrasyondan ÖNCE tamamlanan
+doğrulama: odak 178/178 (TASK/050) + 197/197 (TASK/048) + 164/164 (TASK/049), etkilenen suite'ler 1082 kontrol / 0
+hata; mutasyon 16/16; 6 mercekli inceleme BLOCKER / HIGH 0; kontrollü kanonik tam masaüstü kapısı (`537e8d8`) 45 / 45
+temiz (5800 kontrol, 0 hata, 0 SCRIPT ERROR, bot 2/2); **Samsung A36 kapısı GEÇTİ** (2026-10-03; yalnız QA paketi,
+Google TEST reklamları; QA kaldırıldı, üretim paketi hiç kurulmadı, `com.example` dokunulmadı) — PROJECT_STATUS §4.30.
+Entegrasyon ve bu doküman eşitlemesi sırasında hiçbir kapı yeniden koşulmadı. **Sıradaki ürün / stabilizasyon görevi
+owner seçimi** (TASK/051 tanımlanmadı) — aşağıdaki açık maddelerden hiçbiri kendiliğinden seçilmez.
 
 Açık, owner kararı bekleyen ayrı maddeler (**BAŞLAMADI**; hiçbiri kendiliğinden seçilmez): (1) `_start_level` 300 ms
 parmak yatışması kurmaz — "Yeniden Başlat" / TEKRAR / Harita kartına hızlı çift dokunuşun ikincisi, ya da ertelenen
@@ -776,11 +794,9 @@ düğmesinde gerçek ACTION_CANCEL stoğu 1 → 0 tüketti, parça düşmedi; §
 Dumpl…" diye kırpar (önceden var olan kart, normal Level 3'te de; PROJECT_STATUS §4.27 (d)). Meydan okuma güç
 düğmelerini gizleyip kilitlediği için (5)'teki Sarsıntı iptal hatası meydan okumayı etkilemez; meydan okumanın KENDİ
 gecikmeli sonucu deneme kimliğiyle korunur (TASK/047). Öneri (ayrı görev, owner kararı): `_start_level`'da yatışma.
-**Dalda düzeltilen — FIXED ON TASK/050 BRANCH (main'e alınmadı, owner onayı bekliyor):** ~~(7) meydan okuma molada
-biter — ÖNCEDEN VAR OLAN / AYRI: fizik raporu bir sonraki adımda geldiğinden aynı karede açılan mola altında
-ertelenmiş merge meydan okumayı bitirebilir; meydan okuma işleyicisinde kesinleşme temizliği olmadığı için mola
-meydan okuma sonucunun üstünde kalır~~ → **TASK/050** (`task/050-daily-challenge-terminal-modal-ownership`, §4.30;
-düzeltmesiz `25860df` ve `c543cd1`'de yeniden üretildi; masaüstü + Samsung A36 kapıları GEÇTİ). **Kapanan — main'de:**
+**Kapanan — main'de:** ~~(7) meydan okuma molada biter — aynı karede merge (fizik raporu bir sonraki adımda) meydan
+okumayı açık molada meşru biçimde bitirebilir, mola meydan okuma sonucunun üstünde kalır (ÖNCEDEN VAR OLAN)~~ →
+**TASK/050** (`8f9e259`, §4.30);
 ~~mola açıkken biten normal round'un sonucu açık molanın (ya da refill penceresinin) ALTINDA açılır, Android GERİ
 yutulur~~ → **TASK/049** (`f6cd072`, §4.29); ~~normal RESULT_DELAY eski sonuç yarışı~~ (§4.24; çapraz kip —
 gecikmedeki normal sonuç → meydan okuma — dahil) ve ~~geçiş reklamı açılış aralığı~~ → **TASK/048** (`b9ae345`,
