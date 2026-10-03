@@ -238,7 +238,7 @@ func _pause_path(opener: String) -> void:
 	await _after(timer)
 	print("    zaman: bitiş → sonuç %d ms; sonuç açıldığında: sonuç görünür=%s (katman %d), mola görünür=%s (katman %d), board menü duraklaması=%s"
 		% [_result_msec - _finish_msec, str(_main._result.visible), _main._result.layer, str(_main.is_pause_open()),
-		_main._pause.layer, str(board.get("_is_menu_paused"))])
+		_main._pause.layer, str(board.get("_is_menu_paused")) if is_instance_valid(board) else "board değişti"])
 	_c("[%s] gecikmeden sonra sonuç tam bir kez (WIN, level 3); mola sonucun üstünde DEĞİL" % tag, _main._result.visible
 		and _main._result.mode() == _mode("WIN") and _shown_level() == 3 and _shows == 1 and not _main.is_pause_open())
 	_c("  … ilerleme bir kez (tur kesinleşmede + 1, sonra değişmedi), bırakış yok", _rounds() == rounds and _drops == 0)
@@ -389,7 +389,8 @@ func _held_variant(button: String, unhandled: bool) -> void:
 	await _until_finished(board)
 	var timer: SceneTreeTimer = _last_timer
 	_c("[%s] kurulum: mola açık, parmak düğmede / karartmada BASILI%s, dönüşüm sürüyordu → round bitti" % [target,
-		", son olay işlenmemiş" if unhandled else ""], held and board.is_finished() and not _at_finish.is_empty())
+		", son olay işlenmemiş" if unhandled else ""], held and is_instance_valid(board) and board.is_finished()
+		and not _at_finish.is_empty())
 	_c("[%s] bitişte mola kapandı; kapanış eylem yaymadı (Devam / Yeniden / Ana Menü 0), board + nesil aynı" % target,
 		not _af("pause") and _actions_in(_af("actions"), ["resume", "restart", "exit"]) == 0
 		and _owns(board_id, gen))
