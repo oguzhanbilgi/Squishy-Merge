@@ -1052,10 +1052,10 @@ func _source_contract() -> void:
 	_c("normal bitiş: temizlik kesinleştirme korumasından SONRA, round'un ilerlemesi yazıldıktan SONRA, gecikmeden ÖNCE ve tek kez",
 		guard >= 0 and written > guard and call_at > written and waited > call_at
 		and finish_fn.count("%s()" % CLEANUP) == 1)
-	var call_sites: int = code.count("%s()" % CLEANUP) - code.count("func %s()" % CLEANUP)
+	var call_sites: int = code.count(CLEANUP) - code.count("func %s(" % CLEANUP)
 	# TASK/050: meydan okuma bitişi de aynı temizliği çağırır (ayrı iş mantığı); sınırı ve sırası o suite'te sınanır.
-	_c("  … temizliği yalnız round bitiş işleyicileri çağırır: normal (TASK/049) + meydan okuma (TASK/050), başka çağıran yok (%d)"
-		% call_sites, _function(code, "func _on_challenge_round_finished(").count("%s()" % CLEANUP) == 1 and call_sites == 2)
+	_c("  … temizliğe yalnız round bitiş işleyicileri başvurur (her biçim): normal (TASK/049) + meydan okuma (TASK/050), başka yer yok (%d)"
+		% call_sites, _function(code, "func _on_challenge_round_finished(").count(CLEANUP) == 1 and call_sites == 2)
 	var board_finish: String = _function(board_code, "func _finish(")
 	_c("GameBoard._finish menü dondurmasını da bırakır (refill / devam / tutorial dondurmalarıyla birlikte, sinyalden ÖNCE)",
 		board_finish.contains("_is_menu_paused = false") and board_finish.find("_is_menu_paused = false")

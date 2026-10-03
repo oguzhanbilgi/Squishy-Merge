@@ -26,8 +26,9 @@ extends Node
 ##   B mola · HUD   GERÇEK HUD geri dokunuşu kritik pencerede: bitişte mola kapanır, menü dondurması bırakılır, eylem /
 ##                  bırakış yok, sonuç gecikmeden sonra açılır; sonuçta GERİ yok sayılır, gerçek dokunuş SONUCA gider
 ##   C mola · geri  aynısı Android geri yönlendirmesiyle (Main._notification → open_pause_menu)
-##   D basılı       bitişte molanın Yeniden / Ana Menü / Devam düğmesinde ya da karartmasında BASILI parmak (+ işlenmemiş
-##                  olay): gizleme ve bırakış eylem yaymaz, board değişmez, Ana Sayfa'ya gidilmez
+##   D basılı       bitişte molanın Yeniden / Ana Menü / Devam / X düğmesinde ya da karartmasında BASILI parmak (+ işlenmemiş
+##                  olay): gizleme ve bırakış eylem yaymaz, board değişmez, Ana Sayfa'ya gidilmez; parmak gecikme boyunca
+##                  basılı kalıp sonucun düğmesi üstünde kalkar / iptal edilir; molayı GERİ açmadan önce tahtada basılı parmak
 ##   E ödül         ilk başarı molada: +20 ve tamamlanma günü TAM bir kez, aynı anda; bellek = disk; yinelenen sinyal /
 ##                  gecikme / sonuç ikinci yazma üretmez
 ##   F yalıtım      kayıtta değişen yalnız daily_challenge + dough (XP / görev / başarım / yıldız / tur / sandık / sonsuz)
@@ -42,17 +43,22 @@ extends Node
 ##   N TASK/049     normal round: Büyütücü + mola ve aynı karede merge + mola → bitişte kapanır, sonuç tek başına
 ##   O TASK/048     normal round: gecikmede değiştirilen round'un eski sonucu / reklamı yok; fırlatma aralığı ertelemesi
 ##   P iptal        meydan okumada ACTION_CANCEL 0 bırakış / 0 hamle, sonraki bağımsız dokunuş 1
-##   Q gizli katman temizlikten sonra eski mola noktaları / GERİ hiçbir şey yakalamaz; sonuç düğmesi dokunuşu alır
-##   S kaynak       temizlik meydan okuma işleyicisinde ödülden SONRA, gecikmeden ÖNCE, tek kez; normal yol aynen; deneme
-##                  kimliği / reklamsızlık / TASK/047 kilitleri / PauseMenu kapısı aynen
+##   Q gizli katman temizlikten sonra eski mola noktaları / GERİ hiçbir şey yakalamaz (dokunuş HUD'a ulaşır); öne dönüş
+##                  gecikmede sonucu bozmaz; sonuç düğmesi dokunuşu alır
+##   T Ayarlar      kapsam dışı ama korunur: kritik pencerede gerçek dişliyle açılan / gecikmede açılan Ayarlar KAPANMAZ,
+##                  sonuç altına açılır (mevcut davranış), GERİ / X kendi kuralıyla kapatır, sonuç düğmesi çalışır
+##   S kaynak       temizlik meydan okuma işleyicisinde ödülden SONRA, gecikmeden ÖNCE, işleyici düzeyinde tek kez; temizlik
+##                  gövdesi TAM iki korumalı satır; normal yol aynen; deneme kimliği / reklamsızlık / TASK/047 kilitleri /
+##                  PauseMenu kapısı aynen
 
 const MAIN_SCENE: PackedScene = preload("res://scenes/main.tscn")
 const DIR: String = "user://qa_dc_terminal_modal"
 const PATH: String = DIR + "/save.json"
-const SECTIONS: int = 18
+const SECTIONS: int = 19
 const MON: String = "2026-09-28"
 const THU: String = "2026-10-01"
 const FRI: String = "2026-10-02"
+const SAT: String = "2026-10-03"
 const GOLDEN: Array[int] = [1, 3, 1, 1, 3, 2, 2, 3, 2, 1, 3, 3, 1, 2, 1, 2, 3, 2]
 const BACK_GAP_MSEC: int = 320
 const CLEANUP: String = "_dismiss_terminal_gameplay_overlays"
@@ -141,15 +147,16 @@ func _ready() -> void:
 	await _normal_task048()
 	await _cancel_touch()
 	await _no_input_catcher()
+	await _settings_terminal()
 	_source_contract()
 	_c("%d/%d bölüm sonuna kadar koştu (betik hatası yok)" % [_sections_done, SECTIONS], _sections_done == SECTIONS)
 
 	print("-- kayıt")
 	await _teardown_main()
 	_teardown()
-	_c("SaveManager gerçek yola döndü, test klasörü silindi, saat kancası boş",
+	_c("SaveManager gerçek yola döndü, test klasörü silindi, saat kancası / yazma hata enjeksiyonu boş",
 		SaveManager.save_path == SaveManager.SAVE_PATH and not DirAccess.dir_exists_absolute(DIR)
-		and DailyRewards.clock_override == "")
+		and DailyRewards.clock_override == "" and SaveFile.fault == SaveFile.Fault.NONE)
 	_c("sahibin gerçek kayıt ailesi (kanonik + .tmp + .bak) bayt-aynı", _owner_snapshot() == _owner_state)
 	_finished = true
 	print("\nSONUC: %d kontrol, %d hata" % [_checks, _fails])
@@ -164,6 +171,7 @@ func _exit_tree() -> void:
 
 
 func _teardown() -> void:
+	SaveFile.fault = SaveFile.Fault.NONE
 	DailyRewards.clock_override = ""
 	DailyRewards.auto_popup_enabled = false
 	SaveManager.save_path = SaveManager.SAVE_PATH
@@ -196,7 +204,7 @@ func _win_no_pause() -> void:
 	await _win_merge(board)
 	var timer: SceneTreeTimer = _last_timer
 	_c("kazanma kesinleşti (gerçek merge: tabandaki T4'ün üstüne T4 düştü), bitişte mola / Ayarlar yoktu",
-		board.is_finished() and timer != null and not _af("pause") and not _af("settings"))
+		is_instance_valid(board) and board.is_finished() and timer != null and not _af("pause") and not _af("settings"))
 	_c("  … ilk başarı ödülü kesinleşmede bir kez: +20 Hamur, tamamlanma günü %s" % THU,
 		_af("dough") == dough0 + 20 and _af("completed") == THU)
 	await _until_left(timer, 0.25)
@@ -240,12 +248,13 @@ func _critical_path(opener: String) -> void:
 	if not ok:
 		return
 	var attempt: int = int(_main.get("_challenge_attempt"))
-	print("    gün %s · hedef T%d · bütçe %d · kullanılan %d · zaman: mola %d ms → bitiş %d ms (mola açıldıktan %d ms sonra)"
-		% [_main._challenge_day, board.level.target_tier, board.drop_budget(), board.drops_used(), _pause_msec,
-		_finish_msec, _finish_msec - _pause_msec])
+	if is_instance_valid(board):
+		print("    gün %s · hedef T%d · bütçe %d · kullanılan %d · zaman: mola %d ms → bitiş %d ms (mola açıldıktan %d ms sonra)"
+			% [_main._challenge_day, board.level.target_tier, board.drop_budget(), board.drops_used(), _pause_msec,
+			_finish_msec, _finish_msec - _pause_msec])
 	_c("[%s] BİTİŞ ANINDA (eşzamanlı, gecikmeden önce) mola KAPANDI" % tag, not _af("pause"))
-	_c("  … board'un menü dondurması bırakıldı (menü duraklaması yok, board donuk değil)",
-		not _af("menu_paused") and not _af("board_paused"))
+	_c("  … board'un menü dondurması bırakıldı (menü duraklaması yok, board donuk değil, donmuş parça yok)",
+		not _af("menu_paused") and not _af("board_paused") and _af("frozen") == 0)
 	_c("  … kapanış eylemsiz: Devam / Yeniden / Ana Menü 0, bırakış 0, board ve deneme aynı",
 		_actions_in(_af("actions"), PAUSE_KEYS) == 0 and _drops == 0 and _af("board") and _af("attempt") == attempt)
 	_c("  … ödül kesinleşmede yazıldı (+20, gün %s) — temizlik ödülü değiştirmedi" % THU,
@@ -272,6 +281,9 @@ func _critical_path(opener: String) -> void:
 	_c("[%s] sonucun ANA SAYFA düğmesine gerçek dokunuş SONUCA gitti (sonuç çıkışı 1, mola eylemi 0) → Ana Sayfa" % tag,
 		_actions["result_exit"] == 1 and _actions_in(_actions, PAUSE_KEYS) == 0 and _main._board == null
 		and _main._active_tab == 0 and _main._screens[0].visible)
+	var diff: Array[String] = _diff_keys(_pre_save, SaveManager.data)
+	_c("  … Ana Sayfa'ya dönüşten sonra da kayıtta değişen YALNIZ daily_challenge + dough (değişen: %s)" % str(diff),
+		_same(diff, ["daily_challenge", "dough"]))
 
 
 # --- D) Basılı mola düğmesi -------------------------------------------------------------------------------
@@ -282,8 +294,12 @@ func _held_pause_button() -> void:
 	# girdi "işlendi" işaretli DEĞİLSE BaseButton onu tıklama sayar (TASK/049 sondası). Bu değişke düğmelerin
 	# kapalı-pencere kapısını sınar; düz değişkeler parmak odağı yolunu.
 	for variant: Array in [["yeniden başlat", false], ["yeniden başlat", true], ["ana menüye dön", false],
-			["ana menüye dön", true], ["devam et", false], ["devam et", true], ["karartma", false], ["karartma", true]]:
+			["ana menüye dön", true], ["devam et", false], ["devam et", true], ["x", false], ["x", true],
+			["karartma", false], ["karartma", true]]:
 		await _held_variant(String(variant[0]), bool(variant[1]))
+	await _held_through_variant("ana menüye dön", false)
+	await _held_through_variant("karartma", true)
+	await _held_board_variant()
 	_sections_done += 1
 
 
@@ -311,10 +327,69 @@ func _held_variant(button: String, unhandled: bool) -> void:
 		and _main._board == board)
 
 
+## Parmak gecikme BOYUNCA basılı kalır, sonuç açıldıktan sonra sonucun ANA SAYFA düğmesi üstüne sürüklenip orada kalkar
+## (`cancel`: kalkmak yerine ACTION_CANCEL): sonuç düğmesine tıklama SAYILMAZ, mola eylemi yok; sonra bağımsız bir
+## dokunuş sonucu çalıştırır.
+func _held_through_variant(button: String, cancel: bool) -> void:
+	var target: String = "%s · gecikme boyunca basılı → %s" % [button, "iptal" if cancel else "sonuç düğmesinde kalkar"]
+	var board: Node2D = await _win_under_pause("call", button, false)
+	var ok: bool = board != null
+	var timer: SceneTreeTimer = _last_timer
+	_c("[%s] kurulum: parmak molada basılıyken meydan okuma molada kazanıldı, mola bitişte kapandı" % target, ok
+		and not _af("pause"))
+	if not ok:
+		return
+	await _after(timer)
+	var shown: bool = _main._result.visible and _shows == 1
+	var to: Vector2 = _center(_main._result.primary_button())
+	var drag := InputEventScreenDrag.new()
+	drag.index = 0
+	drag.position = to
+	drag.relative = to - _pause_point(button)
+	Input.parse_input_event(drag)
+	Input.flush_buffered_events()
+	await get_tree().process_frame
+	if cancel:
+		await _cancel(to)
+	else:
+		await _finger(to, false)
+	await _settle(2)
+	_c("[%s] sonuç açıktı; basılı parmağın bırakışı / iptali sonuca TIKLAMADI (sonuç çıkışı 0), mola eylemi 0, sonuç açık" % target,
+		shown and _actions["result_exit"] == 0 and _actions_in(_actions, PAUSE_KEYS) == 0 and _main._result.visible
+		and not _main.is_pause_open())
+	await _wait_settled()
+	await _finger_tap(_center(_main._result.primary_button()))
+	await _settle(2)
+	_c("[%s] sonra bağımsız dokunuş sonucun ANA SAYFA'sını çalıştırdı (sonuç çıkışı 1) → Ana Sayfa" % target,
+		_actions["result_exit"] == 1 and _main._board == null and _main._active_tab == 0)
+
+
+## Tahtada BASILI parmak (bırakış henüz yok) → kritik pencerede mola Android GERİ ile açılır → meydan okuma molada biter →
+## parmak bitmiş board'da kalkar: bırakış yok, hamle yok, sonuca tıklama yok.
+func _held_board_variant() -> void:
+	var target: String = "tahtada basılı parmak + GERİ"
+	var board: Node2D = await _win_under_pause("back", "board", false)
+	var ok: bool = board != null
+	var timer: SceneTreeTimer = _last_timer
+	_c("[%s] kurulum: parmak tahtada basılıyken mola Android geri ile açıldı, meydan okuma molada kazanıldı" % target, ok
+		and not _af("pause"))
+	if not ok:
+		return
+	var at: Vector2 = _board_point(board, -90.0)
+	await _finger(at, false)
+	await _physics(3)
+	await _settle(2)
+	_c("[%s] parmak bitmiş board'da kalktı: bırakış 0, hamle 0, mola eylemi 0" % target, _drops == 0
+		and board.drops_used() == 0 and _actions_in(_actions, PAUSE_KEYS) == 0)
+	await _after(timer)
+	_c("[%s] sonuç gecikmeden sonra tam bir kez; parmağın bırakışı sonuca dokunmadı (sonuç çıkışı 0)" % target,
+		_main._result.visible and _shows == 1 and _actions["result_exit"] == 0 and _main._board == board)
+
+
 # --- E) Ödül tam bir kez ----------------------------------------------------------------------------------------
 
 func _reward_once() -> void:
-	print("-- E: ilk başarı molada — +20 ve tamamlanma günü TAM bir kez, aynı işlemde")
+	print("-- E: ilk başarı molada — +20 ve tamamlanma günü TAM bir kez, aynı işlemde; sonrasında yazma girişimi YOK")
 	var board: Node2D = await _win_under_pause("call")
 	var ok: bool = board != null
 	var dough0: int = _pre_dough
@@ -325,6 +400,9 @@ func _reward_once() -> void:
 		_af("dough") == dough0 + 20 and _af("completed") == THU and SaveManager.dough() == dough0 + 20
 		and SaveManager.daily_challenge_completed_day() == THU)
 	_c("  … bellek = disk (tek işlem kayda yazıldı)", _disk_equals_memory())
+	# Bundan sonra HİÇBİR yazma girişimi olmamalı: bir sonraki SaveFile.write_save enjeksiyonu tüketir (aynı içerikle
+	# yeniden yazma da yakalanır — her yazma ana dosyayı .bak'a döndürür).
+	SaveFile.fault = SaveFile.Fault.TEMP_OPEN
 	var finalized: bool = bool(_main.get("_round_finalized"))
 	if board != null and is_instance_valid(board):
 		board.round_finished.emit(true)
@@ -334,11 +412,15 @@ func _reward_once() -> void:
 		finalized and SaveManager.dough() == dough0 + 20 and _bytes() == bytes)
 	await _after(timer)
 	await _wait(0.3)
-	_c("gecikme + sonuç sonrası: ikinci yazma / ödül yok (kayıt baytları kesinleşmedekiyle aynı), sonuç tam bir kez",
-		_bytes() == bytes and SaveManager.dough() == dough0 + 20 and _shows == 1
-		and _main._result.mode() == _mode("CHALLENGE_WIN"))
-	_c("  … aynı gün ikinci tamamlama +0 (SaveManager reddeder, kayıt aynı)", not SaveManager.complete_daily_challenge(THU)
-		and SaveManager.dough() == dough0 + 20 and _bytes() == bytes)
+	_c("gecikme + sonuç sonrası: ikinci ödül yok, sonuç tam bir kez ve hâlâ ilk başarının ('+20 HAMUR', ödüllü)",
+		SaveManager.dough() == dough0 + 20 and _shows == 1 and _main._result.mode() == _mode("CHALLENGE_WIN")
+		and _main._result.challenge_body_text() == String(_result_const("CHALLENGE_REWARD")) % 20
+		and bool(_main._result.challenge_outcome().get("rewarded", false)))
+	_c("  … kesinleşmeden sonra YAZMA GİRİŞİMİ YOK (enjekte edilen hata tüketilmedi), kayıt baytları aynı",
+		SaveFile.fault == SaveFile.Fault.TEMP_OPEN and _bytes() == bytes)
+	_c("  … aynı gün ikinci tamamlama +0 (SaveManager reddeder, yazmaz)", not SaveManager.complete_daily_challenge(THU)
+		and SaveManager.dough() == dough0 + 20 and _bytes() == bytes and SaveFile.fault == SaveFile.Fault.TEMP_OPEN)
+	SaveFile.fault = SaveFile.Fault.NONE
 	_sections_done += 1
 
 
@@ -374,7 +456,7 @@ func _isolation() -> void:
 # --- G) Geçiş reklamı yok ---------------------------------------------------------------------------------------
 
 func _no_interstitial() -> void:
-	print("-- G: normal geçiş reklamı hazır + uygunken meydan okuma bitişi reklam denemez")
+	print("-- G: normal geçiş reklamı hazır + uygunken meydan okuma bitişi reklam denemez (ödüllü de yok)")
 	var board: Node2D = await _win_under_pause("call", "", false, true)
 	var ok: bool = board != null
 	var ads: MonetizationManager = _main._ads
@@ -387,10 +469,16 @@ func _no_interstitial() -> void:
 	_c("meydan okuma bitişi geçiş reklamı DENEMEZ: gösterim yok, reklam molası yok, reklam olayı yok, reklam nesli yok",
 		fake.interstitial_shows.size() == shows0 and not ads.break_pending() and _interstitial_events() == 0
 		and int(_main.get("_round_break_generation")) == -1)
+	_c("  … ödüllü reklam da yok: gösterim / istek / gösterildi olayı 0; tam ekran bekleme süresi başlamadı",
+		fake.rewarded_shows.is_empty() and AdEvents.count(&"rewarded_requested") == 0
+		and AdEvents.count(&"rewarded_showed") == 0 and ads.fullscreen_cooldown_sec() <= 0.0)
 	_c("  … temizlik meydan okumayı normal reklam yoluna sokmadı: sonuç açıldı (CHALLENGE_WIN, RESULT yüzeyi), reklam hâlâ uygun + hazır",
 		_main._result.visible and _main._result.mode() == _mode("CHALLENGE_WIN") and _shows == 1
 		and ads.surface() == MonetizationManager.Surface.RESULT and ads.interstitial_eligible()
 		and ads.is_interstitial_ready())
+	var diff: Array[String] = _diff_keys(_pre_save, SaveManager.data)
+	_c("  … reklam arka ucu açıkken de kayıtta değişen YALNIZ daily_challenge + dough (değişen: %s)" % str(diff),
+		_same(diff, ["daily_challenge", "dough"]))
 	_sections_done += 1
 
 
@@ -422,7 +510,7 @@ func _attempt_token() -> void:
 		await _pile_kings(board)
 		await _until_finished(board, 4000)
 	timer = _last_timer
-	_c("H2 kurulum: taşma kaybı (OVERFLOW) kesinleşti, bitişte mola yoktu", board != null and board.is_finished()
+	_c("H2 kurulum: taşma kaybı (OVERFLOW) kesinleşti, bitişte mola yoktu", is_instance_valid(board) and board.is_finished()
 		and board.fail_reason() == DailyChallenge.FailReason.OVERFLOW and not _af("pause"))
 	await _until_left(timer, 0.4)
 	_main._on_pause_restart()
@@ -443,7 +531,7 @@ func _attempt_token() -> void:
 # --- I) İlk başarıdan önce tekrar ------------------------------------------------------------------------------
 
 func _retry_before_clear() -> void:
-	print("-- I: kayıp → TEKRAR DENE: dizi baştan aynı, ödül yok, mola aynen")
+	print("-- I: kayıp → TEKRAR DENE: dizi baştan aynı (yeni dizi kaynağı), ödül yok, mola aynen")
 	await _fresh()
 	var dough0: int = SaveManager.dough()
 	var board: Node2D = await _start_challenge()
@@ -453,13 +541,14 @@ func _retry_before_clear() -> void:
 	if board == null:
 		_sections_done += 1
 		return
+	var old_bag: int = (board._drop_bag as Object).get_instance_id()
 	for i in 3:
 		await _quick_drop(board, i)
-	var advanced: bool = board.drops_used() == 3 and board._pending_tier == GOLDEN[3]
+	var advanced: bool = board.drops_used() == 3 and board._pending_tier == GOLDEN[3] and board._next_tier == GOLDEN[4]
 	await _pile_kings(board)
 	await _until_finished(board, 4000)
 	await _after(_last_timer)
-	_c("üç bırakıştan sonra taşma kaybı: CHALLENGE_FAIL tam bir kez, +20 yok, gün yazılmadı", advanced
+	_c("üç bırakış (dizi vektör[3..4]'te) sonra taşma kaybı: CHALLENGE_FAIL tam bir kez, +20 yok, gün yazılmadı", advanced
 		and _main._result.visible and _main._result.mode() == _mode("CHALLENGE_FAIL") and _shows == 1
 		and SaveManager.dough() == dough0 and SaveManager.daily_challenge_completed_day() == "")
 	await _wait_settled()
@@ -467,10 +556,14 @@ func _retry_before_clear() -> void:
 	await _settle(3)
 	var next: Node2D = _main._board
 	_track(next)
+	var bag: Variant = next._drop_bag if next != null else null
 	_c("TEKRAR DENE (gerçek dokunuş) → yeni deneme: dizi baştan AYNI (bekleyen / sıradaki = vektör[0..1]), hamle 0, ödül yok",
 		next != null and next != board and next.is_daily_challenge() and next._pending_tier == GOLDEN[0]
 		and next._next_tier == GOLDEN[1] and next.drops_used() == 0 and SaveManager.dough() == dough0
 		and _actions["result_retry"] == 1)
+	_c("  … yeni deneme YENİ bir dizi kaynağı aldı (aynı günün DailyChallenge.Sequence'ı, eski kaynağın devamı değil)",
+		bag is DailyChallenge.Sequence and (bag as Object).get_instance_id() != old_bag
+		and String((bag as DailyChallenge.Sequence).day_key) == THU)
 	if next == null:
 		_sections_done += 1
 		return
@@ -492,13 +585,33 @@ func _retry_before_clear() -> void:
 # --- J) Başarıdan sonra yeniden oynama yok ------------------------------------------------------------------
 
 func _no_replay() -> void:
-	print("-- J: başarıdan sonra yeniden oynama reddedilir — temizlik baypas eklemez")
+	print("-- J: başarıdan sonra yeniden oynama reddedilir — temizlik baypas eklemez, reddedilen yollar yazmaz")
+	# J1 — molada kazanılan deneme; gecikme İÇİNDE (meydan okuma türü hâlâ açık) molanın üretim Yeniden Başlat işleyicisi —
+	# mola bitişte kapandığı için doğrudan çağrılır (dar dikiş).
 	var board: Node2D = await _win_under_pause("call")
 	var ok: bool = board != null
-	await _after(_last_timer)
-	var dough1: int = SaveManager.dough()
+	var timer: SceneTreeTimer = _last_timer
 	var attempt: int = int(_main.get("_challenge_attempt"))
-	_c("kurulum: mola açıkken kazanıldı, sonuç açık (CHALLENGE_WIN)", ok and _main._result.visible
+	SaveFile.fault = SaveFile.Fault.TEMP_OPEN
+	await _until_left(timer, 0.4)
+	_main._on_pause_restart()
+	await _settle(3)
+	_c("J1: molada kazanıldı; gecikme içinde molanın üretim Yeniden Başlat işleyicisi yeni deneme KURMADI → Ana Sayfa (deneme aynı)",
+		ok and _main._board == null and _main._active_tab == 0 and int(_main.get("_challenge_attempt")) == attempt)
+	await _after(timer)
+	await _wait(0.3)
+	_c("  … J1: eski deneme sonucu açılmadı; yazma girişimi YOK (enjekte edilen hata tüketilmedi), Hamur +20 bir kez",
+		_shows == 0 and SaveFile.fault == SaveFile.Fault.TEMP_OPEN and SaveManager.dough() == _pre_dough + 20)
+	SaveFile.fault = SaveFile.Fault.NONE
+	# J2 — sonuç açıkken: başlatma / sonucun tekrar işleyicisi / Ana Sayfa penceresinin BAŞLA'sı reddedilir.
+	board = await _win_under_pause("call")
+	ok = board != null
+	timer = _last_timer
+	attempt = int(_main.get("_challenge_attempt"))
+	SaveFile.fault = SaveFile.Fault.TEMP_OPEN
+	await _after(timer)
+	var dough1: int = SaveManager.dough()
+	_c("J2 kurulum: mola açıkken kazanıldı, sonuç açık (CHALLENGE_WIN)", ok and _main._result.visible
 		and _main._result.mode() == _mode("CHALLENGE_WIN"))
 	_c("kazanma sonucunda TEKRAR yok (yalnız ANA SAYFA): ikincil düğme görünmez", not _main._result.secondary_button().visible)
 	var view: Dictionary = DailyChallenge.current_view()
@@ -507,15 +620,19 @@ func _no_replay() -> void:
 		and int(_main.get("_challenge_attempt")) == attempt)
 	_main._on_retry_pressed()
 	await _settle(3)
-	_c("  … üretim tekrar işleyicisi de yeni deneme KURMAZ → Ana Sayfa (Hamur aynı, deneme aynı)", _main._board == null
-		and _main._active_tab == 0 and SaveManager.dough() == dough1 and int(_main.get("_challenge_attempt")) == attempt)
+	_c("  … sonuç açıkken üretim tekrar işleyicisi de yeni deneme KURMAZ → Ana Sayfa (Hamur aynı, deneme aynı)",
+		_main._board == null and _main._active_tab == 0 and SaveManager.dough() == dough1
+		and int(_main.get("_challenge_attempt")) == attempt)
 	_main.open_daily_challenge()
 	await _settle(2)
 	var sheet: bool = _main._challenge_sheet.visible
 	_main._on_challenge_start_requested(THU)
 	await _settle(3)
-	_c("  … Ana Sayfa penceresinin BAŞLA'sı da başlatmaz (board yok, Hamur aynı)", sheet and _main._board == null
+	_c("  … Ana Sayfa penceresinin BAŞLA'sı da başlatmaz (board yok, Hamur aynı, deneme aynı)", sheet and _main._board == null
 		and SaveManager.dough() == dough1 and int(_main.get("_challenge_attempt")) == attempt)
+	_c("  … sonuç + reddedilen yeniden oynama yolları boyunca YAZMA GİRİŞİMİ YOK (enjekte edilen hata tüketilmedi)",
+		SaveFile.fault == SaveFile.Fault.TEMP_OPEN)
+	SaveFile.fault = SaveFile.Fault.NONE
 	_sections_done += 1
 
 
@@ -529,6 +646,7 @@ func _overflow_loss() -> void:
 	var shows0: int = fake.interstitial_shows.size()
 	AdEvents.clear_recent()
 	var dough0: int = SaveManager.dough()
+	var before: Dictionary = SaveManager.data.duplicate(true)
 	var board: Node2D = await _start_challenge()
 	if board == null:
 		_c("kurulum: meydan okuma başladı", false)
@@ -550,8 +668,8 @@ func _overflow_loss() -> void:
 	await _until_finished(board, 4000)
 	var timer: SceneTreeTimer = _last_timer
 	_c("mola kapanınca kalan süre işledi → kesin kayıp, sebep OVERFLOW (devam yok), bitişte mola yok",
-		board.is_finished() and board.fail_reason() == DailyChallenge.FailReason.OVERFLOW and not _af("pause")
-		and not _main._revive.visible)
+		is_instance_valid(board) and board.is_finished() and board.fail_reason() == DailyChallenge.FailReason.OVERFLOW
+		and not _af("pause") and not _main._revive.visible)
 	await _after(timer)
 	_c("kayıp sonucu tam bir kez (CHALLENGE_FAIL, taşma metni), +20 yok, gün yazılmadı", _main._result.visible
 		and _main._result.mode() == _mode("CHALLENGE_FAIL") and _shows == 1
@@ -559,6 +677,8 @@ func _overflow_loss() -> void:
 		and SaveManager.dough() == dough0 and SaveManager.daily_challenge_completed_day() == "")
 	_c("  … geçiş reklamı denemesi yok (reklam uygun + hazır), eylem yok", fake.interstitial_shows.size() == shows0
 		and not ads.break_pending() and _interstitial_events() == 0 and _actions_in(_actions, PAUSE_KEYS) == 0)
+	var diff: Array[String] = _diff_keys(before, SaveManager.data)
+	_c("  … taşma kaybı kayda HİÇBİR ŞEY yazmadı (değişen: %s)" % str(diff), diff.is_empty())
 	_sections_done += 1
 
 
@@ -572,6 +692,7 @@ func _moves_exhausted() -> void:
 	var shows0: int = fake.interstitial_shows.size()
 	AdEvents.clear_recent()
 	var dough0: int = SaveManager.dough()
+	var before: Dictionary = SaveManager.data.duplicate(true)
 	var board: Node2D = await _start_challenge()
 	if board == null:
 		_c("kurulum: meydan okuma başladı", false)
@@ -606,7 +727,8 @@ func _moves_exhausted() -> void:
 	_main.resume_game()
 	await _until_finished(board, 7000)
 	var timer: SceneTreeTimer = _last_timer
-	_c("mola kapanınca yatışma tamamlandı → kesin kayıp, sebep MOVES_EXHAUSTED, bitişte mola yok", board.is_finished()
+	_c("mola kapanınca yatışma tamamlandı → kesin kayıp, sebep MOVES_EXHAUSTED, bitişte mola yok",
+		is_instance_valid(board) and board.is_finished()
 		and board.fail_reason() == DailyChallenge.FailReason.MOVES_EXHAUSTED and not _af("pause"))
 	await _after(timer)
 	_c("kayıp sonucu tam bir kez (CHALLENGE_FAIL, hamle metni), +20 yok, gün yazılmadı, geçiş reklamı denemesi yok",
@@ -614,13 +736,15 @@ func _moves_exhausted() -> void:
 		and _main._result.challenge_body_text() == String(_result_const("CHALLENGE_MOVES"))
 		and SaveManager.dough() == dough0 and SaveManager.daily_challenge_completed_day() == ""
 		and fake.interstitial_shows.size() == shows0 and not ads.break_pending() and _interstitial_events() == 0)
+	var diff: Array[String] = _diff_keys(before, SaveManager.data)
+	_c("  … hamle bitti kaybı kayda HİÇBİR ŞEY yazmadı (değişen: %s)" % str(diff), diff.is_empty())
 	_sections_done += 1
 
 
 # --- M) Monoton gün -----------------------------------------------------------------------------------------
 
 func _day_monotonic() -> void:
-	print("-- M: monoton gün — D → D+1, geri D'de D+1 kalır; temizlik gün yazmaz; bozuk saat yazılmaz")
+	print("-- M: monoton gün — D → D+1, geri D'de D+1 kalır; temizlik gün GÖZLEMLEMEZ, sonuç anı gözlemler; bozuk saat yazılmaz")
 	var board: Node2D = null
 	var ok: bool = false
 	var forward: String = ""
@@ -644,25 +768,36 @@ func _day_monotonic() -> void:
 		if board == null:
 			break
 		await _warm_pause(board)
+		# Deneme sürerken gece yarısı geçer (D+2): kesinleşmede hiçbir yol günü gözlemlememeli; sonuç anı gözlemler.
+		DailyRewards.clock_override = SAT
 		ok = await _critical_pause(board, "call")
 	_c("gün D (%s) → D+1 (%s) kabul edildi; saat geri D'ye alınınca meydan okuma D+1'de KALIR (last_seen %s)" % [THU,
 		forward, seen], forward == FRI and back == FRI and seen == FRI)
 	_c("geri alınmış saatte başlayan deneme D+1'in (cuma T6 · 540 · 36)", preset_ok)
 	var timer: SceneTreeTimer = _last_timer
-	var bytes: PackedByteArray = _bytes()
-	_c("D+1 meydan okuması mola açıkken kazanıldı: bitişte mola kapandı, +20 bir kez, tamamlanma günü D+1", ok
-		and not _af("pause") and _af("dough") == dough0 + 20 and SaveManager.daily_challenge_completed_day() == FRI)
+	_c("D+1 meydan okuması (saat artık D+2) mola açıkken kazanıldı: bitişte mola kapandı, +20 bir kez, ödül denemenin BAŞLADIĞI güne (D+1)",
+		ok and not _af("pause") and _af("dough") == dough0 + 20 and _af("completed") == FRI)
+	_c("  … kesinleşmede (temizlik dahil) gün GÖZLEMLENMEDİ: last_seen hâlâ D+1 (%s)" % str(_af("last_seen")),
+		_af("last_seen") == FRI)
 	await _after(timer)
-	_c("  … temizlik / gecikme / sonuç gün yazmadı: kayıt baytları kesinleşmedekiyle aynı, last_seen D+1",
-		_bytes() == bytes and SaveManager.daily_last_seen_day_key() == FRI)
+	_c("sonuç anı günü okur (TASK/047): last_seen D+2, sonuçta 'gün değişti', tamamlanma D+1 ve Hamur +20 aynen",
+		SaveManager.daily_last_seen_day_key() == SAT and bool(_main._result.challenge_outcome().get("day_changed", false))
+		and SaveManager.daily_challenge_completed_day() == FRI and SaveManager.dough() == dough0 + 20)
+	var bytes: PackedByteArray = _bytes()
+	DailyRewards.clock_override = THU
+	_c("saat geri D'ye: meydan okuma görülen en yeni günde (D+2) kalır; D+1 ödülü tekrar verilmez, kayıt aynı",
+		DailyChallenge.current_day() == SAT and SaveManager.daily_challenge_completed_day() == FRI
+		and SaveManager.dough() == dough0 + 20 and _bytes() == bytes)
 	DailyRewards.clock_override = "bozuk-saat"
 	var invalid: String = DailyChallenge.current_day()
-	_c("bozuk saat kaydedilmez (TASK/047 kuralı): gün gerçeği yok ('%s' — başlatma reddedilir), last_seen D+1 aynen, kayıt aynı"
-		% invalid, invalid == "" and not _main.start_daily_challenge() and SaveManager.daily_last_seen_day_key() == FRI
+	_c("bozuk saat 'bozuk-saat' kaydedilmez (TASK/047 kuralı): gün gerçeği yok ('%s' — başlatma reddedilir), last_seen aynen, kayıt aynı"
+		% invalid, invalid == "" and not _main.start_daily_challenge() and SaveManager.daily_last_seen_day_key() == SAT
 		and _bytes() == bytes)
+	DailyRewards.clock_override = "1970-01-01"
+	var ancient: String = DailyChallenge.current_day()
+	_c("geçmişte kalan geçersiz saat '1970-01-01' de yazılmaz: meydan okuma görülen en yeni günde ('%s'), kayıt aynı" % ancient,
+		ancient == SAT and SaveManager.daily_last_seen_day_key() == SAT and _bytes() == bytes)
 	DailyRewards.clock_override = THU
-	_c("  … geri alınmış D'de ikinci ödül yok: başlatma reddedilir (D+1 tamamlandı), Hamur aynı",
-		not _main.start_daily_challenge() and SaveManager.dough() == dough0 + 20 and _bytes() == bytes)
 	_sections_done += 1
 
 
@@ -696,6 +831,31 @@ func _normal_task049() -> void:
 	await _after(timer)
 	_c("N2: gecikmeden sonra WIN tam bir kez, mola yok", _main._result.visible and _main._result.mode() == _mode("WIN")
 		and _shows == 1 and not _main.is_pause_open())
+	# N3 — AYNI oturumda meydan okumadan hemen sonra normal round: meydan okuma durumu sızmaz, normal ilerleme bir kez.
+	var challenge: Node2D = await _win_under_pause("call")
+	var won: bool = challenge != null
+	await _after(_last_timer)
+	var after_challenge: Dictionary = SaveManager.data.duplicate(true)
+	await _wait_settled()
+	await _finger_tap(_center(_main._result.primary_button()))
+	await _settle(2)
+	var home: bool = won and _main._board == null and _main._active_tab == 0
+	board = await _start_normal(3)
+	var kind_ok: bool = board != null and not _main.is_daily_challenge_round() and String(_main.get("_challenge_day")) == "" \
+		and not bool(_main.get("_round_finalized"))
+	var shows0: int = _shows
+	ok = await _finish_with_upgrade_pause(board)
+	timer = _last_timer
+	await _after(timer)
+	var diff: Array[String] = _diff_keys(after_challenge, SaveManager.data)
+	_c("N3 kurulum: meydan okuma molada kazanıldı → ANA SAYFA; aynı oturumda normal Level 3 temiz başladı (tür NORMAL, gün boş, kesinleşme sıfır)",
+		home and kind_ok)
+	_c("N3: normal round molada bitti; bitişte mola kapandı, WIN tam bir kez (level 3)", ok and not _af("pause")
+		and _main._result.visible and _main._result.mode() == _mode("WIN") and _shows == shows0 + 1)
+	_c("  … normal ilerleme bir kez yazıldı (tur + 1); meydan okuma alanları değişmedi (daily_challenge / Hamur dışında normal anahtarlar: %s)"
+		% str(diff), int(SaveManager.data.get("total_rounds_played", 0)) == int(after_challenge.get("total_rounds_played", 0)) + 1
+		and not diff.has("daily_challenge") and JSON.stringify(_norm(SaveManager.data.get("daily_challenge")))
+		== JSON.stringify(_norm(after_challenge.get("daily_challenge"))))
 	_sections_done += 1
 
 
@@ -773,7 +933,7 @@ func _cancel_touch() -> void:
 		await _finger_tap(_board_point(board, 40.0))
 		await _physics(3)
 	_c("molada kazanıldı, bitişte kapandı; gecikmede iptal edilen + düz dokunuş bitmiş board'a bırakış / hamle ÜRETMEZ",
-		board != null and not _af("pause") and _drops == drops and board.drops_used() == 0)
+		board != null and is_instance_valid(board) and not _af("pause") and _drops == drops and board.drops_used() == 0)
 	await _after(timer)
 	_sections_done += 1
 
@@ -781,25 +941,39 @@ func _cancel_touch() -> void:
 # --- Q) Gizli katman / girdi yakalayıcı yok ---------------------------------------------------------------
 
 func _no_input_catcher() -> void:
-	print("-- Q: temizlikten sonra gizli mola katmanı girdi yakalamaz; sonuç düğmesi dokunuşu alır")
+	print("-- Q: temizlikten sonra gizli mola katmanı girdi yakalamaz (dokunuş HUD'a ulaşır); öne dönüş; sonuç düğmesi")
 	var board: Node2D = await _win_under_pause("hud")
 	var ok: bool = board != null
 	var timer: SceneTreeTimer = _last_timer
 	_c("kurulum: mola açıkken kazanıldı, bitişte kapandı", ok and not _af("pause"))
+	if not ok:
+		_sections_done += 1
+		return
+	var hud_back: Array[int] = [0]
+	board.pause_requested.connect(func() -> void: hud_back[0] += 1)
+	# Karartmanın köşesi (40, 60) HUD geri düğmesinin üstüne denk gelir: gizli mola dokunuşu YUTMAZSA HUD alır (Main bitmiş
+	# board'da molayı açmayı reddeder).
 	await _finger_tap(_pause_point("karartma"))
 	await _finger_tap(_pause_point("yeniden başlat"))
 	await _finger_tap(_pause_point("ana menüye dön"))
 	await _finger_tap(_pause_point("devam et"))
 	await _physics(3)
-	_c("gecikmede eski mola noktalarına (karartma / Yeniden / Ana Menü / Devam) gerçek dokunuş: mola eylemi 0, bırakış 0, board aynı",
-		_actions_in(_actions, PAUSE_KEYS) == 0 and _drops == 0 and _main._board == board and not _main.is_pause_open())
+	_c("gecikmede eski mola noktalarına gerçek dokunuş: mola eylemi 0, bırakış 0, board aynı; köşe dokunuşu HUD geri düğmesine ULAŞTI (%d) ve reddedildi"
+		% hud_back[0], _actions_in(_actions, PAUSE_KEYS) == 0 and _drops == 0 and _main._board == board
+		and not _main.is_pause_open() and hud_back[0] >= 1)
 	await _back()
 	_c("  … gecikmede Android geri: mola yeniden AÇILMAZ (bitişten sonra mola kilidi aynen), sonuç henüz yok",
 		not _main.is_pause_open() and _main._board == board and not _main._result.visible)
+	var before: Dictionary = SaveManager.data.duplicate(true)
+	get_tree().root.propagate_notification(NOTIFICATION_APPLICATION_RESUMED)
+	await _settle(2)
+	_c("  … gecikmede öne dönüş (APPLICATION_RESUMED): mola kapalı, günlük pencere yok, sonuç henüz yok",
+		not _main.is_pause_open() and not _main._daily_rewards.visible and not _main._result.visible)
 	await _after(timer)
 	var dim: Variant = _main._pause.get("_dim")
-	_c("sonuç açıldı; gizli katman yok (mola penceresi ve karartması ağaçta görünmez)", _main._result.visible
-		and not _main.is_pause_open() and dim is Control and not (dim as Control).is_visible_in_tree())
+	_c("sonuç tam bir kez açıldı; gizli katman yok (mola penceresi ve karartması ağaçta görünmez); öne dönüş kayda yazmadı",
+		_main._result.visible and _shows == 1 and not _main.is_pause_open() and dim is Control
+		and not (dim as Control).is_visible_in_tree() and _diff_keys(before, SaveManager.data).is_empty())
 	await _back()
 	await _back()
 	_c("iki Android geri: ikisi de sonuç ekranının kuralıyla yok sayıldı (mola açılmadı, sonuç açık, eylem yok)",
@@ -810,6 +984,52 @@ func _no_input_catcher() -> void:
 	_c("sonucun ANA SAYFA düğmesi gerçek dokunuşu aldı (sonuç çıkışı 1, mola eylemi 0) → Ana Sayfa",
 		_actions["result_exit"] == 1 and _actions_in(_actions, PAUSE_KEYS) == 0 and _main._board == null
 		and _main._active_tab == 0)
+	_sections_done += 1
+
+
+# --- T) Ayarlar — kapsam dışı, korunur ---------------------------------------------------------------------
+
+func _settings_terminal() -> void:
+	print("-- T: Ayarlar kapsam dışı — meydan okuma bitişi Ayarlar'ı KAPATMAZ (mevcut davranış korunur)")
+	# T1 — Ayarlar kritik pencerede GERÇEK HUD dişlisiyle açılır (aynı menü dondurması): aynı karede merge meydan okumayı
+	# Ayarlar açıkken bitirir.
+	var board: Node2D = await _win_under_pause("gear")
+	var ok: bool = board != null
+	var timer: SceneTreeTimer = _last_timer
+	_c("T1 kurulum (%d deneme): Ayarlar gerçek dişliyle temas raporlanmadan ÖNCE açıldı (board donuk), meydan okuma Ayarlar açıkken kazanıldı"
+		% _attempts, ok)
+	if ok:
+		_c("T1: bitiş anında Ayarlar AÇIK KALDI (temizlik Ayarlar'ı kapatmaz), mola yok, kapanış sinyali yok, +20 yazıldı",
+			_af("settings") and not _af("pause") and _actions["settings_closed"] == 0 and _af("dough") == _pre_dough + 20)
+		await _after(timer)
+		_c("  … gecikmeden sonra sonuç açıldı, Ayarlar hâlâ üstünde (mevcut davranış — kayda geçen açık madde)",
+			_main._result.visible and _main._settings.visible and _shows == 1)
+		await _back()
+		_c("  … Android geri Ayarlar'ı kapattı (kendi kuralı), sonuç açık kaldı", not _main._settings.visible
+			and _main._result.visible and _actions["settings_closed"] == 1)
+		await _wait_settled()
+		await _finger_tap(_center(_main._result.primary_button()))
+		await _settle(2)
+		_c("  … sonuç düğmesi gerçek dokunuşu aldı (sonuç çıkışı 1) → Ana Sayfa", _actions["result_exit"] == 1
+			and _main._board == null and _main._active_tab == 0)
+	# T2 — Ayarlar gecikme İÇİNDE (molada biten meydan okumadan sonra) gerçek dişliyle açılır: kapanmaz, sonuç altına açılır.
+	board = await _win_under_pause("call")
+	timer = _last_timer
+	var settled: bool = board != null and not _af("pause")
+	if board != null:
+		await _finger_tap(_center(board._hud.settings_button))
+		await _settle(2)
+	_c("T2: molada kazanıldı (bitişte kapandı); gecikme içinde gerçek dişli dokunuşu Ayarlar'ı açtı (mevcut davranış)",
+		settled and _main._settings.visible)
+	await _after(timer)
+	_c("  … sonuç açıldı, Ayarlar kapanmadı (üstünde), mola yok", _main._result.visible and _main._settings.visible
+		and not _main.is_pause_open() and _shows == 1)
+	var close: Variant = _main._settings.frame().get_meta(&"close_button")
+	await _wait_settled()
+	if close is Control:
+		await _finger_tap(_center(close as Control))
+	await _settle(2)
+	_c("  … Ayarlar'ın X'i gerçek dokunuşla kapattı, sonuç açık", not _main._settings.visible and _main._result.visible)
 	_sections_done += 1
 
 
@@ -829,22 +1049,33 @@ func _source_contract() -> void:
 	var call_at: int = handler.find("%s()" % CLEANUP)
 	var waited: int = handler.find("await get_tree().create_timer(RESULT_DELAY).timeout")
 	_c("meydan okuma bitişi: paylaşılan temizlik kesinleştirme korumasından SONRA, ödül / tamamlanma işleminden SONRA, gecikmeden ÖNCE ve tek kez",
-		guard >= 0 and reward > guard and call_at > reward and waited > call_at and handler.count("%s()" % CLEANUP) == 1)
+		guard >= 0 and reward > guard and call_at > reward and waited > call_at and handler.count(CLEANUP) == 1)
+	_c("  … çağrı işleyici düzeyinde (koşulsuz — `if won:` içinde DEĞİL)", handler.contains("\n\t%s()\n" % CLEANUP))
 	var normal: String = _function(code, "func _on_round_finished(")
 	var normal_call: int = normal.find("%s()" % CLEANUP)
 	var written: int = maxi(normal.find("SaveManager.record_round_finished("), normal.find("progress[\"missions\"] = missions"))
 	_c("normal bitiş aynen (TASK/049): temizlik ilerleme yazıldıktan SONRA, gecikmeden ÖNCE, tek kez", written >= 0
 		and normal_call > written and normal.find("await get_tree().create_timer(RESULT_DELAY).timeout") > normal_call
 		and normal.count("%s()" % CLEANUP) == 1)
-	var call_sites: int = code.count("%s()" % CLEANUP) - code.count("func %s()" % CLEANUP)
-	_c("temizliği yalnız iki round bitiş işleyicisi çağırır (normal + meydan okuma), başka çağıran yok (%d)" % call_sites,
-		call_sites == 2)
+	var call_sites: int = code.count(CLEANUP) - code.count("func %s(" % CLEANUP)
+	_c("temizliğe yalnız iki round bitiş işleyicisi başvurur (normal + meydan okuma; her biçim — call / call_deferred / ad), başka yer yok (%d)"
+		% call_sites, call_sites == 2 and normal.count(CLEANUP) == 1 and handler.count(CLEANUP) == 1)
 	var helper: String = _function(code, "func %s(" % CLEANUP)
+	var body: Array[String] = []
+	for raw in helper.split("\n").slice(1):
+		var text: String = raw.strip_edges()
+		if text != "":
+			body.append(text)
+	_c("paylaşılan temizlik gövdesi TAM iki korumalı satır (başka hiçbir şey yok): %s" % str(body), _same(body, [
+		"if _pause != null and _pause.visible:", "_pause.close_menu()", "if _refill != null and _refill.visible:",
+		"_refill.hide_refill()"]))
 	var forbidden: Array[String] = ["_settings", "close_settings", "_daily_rewards", "_chest_info", "_missions",
 		"_challenge_sheet", "_age_panel", "resume_game(", "_on_pause_restart(", "abandon_run(", "_start_level(",
 		"start_daily_challenge(", "_retry_daily_challenge(", "_leave_daily_challenge(", "_clear_board(", "_finish_refill(",
 		"_on_refill_closed(", "grant_", "save_game", "SaveManager", "_cancel_rewarded_request(", "_clear_refill_request(",
-		"_show_tab(", "_result.", "emit(", "DailyChallenge", "DailyRewards", "_ads."]
+		"_show_tab(", "_result.", "emit(", "DailyChallenge", "DailyRewards", "_ads.", "_round_", "_deferred_round_change",
+		"_board", "_set_ad_surface(", "settle_touch_input(", "_revive", "decline_revive(", "set_menu_paused(", "_refresh_",
+		"current_day", "observe_day", "_resolve_daily_login(", "_check_daily_reward("]
 	var leaks: Array[String] = []
 	for token in forbidden:
 		if helper.contains(token):
@@ -854,7 +1085,9 @@ func _source_contract() -> void:
 		and helper.contains("_pause.close_menu()") and helper.contains("_refill.hide_refill()") and leaks.is_empty())
 	var hits: Array[String] = []
 	for token in ["_on_round_finished", "try_show_interstitial", "_round_break_generation", "record_round_finished",
-			"add_merges", "record_mission_round", "PlayerProgression", "_collect_rewards", "show_rewarded"]:
+			"add_merges", "record_mission_round", "PlayerProgression", "_collect_rewards", "show_rewarded", "_settings",
+			"close_settings", "_close_secondary_windows", "_refresh_", "observe_day", "_resolve_daily_login(",
+			"_check_daily_reward(", "_start_level(", "_on_pause_restart(", "abandon_run("]:
 		if handler.contains(token):
 			hits.append(token)
 	_c("meydan okuma işleyicisi normal yola / reklama / ilerlemeye girmez (bulunan: %s)" % str(hits), handler != ""
@@ -870,9 +1103,10 @@ func _source_contract() -> void:
 	var gate: String = _function(pause_code, "func _emit_if_open(")
 	var direct: int = pause_code.count("resume_pressed.emit()") + pause_code.count("restart_pressed.emit()") \
 		+ pause_code.count("exit_pressed.emit()")
-	_c("PauseMenu kapısı aynen (TASK/049): üç düğme + X + karartma tek görünürlük kapısından, doğrudan yayım yok",
-		gate.contains("if visible:") and gate.contains("action.emit()") and pause_code.count("_emit_if_open.bind(") == 5
-		and direct == 0)
+	_c("PauseMenu kapısı aynen (TASK/049): üç düğme + X + karartma tek görünürlük kapısından (önce koşul), doğrudan yayım yok",
+		gate.contains("if visible:") and gate.contains("action.emit()") and gate.find("if visible:") < gate.find("action.emit()")
+		and pause_code.count("_emit_if_open.bind(") == 5 and direct == 0
+		and pause_code.contains("UiKit.attach_dim_close(_dim, _emit_if_open.bind(resume_pressed))"))
 	_c("GameBoard aynen: _finish menü dondurmasını bırakır (TASK/049); güç / refill kapısı meydan okumada kapalı",
 		_function(board_code, "func _finish(").contains("_is_menu_paused = false")
 		and _function(board_code, "func _on_power_pressed(").contains("if not _powers_enabled:")
@@ -1051,9 +1285,9 @@ func _af(key: String) -> Variant:
 	match key:
 		"settings", "board":
 			return false
-		"attempt", "dough":
-			return -999
-		"completed":
+		"attempt", "dough", "frozen":
+			return -999 if key != "frozen" else 999
+		"completed", "last_seen":
 			return "?"
 		"actions":
 			var spoiled: Dictionary = {}
@@ -1065,11 +1299,15 @@ func _af(key: String) -> Variant:
 
 ## Kabul edilen bitişin eşzamanlı sonucu: Main'in round_finished işleyicisi ilk `await`'e kadar çalıştı.
 func _snapshot(board: Node2D) -> Dictionary:
+	var frozen: int = 0
+	for piece in board.live_dumplings():
+		if piece is Dumpling and (piece as Dumpling).is_simulation_frozen():
+			frozen += 1
 	return {"pause": _main.is_pause_open(), "settings": _main._settings.visible,
-		"menu_paused": bool(board.get("_is_menu_paused")), "board_paused": board._is_paused(),
+		"menu_paused": bool(board.get("_is_menu_paused")), "board_paused": board._is_paused(), "frozen": frozen,
 		"result": _main._result.visible, "board": _main._board == board, "attempt": int(_main.get("_challenge_attempt")),
 		"actions": _actions.duplicate(), "dough": SaveManager.dough(),
-		"completed": SaveManager.daily_challenge_completed_day()}
+		"completed": SaveManager.daily_challenge_completed_day(), "last_seen": SaveManager.daily_last_seen_day_key()}
 
 
 ## Bu bitişin gecikmesi doldu (Main'in gecikmeli kodu bu karede çalıştı) + birkaç kare.
@@ -1109,7 +1347,9 @@ func _win_under_pause(opener: String, hold: String = "", unhandled: bool = false
 		await _warm_pause(board)
 		if await _critical_pause(board, opener, hold, unhandled):
 			return board
-		if hold != "" and _main != null and is_instance_valid(_main):
+		if hold == "board" and is_instance_valid(board):
+			await _finger(_board_point(board, -90.0), false)
+		elif hold != "" and _main != null and is_instance_valid(_main):
 			await _finger(_pause_point(hold), false)
 	return null
 
@@ -1139,17 +1379,23 @@ func _critical_pause(board: Node2D, opener: String, hold: String = "", unhandled
 	await get_tree().process_frame
 	var untouched: bool = is_instance_valid(a) and is_instance_valid(b) and not a.is_merging and not b.is_merging \
 		and not board.is_finished()
+	if hold == "board":
+		# Tahtada basılı parmak (bırakış henüz yok) — mola ondan SONRA açılır.
+		_press_now(_board_point(board, -90.0), true)
 	match opener:
 		"hud":
 			_tap_now(_center(board._hud.back_button))
+		"gear":
+			_tap_now(_center(board._hud.settings_button))
 		"back":
 			_last_back_msec = Time.get_ticks_msec()
 			get_tree().root.propagate_notification(NOTIFICATION_WM_GO_BACK_REQUEST)
 		_:
 			_main.open_pause_menu()
 	_pause_msec = Time.get_ticks_msec()
-	var paused_first: bool = _main.is_pause_open() and bool(board.get("_is_menu_paused")) and not board.is_finished()
-	if hold != "" and paused_first:
+	var window_open: bool = _main._settings.visible if opener == "gear" else _main.is_pause_open()
+	var paused_first: bool = window_open and bool(board.get("_is_menu_paused")) and not board.is_finished()
+	if hold != "" and hold != "board" and paused_first:
 		_press_now(_pause_point(hold), true)
 		if unhandled:
 			_unhandled_key_now()
@@ -1177,7 +1423,7 @@ func _finish_with_upgrade_pause(board: Node2D) -> bool:
 	var paused_first: bool = _main.is_pause_open() and not board.is_finished() and is_instance_valid(piece) \
 		and piece.is_merging and bool(board.get("_is_menu_paused"))
 	await _until_finished(board)
-	return paused_first and board.is_finished() and not _at_finish.is_empty()
+	return paused_first and is_instance_valid(board) and board.is_finished() and not _at_finish.is_empty()
 
 
 ## Gerçek merge ile hedef (molasız): sağ kenarda tabandaki (hedef − 1) tier parçasının üstüne aynısı düşer.
@@ -1215,7 +1461,7 @@ func _quick_drop(board: Node2D, i: int) -> void:
 
 
 ## Round bitene kadar (kare + duvar saati sınırı).
-func _until_finished(board: Node2D, max_msec: int = 3000) -> void:
+func _until_finished(board: Variant, max_msec: int = 3000) -> void:
 	var limit: int = Time.get_ticks_msec() + max_msec
 	while is_instance_valid(board) and not board.is_finished() and Time.get_ticks_msec() < limit:
 		await get_tree().process_frame
@@ -1263,6 +1509,8 @@ func _pause_point(target: String) -> Vector2:
 			return _center(buttons[1])
 		"ana menüye dön":
 			return _center(buttons[2])
+		"x":
+			return _center((_main._pause.get("_frame") as Control).get_meta(&"close_button") as Control)
 	return _screen(Vector2(40.0, 60.0))
 
 
