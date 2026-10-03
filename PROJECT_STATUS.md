@@ -80,12 +80,21 @@ owner onayıyla ff-only alındı `848797a → b9ae345`):** mola açıkken biten 
 (yeniden başlatma / Ana Menüye Dön → başka level / Sonsuz / meydan okuma) eski sonuç ve geçiş reklamı artık açılmaz —
 bellek içi round nesli (`_clear_board`'da ilerler) gecikmeden önce yakalanır, sonra doğrulanır; son engel (geçiş
 reklamı fırlatma aralığı) de kapatıldı — reklam SDK'ya verildikten sonra round değişimi mola bitene dek ertelenir;
-süre, ilerleme, reklam politikası ve TASK/047 aynen (§4.28). Sonraki ürün / stabilizasyon görevi owner seçimi
-(TASK/049 tanımlanmadı).
+süre, ilerleme, reklam politikası ve TASK/047 aynen (§4.28). **TASK/049 (2026-10-03, dalda — round bitişi pencere
+sahipliği; masaüstü + Samsung A36 yerel kapısı GEÇTİ, cihaz bulgusu yok; READY FOR OWNER REVIEW, main'e alınması owner
+onayı bekliyor):** Büyütücü dönüşümü molanın (ya da stok 0 refill penceresinin) altında round'u bitirince sonuç ve
+geçiş reklamı artık o pencerenin altında açılmaz — kesinleşmede (ilerleme yazıldıktan sonra, 0,8 sn beklemeden önce)
+mola / refill eylemsiz kapanır, board menü duraklamasından çıkar, kapalı mola hiçbir eylem yaymaz; RESULT_DELAY,
+ilerleme, kayıt şeması, reklam politikası, TASK/048 savunması ve TASK/047 aynen (§4.29). Sonraki ürün / stabilizasyon
+görevi owner seçimi.
 Release izi ayrı. Sırada: içerik derecesi + yargı bölgesi kararları + 13+ seçici uyum riski (owner) → gizlilik
 politikası → upload anahtarı → gerçek AdMob kimlikleri → mağaza varlıkları / Play Console,
 sonra ilk imzalı üretim AAB'si ve M10 (Play kapalı test) ·
-**Branch / main:** `main` == origin/main == `b9ae345` — TASK/048 `task/048-result-delay-race-guard` (main
+**Branch / main:** `task/049-round-finish-modal-ownership` (main `25860df`'den: `8a204bd` düzeltme · `acfb28e`
+test · `6a17162` TASK/048 suite uyarlaması · `7f46272` sağlamlaştırma · `4649ae7` + `6d247c7` test · doküman / A36
+kaydı; A36 GEÇTİ 2026-10-03) — dalda, READY FOR OWNER REVIEW, main'e alınması owner onayı bekliyor, merge EDİLMEDİ ·
+`main` == origin/main == `25860df` (`b9ae345` üstünde yalnız TASK/048 doküman eşitlemesi) — TASK/048
+`task/048-result-delay-race-guard` (main
 `848797a`'dan, 11 commit: `c58c88d` düzeltme · `9ab9917` test · `83dc208` nesil sırası · `2592a1b` test
 sağlamlaştırma · `0f6996d` doküman / A36 kaydı · son engel `3633d6a` düzeltme · `8157b56` + `f5d005a` + `1b5b300`
 test · `441a114` yorum · `b9ae345` doküman / hedefli A36 kaydı; A36 GEÇTİ 2026-10-02) owner onayıyla ff-only entegre
@@ -2522,8 +2531,116 @@ formatına yalnız `haptics_enabled` (varsayılan true) eklendi. Ayrıntı ve
   / Ana Menüye Dön'ü ertelemede kalır; ertelenen değişim sürerken HUD Ayarlar açılırsa yeni round Ayarlar'ın altında
   başlar (görsel); QA komutları `abandon` / `leave` da mola sürerken ertelenir (cihaz harness'i notu). Öneri:
   kesinleşmede mola / refill'i kapatmak (§4.24 önerisinin ikinci yarısı — yarışı kaynağında da kapatır) +
-  `_start_level`'da yatışma — ayrı görev. Ayrı kalan, açık: basılı Koleksiyon kartı + GERİ sentetik bırakışı; genel
+  `_start_level`'da yatışma — ayrı görev. *(İlk yarısı → TASK/049 dalında yapıldı, §4.29; `_start_level` yatışması
+  açık.)* Ayrı kalan, açık: basılı Koleksiyon kartı + GERİ sentetik bırakışı; genel
   GUI ACTION_CANCEL (modal / karartma, Sarsıntı düğmesi); T5 hedef kartı kırpması "Büyük Dumpl…".
+
+### 4.29 Round bitişi pencere sahipliği (TASK/049)
+
+> **Dalda — READY FOR OWNER REVIEW, main'e ALINMADI** (`task/049-round-finish-modal-ownership`, main `25860df`'den;
+> main DEĞİŞMEDİ, merge edilmedi; main'e alınması owner onayı bekliyor). Zincir: `8a204bd` düzeltme · `acfb28e` yeni
+> suite · `6a17162` TASK/048 suite uyarlaması · `7f46272` inceleme sağlamlaştırması (kapalı mola eylem yaymaz; kapanış
+> ilerleme yazıldıktan sonra) · `4649ae7` test sağlamlaştırması · `6d247c7` test sağlamlığı · doküman / A36 kaydı.
+
+- **Eski hata (§4.28'in "Kayda geçen" (1)'i):** Büyütücü dönüşümü board'a bağlı bir tween'dir (0,15 sn anticipation);
+  mola ve stok 0 refill dondurması ağaç duraklatması DEĞİL, özel board dondurmasıdır — tween sürer. Dönüşüm başlar,
+  mola açılır (ya da stok 0 bir güce basılır → refill penceresi), dönüşüm hedefe ulaşıp round'u o pencerenin ALTINDA
+  meşru biçimde bitirir; ilerleme yazılır, RESULT_DELAY (0,8 sn) sonra sonuç (katman 10) açık molanın (12) / refill'in
+  (11) ALTINA açılırdı: Android GERİ sonuç dalında yutulur, sonuç düğmelerine gerçek dokunuş eski molaya / refill'e
+  gider, mola geçerli geçiş reklamının ardından da sonucun üstünde kalır, board bitişten sonra menü duraklamasında
+  kalırdı (`set_menu_paused` bitmiş board'da çalışmaz).
+- **Kök neden:** `GameBoard._finish` bitişte devam / refill / tutorial dondurmalarını bırakıp `round_finished`
+  yayıyordu ama menü duraklamasını değil; `Main._on_round_finished` bitişi kabul edip yalnız devam teklifini (ve
+  tutorial yüzeyini) kapatıyordu — mola ve refill penceresi kesinleşmeden sağ çıkıyordu.
+- **Değişmez:** round'un bitişi kabul edildiği anda o round'un oyun içi engelleyici pencereleri sonuç / geçiş reklamı
+  akışının üstünde kalmaz ve girdi tutmaz — z-sırasıyla değil, pencere kapanarak.
+- **Düzeltme (3 dosya):** (1) `Main._dismiss_terminal_gameplay_overlays()` — `_on_round_finished`'da kesinleştirme
+  korumasından sonra, round'un ilerlemesi yazıldıktan SONRA, RESULT_DELAY beklemesinden ÖNCE tek kez (eşzamanlı, bitiş
+  karesinde): açıksa mola `close_menu()` (gizle + kapanış sesi, sinyal YOK), açıksa refill `hide_refill()` (gizle,
+  sinyal YOK; açık bir ödüllü refill talebine dokunulmaz — iptal edilmez, ödül verilmez, kendi token yolu sürer).
+  Ayarlar'a, ikincil pencerelere, gezinmeye, round değişimine, kayda dokunmaz; pencere yoksa / tekrar çağrılırsa hiçbir
+  şey yapmaz. (2) `GameBoard._finish` menü duraklamasını da bırakır (diğer pencere dondurmalarıyla birlikte, sinyalden
+  önce). (3) `PauseMenu`: KAPALI pencere eylem yaymaz — üç düğme, X ve karartma tek görünürlük kapısından
+  (`_emit_if_open`) geçer.
+- **İnceleme + sonda (`7f46272`):** Godot, odaklı kontrolü gizlerken ona sentetik bırakış yollar; son girdi olayı
+  "işlendi" değilse (ör. GERİ tuşu, başka bir parmak / aygıt) BaseButton bunu tıklama sayar — masaüstü 4.6.3 sondasında
+  basılı Yeniden Başlat / Ana Menüye Dön / Devam Et gizlemede tetiklendi (A36'daki basılı Koleksiyon kartı + GERİ ile
+  aynı motor yolu); gizlenen karartma ise parmak odağını düşürmez (basılı parmağın bırakışı sonradan ona gelir). İlk
+  düzeltmede (`8a204bd`) yalnız karartma korunuyordu ve temizlik ilerleme okunmadan önce çalışıyordu: bitişte basılı
+  Yeniden Başlat'ın sentetik tıklaması `_on_round_finished` içinde yeni board kurup round'un ilerlemesini sıfırlanmış
+  GameState'ten hesaplatabilirdi. Kapı + sıralama bu yolu kapattı; testte (E "+ olay" değişkeleri) ve mutasyonla
+  (N16–N20) kilitli.
+- **Dahil edilen pencereler:** mola (onaylı hedef) ve stok 0 refill penceresi (aynı kök neden; masaüstünde gerçek
+  dokunuşla yeniden üretildi, düzeltmeden önce sonucun üstünde kalıyordu). Zaten kapananlar: devam teklifi
+  (`_revive.hide_offer()`), tutorial yüzeyi (`finish_for_round_end`). **Hariç:** Ayarlar (kapsam dışı açık madde —
+  bilinçli olarak kapatılmaz, regresyonla kilitli); meydan okuma (TASK/047 donuk işleyici — aşağıda); kayıp / Sonsuz
+  (taşma sayacı dondurmada ilerlemez, devam teklifi molayı / refill'i dışlar — mola altında bitiş yolu yok,
+  uydurulmadı).
+- **İkinci bitiş yolu (inceleme + sonda):** fizik adımı teması kaydeder, raporu bir sonraki adımın başında gelir — o
+  arada girdi molayı açmışsa ertelenmiş `_resolve_merge` (molayı denetlemez) hedef merge'i molada bitirebilir (~1
+  kare). Normal round'da aynı temizlik kapsar (suite R bölümü). **Yeni gözlem — meydan okuma (önceden var olan,
+  DÜZELTİLMEDİ, owner kararı):** aynı yol meydan okumayı da molada bitirebilir; kendi işleyicisinde temizlik olmadığı
+  için mola meydan okuma sonucunun üstünde kalır (sondada doğrulandı; TASK/047 donuk olduğundan dokunulmadı; düzeltme
+  aynı tek satırlık çağrı olur).
+- **TASK/048 ile ilişki:** TASK/048 kodu davranış olarak AYNEN (nesil, fırlatma sahipliği, erteleme, eski geri çağrı
+  bastırması; yalnız iki yorum satırı). Değişen tek şey: mola artık kesinleşmeden sağ çıkmadığından üretimde gecikme /
+  fırlatma aralığında round'u değiştiren dokunuş yolu kalmadı — erteleme savunma olarak duruyor. `result_delay_race_test`
+  molanın AYNI üretim işleyicilerini (`_on_pause_restart` / `abandon_run` / `resume_game`) molanın kendi sinyaliyle
+  çağıracak şekilde uyarlandı (dar dikiş); her sahiplik denetimi korundu (197 kontrol; fırlatma aralığında her
+  işleyiciden sonra reklam sahipliğinin bırakılmadığı da denetleniyor), 17 TASK/048 mutantı uyarlanmış suite'te öldü.
+  Garanti sınırı aynen: SDK tam ekranı geri dönülmez biçimde kabul ettikten sonra iptal API'si yok.
+- **Testler:** yeni `tools/round_finish_modal_test` (A–R, 18 bölüm, 164 kontrol; gerçek Büyütücü düğmesi + hedef + HUD
+  geri / Android geri yolu, bitiş anı eşzamanlı ölçülür, geçerli geçiş reklamı, eylemsiz kapanış ve basılı parmak,
+  girdi sahipliği, gerçek merge + 75'lik bonus sandıkla ilerleme bir kez / bellek = disk, TASK/048 savunması, Ayarlar,
+  refill (+ bekleyen ödüllü talep kazanılır / kazanılmaz), kayıp / Sonsuz / meydan okuma / tutorial, ACTION_CANCEL,
+  canlı round'da gerçek mola düğmeleri, aynı karede merge yolu, kaynak sözleşmesi). **Düzeltmesiz `25860df`'de 121
+  kontrolün 48'i DÜŞTÜ** (mola katman 12 sonucun katman 10 üstünde, board menü duraklamasında, GERİ yutuldu, sonucun
+  HARİTA'sına gerçek dokunuş eski molaya gitti; mola reklamdan sonra da kaldı; refill sonucun üstünde kaldı).
+- **Mutasyon 37/37 öldü** (her biri bayt-aynı geri kondu, HEAD-blob denetimi): N01–N20 TASK/049 (temizlik kaldırıldı ·
+  yalnız mola dalı · menü duraklaması kaldı · çerçeve gizli katman açık · Devam / Yeniden / Ana Menü ile kapatma ·
+  temizlik sonuçtan sonra · mola reklamdan sonra geri gelir · Ayarlar da kapanır · refill dalı yok · refill KAPAT ile
+  (talebi iptal eder) · refill satın almayla · karartma kapısı yok · meydan okuma da temizlenir · temizlik ilerlemeden
+  önce · kapı kaldırıldı · Yeniden / Ana Menü / Devam kapıyı atlar) + M01–M09 / L1, L2, L4–L9 TASK/048 kataloğu.
+- **Çekişmeli inceleme (5 mercek, salt okunur):** BLOCKER / HIGH / MEDIUM 0. LOW'lar giderildi: mola düğmeleri kapısız
+  (sondayla doğrulandı → `7f46272`), canlı round'da gerçek mola düğmesi kapsamı, ilerleme bölümünde merge / bonus sandık,
+  başarısız kurulumda betik hatası yerine FAIL, TASK/048 suite'inde boşa geçebilen denetimler; NIT'ler giderildi ya da
+  kayda geçti (iki parmakla karartma kenar durumu zararsız; fazladan kapanış sesi kozmetik).
+- **Tam masaüstü kapısı (aday `6d247c7`, üç koşu, her biri korumalı import sonrası 44 koşu):** OK 5617 · 5620 · 5664,
+  FAIL 5 · 2 · 1 (3. koşuda revive_test'in botlu senaryo 1 tekrarı fazladan OK satırı sayar; suite'in kendisi 120/120);
+  42 · 43 · 43 suite temiz; hiçbir koşu 44/44 temiz DEĞİL — hatalar YALNIZ önceden var olan zamanlama hassas
+  denetimlerde: settings_input 4 + gameplay_shell 1 (koşu 1), progression_ui 2 (koşu 2), settings_input 1 (koşu 3).
+  settings_input = Profil dişlisi yatışması (DÜZELTMESİZ `25860df` üretim dosyalarıyla da aynı 4 denetim düştü),
+  gameplay_shell = çift GERİ debounce, progression_ui = unvan seçici yatışması: SceneTreeTimer ile ölçülen duvar saati
+  paylarıdır, TASK/049'un dokunmadığı yollar; her biri hemen yeniden koşuda geçti. TASK/049 ile ilgili suite'ler (yeni
+  suite, TASK/048, meydan okuma, girdi iptali, görevler, devam) her koşuda temiz. SCRIPT ERROR 0, bot 2/2, sahibin kayıt
+  ailesi her koşuda bayt-aynı.
+- **Samsung A36 kapısı — GEÇTİ (2026-10-03, cihaz saati 06:47–06:59; yalnız QA paketi, Google TEST reklamları; APK
+  `6d247c7`'den, `verify_apk.py` PASS):** 0,15 sn penceresi adb gecikmesinin altında olduğundan mola QA kancasıyla
+  açıldı — HUD geri düğmesine uygulama içi gerçek dokunuş (A1) ve Android GERİ yönlendirmesi (A2), ikisi de üretim
+  `open_pause_menu` yoluna varır. **A1/A2:** mola açıktı (dönüşüm sürüyordu), bitiş anında mola kapandı / menü
+  duraklaması bırakıldı / eylem 0, sonuç 863 / 803 ms sonra tek başına açıldı; sonuçta gerçek GERİ yok sayıldı, gerçek
+  HARİTA dokunuşu sonuca gitti. **B:** mola bitişte kapandı; reklam molası bitişten 790 ms sonra (mola zaten kapalı)
+  başladı, geçerli Google TEST geçiş reklamı 883 ms'de göründü, gerçek GERİ ile kapandı → sonuç TAM bir kez, mola geri
+  gelmedi; ilerleme bir kez; sonucun TEKRAR'ı → yeni round'da ilk dokunuş tam 1 bırakış. **C (TASK/048 savunması,
+  üretim işleyicisi QA dikişiyle — mola artık oraya varamaz):** gecikme içinde (bitişten 275 ms sonra) yeniden başlatma
+  → eski sonuç yok, geçiş reklamı olayı sıfır (reklam hazır + uygunken); fırlatma aralığında yeniden başlatma ertelendi,
+  reklam kendi round'unun üstünde açıldı, kapanıştan 47 ms sonra yeni board, eski sonuç yok; yeni board'lar gerçek
+  dokunuşta 1 bırakış. **D:** canlı round'da gerçek GERİ → mola → DEVAM ET / Yeniden Başlat çalışır (dokunuş sızmaz),
+  Ayarlar → GERİ → ilk dokunuş 1, gerçek ACTION_CANCEL 0 / sonraki 1. **Refill:** dönüşüm sırasında açılan refill bitişte
+  kapandı; stok / kota / Hamur satın alması yok, sonuç tek başına. Logcat: SCRIPT ERROR 0, çökme / ANR 0, godot E 0,
+  Play Age Signals 0, yalnız Google örnek reklam kimlikleri. Güvenlik durdurması gerekmedi (dokunuş sayıları tuttu).
+  Sonunda QA kaldırıldı; üretim paketi hiç kurulmadı; `com.example.squishymerge` dokunulmadı (0.8.5, zamanlar aynı);
+  gezinme kipi ve telefon saati değişmedi; masaüstü korunan dosyalar + kayıt ailesi görev öncesiyle içerik olarak aynı.
+- **Aynen kalanlar:** RESULT_DELAY 0,8 sn; ilerleme (bir kez, kesinleşmede) / kayıt şeması (yeni alan yok); reklam
+  politikası (uygunluk / 60 sn / 900 sn / yerleşim / yaş / rıza); TASK/047 meydan okuma; tutorial; Sonsuz;
+  TOUCH_SETTLE_MSEC 300; `elif not touch.canceled:`; görsel değişiklik yok.
+- **Açık (owner kararı, bu görevde düzeltilmedi):** (1) `_start_level` 300 ms yatışma kurmaz — yeniden başlatmada hızlı
+  çift dokunuş / basılı parmak yeni board'a düşebilir; (2) hiç bitmeyen tam ekran molada molanın çıkış kapısı yok
+  (yönetici zaman aşımı / öne dönüş payına dek); (3) RESULT_DELAY / reklam beklemesinde açılan (ya da bitişte açık)
+  Ayarlar sonucun üstünde kalır (görsel); (4) basılı Koleksiyon kartı + Android GERİ sentetik bırakışı; (5) genel GUI
+  ACTION_CANCEL (modal / karartma iptali, Sarsıntı düğmesi); (6) T5 hedef kartı kırpması "Büyük Dumpl…"; + yeni gözlem:
+  meydan okumanın aynı karede merge ile molada bitmesi (yukarıda). Masaüstü zamanlama hassas üç suite denetimi
+  (yukarıda) test sağlamlığı notu olarak kayda geçti.
 
 ## 5. Dosya/klasör yapısı ve script envanteri
 
@@ -3284,10 +3401,14 @@ Owner'ın yapacağı / onaylayacağı:)*
 - **TASK/048** — normal RESULT_DELAY eski sonuç yarışı koruması (normal + çapraz kip) + son engel (geçiş reklamı
   fırlatma aralığı) → ✅ **main'de** (§4.28; masaüstü + Samsung A36 kapıları GEÇTİ; owner onayıyla ff-only `848797a →
   b9ae345`, 2026-10-02; dal `task/048-result-delay-race-guard` duruyor).
-- **Sıradaki görev:** owner seçer (TASK/049 tanımlanmadı). Açık, ayrı maddeler — mola altında açılan sonuç ·
+- **TASK/049** — round bitişi pencere sahipliği (mola / stok 0 refill penceresi kesinleşmede eylemsiz kapanır; sonuç
+  ve geçiş reklamı artık onların altında açılmaz) → **dalda, READY FOR OWNER REVIEW** (§4.29; masaüstü + Samsung A36
+  kapıları GEÇTİ; `task/049-round-finish-modal-ownership`, main `25860df`'den; main'e alınması owner onayı bekliyor).
+- **Sıradaki görev:** owner seçer. Açık, ayrı maddeler — ~~mola altında açılan sonuç~~ *(→ TASK/049 dalında, §4.29)* ·
   `_start_level` yatışması / çift dokunuş / basılı parmak · hiç bitmeyen molada molanın çıkış kapısı · erteleme
   sürerken Ayarlar (görsel) — §4.28; Koleksiyon kartı + GERİ · genel GUI ACTION_CANCEL · T5 hedef kartı kırpması —
-  §4.26 / §4.27 — kendiliğinden sıradaki görev seçilmez.
+  §4.26 / §4.27; + yeni gözlem: meydan okumanın aynı karede merge ile molada bitmesi (§4.29, TASK/047 donuk) —
+  kendiliğinden sıradaki görev seçilmez.
 - ~~**Kararlılık (öneri — TASK/045 engeli değil):** atomik kayıt (`save_game()` yerinde kesip
   yazıyor; geçici dosya + yedekten kurtarma) · güç hedefleme bırakış-düşürme (Büyütücü ve
   Bomba hedef dokunuşunun bırakışı bekleyen parçayı da düşürebilir) · Koleksiyon detayı

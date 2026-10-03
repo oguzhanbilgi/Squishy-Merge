@@ -78,10 +78,14 @@ alınacak — şimdi tahmin/vaat yok.
 [Current release blockers](#current-release-blockers) +
 [Next action](#next-action); aşağıdaki "Milestone tarihçesi" değil.
 
-- **Repo (2026-10-02):** `main == origin/main == b9ae34512eb4636549cd7d61f77a7b5b48d86549` — **TASK/048 owner
-  onayıyla ff-only main'e alındı** (`848797a → b9ae345`; merge commit / rebase / squash / cherry-pick / force push
-  YOK). Doğrulanmış doğrusal zincir, 11 commit: `c58c88d` düzeltme · `9ab9917` test · `83dc208` nesil sırası
-  (inceleme) · `2592a1b` test sağlamlaştırma · `0f6996d` doküman / A36 kaydı · son engel "geçiş reklamı fırlatma
+- **Repo (2026-10-03):** `main == origin/main == 25860dfc67e2f206d32921e02fa48691d40a8dcd` — DEĞİŞMEDİ (`b9ae345`
+  üstünde yalnız TASK/048 doküman eşitlemesi; `docs/048-main-sync` ff-only, dal duruyor). **TASK/049 dalda — READY
+  FOR OWNER REVIEW, main'e ALINMADI:** `task/049-round-finish-modal-ownership` (main `25860df`'den: `8a204bd`
+  düzeltme · `acfb28e` test · `6a17162` TASK/048 suite uyarlaması · `7f46272` sağlamlaştırma · `4649ae7` + `6d247c7`
+  test · doküman / A36 kaydı); main'e alınması owner onayı bekliyor, merge EDİLMEDİ.
+  Önce (2026-10-02): **TASK/048 owner onayıyla ff-only main'e alındı** (`848797a → b9ae345`; merge commit / rebase /
+  squash / cherry-pick / force push YOK). Doğrulanmış doğrusal zincir, 11 commit: `c58c88d` düzeltme · `9ab9917`
+  test · `83dc208` nesil sırası (inceleme) · `2592a1b` test sağlamlaştırma · `0f6996d` doküman / A36 kaydı · son engel "geçiş reklamı fırlatma
   aralığı": `3633d6a` düzeltme · `8157b56` + `f5d005a` + `1b5b300` test · `441a114` yorum · `b9ae345` doküman /
   hedefli A36 kaydı. Dal referans için duruyor (`task/048-result-delay-race-guard` = son incelenen HEAD `b9ae345`,
   yerelde ve origin'de).
@@ -103,6 +107,33 @@ alınacak — şimdi tahmin/vaat yok.
   (`bc40da1` · `ed08b07` · `1ff0ba1` · `98d209e` · `b90bc3c`); merge commit / rebase / squash /
   cherry-pick YOK. Dallar referans için duruyor (`task/046-daily-weekly-missions` = `5092dad`,
   `task/046-1-age-gate-13plus-redesign` = `b90bc3c`).
+- **TASK/049 — round bitişi pencere sahipliği — dalda, READY FOR OWNER REVIEW** (main'e alınmadı; masaüstü +
+  Samsung A36 kapıları GEÇTİ 2026-10-03). **Hata:** Büyütücü dönüşümü (0,15 sn, board'a bağlı tween) molanın / stok 0
+  refill penceresinin özel board dondurmasında da tamamlandığından normal level round'u açık molanın (ya da refill'in)
+  ALTINDA meşru biçimde bitiyor; RESULT_DELAY (0,8 sn) sonra sonuç — ya da geçerli geçiş reklamı, ardından sonuç —
+  eski pencerenin ALTINA açılıyordu: Android GERİ yutuluyor, sonuç düğmelerine dokunuş eski molaya gidiyor, board
+  menü duraklamasında kalıyordu. **Kök neden:** `GameBoard._finish` menü duraklamasını bırakmıyor,
+  `Main._on_round_finished` kesinleşmede yalnız devam teklifini kapatıyordu. **Değişmez:** kabul edilen bitişte o
+  round'un oyun içi engelleyici pencereleri sonuç / geçiş reklamı akışının üstünde kalmaz, girdi tutmaz (z-sırası
+  değil, kapanış). **Düzeltme:** `Main._dismiss_terminal_gameplay_overlays()` — kesinleşmede, round'un ilerlemesi
+  yazıldıktan sonra, 0,8 sn beklemeden önce eşzamanlı: mola `close_menu()` + refill `hide_refill()`, eylemsiz (Devam /
+  Yeniden Başlat / Ana Menü / bırakış / güç / refill ödülü / satın alma YOK; açık bir ödüllü refill talebi iptal
+  edilmez); `GameBoard._finish` menü duraklamasını da bırakır; kapalı `PauseMenu` hiçbir eylem yaymaz (üç düğme, X,
+  karartma tek görünürlük kapısında — Godot'un gizlemede basılı düğmeye yolladığı sentetik bırakış tıklama
+  sayılmasın). **Dahil:** mola + stok 0 refill penceresi. **Hariç:** Ayarlar (açık madde, bilinçli), TASK/047 meydan
+  okuma işleyicisi (donuk), kayıp / Sonsuz (mola altında bitiş yolu yok). **TASK/048:** kodu aynen — mola artık
+  kesinleşmeden sağ çıkmadığından gecikme / fırlatma aralığında round'u değiştiren dokunuş yolu kalmadı, nesil +
+  erteleme savunma olarak duruyor; suite'i aynı üretim işleyicileri üzerinden uyarlandı (197/197). RESULT_DELAY 0,8 sn,
+  ilerleme (bir kez), kayıt şeması, reklam politikası, tutorial, Sonsuz, TOUCH_SETTLE_MSEC aynen. **Doğrulama:**
+  düzeltmesiz `25860df`'de yeni suite 121 kontrolün 48'i DÜŞTÜ; düzeltmeyle `round_finish_modal_test` 164/164;
+  mutasyon 37/37 (20 TASK/049 + 17 TASK/048); 5 mercekli inceleme BLOCKER / HIGH / MEDIUM 0 (LOW'lar giderildi);
+  tam masaüstü kapısı aday `6d247c7` üç koşu × 44: OK 5617 / 5620 / 5664, FAIL 5 / 2 / 1 — YALNIZ önceden var olan
+  zamanlama hassas denetimler (settings_input — düzeltmesiz `25860df`'de de düştü —, gameplay_shell, progression_ui;
+  yeniden koşuda geçti), 0 SCRIPT ERROR, bot 2/2; **Samsung A36 kapısı GEÇTİ** (yalnız QA paketi, Google TEST
+  reklamları: mola bitişte kapandı, sonuç ~0,8 sn sonra tek başına; geçiş reklamı sonrası sonuç tam bir kez, mola geri
+  gelmedi; TASK/048 savunması üretim işleyicisiyle; canlı round girdileri; refill; logcat temiz; QA kaldırıldı, üretim
+  paketi kurulmadı, `com.example` dokunulmadı). Yeni gözlem (önceden var olan, düzeltilmedi): aynı karede merge meydan
+  okumayı molada bitirebilir, mola meydan okuma sonucunun üstünde kalır. Ayrıntı: PROJECT_STATUS §4.29.
 - **TASK/048 — normal RESULT_DELAY eski sonuç yarışı koruması + geçiş reklamı fırlatma sahipliği — TAMAM,
   main'de** (owner onayıyla ff-only `848797a → b9ae345`, 2026-10-02). Entegrasyondan ÖNCE tamamlanan doğrulama: odak
   suite 196/196, mutasyon 17/17, tam masaüstü kapısı (43 / 43 suite, 5457 kontrol, 0 hata, 0 SCRIPT ERROR, bot 2/2)
@@ -661,26 +692,37 @@ paketi kurulmadı, `com.example` dokunulmadı)** — PROJECT_STATUS §4.28. **So
 de kapatıldı:** önce yeniden üretildi, düzeltme + 196/196, mutasyon 17/17, tam masaüstü kapısı 43 koşu / 5457
 kontrol / 0 hata / 0 SCRIPT ERROR / bot 2/2, hedefli A36 kapısı GEÇTİ (yalnız QA paketi; açılış aralığında mola
 dokunuşu: reklam isteyen round'un üstünde açıldı, değişim yalnız kapanıştan sonra, eski sonuç yok; meydan okuma
-denemesi sıfır). Entegrasyon ve bu doküman eşitlemesi sırasında hiçbir kapı yeniden koşulmadı. **Sıradaki ürün /
-stabilizasyon görevi owner seçimi** — aşağıdaki açık maddelerden hiçbiri kendiliğinden seçilmez; TASK/049
-tanımlanmadı.
+denemesi sıfır). Entegrasyon ve bu doküman eşitlemesi sırasında hiçbir kapı yeniden koşulmadı.
 
-Açık, owner kararı bekleyen ayrı maddeler (**BAŞLAMADI**; hiçbiri kendiliğinden seçilmez): (1) mola açıkken bitip
-DEĞİŞTİRİLMEYEN round'un geçerli sonucu açık molanın ALTINDA açılır, o durumda Android GERİ yutulur (DEVAM ET / X /
-karartma çözer; önceden var olan — mola davranışı kilitli); (2) `_start_level` 300 ms parmak yatışması kurmaz —
+**Stabilizasyon — TASK/049 round bitişi pencere sahipliği: dalda, READY FOR OWNER REVIEW**
+(`task/049-round-finish-modal-ownership`, main `25860df`'den; masaüstü + Samsung A36 kapıları GEÇTİ 2026-10-03;
+main'e alınması owner onayı bekliyor, merge EDİLMEDİ). Aşağıdaki eski açık madde (1)'i kapatır — Current state'te özet, PROJECT_STATUS §4.29'da
+ayrıntı. **Sıradaki ürün / stabilizasyon görevi owner seçimi** — aşağıdaki açık maddelerden hiçbiri kendiliğinden
+seçilmez.
+
+Açık, owner kararı bekleyen ayrı maddeler (**BAŞLAMADI**; hiçbiri kendiliğinden seçilmez): (1) ~~mola açıkken bitip
+DEĞİŞTİRİLMEYEN round'un geçerli sonucu açık molanın ALTINDA açılır, o durumda Android GERİ yutulur~~ → **TASK/049
+dalında kapatıldı** (READY FOR OWNER REVIEW, main'de değil; stok 0 refill penceresi de dahil); (2) `_start_level`
+300 ms parmak yatışması kurmaz —
 "Yeniden Başlat" / TEKRAR / Harita kartına hızlı çift dokunuşun ikincisi, ya da ertelenen yeniden başlatmada mola
 bittiği anda bitmiş board'da basılı kalan parmağın bırakışı yeni round'a parça düşürebilir (önceden var olan); (3)
 geçiş reklamı molası HİÇ bitmezse (çift SDK / yaşam döngüsü arızası) açık molanın "Yeniden Başlat" / "Ana Menüye
 Dön"ü ertelemede kalır — yöneticinin onay zaman aşımı / öne dönüş payı molayı bitirene dek molanın çıkış kapısı
-yoktur; (4) erteleme sürerken HUD Ayarlar açılırsa yeni round Ayarlar'ın altında başlar (görsel); (5) basılı
+yoktur (TASK/049 dalında mola kesinleşmede kapandığından bu aralıkta açık mola kalmaz, ama yerine bir çıkış kapısı da
+yok — madde açık); (4) erteleme sürerken HUD Ayarlar açılırsa yeni round Ayarlar'ın altında başlar; RESULT_DELAY /
+reklam beklemesinde açılan ya da bitişte açık Ayarlar sonucun üstünde kalır (görsel; TASK/049 Ayarlar'ı bilinçli
+olarak kapatmaz); (5) basılı
 Koleksiyon kartı + Android GERİ sentetik bırakışı (yukarıda, TASK/045.2; ACTION_CANCEL'in tahta tarafı TASK/046.2'de
 giderildi — main'de); (6) genel GUI ACTION_CANCEL — modal / karartma iptal davranışı ve güç düğmesinin iptal edilen
 dokunuşta çalışması (TASK/046.2 A36 kapısı gözlemi: Sarsıntı düğmesinde gerçek ACTION_CANCEL stoğu 1 → 0 tüketti,
 parça düşmedi; §4.26); (7) HUD hedef kartı T5 adını "Büyük Dumpl…" diye kırpar (önceden var olan kart, normal Level
 3'te de; PROJECT_STATUS §4.27 (d)). Meydan okuma güç düğmelerini gizleyip kilitlediği için (6)'daki Sarsıntı iptal
-hatası meydan okumayı etkilemez; meydan okumanın KENDİ gecikmeli sonucu deneme kimliğiyle korunur (TASK/047). Öneri
-(ayrı görev, owner kararı): kesinleşmede mola / refill'i kapatmak (§4.24 önerisinin ikinci yarısı) +
-`_start_level`'da yatışma. **Kapanan — main'de (`b9ae345`):** ~~normal RESULT_DELAY eski sonuç yarışı~~ (§4.24;
+hatası meydan okumayı etkilemez; meydan okumanın KENDİ gecikmeli sonucu deneme kimliğiyle korunur (TASK/047). **Yeni
+gözlem (TASK/049 incelemesi, önceden var olan, DÜZELTİLMEDİ — owner kararı; TASK/047 donuk):** fizik raporu bir
+sonraki adımda geldiğinden aynı karede açılan mola altında ertelenmiş merge meydan okumayı bitirebilir; meydan okuma
+işleyicisinde kesinleşme temizliği olmadığı için mola meydan okuma sonucunun üstünde kalır (PROJECT_STATUS §4.29).
+Öneri (ayrı görev, owner kararı): `_start_level`'da yatışma (kesinleşmede mola / refill kapatma → TASK/049 dalında
+yapıldı). **Kapanan — main'de (`b9ae345`):** ~~normal RESULT_DELAY eski sonuç yarışı~~ (§4.24;
 çapraz kip — gecikmedeki normal sonuç → meydan okuma — dahil) ve ~~geçiş reklamı açılış aralığı~~ → **TASK/048**
 (§4.28; garanti sınırı yukarıda).
 
