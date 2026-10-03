@@ -207,8 +207,8 @@ func _b_restart_held() -> void:
 	_c("B2 Yeniden Başlat'tan sonra yeniden basılan parmak (basış +%d ms, pencere içinde) pencere bittikten SONRA kalktı (+%d ms): yeni board'da 0 bırakış, nişan oynamadı"
 		% [int(tl["down2"]) - int(tl["touch_up"]), int(tl["up2"]) - int(tl["until"])], swallowed
 		and int(tl["up2"]) > int(tl["until"]) and _drops_on(nb) == 0 and _near(nb._aim_x, nb._center_x()))
-	_c("  … dizi Main'de bütünüyle yutuldu ve bırakışla kapandı; mola / Ayarlar / güç yok", _main._settled_sequences.is_empty()
-		and _quiet_round(nb) and not nb._powerups.is_armed())
+	_c("  … dizi Main'de bütünüyle yutuldu ve bırakışla kapandı (yeni board'a hiç ulaşmadı: sahiplik kaydı boş); mola / Ayarlar / güç yok",
+		_main._settled_sequences.is_empty() and _owned_empty(nb) and _quiet_round(nb) and not nb._powerups.is_armed())
 	await _first_valid(nb, "B2", tl)
 	_timeline("B2", tl)
 
@@ -340,6 +340,7 @@ func _c_double_tap() -> void:
 			and _boards_since(tl) == 1)
 		_c("  … ikinci dokunuş (basış +%d ms, pencere sonu +%d ms) Main'de yutuldu: yeni board'da 0 bırakış, nişan oynamadı, HUD / güç / Ayarlar yok"
 			% [int(tl["down2"]) - int(tl["down"]), int(tl["until"]) - int(tl["down"])], swallowed and _drops_on(nb) == 0
+			and _owned_empty(nb)
 			and _near(nb._aim_x, aim0) and _quiet_round(nb) and not nb._powerups.is_armed()
 			and _main._settled_sequences.is_empty())
 		await _first_valid(nb, "C [+%d ms]" % gap, tl)
@@ -441,7 +442,7 @@ func _e_result_retry() -> void:
 			and _gen() == int(tl["gen0"]) + 1 and _differs(nb, int(tl["board0"])) and _boards_since(tl) == 1
 			and not _main._result.visible)
 		_c("  … ikinci dokunuş (+%d ms) yutuldu: yeni board'da 0 bırakış, nişan merkezde" % (int(tl["down2"]) - int(tl["down"])),
-			swallowed and _drops_on(nb) == 0 and _near(nb._aim_x, nb._center_x()) and _quiet_round(nb))
+			swallowed and _drops_on(nb) == 0 and _owned_empty(nb) and _near(nb._aim_x, nb._center_x()) and _quiet_round(nb))
 		_c("  … geçiş yolu (koruma): TEKRAR + yutulan dokunuşlar kayda yazma GİRİŞİMİ üretmedi; tur / XP / görev / Hamur kesinleşmedeki gibi",
 			no_write and _same(_progress_state(), state))
 		_timeline("E " + variant, tl)
@@ -473,7 +474,8 @@ func _e_result_retry() -> void:
 	_c("E4 kurulum (sahte reklam arka ucu): kayıp kesinleşti, geçiş reklamı istendi + kapandı, sonuç görünür; GERÇEK TEKRAR tek yeni board",
 		ad_id != "" and shown4 and _actions["result_retry"] == 1 and _differs(nb4, int(tl4["board0"])))
 	_c("  … TEKRAR + yutulan ikinci dokunuş geçiş reklamı DENEMEDİ (istek sayısı aynı, bekleyen mola yok), 0 bırakış",
-		swallowed4 and fake.interstitial_shows.size() == shows1 and not _main._ads.break_pending() and _drops_on(nb4) == 0)
+		swallowed4 and fake.interstitial_shows.size() == shows1 and not _main._ads.break_pending() and _drops_on(nb4) == 0
+		and _owned_empty(nb4))
 	var merges4: int = GameState.merge_count
 	if nb4 != null and is_instance_valid(nb4):
 		nb4._finish(false)
@@ -515,7 +517,8 @@ func _f_map_home() -> void:
 		_c("F1 [+%d ms] GERÇEK Harita düğümü dokunuşu: tam BİR level_chosen, tam BİR yeni board (level 3, nesil +1), kabuk gizli"
 			% gap, _actions["level_chosen"] == 1 and _boards_since(tl) == 1 and nb != null
 			and nb.level.level_number == 3 and _gen() == int(tl["gen0"]) + 1 and not _main._screens[1].visible)
-		_c("  … düğüme hızlı ikinci dokunuş yutuldu: yeni board'da 0 bırakış, nişan merkezde", swallowed and nb != null
+		_c("  … düğüme hızlı ikinci dokunuş yutuldu: yeni board'da 0 bırakış, sahiplik yok, nişan merkezde", swallowed and nb != null
+			and _owned_empty(nb)
 			and _drops_on(nb) == 0 and _near(nb._aim_x, nb._center_x()) and _quiet_round(nb))
 		_timeline("F1 +%d" % gap, tl)
 		if nb != null:
@@ -740,7 +743,8 @@ func _l_challenge() -> void:
 	_c("L GERÇEK MEYDAN OKUMA → BAŞLA: tam BİR meydan okuma board'u (gün %s, bütçe tam), meydan okumanın KENDİ 300 ms kurulumu" % THU,
 		sheet and _actions["challenge_start"] == 1 and nb != null and nb.is_daily_challenge() and _main._challenge_day == THU
 		and _boards_since(tl) == 1 and int(tl["until"]) - int(tl["arm"]) == 300)
-	_c("  … BAŞLA'ya hızlı ikinci dokunuş yutuldu: 0 bırakış, 0 hamle", swallowed and nb != null and _drops_on(nb) == 0
+	_c("  … BAŞLA'ya hızlı ikinci dokunuş yutuldu: 0 bırakış, 0 hamle, sahiplik yok", swallowed and nb != null
+		and _owned_empty(nb) and _drops_on(nb) == 0
 		and nb.drops_used() == 0)
 	if nb != null:
 		await _first_valid(nb, "L")
@@ -754,10 +758,14 @@ func _l_challenge() -> void:
 	var swallowed2: bool = await _second_tap(tl2, 100)
 	_c("L2 meydan okuma mola → Yeniden Başlat: tam BİR yeni meydan okuma denemesi (normal `_start_level` değil), çift dokunuş 0 bırakış / 0 hamle",
 		_actions["restart"] == 1 and nb2 != null and nb2.is_daily_challenge() and _differs(nb2, int(tl2["board0"]))
-		and swallowed2 and _drops_on(nb2) == 0 and nb2.drops_used() == 0)
+		and swallowed2 and _drops_on(nb2) == 0 and _owned_empty(nb2) and nb2.drops_used() == 0)
 
 	# L3: değişimi atlatan parmak (HUD geri + tahta, iki parmak) meydan okumada hamle harcamaz.
 	await _wait_settled()
+	if nb2 == null or not is_instance_valid(nb2):
+		_c("L3 kurulum: canlı meydan okuma board'u yok (L2 başarısız)", false)
+		_sections_done += 1
+		return
 	var back: Vector2 = _center(nb2._hud.back_button)
 	var held: Vector2 = _board_point(nb2, 100.0)
 	await _finger(back, true, 0)
@@ -788,6 +796,7 @@ func _m_endless() -> void:
 	var swallowed: bool = await _second_tap(tl, 100)
 	_c("M GERÇEK Sonsuz düğümü dokunuşu: tam BİR sonsuz round (level_chosen 1), ikinci dokunuş yutuldu: 0 bırakış",
 		_actions["level_chosen"] == 1 and nb != null and nb.level.is_endless and _boards_since(tl) == 1 and swallowed
+		and _owned_empty(nb)
 		and _drops_on(nb) == 0)
 	if nb != null:
 		await _first_valid(nb, "M")
@@ -797,7 +806,8 @@ func _m_endless() -> void:
 	var nb2: Node2D = _main._board
 	var swallowed2: bool = await _second_tap(tl2, 100)
 	_c("M2 Sonsuz'da mola → Yeniden Başlat: tek yeni sonsuz board, çift dokunuş 0 bırakış", _actions["restart"] == 1
-		and nb2 != null and nb2.level.is_endless and _differs(nb2, int(tl2["board0"])) and swallowed2 and _drops_on(nb2) == 0)
+		and nb2 != null and nb2.level.is_endless and _differs(nb2, int(tl2["board0"])) and swallowed2 and _drops_on(nb2) == 0
+		and _owned_empty(nb2))
 	if nb2 != null:
 		await _first_valid(nb2, "M2")
 	_sections_done += 1
