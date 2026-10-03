@@ -19,6 +19,11 @@ extends Node
 ## verilir (dar test dikişi — gizli molanın düğmesine dokunuş artık hiçbir şey yapmaz). Nesil kontrolleri, fırlatma
 ## ertelemesi ve eski geri çağrı bastırması aynen sınanır; mola kapanışının kendisi `round_finish_modal_test`'te.
 ##
+## TASK/051 (round başlangıcında dokunuş sahipliği): `_start_level` mevcut 300 ms parmak yatışmasını kurar — yeniden
+## başlatma / TEKRAR / Harita başlangıcından sonraki 300 ms içinde BAŞLAYAN parmak dizisi Main'de yutulur. Bu suite
+## yatışmayı değil round sahipliğini sınar: gerçek Büyütücü hedef basışı (`_fire_upgrade`) pencere bitince başlar (cihaz
+## harness'ının `t48_up`'ı ile aynı bekleme); G / H'de B'nin kesinleşmesi yine A'nın gecikmesi içinde kalır (kontrol eder).
+##
 ## Zaman: "gecikmeden sonra" denetimleri Main'in KENDİ saatine bağlıdır — her izlenen bitişte (round_finished
 ## yayımında, Main'in zamanlayıcısından hemen SONRA) aynı süreli bir SceneTree zamanlayıcısı kurulur; o
 ## dolduğunda Main'in gecikmeli kodu aynı karede zaten çalışmıştır (duvar saati / kare süresi farkı yok).
@@ -1326,7 +1331,12 @@ func _piece(board: Node2D, tier: int = -1, frames: int = 8) -> Dumpling:
 
 ## Büyütücü: güç düğmesi (`real_button`: GERÇEK dokunuş, yoksa PowerBar sinyali — GameBoard'un gerçek bağlantısı)
 ## + hedefe GERÇEK parmak basışı (dönüşüm basışta başlar, 0,15 sn anticipation sonra tamamlanır).
+## TASK/051: round başlangıcı (`_start_level` — yeniden başlatma / TEKRAR / Harita) mevcut 300 ms parmak yatışmasını
+## kurar; o pencerede BAŞLAYAN parmak dizisi Main'de yutulur. Bu suite yatışmayı değil round sahipliğini sınar: gerçek
+## dokunuşlar pencere bitince başlar (cihaz harness'ının `t48_up`'ı ile aynı bekleme).
 func _fire_upgrade(board: Node2D, piece: Dumpling, real_button: bool = false) -> void:
+	while Time.get_ticks_msec() < int(_main.get("_touch_settle_until")):
+		await get_tree().process_frame
 	if real_button:
 		await _finger_tap(_center(board._power_bar.slot(int(PowerUp.Type.UPGRADE))))
 	else:
