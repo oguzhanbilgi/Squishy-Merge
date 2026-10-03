@@ -112,10 +112,10 @@ kaldı; skinler asla reklam/paraya bağlı değil.
 > çalışır. Yönetici politikası AYNEN (onay zaman aşımı 5 sn, öne dönüş payı 3 sn, 60 sn bekleme, 900 sn uygunluk).
 > Sınır: SDK yönetici vazgeçtikten SONRA reklamı yine açarsa (sözleşme dışı) geç reklam o anki durumu örtebilir.
 
-> **TASK/049 (dalda — `task/049-round-finish-modal-ownership`, READY FOR OWNER REVIEW, main'de DEĞİL) — round bitişi
-> pencere sahipliği:** yeni yerleşim / politika DEĞİL. Round mola (ya da stok 0 refill penceresi) açıkken meşru
-> biçimde biterse (Büyütücü dönüşümü özel board dondurmasında da tamamlanır) Main kesinleşmede — round'un ilerlemesi
-> yazıldıktan sonra, RESULT_DELAY'den önce — molayı / refill penceresini eylemsiz kapatır; geçerli geçiş reklamı ve
+> **TASK/049 (main'de, `f6cd072`) — round bitişi pencere sahipliği:** yeni yerleşim / politika DEĞİL. Normal round
+> mola (ya da stok 0 refill penceresi) açıkken meşru biçimde biterse (Büyütücü dönüşümü özel board dondurmasında da
+> tamamlanır) Main kesinleşmede — round'un ilerlemesi yazıldıktan sonra, RESULT_DELAY'den önce — molayı / refill
+> penceresini eylemsiz kapatır; geçerli geçiş reklamı ve
 > ardından sonuç artık eski pencerenin ALTINDA açılmaz, mola reklamdan sonra geri gelmez. Refill penceresinin
 > kapanması bekleyen bir ödüllü refill talebini iptal etmez / ödüllendirmez (kendi token yolu sürer). Reklam yolu
 > (`try_show_interstitial`, uygunluk, 60 sn / 900 sn, yaş / rıza) ve TASK/048 sahipliği (nesil, `_round_break_generation`,

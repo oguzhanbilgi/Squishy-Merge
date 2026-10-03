@@ -80,23 +80,23 @@ owner onayıyla ff-only alındı `848797a → b9ae345`):** mola açıkken biten 
 (yeniden başlatma / Ana Menüye Dön → başka level / Sonsuz / meydan okuma) eski sonuç ve geçiş reklamı artık açılmaz —
 bellek içi round nesli (`_clear_board`'da ilerler) gecikmeden önce yakalanır, sonra doğrulanır; son engel (geçiş
 reklamı fırlatma aralığı) de kapatıldı — reklam SDK'ya verildikten sonra round değişimi mola bitene dek ertelenir;
-süre, ilerleme, reklam politikası ve TASK/047 aynen (§4.28). **TASK/049 (2026-10-03, dalda — round bitişi pencere
-sahipliği; masaüstü + Samsung A36 yerel kapısı GEÇTİ, cihaz bulgusu yok; final kabul GEÇTİ — kontrollü kanonik tam
-masaüstü kapısı 44 / 44 temiz; READY FOR OWNER REVIEW, main'e alınması owner onayı bekliyor):** Büyütücü dönüşümü
-molanın (ya da stok 0 refill penceresinin) altında round'u bitirince sonuç ve geçiş reklamı artık o pencerenin altında
-açılmaz — kesinleşmede (ilerleme yazıldıktan sonra, 0,8 sn beklemeden önce)
-mola / refill eylemsiz kapanır, board menü duraklamasından çıkar, kapalı mola hiçbir eylem yaymaz; RESULT_DELAY,
-ilerleme, kayıt şeması, reklam politikası, TASK/048 savunması ve TASK/047 aynen (§4.29). Sonraki ürün / stabilizasyon
-görevi owner seçimi.
+süre, ilerleme, reklam politikası ve TASK/047 aynen (§4.28). **TASK/049 (2026-10-03; main'de — round bitişi pencere
+sahipliği; masaüstü + Samsung A36 kapıları + final kabul GEÇTİ — kontrollü kanonik tam masaüstü kapısı 44 / 44 temiz;
+owner onayıyla ff-only alındı `25860df → f6cd072`):** Büyütücü dönüşümü molanın (ya da stok 0 refill penceresinin)
+altında normal round'u bitirince sonuç ve geçiş reklamı artık o pencerenin altında açılmaz — kesinleşmede (ilerleme
+yazıldıktan sonra, 0,8 sn beklemeden önce) mola / refill eylemsiz kapanır, board menü duraklamasından çıkar, kapalı
+mola hiçbir eylem yaymaz; RESULT_DELAY, ilerleme, kayıt şeması, reklam politikası, TASK/048 savunması ve TASK/047
+aynen (§4.29). Sonraki ürün / stabilizasyon görevi owner seçimi (TASK/050 tanımlanmadı).
 Release izi ayrı. Sırada: içerik derecesi + yargı bölgesi kararları + 13+ seçici uyum riski (owner) → gizlilik
 politikası → upload anahtarı → gerçek AdMob kimlikleri → mağaza varlıkları / Play Console,
 sonra ilk imzalı üretim AAB'si ve M10 (Play kapalı test) ·
-**Branch / main:** `task/049-round-finish-modal-ownership` (main `25860df`'den: `8a204bd` düzeltme · `acfb28e`
-test · `6a17162` TASK/048 suite uyarlaması · `7f46272` sağlamlaştırma · `4649ae7` + `6d247c7` test · `db4564f`
-doküman / A36 kaydı · final kabul kaydı; A36 GEÇTİ + final kabul GEÇTİ 2026-10-03) — dalda, READY FOR OWNER REVIEW,
-main'e alınması owner onayı bekliyor, merge EDİLMEDİ ·
-`main` == origin/main == `25860df` (`b9ae345` üstünde yalnız TASK/048 doküman eşitlemesi) — TASK/048
-`task/048-result-delay-race-guard` (main
+**Branch / main:** `main` == origin/main == `f6cd072` — TASK/049 `task/049-round-finish-modal-ownership` (main
+`25860df`'den, 8 commit: `8a204bd` düzeltme · `acfb28e` test · `6a17162` TASK/048 suite uyarlaması · `7f46272`
+sağlamlaştırma · `4649ae7` + `6d247c7` test · `db4564f` doküman / A36 kaydı (kapılardan geçen üretim adayı) ·
+`f6cd072` final kabul kaydı (yalnız doküman); A36 GEÇTİ + final kabul GEÇTİ 2026-10-03) owner onayıyla ff-only entegre
+(`25860df → f6cd072`, 2026-10-03; merge commit / rebase / squash / cherry-pick / force push yok; dal duruyor, son
+incelenen HEAD `f6cd072`) · önce TASK/048 doküman eşitlemesi `docs/048-main-sync` owner onayıyla ff-only (`b9ae345 →
+25860df`, 2026-10-03; merge commit yok; dal duruyor) · önce TASK/048 `task/048-result-delay-race-guard` (main
 `848797a`'dan, 11 commit: `c58c88d` düzeltme · `9ab9917` test · `83dc208` nesil sırası · `2592a1b` test
 sağlamlaştırma · `0f6996d` doküman / A36 kaydı · son engel `3633d6a` düzeltme · `8157b56` + `f5d005a` + `1b5b300`
 test · `441a114` yorum · `b9ae345` doküman / hedefli A36 kaydı; A36 GEÇTİ 2026-10-02) owner onayıyla ff-only entegre
@@ -2521,9 +2521,10 @@ formatına yalnız `haptics_enabled` (varsayılan true) eklendi. Ayrıntı ve
   `TOUCH_SETTLE_MSEC = 300`; TASK/046.2 `elif not touch.canceled:`; tutorial; reklam / yaş / rıza; kayıt şeması;
   TASK/047 meydan okuma (7 preset, dizi, +20, tekrar yok, güç / devam yok, yalıtım, monoton gün, geçiş reklamı yok,
   kendi eski sonuç koruması). Görsel değişiklik YOK (yalnız davranış).
-- **Kayda geçen, DÜZELTİLMEYEN (inceleme LOW — mola davranışı kilitli, owner kararı):** (1) mola açıkken bitip
+- **Kayda geçen, DÜZELTİLMEYEN (inceleme LOW — mola davranışı kilitli, owner kararı):** ~~(1) mola açıkken bitip
   DEĞİŞTİRİLMEYEN round'un geçerli sonucu açık molanın (katman 12) ALTINDA (katman 10) açılır; o durumda Android
-  GERİ `_result.visible` dalında yutulur — DEVAM ET / X / karartma çözer (önceden var olan); ~~(2) geçiş reklamı
+  GERİ `_result.visible` dalında yutulur — DEVAM ET / X / karartma çözer (önceden var olan)~~ → **TASK/049 ile
+  kapatıldı — main'de `f6cd072`, §4.29**; ~~(2) geçiş reklamı
   açılış aralığında molanın "Yeniden Başlat" / "Ana Menüye Dön"ü reklamı yeni durumun üstünde bırakabilir~~ → **son
   engelde KAPATILDI** (yukarıda); (3) `_start_level` 300 ms parmak yatışması kurmaz: "Yeniden Başlat" / TEKRAR /
   Harita kartına hızlı çift dokunuşun ikincisi yeni round'a parça düşürebilir (önceden var olan; ertelenen yeniden
@@ -2533,17 +2534,23 @@ formatına yalnız `haptics_enabled` (varsayılan true) eklendi. Ayrıntı ve
   / Ana Menüye Dön'ü ertelemede kalır; ertelenen değişim sürerken HUD Ayarlar açılırsa yeni round Ayarlar'ın altında
   başlar (görsel); QA komutları `abandon` / `leave` da mola sürerken ertelenir (cihaz harness'i notu). Öneri:
   kesinleşmede mola / refill'i kapatmak (§4.24 önerisinin ikinci yarısı — yarışı kaynağında da kapatır) +
-  `_start_level`'da yatışma — ayrı görev. *(İlk yarısı → TASK/049 dalında yapıldı, §4.29; `_start_level` yatışması
-  açık.)* Ayrı kalan, açık: basılı Koleksiyon kartı + GERİ sentetik bırakışı; genel
+  `_start_level`'da yatışma — ayrı görev. *(İlk yarısı → TASK/049 ile yapıldı — main'de `f6cd072`, §4.29;
+  `_start_level` yatışması açık.)* Ayrı kalan, açık: basılı Koleksiyon kartı + GERİ sentetik bırakışı; genel
   GUI ACTION_CANCEL (modal / karartma, Sarsıntı düğmesi); T5 hedef kartı kırpması "Büyük Dumpl…".
 
 ### 4.29 Round bitişi pencere sahipliği (TASK/049)
 
-> **Dalda — READY FOR OWNER REVIEW, main'e ALINMADI** (`task/049-round-finish-modal-ownership`, main `25860df`'den;
-> main DEĞİŞMEDİ, merge edilmedi; main'e alınması owner onayı bekliyor). Zincir: `8a204bd` düzeltme · `acfb28e` yeni
-> suite · `6a17162` TASK/048 suite uyarlaması · `7f46272` inceleme sağlamlaştırması (kapalı mola eylem yaymaz; kapanış
-> ilerleme yazıldıktan sonra) · `4649ae7` test sağlamlaştırması · `6d247c7` test sağlamlığı · `db4564f` doküman / A36
-> kaydı · final kabul kaydı (yalnız doküman; aşağıda "Final kabul kapısı").
+> **✅ TAMAM, main'de** — owner onayıyla ff-only `25860df → f6cd072` (2026-10-03; merge commit / rebase / squash /
+> cherry-pick / force push yok; dal `task/049-round-finish-modal-ownership` duruyor, son incelenen HEAD `f6cd072`).
+> Zincir (main `25860df`'den, 8 commit): `8a204bd` düzeltme · `acfb28e` yeni suite · `6a17162` TASK/048 suite
+> uyarlaması · `7f46272` inceleme sağlamlaştırması (kapalı mola eylem yaymaz; kapanış ilerleme yazıldıktan sonra) ·
+> `4649ae7` test sağlamlaştırması · `6d247c7` test sağlamlığı · `db4564f` doküman / A36 kaydı (kapılardan geçen üretim
+> adayı) · `f6cd072` final kabul kaydı (yalnız doküman; aşağıda "Final kabul kapısı"). Entegrasyondan ÖNCE tamamlanan
+> doğrulama: odak 164 / 164 (TASK/049) + 197 / 197 (TASK/048), mutasyon 37 / 37 (20 TASK/049 + 17 TASK/048), fark
+> testi settings_input / gameplay_shell / progression_ui aday 5 / 5 = taban 5 / 5 temiz, kontrollü kanonik tam
+> masaüstü kapısı (`db4564f`) 44 / 44 temiz — 5622 kontrol, 0 hata, 0 SCRIPT ERROR, bot 2/2 — ve Samsung A36 kapısı
+> GEÇTİ (aşağıda). Entegrasyon ve doküman eşitlemesi sırasında hiçbir kapı yeniden koşulmadı. Aşağıdaki maddeler dal
+> aşamasında yazıldı (tarihsel); güncel açık maddeler PROJECT_CONTEXT → Next action'da.
 
 - **Eski hata (§4.28'in "Kayda geçen" (1)'i):** Büyütücü dönüşümü board'a bağlı bir tween'dir (0,15 sn anticipation);
   mola ve stok 0 refill dondurması ağaç duraklatması DEĞİL, özel board dondurmasıdır — tween sürer. Dönüşüm başlar,
@@ -3424,14 +3431,15 @@ Owner'ın yapacağı / onaylayacağı:)*
   fırlatma aralığı) → ✅ **main'de** (§4.28; masaüstü + Samsung A36 kapıları GEÇTİ; owner onayıyla ff-only `848797a →
   b9ae345`, 2026-10-02; dal `task/048-result-delay-race-guard` duruyor).
 - **TASK/049** — round bitişi pencere sahipliği (mola / stok 0 refill penceresi kesinleşmede eylemsiz kapanır; sonuç
-  ve geçiş reklamı artık onların altında açılmaz) → **dalda, READY FOR OWNER REVIEW** (§4.29; masaüstü + Samsung A36
-  kapıları + final kabul GEÇTİ — kontrollü kanonik tam masaüstü kapısı 44 / 44 temiz;
-  `task/049-round-finish-modal-ownership`, main `25860df`'den; main'e alınması owner onayı bekliyor).
-- **Sıradaki görev:** owner seçer. Açık, ayrı maddeler — ~~mola altında açılan sonuç~~ *(→ TASK/049 dalında, §4.29)* ·
-  `_start_level` yatışması / çift dokunuş / basılı parmak · hiç bitmeyen molada molanın çıkış kapısı · erteleme
-  sürerken Ayarlar (görsel) — §4.28; Koleksiyon kartı + GERİ · genel GUI ACTION_CANCEL · T5 hedef kartı kırpması —
-  §4.26 / §4.27; + ayrı, önceden var olan gözlem: meydan okumanın aynı karede merge ile molada bitmesi (§4.29;
-  `25860df`'de de var; TASK/047 donuk) — kendiliğinden sıradaki görev seçilmez.
+  ve geçiş reklamı artık onların altında açılmaz) → ✅ **main'de** (§4.29; masaüstü + Samsung A36 kapıları + final
+  kabul GEÇTİ — kontrollü kanonik tam masaüstü kapısı 44 / 44 temiz; owner onayıyla ff-only `25860df → f6cd072`,
+  2026-10-03; dal `task/049-round-finish-modal-ownership` duruyor).
+- **Sıradaki görev:** owner seçer (TASK/050 tanımlanmadı). Açık, ayrı maddeler — `_start_level` yatışması / çift
+  dokunuş / basılı parmak · hiç bitmeyen tam ekran reklam molasında çıkış kapısı · erteleme ya da sonuç / reklam
+  beklemesinde Ayarlar (görsel; sonucun üstünde kalır) — §4.28 / §4.29; Koleksiyon kartı + GERİ · genel GUI
+  ACTION_CANCEL · T5 hedef kartı kırpması — §4.26 / §4.27; meydan okumanın aynı karede merge ile molada bitmesi
+  (ÖNCEDEN VAR OLAN / AYRI — `25860df`'de de var; TASK/047 donuk) — §4.29 — kendiliğinden sıradaki görev seçilmez.
+  *(Mola üstünde sonuç → TASK/049 ile kapatıldı — main'de `f6cd072`.)*
 - ~~**Kararlılık (öneri — TASK/045 engeli değil):** atomik kayıt (`save_game()` yerinde kesip
   yazıyor; geçici dosya + yedekten kurtarma) · güç hedefleme bırakış-düşürme (Büyütücü ve
   Bomba hedef dokunuşunun bırakışı bekleyen parçayı da düşürebilir) · Koleksiyon detayı
