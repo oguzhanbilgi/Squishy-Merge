@@ -14,7 +14,8 @@ extends CanvasLayer
 ## Eylemler, terk davranışı, geri tuşu = devam, karartma dokunuşu = devam
 ## DEĞİŞMEDİ; onay penceresi eklenmedi (owner kararı).
 ## TASK/049: round açık molanın altında kesinleşirse Main pencereyi EYLEMSİZ
-## kapatır (`close_menu` — hiçbir eylem sinyali yayılmaz).
+## kapatır (`close_menu` — hiçbir eylem sinyali yayılmaz); kapalı pencerenin
+## düğmeleri / karartması da eylem yaymaz (`_emit_if_open`).
 
 signal resume_pressed
 signal restart_pressed
@@ -41,25 +42,31 @@ func _ready() -> void:
 	footer.add_child(top_gap)
 	_resume = UiKit.cta("DEVAM ET", "", &"ButtonCTA", "play")
 	_resume.name = "Resume"
-	_resume.pressed.connect(func() -> void: resume_pressed.emit())
+	_resume.pressed.connect(_emit_if_open.bind(resume_pressed))
 	footer.add_child(_resume)
 	_restart = UiKit.button("Yeniden Başlat", &"ButtonSecondary", "refresh")
 	_restart.name = "Restart"
-	_restart.pressed.connect(func() -> void: restart_pressed.emit())
+	_restart.pressed.connect(_emit_if_open.bind(restart_pressed))
 	footer.add_child(_restart)
 	footer.add_child(UiKit.settings_divider())
 	_exit = UiKit.button("Ana Menüye Dön", &"ButtonDanger", "home")
 	_exit.name = "Exit"
-	_exit.pressed.connect(func() -> void: exit_pressed.emit())
+	_exit.pressed.connect(_emit_if_open.bind(exit_pressed))
 	footer.add_child(_exit)
-	(_frame.get_meta(&"close_button") as Button).pressed.connect(func() -> void: resume_pressed.emit())
-	# TASK/049: KAPALI pencerenin karartması eylem yaymaz. Round bitince Main molayı eylemsiz kapatır; Godot gizlenen
-	# karartmanın parmak odağını düşürmez — karartmada basılı kalan parmağın bırakışı yine buraya gelip "Devam Et"
-	# sayılırdı (düğmeler gizlemede ve sonrasında tetiklenmiyor — masaüstü 4.6.3 sondası).
-	UiKit.attach_dim_close(_dim, func() -> void:
-		if visible:
-			resume_pressed.emit())
+	(_frame.get_meta(&"close_button") as Button).pressed.connect(_emit_if_open.bind(resume_pressed))
+	UiKit.attach_dim_close(_dim, _emit_if_open.bind(resume_pressed))
 	UiKit.modal_relayout(_frame)
+
+
+## TASK/049: KAPALI pencere hiçbir eylem YAYMAZ — üç düğme, X ve karartma bu kapıdan geçer. Round açık molanın
+## altında kesinleşince Main molayı eylemsiz kapatır (`close_menu`); gizleme anında Godot odaklı düğmeye sentetik
+## bırakış yollar ve son girdi olayı "işlendi" değilse (ör. GERİ tuşu, başka bir parmak / aygıt) BaseButton onu
+## tıklama sayar — masaüstü 4.6.3 sondasında üç düğme de gizlemede tetiklendi (A36'daki basılı Koleksiyon kartı +
+## GERİ ile aynı motor yolu); gizlenen karartma ise parmak odağını düşürmez, basılı parmağın bırakışı sonradan ona
+## gelir. Gizleme yayılırken `visible` zaten false.
+func _emit_if_open(action: Signal) -> void:
+	if visible:
+		action.emit()
 
 
 func open_menu() -> void:

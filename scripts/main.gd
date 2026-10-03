@@ -160,7 +160,7 @@ var _round_generation: int = 0
 ## yöneticinin vazgeçmesinden SONRA reklamı yine de açarsa (sözleşme dışı) o geç reklam o anki durumu örtebilir.
 var _round_break_generation: int = -1
 ## Mola sürerken basılan round değişimi (mola "Yeniden Başlat" / "Ana Menüye Dön") — molanın sonunda eski
-## sonucun YERİNE çalışır.
+## sonucun YERİNE çalışır. TASK/049'dan beri mola penceresi kesinleşmede kapanır: savunma (bkz. `_defer_round_change`).
 var _deferred_round_change: Callable = Callable()
 ## --- Günlük meydan okuma (TASK/047 — GAME_DESIGN §5.11) ---
 ## Round türü AÇIK tutulur: board'un hangi akışa ait olduğu meydan okumanın level numarasından
@@ -1693,9 +1693,6 @@ func _on_round_finished(won: bool) -> void:
 	# Round gerçekten bitti: teklif penceresi her hâlükârda kapanır (kazanma
 	# fail-pending sırasında da gerçekleşebiliyor).
 	_revive.hide_offer()
-	# TASK/049: kabul edilen bitiş ekranın sahibi — bu round'un mola / refill penceresi sonuç ve geçiş reklamı
-	# akışının üstünde kalmaz (gecikmeden ÖNCE, eylemsiz).
-	_dismiss_terminal_gameplay_overlays()
 
 	# Savunma (M8.10): tutorial hâlâ açıkken round biterse (Level 1 hedefi
 	# tier 4 olduğu için öğretim merge'i round'u BİTİREMEZ — bu, taşma gibi
@@ -1753,6 +1750,10 @@ func _on_round_finished(won: bool) -> void:
 		achievements_before, SaveManager.unlocked_achievements())
 	# TASK/046: aynı şeritte kompakt görev satırı — bu round'da tamamlanan görevler + Hamur'u.
 	progress["missions"] = missions
+	# TASK/049: kabul edilen bitiş ekranın sahibi — bu round'un mola / refill penceresi sonuç ve geçiş reklamı
+	# akışının üstünde kalmaz: gecikmeden ÖNCE, eylemsiz ve round'un ilerlemesi yazıldıktan SONRA (kapanış,
+	# round'un kazandığını hiçbir yoldan etkileyemez).
+	_dismiss_terminal_gameplay_overlays()
 
 	await get_tree().create_timer(RESULT_DELAY).timeout
 	# TASK/048: gecikmede round değiştirildiyse (yeniden başlatma / terk / yeni round / başka kip) eski
