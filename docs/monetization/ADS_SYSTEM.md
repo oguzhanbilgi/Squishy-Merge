@@ -122,6 +122,13 @@ kaldı; skinler asla reklam/paraya bağlı değil.
 > erteleme) AYNEN — mola artık kesinleşmeden sağ çıkmadığından erteleme savunma olarak durur. Samsung A36'da gerçek
 > Google TEST geçiş reklamıyla doğrulandı (PROJECT_STATUS §4.29).
 
+> **TASK/050 (dalda, READY FOR OWNER REVIEW — main'e alınmadı) — meydan okuma bitişi pencere sahipliği:** yeni
+> yerleşim / politika DEĞİL. Aynı karede merge meydan okumayı açık molada bitirirse mola kesinleşmede (ödül /
+> tamamlanma işleminden sonra, RESULT_DELAY'den önce) TASK/049'un temizliğiyle eylemsiz kapanır. Meydan okuma yine
+> geçiş reklamı DENEMEZ, ödüllü istek yok (TASK/047 aynen); Samsung A36'da Google TEST geçiş reklamı hazır + uygunken
+> meydan okuma bitişlerinde sıfır geçiş reklamı olayı, banner kuralı (GAMEPLAY / sonuçta gizli) aynen; normal round
+> geçiş reklamı yolu (TASK/049) değişmedi (PROJECT_STATUS §4.30).
+
 ## 2. Seçilen eklenti ve SDK sürümleri (araştırma 2026-09-21)
 
 > **Güncel (TASK/042, 2026-09-27, main'de):** GMA **25.3.0** /
