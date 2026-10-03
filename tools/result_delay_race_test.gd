@@ -8,9 +8,16 @@ extends Node
 ##
 ## Yarışın üretim yolu (PROJECT_STATUS §4.24): Büyütücü dönüşümü board'a bağlı bir tween'dir ve mola
 ## dondurmasında da tamamlanır — mola açıkken hedefe ulaşan dönüşüm round'u bitirir, sonuç RESULT_DELAY
-## (0,8 sn) sonra açılır; bu arada açık molanın "Yeniden Başlat" / "Ana Menüye Dön"ü round'u değiştirir.
+## (0,8 sn) sonra açılır; bu arada açık molanın "Yeniden Başlat" / "Ana Menüye Dön"ü round'u değiştirirdi.
 ## Kayıp / Sonsuz bitişi molada OLUŞAMAZ (taşma sayacı donukken ilerlemez; bitişten sonra mola açılmaz)
 ## — o yollar aynı üretim işleyicisiyle (mola Yeniden Başlat işleyicisi, QA kancası) sınanır.
+##
+## TASK/049 (round bitişi pencere sahipliği): kabul edilen bitiş açık molayı EYLEMSİZ kapatır ve bitişten sonra
+## mola açılmaz — üretimde gecikme / fırlatma aralığında round'u değiştiren bir dokunuş yolu KALMADI. Bu suite
+## TASK/048 sahipliğini SAVUNMA olarak korur: bitiş yine mola açıkken (gerçek yol) üretilir, round değişimi ise
+## molanın AYNI üretim işleyicilerine (`_on_pause_restart` / `abandon_run` / `resume_game`) molanın kendi sinyaliyle
+## verilir (dar test dikişi — gizli molanın düğmesine dokunuş artık hiçbir şey yapmaz). Nesil kontrolleri, fırlatma
+## ertelemesi ve eski geri çağrı bastırması aynen sınanır; mola kapanışının kendisi `round_finish_modal_test`'te.
 ##
 ## Zaman: "gecikmeden sonra" denetimleri Main'in KENDİ saatine bağlıdır — her izlenen bitişte (round_finished
 ## yayımında, Main'in zamanlayıcısından hemen SONRA) aynı süreli bir SceneTree zamanlayıcısı kurulur; o
@@ -19,10 +26,10 @@ extends Node
 ## Bölümler:
 ##   A geçerli    değiştirilmeyen kazanma / kayıp: ilerleme bir kez, sonuç gecikmeden sonra TAM bir kez;
 ##                gecikme içinde arka plan + öne dönüş round'u değiştirmez
-##   B yeniden    GERÇEK dokunuş: Büyütücü düğmesi + hedef + HUD geri (mola) + "Yeniden Başlat" gecikme
-##                içinde → eski sonuç açılmaz, dokunuş yeni board'a sızmaz, yeni board örtülmez, dokunuş
-##                alır, kendi sonucunu sonra açar
-##   C Ana Sayfa  gerçek "Ana Menüye Dön" + Android geri → Ana Sayfa'da sonuç / geçiş reklamı yok
+##   B yeniden    GERÇEK dokunuşla kesinleşme: Büyütücü düğmesi + hedef + HUD geri (mola) dönüşüm sırasında;
+##                mola bitişte kapanır (TASK/049) → gecikme içinde molanın "Yeniden Başlat" üretim işleyicisi →
+##                eski sonuç açılmaz, yeni board örtülmez, gerçek dokunuş alır, kendi sonucunu sonra açar
+##   C Ana Sayfa  "Ana Menüye Dön" üretim işleyicisi + Android geri → Ana Sayfa'da sonuç / geçiş reklamı yok
 ##   D level      gecikme içinde Harita'dan başka sabit level → eski sonuç bastırılır
 ##   E sonsuz     gecikme içinde Sonsuz → eski sonuç bastırılır
 ##   F meydan     gecikme içinde meydan okuma → eski normal sonuç (reklamsız — üretimin olağan durumu) ve
@@ -39,11 +46,11 @@ extends Node
 ##   N reklam     geçerli normal sonuç geçiş reklamı yolu aynen (arka plan / öne dönüş dahil); eski round
 ##                reklam DENEMEZ; reklam açıkken ertelenmeyen yoldan değiştirilen round'un sonucu kapanışta /
 ##                gösterim hatasında açılmaz ve yönetici temiz kalır; meydan okuma hiç denemez
-##   P fırlatma   sahiplik doğrulandı, reklam SDK'ya VERİLDİ, tam ekran henüz açılmadı: açık molanın GERÇEK
-##                Devam Et / Yeniden Başlat / Ana Menüye Dön dokunuşu — reklam yalnız onu isteyen round
-##                ekranın sahibiyken açılır; round değişimi molanın sonunda (kapanış / gösterim hatası / onay
-##                zaman aşımı / öne dönüş payı) eski sonucun YERİNE; yeni round'un reklamı + sonucu aynen,
-##                meydan okuma hiç denemez, ilerleme bir kez
+##   P fırlatma   sahiplik doğrulandı, reklam SDK'ya VERİLDİ, tam ekran henüz açılmadı: molanın Devam Et /
+##                Yeniden Başlat / Ana Menüye Dön üretim işleyicisi (molanın sinyali — TASK/049'dan beri dokunuş
+##                yolu yok) — reklam yalnız onu isteyen round ekranın sahibiyken açılır; round değişimi molanın
+##                sonunda (kapanış / gösterim hatası / onay zaman aşımı / öne dönüş payı) eski sonucun YERİNE;
+##                yeni round'un reklamı + sonucu aynen, meydan okuma hiç denemez, ilerleme bir kez
 ##   O kaynak     RESULT_DELAY 0,8 / 300 ms / iptal koruması aynen; nesil tek noktada; kayıt şeması aynı
 
 const MAIN_SCENE: PackedScene = preload("res://scenes/main.tscn")
@@ -213,7 +220,7 @@ func _valid_results() -> void:
 # --- B) Gerçek dokunuşla yeniden başlatma ------------------------------------------------------------------
 
 func _restart_real_input() -> void:
-	print("-- B: GERÇEK dokunuş — Büyütücü düğmesi + hedef + HUD geri (mola) + 'Yeniden Başlat' gecikme içinde")
+	print("-- B: GERÇEK dokunuşla kesinleşme (Büyütücü düğmesi + hedef + HUD geri) → gecikme içinde 'Yeniden Başlat' işleyicisi")
 	await _fresh()
 	var board: Node2D = null
 	var ok: bool = false
@@ -230,19 +237,21 @@ func _restart_real_input() -> void:
 		ok = await _finish_under_pause(board, true)
 	var timer: SceneTreeTimer = _last_timer
 	_c("kurulum (gerçek dokunuş, %d deneme): Büyütücü düğmesi + hedefe basış, HUD geri molayı bitişten ÖNCE açtı, " % attempts
-		+ "dönüşüm round'u molada bitirdi, mola açık", ok)
+		+ "dönüşüm round'u molada bitirdi", ok)
 	if not ok:
 		_sections_done += 1
 		return
+	_c("  … TASK/049: kabul edilen bitiş molayı kapattı — gecikmede round'u değiştiren dokunuş yolu yok; değişim aşağıda "
+		+ "molanın AYNI üretim işleyicisiyle (dar test dikişi)", not _main.is_pause_open() and not _main._result.visible)
 	var seq: int = _main._result_seq
 	var rounds: int = _rounds()
 	var board_id: int = board.get_instance_id()
 	await _wait_until(_pause_msec + 350)
-	var replacement: Node2D = await _restart_via_pause(true)
-	_c("gerçek 'Yeniden Başlat' dokunuşu gecikme İÇİNDE yeni board kurdu (bitişten %d ms; Main'in gecikmesinden %.2f sn kalmıştı)"
-		% [_replace_msec - _finish_msec, _replace_left], _differs(replacement, board_id) and _replace_left > 0.0
-		and not _main._result.visible)
-	_c("  … yeniden başlatma dokunuşu yeni board'a sızmadı (yeni board boş — bırakış yok)", replacement != null
+	var replacement: Node2D = await _restart_via_pause()
+	_c("molanın 'Yeniden Başlat' üretim işleyicisi gecikme İÇİNDE yeni board kurdu (bitişten %d ms; Main'in gecikmesinden "
+		% (_replace_msec - _finish_msec) + "%.2f sn kalmıştı)" % _replace_left, _differs(replacement, board_id)
+		and _replace_left > 0.0 and not _main._result.visible)
+	_c("  … yeni board boş (eski round'dan bırakış sızmadı)", replacement != null
 		and replacement.live_dumplings().is_empty())
 	await _after(timer)
 	_c("eski round'un gecikmesi doldu: ESKİ sonuç yeni round'un üstüne AÇILMADI", not _main._result.visible
@@ -267,7 +276,7 @@ func _restart_real_input() -> void:
 # --- C) Ana Sayfa ----------------------------------------------------------------------------------------
 
 func _home() -> void:
-	print("-- C: gerçek 'Ana Menüye Dön' + Android geri gecikme içinde — Ana Sayfa'da sonuç / reklam yok")
+	print("-- C: 'Ana Menüye Dön' işleyicisi + Android geri gecikme içinde — Ana Sayfa'da sonuç / reklam yok")
 	await _fresh(true)
 	var ads: MonetizationManager = _main._ads
 	var fake: FakeAdBackend = ads._backend
@@ -280,10 +289,11 @@ func _home() -> void:
 	var shows: int = fake.interstitial_shows.size()
 	AdEvents.clear_recent()
 	await _wait_until(_pause_msec + 350)
-	await _finger_tap(_center(_main._pause.buttons()[2]))
+	# TASK/049: mola bitişte kapandı — aynı üretim işleyicisi (`abandon_run`) molanın kendi sinyaliyle.
+	_main._pause.exit_pressed.emit()
 	await _settle(2)
-	_c("kurulum: kazanma molada kesinleşti; gerçek 'Ana Menüye Dön' gecikme içinde board'u kaldırdı → Harita", ok
-		and _main._board == null and _main._active_tab == 1 and timer.time_left > 0.0)
+	_c("kurulum: kazanma molada kesinleşti; 'Ana Menüye Dön' üretim işleyicisi gecikme içinde board'u kaldırdı → Harita",
+		ok and _main._board == null and _main._active_tab == 1 and timer.time_left > 0.0)
 	await _back()
 	_c("  … Android geri → Ana Sayfa (gecikme hâlâ sürüyor)", _main._active_tab == 0 and _main._screens[0].visible
 		and timer.time_left > 0.0)
@@ -444,7 +454,7 @@ func _newer_beats_older() -> void:
 	var ta: SceneTreeTimer = _last_timer
 	var seq: int = _main._result_seq
 	var a_id: int = a.get_instance_id()
-	var b: Node2D = await _restart_via_pause(false)
+	var b: Node2D = await _restart_via_pause()
 	var b_new: bool = _differs(b, a_id)
 	await _finish_now(b, 4)
 	var tb: SceneTreeTimer = _last_timer
@@ -476,14 +486,14 @@ func _multiple_stale() -> void:
 	var ta: SceneTreeTimer = _last_timer
 	var seq: int = _main._result_seq
 	var a_id: int = a.get_instance_id()
-	var b: Node2D = await _restart_via_pause(false)
+	var b: Node2D = await _restart_via_pause()
 	var b_new: bool = _differs(b, a_id)
 	var ok_b: bool = false
 	if b_new:
 		ok_b = await _finish_under_pause(b, false, 4)
 	var tb: SceneTreeTimer = _last_timer
 	var b_id: int = b.get_instance_id() if b_new else 0
-	var c: Node2D = await _restart_via_pause(false)
+	var c: Node2D = await _restart_via_pause()
 	var c_new: bool = _differs(c, b_id)
 	_c("kurulum: A ve B molada kesinleşti, C ikisinin de gecikmesi içinde başladı (A'dan %.2f sn, B'den %.2f sn kalmıştı)"
 		% [ta.time_left, tb.time_left], ok_a and ok_b and b_new and c_new and tb != ta and ta.time_left > 0.0
@@ -571,7 +581,7 @@ func _first_clear(replace: bool) -> Dictionary:
 	var out: Dictionary = {"ok": ok, "s0": s0, "s1": SaveManager.data.duplicate(true), "d1": _bytes(), "replaced": false}
 	if replace:
 		var board_id: int = board.get_instance_id()
-		var next: Node2D = await _restart_via_pause(false)
+		var next: Node2D = await _restart_via_pause()
 		out["replaced"] = _differs(next, board_id) and _replace_left > 0.0
 		out["next"] = next
 		out["s2"] = SaveManager.data.duplicate(true)
@@ -824,7 +834,7 @@ func _ads() -> void:
 	var shows: int = fake.interstitial_shows.size()
 	AdEvents.clear_recent()
 	var board_id: int = board.get_instance_id()
-	var next: Node2D = await _restart_via_pause(false)
+	var next: Node2D = await _restart_via_pause()
 	var replaced: bool = _differs(next, board_id)
 	await _after(timer)
 	_c("eski round (gecikmede yeniden başlatıldı): geçiş reklamı DENEMEDİ, reklam uygun + hazır kaldı", ok
@@ -925,7 +935,7 @@ const LAUNCH_VARIANTS: Array[String] = ["istekten önce", "dokunuş yok", "devam
 
 
 func _launch_window() -> void:
-	print("-- P: fırlatma aralığı — reklam SDK'ya verildi, tam ekran henüz açılmadı: açık molanın gerçek dokunuşu")
+	print("-- P: fırlatma aralığı — reklam SDK'ya verildi, tam ekran henüz açılmadı: molanın üretim işleyicileri")
 	for variant: String in LAUNCH_VARIANTS:
 		await _launch_variant(variant)
 	_sections_done += 1
@@ -950,11 +960,11 @@ func _launch_variant(variant: String) -> void:
 	var restart: bool = variant.begins_with("yeniden")
 	var leave: bool = variant.begins_with("ana menüye")
 	if variant == "istekten önce":
-		# B — gecikme İÇİNDE (istekten önce) gerçek "Yeniden Başlat": sahiplik gecikmeden sonra düşer, istek gitmez.
+		# B — gecikme İÇİNDE (istekten önce) "Yeniden Başlat" işleyicisi: sahiplik gecikmeden sonra düşer, istek gitmez.
 		await _until_left(timer, 0.4)
-		var early: Node2D = await _restart_via_pause(true)
+		var early: Node2D = await _restart_via_pause()
 		await _after(timer)
-		_c("[B] istekten ÖNCE gerçek 'Yeniden Başlat' (gecikmeden %.2f sn kala): yeni board, reklam İSTENMEDİ, " % _replace_left
+		_c("[B] istekten ÖNCE 'Yeniden Başlat' işleyicisi (gecikmeden %.2f sn kala): yeni board, reklam İSTENMEDİ, " % _replace_left
 			+ "sonuç yok, reklam uygun + hazır kaldı", ok and _differs(early, board_id) and _replace_left > 0.0
 			and fake.interstitial_shows.size() == shows and not _main._result.visible and _shows == 0
 			and ads.interstitial_state() == MonetizationManager.InterstitialState.READY and ads.interstitial_eligible())
@@ -962,18 +972,18 @@ func _launch_variant(variant: String) -> void:
 	await _after(timer, 0)
 	var id: String = fake.interstitial_shows[-1] if fake.interstitial_shows.size() == shows + 1 else ""
 	_c("kurulum (%s): kazanma molada kesinleşti, gecikme doldu, sahiplik doğrulandı → reklam SDK'ya VERİLDİ; " % variant
-		+ "tam ekran henüz açılmadı, mola açık, sonuç yok", ok and id != "" and ads.break_pending()
-		and ads.interstitial_state() == MonetizationManager.InterstitialState.SHOWING and _main.is_pause_open()
+		+ "tam ekran henüz açılmadı, sonuç yok", ok and id != "" and ads.break_pending()
+		and ads.interstitial_state() == MonetizationManager.InterstitialState.SHOWING
 		and not _main._result.visible and _gen() == gen)
 	if id == "":
 		return
 	var button: int = 1 if restart else (2 if leave else 0)
 	var label: String = (["Devam Et", "Yeniden Başlat", "Ana Menüye Dön"] as Array[String])[button]
 	if variant != "dokunuş yok" and variant != "yeniden başlat · reklam kapanırken":
-		await _finger_tap(_center(_main._pause.buttons()[button]))
+		_pause_action(button)
 		await _settle(2)
-		_c("  … fırlatma aralığında gerçek '%s' dokunuşu: mola kapandı, round DEĞİŞMEDİ (%s) — gösterim geri " % [label,
-			_owner_note(board_id, gen)] + "alınamaz, sahiplik mola bitene dek sürer", not _main.is_pause_open()
+		_c("  … fırlatma aralığında molanın '%s' üretim işleyicisi: mola kapalı, round DEĞİŞMEDİ (%s) — gösterim geri " % [
+			label, _owner_note(board_id, gen)] + "alınamaz, sahiplik mola bitene dek sürer", not _main.is_pause_open()
 			and _owns(board_id, gen) and not _main._result.visible)
 	match variant:
 		"yeniden başlat · gösterim hatası":
@@ -992,9 +1002,9 @@ func _launch_variant(variant: String) -> void:
 			await _settle(2)
 			get_tree().root.propagate_notification(NOTIFICATION_APPLICATION_RESUMED)
 			await _settle(2)
-			await _finger_tap(_center(_main._pause.buttons()[1]))
+			_pause_action(1)
 			await _settle(2)
-			_c("  … [E] reklam kapanırken (öne dönüş; kapanış olayı henüz yok) gerçek 'Yeniden Başlat': round DEĞİŞMEDİ "
+			_c("  … [E] reklam kapanırken (öne dönüş; kapanış olayı henüz yok) 'Yeniden Başlat' işleyicisi: round DEĞİŞMEDİ "
 				+ "(%s), mola sürüyor" % _owner_note(board_id, gen), not _main.is_pause_open() and _owns(board_id, gen)
 				and ads.break_pending() and not _main._result.visible)
 			# Kapanış olayı hiç gelmez: yöneticinin öne dönüş payı molayı bitirir.
@@ -1017,14 +1027,14 @@ func _launch_variant(variant: String) -> void:
 			_owns(board_id, gen) and _main._result.visible and _main._result.mode() == _mode("WIN") and _shown_level() == 3
 			and _shows == 1 and _main._result_seq == seq + 2 and ads.surface() == MonetizationManager.Surface.RESULT)
 		if variant == "dokunuş yok":
-			# Mola bitti → reklam sahipliği serbest: sonucun üstünde hâlâ açık mola (bilinen LOW — değiştirilmedi) artık
-			# ertelemez; Yeniden Başlat HEMEN çalışır.
-			var open: bool = _main.is_pause_open()
-			await _finger_tap(_center(_main._pause.buttons()[1]))
+			# Mola bitti → reklam sahipliği serbest: "Yeniden Başlat" işleyicisi artık ertelenmez, HEMEN çalışır. (TASK/049
+			# öncesi bu, sonucun üstünde açık kalan molanın düğmesiydi — bilinen LOW; artık mola bitişte kapanır.)
+			var over_result: bool = _main.is_pause_open()
+			_pause_action(1)
 			await _settle(2)
-			_c("  … mola bittikten sonra sahiplik serbest: açık molanın gerçek 'Yeniden Başlat'ı ERTELENMEDEN çalıştı "
-				+ "(yeni board, sonuç kapandı)", open and _differs(_main._board, board_id) and not _main._result.visible
-				and not _main._round_finalized)
+			_c("  … mola bittikten sonra sahiplik serbest: 'Yeniden Başlat' işleyicisi ERTELENMEDEN çalıştı (yeni board, "
+				+ "sonuç kapandı); TASK/049: sonucun üstünde açık mola yoktu", not over_result
+				and _differs(_main._board, board_id) and not _main._result.visible and not _main._round_finalized)
 		return
 	_c("  … [D/E] ESKİ sonuç yeni durumun üstüne AÇILMADI (sunum hiç başlamadı)", not _main._result.visible
 		and _shows == 0 and _main._result_seq == seq + 1)
@@ -1327,7 +1337,8 @@ func _fire_upgrade(board: Node2D, piece: Dumpling, real_button: bool = false) ->
 
 ## Mola AÇIKKEN kazanma (üretim yolu): Büyütücü dönüşümü başlar, anticipation içinde mola açılır (gerçek
 ## HUD geri dokunuşu ya da mola işleyicisi), dönüşüm donmuş board'da tamamlanıp round'u bitirir.
-## Dönüş: kurulum doğru mu (mola bitişten ÖNCE açıldı, round bitti, mola hâlâ açık).
+## Dönüş: kurulum doğru mu (mola bitişten ÖNCE açıldı, round bitti). TASK/049'dan beri kabul edilen bitiş
+## molayı eylemsiz kapatır — sonraki round değişimi molanın üretim işleyicileriyle (`_pause_action`).
 func _finish_under_pause(board: Node2D, real: bool, frames: int = 8) -> bool:
 	var piece: Dumpling = await _piece(board, -1, frames)
 	_finish_msec = -1
@@ -1341,7 +1352,20 @@ func _finish_under_pause(board: Node2D, real: bool, frames: int = 8) -> bool:
 	var paused_first: bool = _main.is_pause_open() and not board.is_finished() and is_instance_valid(piece) \
 		and piece.is_merging
 	await _until_finished(board)
-	return paused_first and board.is_finished() and _main.is_pause_open() and _last_timer != timer_before
+	return paused_first and board.is_finished() and _last_timer != timer_before
+
+
+## Molanın düğme eylemi (0 Devam Et / 1 Yeniden Başlat / 2 Ana Menüye Dön) — molanın KENDİ sinyaliyle, Main'in aynı
+## üretim işleyicisine. TASK/049'dan beri mola bitişte kapalı: gizli düğmeye dokunuş hiçbir şey yapmaz, üretimde
+## bu aralıkta round'u değiştiren dokunuş yolu yok (dar test dikişi; QA kancaları da aynı işleyicileri çağırır).
+func _pause_action(button: int) -> void:
+	match button:
+		0:
+			_main._pause.resume_pressed.emit()
+		1:
+			_main._pause.restart_pressed.emit()
+		_:
+			_main._pause.exit_pressed.emit()
 
 
 ## Molasız kazanma: Büyütücü dönüşümü hedefe ulaşır.
@@ -1375,12 +1399,10 @@ func _loss(board: Node2D) -> void:
 	await _settle(1)
 
 
-func _restart_via_pause(real: bool) -> Node2D:
+## Molanın "Yeniden Başlat" üretim işleyicisi (molanın kendi sinyali — bkz. `_pause_action`); yeni board izlenir.
+func _restart_via_pause() -> Node2D:
 	var old_id: int = _main._board.get_instance_id() if _main._board != null else 0
-	if real:
-		await _finger_tap(_center(_main._pause.buttons()[1]))
-	else:
-		_main._pause.restart_pressed.emit()
+	_pause_action(1)
 	_replace_msec = Time.get_ticks_msec()
 	_replace_left = _last_timer.time_left if _last_timer != null else -1.0
 	await _settle(2)
