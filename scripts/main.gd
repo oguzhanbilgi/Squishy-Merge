@@ -1341,6 +1341,10 @@ func _on_challenge_round_finished(won: bool) -> void:
 		var rewarded: bool = SaveManager.complete_daily_challenge(day)
 		outcome["rewarded"] = rewarded
 		outcome["reward"] = DailyChallenge.REWARD_DOUGH if rewarded else 0
+	# TASK/050: kabul edilen meydan okuma bitişi ekranın sahibi — aynı karede merge denemeyi açık molada bitirebilir;
+	# mola meydan okuma sonucunun üstünde kalmaz. TASK/049'un paylaşılan temizliği (eylemsiz; ödül / kayıt / gün /
+	# gezinme / reklam yok), ödül / tamamlanma işleminden SONRA, gecikmeden ÖNCE. İş mantığı ayrı kalır.
+	_dismiss_terminal_gameplay_overlays()
 	await get_tree().create_timer(RESULT_DELAY).timeout
 	if not _challenge_result_current(attempt, board):
 		return
@@ -1781,7 +1785,8 @@ func _on_round_finished(won: bool) -> void:
 ## refill penceresi EYLEMSİZ kapanır: Devam Et / Yeniden Başlat / Ana Menüye Dön, satın alma, ödüllü istek, refill,
 ## bırakış, board değişimi, kayıt YOK (board'un menü / refill dondurması `GameBoard._finish`'te bırakıldı). Açık
 ## bir ödüllü refill talebine dokunulmaz: iptal edilmez, ödül verilmez — kendi token yolu sürer. Ayarlar bilinçli
-## olarak dışarıda (ayrı açık madde). Pencere yoksa ya da tekrar çağrılırsa hiçbir şey yapmaz.
+## olarak dışarıda (ayrı açık madde). Pencere yoksa ya da tekrar çağrılırsa hiçbir şey yapmaz. TASK/050: meydan okuma
+## bitişi de çağırır (`_on_challenge_round_finished`) — ortak pencere temizliği, ayrı iş mantığı.
 func _dismiss_terminal_gameplay_overlays() -> void:
 	if _pause != null and _pause.visible:
 		_pause.close_menu()

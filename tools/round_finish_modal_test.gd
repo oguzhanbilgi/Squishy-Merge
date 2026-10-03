@@ -40,7 +40,7 @@ extends Node
 ##                  kazanılırsa verilir, kazanılmazsa hiçbir şey; pencere geri gelmez)
 ##   K kayıp        normal kayıp aynen
 ##   L sonsuz       Sonsuz sonucu aynen
-##   M meydan       meydan okuma sonucu aynen, geçiş reklamı denemesi yok, işleyicisi temizliğe girmez (TASK/047 donuk)
+##   M meydan       meydan okuma sonucu aynen, geçiş reklamı denemesi yok (molada biten meydan okuma: TASK/050 suite'i)
 ##   N tutorial     tutorial akışı / sonucu aynen
 ##   O iptal        ACTION_CANCEL 0 bırakış, sonraki bağımsız dokunuş 1; temizlik sonrası yeni round'a sızıntı yok
 ##   Q canlı mola   bitmemiş round'da GERÇEK mola düğmeleri aynen: Devam Et / karartma devam ettirir, Yeniden Başlat yeni
@@ -48,7 +48,8 @@ extends Node
 ##   R başka yol    aynı karede merge: mola açıldıktan sonra raporlanan temasın ertelenmiş merge'i round'u molada bitirir
 ##                  (Dumpling'in gönderdiği aynı sinyal — dar dikiş) → aynı temizlik
 ##   P kaynak       RESULT_DELAY 0,8 / 300 ms / iptal koruması aynen; temizlik ilerleme yazıldıktan SONRA, gecikmeden ÖNCE,
-##                  yalnız normal yolda; Ayarlar'a / gezinmeye / kayda dokunmaz; kapalı mola hiçbir eylem yaymaz
+##                  normal yolda (+ TASK/050 meydan okuma işleyicisi); Ayarlar'a / gezinmeye / kayda dokunmaz; kapalı
+##                  mola hiçbir eylem yaymaz
 
 const MAIN_SCENE: PackedScene = preload("res://scenes/main.tscn")
 const ENDLESS: String = "res://resources/levels/endless.tres"
@@ -1052,8 +1053,9 @@ func _source_contract() -> void:
 		guard >= 0 and written > guard and call_at > written and waited > call_at
 		and finish_fn.count("%s()" % CLEANUP) == 1)
 	var call_sites: int = code.count("%s()" % CLEANUP) - code.count("func %s()" % CLEANUP)
-	_c("  … temizlik yalnız normal bitişte: meydan okuma işleyicisi çağırmaz (TASK/047 aynen), başka çağıran yok (%d)"
-		% call_sites, not _function(code, "func _on_challenge_round_finished(").contains(CLEANUP) and call_sites == 1)
+	# TASK/050: meydan okuma bitişi de aynı temizliği çağırır (ayrı iş mantığı); sınırı ve sırası o suite'te sınanır.
+	_c("  … temizliği yalnız round bitiş işleyicileri çağırır: normal (TASK/049) + meydan okuma (TASK/050), başka çağıran yok (%d)"
+		% call_sites, _function(code, "func _on_challenge_round_finished(").count("%s()" % CLEANUP) == 1 and call_sites == 2)
 	var board_finish: String = _function(board_code, "func _finish(")
 	_c("GameBoard._finish menü dondurmasını da bırakır (refill / devam / tutorial dondurmalarıyla birlikte, sinyalden ÖNCE)",
 		board_finish.contains("_is_menu_paused = false") and board_finish.find("_is_menu_paused = false")
