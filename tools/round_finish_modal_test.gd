@@ -684,9 +684,13 @@ func _settings() -> void:
 	await _finish_now(board)
 	timer = _last_timer
 	await _until_left(timer, 0.5)
+	# Pozitif kontrol: dokunuş dişliye gerçekten ULAŞTI (Main'in işleyicisinden sonra bağlı istek sayacı).
+	var gear: Array[int] = [0]
+	board.settings_requested.connect(func() -> void: gear[0] += 1)
 	await _finger_tap(_center(board._hud.settings_button))
-	_c("I2 (TASK/053): gecikme içinde gerçek dişli dokunuşu Ayarlar'ı AÇMADI, board donmadı", not _main._settings.visible
-		and timer.time_left > 0.0 and not _main._result.visible and not board._is_menu_paused)
+	_c("I2 (TASK/053): gecikme içinde gerçek dişli dokunuşu dişliye ulaştı (istek %d) ama Ayarlar'ı AÇMADI, board donmadı"
+		% gear[0], gear[0] == 1 and not _main._settings.visible and timer.time_left > 0.0 and not _main._result.visible
+		and not board._is_menu_paused)
 	await _after(timer)
 	_c("  … I2: sonuç açıldı, Ayarlar yok, kapanış sinyali yok", _main._result.visible and not _main._settings.visible
 		and _actions["settings_closed"] == 0 and _shows == 1)
@@ -1216,7 +1220,7 @@ func _af(key: String) -> Variant:
 	if _at_finish.has(key):
 		return _at_finish[key]
 	match key:
-		"settings", "board":
+		"board":
 			return false
 		"gen", "dough", "bomb", "upgrade", "quota":
 			return -999

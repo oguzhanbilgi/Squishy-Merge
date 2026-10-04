@@ -341,7 +341,9 @@ func _handle(line: String) -> void:
 			_main._show_tab(0)
 			await _settle()
 		"settings":
-			_main.open_settings()
+			# TASK/053: kesinleşen round'un board'u ekrandayken açılış reddedilir — sessiz kalmasın.
+			if not _main.open_settings():
+				_last = "settings: reddedildi (TASK/053 terminal sahiplik)"
 			await _settle()
 		"close_settings":
 			_main.close_settings()
@@ -398,9 +400,10 @@ func _handle(line: String) -> void:
 			AgeGate.clock_override = "" if (parts.size() < 2 or parts[1] == "none") else parts[1]
 			_last = "ageclock set (next relaunch)"
 		"age_reentry":
-			if _main._settings.visible == false:
-				_main.open_settings()
-			_main._settings.age_info_button().pressed.emit()
+			if _main._settings.visible == false and not _main.open_settings():
+				_last = "age_reentry: Ayarlar reddedildi (TASK/053 terminal sahiplik)"
+			else:
+				_main._settings.age_info_button().pressed.emit()
 			await _settle()
 		"tfat_diag":
 			var diag_ads: MonetizationManager = _ads()

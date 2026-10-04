@@ -24,24 +24,29 @@ extends Node
 ## Bölümler:
 ##   A bitişte açık  GERÇEK yol — Büyütücü dönüşümü sırasında HUD dişlisine gerçek dokunuş: bitişte Ayarlar kapanır (kapanış
 ##                   1), menü dondurması bırakılır, sonuç gecikmeden sonra tek başına bir kez; sonuçta GERİ yok sayılır
-##   B beklemede     gecikme içinde gerçek dişli / HUD işleyicisi / doğrudan `open_settings`, sonuç açıkken, geçiş reklamı
-##                   molasında: Ayarlar açılmaz, board donmaz, sonuç tek başına bir kez
+##   B beklemede     gecikme içinde gerçek dişli / HUD işleyicisi / doğrudan `open_settings` (false döner), sonuç açıkken,
+##                   geçiş reklamı molasında: Ayarlar açılmaz, board donmaz, sonuç tek başına bir kez. Gerçek dişli
+##                   denetimlerinde pozitif kontrol: dokunuş dişliye ULAŞTI (board.settings_requested + 1)
 ##   C normal        canlı round + kabuk: dişli açar + board donar, Ayarlar açıkken mola açılmaz, anahtar tercihi yazar,
 ##                   KAPAT / X / karartma kapatır, round sürer; Profil dişlisi; terminal round'dan çıktıktan sonra da açılır
 ##   D GERİ          Ayarlar'dan GERİ (bitiş dışında) aynen; bitişte kapanan Ayarlar'dan sonra gecikmede / sonuçta GERİ
 ##                   hiçbir şey açmaz
 ##   E mola/refill   (gerçek girdiyle aynı anda AÇILAMAZ — kod yolu) mola + Ayarlar, refill + Ayarlar → bitişte hepsi kapanır,
 ##                   eylem yok, sıra kaydı
-##   F dondurma      menü dondurması sızmaz: bitişte, reddedilen dişliden sonra, sonraki round'da
+##   F dondurma      menü dondurması sızmaz: bitişte, reddedilen dişliden sonra, sonraki round'da; reddedilen açılış board'a
+##                   HİÇ dokunmaz (F4: canlı board + kapalı kapı, dar dikiş — GameBoard'un bitmiş-board korumasından bağımsız)
 ##   G meydan        meydan okuma: aynı karede merge Ayarlar AÇIKKEN (gerçek dişli) bitirir → bitişte kapanır, +20 bir kez,
 ##                   sonuç tek başına; gecikmede dişli reddedilir; çıkıştan sonra Profil dişlisi açar
 ##   H TASK/048      gecikmede üretim yeniden başlatma; reklam molasında ertelenen yeniden başlatma — yeni round Ayarlar'sız
 ##   I tekrar        TEKRAR / çıkış / yeni round Ayarlar'ı diriltmez; yeni round'da dişli normal
 ##   J yinelenen     ikinci round_finished / ikinci temizlik: ikinci kapanış / ikinci sonuç yok
 ##   K tercih        temizlik tercih yazmaz (ses / titreşim bellek + disk + uygulanan durum aynı); kapanış anında anahtarda /
-##                   KAPAT'ta / Yaş bilgisi'nde BASILI parmak (+ işlenmemiş olay) — bırakış tercih yazmaz, pencere açmaz
+##                   KAPAT'ta / Yaş bilgisi'nde BASILI parmak (+ işlenmemiş olay) — bırakış tercih yazmaz, pencere açmaz;
+##                   "+ olay" varyantlarında pozitif kontrol (gizlenen kontrol sentetik bırakışı tam 1 TIKLAMA saydı) ve
+##                   anahtarda sonuçtan çıkıp Profil'den yeniden açılan Ayarlar'ın anahtarları kayıtla aynı
 ##   P kaynak        RESULT_DELAY 0,8 / 300 ms / iptal koruması aynen; temizlik Ayarlar'ı da kapatır (iki bitiş işleyicisi,
-##                   gecikmeden ÖNCE); `open_settings` terminal sahiplikte açmaz
+##                   gecikmeden ÖNCE); `open_settings` terminal sahiplikte açmaz ve açılışı raporlar (bool); HUD dişlisi
+##                   yalnız açılışta dondurur; kapanış yolu (close_settings → close_panel → _on_settings_closed) sabit
 
 const MAIN_SCENE: PackedScene = preload("res://scenes/main.tscn")
 const DIR: String = "user://qa_settings_terminal"
@@ -69,8 +74,11 @@ var _shows: int = 0
 var _drops: int = 0
 ## Pencere / sonuç eylem sayaçları (sinyal izleyicileri, Main'in işleyicilerinden SONRA bağlı).
 var _actions: Dictionary = {}
-## Anahtar `toggled` yayımları (yalnız kayıt — sözleşme tercih değeri üzerinden denetlenir).
+## Anahtar `toggled` yayımları (K'da "+ olay" pozitif kontrolü; sözleşme tercih değeri üzerinden denetlenir).
 var _toggles: int = 0
+## HUD dişlisi istekleri (`board.settings_requested`, Main'in işleyicisinden SONRA bağlı) — reddedilen gerçek dokunuşun
+## dişliye gerçekten ULAŞTIĞININ pozitif kontrolü.
+var _gear: int = 0
 ## Son izlenen bitişin izleyici zamanlayıcısı (Main'in RESULT_DELAY'iyle aynı saat).
 var _last_timer: SceneTreeTimer = null
 ## Kabul edilen bitişin eşzamanlı sonucu (bkz. `_snapshot`).
@@ -208,12 +216,14 @@ func _open_in_wait() -> void:
 	var timer: SceneTreeTimer = _last_timer
 	await _until_left(timer, 0.5)
 	var left: float = timer.time_left
+	var gear: int = _gear
 	await _finger_tap(_center(board._hud.settings_button))
 	await _settle(1)
 	_record("B1 dişli")
-	_c("B1: gecikme içinde (%.2f sn kala) gerçek dişli dokunuşu Ayarlar'ı AÇMADI; board menü dondurmasına girmedi" % left,
-		left > 0.0 and not _main._settings.visible and _count("settings:on") == 0
-		and not bool(board.get("_is_menu_paused")) and not board._is_paused() and not _main._result.visible)
+	_c("B1: gecikme içinde (%.2f sn kala) gerçek dişli dokunuşu dişliye ulaştı (istek +%d) ama Ayarlar'ı AÇMADI; board menü dondurmasına girmedi"
+		% [left, _gear - gear], left > 0.0 and _gear == gear + 1 and not _main._settings.visible
+		and _count("settings:on") == 0 and not bool(board.get("_is_menu_paused")) and not board._is_paused()
+		and not _main._result.visible)
 	await _after(timer)
 	_record("B1 sonuç")
 	_c("  … B1: sonuç tam bir kez, tek başına; Ayarlar hiç açılmadı%s" % _above_note(), _result_alone() and _shows == 1
@@ -227,16 +237,16 @@ func _open_in_wait() -> void:
 		await _finish_now(board)
 		timer = _last_timer
 		await _until_left(timer, 0.5)
-		_open_by(path)
+		var opened: bool = _open_by(path)
 		await _settle(1)
-		_c("B %s: gecikme içinde Ayarlar açılmadı, board donmadı" % path, not _main._settings.visible
-			and not bool(board.get("_is_menu_paused")) and timer.time_left > 0.0)
+		_c("B %s: gecikme içinde Ayarlar açılmadı (açılış raporu false), board donmadı" % path, not opened
+			and not _main._settings.visible and not bool(board.get("_is_menu_paused")) and timer.time_left > 0.0)
 		await _after(timer)
 		_c("  … B %s: sonuç tek başına, bir kez" % path, _result_alone() and _shows == 1)
-		_open_by(path)
+		opened = _open_by(path)
 		await _settle(1)
-		_c("  … B4 %s: sonuç açıkken açma girişimi de reddedildi — sonuç tek başına, Ayarlar hiç açılmadı" % path,
-			_result_alone() and _count("settings:on") == 0)
+		_c("  … B4 %s: sonuç açıkken açma girişimi de reddedildi (false) — sonuç tek başına, Ayarlar hiç açılmadı" % path,
+			not opened and _result_alone() and _count("settings:on") == 0)
 	# B5 — geçiş reklamı molası (TASK/048 fırlatma aralığı): reklam SDK'ya verildi, tam ekran henüz açılmadı → gerçek dişli.
 	await _fresh(true)
 	var ads: MonetizationManager = _main._ads
@@ -250,10 +260,13 @@ func _open_in_wait() -> void:
 	var id: String = fake.interstitial_shows[-1] if fake.interstitial_shows.size() == shows + 1 else ""
 	_c("B5 kurulum: gecikme doldu → geçiş reklamı SDK'ya verildi (mola sürüyor), sonuç yok", id != "" and ads.break_pending()
 		and not _main._result.visible)
+	gear = _gear
 	await _finger_tap(_center(board._hud.settings_button))
 	await _settle(1)
 	_record("B5 molada dişli")
-	_c("B5: reklam molasında gerçek dişli dokunuşu Ayarlar'ı AÇMADI", not _main._settings.visible and _count("settings:on") == 0)
+	_c("B5: reklam molasında gerçek dişli dokunuşu dişliye ulaştı (istek +%d) ama Ayarlar'ı AÇMADI, board donmadı" % (_gear - gear),
+		_gear == gear + 1 and not _main._settings.visible and _count("settings:on") == 0
+		and not bool(board.get("_is_menu_paused")))
 	if id != "":
 		fake.emit_interstitial_showed(id)
 		await _settle(1)
@@ -264,11 +277,12 @@ func _open_in_wait() -> void:
 	_sections_done += 1
 
 
-func _open_by(path: String) -> void:
+## Dönüş: doğrudan yolda `open_settings()`'in açılış raporu; HUD işleyicisinin raporu yok → false.
+func _open_by(path: String) -> bool:
 	if path == "handler":
 		_main._on_board_settings_requested()
-	else:
-		_main.open_settings()
+		return false
+	return _main.open_settings()
 
 
 # --- C) Bitiş dışında Ayarlar aynen ------------------------------------------------------------------------------
@@ -322,9 +336,13 @@ func _normal_use() -> void:
 	_c("C5: Ayarlar kapandıktan sonra HUD geri molayı normal açar", _main.is_pause_open())
 	_main.resume_game()
 	await _settle(1)
-	# C6 — kabuk: Profil dişlisi (Main'in tek paneli), Android geri kapatır.
+	# C6 — kabuk: Profil dişlisi (Main'in tek paneli), Android geri kapatır; doğrudan açılış true raporlar.
 	await _fresh()
 	await _profile_settings("C6 Profil")
+	var opened: bool = _main.open_settings()
+	_c("  … C6: kabukta doğrudan open_settings açar ve true döndürür (açılış raporu)", opened and _main._settings.visible)
+	_main.close_settings()
+	await _settle(1)
 	# C7 — terminal round'dan çıktıktan SONRA (round kesin kalır, board yok) Profil dişlisi yine açar.
 	board = await _start(_level(3))
 	await _wait_settled()
@@ -477,11 +495,12 @@ func _menu_pause() -> void:
 	await _finish_now(board)
 	timer = _last_timer
 	await _until_left(timer, 0.4)
+	var gear: int = _gear
 	await _finger_tap(_center(board._hud.settings_button))
 	await _settle(1)
-	_c("F2: gecikmede reddedilen dişliden sonra board menü dondurmasına GİRMEDİ, parçalar donmadı, Ayarlar kapalı",
-		not _main._settings.visible and not bool(board.get("_is_menu_paused")) and not board._is_paused()
-		and _frozen(board) == 0)
+	_c("F2: gecikmede reddedilen dişliden (istek +%d) sonra board menü dondurmasına GİRMEDİ, parçalar donmadı, Ayarlar kapalı"
+		% (_gear - gear), _gear == gear + 1 and not _main._settings.visible and not bool(board.get("_is_menu_paused"))
+		and not board._is_paused() and _frozen(board) == 0)
 	await _after(timer)
 	await _wait_settled()
 	await _finger_tap(_center(_main._result.secondary_button()))
@@ -502,6 +521,25 @@ func _menu_pause() -> void:
 	await _finger_tap(_center(_main._settings._close))
 	await _settle(2)
 	_c("  … F3: KAPAT → board çözüldü", not _main._settings.visible and not bool(next.get("_is_menu_paused")))
+	# F4 — reddedilen açılış board'a HİÇ dokunmaz (GameBoard'un bitmiş-board korumasına dayanmadan): CANLI board'da kapı
+	# dar dikişle kapalı (`_round_finalized` — kapının girdisi — true); gerçek dişli dokunuşu dişliye ulaşır, Ayarlar
+	# açılmaz, canlı board donmaz. Bayrak hemen geri alınır, round sürer.
+	await _fresh()
+	board = await _start(_level(3))
+	await _wait_settled()
+	_main.set("_round_finalized", true)
+	gear = _gear
+	await _finger_tap(_center(board._hud.settings_button))
+	await _settle(1)
+	var refused: bool = _gear == gear + 1 and not _main._settings.visible and not bool(board.get("_is_menu_paused")) \
+		and not board._is_paused() and _frozen(board) == 0 and not board.is_finished()
+	_main.set("_round_finalized", false)
+	_c("F4: kapı kapalıyken CANLI board'da gerçek dişli dokunuşu (istek +%d) — Ayarlar açılmadı, board DONMADI (reddedilen açılış board'a dokunmaz)"
+		% (_gear - gear), refused)
+	await _wait_settled()
+	dropped = await _drop_ok(board)
+	_c("  … F4: kapı açılınca round sürüyor — gerçek dokunuşta tam 1 bırakış, menü dondurması yok", dropped
+		and not bool(board.get("_is_menu_paused")))
 	_sections_done += 1
 
 
@@ -540,13 +578,15 @@ func _challenge() -> void:
 		await _win_merge(board)
 	timer = _last_timer
 	await _until_left(timer, 0.5)
+	var gear: int = _gear
 	if board != null and is_instance_valid(board):
 		await _finger_tap(_center(board._hud.settings_button))
 	await _settle(1)
 	_record("G2 dişli")
-	_c("G2: meydan okuma gecikmesinde gerçek dişli dokunuşu Ayarlar'ı AÇMADI, board donmadı", board != null
-		and is_instance_valid(board) and board.is_finished() and not _main._settings.visible
-		and not bool(board.get("_is_menu_paused")) and timer != null and timer.time_left > 0.0)
+	_c("G2: meydan okuma gecikmesinde gerçek dişli dokunuşu dişliye ulaştı (istek +%d) ama Ayarlar'ı AÇMADI, board donmadı"
+		% (_gear - gear), board != null and is_instance_valid(board) and board.is_finished() and _gear == gear + 1
+		and not _main._settings.visible and not bool(board.get("_is_menu_paused")) and timer != null
+		and timer.time_left > 0.0)
 	await _after(timer)
 	_c("  … G2: meydan okuma sonucu tek başına, bir kez; +20 bir kez", _result_alone() and _shows == 1
 		and SaveManager.dough() == pre + 20)
@@ -632,13 +672,14 @@ func _task048() -> void:
 	var id: String = fake.interstitial_shows[-1] if fake.interstitial_shows.size() == shows + 1 else ""
 	_c("H2 kurulum: reklam SDK'ya verildi (mola sürüyor), sonuç yok", id != "" and ads.break_pending()
 		and not _main._result.visible)
+	var gear: int = _gear
 	await _finger_tap(_center(board._hud.settings_button))
 	await _settle(1)
 	_main._pause.restart_pressed.emit()
 	await _settle(2)
 	_record("H2 molada dişli + yeniden başlat")
-	_c("  … H2: molada dişli Ayarlar'ı açmadı; yeniden başlatma ERTELENDİ (board + nesil aynı)", not _main._settings.visible
-		and _owns(board_id, gen))
+	_c("  … H2: molada dişli (istek +%d) Ayarlar'ı açmadı; yeniden başlatma ERTELENDİ (board + nesil aynı)" % (_gear - gear),
+		_gear == gear + 1 and not _main._settings.visible and _owns(board_id, gen))
 	if id != "":
 		fake.emit_interstitial_showed(id)
 		await _settle(1)
@@ -754,6 +795,10 @@ func _held_variant(control: String, unhandled: bool, with_ads: bool) -> void:
 	var target: Control = _settings_control(control)
 	var visible_target: bool = target != null and target.is_visible_in_tree()
 	var pos: Vector2 = _center(target) if target != null else Vector2.ZERO
+	var clicks: Array[int] = [0]
+	if target is BaseButton:
+		(target as BaseButton).pressed.connect(func() -> void: clicks[0] += 1)
+	var toggle: bool = control == "ses" or control == "titreşim"
 	_reset_marks()
 	_toggles = 0
 	await _finger(pos, true)
@@ -770,13 +815,38 @@ func _held_variant(control: String, unhandled: bool, with_ads: bool) -> void:
 	_record("K [%s] bırakış" % tag)
 	_c("K [%s] kurulum: Ayarlar açık, parmak kontrolde BASILI%s → round bitti" % [tag,
 		", son olay işlenmemiş" if unhandled else ""], held and board.is_finished() and not _at_finish.is_empty())
-	_c("K [%s] bitişte Ayarlar kapandı; parmak kalkınca tercih YAZILMADI (ses / titreşim bellek + uygulanan aynı), Ayarlar / yaş penceresi açılmadı (anahtar toggled: %d)"
-		% [tag, _toggles], closed_at_finish and SaveManager.sfx_enabled() and SaveManager.haptics_enabled()
+	_c("K [%s] bitişte Ayarlar kapandı; parmak kalkınca tercih YAZILMADI (ses / titreşim bellek + uygulanan aynı), Ayarlar / yaş penceresi açılmadı (gizli tıklama: %d, anahtar toggled: %d)"
+		% [tag, clicks[0], _toggles], closed_at_finish and SaveManager.sfx_enabled() and SaveManager.haptics_enabled()
 		and AudioManager.is_sfx_enabled() and Haptics.is_enabled() and not _main._settings.visible
 		and not _main._age_panel.visible and _actions["age_info"] == 0 and _actions["settings_closed"] == 1)
+	if unhandled:
+		# Pozitif kontrol: koruma gerçekten sınandı — gizlenen pencerenin kontrolü sentetik bırakışı TIKLAMA saydı.
+		_c("  … K [%s] pozitif kontrol: gizlenen kontrol sentetik bırakışı tam 1 tıklama saydı (anahtarda toggled %d)"
+			% [tag, 1 if toggle else 0], clicks[0] == 1 and _toggles == (1 if toggle else 0))
 	await _after(timer)
 	_c("  … K [%s] sonuç tek başına, bir kez; diskte tercih aynı%s" % [tag, _above_note()], _result_alone() and _shows == 1
 		and _disk_value("sfx_enabled") == true and _disk_value("haptics_enabled") == true)
+	if unhandled and toggle:
+		await _reopen_matches_save(tag)
+
+
+## Sonuçtan çıkış (gerçek dokunuş) → Harita → Profil dişlisi → Ayarlar: anahtarlar kayıtla AYNI — gizli tıklamanın
+## çevirdiği görünüm `open_panel`'de kayıttan yeniden kuruldu (tercih yazılmadığı için kayıt hâlâ AÇIK).
+func _reopen_matches_save(tag: String) -> void:
+	await _wait_settled()
+	await _finger_tap(_center(_main._result.primary_button()))
+	await _settle(3)
+	_main._on_profile_requested()
+	await _wait_settled()
+	var profile: CanvasLayer = _main._screens[4]
+	await _finger_tap(_center(profile.settings_button()))
+	var s: CanvasLayer = _main._settings
+	_c("  … K [%s] sonuçtan çıkıp Profil dişlisiyle yeniden açılan Ayarlar'da anahtarlar kayıtla AYNI (ses %s, titreşim %s)"
+		% [tag, str(s._sfx_toggle.button_pressed), str(s._haptics_toggle.button_pressed)], s.visible
+		and _main._board == null and _main._active_tab == 4 and SaveManager.sfx_enabled() and SaveManager.haptics_enabled()
+		and s._sfx_toggle.button_pressed == SaveManager.sfx_enabled()
+		and s._haptics_toggle.button_pressed == SaveManager.haptics_enabled())
+	await _back()
 
 
 func _settings_control(control: String) -> Control:
@@ -833,6 +903,15 @@ func _source_contract() -> void:
 	var open_at: int = open_fn.find("_settings.open_panel()")
 	_c("open_settings: terminal sahiplik kapısı panel açılışından ÖNCE (tek açma noktası — HUD dişlisi, Profil, QA)",
 		gate_at >= 0 and open_at > gate_at)
+	var refuse_at: int = open_fn.find("return false")
+	_c("  … open_settings açılışı raporlar: `-> bool`, kapıda `return false` (panel açılışından önce), açılışta `return true`",
+		open_fn.begins_with("func open_settings() -> bool:") and refuse_at > gate_at and refuse_at < open_at
+		and open_fn.count("return false") == 1 and open_fn.rfind("return true") > open_at)
+	var handler: String = _function(code, "func _on_board_settings_requested(")
+	_c("HUD dişlisi board'u YALNIZ açılış başarılıysa dondurur (reddedilen açılış board'a dokunmaz — GameBoard korumasına dayanmaz)",
+		handler.contains("if open_settings() and _board != null and is_instance_valid(_board):")
+		and handler.count("open_settings()") == 1 and handler.count("set_menu_paused(") == 1
+		and handler.find("open_settings()") < handler.find("set_menu_paused(true)"))
 	var owns: String = _function(code, "func _terminal_round_owns_screen(")
 	_c("  … kapı = kesinleşen round (`_round_finalized`) + ekranda board (Profil / kabuk yolu board yokken etkilenmez)",
 		owns.contains("_round_finalized") and owns.contains("_board != null") and owns.contains("is_instance_valid(_board)"))
@@ -855,6 +934,16 @@ func _source_contract() -> void:
 		_function(panel_code, "func close_panel(").contains("if not visible:")
 		and _function(panel_code, "func open_panel(").contains("_sfx_toggle.set_on(SaveManager.sfx_enabled())")
 		and _function(panel_code, "func open_panel(").contains("_haptics_toggle.set_on(SaveManager.haptics_enabled())"))
+	# Temizliğin geçişli yolu (close_settings → close_panel → closed → _on_settings_closed) sabit: buraya eklenecek bir yan
+	# etki TASK/049 / 050 / 053 terminal temizliğine sessizce katılırdı.
+	var close_path: bool = _lines(_function(code, "func close_settings(")) == ["func close_settings() -> void:",
+		"_settings.close_panel()"] \
+		and _lines(_function(code, "func _on_settings_closed(")) == ["func _on_settings_closed() -> void:",
+		"if _board != null and is_instance_valid(_board) and not _pause.visible:", "_board.set_menu_paused(false)"] \
+		and _lines(_function(panel_code, "func close_panel(")) == ["func close_panel() -> void:", "if not visible:",
+		"return", "visible = false", "AudioManager.play(&\"ui_modal_close\")", "closed.emit()"]
+	_c("  … kapanış yolu sabit: close_settings → close_panel (ses + closed) → _on_settings_closed (yalnız mola kapalıyken board'u çözer; başka yan etki yok)",
+		close_path)
 	var board_finish: String = _function(board_code, "func _finish(")
 	_c("GameBoard._finish menü dondurmasını bırakır (TASK/049, sinyalden ÖNCE)", board_finish.contains("_is_menu_paused = false")
 		and board_finish.find("_is_menu_paused = false") < board_finish.find("round_finished.emit("))
@@ -931,6 +1020,7 @@ func _boot(fake: FakeAdBackend = null) -> void:
 	_main_script.set("ads_backend_override", null)
 	_shows = 0
 	_drops = 0
+	_gear = 0
 	_last_timer = null
 	_reset_actions()
 	_reset_marks()
@@ -1035,6 +1125,7 @@ func _track(board: Node2D) -> void:
 		return
 	board.set_meta(&"qa_tracked", true)
 	board.dumpling_dropped.connect(func(_tier: int) -> void: _drops += 1)
+	board.settings_requested.connect(func() -> void: _gear += 1)
 	board.round_finished.connect(func(_won: bool) -> void:
 		if not _at_finish.is_empty():
 			return
@@ -1346,6 +1437,16 @@ func _strip_comments(code: String) -> String:
 		var at: int = line.find("#")
 		lines.append(line if at == -1 else line.substr(0, at))
 	return "\n".join(lines)
+
+
+## Fonksiyon metninin boş olmayan satırları (kırpılmış; yorumlar `_strip_comments` ile zaten atılmış).
+func _lines(fn: String) -> Array:
+	var out: Array = []
+	for line in fn.split("\n"):
+		var text: String = line.strip_edges()
+		if not text.is_empty():
+			out.append(text)
+	return out
 
 
 ## Fonksiyon gövdesi: başlıktan bir sonraki üst düzey `func`'a kadar.

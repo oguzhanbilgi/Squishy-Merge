@@ -988,7 +988,7 @@ func _no_input_catcher() -> void:
 	_sections_done += 1
 
 
-# --- T) Ayarlar — kapsam dışı, korunur ---------------------------------------------------------------------
+# --- T) Ayarlar — TASK/053: bitişte kapanır, gecikmede açılmaz ----------------------------------------------
 
 func _settings_terminal() -> void:
 	print("-- T: Ayarlar (TASK/053) — meydan okuma bitişi açık Ayarlar'ı aynı temizlikle kapatır; gecikmede dişli açmaz")
@@ -1018,11 +1018,14 @@ func _settings_terminal() -> void:
 	board = await _win_under_pause("call")
 	timer = _last_timer
 	var settled: bool = board != null and not _af("pause")
+	# Pozitif kontrol: dokunuş dişliye gerçekten ULAŞTI (Main'in işleyicisinden sonra bağlı istek sayacı).
+	var gear: Array[int] = [0]
 	if board != null:
+		board.settings_requested.connect(func() -> void: gear[0] += 1)
 		await _finger_tap(_center(board._hud.settings_button))
 		await _settle(2)
-	_c("T2 (TASK/053): molada kazanıldı (bitişte kapandı); gecikme içinde gerçek dişli dokunuşu Ayarlar'ı AÇMADI",
-		settled and not _main._settings.visible)
+	_c("T2 (TASK/053): molada kazanıldı (bitişte kapandı); gecikme içinde gerçek dişli dokunuşu dişliye ulaştı (istek %d) ama Ayarlar'ı AÇMADI"
+		% gear[0], settled and gear[0] == 1 and not _main._settings.visible)
 	await _after(timer)
 	_c("  … sonuç açıldı, Ayarlar yok, mola yok", _main._result.visible and not _main._settings.visible
 		and not _main.is_pause_open() and _shows == 1)
@@ -1286,7 +1289,7 @@ func _af(key: String) -> Variant:
 	if _at_finish.has(key):
 		return _at_finish[key]
 	match key:
-		"settings", "board":
+		"board":
 			return false
 		"attempt", "dough", "frozen":
 			return -999 if key != "frozen" else 999
