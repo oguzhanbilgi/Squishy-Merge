@@ -403,13 +403,17 @@ func _notification(what: int) -> void:
 		_on_app_front()
 
 
-## Uygulama gerçekten önde: APPLICATION_RESUMED (odak kaybı yokken) ya da Activity.onResume'un FOCUS_IN'i.
+## Uygulama gerçekten önde: APPLICATION_RESUMED (odak kaybı yokken) ya da Activity.onResume'un FOCUS_IN'i. Öne dönüş
+## payı yalnız bir duraklatmadan SONRA kurulur (masaüstünde pencere odağı FOCUS_OUT / IN — duraklatma yok — kirayı
+## bırakmaz; Android'de öne dönüş her zaman bir duraklatmayı izler).
 func _on_app_front() -> void:
+	var was_paused: bool = _app_paused
 	_app_paused = false
 	_sync_banner()
 	# Reklam etkinliği kapanmış olmalı; kapanış sinyali kuyrukta. Gelmezse (eklenti / SDK
 	# boşluğu) sınırlı payın sonunda kira kurtarılır — kimse sonsuza dek "gösteriliyor"da kalmaz.
-	_lease_on_resumed()
+	if was_paused:
+		_lease_on_resumed()
 	# Uykudan dönüş: motor saati uykuda durur, süresi dolmuş hazır reklam duvar saatiyle yakalanır.
 	_refresh_stale_ads()
 
@@ -1836,7 +1840,8 @@ func _lease_arm(seconds: float) -> void:
 ## reklam gerçekten ekrandaysa (etkinliği duraklatmayan bir gösterim yolu dahil) hak edilen ödül kesilmesin — kira
 ## yalnız "gösterildi"den sonraki girdi kanıtıyla (`_input`) ya da duraklatma + öne dönüş payıyla biter.
 func _lease_on_showed(kind: LeaseKind, ad_id: String) -> void:
-	if _lease_kind != kind or _lease_ad_id != ad_id:
+	if _lease_kind != kind or _lease_ad_id != ad_id or _lease_showed:
+		# Başka kiranın ya da aynı gösterimin yinelenen "gösterildi"si: kabul edilmiş girdi kanıtı / zamanlayıcı bozulmaz.
 		return
 	_lease_showed = true
 	_lease_showed_msec = Time.get_ticks_msec()
