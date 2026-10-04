@@ -950,13 +950,19 @@ func _test_banner() -> void:
 	_c("yenileme/gösterim/tıklama olayları, durum SHOWN", _events_named(&"banner_loaded").size() == 2
 		and _events_named(&"banner_loaded")[1]["refreshed"] == true and _events_named(&"banner_impression").size() == 1
 		and _events_named(&"banner_clicked").size() == 1 and m.banner_state() == MonetizationManager.BannerState.SHOWN)
-	# Arka plan / öne dönüş: çift gösterim yok.
+	# Arka plan / öne dönüş (TASK/052: AdView etkinlik yaşam döngüsüne uyar — Google: pause() onPause'da, resume()
+	# onResume'da; eklentinin gizlemesi GONE + pause, göstermesi VISIBLE + resume): aynı reklam, yeni yükleme yok.
 	m.notification(NOTIFICATION_APPLICATION_PAUSED)
+	_c("arka plan: gösterili banner gizlendi (= duraklatıldı), aynı reklam, yeni yükleme yok",
+		m.banner_state() == MonetizationManager.BannerState.LOADED and fake.banner_hides == [b1, b1]
+		and fake.banner_loads == 1)
 	m.notification(NOTIFICATION_APPLICATION_RESUMED)
-	_c("arka plan/öne dönüş: gösterili banner çift show almaz", fake.banner_shows.size() == 2)
+	_c("öne dönüş: aynı banner tek kez yeniden gösterildi (çift show yok), yükleme hâlâ 1",
+		m.banner_state() == MonetizationManager.BannerState.SHOWN and fake.banner_shows.size() == 3
+		and fake.banner_shows[-1] == b1 and fake.banner_loads == 1)
 	# Yönetici giderken banner gizlenir, yuva sıfırlanır.
 	await _free_manager(m)
-	_c("yönetici silinince banner gizlendi, yuva 0", fake.banner_hides.size() == 2 and UiKit.banner_slot() == 0.0)
+	_c("yönetici silinince banner gizlendi, yuva 0", fake.banner_hides.size() == 3 and UiKit.banner_slot() == 0.0)
 
 	# Hata + geri çekilme.
 	_events.clear()

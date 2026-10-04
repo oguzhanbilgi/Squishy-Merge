@@ -156,8 +156,9 @@ var _round_finalized: bool = false
 var _round_generation: int = 0
 ## Fırlatma aralığı (TASK/048): geçiş reklamı yerel SDK'ya verilen normal round'un nesli (-1 = yok). Gösterim
 ## çağrısından sonra reklam GERİ ALINAMAZ (Google SDK'da iptal yok) — o round, yönetici molayı bitirene dek
-## (kapanış / gösterim hatası; SDK susarsa onay zaman aşımı / öne dönüş payı) ekranın sahibi kalır. Sınır: SDK
-## yöneticinin vazgeçmesinden SONRA reklamı yine de açarsa (sözleşme dışı) o geç reklam o anki durumu örtebilir.
+## (kapanış / gösterim hatası; SDK susarsa TASK/052 tam ekran kirası: öne dönüş payı / örtülmemiş sınır / girdi
+## kanıtı — uygulama duraklatılmışken bırakma yok) ekranın sahibi kalır. Sınır: SDK yöneticinin vazgeçmesinden SONRA
+## reklamı yine de açarsa (sözleşme dışı) o geç reklam o anki durumu örtebilir.
 var _round_break_generation: int = -1
 ## Mola sürerken basılan round değişimi (mola "Yeniden Başlat" / "Ana Menüye Dön") — molanın sonunda eski
 ## sonucun YERİNE çalışır. TASK/049'dan beri mola penceresi kesinleşmede kapanır: savunma (bkz. `_defer_round_change`).
