@@ -1552,9 +1552,16 @@ L1–L3 değişmez, L4+ ≤ −%6). Harita: dünya yuvanın üstünde biter (16:
 dikeyde ≤ %4 sıkıştırılır, düğümler aynı dönüşümle).
 
 ### 12.2 Geçiş reklamı politikası (KİLİTLİ)
-- **Uygunluk:** `INTERSTITIAL_INTERVAL_SEC = 900` saniye **AKTİF ön plan**
-  süresi. Sayılmaz: arka plan / ekran kapalı, UMP formu, ödüllü ya da geçiş
-  reklamı ekranda, onboarding tamamlanmamış. Oyun içi normal pencereler sayılır.
+- **Uygunluk (TASK/052 owner brifi, 2026-10-04 — önce 900 sn, round şartı yoktu):**
+  önceki gerçek geçiş gösteriminden (SDK "gösterildi") bu yana **en az 2
+  KESİNLEŞEN NORMAL round** (sabit level / Sonsuz; meydan okuma, tutorial ve
+  tutorial'dan doğan round SAYILMAZ; oturumun ilk geçişi için de) **VE en az
+  300 saniye AKTİF ön plan süresi**. Sayılar tek yerde:
+  `AdPolicy.FORCED_INTERSTITIAL_MIN_ROUNDS = 2` /
+  `AdPolicy.FORCED_INTERSTITIAL_MIN_INTERVAL_SEC = 300` — **bu değerlerin altına
+  inilmez**, uzak yapılandırma yok. Aktif süre sayılmaz: arka plan / ekran
+  kapalı, UMP formu, ödüllü ya da geçiş reklamı ekranda, onboarding
+  tamamlanmamış, reklamsız yaş bandı. Oyun içi normal pencereler sayılır.
 - **Gösterim yeri — yalnız doğal mola:** round KESİN bitti + devam kararları
   tamamlandı + sonuç ekranından ÖNCE. Aktif oyunun ortasında, devam teklifinde,
   ödüllü reklamda, sandık reveal'inde, UMP formunda, tutorial'da ASLA.
@@ -1564,8 +1571,25 @@ dikeyde ≤ %4 sıkıştırılır, düğümler aynı dönüşümle).
   round'un kesinleşen ilerlemesi geçerli kalır, uygunluk korunur.
 - **Hazır değilse sonuç HEMEN açılır**; sonuç asla reklam yüklemesi ya da
   bekleme için bekletilmez; uygunluk korunur, sonraki molada denenir.
-- **Saat sıfırlama:** yalnız gerçek tam ekran gösterim başlayınca (SDK
-  "gösterildi"); uygunluk, yükleme hatası, hazır olmayan mola sıfırlamaz.
+- **Sayaç sıfırlama:** aktif süre VE round sayacı gerçek tam ekran gösterim
+  başlayınca (SDK "gösterildi" — mola kurtarmasından sonra geç gelen dahil, bir
+  kez; gösterim sayılır) ve "gösterildi"si gelmemiş reklamın kapanışında (SDK
+  kapanışı ya da örtülme kanıtlı mola kurtarması; gösterim SAYILMAZ — art arda
+  zorunlu geçiş olmasın) sıfırlanır; uygunluk, yükleme / gösterim hatası, hazır
+  olmayan mola, "gösterilmedi" kurtarması sıfırlamaz.
+- **Gelir odaklı ilk varsayılan (owner brifi):** 2 round + 300 sn geri alınabilir
+  bir başlangıç ayarıdır (tek sabit çifti, önceki 900 sn); elde tutma etkisi
+  kapalı / açık testte Play Console + AdMob raporlarıyla değerlendirilir
+  (ADS_SYSTEM §18.5). Bu değerlerin altına inilmez.
+- **Mola her zaman biter (TASK/052):** SDK kapanış / gösterim hatası geri
+  çağrısı gelmezse uygulama KENDİ molasını yalnız örtülmediğine dair kanıtla
+  bitirir (gerçek öne dönüşten 3 sn sonra — Android'de onResume'un odağı; Godot
+  Vulkan'ın onStart'taki RESUMED'ı, reklam hâlâ üstteyken, öne dönüş sayılmaz;
+  hiç örtülmeden 5 sn — ödüllüde SDK "gösterildi" dedikten sonra süreye bağlı
+  bitirme yok, yalnız yeni dokunuş kanıtı; öne dönüş kaybolduysa yeni bir
+  dokunuştan 5 sn sonra; uygulama örtülüyken süreye bağlı bitirme yok).
+  Sonuç tam bir kez açılır; ödül asla bu yolla verilmez (yalnız SDK "ödül
+  kazanıldı"); SDK reklamı uygulama tarafından kapatılmaz.
 - **Bekleme:** `FULLSCREEN_AD_COOLDOWN_SEC = 60` aktif saniye — herhangi bir
   tam ekran reklam (ödüllü ya da geçiş) kapanışından sonra geçiş reklamı
   bastırılır; art arda iki tam ekran reklam yok. Ödüllü ile geçiş aynı anda

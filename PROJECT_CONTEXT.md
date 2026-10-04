@@ -29,8 +29,10 @@ sevenler. Kısa oturumlarla (30–90 sn round) oynamayı tercih eden kullanıcı
 ## Business model
 - **Soft-launch öncesi monetizasyon planı (owner kararı, M8.9):** ödüllü
   devam (revive) + ödüllü güç refill'i + banner (Ana Sayfa / Harita / Mağaza /
-  Koleksiyon / oyun) + **geçiş reklamı** (15 dk aktif süre, yalnız round
-  bitişi molasında, 60 sn tam ekran beklemesi) + **günlük ödüller** (ücretsiz
+  Koleksiyon / oyun) + **geçiş reklamı** (main: 15 dk aktif süre — TASK/052
+  dalında, owner incelemesinde: önceki gerçek gösterimden bu yana 2 kesinleşen
+  normal round + 300 sn aktif süre; yalnız round bitişi molasında, 60 sn tam
+  ekran beklemesi) + **günlük ödüller** (ücretsiz
   sandık 1/gün, reklamlı sandık 2/gün, reklamlı +150 Hamur 1/gün, otomatik
   GÜNLÜK ÖDÜLLER penceresi + Mağaza kartı) **v1'DE VAR** — Google AdMob,
   `M8.9-01` temeli A36'da doğrulanıp main'e alındı, `M8.9-02` genişletmesi test
@@ -125,6 +127,20 @@ alınacak — şimdi tahmin/vaat yok.
   (`bc40da1` · `ed08b07` · `1ff0ba1` · `98d209e` · `b90bc3c`); merge commit / rebase / squash /
   cherry-pick YOK. Dallar referans için duruyor (`task/046-daily-weekly-missions` = `5092dad`,
   `task/046-1-age-gate-13plus-redesign` = `b90bc3c`).
+- **TASK/052 — tam ekran mola kurtarma + gelir odaklı geçiş politikası — READY FOR OWNER REVIEW, dalda (main'e
+  ALINMADI; main DEĞİŞMEDİ `1d2fb28`)** — dal `task/052-fullscreen-break-recovery-monetization` (10 commit; kapılardan
+  geçen üretim / test adayı `e16da5a`, üstünde yalnız doküman). **Hata (önceden var olan — açık madde (2)):** SDK'nın
+  kapanış / hata geri çağrısı kaybolursa uygulamanın kendi tam ekran molası (geçiş molası / ödüllü talep) hiç
+  bitmeyebiliyordu — sonuç açılmıyor, mola / GERİ açılmıyor, ertelenen değişim ve sonraki tüm reklamlar süreç boyunca
+  ölüyordu; düzeltmesiz `1d2fb28`'de deterministik yeniden üretildi. **Düzeltme:** token'lı tam ekran kirası — SDK geri
+  çağrıları yetkili; gelmezse kira yalnız örtülmeme kanıtıyla biter (gerçek öne dönüş + 3 sn, hiç örtülmeden 5 sn, kayıp
+  öne dönüşte yeni dokunuş + 5 sn; örtülüyken süre işlemez; ödüllüde "gösterildi" sonrası süreye bağlı bırakma yok; Godot
+  Vulkan'ın onStart RESUMED'ı reklam üstteyken sayılmaz), ödül asla kurtarmayla verilmez, SDK reklamı kapatılmaz.
+  **Politika:** `AdPolicy` — 2 kesinleşen normal round + 300 aktif sn (önce 900 sn), 60 sn bekleme, meydan okuma /
+  tutorial sayılmaz; ödüllü kotalar DEĞİŞMEDİ; app-open eklenmedi (ertelendi). **Doğrulama:** mutasyon 47 / 47 (açık
+  FAIL); 8 mercekli inceleme + sertleştirme takip incelemesi (HIGH giderildi); kontrollü tam masaüstü kapısı (`e16da5a`)
+  49 / 49 temiz, 6100 kontrol, 0 hata, 0 SCRIPT ERROR, bot 2/2, sahibin kaydı bayt-aynı; **Samsung A36:** GEÇTİ — normal TEST geçiş reklamı, bayat mola kurtarması (sahte + gerçek), arka plan / kayıp öne dönüş / Vulkan onStart (L1-1), ödüllü D1–D3 (sahte ödül yok), sıklık politikası, TASK/049–051 korunması; logcat temiz, QA kaldırıldı.
+  Ayrıntı: docs/monetization/ADS_SYSTEM.md §18 / §19, PROJECT_STATUS §4.32.
 - **TASK/051 — round başlangıcında dokunuş sahipliği (`_start_level` yatışması / çift dokunuş / basılı parmak) — TAMAM,
   main'de** (owner onayıyla ff-only `1293eb2 → 4bae821`, 2026-10-04; doğrulamanın tamamı entegrasyondan ÖNCE
   tamamlandı — aşağıda; entegrasyon ve doküman eşitlemesi sırasında hiçbir kapı yeniden koşulmadı). **Hata (önceden
@@ -839,14 +855,20 @@ notu (inceleme notu — düzeltilmedi, görev DEĞİL):** yatışma penceresi ol
 başlangıcından sonraki ilk karesi hızlı ikinci dokunuşu 300 ms penceresinin sonrasına itecek kadar uzun takılan
 patolojik bir cihazda zamanlama engeli kuramsal olarak aşılabilir. 300 ms kanonik ve kilitli; A36'da ilk kare ~10 ms,
 ilk çizim ~16 ms; gerçek ikinci dokunuşlar ~110–118 ms'de yutuldu; pencereden sonraki 0,35 sn sınır dokunuşu tam 1
-normal bırakış verdi. **Sıradaki ürün / stabilizasyon görevi owner seçimi** (TASK/052 tanımlanmadı) — aşağıdaki açık
-maddelerden hiçbiri kendiliğinden seçilmez.
+normal bırakış verdi. *(Sonra: TASK/052 owner brifiyle tanımlandı — aşağıda.)*
+
+**Stabilizasyon + gelir — TASK/052 tam ekran mola kurtarma + gelir odaklı geçiş politikası: READY FOR OWNER REVIEW, dalda
+(main'e ALINMADI).** Dal `task/052-fullscreen-break-recovery-monetization`, main `1d2fb28`'den; owner incelemesi ve
+entegrasyon kararı bekliyor (merge EDİLMEDİ). Açık madde (2) **FIXED ON TASK/052 BRANCH**. Owner için ayrıca: ADS_SYSTEM
+§18.5 (sıklık / elde tutma deneyi için inceleme noktası, ilk gün koruması seçeneği, eklentinin yetim yeniden yüklemesi —
+native, TEEN uyum maddelerinin yeni cadence'la yeniden değerlendirilmesi) ve §19 hesap tarafı AdMob işleri (optimize
+taban, bidding / mediation değerlendirmesi, ortak eşleme + gizlilik, banner yenileme, QA / üretim kimlik ayrımı,
+izlenecek metrikler). Aşağıdaki açık maddelerden hiçbiri kendiliğinden seçilmez.
 
 Açık, owner kararı bekleyen ayrı maddeler (**BAŞLAMADI**; hiçbiri kendiliğinden seçilmez; (1) TASK/051 ile
-kapandı — aşağıda): (2) geçiş reklamı molası HİÇ bitmezse (çift SDK / yaşam döngüsü arızası) yöneticinin onay zaman
-aşımı / öne dönüş payı molayı bitirene dek çıkış kapısı yoktur (TASK/048'de açık molanın "Yeniden Başlat" / "Ana
-Menüye Dön"ü ertelemede kalıyordu; TASK/049'dan beri mola kesinleşmede kapandığından bu aralıkta açık mola kalmaz,
-ama yerine bir çıkış kapısı da yok — madde açık); (3) erteleme sürerken HUD Ayarlar açılırsa yeni round Ayarlar'ın
+kapandı — aşağıda; (2) TASK/052 dalında düzeltildi): ~~(2) geçiş reklamı molası HİÇ bitmezse (çift SDK / yaşam
+döngüsü arızası) yöneticinin onay zaman aşımı / öne dönüş payı molayı bitirene dek çıkış kapısı yoktur~~ → **FIXED ON
+TASK/052 BRANCH** (token'lı tam ekran kirası; main'e alınmadı — §4.32); (3) erteleme sürerken HUD Ayarlar açılırsa yeni round Ayarlar'ın
 altında başlar; RESULT_DELAY / reklam beklemesinde açılan ya da bitişte açık Ayarlar sonucun üstünde kalır (görsel;
 TASK/049 Ayarlar'ı bilinçli olarak kapatmaz); (4) basılı Koleksiyon kartı + Android GERİ sentetik bırakışı (yukarıda,
 TASK/045.2; ACTION_CANCEL'in tahta tarafı TASK/046.2'de giderildi — main'de); (5) genel GUI ACTION_CANCEL — modal /

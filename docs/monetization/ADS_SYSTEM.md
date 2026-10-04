@@ -70,6 +70,15 @@
 > yeni bant sonraki soğuk açılışta. Ham doğum tarihi saklanmaz / loglanmaz. Kullanıcıya görünen
 > reklam sözleşmesi (yüzeyler, kotalar, geçiş cadence'ı) TEEN / ADULT için DEĞİŞMEDİ.
 > Ayrıntı: [AGE_BAND_ROUTING.md](AGE_BAND_ROUTING.md), §17.
+>
+> **TASK/052 (2026-10-04; dal `task/052-fullscreen-break-recovery-monetization`, main'e ALINMADI — owner
+> incelemesi):** bitmeyen tam ekran molası DÜZELTİLDİ — geçiş molası ve ödüllü talep token'lı bir tam ekran
+> kirasına bağlı; SDK kapanış / hata geri çağrısı gelmezse kira yalnız örtülmeme kanıtıyla (öne dönüş + 3 sn, hiç
+> örtülmeden 5 sn, kayıp öne dönüşte yeni dokunuş + 5 sn; Android'de gerçek öne dönüş = onResume'un odağı — Godot
+> Vulkan'ın onStart RESUMED'ı reklam üstteyken sayılmaz; ödüllüde "gösterildi" sonrası süreye bağlı bırakma yok) biter,
+> ödül asla bu yolla verilmez, SDK reklamı kapatılmaz. Geçiş politikası `AdPolicy`'de: önceki gerçek gösterimden bu yana ≥ 2 kesinleşen NORMAL round VE
+> ≥ 300 aktif sn (önce 900 sn), 60 sn bekleme aynen; ödüllü kotalar DEĞİŞMEDİ; app-open eklenmedi. Banner
+> PAUSED'da gizlenir / duraklatılır. Ayrıntı ve hesap tarafı kontrol listesi: §18, §19.
 
 ## 1. Kapsam (v1 monetizasyon planı)
 
@@ -81,8 +90,8 @@
 | Ödüllü günlük +150 Hamur (M8.9-02) | ✅ bağlı, test reklamı, cihazda henüz değil | günde 1 BAŞARILI ödül; ayrı kota |
 | Ücretsiz günlük sandık (M8.9-02) | ✅ reklam yok | günde 1; loot reçetesi DAILY_REWARDS §4 |
 | Banner (uyarlanabilir sabit, alt) | ✅ Ana Sayfa / Harita / Mağaza / Koleksiyon / oyun (M8.9-02 ile Harita + oyun eklendi; cihazda henüz değil) | sonuç ekranında GİZLİ; onboarding bitmeden yuva yok |
-| Geçiş (interstitial) reklamı (M8.9-02) | ✅ bağlı, test birimi, cihazda henüz değil | 900 sn AKTİF süre → uygun; YALNIZ round bitişi molasında, sonuçtan önce; 60 sn tam ekran beklemesi (DAILY_REWARDS §8) |
-| Rewarded interstitial / app-open / native / mediation | ❌ bilerek YOK | — |
+| Geçiş (interstitial) reklamı (M8.9-02) | ✅ bağlı, test birimi, cihazda henüz değil | ~~900 sn AKTİF süre~~ → **TASK/052: önceki gerçek gösterimden bu yana ≥ 2 kesinleşen NORMAL round VE ≥ 300 sn AKTİF süre** (`AdPolicy`, §18) → uygun; YALNIZ round bitişi molasında, sonuçtan önce; 60 sn tam ekran beklemesi (DAILY_REWARDS §8) |
+| Rewarded interstitial / app-open / native / mediation | ❌ bilerek YOK | — (app-open TASK/052'de değerlendirildi, ertelendi — §18.4) |
 | IAP / Billing, analitik sağlayıcı, üretim kimlikleri | ❌ bu milestone'da yok | sonraki adımlar |
 
 Hamur satın alma yolu (`PowerUpEconomy.purchase`) reklamdan tamamen bağımsız
@@ -96,7 +105,8 @@ kaldı; skinler asla reklam/paraya bağlı değil.
 > yaş / rıza / SDK yönlendirmesi DEĞİŞMEDİ; yaş UNKNOWN'da normal oyunla aynı — SDK / UMP açılmaz,
 > meydan okuma reklam yoluna dokunmaz (üretimde UNKNOWN önce zorunlu yaş ekranını gösterir). Normal
 > round'ların geçiş reklamı davranışı aynen. Meydan okumada geçen süre mevcut 15 dakikalık aktif süre
-> uygunluğuna sayılır (mevcut sözleşme, yeni yerleşim değil).
+> uygunluğuna sayılır (mevcut sözleşme, yeni yerleşim değil). *(TASK/052: aktif süre eşiği 300 sn; meydan okuma
+> süresi yine sayılır ama meydan okuma round'u 2 round şartına SAYILMAZ — §18.3.)*
 
 > **TASK/048 (main'de, `b9ae345`) — doğal mola round'a aittir (GAME_DESIGN §12.2):** yeni yerleşim / politika DEĞİL.
 > Round kesinleştikten sonraki RESULT_DELAY (0,8 sn) içinde round değiştirilirse (mola "Yeniden Başlat" /
@@ -110,6 +120,8 @@ kaldı; skinler asla reklam/paraya bağlı değil.
 > tutar (`_round_break_generation`): mola sürerken molanın "Yeniden Başlat" / "Ana Menüye Dön"ü ertelenir, mola
 > bitince (kapanış / gösterim hatası / onay zaman aşımı / öne dönüş payı — tek geri çağrı) eski sonucun YERİNE
 > çalışır. Yönetici politikası AYNEN (onay zaman aşımı 5 sn, öne dönüş payı 3 sn, 60 sn bekleme, 900 sn uygunluk).
+> *(Sonra — TASK/052, §18: onay zaman aşımı + öne dönüş payları tek token'lı tam ekran kirasında birleşti (aynı
+> 5 sn / 3 sn değerleri; artık "gösterildi"den sonra ve ödüllüde de); uygunluk 2 round + 300 sn.)*
 > Sınır: SDK yönetici vazgeçtikten SONRA reklamı yine açarsa (sözleşme dışı) geç reklam o anki durumu örtebilir.
 
 > **TASK/049 (main'de, `f6cd072`) — round bitişi pencere sahipliği:** yeni yerleşim / politika DEĞİL. Normal round
@@ -236,7 +248,8 @@ uyguluyordu — §15.)*
 | `rewarded_earned` | açık talep + aynı `ad_id` + daha önce ödül verilmemiş → `REWARD_EARNED` ve **tek ödül yolu**: devam `Main.grant_revive()`, refill `Main.grant_rewarded_power(type, token)`; çift/geç/eski/iptal edilmiş → `stale` olay, ödül yok |
 | `rewarded_dismissed` | talep kapanır; ödül yoksa Main'e "Ödül için reklamın tamamını izlemen gerekiyor." (kota/hak TÜKETİLMEZ); sonraki reklam önyüklenir |
 | `rewarded_failed_to_show` | "Reklam gösterilemedi, tekrar dene."; reklam önbellekten düşer; yenisi yüklenir |
-| uygulama öne dönüşü | `SHOWING` sürüyorsa 3 sn pay; kapanış gelmezse ödülsüz kapanış varsayılır (sonsuz "gösteriliyor" yok) |
+| uygulama öne dönüşü | `SHOWING` sürüyorsa 3 sn pay; kapanış gelmezse ödülsüz kapanış varsayılır (sonsuz "gösteriliyor" yok) — *TASK/052: token'lı tam ekran kirası; gerçek öne dönüş FOCUS_IN'le, "gösterildi" sonrası süreye bağlı bırakma yok, ödül kazanıldıysa "kapandı" (§18.2)* |
+| süre dolumu (TASK/052) | hazır ödüllü reklam 3300 sn'de (motor saati VEYA duvar saati) atılır, yenisi yüklenir; pencere açılışı (`ensure_rewarded`) tazeler, CTA süresi dolmuş reklamı göstermez |
 
 Kota/hak kontrolleri **yöneticide DEĞİL**, kilitli yerlerde: board (2/round),
 `Main.grant_rewarded_power` (token + tip) ve `RewardedPolicy.grant` /
@@ -334,8 +347,12 @@ Sağlayıcı YOK (sonraki milestone). `AdEvents.emit(name, ctx)`; abone
   `interstitial_dismissed`, `interstitial_show_failed`,
   `interstitial_skipped_not_ready` (`reason`: not_eligible / not_ready /
   failed / expired / cooldown / rewarded_active / showing / consent /
-  disabled / sdk_refused — TASK/042). Hepsinde `active_elapsed_sec`; gösterim yolunda `natural_break`
-  (`round_finish`).
+  disabled / sdk_refused — TASK/042; age_gate — TASK/043; app_paused /
+  consent_form — TASK/052). Hepsinde `active_elapsed_sec`; gösterim yolunda `natural_break`
+  (`round_finish`). TASK/052 bağlam alanları (yeni olay ADI yok): `rounds`
+  (`interstitial_eligible` / `interstitial_showed`), `recovered` (kira kurtarması:
+  `resume_grace` / `uncovered_lease` / `input_evidence`), `late` (kurtarmadan sonra geç
+  gerçek gösterim), `stale`.
 - Günlük (M8.9-02): `daily_popup_shown` (`auto`, `remaining`),
   `daily_popup_closed`, `daily_free_chest_claimed`, `daily_ad_chest_requested`,
   `daily_ad_chest_earned` (`remaining`), `daily_dough_requested`,
@@ -922,3 +939,222 @@ Kanonik ayrıntı: [AGE_BAND_ROUTING.md](AGE_BAND_ROUTING.md). Özet (kod gerçe
   (kısıt ekranı, sıfır SDK), E Ayarlar'dan iki yön (oturum reklamsız, aktif SDK'da işlem değişmez,
   sonraki soğuk açılış yeni rota), F tam 18. yaş günü (SDK'dan önce ADULT); 9 / 9 log temiz.
   Ayrıntı AGE_BAND_ROUTING §11.
+
+## 18. TASK/052 — tam ekran mola kurtarma + gelir odaklı geçiş politikası (2026-10-04)
+
+Dal `task/052-fullscreen-break-recovery-monetization` (temel `1d2fb28` = main); **main'e ALINMADI — owner incelemesi.**
+Faz A izi (kod değişmeden önce): `build/qa_052/trace/TRACE.md`; temelde deterministik yeniden üretim:
+`build/qa_052/baseline/`.
+
+### 18.1 Kök neden — bitmeyen tam ekran molası
+
+Uygulamanın kendi molası (`_break_done == false`, geçiş `SHOWING`, Main `_round_break_generation`) yalnız dört yoldan
+bitiyordu: SDK kapanışı, SDK gösterim hatası, 5 sn onay zamanlayıcısı (SDK "gösterildi" gelince İPTAL) ve 3 sn öne
+dönüş payı (yalnız APPLICATION_RESUMED kurar). **"Gösterildi" gelip kapanış hiç gelmezse ve ardından RESUMED de
+gelmezse** (uygulama hiç duraklamadı ya da RESUMED kayboldu) hiçbir zamanlayıcı kurulmuyordu: sonuç hiç açılmıyor,
+bitmiş board'da mola / BACK açılmıyor, ertelenen Yeniden Başlat / Ana Menü sonsuza dek bekliyor, `fullscreen_ad_active()`
+true kalıyor (ödüllü hiç hazır değil, geçiş "showing" ile engelli), aktif saat süreç boyunca donuk — tek çıkış uygulamayı
+öldürmek. Ödüllüde onay zamanlayıcısı hiç yoktu: aynı sınıf (talep sonsuza dek "Reklam gösteriliyor…", sonraki her
+ödüllü / geçiş reddedilir). Yol üstünde bulunanlar: onay zamanlayıcısı uygulama DURAKLATILMIŞKEN de doluyordu (arka
+plana atmak molayı erken bitirebiliyordu); ödüllü öne dönüş payı token'sızdı (iki RESUMED → iki zamanlayıcı, ikincisi
+YENİ bir talebi kapatabiliyordu); onay zaman aşımından sonra gelen gerçek "gösterildi" ne sayılıyor ne sıklık saatini
+sıfırlıyordu; eklentinin yetim yeniden yüklemesinin `interstitial_failed_to_load(eski_id)` sinyali yoldaki önyüklemeye
+yazılıyordu.
+
+### 18.2 Çözüm — token'lı tam ekran kirası (`MonetizationManager`, geçiş + ödüllü)
+
+- Geçiş molası ya da ödüllü talep SDK'ya verildiği an (geri dönülmez nokta — GMA'da iptal API'si yok) uygulamanın
+  KENDİ engelleyici durumu bir **kiraya** bağlanır: `LeaseKind`, token, TEK zamanlayıcı (`_lease_timer`). SDK'nın uç
+  geri çağrıları (kapanış / gösterim hatası) **yetkili kalır**; gelmezse kira yalnız uygulamanın örtülmediğine dair
+  kanıtla bırakılır:
+  - gerçek öne dönüş → `SHOW_RESUME_GRACE` = 3 sn (mevcut değer). **Gerçek öne dönüş** = APPLICATION_RESUMED, ama
+    Android'de onPause'un FOCUS_OUT'u ile onResume'un FOCUS_IN'i arasında gelen RESUMED sayılmaz: Godot 4.6.3 Vulkan
+    oluşturucusu RESUMED'ı Activity.onStart'ta (oluşturucu iş parçacığı yeniden başlarken) da gönderir — HOME / kilit /
+    arama sonrası dönüşte reklam hâlâ üstteyken (şablon bayt kodundan doğrulandı; inceleme L1-1). Bu durumda pay
+    onResume'un FOCUS_IN'iyle başlar; banner ve aktif saat de o ana dek duraklatılmış kalır;
+  - gösterim isteğinden beri hiç PAUSED gelmedi ("gösterildi" öncesi) → `FULLSCREEN_UNCOVERED_LEASE_SEC` = 5 sn (=
+    TASK/048'in 5 sn onay süresi; SDK'nın gösterimi sessizce düşürdüğü kök neden yolu);
+  - geçiş: SDK "gösterildi" dedi ama hiç PAUSED yok → "gösterildi"den 5 sn (sonuç reklamın altında açılabilir; ucuz
+    yanlış tahmin, ödül yok);
+  - ödüllü: SDK "gösterildi" dedi ama hiç PAUSED yok → **süreye bağlı bırakma YOK**; yalnız "gösterildi"den ≥ 5 sn sonra
+    uygulamaya ulaşan YENİ bir dokunuş (reklam üstteyse dokunuş ona gider) → 5 sn. Böylece etkinliği duraklatmayan bir
+    gösterim yolunda bile oyuncunun hak ettiği ödül süreyle kesilmez (inceleme L3-1);
+  - PAUSED geldi, RESUMED kayboldu → son PAUSED'dan ≥ 5 sn sonra uygulamaya ulaşan YENİ bir dokunuş kanıttır → 5 sn; bu
+    dokunuş kira olsun olmasın uygulama düzeyinde öne dönüş sayılır (duraklatma düşer — banner, aktif saat, doğal mola
+    takılı kalmaz; inceleme L6-3);
+  - PAUSED iken (girdi kanıtı yoksa) **süreye bağlı bırakma YOK**: gerçekten görüntülenen tam ekran reklam uygulamayı
+    duraklatır (A36, TASK/048: istek → PAUSED 55–65 ms → "gösterildi" 91–149 ms), dolayısıyla uzun bir reklam kesilmez.
+    Örtülme kanıtı yalnız gösterim çağrısından SONRAKİ PAUSED'dır (önceden duraklatılmış uygulama sayılmaz).
+- **Sonuç:** "kapandı" (gösterildi, örtülme görüldü ya da — ödüllüde — "ödül kazanıldı" geldi) = kapanış anlamı (60 sn
+  bekleme, önyükleme, mola geri çağrısı TAM bir kez, eklenti nesnesi önbellekten düşer); "gösterilmedi" = gösterim
+  hatası anlamı (mesaj `show confirm timeout`, bekleme yok, uygunluk korunur). Olaylara `recovered` = `resume_grace` /
+  `uncovered_lease` / `input_evidence` eklenir; `describe()` `lease=` / `recov=` / `inres=` gösterir.
+- **Ödül asla kurtarmayla verilmez:** ödül yalnız mevcut "ödül kazanıldı" geri çağrısıyla, o anda verilir (tek yol,
+  Main token'ları + kotalar aynen). Kurtarmadan önce kazanılmadıysa not "Ödül için reklamın tamamını izlemen
+  gerekiyor." (gösterilmediyse "Reklam gösterilemedi, tekrar dene."), teklif açık kalır. Uygulama SDK reklamını
+  "kapatmaz"; sahte kapanış / sahte ödül / sahte gösterim sayımı YOK.
+- **Emekli kimlikler** (`RETIRED_ID_MEMORY` = 4 / biçim): kapanan / kurtarılan reklamın geç ya da yinelenen kapanış /
+  hata / ödül geri çağrısı eskidir (sahiplik değişmez; ikinci sonuç, ikinci mola geri çağrısı, ikinci ödül, süren
+  önyüklemenin bozulması yok). Kendi reklamımızın kurtarmadan SONRA gelen geç gerçek "gösterildi"si gösterimi bir kez
+  sayar ve sıklık sayaçlarını sıfırlar; yinelenen "gösterildi" iki kez sayılmaz. Eklentinin yetim yeniden yüklemesinin
+  hata sinyali yoldaki önyüklemeye yazılmaz.
+- **Banner yaşam döngüsü:** APPLICATION_PAUSED'da gizlenir (eklenti: `GONE` + `AdView.pause()`), gerçek öne dönüşte
+  yeniden gösterilir (`VISIBLE` + `resume()`); aynı AdView, yeni yükleme yok. Google'ın BaseAdView referansı `pause()`'un
+  etkinliğin onPause'unda, `resume()`'un onResume'unda çağrılmasını söyler
+  (developers.google.com/android/reference/com/google/android/gms/ads/BaseAdView).
+- **Aktif saat:** arka plandan / uykudan dönüşteki ilk karenin dev delta'sı en çok `ACTIVE_TICK_MAX_SEC` = 1 sn sayılır
+  (durdurulan süre 300 sn kapısına sızmaz; inceleme L8-1).
+- **TASK/048 sahipliği aynen:** kira sürerken Main `_round_break_generation`'ı tutar; mola kurtarmayla bitse de
+  ertelenen Yeniden Başlat / Ana Menü eski sonucun YERİNE tam bir kez çalışır; eski sonuç açılmaz.
+
+### 18.3 Politika — `scripts/ads/ad_policy.gd` (sayıların tek ayar yeri)
+
+Zorunlu (oyuncunun seçmediği) geçiş reklamı yalnız doğal molada — normal round KESİN bitti, devam kararları tamamlandı,
+sonuç ekranından ÖNCE (`Main._on_round_finished` tek çağrı noktası) — ve hepsi doğruyken:
+
+| kural | değer |
+|---|---|
+| önceki gerçek gösterimden bu yana kesinleşen NORMAL round (oturumun ilk geçişi için de) | `FORCED_INTERSTITIAL_MIN_ROUNDS` = **2** |
+| önceki gerçek gösterimden bu yana AKTİF ön plan süresi | `FORCED_INTERSTITIAL_MIN_INTERVAL_SEC` = **300 sn** (önce 900) |
+| herhangi bir tam ekran reklam kapanışından sonra bekleme | `FULLSCREEN_AD_COOLDOWN_SEC` = **60 sn** (aynı) |
+| başka tam ekran yok, reklam HAZIR (süresi dolmamış), yaş / rıza / onboarding izinli, UMP gizlilik formu açık değil, uygulama ön planda | yeni engel sebepleri `app_paused`, `consent_form` |
+
+- Main kesinleşen her normal round'u bir kez bildirir (`_ads.note_normal_round_finalized()`, RESULT_DELAY'den önce);
+  yönetici yalnız arka uç + onboarding tamam + reklamlı yaş bandında sayar → tutorial ve tutorial'dan doğan round
+  sayılmaz (tutorial'dan "yetişme" yok), meydan okuma (TASK/047) yöneticiye hiç ulaşmaz. Gecikmede round değiştirilse
+  de kesinleşen round sayılmış kalır.
+- Sayaçlar SDK "gösterildi"de (geç gelen dahil, bir kez; gösterim sayılır) ve "gösterildi"si gelmemiş reklamın
+  kapanışında (SDK kapanışı ya da örtülme kanıtlı kurtarma; gösterim SAYILMAZ — tek kural, inceleme L4-02) sıfırlanır;
+  yükleme / gösterim hatası, hazır olmayan mola, "gösterilmedi" kurtarması sıfırlamaz. Hazır değilse sonuç HEMEN açılır
+  (beklenmez); uygun mola hangi sebeple atlanırsa atlansın tükenmiş yükleme döngüsü sınırlı biçimde yeniden tetiklenir.
+  **2 round + 300 sn'nin altına inilmez**; uzak yapılandırma yok.
+- Aktif süre tanımı aynı (arka plan / ekran kapalı, UMP formu, tam ekran reklam, onboarding öncesi, reklamsız yaş bandı
+  sayılmaz; meydan okuma oynanışı da dahil her ön plan süresi sayılır — yalnız ROUND sayacına girmez).
+- Envanter simülasyonu (`tools/ad_inventory_sim.gd`, gerçek Main + FakeAdBackend, 7 oturum tipi): TASK/052'de 46 doğal
+  moladan **19** zorunlu gösterim, temel (900 sn) **4** — S1 5 dk / 2 round 1 (0), S2 10 dk / 4 round 2 (0), S3 20 dk /
+  8 round 4 (1), S4 + ödüllü devam 3 (1), S5 + meydan okuma 4 (1; meydan okuma bitişinde deneme yok), S6 60 sn'lik 10
+  round 2 (0), S7 taze kurulum (tutorial + Level 1 sayılmaz) 3 (1). Ayrıntı `build/qa_052/policy/`. Çekinceler (inceleme L7-5): üst sınırdır — %100 doluluk, ADULT bandı (üretimdeki yaş ekranı S7'de atlanır), çoğu oturumda 150 sn'lik round, sonuç / kabuk süresi sayılmaz; gerçek 30–90 sn'lik round'larda etkin kural 300 sn saatidir.
+- Google'ın "Disallowed interstitial implementations" sayfası (support.google.com/admob/answer/6201362) her iki
+  kullanıcı eyleminden sonra en fazla bir geçiş reklamı önerir ve art arda geçişi uygunsuz örnek sayar; kural aynı yönde
+  tasarlandı. Bu bir **uyum beyanı değildir** — politika uyumu owner incelemesinde AÇIK.
+
+### 18.4 Denetimler
+
+Yerleşim matrisi (biçim, uygunluk, kota, doğal mola, opt-in, kaldıraç, elde tutma / politika riski, öneri): `build/qa_052/policy/PLACEMENT_MATRIX.md`.
+
+- **Önyükleme (düzeltildi):** kapanış / gösterim hatası / kurtarma sonrası yeniden önyükleme; 60 sn yükleme zaman
+  aşımı, 15 / 60 / 180 / 600 sn yeniden deneme (döngü başına 6). Google'ın Android geçiş / ödüllü rehberi reklamların
+  bir saatte sona erdiğini, önbelleğin saatlik yenilenmesini söyler: hazır ödüllü reklamın da artık 3300 sn yaş sınırı
+  var (önce yalnız geçişte vardı) ve yaş motor saati VEYA duvar saatiyle ölçülür (motor saati cihaz uykusunda durur);
+  süresi dolan hazır reklam aktif saat adımında, öne dönüşte, ödüllü pencere açılışında ve CTA'da atılıp yenisi yüklenir
+  (devam CTA'sı süresi dolmuş reklamı göstermez). Kurtarılan kapanış eklenti nesnesini önbellekten düşürür. **Eklentinin yetim otomatik yeniden yüklemesi**
+  (`Interstitial.onAdDismissedFullScreenContent` aynı nesnede `load()`; cephe nesneyi haritadan siler) gösterim başına
+  bir boşa istek üretir → gösterim oranını (show rate) düşürür; yalnız native eklenti yeniden derlemesiyle düzelir —
+  owner takibi (bu görevde native değişiklik YOK).
+- **Banner:** yenileme hesap tarafında (§19); uygulama kodu yenileme isteği göndermez. Sonuç ekranında gizli,
+  onboarding öncesi yuva yok (aynen); TASK/052 yalnız PAUSED / RESUMED gizle / göster ekledi.
+- **Telemetri:** `AdEvents` sabit olay adları + bellek içi halka (200), sağlayıcı YOK; TASK/052 yeni olay adı eklemedi,
+  mevcut olaylara alan ekledi (`rounds`, `recovered`, `late`, `reason`). Firebase / üçüncü taraf analitik eklenmedi;
+  kullanıcı kimliği / rıza dizesi loglanmaz.
+- **Ödüllü kotalar DEĞİŞMEDİ** (devam 2 / round, güç refill'i 1 / gün dört gücün toplamı, reklamlı sandık 2 / gün,
+  +150 Hamur 1 / gün) — `AdPolicy.rewarded_caps()` yalnız tek kaynaklarından okur. GAME_DESIGN §5.7.3 refill kotası
+  simülasyonla kilitli; ekonomi kanıtı olmadan değiştirilmez. Owner için kaba değer (günlük, reklamlı yol): +150 Hamur +
+  sandıklar ≈ 115 Hamur-eşdeğeri (erken) / ≈ 39 (geç) + refill ≈ 140 Hamur-eşdeğeri.
+- **App-open: UYGULANMADI (ertelendi).** Google'ın app-open rehberi bu biçimi kullanıcının uygulamanın yüklenmesini
+  BEKLEDİĞİ anlara, oyunlarda bir yükleme ekranına bağlar ve ilk app-open reklamını kullanıcı uygulamayı birkaç kez
+  kullandıktan sonra önerir (developers.google.com/admob/android/app-open); Help Center sayfası app-open reklamının hemen
+  öncesi / sonrasında başka reklam gösterilmemesini ister (support.google.com/admob/answer/9341964). Oyunda oyuncunun
+  beklediği bir yükleme yüzeyi yok (Ana Sayfa hemen etkileşimli), rıza + yaş + SDK Ana Sayfa'dan SONRA açılıyor, ilk
+  açılışlar tutorial ile reklamsız; round sonu geçişiyle ayrı çakışma yönetimi gerekirdi. 10 ön koşulun hepsi
+  sağlanmadığı için eklenmedi (PROJECT_CONTEXT non-goal ile de uyumlu).
+- **Mediation / bidding:** eklenmedi (adaptör yok). Eklenirse Google'ın mediation rehberi SDK'nın açıkça başlatılmasını
+  ve ortakların Privacy & messaging GDPR / ABD eyaletleri listelerine eklenmesini ister (hesap tarafı, §19).
+
+### 18.5 Kalan riskler ve owner seçenekleri (dürüst)
+
+1. SDK, yönetici molayı bitirdikten SONRA reklamı yine açarsa (sözleşme dışı) geç reklam o anki ekranı örtebilir —
+   geç "gösterildi" bir kez sayılır, sahiplik değişmez (TASK/048'den beri bilinen sınır).
+2. RESUMED kaybolmuş ve oyuncu hiç dokunmuyorsa mola oyuncu dokunana dek sürer — dokunuş kanıtı olmadan PAUSED iken
+   süreye bağlı bırakma bilerek yok (kesilen gerçek reklam = sahte kapanış / geçersiz trafik riski).
+3. **"Tam ekran reklam uygulamayı duraklatır" varsayımı** A36 + GMA 25.3 AdActivity'de doğrulandı. SDK / eklenti
+   değişirse ya da mediation eklenirse (etkinliği duraklatmayan, ör. diyalog tabanlı bir tam ekran) yeniden
+   doğrulanmalı: aksi hâlde ödüllüde "gösterildi"den 5 sn sonra kapanış sayılır ve sonra gelen "ödül kazanıldı" eski
+   kalır (oyuncu ödülü alamaz); geçişte sonuç reklamın arkasında açılır.
+4. Eklentinin yetim yeniden yüklemesi (18.4) — native düzeltme owner kararı.
+5. **Sıklık ve elde tutma (inceleme L7-1 / L7-2):** 30–90 sn'lik round'larda 2 round şartı nadiren bağlar, etkin kural
+   300 sn saatidir → aktif saatte tam dolulukta ≈ 10–12 zorunlu geçiş (önce ≈ 4); 5–15 dk'lık oturumlar 0'dan 1–2
+   reklama çıkar; ilk zorunlu geçiş yaş ekranından ≈ 5–6 aktif dakika sonra (önce ≈ 15). Bu, owner brifinin "ilk gelir
+   odaklı varsayılanı"dır (altına inilmez); geri alınabilir (tek sabit çifti, önceki 900 sn). Uygulamada analitik SDK
+   yok (non-goal) — etki kapalı / açık testte Play Console elde tutma + AdMob raporlarıyla, önceden belirlenen bir
+   inceleme noktasında değerlendirilmeli. Owner seçenekleri (her biri §12.2'yi değiştirir): ilk gün koruması
+   (`onboarding_completed_day` ile ertesi güne dek 900 sn ya da zorunlu geçiş yok), uzun arka plandan dönüşü soğuk
+   açılış gibi saymak (sayaçlar sıfır — bugün sayaçlar sıcak dönüşe taşınır, 900 sn'de de öyleydi), yalnız geçiş
+   öncesi daha uzun "dokunmayı bırak" aralığı (bugün RESULT_DELAY 0,8 sn), reklamı sonuç ekranından sonra (Sonraki /
+   Ana Sayfa'da) göstermek, reddedilen devam teklifinden hemen sonra ya da hızlı kayıp-tekrar döngüsünde atlamak,
+   ödüllüden sonra daha uzun reklamsız pencere.
+6. **TEEN bandı:** yeni cadence 13–17 için de geçerli (bantlar arası sözleşme aynı); AGE_BAND_ROUTING §9'daki açık UYUM
+   maddeleri 900 sn'ye göre yazılmıştı — owner yeniden değerlendirmeli (hukuki sonuç çıkarılmadı).
+7. Kurtarma yolunda ödülsüz kapanış notu mevcut metindir ("Ödül için reklamın tamamını izlemen gerekiyor."; kota
+   tüketilmez) — geri çağrıları kaybolan nadir bir tam izlemede oyuncuya haksız gelebilir; nötr metin owner seçeneği.
+
+### 18.6 Testler ve kapılar
+
+- **Temel yeniden üretim (düzeltmesiz `1d2fb28`):** sonda (`build/qa_052/baseline/`) "gösterildi" + kapanış / yaşam
+  döngüsü yok → mola hiç bitmiyor; `fullscreen_break_recovery_test`'in temel-güvenli ilk sürümü 43 OK / 38 FAIL / 0
+  SCRIPT ERROR; son sürüm süitler aynı kodda kurtarma 63 FAIL + politika 18 FAIL (yalnız düzeltilmiş kodda var olan
+  API'lerden 19 SCRIPT ERROR — negatif kontrol).
+- **Yeni / uyarlanan süitler:** `fullscreen_break_recovery_test` (18 bölüm, 117 kontrol: kapanış, hata, kayıp kapanış,
+  arka plan / öne dönüş, geç / yinelenen geri çağrılar, TASK/048 ertelemesi, ödüllü ödül + kayıp kapanış / ödülsüz,
+  yalnız arka plan, sonraki reklam, yaş / rıza, meydan okuma, girdi / sonuç sahipliği, jeton, yetim yükleme, inceleme
+  sertleştirmesi U1–U13, kaynak sözleşmesi), `ad_policy_test` (12 bölüm, 54 kontrol: round / süre kapısı, gösterim
+  sonrası sıfırlama, bekleme, tutorial, meydan okuma, hazır değil / duraklatılmış / gizlilik formu, app-open N/A, ödüllü
+  kotalar, banner, sabitler), `ad_inventory_sim` (rapor, 7 oturum). Uyarlanan: interstitial, monetization,
+  result_delay_race, round_finish_modal, start_level_touch_settle, daily_challenge_flow, daily_challenge_terminal_modal,
+  age_ad_routing, `ads_device`.
+- **Mutasyon (son aday `e16da5a`):** 47 aday — brif #1–#19, #22, #23 + 26 ek (kira, emekli kimlik, `app_paused`, yetim
+  filtre, geç gösterim, inceleme sertleştirmesi M33–M50); #20 / #21 app-open N/A. **47 / 47 açık FAIL kontrolleriyle
+  öldü, yalnız betik hatasıyla ölen yok, 47 geri koyma bayt-aynı** (`build/qa_052/mutations/final3`).
+- **İnceleme:** 8 mercek (dört salt okunur gözden geçirme) + sertleştirme takip incelemesi. BLOCKER 0. HIGH: L1-1 (Godot
+  Vulkan'ın onStart RESUMED'ı reklam üstteyken kirayı bırakabiliyordu — giderildi), L5-1 (kilitli doküman — bu doküman
+  güncellemesi). MEDIUM'lar giderildi ya da owner kararı olarak belgelendi (sıklık / elde tutma, ilk gün; yerli eklenti
+  yetim yüklemesi). Kararlar: `build/qa_052/review/DISPOSITIONS.md`.
+- **Kontrollü tam masaüstü kapısı (`e16da5a`):** 49 / 49 koşu temiz — 6100 kontrol, 0 FAIL, 0 SCRIPT ERROR, bot 2 / 2
+  (Level 3, ikisi de kazandı), envanter simülasyonu 19 / 46; sahibin kaydı bayt-aynı, kullanıcı verisi listesi değişmedi.
+- **Samsung A36 (yalnız QA paketi, Google TEST / örnek kimlikler):** **GEÇTİ** (2026-10-04; QA APK `e16da5a`'dan, `verify_apk` PASS; telefonun gezinme kipi ve saati değişmedi). **A:** 2. normal round + 300 sn'de gerçek TEST geçiş reklamı — FOCUS_OUT +68 ms, PAUSED +72 ms, SDK "gösterildi" +128 ms; gerçek GERİ ile kapanış → sonuç bir kez, sıradaki reklam önyüklendi. **E:** ilk round (332 sn) yok · gösterimden hemen sonraki round yok · 2 round ama 37 sn yok · 2 round + 300 sn uygun · meydan okuma bitişinde sıfır deneme (sayaç değişmedi; TASK/050 molası bitişte kapandı) · tutorial ve tutorial'dan doğan Level 1 sayılmadı, tutorial sonrası ilk normal round 412 sn'de bile yok, ikinci round'da reklam. **B1** (sahte arka uç — temel hatanın birebiri): "gösterildi", kapanış yok → 4,99 sn'de `uncovered_lease`; mola sırasında ertelenen üretim "Yeniden Başlat"ı eski sonucun YERİNE çalıştı; geç kapanış eski; gerçek dokunuş 1 bırakış. **B2** (gerçek TEST reklamı, kapanış saklı): gerçek öne dönüşten 3,0 sn sonra `resume_grace`, sonuç bir kez. **C1:** sahte molada gerçek HOME → 15 sn arka planda bitiş yok → dönüşte RESUMED (onStart) sonra FOCUS_IN, pay FOCUS_IN'den 2,98 sn sonra. **C2:** kayıp öne dönüş (yalnız yöneticiye simüle) + gerçek dokunuş → 5 sn sonra `input_evidence`, duraklatma düştü. **C3 (inceleme L1-1):** gerçek reklam üstteyken HOME + Son Uygulamalar dönüşü → Vulkan onStart RESUMED focus_in'siz geldi; kira ~27 sn, SDK kapanışına dek korundu, kurtarma 0. **D1:** gerçek devam CTA'sı → PAUSED "gösterildi"den önce, ödül ~8 sn'de tam bir kez. **D2:** kapanış saklı → ödül bir kez, 2,97 sn'de kurtarma. **D3:** ödül + kapanış saklı — TEST reklamının açtığı Play Store yarım sayfası nedeniyle girdi durduruldu, ~47 dk yalnız okuma yoklaması; bu sürede kira hiç süreyle bırakılmadı; owner reklamı kapattıktan sonra (QA uygulamasına tek dokunuş) `resume_grace`, devam 0 (sahte ödül yok). **G:** TASK/049 / 050 / 051 korundu. **F:** app-open N/A. Logcat: SCRIPT ERROR / çökme / ANR 0, yalnız Google örnek yayıncısı; QA kaldırıldı, üretim paketi hiç kurulmadı, `com.example` dokunulmadı. Kayıt: `build/qa_052-gate/device/GATE_LOG.md`.
+
+## 19. Hesap tarafı AdMob kontrol listesi (owner — TASK/052)
+
+Bu görev AdMob hesabına **GİRMEDİ, hiçbir hesap ayarı değiştirilmedi**; geliştirme / testte yalnız Google TEST / örnek
+kimlikleri kullanıldı. Aşağıdakiler owner'ın hesapta yapacağı / doğrulayacağı işler; her madde resmî Google sayfasına
+bağlanır (2026-10-04'te okundu). Uyum değerlendirmeleri owner incelemesinde AÇIK.
+
+1. **eCPM tabanı — başlangıç Google optimize taban (her reklam birimi için).** Varsayılan Google optimize taban (tüm
+   fiyatlar); yüksek / orta taban (Beta) ve elle taban seçenekleri var; yüksek taban doluluğu düşürebilir
+   (support.google.com/admob/answer/3418058). Trafik olmadan elle para birimi değeri TAHMİN EDİLMEZ; deneme veriyle
+   (mediation gruplarında A/B, sonuç için en az 10.000 istek — answer/9572326).
+2. **Bidding / mediation — değerlendir, körlemesine ekleme.** Bidding ortakları gerçek zamanlı açık artırmayla yarışır;
+   ek kurulum + mediation grubu gerekir (answer/9234488). Kod tarafında adaptör YOK; eklenirse Google'ın mediation
+   rehberi SDK'nın açıkça başlatılmasını ister (developers.google.com/admob/android/mediation) ve §18.5 madde 3
+   (yaşam döngüsü varsayımı) yeniden doğrulanır.
+3. **Üçüncü taraf ortaklar yalnız hesap eşlemesi + gizlilik / rıza yapılandırmasından sonra:** ortaklar Privacy &
+   messaging'in GDPR / ABD eyaletleri listelerine eklenmezse reklam sunmayabilir (mediation rehberi); GDPR ortak listesi
+   (answer/10113004). UMP mesajlarının hesapta yayında olduğunu doğrula.
+4. **Banner yenilemeyi konsolda doğrula:** Google optimize otomatik yenileme önerilir, özel değer 30–150 sn
+   (answer/3245199); kod yenileme isteği göndermez. Mediation eklenirse üçüncü taraf arayüzlerinde banner yenilemesi
+   kapatılmalı (mediation rehberi).
+5. **App-open:** UYGULANMADI (§18.4) — hesapta app-open birimi GEREKMEZ. İleride uygulanırsa: ayrı üretim app-open
+   birimi + sıklık sınırı; QA'da yalnız Google TEST kimliği.
+6. **QA / üretim kimlikleri ayrı kalır:** debug / QA derlemesi yalnız Google örnek kimlikleri (`AdConfig`, BUILD TÜRÜ);
+   4 gerçek kimlik (App ID + Banner + Rewarded + Interstitial) yalnız release yapılandırmasına owner girer; kaynakta yer
+   tutucu üretim kimliği YOK. Kendi gerçek reklamlarına tıklanmaz.
+7. **Sıklığı sıkılaştırmadan / gevşetmeden önce yeterli trafikle izle:** match rate (yanıt alan istek oranı), show rate
+   (dönen reklamların gösterilme oranı) — glossary table/16327896 — eCPM, gösterim / DAU, ödüllü katılım (opt-in) oranı,
+   ARPDAU, D1 / D7 elde tutma (Play Console). Yetim yeniden yükleme (§18.4) show rate'i düşürür. 2 round + 300 sn
+   yalnız `AdPolicy` sabitlerinden ayarlanır (altına inilmez).
+8. **İsteğe bağlı sunucu tarafı yedek sınır:** gerçek geçiş birimi oluşturulunca gevşek bir birim sıklık sınırı
+   (Google ve üçüncü taraf kaynaklara uygulanır; kısa sunucu gecikmesi sınırı zaman zaman aşabilir; sayfada önerilen
+   değer YOK — answer/6244508). İstemci kuralını ezmeyecek gevşeklikte.
+9. **Yaş / içerik / ödüllü politika:** TEEN → TFAT TEEN + en yüksek derece T, ADULT → UNSPECIFIED + MA (TASK/043, kodda);
+   ödüllü reklam açık seçimle, eylem ve ödül önceden yazılı, ödül tamamlanınca teslim (answer/7313578) — kodda CTA'lar
+   açık seçim, ödül yalnız SDK "ödül kazanıldı" geri çağrısıyla. Hesapta içerik / engelleme ayarları ve 13–17 uyum
+   incelemesi owner'da AÇIK (AGE_BAND_ROUTING, AUDIENCE_DECISION).

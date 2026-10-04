@@ -185,8 +185,12 @@ değişirse pencere kabuğa dönünce açılır (oyun ortasında asla).
   ekran kapalı (`APPLICATION_PAUSED`), UMP/gizlilik formu kaplarken, ödüllü
   reklam ekranda (ödül alındı ama etkinlik hâlâ üstte dahil), geçiş reklamı
   ekranda, onboarding tamamlanmamış. Mola, Ayarlar, Devam, Refill gibi
-  oyun içi pencereler SAYILIR. `INTERSTITIAL_INTERVAL_SEC = 900` → `eligible`
-  (olay `interstitial_eligible`); **hemen gösterilmez**.
+  oyun içi pencereler SAYILIR. **TASK/052 (owner brifi; önce
+  `INTERSTITIAL_INTERVAL_SEC = 900`, round şartı yoktu):** önceki gerçek
+  gösterimden bu yana ≥ 300 aktif sn **VE** ≥ 2 kesinleşen NORMAL round
+  (`AdPolicy`; Main her normal round'u kesinleşmede bir kez bildirir —
+  meydan okuma / tutorial / tutorial'dan doğan round sayılmaz) → `eligible`
+  (olay `interstitial_eligible`, `rounds` alanıyla); **hemen gösterilmez**.
 - **Doğal mola — tek gösterim noktası:** `Main._on_round_finished` → round
   KESİN bitti, devam kararları tamamlandı, `RESULT_DELAY` (0,8 s) sonra,
   sonuç ekranından ÖNCE `_ads.try_show_interstitial("round_finish", present)`.
@@ -197,9 +201,18 @@ değişirse pencere kabuğa dönünce açılır (oyun ortasında asla).
   uygunluk korunur; sonuç asla reklam yüklemesi ya da bekleme için bekletilmez.
   Asla: aktif drop/merge, devam teklifi, ödüllü reklam, sandık reveal'i
   (sonuç ekranı), UMP formu, tutorial (onboarding false).
-- **Saat sıfırlama:** yalnız SDK `interstitial_showed` (gerçek tam ekran
-  gösterim) → `active_elapsed = 0`, `eligible = false`. Yükleme hatası,
-  gösterim hatası, onay zaman aşımı, hazır olmayan mola sıfırlamaz.
+- **Saat sıfırlama:** SDK `interstitial_showed` (gerçek tam ekran gösterim;
+  TASK/052: mola kurtarmasından sonra geç gelen dahil, bir kez; gösterim sayılır)
+  ve "gösterildi"si gelmemiş reklamın kapanışı (TASK/052: SDK kapanışı ya da
+  örtülme kanıtlı kurtarma; gösterim SAYILMAZ) → `active_elapsed = 0`, round
+  sayacı 0, `eligible = false`. Yükleme hatası, gösterim hatası, "gösterilmedi"
+  kurtarması, hazır olmayan mola sıfırlamaz.
+- **Mola kurtarma (TASK/052):** kapanış / hata geri çağrısı gelmezse tam
+  ekran kirası molayı yalnız örtülmeme kanıtıyla bitirir (gerçek öne dönüş —
+  Android'de onResume'un odağı — + 3 sn, hiç örtülmeden 5 sn, kayıp öne dönüşte
+  yeni dokunuş + 5 sn; ödüllüde "gösterildi" sonrası süreye bağlı bırakma yok);
+  sonuç tam bir kez, ödül asla bu yolla. Hazır ödüllü reklam da 3300 sn'de
+  tazelenir. Ayrıntı ADS_SYSTEM §18.
 - **Bekleme:** herhangi bir tam ekran reklam (ödüllü ya da geçiş)
   kapanışından sonra `FULLSCREEN_AD_COOLDOWN_SEC = 60` aktif saniye boyunca
   geçiş reklamı bastırılır (art arda iki tam ekran reklam yok; Google
@@ -302,7 +315,9 @@ değişirse pencere kabuğa dönünce açılır (oyun ortasında asla).
   otomatik pencere (giriş ödülünden sonra, günde bir, oyun içinde ertelenir),
   onboarding false (yuva 0, yükleme yok, pencere/kart yok, devam CTA pasif) →
   `complete_onboarding` ile açılış. Kayıt byte-identical.
-- `tools/interstitial_test.tscn` — **60 kontrol:** önyükleme, 899/900, dışlanan
+- `tools/interstitial_test.tscn` — **60 kontrol** *(TASK/052 uyarlaması: 62 —
+  2 round + 299/300 sn, kira kurtarması; yeni `fullscreen_break_recovery_test` +
+  `ad_policy_test`, ADS_SYSTEM §18)*: önyükleme, 899/900, dışlanan
   anlar (arka plan, ödüllü, form, onboarding), doğal mola (uygun değil / oyun
   ortası / hazır / hazır değil / gösterildi → saat 0 / kapanış → callback bir
   kez / çift callback), bekleme 60 (ödüllü sonrası, 59/60), dışlama, yükleme

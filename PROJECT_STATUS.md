@@ -96,12 +96,17 @@ dokunuş sahipliği; masaüstü + Samsung A36 kapıları GEÇTİ — kontrollü 
 onayıyla ff-only alındı `1293eb2 → 4bae821`):** "Yeniden Başlat" / TEKRAR / Harita / Sonsuz düğümüne hızlı ikinci dokunuş
 (basılı tutulsa da) ve değişimden önce basılmış, canlı bir kontrolün tutmadığı parmak artık yeni board'da parça
 bırakmaz — `_start_level` mevcut 300 ms yatışmayı board ağaca eklendikten sonra bir kez kurar, `GameBoard` basışı
-kendisine ulaşmamış dizinin sürüklemesini / bırakışını işlemez (§4.31). Sonraki ürün / stabilizasyon görevi owner seçimi
-(TASK/052 tanımlanmadı).
+kendisine ulaşmamış dizinin sürüklemesini / bırakışını işlemez (§4.31). **TASK/052 (2026-10-04; dalda — READY FOR OWNER
+REVIEW, main'e ALINMADI):** bitmeyen tam ekran molası düzeltildi (token'lı tam ekran kirası; ödül asla kurtarmayla
+verilmez; Godot Vulkan'ın onStart RESUMED'ı reklam üstteyken sayılmaz) + gelir odaklı zorunlu geçiş politikası
+`AdPolicy` (2 kesinleşen normal round + 300 aktif sn, önce 900 sn; ödüllü kotalar ve app-open değişmedi / eklenmedi);
+mutasyon 47 / 47, tam masaüstü kapısı 49 / 49 temiz (6100 kontrol), Samsung A36: GEÇTİ — normal TEST geçiş reklamı, bayat mola kurtarması (sahte + gerçek), arka plan / kayıp öne dönüş / Vulkan onStart (L1-1), ödüllü D1–D3 (sahte ödül yok), sıklık politikası, TASK/049–051 korunması; logcat temiz, QA kaldırıldı (§4.32).
 Release izi ayrı. Sırada: içerik derecesi + yargı bölgesi kararları + 13+ seçici uyum riski (owner) → gizlilik
 politikası → upload anahtarı → gerçek AdMob kimlikleri → mağaza varlıkları / Play Console,
 sonra ilk imzalı üretim AAB'si ve M10 (Play kapalı test) ·
-**Branch / main:** `main` == origin/main == `4bae821` — TASK/051 `task/051-start-level-touch-settle` (main
+**Branch / main:** TASK/052 `task/052-fullscreen-break-recovery-monetization` (main `1d2fb28`'den — `1d2fb28` = TASK/051
+doküman eşitlemesi, canonical main == origin/main; 10 commit: `635917b` düzeltme · `4649af1` politika · `5e3f707` + `6ec4f93` + `5de685d` testler · `334422c` inceleme sertleştirmesi · `050ddac` testler · `41b194d` sertleştirme takibi · `e16da5a` testler (kapılardan geçen aday) · son commit doküman / A36 kaydı; READY FOR OWNER REVIEW, main DEĞİŞMEDİ, merge yok) ·
+önce `main` == origin/main == `4bae821` — TASK/051 `task/051-start-level-touch-settle` (main
 `1293eb2`'den, 6 commit: `abe05c1` düzeltme · `5b76a68` yeni suite · `aa14b4b` TASK/048 suite uyarlaması · `ec8d14c` +
 `12ca7ba` suite sağlamlaştırması (yalnız test; `12ca7ba` kapılardan geçen üretim / test adayı) · `4bae821` doküman /
 A36 kaydı (yalnız doküman); masaüstü + Samsung A36 kapıları GEÇTİ 2026-10-04) owner onayıyla ff-only entegre
@@ -2929,6 +2934,36 @@ formatına yalnız `haptics_enabled` (varsayılan true) eklendi. Ayrıntı ve
   anındaki sentetik tıklamayla level başlatabilir (statik çıkarım, yeniden üretilmedi; (4) ile aynı motor sınıfı;
   TASK/051 sonrası bırakış düşmez); Yeniden Başlat sırasında mola karartmasında basılı kalan parmak, mola o parmak
   kalkmadan yeniden açılırsa kalkışında onu kapatır (gizli karartmanın parmak odağı; parça düşmez, geçişe özgü değil).
+
+### 4.32 Tam ekran mola kurtarma + gelir odaklı geçiş politikası (TASK/052)
+
+> **READY FOR OWNER REVIEW — dalda, main'e ALINMADI** (`task/052-fullscreen-break-recovery-monetization`, temel
+> `1d2fb28` = main; main DEĞİŞMEDİ). Zincir: `635917b` düzeltme (kira) · `4649af1` politika (AdPolicy, 2 round + 300 sn) ·
+> `5e3f707` + `6ec4f93` + `5de685d` testler · `334422c` inceleme sertleştirmesi · `050ddac` testler · `41b194d`
+> sertleştirme takibi · `e16da5a` testler (kapılardan geçen üretim / test adayı) · son commit doküman / A36 kaydı (yalnız doküman). Ayrıntı:
+> docs/monetization/ADS_SYSTEM.md §18 (tasarım, denetimler, riskler) + §19 (hesap tarafı kontrol listesi).
+
+- **Hata (önceden var olan, açık madde (2)):** uygulamanın KENDİ tam ekran molası — geçiş reklamı molası (Main
+  `_round_break_generation`, sonuç bekliyor) ya da ödüllü talep — SDK'nın kapanış / hata geri çağrısı kaybolursa hiç
+  bitmeyebiliyordu: "gösterildi" geldikten sonra 5 sn onay zamanlayıcısı iptal ediliyor, öne dönüş payını yalnız
+  APPLICATION_RESUMED kuruyordu; ikisi de yoksa sonuç hiç açılmıyor, mola / BACK bitmiş board'da açılmıyor, ertelenen
+  Yeniden Başlat / Ana Menü sonsuza dek bekliyor, aktif saat ve sonraki tüm reklamlar süreç boyunca ölüyordu. Ödüllüde
+  onay zamanlayıcısı hiç yoktu. Düzeltmesiz `1d2fb28`'de deterministik yeniden üretildi (sonda + yeni suite'in temel-güvenli ilk sürümü: 43 OK /
+  38 FAIL / 0 SCRIPT ERROR; son sürüm süitler aynı kodda 81 FAIL).
+- **Düzeltme:** token'lı tam ekran kirası (tek zamanlayıcı): SDK geri çağrıları yetkili; gelmezse kira yalnız örtülmeme
+  kanıtıyla biter (gerçek öne dönüş + 3 sn, hiç örtülmeden 5 sn, kayıp öne dönüşte yeni dokunuş + 5 sn; ödüllüde
+  "gösterildi" sonrası süreye bağlı bırakma yok; örtülüyken süre işlemez); "kapandı" / "gösterilmedi" sonuçları; ödül
+  asla kurtarmayla verilmez; emekli kimlikler; banner PAUSED'da gizlenir. Godot 4.6.3 Vulkan'ın onStart'taki RESUMED'ı
+  (reklam üstteyken) öne dönüş sayılmaz — yalnız onResume'un FOCUS_IN'i (şablon bayt kodundan doğrulandı).
+- **Politika:** `AdPolicy` — önceki gerçek gösterimden bu yana ≥ 2 kesinleşen NORMAL round VE ≥ 300 aktif sn (önce 900
+  sn), 60 sn bekleme aynen, meydan okuma / tutorial sayılmaz, `app_paused` / `consent_form` engel sebepleri; ödüllü kotalar
+  DEĞİŞMEDİ; app-open eklenmedi (ertelendi). Envanter simülasyonu 46 molada 19 gösterim (önce 4).
+- **Doğrulama:** `fullscreen_break_recovery_test` 117 / 117 + `ad_policy_test` 54 / 54 (+ uyarlanan süitler); mutasyon
+  47 / 47 (açık FAIL, 0 yalnız-betik-hatası, bayt-aynı geri koyma); 8 mercekli inceleme + sertleştirme takip incelemesi
+  (BLOCKER 0; HIGH L1-1 giderildi, L5-1 bu doküman güncellemesi); kontrollü tam masaüstü kapısı (`e16da5a`) 49 / 49
+  temiz — 6100 kontrol, 0 FAIL, 0 SCRIPT ERROR, bot 2 / 2, sahibin kaydı bayt-aynı; Samsung A36: **GEÇTİ** (2026-10-04; QA APK `e16da5a`'dan, `verify_apk` PASS; telefonun gezinme kipi ve saati değişmedi). **A:** 2. normal round + 300 sn'de gerçek TEST geçiş reklamı — FOCUS_OUT +68 ms, PAUSED +72 ms, SDK "gösterildi" +128 ms; gerçek GERİ ile kapanış → sonuç bir kez, sıradaki reklam önyüklendi. **E:** ilk round (332 sn) yok · gösterimden hemen sonraki round yok · 2 round ama 37 sn yok · 2 round + 300 sn uygun · meydan okuma bitişinde sıfır deneme (sayaç değişmedi; TASK/050 molası bitişte kapandı) · tutorial ve tutorial'dan doğan Level 1 sayılmadı, tutorial sonrası ilk normal round 412 sn'de bile yok, ikinci round'da reklam. **B1** (sahte arka uç — temel hatanın birebiri): "gösterildi", kapanış yok → 4,99 sn'de `uncovered_lease`; mola sırasında ertelenen üretim "Yeniden Başlat"ı eski sonucun YERİNE çalıştı; geç kapanış eski; gerçek dokunuş 1 bırakış. **B2** (gerçek TEST reklamı, kapanış saklı): gerçek öne dönüşten 3,0 sn sonra `resume_grace`, sonuç bir kez. **C1:** sahte molada gerçek HOME → 15 sn arka planda bitiş yok → dönüşte RESUMED (onStart) sonra FOCUS_IN, pay FOCUS_IN'den 2,98 sn sonra. **C2:** kayıp öne dönüş (yalnız yöneticiye simüle) + gerçek dokunuş → 5 sn sonra `input_evidence`, duraklatma düştü. **C3 (inceleme L1-1):** gerçek reklam üstteyken HOME + Son Uygulamalar dönüşü → Vulkan onStart RESUMED focus_in'siz geldi; kira ~27 sn, SDK kapanışına dek korundu, kurtarma 0. **D1:** gerçek devam CTA'sı → PAUSED "gösterildi"den önce, ödül ~8 sn'de tam bir kez. **D2:** kapanış saklı → ödül bir kez, 2,97 sn'de kurtarma. **D3:** ödül + kapanış saklı — TEST reklamının açtığı Play Store yarım sayfası nedeniyle girdi durduruldu, ~47 dk yalnız okuma yoklaması; bu sürede kira hiç süreyle bırakılmadı; owner reklamı kapattıktan sonra (QA uygulamasına tek dokunuş) `resume_grace`, devam 0 (sahte ödül yok). **G:** TASK/049 / 050 / 051 korundu. **F:** app-open N/A. Logcat: SCRIPT ERROR / çökme / ANR 0, yalnız Google örnek yayıncısı; QA kaldırıldı, üretim paketi hiç kurulmadı, `com.example` dokunulmadı. Kayıt: `build/qa_052-gate/device/GATE_LOG.md`.
+- **Kalan / owner:** ADS_SYSTEM §18.5 (geç SDK gösterimi, dokunuşsuz kayıp öne dönüş, eklentinin yetim yeniden
+  yüklemesi — native, sıklık / elde tutma deneyi, TEEN uyum maddeleri) ve §19 hesap tarafı işler.
 
 ## 5. Dosya/klasör yapısı ve script envanteri
 
