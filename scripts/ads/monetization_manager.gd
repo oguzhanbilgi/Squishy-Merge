@@ -51,13 +51,14 @@ extends Node
 ## geri çekilme (5/15/45/120/300 sn, en çok 8 deneme; pencere açılınca talep
 ## üzerine bir deneme daha).
 ##
-## Geçiş reklamı (M8.9-02, owner kararı): 900 sn AKTİF ön plan süresi sonra
-## "uygun" olur ama HİÇBİR ZAMAN oyun ortasında açılmaz — yalnız Main'in
-## doğal molasında (round kesin bitti, devam kararları tamamlandı, sonuç
-## ekranı henüz açılmadı) `try_show_interstitial` ile; hazır değilse sonuç
-## HEMEN açılır, uygunluk kalır. Saat yalnız gerçek gösterimde sıfırlanır.
-## Herhangi bir tam ekran reklam kapanışından sonra 60 sn aktif süre boyunca
-## geçiş reklamı bastırılır (art arda iki tam ekran reklam yok).
+## Geçiş reklamı (M8.9-02; TASK/052 sıklık politikası `AdPolicy`): önceki gerçek
+## gösterimden bu yana en az 2 KESİNLEŞEN NORMAL round (`note_normal_round_finalized`,
+## Main) VE 300 sn AKTİF ön plan süresi sonra "uygun" olur ama HİÇBİR ZAMAN oyun
+## ortasında açılmaz — yalnız Main'in doğal molasında (round kesin bitti, devam
+## kararları tamamlandı, sonuç ekranı henüz açılmadı) `try_show_interstitial` ile;
+## hazır değilse sonuç HEMEN açılır, uygunluk kalır. Sayaç + saat yalnız gerçek
+## gösterimde sıfırlanır. Herhangi bir tam ekran reklam kapanışından sonra 60 sn
+## aktif süre boyunca geçiş reklamı bastırılır (art arda iki tam ekran reklam yok).
 ##
 ## Tam ekran KİRASI (TASK/052): gösterim çağrısı SDK'ya gittiği an (geri alınamaz)
 ## uygulamanın kendi engelleyici durumu — geçiş molası / ödüllü talep — bir kiraya
@@ -151,11 +152,9 @@ const RECOVERY_INPUT_EVIDENCE: String = "input_evidence"
 ## hatası eski kimlikle gelir ve o an süren önyüklemeye ait DEĞİLDİR).
 const RETIRED_ID_MEMORY: int = 4
 
-## Geçiş reklamı (M8.9-02): uygunluk için gereken AKTİF ön plan süresi (sn).
-const INTERSTITIAL_INTERVAL_SEC: float = 900.0
-## Herhangi bir tam ekran reklam kapanışından sonra geçiş reklamı için
-## bekleme (aktif sn) — art arda iki tam ekran reklam yok.
-const FULLSCREEN_AD_COOLDOWN_SEC: float = 60.0
+## Herhangi bir tam ekran reklam kapanışından sonra geçiş reklamı için bekleme (aktif sn) —
+## art arda iki tam ekran reklam yok. Tek kaynak `AdPolicy` (TASK/052).
+const FULLSCREEN_AD_COOLDOWN_SEC: float = AdPolicy.FULLSCREEN_AD_COOLDOWN_SEC
 const INTERSTITIAL_RETRY_DELAYS: Array[float] = [15.0, 60.0, 180.0, 600.0]
 const INTERSTITIAL_MAX_ATTEMPTS: int = 6
 const INTERSTITIAL_LOAD_TIMEOUT: float = 60.0
@@ -254,6 +253,10 @@ var _interstitial_timeout_timer: SceneTreeTimer = null
 var _interstitial_last_attempt_msec: int = -100000
 ## Aktif ön plan süresi (sn) — yalnız sayılabilir anlarda birikir; gerçek gösterimde sıfırlanır.
 var _active_elapsed: float = 0.0
+## Önceki gerçek geçiş reklamı gösteriminden bu yana kesinleşen NORMAL round sayısı (TASK/052,
+## `AdPolicy`); yalnız bellekte — yeni süreç 0'dan başlar (oturumun ilk geçiş reklamı da 2 round ister).
+var _interstitial_rounds: int = 0
+## İki sayaç (`AdPolicy.forced_interstitial_gates_met`) sağlandı mı — gösterimde düşer.
 var _interstitial_eligible: bool = false
 ## "Gösterildi"si sayılmış son geçiş reklamı kimliği: çift / geç "gösterildi" ikinci kez sayılmaz.
 var _interstitial_showed_id: String = ""
@@ -1262,27 +1265,58 @@ func _rewarded_show_failed(ad_id: String, code: int, message: String, recovered:
 	_preload_rewarded()
 
 
-# --- Geçiş reklamı (interstitial, M8.9-02) -------------------------------------------
+# --- Geçiş reklamı (interstitial, M8.9-02; sıklık TASK/052 `AdPolicy`) -----------------------
 #
-# Uygunluk: INTERSTITIAL_INTERVAL_SEC aktif ön plan saniyesi. Sayılmayan
-# anlar: arka plan (ekran kapalı dahil — Android uygulamayı duraklatır),
-# UMP/gizlilik formu, ödüllü ya da geçiş reklamı ekranda, onboarding
-# tamamlanmamış. Oyun içi normal pencereler (mola, ayarlar, devam, refill)
-# SAYILIR.
+# Uygunluk (iki sayaç birlikte): önceki gerçek gösterimden bu yana AdPolicy.FORCED_INTERSTITIAL_
+# MIN_ROUNDS kesinleşen NORMAL round (Main bildirir) VE AdPolicy.FORCED_INTERSTITIAL_MIN_INTERVAL_SEC
+# aktif ön plan saniyesi. Sayılmayan anlar: arka plan (ekran kapalı dahil — Android uygulamayı
+# duraklatır), UMP/gizlilik formu, ödüllü ya da geçiş reklamı ekranda, onboarding tamamlanmamış,
+# yaş bandı reklamsız. Oyun içi normal pencereler (mola, ayarlar, devam, refill) SAYILIR.
 #
-# Gösterim YALNIZ Main'in doğal molasında (`try_show_interstitial`): uygun +
-# READY + bekleme yok + başka tam ekran reklam yok. Değilse hiç gösterilmez
-# (sonuç hemen açılır), uygunluk korunur, sonraki molada denenir. Saat yalnız
-# SDK "gösterildi" deyince sıfırlanır (TASK/052: geç gelse de, kendi reklamımız
-# için bir kez); yükleme/gösterim hatası sıfırlamaz.
+# Gösterim YALNIZ Main'in doğal molasında (`try_show_interstitial`): uygun + READY + bekleme yok +
+# başka tam ekran reklam yok + uygulama ön planda. Değilse hiç gösterilmez (sonuç hemen açılır),
+# uygunluk korunur, sonraki molada denenir. Sayaç + saat yalnız SDK "gösterildi" deyince (geç gelse de,
+# kendi reklamımız için bir kez) sıfırlanır; yükleme/gösterim hatası, onay gelmemesi sıfırlamaz.
 
 func interstitial_eligible() -> bool:
 	return _interstitial_eligible
 
 
-## Gerçek tam ekran gösterim başladı (SDK "gösterildi"): saat sıfırlanır — yalnız burada.
+## Önceki gerçek geçiş reklamından bu yana sayılan kesinleşen normal round (TASK/052).
+func interstitial_rounds() -> int:
+	return _interstitial_rounds
+
+
+## Main: normal round KESİN bitti (`_on_round_finished`, round başına tam bir kez; meydan okuma bu
+## yolu hiç çağırmaz). Sayaç yalnız monetizasyon bu süreçte açıkken artar (`AdPolicy.round_counts`):
+## onboarding tamam (tutorial ve tutorial'dan doğan round reklamsız) + yaş bandı reklamlı. Gecikmede
+## round değiştirilse de kesinleşen round sayılmış kalır.
+func note_normal_round_finalized() -> void:
+	if not AdPolicy.round_counts(false, _monetization_active()):
+		return
+	_interstitial_rounds += 1
+	_update_interstitial_eligibility()
+
+
+## Monetizasyon bu süreçte açık mı (sayaçlar için): arka uç + onboarding + yaş bandı. Rıza / SDK ayrıca
+## gösterim anında denetlenir (aktif süre saatiyle aynı kapsam).
+func _monetization_active() -> bool:
+	return _backend != null and _onboarding_completed and _age_ads_allowed()
+
+
+## İki sayaç ilk kez sağlandı: "uygun" (olay) + reklam yoksa (hata döngüsü bitmiş) bir yükleme daha.
+func _update_interstitial_eligibility() -> void:
+	if _interstitial_eligible or not AdPolicy.forced_interstitial_gates_met(_active_elapsed, _interstitial_rounds):
+		return
+	_interstitial_eligible = true
+	AdEvents.emit(&"interstitial_eligible", {"active_elapsed_sec": _active_elapsed, "rounds": _interstitial_rounds})
+	_kick_interstitial_load()
+
+
+## Gerçek tam ekran gösterim başladı (SDK "gösterildi"): sıklık sayaçları sıfırlanır — yalnız burada.
 func _reset_interstitial_gates() -> void:
 	_active_elapsed = 0.0
+	_interstitial_rounds = 0
 	_interstitial_eligible = false
 
 
@@ -1317,11 +1351,7 @@ func _tick_active(delta: float) -> void:
 	_active_elapsed += delta
 	if _fullscreen_cooldown > 0.0:
 		_fullscreen_cooldown = maxf(0.0, _fullscreen_cooldown - delta)
-	if not _interstitial_eligible and _active_elapsed >= INTERSTITIAL_INTERVAL_SEC:
-		_interstitial_eligible = true
-		AdEvents.emit(&"interstitial_eligible", {"active_elapsed_sec": _active_elapsed})
-		# Uygun olduk, reklam yoksa (hata döngüsü bitmiş) bir deneme daha.
-		_kick_interstitial_load()
+	_update_interstitial_eligibility()
 	if _interstitial_state == InterstitialState.READY and _interstitial_expired():
 		# Google: reklam bir saatte sona erer — süresi dolanı at, tazele.
 		_discard_ready_interstitial()
@@ -1373,6 +1403,9 @@ func _interstitial_block_reason() -> String:
 		return "sdk_refused"
 	if not ads_allowed() or not _sdk_ready:
 		return "consent"
+	if _app_paused:
+		# TASK/052: uygulama ön planda değil (başka bir etkinlik örtüyor / arka plan) — oyuncu molada değil.
+		return "app_paused"
 	if _fullscreen_cooldown > 0.0:
 		return "cooldown"
 	if _request["active"] or _rewarded_state == RewardedState.SHOWING \
@@ -1513,8 +1546,8 @@ func _on_interstitial_showed(ad_id: String) -> void:
 	_interstitial_shows += 1
 	_interstitial_showed_id = ad_id
 	AdEvents.emit(&"interstitial_showed", {"ad_id": ad_id, "natural_break": _break_name,
-		"active_elapsed_sec": _active_elapsed})
-	# Gerçek tam ekran gösterim başladı: saat şimdi sıfırlanır (yalnız burada).
+		"active_elapsed_sec": _active_elapsed, "rounds": _interstitial_rounds})
+	# Gerçek tam ekran gösterim başladı: sayaç + saat şimdi sıfırlanır (yalnız burada).
 	_reset_interstitial_gates()
 	_lease_on_showed(LeaseKind.INTERSTITIAL, ad_id)
 
@@ -1874,11 +1907,11 @@ func _cancel_timer(timer: SceneTreeTimer) -> void:
 # --- Testler / teşhis --------------------------------------------------------------
 
 func describe() -> String:
-	return "age=%s attached=%s age_blocked=%s ads=%s papi=%s priv=%s sdk=%s onb=%s rewarded=%s ready=%s inter=%s elig=%s active=%.0f cool=%.0f banner=%s surface=%s slot=%d req=%s lease=%s recov=%d" % [
+	return "age=%s attached=%s age_blocked=%s ads=%s papi=%s priv=%s sdk=%s onb=%s rewarded=%s ready=%s inter=%s elig=%s active=%.0f rounds=%d cool=%.0f banner=%s surface=%s slot=%d req=%s lease=%s recov=%d" % [
 		AgeGate.band_name(_age_band), str(_backend_attached), str(_age_session_blocked),
 		AdsState.keys()[_state], str(_privacy_api), str(_privacy_options_required), str(_sdk_ready), str(_onboarding_completed),
 		RewardedState.keys()[_rewarded_state], str(is_rewarded_ready()),
-		InterstitialState.keys()[_interstitial_state], str(_interstitial_eligible), _active_elapsed,
+		InterstitialState.keys()[_interstitial_state], str(_interstitial_eligible), _active_elapsed, _interstitial_rounds,
 		_fullscreen_cooldown, BannerState.keys()[_banner_state], Surface.keys()[_surface],
 		int(_banner_slot_px), str(_request["active"]), LeaseKind.keys()[_lease_kind], _lease_recoveries]
 

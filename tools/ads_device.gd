@@ -711,13 +711,14 @@ func _write_state(label: String) -> void:
 			ads.rewarded_note(), ads.rewarded_attempts(), str(ads.has_pending_rewarded_retry()),
 			str(req["active"]), req["id"], MonetizationManager.RewardedKind.keys()[req["kind"]], req["type"],
 			req["token"], str(req["day_key"]), req["ad_id"], str(req["earned"]), str(req["cancelled"])])
-		lines.append("interstitial: state=%s ready=%s ready_id=%s showing_id=%s eligible=%s active=%.1f cooldown=%.1f attempts=%d retry=%s shows=%d break_pending=%s onboarding=%s interval=%.0f cooldown_const=%.0f" % [
+		lines.append("interstitial: state=%s ready=%s ready_id=%s showing_id=%s eligible=%s active=%.1f rounds=%d cooldown=%.1f attempts=%d retry=%s shows=%d break_pending=%s lease=%s recoveries=%d onboarding=%s min_interval=%.0f min_rounds=%d cooldown_const=%.0f" % [
 			MonetizationManager.InterstitialState.keys()[ads.interstitial_state()], str(ads.is_interstitial_ready()),
 			ads.interstitial_ready_id(), ads.interstitial_showing_id(), str(ads.interstitial_eligible()),
-			ads.active_elapsed_sec(), ads.fullscreen_cooldown_sec(), ads.interstitial_attempts(),
+			ads.active_elapsed_sec(), ads.interstitial_rounds(), ads.fullscreen_cooldown_sec(), ads.interstitial_attempts(),
 			str(ads.has_pending_interstitial_retry()), ads.interstitial_shows(), str(ads.break_pending()),
-			str(ads.onboarding_completed()), MonetizationManager.INTERSTITIAL_INTERVAL_SEC,
-			MonetizationManager.FULLSCREEN_AD_COOLDOWN_SEC])
+			MonetizationManager.LeaseKind.keys()[ads.lease_kind()], ads.fullscreen_recoveries(),
+			str(ads.onboarding_completed()), AdPolicy.FORCED_INTERSTITIAL_MIN_INTERVAL_SEC,
+			AdPolicy.FORCED_INTERSTITIAL_MIN_ROUNDS, MonetizationManager.FULLSCREEN_AD_COOLDOWN_SEC])
 		lines.append("banner: state=%s ad_id=%s surface=%s slot_px=%d attempts=%d retry=%s uikit_slot=%d" % [
 			MonetizationManager.BannerState.keys()[ads.banner_state()], ads.banner_ad_id(),
 			MonetizationManager.Surface.keys()[ads.surface()], int(ads.banner_slot_px()), ads.banner_attempts(),

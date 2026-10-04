@@ -1173,7 +1173,10 @@ func _fresh(with_ads: bool = false, extra: Dictionary = {}) -> void:
 	await _settle(2)
 	if not fake.pending_banner.is_empty():
 		fake.complete_banner_load(true)
-	_main._ads._tick_active(MonetizationManager.INTERSTITIAL_INTERVAL_SEC)
+	# TASK/052: zorunlu geçiş reklamının iki kapısı (AdPolicy) — reklam gerçekten UYGUN + hazırken meydan okuma denemez.
+	_main._ads._tick_active(AdPolicy.FORCED_INTERSTITIAL_MIN_INTERVAL_SEC)
+	for i in AdPolicy.FORCED_INTERSTITIAL_MIN_ROUNDS:
+		_main._ads.note_normal_round_finalized()
 	await _settle(2)
 	while not fake.pending_interstitial.is_empty():
 		fake.complete_interstitial_load(true)

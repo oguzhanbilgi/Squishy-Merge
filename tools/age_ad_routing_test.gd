@@ -326,7 +326,10 @@ func _test_band_changes() -> void:
 	var banner: String = fake.complete_banner_load(true)
 	var rewarded: String = fake.complete_rewarded_load(true)
 	fake.complete_interstitial_load(true)
-	m._tick_active(MonetizationManager.INTERSTITIAL_INTERVAL_SEC + 1.0)
+	# TASK/052: zorunlu geçiş reklamının iki kapısı (AdPolicy — aktif süre + kesinleşen normal round).
+	m._tick_active(AdPolicy.FORCED_INTERSTITIAL_MIN_INTERVAL_SEC + 1.0)
+	for i in AdPolicy.FORCED_INTERSTITIAL_MIN_ROUNDS:
+		m.note_normal_round_finalized()
 	await _settle(1)
 	_c("hazırlık: banner gösteriliyor, ödüllü hazır, geçiş uygun + hazır", fake.banner_shows == [banner]
 		and m.is_rewarded_ready() and m.is_interstitial_ready() and m.interstitial_eligible())
@@ -922,10 +925,13 @@ func _test_main_interstitial_and_desktop() -> void:
 	_main._start_level(load(LEVEL_10))
 	await _settle(2)
 	var m: MonetizationManager = _main._ads
-	m._tick_active(MonetizationManager.INTERSTITIAL_INTERVAL_SEC + 5.0)
+	m._tick_active(AdPolicy.FORCED_INTERSTITIAL_MIN_INTERVAL_SEC + 5.0)
+	for i in AdPolicy.FORCED_INTERSTITIAL_MIN_ROUNDS:
+		m.note_normal_round_finalized()
 	var shown: bool = m.try_show_interstitial("round_finish", func() -> void: pass)
-	_c("UNKNOWN: aktif süre saymaz, geçiş reklamı gösterilmez (age_gate), arka uca çağrı yok", not shown
-		and m.active_elapsed_sec() == 0.0 and fake.interstitial_shows.is_empty() and fake.calls.is_empty())
+	_c("UNKNOWN: aktif süre ve round SAYMAZ (TASK/052), geçiş reklamı gösterilmez (age_gate), arka uca çağrı yok", not shown
+		and m.active_elapsed_sec() == 0.0 and m.interstitial_rounds() == 0 and fake.interstitial_shows.is_empty()
+		and fake.calls.is_empty())
 	await _teardown_main()
 	_seed(true, "", "")
 	await _boot(null)

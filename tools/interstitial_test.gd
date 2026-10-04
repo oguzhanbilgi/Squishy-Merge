@@ -1,10 +1,12 @@
 extends Node
 ## Geçiş (interstitial) reklamı deterministik testi (M8.9-02) — İNTERNET,
 ## CİHAZ, EKLENTİ YOK. `FakeAdBackend` SDK'yı taklit eder; yöneticinin aktif
-## süre saati (900 sn), dışlanan anlar, doğal mola politikası (yalnız round
+## süre saati + kesinleşen normal round sayacı (TASK/052 `AdPolicy`: 2 round +
+## 300 sn; eski 900 sn), dışlanan anlar, doğal mola politikası (yalnız round
 ## bitişi → sonuçtan önce), tam ekran bekleme (60 sn), ödüllü ↔ geçiş
 ## dışlaması, yükleme/gösterim hataları, çift/geç callback'ler ve Main
 ## entegrasyonu (gerçek board: sonuç tam bir kez, kayıp yok, çift yok).
+## Kira kurtarmasının ayrıntısı: fullscreen_break_recovery_test; sıklık: ad_policy_test.
 ##
 ## KAYIT DOSYASINA YAZAR (round bitişi). Test başında yedekler, sonunda
 ## byte-identical geri koyar ve bunu kontrol eder.
@@ -108,6 +110,18 @@ class _Counter:
 		calls += 1
 
 
+## TASK/052: kesinleşen normal round bildirimi (Main'in round bitişi gibi) — AdPolicy'nin round kapısı.
+func _note_rounds(m: MonetizationManager, count: int = AdPolicy.FORCED_INTERSTITIAL_MIN_ROUNDS) -> void:
+	for i in count:
+		m.note_normal_round_finalized()
+
+
+## İki kapı birlikte: kesinleşen normal round + aktif süre (eski `_tick_active(900)`'ün yerini alır).
+func _gates(m: MonetizationManager) -> void:
+	_note_rounds(m)
+	m._tick_active(AdPolicy.FORCED_INTERSTITIAL_MIN_INTERVAL_SEC)
+
+
 # --- Önyükleme + aktif süre saati --------------------------------------------------------
 
 func _test_preload_and_clock() -> void:
@@ -122,15 +136,18 @@ func _test_preload_and_clock() -> void:
 		and m.is_interstitial_ready() and m.interstitial_ready_id() == i1 and _events_named(&"interstitial_loaded").size() == 1)
 	_c("yapılandırma: interstitial test kimliği (…/1033173712)", AdConfig.TEST_INTERSTITIAL_ID.ends_with("/1033173712")
 		and AdConfig.load_project().interstitial_id == AdConfig.TEST_INTERSTITIAL_ID)
-	_c("sabitler: 900 sn aralık, 60 sn tam ekran bekleme", MonetizationManager.INTERSTITIAL_INTERVAL_SEC == 900.0
-		and MonetizationManager.FULLSCREEN_AD_COOLDOWN_SEC == 60.0)
-	m._tick_active(899.0)
-	_c("899 sn -> uygun DEĞİL", not m.interstitial_eligible() and is_equal_approx(m.active_elapsed_sec(), 899.0)
-		and _events_named(&"interstitial_eligible").is_empty())
+	_c("sabitler (AdPolicy, TASK/052): 2 kesinleşen normal round + 300 sn, 60 sn tam ekran bekleme",
+		AdPolicy.FORCED_INTERSTITIAL_MIN_ROUNDS == 2 and AdPolicy.FORCED_INTERSTITIAL_MIN_INTERVAL_SEC == 300.0
+		and MonetizationManager.FULLSCREEN_AD_COOLDOWN_SEC == 60.0 and AdPolicy.FULLSCREEN_AD_COOLDOWN_SEC == 60.0)
+	_note_rounds(m)
+	m._tick_active(AdPolicy.FORCED_INTERSTITIAL_MIN_INTERVAL_SEC - 1.0)
+	_c("2 round + 299 sn -> uygun DEĞİL", not m.interstitial_eligible() and is_equal_approx(m.active_elapsed_sec(), 299.0)
+		and m.interstitial_rounds() == 2 and _events_named(&"interstitial_eligible").is_empty())
 	m._tick_active(1.0)
-	_c("900 sn -> uygun, olay interstitial_eligible (active_elapsed_sec), gösterim YOK", m.interstitial_eligible()
-		and _events_named(&"interstitial_eligible").size() == 1 and fake.interstitial_shows.is_empty()
-		and _events_named(&"interstitial_eligible")[0]["active_elapsed_sec"] >= 900.0)
+	_c("2 round + 300 sn -> uygun, olay interstitial_eligible (active_elapsed_sec + rounds), gösterim YOK",
+		m.interstitial_eligible() and _events_named(&"interstitial_eligible").size() == 1 and fake.interstitial_shows.is_empty()
+		and _events_named(&"interstitial_eligible")[0]["active_elapsed_sec"] >= 300.0
+		and _events_named(&"interstitial_eligible")[0]["rounds"] == 2)
 	await _free(m)
 
 	# Dışlanan anlar.
@@ -182,10 +199,15 @@ func _test_preload_and_clock() -> void:
 		and fake.interstitial_loads == 1)
 	m.set_onboarding_completed(false)
 	m._tick_active(400.0)
-	_c("onboarding false -> sayılmaz", is_equal_approx(m.active_elapsed_sec(), 400.0))
+	_note_rounds(m)
+	_c("onboarding false -> süre de round da sayılmaz (TASK/052)", is_equal_approx(m.active_elapsed_sec(), 400.0)
+		and m.interstitial_rounds() == 0)
 	m.set_onboarding_completed(true)
 	m._tick_active(600.0)
-	_c("onboarding true -> sayılır, 1000 >= 900 uygun", m.interstitial_eligible())
+	_c("onboarding true -> süre sayılır ama round kapısı açık değil (0 / 2): uygun DEĞİL", not m.interstitial_eligible()
+		and is_equal_approx(m.active_elapsed_sec(), 1000.0))
+	_note_rounds(m)
+	_c("2 kesinleşen normal round + 1000 >= 300 sn -> uygun", m.interstitial_eligible() and m.interstitial_rounds() == 2)
 	await _free(m)
 
 
@@ -201,8 +223,8 @@ func _test_natural_break() -> void:
 	_c("uygun değilken doğal mola: gösterim YOK, false, olay skipped reason not_eligible",
 		not m.try_show_interstitial("round_finish", counter.hit) and fake.interstitial_shows.is_empty()
 		and _events_named(&"interstitial_skipped_not_ready")[-1]["reason"] == "not_eligible" and counter.calls == 0)
-	m._tick_active(900.0)
-	_c("900 sn aktif oyun ortasında: KENDİLİĞİNDEN GÖSTERMEZ (yalnız molada)", m.interstitial_eligible()
+	_gates(m)
+	_c("2 round + 300 sn aktif oyun ortasında: KENDİLİĞİNDEN GÖSTERMEZ (yalnız molada)", m.interstitial_eligible()
 		and fake.interstitial_shows.is_empty())
 	var shown: bool = m.try_show_interstitial("round_finish", counter.hit)
 	_c("uygun + READY -> gösterim gönderildi (true), SHOWING, callback henüz yok", shown
@@ -211,10 +233,10 @@ func _test_natural_break() -> void:
 	_c("gösterim sürerken ödüllü hazır DEĞİL (tek tam ekran)", not m.is_rewarded_ready()
 		and m.rewarded_note() == MonetizationManager.NOTE_SHOWING)
 	m._tick_active(30.0)
-	_c("gösterim sürerken saat sayılmaz, henüz sıfırlanmadı", is_equal_approx(m.active_elapsed_sec(), 900.0))
+	_c("gösterim sürerken saat sayılmaz, henüz sıfırlanmadı", is_equal_approx(m.active_elapsed_sec(), 300.0))
 	fake.emit_interstitial_showed(i1)
-	_c("SDK 'gösterildi' -> saat 0, uygunluk düştü, olay showed (natural_break=round_finish)",
-		m.active_elapsed_sec() == 0.0 and not m.interstitial_eligible()
+	_c("SDK 'gösterildi' -> saat 0, round sayacı 0, uygunluk düştü, olay showed (natural_break=round_finish)",
+		m.active_elapsed_sec() == 0.0 and m.interstitial_rounds() == 0 and not m.interstitial_eligible()
 		and _events_named(&"interstitial_showed")[-1]["natural_break"] == "round_finish"
 		and m.interstitial_shows() == 1)
 	fake.emit_interstitial_impression(i1)
@@ -229,8 +251,9 @@ func _test_natural_break() -> void:
 	_c("çift/geç kapanış + gösterildi callback'leri zararsız (callback 1, saat 0)", counter.calls == 1
 		and m.active_elapsed_sec() == 0.0 and _events_named(&"interstitial_dismissed")[-1].get("stale", false) == true)
 	# Bekleme: uygun olsa da gösterim yok.
-	m._tick_active(900.0)
-	_c("bekleme bitti (900 > 60) ve yeniden uygun", m.interstitial_eligible() and m.fullscreen_cooldown_sec() == 0.0)
+	_gates(m)
+	_c("bekleme bitti (300 > 60) ve yeniden uygun (yeni 2 round + 300 sn)", m.interstitial_eligible()
+		and m.fullscreen_cooldown_sec() == 0.0)
 	# Hazır değil (yükleme sürüyor): sonuç hemen, uygunluk kalır.
 	var counter2 := _Counter.new()
 	_c("READY değil (yükleme sürüyor) -> false, reason not_ready, uygunluk KALIR, callback yok",
@@ -265,7 +288,7 @@ func _test_failures_and_races() -> void:
 	_c("deneme sınırı (%d), sonra durur" % MonetizationManager.INTERSTITIAL_MAX_ATTEMPTS, fake.interstitial_loads == MonetizationManager.INTERSTITIAL_MAX_ATTEMPTS
 		and not m.has_pending_interstitial_retry())
 	var counter := _Counter.new()
-	m._tick_active(900.0)
+	_gates(m)
 	await _wait(MonetizationManager.ON_DEMAND_MIN_INTERVAL)
 	_c("uygun olunca talep üzerine bir deneme daha (döngü sıfır)", fake.interstitial_loads == MonetizationManager.INTERSTITIAL_MAX_ATTEMPTS + 1
 		or m.interstitial_state() == MonetizationManager.InterstitialState.LOADING)
@@ -279,13 +302,13 @@ func _test_failures_and_races() -> void:
 	fake = FakeAdBackend.new()
 	m = _boot(fake)
 	var i1: String = fake.complete_interstitial_load(true)
-	m._tick_active(900.0)
+	_gates(m)
 	counter = _Counter.new()
 	m.try_show_interstitial("round_finish", counter.hit)
 	fake.emit_interstitial_show_failed(i1)
 	await _settle(1)
-	_c("gösterim hatası -> callback TAM BİR KEZ, saat 900 (sıfırlanmadı), uygunluk kalır, reklam düştü, yeni yükleme",
-		counter.calls == 1 and is_equal_approx(m.active_elapsed_sec(), 900.0) and m.interstitial_eligible()
+	_c("gösterim hatası -> callback TAM BİR KEZ, saat 300 + round 2 (sıfırlanmadı), uygunluk kalır, reklam düştü, yeni yükleme",
+		counter.calls == 1 and is_equal_approx(m.active_elapsed_sec(), 300.0) and m.interstitial_rounds() == 2 and m.interstitial_eligible()
 		and fake.interstitial_removed == [i1] and fake.interstitial_loads == 2 and m.fullscreen_cooldown_sec() == 0.0
 		and _events_named(&"interstitial_show_failed").size() == 1)
 	fake.emit_interstitial_dismissed(i1)
@@ -296,7 +319,7 @@ func _test_failures_and_races() -> void:
 	m.try_show_interstitial("round_finish", counter.hit)
 	await _wait(MonetizationManager.INTERSTITIAL_SHOW_CONFIRM_TIMEOUT)
 	_c("onay zaman aşımı -> callback TAM BİR KEZ (sonuç bekletilmez), saat sıfırlanmadı, olay show_failed (confirm timeout)",
-		counter.calls == 1 and is_equal_approx(m.active_elapsed_sec(), 900.0)
+		counter.calls == 1 and is_equal_approx(m.active_elapsed_sec(), 300.0)
 		and _events_named(&"interstitial_show_failed")[-1]["message"] == "show confirm timeout")
 	fake.emit_interstitial_showed(i2)
 	fake.emit_interstitial_dismissed(i2)
@@ -310,7 +333,7 @@ func _test_failures_and_races() -> void:
 	m = _boot(fake)
 	fake.complete_interstitial_load(true)
 	var r1: String = fake.complete_rewarded_load(true)
-	m._tick_active(900.0)
+	_gates(m)
 	var stub := Node.new()
 	add_child(stub)
 	counter = _Counter.new()
@@ -354,7 +377,7 @@ func _test_failures_and_races() -> void:
 	# Öne dönüş payı: SHOWING takılı kalmaz.
 	await _wait(MonetizationManager.INTERSTITIAL_RETRY_DELAYS[0])
 	var i4: String = fake.complete_interstitial_load(true)
-	m._tick_active(900.0)
+	_gates(m)
 	counter = _Counter.new()
 	m.try_show_interstitial("round_finish", counter.hit)
 	fake.emit_interstitial_showed(i4)
@@ -411,13 +434,16 @@ func _test_main_integration() -> void:
 	main.abandon_run()
 	await _settle(2)
 
-	# 2) Aktif oyun içinde 900 sn: gösterim YOK; round bitince gösterim; kapanınca sonuç bir kez.
+	# 2) Aktif oyun içinde iki kapı sağlandı (1. round Main'den sayıldı + 1 + 300 sn): gösterim YOK; round bitince
+	# gösterim; kapanınca sonuç bir kez.
 	main._start_level(load(LEVEL_10))
 	await _settle(2)
 	board = main._board
-	m._tick_active(900.0)
+	_c("1. round'un kesinleşmesi Main'den sayıldı (TASK/052)", m.interstitial_rounds() == 1)
+	_note_rounds(m, 1)
+	m._tick_active(AdPolicy.FORCED_INTERSTITIAL_MIN_INTERVAL_SEC)
 	await _settle(2)
-	_c("oyun ortasında 900 sn: uygun ama gösterim YOK, board sürüyor", m.interstitial_eligible()
+	_c("oyun ortasında 2 round + 300 sn: uygun ama gösterim YOK, board sürüyor", m.interstitial_eligible()
 		and fake.interstitial_shows.is_empty() and not board.is_finished())
 	board._enter_fail_pending()
 	await _settle(2)
@@ -445,9 +471,11 @@ func _test_main_integration() -> void:
 	main.abandon_run()
 	await _settle(2)
 
-	# 3) Ödüllü devam yeni kapandı -> bekleme -> sonraki mola atlanır, sonuç hemen.
+	# 3) Ödüllü devam yeni kapandı -> bekleme -> sonraki mola atlanır, sonuç hemen. Gösterimde sıfırlanan iki kapı
+	# yeniden sağlanır (300 sn + 1 round; bu round'un bitişi 2.).
 	var i2: String = fake.complete_interstitial_load(true)
-	m._tick_active(900.0)
+	m._tick_active(AdPolicy.FORCED_INTERSTITIAL_MIN_INTERVAL_SEC)
+	_note_rounds(m, 1)
 	main._start_level(load(LEVEL_10))
 	await _settle(2)
 	board = main._board

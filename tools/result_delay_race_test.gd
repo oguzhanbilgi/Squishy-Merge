@@ -1086,7 +1086,7 @@ func _launch_variant(variant: String) -> void:
 ## [F] Ertelenen yeniden başlatmanın yeni round'u: kendi geçerli bitişi geçiş reklamını aynı politikayla gösterir,
 ## reklam kendi round'unun üstünde açılır, kapanınca YENİ round'un sonucu tam bir kez.
 func _launch_newer_round(ads: MonetizationManager, fake: FakeAdBackend, next: Node2D) -> void:
-	ads._tick_active(MonetizationManager.INTERSTITIAL_INTERVAL_SEC)
+	_satisfy_interstitial_gates(ads)
 	await _settle(2)
 	while not fake.pending_interstitial.is_empty():
 		fake.complete_interstitial_load(true)
@@ -1112,7 +1112,7 @@ func _launch_newer_round(ads: MonetizationManager, fake: FakeAdBackend, next: No
 
 ## [G] Ertelenen çıkıştan sonra, reklam UYGUN + HAZIRken meydan okuma: geçiş reklamı denemesi SIFIR (TASK/047 aynen).
 func _launch_challenge(ads: MonetizationManager, fake: FakeAdBackend) -> void:
-	ads._tick_active(MonetizationManager.INTERSTITIAL_INTERVAL_SEC)
+	_satisfy_interstitial_gates(ads)
 	await _settle(2)
 	while not fake.pending_interstitial.is_empty():
 		fake.complete_interstitial_load(true)
@@ -1254,13 +1254,21 @@ func _fresh(with_ads: bool = false) -> void:
 	await _settle(2)
 	if not fake.pending_banner.is_empty():
 		fake.complete_banner_load(true)
-	_main._ads._tick_active(MonetizationManager.INTERSTITIAL_INTERVAL_SEC)
+	_satisfy_interstitial_gates(_main._ads)
 	await _settle(2)
 	while not fake.pending_interstitial.is_empty():
 		fake.complete_interstitial_load(true)
 	while not fake.pending_rewarded.is_empty():
 		fake.complete_rewarded_load(true)
 	await _settle(2)
+
+
+## TASK/052: zorunlu geçiş reklamının iki kapısı (AdPolicy — aktif süre + kesinleşen normal round) sağlanır; eski 900 sn
+## saatinin yerini alır. Bu suite sıklığı değil round sahipliğini sınar: sıradaki geçerli normal bitiş reklamı ister.
+func _satisfy_interstitial_gates(ads: MonetizationManager) -> void:
+	ads._tick_active(AdPolicy.FORCED_INTERSTITIAL_MIN_INTERVAL_SEC)
+	for i in AdPolicy.FORCED_INTERSTITIAL_MIN_ROUNDS:
+		ads.note_normal_round_finalized()
 
 
 func _boot(fake: FakeAdBackend = null) -> void:

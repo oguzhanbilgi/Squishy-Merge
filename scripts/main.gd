@@ -1760,6 +1760,12 @@ func _on_round_finished(won: bool) -> void:
 		achievements_before, SaveManager.unlocked_achievements())
 	# TASK/046: aynı şeritte kompakt görev satırı — bu round'da tamamlanan görevler + Hamur'u.
 	progress["missions"] = missions
+	# TASK/052: zorunlu geçiş reklamı sıklığı (AdPolicy: önceki gerçek gösterimden bu yana 2 kesinleşen NORMAL round
+	# + 300 aktif sn) — kesinleşen round gecikmeden ÖNCE, round başına tam bir kez (`_round_finalized`) sayılır;
+	# gecikmede round değiştirilse de sayılmış kalır. Tutorial'dan doğan round ve monetizasyon kapalıyken yönetici
+	# saymaz; meydan okuma bu işleyiciye hiç girmez (ayrı bitiş işleyicisi).
+	if _ads != null:
+		_ads.note_normal_round_finalized()
 	# TASK/049: kabul edilen bitiş ekranın sahibi — bu round'un mola / refill penceresi sonuç ve geçiş reklamı
 	# akışının üstünde kalmaz: gecikmeden ÖNCE, eylemsiz ve round'un ilerlemesi yazıldıktan SONRA (kapanış,
 	# round'un kazandığını hiçbir yoldan etkileyemez).
