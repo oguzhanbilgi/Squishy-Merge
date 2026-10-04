@@ -617,7 +617,10 @@ func _ready_ads() -> void:
 		_fake.complete_interstitial_load(true)
 	while not _fake.pending_rewarded.is_empty():
 		_fake.complete_rewarded_load(true)
-	while not _fake.pending_banner.is_empty():
+	# Sınırlı döngü: hatalı yönetici (ör. her eşitlemede yeniden yükleme) testi kilitlemesin, açık FAIL üretsin (P10).
+	for i in 4:
+		if _fake.pending_banner.is_empty():
+			break
 		_fake.complete_banner_load(true)
 	await _settle(1)
 

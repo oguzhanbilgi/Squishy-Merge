@@ -961,8 +961,11 @@ func _review_hardening() -> void:
 	_real_resume()
 	await _wait(_grace_sec() + 0.1)
 	await _settle(2)
-	_c("U2: gerçek öne dönüşte talep kapandı ('kapandı'), devam yine 1, 'tamamını izle' notu YOK", not m.has_active_request()
-		and board.revives_used() == 1 and _main._revive.note_text() != MonetizationManager.NOTE_NOT_EARNED)
+	_c("U2: gerçek öne dönüşte talep kapandı ('kapandı': resume_grace, 60 sn bekleme), devam yine 1, 'tamamını izle' "
+		+ "notu YOK", not m.has_active_request() and board.revives_used() == 1
+		and _main._revive.note_text() != MonetizationManager.NOTE_NOT_EARNED
+		and str(AdEvents.last(&"rewarded_dismissed").get("recovered", "")) == "resume_grace"
+		and is_equal_approx(m.fullscreen_cooldown_sec(), MonetizationManager.FULLSCREEN_AD_COOLDOWN_SEC))
 	# U3: arka plandan dönüşte ilk karenin dev delta'sı aktif saate sızmaz.
 	await _boot()
 	m = _main._ads
@@ -971,7 +974,8 @@ func _review_hardening() -> void:
 	_resume()
 	m._process(360.0)
 	var cap: float = float(_const(m, "ACTIVE_TICK_MAX_SEC", -1.0))
-	_c("U3: dönüşteki ilk kare 360 sn delta: aktif saat en çok kare sınırı kadar arttı (sızıntı yok)", cap > 0.0
+	_c("U3: dönüşteki ilk kare 360 sn delta: aktif saat en çok kare sınırı kadar (≤ 1 sn) arttı (sızıntı yok)", cap > 0.0
+		and cap <= 1.0
 		and m.active_elapsed_sec() - before <= cap + 0.001 and m.active_elapsed_sec() > before)
 	# U4: ödüllü, SDK "gösterildi" dedi ama uygulama hiç duraklatılmadı (etkinliği duraklatmayan gösterim yolu): süreye
 	# bağlı bırakma YOK; yalnız "gösterildi"den sonra uygulamaya ulaşan yeni dokunuş.
@@ -994,7 +998,9 @@ func _review_hardening() -> void:
 	_evidence(mm)
 	await _wait(_lease_sec() * 0.5)
 	_c("U4: 'gösterildi'den sonra uygulamaya ulaşan yeni basış: sınırın yarısında talep hâlâ açık", mm.has_active_request())
-	await _wait(_lease_sec() + 0.1)
+	# Aynı gösterimin yinelenen "gösterildi"si kabul edilmiş kanıtı / zamanlayıcıyı bozmaz.
+	fake.emit_rewarded_showed(did)
+	await _wait(_lease_sec() * 0.5 + 0.1)
 	_c("U4: girdi kanıtıyla TAM bir kez kapandı (input_evidence): ödül 1, not yok, 60 sn bekleme, eklenti nesnesi "
 		+ "önbellekten düştü", not mm.has_active_request() and stub.dough_grants == 1 and stub.unavailable_daily.is_empty()
 		and str(AdEvents.last(&"rewarded_dismissed").get("recovered", "")) == "input_evidence"
@@ -1142,6 +1148,57 @@ func _review_hardening() -> void:
 		+ "görünür, aktif saat sayıyor, doğal mola 'app_paused' ile atlanmaz", not bool(m.get("_app_paused"))
 		and m.banner_state() == MonetizationManager.BannerState.SHOWN and _clock_counts(m)
 		and (int(m.call("input_resumes")) == 1 if m.has_method("input_resumes") else false))
+	# U12: GL sırası (Compatibility oluşturucu): onPause → FOCUS_OUT + PAUSED; onResume → FOCUS_IN, RESUMED bir kare
+	# sonra. Öne dönüş FOCUS_IN'de; ikinci RESUMED payı yeniden kurmaz — tek kurtarma, tek sonuç.
+	m = await _stuck_break()
+	seq = _main._result_seq
+	_focus_out_pause()
+	await _wait(_grace_sec() * 2.0)
+	get_tree().root.propagate_notification(NOTIFICATION_APPLICATION_FOCUS_IN)
+	await _settle(2)
+	get_tree().root.propagate_notification(NOTIFICATION_APPLICATION_RESUMED)
+	await _wait(_grace_sec() + 0.1)
+	await _settle(2)
+	_c("U12: GL sırası (FOCUS_IN, sonra RESUMED): TAM bir kurtarma (resume_grace), sonuç bir kez", not m.break_pending()
+		and _main._result.visible and _shows == 1 and _main._result_seq == seq + 1 and _recoveries(m) == 1
+		and str(AdEvents.last(&"interstitial_dismissed").get("recovered", "")) == "resume_grace")
+	# U12b: masaüstü pencere odağı (FOCUS_OUT / FOCUS_IN, duraklatma YOK) hiç örtülmemiş ödüllü kirayı süreyle bırakmaz.
+	fake = FakeAdBackend.new()
+	mm = _manager(fake)
+	stub = _StubMain.new()
+	add_child(stub)
+	fake.complete_rewarded_load(true)
+	mm.show_rewarded_daily_dough(stub, THU, 21)
+	var wid: String = mm.request_info()["ad_id"]
+	fake.emit_rewarded_showed(wid)
+	mm.notification(NOTIFICATION_APPLICATION_FOCUS_OUT)
+	mm.notification(NOTIFICATION_APPLICATION_FOCUS_IN)
+	await _wait(_grace_sec() * 3.0)
+	_c("U12b: duraklatma olmadan odak çıkışı / girişi: 'gösterildi' demiş ödüllü talep süreyle bırakılmadı", wid != ""
+		and mm.has_active_request() and _recoveries(mm) == 0 and stub.unavailable_daily.is_empty())
+	stub.queue_free()
+	await _free(mm)
+	# U13: girdi kanıtıyla öne dönüş odak kaybını da kapatır (sonraki odaksız RESUMED / PAUSED doğru işlenir) ve süresi
+	# dolmuş hazır reklamları tazeler.
+	await _boot()
+	m = _main._ads
+	await _start(3)
+	var stale: String = str(_field(m, "_ready_ad_id", ""))
+	_focus_out_pause()
+	m.set("_rewarded_loaded_unix", Time.get_unix_time_from_system() - float(_const(m, "REWARDED_MAX_AGE_SEC", 0.0))
+		- 100.0)
+	await _wait(_lease_sec() + 0.05)
+	await _press()
+	await _settle(1)
+	_c("U13: RESUMED / FOCUS_IN kayıp, dokunuşla öne dönüş: duraklatma VE odak kaybı düştü, süresi dolan hazır ödüllü "
+		+ "reklam atılıp tazeleniyor", not bool(m.get("_app_paused")) and not bool(_field(m, "_app_focus_lost", true))
+		and stale != "" and _fake.rewarded_removed.has(stale)
+		and m.rewarded_state() == MonetizationManager.RewardedState.LOADING)
+	_pause()
+	_resume()
+	await _settle(1)
+	_c("U13: sonraki odaksız PAUSED + RESUMED (Vulkan yüzey döngüsü) yine öne dönüş sayıldı: duraklatma düştü",
+		not bool(m.get("_app_paused")) and m.banner_state() == MonetizationManager.BannerState.SHOWN)
 	_sections_done += 1
 
 
@@ -1152,7 +1209,8 @@ func _source_contract() -> void:
 	var manager: String = _strip_comments(FileAccess.get_file_as_string("res://scripts/ads/monetization_manager.gd"))
 	var main: String = _strip_comments(FileAccess.get_file_as_string("res://scripts/main.gd"))
 	var recover_fn: String = _function(manager, "func _recover_lease(")
-	_c("kurtarma yolunda ödül / gösterim / SDK çağrısı YOK (yalnız uygulama durumu bırakılır)", recover_fn != ""
+	_c("kurtarma işlevinde ödül / gösterim / SDK çağrısı YOK (uygulama durumu bırakılır; eklenti önbelleğinden düşürme "
+		+ "ortak kapanış yolunda)", recover_fn != ""
 		and not recover_fn.contains("grant_") and not recover_fn.contains("_backend."))
 	_c("kira zamanlayıcısı tek yerde kurulur (`_lease_arm`), jetona bağlı", manager.count("_on_lease_timeout.bind(") == 1
 		and _function(manager, "func _lease_arm(").contains("_on_lease_timeout.bind(_lease_token)")
@@ -1299,7 +1357,10 @@ func _boot(extra: Dictionary = {}, ready_ads: bool = true,
 	_fake.complete_consent_update(true)
 	_fake.complete_init()
 	await _settle(2)
-	while not _fake.pending_banner.is_empty():
+	# Sınırlı döngüler: hatalı yönetici (ör. her eşitlemede yeniden yükleme) testi kilitlemesin, açık FAIL üretsin.
+	for i in 4:
+		if _fake.pending_banner.is_empty():
+			break
 		_fake.complete_banner_load(true)
 	while not _fake.pending_interstitial.is_empty():
 		_fake.complete_interstitial_load(true)
