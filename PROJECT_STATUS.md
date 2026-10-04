@@ -91,23 +91,23 @@ kapıları GEÇTİ — kontrollü kanonik tam masaüstü kapısı 45 / 45 temiz;
 8f9e259`):** aynı karede merge meydan okumayı açık molada meşru biçimde bitirince mola artık meydan okuma sonucunun
 üstünde kalmaz, girdisini tutmaz — meydan okuma bitiş işleyicisi TASK/049'un paylaşılan temizliğini ödül / tamamlanma
 işleminden sonra, 0,8 sn beklemeye girmeden önce eşzamanlı çağırır (ayrı iş mantığı); TASK/047 sözleşmesi, TASK/048
-savunması ve TASK/049 normal bitiş sahipliği aynen (§4.30). **TASK/051 (2026-10-04; dalda — READY FOR OWNER REVIEW,
-main'e ALINMADI — round başlangıcında dokunuş sahipliği; masaüstü + Samsung A36 kapıları GEÇTİ — kontrollü kanonik
-tam masaüstü kapısı 46 / 46 temiz):** "Yeniden Başlat" / TEKRAR / Harita / Sonsuz düğümüne hızlı ikinci dokunuş
+savunması ve TASK/049 normal bitiş sahipliği aynen (§4.30). **TASK/051 (2026-10-04; main'de — round başlangıcında
+dokunuş sahipliği; masaüstü + Samsung A36 kapıları GEÇTİ — kontrollü kanonik tam masaüstü kapısı 46 / 46 temiz; owner
+onayıyla ff-only alındı `1293eb2 → 4bae821`):** "Yeniden Başlat" / TEKRAR / Harita / Sonsuz düğümüne hızlı ikinci dokunuş
 (basılı tutulsa da) ve değişimden önce basılmış, canlı bir kontrolün tutmadığı parmak artık yeni board'da parça
 bırakmaz — `_start_level` mevcut 300 ms yatışmayı board ağaca eklendikten sonra bir kez kurar, `GameBoard` basışı
-kendisine ulaşmamış dizinin sürüklemesini / bırakışını işlemez (§4.31). Sıradaki: TASK/051'in main'e alınması owner
-kararı; ondan sonraki ürün / stabilizasyon görevi owner seçimi.
+kendisine ulaşmamış dizinin sürüklemesini / bırakışını işlemez (§4.31). Sonraki ürün / stabilizasyon görevi owner seçimi
+(TASK/052 tanımlanmadı).
 Release izi ayrı. Sırada: içerik derecesi + yargı bölgesi kararları + 13+ seçici uyum riski (owner) → gizlilik
 politikası → upload anahtarı → gerçek AdMob kimlikleri → mağaza varlıkları / Play Console,
 sonra ilk imzalı üretim AAB'si ve M10 (Play kapalı test) ·
-**Branch / main:** `main` == origin/main == `1293eb2` (DEĞİŞMEDİ) — TASK/051 `task/051-start-level-touch-settle`
-dalda (main `1293eb2`'den: `abe05c1` düzeltme · `5b76a68` yeni suite · `aa14b4b` TASK/048 suite uyarlaması ·
-`ec8d14c` + `12ca7ba` suite sağlamlaştırması (yalnız test; kapılardan geçen üretim adayı `12ca7ba`) · doküman / A36
-kaydı; masaüstü + Samsung A36 kapıları GEÇTİ 2026-10-04; READY FOR OWNER REVIEW, main'e ALINMADI, merge EDİLMEDİ) ·
-önce TASK/050 doküman eşitlemesi `docs/050-main-sync` owner onayıyla ff-only (`8f9e259 → 1293eb2`, 2026-10-03;
-merge commit yok; dal duruyor) · önce `main` == `8f9e259` — TASK/050
-`task/050-daily-challenge-terminal-modal-ownership`
+**Branch / main:** `main` == origin/main == `4bae821` — TASK/051 `task/051-start-level-touch-settle` (main
+`1293eb2`'den, 6 commit: `abe05c1` düzeltme · `5b76a68` yeni suite · `aa14b4b` TASK/048 suite uyarlaması · `ec8d14c` +
+`12ca7ba` suite sağlamlaştırması (yalnız test; `12ca7ba` kapılardan geçen üretim / test adayı) · `4bae821` doküman /
+A36 kaydı (yalnız doküman); masaüstü + Samsung A36 kapıları GEÇTİ 2026-10-04) owner onayıyla ff-only entegre
+(`1293eb2 → 4bae821`, 2026-10-04; merge commit / rebase / squash / cherry-pick / force push yok; dal duruyor, son
+incelenen HEAD `4bae821`) · önce TASK/050 doküman eşitlemesi `docs/050-main-sync` owner onayıyla ff-only (`8f9e259 →
+1293eb2`, 2026-10-03; merge commit yok; dal duruyor) · önce TASK/050 `task/050-daily-challenge-terminal-modal-ownership`
 (main `c543cd1`'den, 4 commit: `43a528d` düzeltme · `9a02bd7` test · `537e8d8` inceleme sağlamlaştırması (yalnız test;
 kapılardan geçen üretim adayı) · `8f9e259` doküman / A36 kaydı (yalnız doküman); masaüstü + Samsung A36 kapıları GEÇTİ
 2026-10-03) owner onayıyla ff-only entegre (`c543cd1 → 8f9e259`, 2026-10-03; merge commit / rebase / squash /
@@ -2558,8 +2558,8 @@ formatına yalnız `haptics_enabled` (varsayılan true) eklendi. Ayrıntı ve
   başlar (görsel); QA komutları `abandon` / `leave` da mola sürerken ertelenir (cihaz harness'i notu). Öneri:
   kesinleşmede mola / refill'i kapatmak (§4.24 önerisinin ikinci yarısı — yarışı kaynağında da kapatır) +
   `_start_level`'da yatışma — ayrı görev. *(İlk yarısı → TASK/049 ile yapıldı — main'de `f6cd072`, §4.29;
-  `_start_level` yatışması açık.)* *(`_start_level` yatışması → TASK/051 dalında düzeltildi — §4.31, main'e
-  alınmadı.)* Ayrı kalan, açık: basılı Koleksiyon kartı + GERİ sentetik bırakışı; genel
+  `_start_level` yatışması açık.)* *(`_start_level` yatışması → TASK/051 ile düzeltildi — main'de `4bae821`,
+  §4.31.)* Ayrı kalan, açık: basılı Koleksiyon kartı + GERİ sentetik bırakışı; genel
   GUI ACTION_CANCEL (modal / karartma, Sarsıntı düğmesi); T5 hedef kartı kırpması "Büyük Dumpl…".
 
 ### 4.29 Round bitişi pencere sahipliği (TASK/049)
@@ -2688,7 +2688,7 @@ formatına yalnız `haptics_enabled` (varsayılan true) eklendi. Ayrıntı ve
   politikası (uygunluk / 60 sn / 900 sn / yerleşim / yaş / rıza); TASK/047 meydan okuma; tutorial; Sonsuz;
   TOUCH_SETTLE_MSEC 300; `elif not touch.canceled:`; görsel değişiklik yok.
 - **Açık (owner kararı, bu görevde düzeltilmedi):** (1) `_start_level` 300 ms yatışma kurmaz — yeniden başlatmada hızlı
-  çift dokunuş / basılı parmak yeni board'a düşebilir *(→ TASK/051 dalında düzeltildi, §4.31)*; (2) hiç bitmeyen tam
+  çift dokunuş / basılı parmak yeni board'a düşebilir *(→ TASK/051 ile düzeltildi — main'de `4bae821`, §4.31)*; (2) hiç bitmeyen tam
   ekran molada molanın çıkış kapısı yok
   (yönetici zaman aşımı / öne dönüş payına dek); (3) RESULT_DELAY / reklam beklemesinde açılan (ya da bitişte açık)
   Ayarlar sonucun üstünde kalır (görsel); (4) basılı Koleksiyon kartı + Android GERİ sentetik bırakışı; (5) genel GUI
@@ -2800,17 +2800,25 @@ formatına yalnız `haptics_enabled` (varsayılan true) eklendi. Ayrıntı ve
   TASK/049 (normal yol, kapalı mola eylem yaymaz), RESULT_DELAY 0,8 sn, TOUCH_SETTLE 300 ms, ACTION_CANCEL koruması;
   kayıt şeması, reklam politikası, görsel değişiklik yok.
 - **Açık (owner kararı, bu görevde düzeltilmedi):** (1) `_start_level` yatışma / çift dokunuş / basılı parmak
-  *(→ TASK/051 dalında düzeltildi, §4.31)*; (2) hiç
+  *(→ TASK/051 ile düzeltildi — main'de `4bae821`, §4.31)*; (2) hiç
   bitmeyen tam ekran molada çıkış kapısı; (3) gecikmede Ayarlar sonucun üstünde (görsel); (4) Koleksiyon kartı + GERİ;
   (5) genel GUI ACTION_CANCEL; (6) T5 kırpması "Büyük Dumpl…".
 
 ### 4.31 Round başlangıcında dokunuş sahipliği (TASK/051)
 
-> **Dalda — READY FOR OWNER REVIEW, main'e ALINMADI** (`task/051-start-level-touch-settle`, main `1293eb2`'den; main
-> DEĞİŞMEDİ, merge edilmedi; main'e alınması owner onayı bekliyor). Zincir: `abe05c1` düzeltme · `5b76a68` yeni suite ·
-> `aa14b4b` TASK/048 suite uyarlaması (yalnız test) · `ec8d14c` + `12ca7ba` suite sağlamlaştırması (yalnız test;
-> kapılardan geçen üretim adayı `12ca7ba`) · doküman / A36 kaydı (yalnız doküman). Masaüstü kapıları ve Samsung A36
-> kapısı GEÇTİ (2026-10-04); A36 kapısı `12ca7ba`'dan dışa aktarılmış, doğrulanmış QA APK'sıyla koşuldu.
+> **✅ TAMAM, main'de** — owner onayıyla ff-only `1293eb2 → 4bae821` (2026-10-04; merge commit / rebase / squash /
+> cherry-pick / force push yok; dal `task/051-start-level-touch-settle` duruyor, son incelenen HEAD `4bae821`). Zincir
+> (main `1293eb2`'den, 6 commit): `abe05c1` düzeltme · `5b76a68` yeni suite · `aa14b4b` TASK/048 suite uyarlaması
+> (yalnız test) · `ec8d14c` + `12ca7ba` suite sağlamlaştırması (yalnız test; `12ca7ba` kapılardan geçen üretim / test
+> adayı) · `4bae821` doküman / A36 kaydı (yalnız doküman). Entegrasyondan ÖNCE tamamlanan doğrulama: odak — TASK/051
+> suite'i 126 / 126, 0 SCRIPT ERROR (düzeltmesiz `1293eb2`'de 90 OK / 36 FAIL, 0 SCRIPT ERROR; yalnız yatışmayla 10,
+> yalnız sahiplikle 27 FAIL kalıyor — iki parça da gerekli), TASK/048 korunması 197 / 197 (3/3 temiz); mutasyon
+> 19 / 19 (hepsi açık FAIL kontrolleriyle; son mutasyon kaydında 0 SCRIPT ERROR; her geri koyma bayt-aynı); 6 mercekli
+> inceleme BLOCKER / HIGH / MEDIUM 0; kontrollü kanonik tam masaüstü kapısı (üretim / test adayı `12ca7ba`) 46 / 46
+> temiz — 5926 kontrol, 0 hata, 0 SCRIPT ERROR, bot 2/2, sahibin kaydı bayt-aynı — ve Samsung A36 kapısı GEÇTİ
+> (aşağıda; `12ca7ba`'dan dışa aktarılmış, doğrulanmış QA APK'sıyla). Entegrasyon ve doküman eşitlemesi sırasında
+> hiçbir kapı yeniden koşulmadı. Aşağıdaki maddeler dal aşamasında yazıldı (tarihsel); güncel açık maddeler
+> PROJECT_CONTEXT → Next action'da.
 
 - **Hata (önceden var olan — açık madde (1); §4.28 (3)):** `_start_level` mevcut 300 ms parmak yatışmasını kurmuyordu
   (meydan okuma başlangıcı `start_daily_challenge` kuruyor). Düğmenin öykünen fare bırakışı yeni board'u eşzamanlı
@@ -2833,12 +2841,32 @@ formatına yalnız `haptics_enabled` (varsayılan true) eklendi. Ayrıntı ve
   hiç ulaşmamış dizinin sürüklemesini / bırakışını işlemez. Kayıt bırakışla (iptal dahil) ya da aynı parmağın yeni
   basışıyla kapanır; zamanlayıcı yok. Aynı board'da başlamış diziler, ACTION_CANCEL (0 bırakış), hedefleme,
   DROP_COOLDOWN 0,4 sn ve bırakış kuralları aynen.
+- **Kabul edilen davranış (TASK/051 sözleşmesi — genel bir girdi debounce sistemi DEĞİL):** `_start_level()` mevcut
+  kanonik `settle_touch_input()`'u yeni board eklendikten sonra BİR kez kurar (amaçlanan geçiş sahipliği sınırı);
+  `GameBoard` dokunuş sahipliği board başına açıktır — sürükleme / bırakış yalnız basışı O board'a ulaşmış dizide
+  işlenir, önceki board'dan / geçişten kalan bayat dizi yok sayılır, sahiplik bırakış / iptal ya da aynı parmağın yeni
+  basışıyla kapanır; yeni zamanlayıcı yok. TOUCH_SETTLE_MSEC = 300 aynen; ikinci bir keyfî yatışma süresi yok,
+  ~600 ms'lik eklemeli pencere yok. Bayat geçiş jesti → 0 bırakış; pencere içinde başlayan ikinci dokunuş → board
+  sahipliği / bırakış 0; board'lar arası basılı parmak → 0 bırakış; yatışmadan sonraki ilk geçerli bağımsız dokunuş →
+  tam 1 bırakış; Yeniden Başlat → tam bir yeniden başlatma / bir yeni board; mola DEVAM ET `_start_level` yatışması
+  KURMAZ; ACTION_CANCEL → 0 bırakış, iptalden sonraki geçerli dokunuş → 1.
 - **Yollar:** mola Yeniden Başlat, sonuç TEKRAR (WIN ikincil / FAIL birincil), Harita level / Sonsuz düğümü, ilk açılış
   tutorial'ı (açılışta, jest yok — pencere board kurulurken kurulur; BAŞLA ve ilk bırakış normal), TASK/048 ertelenen
   yeniden başlatma (TASK/049'dan beri UI girişi yok; basılı parmak sahiplikle elenir) → hepsi `_start_level`'dan geçer.
   Ana Sayfa doğrudan level başlatmaz (OYNA → Harita'nın mevcut `_show_tab` yatışması — korunması sınandı). Meydan okuma
   kendi yatışmasını aynen kurar; ortak `GameBoard` sahipliği yüzünden değişimi atlatan ikinci parmak artık meydan okuma
   hamlesi harcamaz (tek etki). Mola DEVAM ET aynı board — yatışma KURULMAZ (sonraki dokunuş hemen düşürür).
+- **Yol sınıflandırması (son):** TASK/051 ile düzeltilen — mola Yeniden Başlat; aynı kök nedenli sonuç TEKRAR / tekrar
+  oynama; Harita level seçimi; Sonsuz seçimi; board'lar arası atlatan dokunuş sahipliği; tutorial başlangıcı (artık
+  kanonik round başlangıcı yatışmasını alır); meydan okumada atlatan dokunuş (bayat sahiplikle artık hamle harcamaz);
+  TASK/048 ertelenen yeniden başlatmada atlatan dokunuş (sahiplikle engellenir). Korunan / doğrudan etkilenmeyen — Ana
+  Sayfa OYNA (level başlatmaz; mevcut sekme geçişi yatışması fazladan dokunuşu zaten yutar); mola DEVAM ET (aynı board,
+  `_start_level` yatışması kurulmaz).
+- **Kalan zamanlama notu (inceleme notu — düzeltilmedi, görev DEĞİL):** yatışma penceresi olay dağıtımı anında
+  ölçülür; level başlangıcından sonraki ilk karesi hızlı ikinci dokunuşu 300 ms penceresinin sonrasına itecek kadar
+  uzun takılan patolojik bir cihazda zamanlama engeli kuramsal olarak aşılabilir. Kabul edilen kanıt: 300 ms kanonik ve
+  kilitli; A36'da ilk kare ~10 ms, ilk çizim ~16 ms; gerçek ikinci dokunuşlar ~110–118 ms'de yutuldu; pencereden
+  sonraki 0,35 sn sınır dokunuşu tam 1 normal bırakış verdi.
 - **Testler:** yeni `tools/start_level_touch_settle_test` (A–Q, S; 18 bölüm, 126 kontrol; gerçek dokunuşlar Android
   sırasıyla — öykünen fare önce, ScreenTouch sonra; kayıt `user://qa_start_level_settle/`'e yönlendirilir). Düzeltmesiz
   `1293eb2`'de 36 kontrol DÜŞTÜ (her sızıntı yolu); yalnız yatışmayla 10 (değişimi atlatan parmak: B3, B5, D2, F2, L3,
@@ -3671,16 +3699,15 @@ Owner'ın yapacağı / onaylayacağı:)*
   8f9e259`, 2026-10-03; dal `task/050-daily-challenge-terminal-modal-ownership` duruyor).
 - **TASK/051** — round başlangıcında dokunuş sahipliği (`_start_level` mevcut 300 ms yatışmayı kurar; `GameBoard`
   basışı kendisine ulaşmamış dizinin sürüklemesini / bırakışını işlemez; hızlı ikinci / basılı / değişimi atlatan
-  parmak yeni board'da parça bırakmaz) → **dalda, READY FOR OWNER REVIEW** (§4.31; masaüstü + Samsung A36 kapıları
-  GEÇTİ 2026-10-04 — kontrollü kanonik tam masaüstü kapısı 46 / 46 temiz; main'e ALINMADI — owner onayı bekliyor;
-  dal `task/051-start-level-touch-settle`).
-- **Sıradaki görev:** TASK/051'in main'e alınması owner kararı; ondan sonrası owner seçer. Açık, ayrı maddeler —
-  hiç bitmeyen tam ekran reklam molasında çıkış kapısı · erteleme ya da sonuç / reklam beklemesinde Ayarlar (görsel;
-  sonucun üstünde kalır) — §4.28 / §4.29; Koleksiyon kartı + GERİ · genel GUI ACTION_CANCEL · T5 hedef kartı
-  kırpması — §4.26 / §4.27 — kendiliğinden sıradaki görev seçilmez. *(Mola üstünde sonuç → TASK/049 ile kapatıldı —
-  main'de `f6cd072`. Meydan okumanın aynı karede merge ile molada bitmesi → TASK/050 ile kapatıldı — main'de
-  `8f9e259`, §4.30. `_start_level` yatışması / çift dokunuş / basılı parmak → TASK/051 dalında düzeltildi — FIXED ON
-  TASK/051 BRANCH, main'e alınmadı, §4.31.)*
+  parmak yeni board'da parça bırakmaz) → ✅ **main'de** (§4.31; masaüstü + Samsung A36 kapıları GEÇTİ — kontrollü
+  kanonik tam masaüstü kapısı 46 / 46 temiz; owner onayıyla ff-only `1293eb2 → 4bae821`, 2026-10-04; dal
+  `task/051-start-level-touch-settle` duruyor).
+- **Sıradaki görev:** owner seçer (TASK/052 tanımlanmadı). Açık, ayrı maddeler — hiç bitmeyen tam ekran reklam
+  molasında çıkış kapısı · erteleme ya da sonuç / reklam beklemesinde Ayarlar (görsel; sonucun üstünde kalır) — §4.28
+  / §4.29; Koleksiyon kartı + GERİ · genel GUI ACTION_CANCEL · T5 hedef kartı kırpması — §4.26 / §4.27 —
+  kendiliğinden sıradaki görev seçilmez. *(Mola üstünde sonuç → TASK/049 ile kapatıldı — main'de `f6cd072`. Meydan
+  okumanın aynı karede merge ile molada bitmesi → TASK/050 ile kapatıldı — main'de `8f9e259`, §4.30. `_start_level`
+  yatışması / çift dokunuş / basılı parmak → TASK/051 ile kapatıldı — main'de `4bae821`, §4.31.)*
 - ~~**Kararlılık (öneri — TASK/045 engeli değil):** atomik kayıt (`save_game()` yerinde kesip
   yazıyor; geçici dosya + yedekten kurtarma) · güç hedefleme bırakış-düşürme (Büyütücü ve
   Bomba hedef dokunuşunun bırakışı bekleyen parçayı da düşürebilir) · Koleksiyon detayı
