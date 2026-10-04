@@ -494,6 +494,27 @@ func _rewarded_reward_then_lost_close() -> void:
 	_c("H2: kapanış kayıp → kurtarma; geç kapanış: stok hâlâ 1, kota hâlâ 1, talep yok",
 		SaveManager.powerup_count(PowerUp.Type.SHAKE) == 1 and RewardedPolicy.grants_today() == 1
 		and not m.has_active_request() and _recoveries(m) == 1)
+	# H3: yöneticinin KENDİ tek-ödül kapısı (Main'in jetonundan bağımsız): ödülü sayan saplama Main.
+	var fake := FakeAdBackend.new()
+	var mm: MonetizationManager = _manager(fake)
+	var stub := _StubMain.new()
+	add_child(stub)
+	fake.complete_rewarded_load(true)
+	mm.show_rewarded_daily_dough(stub, THU, 3)
+	var did: String = mm.request_info()["ad_id"]
+	fake.emit_rewarded_showed(did)
+	fake.emit_rewarded_earned(did)
+	fake.emit_rewarded_earned(did)
+	_c("H3: yinelenen 'ödül kazanıldı' → yönetici Main'e TAM bir ödül iletti", did != "" and stub.dough_grants == 1)
+	await _wait(_lease_sec() + 0.1)
+	await _settle(1)
+	fake.emit_rewarded_earned(did)
+	fake.emit_rewarded_dismissed(did)
+	await _settle(1)
+	_c("H3: kapanış kayıp → kurtarma; geç 'ödül' / kapanış: ödül hâlâ 1, 'tamamını izle' notu YOK (ödül kazanılmıştı)",
+		stub.dough_grants == 1 and not mm.has_active_request() and stub.unavailable_daily.is_empty())
+	stub.queue_free()
+	await _free(mm)
 	_sections_done += 1
 
 
