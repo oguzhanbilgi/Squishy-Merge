@@ -221,8 +221,9 @@ func close_panel() -> void:
 ## TASK/053: KAPALI pencere eylem üretmez. Pencere bir kontrol BASILIYKEN gizlenirse (round bitişi Ayarlar'ı kapatır; ya
 ## da Android geri) Godot gizleme anında o düğmeye sentetik bırakış yollar ve son girdi işlenmemişse BaseButton onu
 ## tıklama sayar (TASK/049'un Mola dersi) — tercih yazılmaz, yaş / gizlilik penceresi açılmaz, tarayıcı açılmaz.
-## Anahtarın görünümü bir sonraki `open_panel()`'da kayıttan yeniden kurulur. Gizlilik metni (yalnız pencere içi,
-## açılışta kapanır) ve kapanış (`close_panel` zaten görünürlükle korunur) bu kapsamda değil.
+## Anahtarın durumu (`button_pressed`) bir sonraki `open_panel()`'da kayıttan yeniden kurulur (`set_on`); süren topuz
+## animasyonu / basış ölçeği bu kurulumun dışında (kozmetik — Android geri yolunda tabanda da aynı). Gizlilik metni
+## (yalnız pencere içi, açılışta kapanır) ve kapanış (`close_panel` zaten görünürlükle korunur) bu kapsamda değil.
 func _on_sfx_toggled(on: bool) -> void:
 	if not visible:
 		return

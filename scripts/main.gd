@@ -147,7 +147,8 @@ var _daily_pending_day: String = ""
 var _result_seq: int = 0
 ## Round kesinleştirme koruması (TASK/045): `_on_round_finished` round başına TAM bir
 ## kez işler — yinelenen bir round_finished sinyali / geri çağrısı XP'yi, turu,
-## merge'leri ve sandıkları ikinci kez yazamaz. Yeni round (`_start_level`) sıfırlar.
+## merge'leri ve sandıkları ikinci kez yazamaz. Yeni round (`_begin_round`) sıfırlar. TASK/053: Ayarlar kapısının
+## (`_terminal_round_owns_screen`) da girdisi.
 var _round_finalized: bool = false
 ## Round sahipliği (TASK/048): board'un her değişiminde (yeni round, yeniden başlatma, terk, çıkış —
 ## hepsi `_clear_board`'dan geçer) +1. Kesinleşen normal round nesli gecikmeden ÖNCE yakalar; gecikmeli
@@ -609,16 +610,18 @@ func _show_tab(tab: int, auto_daily: bool = true) -> void:
 
 # --- Ayarlar (M8.5-10) ---
 
-func open_settings() -> void:
+## Ayarlar'ı açar; açıldıysa true. TASK/053: terminal sahiplikte reddedilir → false (çağıran donduracak bir şey yapmaz).
+func open_settings() -> bool:
 	# TASK/053: kabul edilen round bitişi ön planın sahibi — sonuç beklenirken (RESULT_DELAY / geçiş reklamı molası;
 	# HUD dişlisi bu aralıkta hâlâ dokunulabilir) ve sonuç açıkken Ayarlar açılmaz (katman 13, sonucun 10'unun üstüne
 	# çıkardı). Tek açma noktası: HUD dişlisi, Profil dişlisi, QA yolları buradan geçer.
 	if _terminal_round_owns_screen():
-		return
+		return false
 	_settings.open_panel()
 	# TASK/044 A36: Profil dişlisine çift dokunuşun ikincisi Ayarlar'ın karartmasına
 	# düşüp pencereyi hemen kapatmasın.
 	settle_touch_input()
+	return true
 
 
 ## TASK/053: kesinleşen round'un board'u hâlâ ekranda — sonuç bekleniyor ya da açık. Yeni round (`_begin_round`) bayrağı
@@ -685,14 +688,14 @@ func close_settings() -> void:
 
 ## Oyun içi HUD'daki ayarlar butonu (M8.6-02): pencere açılırken board
 ## donar (fail/refill dondurmasıyla aynı makine), kapanınca çözülür.
+## TASK/053: board YALNIZ pencere gerçekten açıldıysa donar — reddedilen açılışın kapanışı gelmez, board'a dokunulmaz.
 func _on_board_settings_requested() -> void:
 	if is_tutorial_active():
 		# Tutorial sırasında ikincil pencere açılmaz: tutorial dondurması
 		# ile menü dondurması birbirini bozmasın (§10).
 		return
-	if _board != null and is_instance_valid(_board):
+	if open_settings() and _board != null and is_instance_valid(_board):
 		_board.set_menu_paused(true)
-	open_settings()
 
 
 func _on_settings_closed() -> void:
@@ -1809,8 +1812,11 @@ func _on_round_finished(won: bool) -> void:
 ## bırakış, board değişimi, kayıt YOK (board'un menü / refill dondurması `GameBoard._finish`'te bırakıldı). Açık
 ## bir ödüllü refill talebine dokunulmaz: iptal edilmez, ödül verilmez — kendi token yolu sürer. TASK/053: açık Ayarlar
 ## da kendi kapanış yoluyla kapanır (katman 13 — sonucun üstünde kalırdı); kapanış işleyicisi bitmiş board'da hiçbir
-## şey yapmaz, tercih yazılmaz. Pencere yoksa ya da tekrar çağrılırsa hiçbir şey yapmaz. TASK/050: meydan okuma
-## bitişi de çağırır (`_on_challenge_round_finished`) — ortak pencere temizliği, ayrı iş mantığı.
+## şey yapmaz, tercih yazılmaz. Ayarlar'dan açılan alt pencereler (yaş bilgisi paneli, gizlilik formu, tarayıcı) bu
+## temizliğin dışında: menü dondurmasında round yalnız Büyütücü dönüşümüyle (0,15 sn) ya da aynı karedeki merge ile
+## biter, `open_settings` ise 300 ms parmak yatışması kurar — bitişte Ayarlar'ın hiçbir kontrolüne dokunulmuş olamaz;
+## gizli Ayarlar da onları açmaz (SettingsPanel). Pencere yoksa ya da tekrar çağrılırsa hiçbir şey yapmaz.
+## TASK/050: meydan okuma bitişi de çağırır (`_on_challenge_round_finished`) — ortak pencere temizliği, ayrı iş mantığı.
 func _dismiss_terminal_gameplay_overlays() -> void:
 	if _pause != null and _pause.visible:
 		_pause.close_menu()
