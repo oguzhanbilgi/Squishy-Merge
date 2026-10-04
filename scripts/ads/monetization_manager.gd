@@ -56,16 +56,19 @@ extends Node
 ## Main) VE 300 sn AKTİF ön plan süresi sonra "uygun" olur ama HİÇBİR ZAMAN oyun
 ## ortasında açılmaz — yalnız Main'in doğal molasında (round kesin bitti, devam
 ## kararları tamamlandı, sonuç ekranı henüz açılmadı) `try_show_interstitial` ile;
-## hazır değilse sonuç HEMEN açılır, uygunluk kalır. Sayaç + saat yalnız gerçek
-## gösterimde sıfırlanır. Herhangi bir tam ekran reklam kapanışından sonra 60 sn
+## hazır değilse sonuç HEMEN açılır, uygunluk kalır. Sayaç + saat gerçek gösterimde
+## (SDK "gösterildi") ya da "gösterildi"si kaybolmuş bir reklamın kapanışında (gösterim
+## sayılmadan) sıfırlanır. Herhangi bir tam ekran reklam kapanışından sonra 60 sn
 ## aktif süre boyunca geçiş reklamı bastırılır (art arda iki tam ekran reklam yok).
 ##
 ## Tam ekran KİRASI (TASK/052): gösterim çağrısı SDK'ya gittiği an (geri alınamaz)
 ## uygulamanın kendi engelleyici durumu — geçiş molası / ödüllü talep — bir kiraya
 ## bağlanır. SDK'nın kapanış / gösterim hatası geri çağrıları belirleyicidir; gelmezse
 ## uygulama kendi durumunu YALNIZ örtülmediğine dair kanıtla bırakır (bkz. "Tam ekran
-## kirası" bölümü) — duraklatılmışken (reklam üstte / arka plan) süreye bağlı bırakma
-## yok. SDK'nın reklamı kapatılmaz / taklit edilmez, ödül verilmez, gösterim sayılmaz.
+## kirası" bölümü) — duraklatılmışken (reklam üstte / arka plan) ve ödüllüde SDK
+## "gösterildi" dedikten sonra süreye bağlı bırakma yok. SDK'nın reklamı kapatılmaz / taklit
+## edilmez, ödül verilmez, gösterim sayılmaz. Yüklenmiş reklamlar (geçiş + ödüllü) bir saat
+## dolmadan tazelenir (motor saati + duvar saati — cihaz uykusunda motor saati durur).
 ##
 ## Banner: Ana Sayfa / Harita / Mağaza / Koleksiyon / oyun ekranı
 ## (docs/monetization/ADS_SYSTEM.md §6); sonuç ekranında gizli. Yuva açılışta
@@ -139,9 +142,15 @@ const SHOW_RESUME_GRACE: float = 3.0
 ## SDK "gösterildi"den beri hiç APPLICATION_PAUSED yok, ya da girdi kanıtından beri) SDK
 ## susarsa kira bu kadar sn sonra kurtarılır. Değer TASK/048'in kabul ettiği gösterim onay
 ## sınırı; A36: istekten reklamın Godot'yu örtmesine (PAUSED) 55–65 ms, SDK "gösterildi"ye
-## 91–149 ms. Ekranda gerçekten açılan tam ekran reklam uygulamayı HER ZAMAN duraklatır ve
-## örtülüyken bu süre işlemez — reklam ne kadar uzun sürerse sürsün meşru reklam kesilmez.
+## 91–149 ms. Ekranda gerçekten açılan tam ekran reklam (GMA AdActivity) uygulamayı duraklatır ve
+## örtülüyken bu süre işlemez — reklam ne kadar uzun sürerse sürsün meşru reklam kesilmez (A36 + GMA 25.3'te
+## doğrulandı; SDK / eklenti değişirse ya da üçüncü taraf reklam ağı eklenirse yeniden doğrulanmalı — ADS_SYSTEM
+## §18.5). Ödüllüde SDK "gösterildi" dedikten SONRA bu süre hiç işlemez: ödül sözü süreye bağlı kesilmesin diye
+## yalnız girdi kanıtı ya da duraklatma + öne dönüş payı (`_lease_on_showed`).
 const FULLSCREEN_UNCOVERED_LEASE_SEC: float = 5.0
+## Tek karede aktif saate eklenebilecek en uzun süre (sn): arka plandan / uykudan dönüşte ilk karenin dev delta'sı
+## (durdurulan süre) aktif süreye ve beklemeye sızmasın; gerçek takılmaları ancak eksik sayar (muhafazakâr).
+const ACTIVE_TICK_MAX_SEC: float = 1.0
 ## Kira kurtarma sebebi (olay bağlamı `recovered`).
 const RECOVERY_RESUME_GRACE: String = "resume_grace"
 const RECOVERY_UNCOVERED_LEASE: String = "uncovered_lease"
@@ -161,6 +170,8 @@ const INTERSTITIAL_LOAD_TIMEOUT: float = 60.0
 ## Google: önbelleklenmiş reklam bir saat sonra süresi dolar → daha önce
 ## tazelenir (yüklenmiş reklamın en fazla yaşı, aktif değil gerçek sn).
 const INTERSTITIAL_MAX_AGE_SEC: float = 3300.0
+## Ödüllü reklam da bir saatte sona erer (Google'ın Android ödüllü rehberi) — aynı tazeleme sınırı (TASK/052).
+const REWARDED_MAX_AGE_SEC: float = INTERSTITIAL_MAX_AGE_SEC
 ## `show` sonrası SDK "gösterildi" demezse (eklenti yüklenmemiş reklamda sinyalsiz uyarı
 ## basar) mola bu kadar sn sonra hatasız sürdürülür — TASK/052'den beri tam ekran kirasının
 ## örtülmemiş sınırı (TASK/048 adı korunur; uygulama duraklatılmışken işlemez).
@@ -221,6 +232,13 @@ var _sdk_initializing: bool = false
 ## oturumda reklam yok, yeniden deneme yok (fail-closed). Notlar "kullanılamıyor" der.
 var _sdk_refused: bool = false
 var _app_paused: bool = false
+## Android: gerçek Activity.onPause'un FOCUS_OUT'u geldi, onResume'un FOCUS_IN'i henüz gelmedi (TASK/052). Bu sürede
+## gelen APPLICATION_RESUMED öne dönüş SAYILMAZ (Vulkan: onStart'ta, etkinlik öne gelmeden de gönderilir).
+var _app_focus_lost: bool = false
+## Son APPLICATION_PAUSED anı — girdi kanıtının dışlama penceresi (TASK/052).
+var _paused_msec: int = -1
+## RESUMED kaybolmuşken uygulamaya ulaşan dokunuşla öne dönüş sayılan kez (teşhis, TASK/052).
+var _input_resumes: int = 0
 ## Onboarding/tutorial tamamlandı mı (Main kayıttan verir). false: yuva 0,
 ## hiçbir reklam yüklenmez/gösterilmez, aktif süre sayılmaz.
 var _onboarding_completed: bool = true
@@ -235,6 +253,9 @@ var _age_session_blocked: bool = false
 
 var _rewarded_state: RewardedState = RewardedState.IDLE
 var _ready_ad_id: String = ""
+## Hazır ödüllü reklamın yüklenme anı — motor saati + duvar saati (süre dolumu, TASK/052).
+var _rewarded_loaded_msec: int = 0
+var _rewarded_loaded_unix: float = 0.0
 var _rewarded_attempts: int = 0
 var _rewarded_retry_timer: SceneTreeTimer = null
 var _rewarded_timeout_timer: SceneTreeTimer = null
@@ -247,6 +268,7 @@ var _interstitial_state: InterstitialState = InterstitialState.IDLE
 var _interstitial_ready_id: String = ""
 var _interstitial_showing_id: String = ""
 var _interstitial_loaded_msec: int = 0
+var _interstitial_loaded_unix: float = 0.0
 var _interstitial_attempts: int = 0
 var _interstitial_retry_timer: SceneTreeTimer = null
 var _interstitial_timeout_timer: SceneTreeTimer = null
@@ -279,12 +301,13 @@ var _lease_kind: LeaseKind = LeaseKind.NONE
 var _lease_ad_id: String = ""
 ## SDK bu kira için "gösterildi" dedi.
 var _lease_showed: bool = false
-## Kira sürerken uygulama duraklatıldı (reklam örtmüş olabilir) → kurtarma sonucu "kapandı".
+## Gösterim çağrısından SONRA uygulama duraklatıldı (reklam örtmüş olabilir) → kurtarma sonucu "kapandı". Önceden
+## duraklatılmış uygulamada kira bununla başlamaz (o duraklatma reklamımızın kanıtı değil).
 var _lease_covered_seen: bool = false
 ## Kira sürerken APPLICATION_RESUMED geldi (kurtarma sebebi `resume_grace`).
 var _lease_resumed_seen: bool = false
-## Son APPLICATION_PAUSED anı (kira sürerken) — girdi kanıtının dışlama penceresi.
-var _lease_paused_msec: int = -1
+## SDK "gösterildi" anı — hiç örtülmemiş ödüllü kirada girdi kanıtının dışlama penceresi.
+var _lease_showed_msec: int = -1
 ## RESUMED gelmemişken uygulamaya yeni bir dokunuş ulaştı: kira örtülmemiş sayılır (bir sonraki PAUSED'a dek).
 var _lease_input_uncovered: bool = false
 var _lease_timer: SceneTreeTimer = null
@@ -351,39 +374,75 @@ func _exit_tree() -> void:
 
 
 func _process(delta: float) -> void:
-	_tick_active(delta)
+	_tick_active(minf(delta, ACTIVE_TICK_MAX_SEC))
 
 
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_APPLICATION_PAUSED:
 		_app_paused = true
+		_paused_msec = Time.get_ticks_msec()
 		# TASK/052: banner etkinlik yaşam döngüsüne uyar (Google AdView: pause() onPause'da) — eklentinin gizlemesi
 		# GONE + adView.pause(), öne dönüşte gösterme VISIBLE + resume(); aynı AdView, yeni yükleme yok.
 		_sync_banner()
 		# TASK/052: tam ekran reklam (ya da arka plan) uygulamayı örttü — kira süreye bağlı bırakılmaz.
 		_lease_on_paused()
+	elif what == NOTIFICATION_APPLICATION_FOCUS_OUT:
+		# Android: yalnız gerçek Activity.onPause'da gelir (GodotLib.focusout) — etkinlik artık en üstte değil.
+		_app_focus_lost = true
 	elif what == NOTIFICATION_APPLICATION_RESUMED:
-		_app_paused = false
-		_sync_banner()
-		# Reklam etkinliği kapanmış olmalı; kapanış sinyali kuyrukta. Gelmezse (eklenti / SDK
-		# boşluğu) sınırlı payın sonunda kira kurtarılır — kimse sonsuza dek "gösteriliyor"da kalmaz.
-		_lease_on_resumed()
+		if _app_focus_lost:
+			# Godot 4.6 Vulkan: oluşturucu iş parçacığı Activity.onStart'ta yeniden başlarken de RESUMED gelir — etkinlik
+			# henüz öne gelmedi (ör. HOME / kilit / arama sonrası dönüşte üstte hâlâ tam ekran reklam). Bu RESUMED kirayı
+			# ve duraklatmayı bırakmaz; gerçek öne dönüş onResume'un FOCUS_IN'i (ya da girdi kanıtı).
+			return
+		_on_app_front()
+	elif what == NOTIFICATION_APPLICATION_FOCUS_IN:
+		if not _app_focus_lost:
+			return
+		_app_focus_lost = false
+		_on_app_front()
 
 
-## TASK/052 girdi kanıtı: kira örtülü sayılırken (PAUSED geldi, RESUMED gelmedi) uygulama
-## penceresine YENİ bir dokunuş ulaşırsa üstte tam ekran reklam etkinliği yoktur (Android yeni
-## dokunuşu en üstteki pencereye verir) — RESUMED kaybolmuş olsa bile kira bu andan itibaren
-## örtülmemiş sayılır. Son PAUSED'dan sonraki ilk FULLSCREEN_UNCOVERED_LEASE_SEC içindeki basışlar
-## SAYILMAZ (reklam etkinliği açılırken eski pencereye düşebilen geçiş dokunuşu). Olay tüketilmez.
+## Uygulama gerçekten önde: APPLICATION_RESUMED (odak kaybı yokken) ya da Activity.onResume'un FOCUS_IN'i.
+func _on_app_front() -> void:
+	_app_paused = false
+	_sync_banner()
+	# Reklam etkinliği kapanmış olmalı; kapanış sinyali kuyrukta. Gelmezse (eklenti / SDK
+	# boşluğu) sınırlı payın sonunda kira kurtarılır — kimse sonsuza dek "gösteriliyor"da kalmaz.
+	_lease_on_resumed()
+	# Uykudan dönüş: motor saati uykuda durur, süresi dolmuş hazır reklam duvar saatiyle yakalanır.
+	_refresh_stale_ads()
+
+
+## TASK/052 girdi kanıtı: uygulama penceresine ulaşan YENİ bir dokunuş, üstte tam ekran reklam etkinliği OLMADIĞININ
+## kanıtıdır (Android yeni dokunuşu en üstteki pencereye verir; reklam üstteyse dokunuş ona gider). İki kullanım:
+##   1. PAUSED geldi, RESUMED gelmedi (yaşam döngüsü kaybı): son PAUSED'dan >= FULLSCREEN_UNCOVERED_LEASE_SEC sonraki
+##      basış uygulama düzeyinde öne dönüş sayılır — `_app_paused` düşer (banner, aktif saat ve doğal mola geri gelir;
+##      kira olsun olmasın) ve açık kira örtülmemiş sayılır (kurtarma sebebi `input_evidence`).
+##   2. Ödüllü kirada SDK "gösterildi" dedi ama uygulama hiç örtülmedi: "gösterildi"den >= aynı süre sonraki basış
+##      kiranın örtülmemiş sınırını başlatır (ödüllüde "gösterildi" sonrası süreye bağlı bırakma yok).
+## Dışlama pencereleri, reklam etkinliği açılırken eski pencereye düşebilen geçiş dokunuşunu eler. Olay tüketilmez.
 func _input(event: InputEvent) -> void:
-	if _lease_kind == LeaseKind.NONE or not _app_paused or _lease_input_uncovered:
-		return
 	if not (event is InputEventScreenTouch or event is InputEventMouseButton) or not event.is_pressed():
 		return
-	if Time.get_ticks_msec() - _lease_paused_msec < int(FULLSCREEN_UNCOVERED_LEASE_SEC * time_scale * 1000.0):
+	var settle: int = int(FULLSCREEN_UNCOVERED_LEASE_SEC * time_scale * 1000.0)
+	var now: int = Time.get_ticks_msec()
+	if _app_paused:
+		if now - _paused_msec < settle:
+			return
+		_app_paused = false
+		_app_focus_lost = false
+		_input_resumes += 1
+		_sync_banner()
+		if _lease_kind != LeaseKind.NONE:
+			_lease_input_uncovered = true
+			_lease_arm(FULLSCREEN_UNCOVERED_LEASE_SEC)
+		_refresh_stale_ads()
 		return
-	_lease_input_uncovered = true
-	_lease_arm(FULLSCREEN_UNCOVERED_LEASE_SEC)
+	if _lease_kind == LeaseKind.REWARDED and _lease_showed and not _lease_covered_seen and not _lease_input_uncovered \
+			and now - _lease_showed_msec >= settle:
+		_lease_input_uncovered = true
+		_lease_arm(FULLSCREEN_UNCOVERED_LEASE_SEC)
 
 
 func _connect_backend() -> void:
@@ -891,7 +950,7 @@ func _on_initialization_completed() -> void:
 ## Geçiş reklamı gösterilirken de hayır (tek tam ekran reklam).
 func is_rewarded_ready() -> bool:
 	return (_rewarded_state == RewardedState.READY and not _ready_ad_id.is_empty()
-		and _ads_enabled() and _interstitial_state != InterstitialState.SHOWING)
+		and _ads_enabled() and _interstitial_state != InterstitialState.SHOWING and not _rewarded_expired())
 
 
 ## CTA pasifken pencerede yazan sebep; hazırken boş.
@@ -916,7 +975,8 @@ func rewarded_note() -> String:
 		return NOTE_SHOWING
 	match _rewarded_state:
 		RewardedState.READY:
-			return ""
+			# Süresi dolmuş hazır reklam gösterilmez; tazelenene dek "hazırlanıyor" (TASK/052).
+			return NOTE_PREPARING if _rewarded_expired() else ""
 		RewardedState.SHOWING, RewardedState.REWARD_EARNED:
 			return NOTE_SHOWING
 		RewardedState.LOADING:
@@ -940,6 +1000,11 @@ func ensure_rewarded() -> void:
 			_start_consent()
 		return
 	if not ads_allowed() or not _sdk_ready:
+		return
+	if _rewarded_state == RewardedState.READY and _rewarded_expired():
+		# TASK/052: süresi dolmuş hazır reklam — at, tazele (pencere "hazırlanıyor" der).
+		_discard_ready_rewarded()
+		_preload_rewarded()
 		return
 	match _rewarded_state:
 		RewardedState.IDLE, RewardedState.DISMISSED, RewardedState.FAILED:
@@ -976,6 +1041,10 @@ func _show_rewarded(main: Node, kind: RewardedKind, type: int, token: int, day_k
 		# geçiş reklamı birlikte olamaz).
 		_notify_unavailable(main, kind, NOTE_SHOWING)
 		return
+	if _rewarded_state == RewardedState.READY and _rewarded_expired():
+		# TASK/052: süresi dolmuş reklam gösterilmez (Google: reklamlar bir saatte sona erer) — at, tazele.
+		_discard_ready_rewarded()
+		_preload_rewarded()
 	if not is_rewarded_ready():
 		_notify_unavailable(main, kind, rewarded_note())
 		ensure_rewarded()
@@ -1091,6 +1160,8 @@ func _on_rewarded_loaded(ad_id: String) -> void:
 	_rewarded_retry_timer = null
 	_rewarded_attempts = 0
 	_ready_ad_id = ad_id
+	_rewarded_loaded_msec = Time.get_ticks_msec()
+	_rewarded_loaded_unix = Time.get_unix_time_from_system()
 	if _rewarded_state != RewardedState.SHOWING and _rewarded_state != RewardedState.REWARD_EARNED:
 		_rewarded_state = RewardedState.READY
 	AdEvents.emit(&"rewarded_loaded", {"placement": "preload", "ad_id": ad_id})
@@ -1107,6 +1178,17 @@ func _on_rewarded_failed_to_load(ad_id: String, code: int, message: String) -> v
 	_rewarded_state = RewardedState.FAILED
 	_rewarded_attempts += 1
 	_schedule_rewarded_retry()
+	rewarded_availability_changed.emit()
+
+
+## Hazır ödüllü reklamı at (süresi doldu): eklenti önbelleğinden düşer, kimlik emekli (geç sinyali eskidir).
+func _discard_ready_rewarded() -> void:
+	if not _ready_ad_id.is_empty():
+		_backend.remove_rewarded(_ready_ad_id)
+		_retire(_retired_rewarded_ids, _ready_ad_id)
+		_ready_ad_id = ""
+	if _rewarded_state == RewardedState.READY:
+		_rewarded_state = RewardedState.IDLE
 	rewarded_availability_changed.emit()
 
 
@@ -1211,9 +1293,12 @@ func _rewarded_closed(ad_id: String, recovered: String) -> void:
 		if not _request["earned"] and not _request["cancelled"]:
 			_notify_unavailable(_request["main"], _request["kind"], NOTE_NOT_EARNED)
 		_clear_request()
+	# Kapanan reklamın kimliği emekli (SDK ya da kurtarma): yinelenen / geç geri çağrıları eskidir.
+	_retire(_retired_rewarded_ids, ad_id)
 	if not recovered.is_empty():
 		ctx["recovered"] = recovered
-		_retire(_retired_rewarded_ids, ad_id)
+		# Kurtarılan kapanışta SDK kapanışı gelmedi: eklenti nesnesi önbellekte kalmasın.
+		_backend.remove_rewarded(ad_id)
 	AdEvents.emit(&"rewarded_dismissed", ctx)
 	if _rewarded_state == RewardedState.SHOWING or _rewarded_state == RewardedState.REWARD_EARNED \
 			or _rewarded_state == RewardedState.DISMISSED:
@@ -1252,9 +1337,10 @@ func _rewarded_show_failed(ad_id: String, code: int, message: String, recovered:
 		if not _request["cancelled"]:
 			_notify_unavailable(_request["main"], _request["kind"], NOTE_SHOW_FAILED)
 		_clear_request()
+	# Gösterilemeyen reklamın kimliği emekli (SDK ya da kurtarma): yinelenen hata süren önyüklemeyi bozamaz.
+	_retire(_retired_rewarded_ids, ad_id)
 	if not recovered.is_empty():
 		ctx["recovered"] = recovered
-		_retire(_retired_rewarded_ids, ad_id)
 	AdEvents.emit(&"rewarded_show_failed", ctx)
 	# Gösterilemeyen reklam tüketilmiş sayılır: önbellekten düş, yenisini yükle.
 	_backend.remove_rewarded(ad_id)
@@ -1275,8 +1361,10 @@ func _rewarded_show_failed(ad_id: String, code: int, message: String, recovered:
 #
 # Gösterim YALNIZ Main'in doğal molasında (`try_show_interstitial`): uygun + READY + bekleme yok +
 # başka tam ekran reklam yok + uygulama ön planda. Değilse hiç gösterilmez (sonuç hemen açılır),
-# uygunluk korunur, sonraki molada denenir. Sayaç + saat yalnız SDK "gösterildi" deyince (geç gelse de,
-# kendi reklamımız için bir kez) sıfırlanır; yükleme/gösterim hatası, onay gelmemesi sıfırlamaz.
+# uygunluk korunur, sonraki molada denenir. Sayaç + saat iki yerde sıfırlanır: SDK "gösterildi" (geç gelse de,
+# kendi reklamımız için bir kez; gösterim sayılır) ve "gösterildi"si gelmemiş reklamın kapanışı — SDK kapanışı ya da
+# örtülme kanıtlı kira kurtarması (gösterim SAYILMAZ; art arda zorunlu geçiş olmasın). Yükleme / gösterim hatası,
+# "gösterilmedi" kurtarması sıfırlamaz.
 
 func interstitial_eligible() -> bool:
 	return _interstitial_eligible
@@ -1287,10 +1375,11 @@ func interstitial_rounds() -> int:
 	return _interstitial_rounds
 
 
-## Main: normal round KESİN bitti (`_on_round_finished`, round başına tam bir kez; meydan okuma bu
-## yolu hiç çağırmaz). Sayaç yalnız monetizasyon bu süreçte açıkken artar (`AdPolicy.round_counts`):
-## onboarding tamam (tutorial ve tutorial'dan doğan round reklamsız) + yaş bandı reklamlı. Gecikmede
-## round değiştirilse de kesinleşen round sayılmış kalır.
+## Main: normal round KESİN bitti (`_on_round_finished`, round başına tam bir kez). Meydan okuma bu yolu hiç
+## çağırmaz — yalıtım Main'in ayrı bitiş işleyicisindedir (suite'ler kaynakla denetler); `false` argümanı kuralı
+## yazılı tutar. Sayaç yalnız monetizasyon bu süreçte açıkken artar (`AdPolicy.round_counts`): onboarding tamam
+## (tutorial ve tutorial'dan doğan round reklamsız) + yaş bandı reklamlı. Gecikmede round değiştirilse de kesinleşen
+## round sayılmış kalır.
 func note_normal_round_finalized() -> void:
 	if not AdPolicy.round_counts(false, _monetization_active()):
 		return
@@ -1299,7 +1388,8 @@ func note_normal_round_finalized() -> void:
 
 
 ## Monetizasyon bu süreçte açık mı (sayaçlar için): arka uç + onboarding + yaş bandı. Rıza / SDK ayrıca
-## gösterim anında denetlenir (aktif süre saatiyle aynı kapsam).
+## gösterim anında denetlenir (aktif süre saatiyle aynı kapsam): rıza reddi / SDK beklemesi sayımı DURDURMAZ —
+## sonradan reklama izin verilirse ilk doğal mola gösterebilir (2 round + 300 sn bu süreçte yine sağlanmıştır).
 func _monetization_active() -> bool:
 	return _backend != null and _onboarding_completed and _age_ads_allowed()
 
@@ -1313,7 +1403,8 @@ func _update_interstitial_eligibility() -> void:
 	_kick_interstitial_load()
 
 
-## Gerçek tam ekran gösterim başladı (SDK "gösterildi"): sıklık sayaçları sıfırlanır — yalnız burada.
+## Sıklık sayaçlarını sıfırlar. Çağıranlar: SDK "gösterildi" (geç gelen dahil, kendi reklamımız için bir kez) ve
+## "gösterildi"si gelmemiş reklamın kapanışı (`_interstitial_closed` + eski kapanış dalı; gösterim sayılmaz).
 func _reset_interstitial_gates() -> void:
 	_active_elapsed = 0.0
 	_interstitial_rounds = 0
@@ -1334,7 +1425,25 @@ func is_interstitial_ready() -> bool:
 
 
 func _interstitial_expired() -> bool:
-	return (Time.get_ticks_msec() - _interstitial_loaded_msec) > int(INTERSTITIAL_MAX_AGE_SEC * time_scale * 1000.0)
+	return _ad_expired(_interstitial_loaded_msec, _interstitial_loaded_unix, INTERSTITIAL_MAX_AGE_SEC * time_scale)
+
+
+## Ödüllü yaş sınırı ölçek DIŞI gerçek saniyedir (testlerin sıkıştırılmış zamanı mevcut ödüllü akışları bozmasın;
+## üretimde time_scale 1 — geçişle aynı sınır).
+func _rewarded_expired() -> bool:
+	return _ad_expired(_rewarded_loaded_msec, _rewarded_loaded_unix, REWARDED_MAX_AGE_SEC)
+
+
+## Yüklenmiş reklamın yaşı `limit_sec`'i aştı mı (TASK/052). İki saat, hangisi önce aşarsa: motor saati (cihaz derin
+## uykudayken DURUR) ve duvar saati (uykuda da ilerler; geri alınmış saat — negatif fark — ve bilinmeyen yükleme anı
+## yok sayılır).
+func _ad_expired(loaded_msec: int, loaded_unix: float, limit_sec: float) -> bool:
+	var limit_msec: int = int(limit_sec * 1000.0)
+	if Time.get_ticks_msec() - loaded_msec > limit_msec:
+		return true
+	if loaded_unix <= 0.0:
+		return false
+	return (Time.get_unix_time_from_system() - loaded_unix) * 1000.0 > float(limit_msec)
 
 
 ## Aktif süre sayılabilir mi (bkz. üst not).
@@ -1352,10 +1461,18 @@ func _tick_active(delta: float) -> void:
 	if _fullscreen_cooldown > 0.0:
 		_fullscreen_cooldown = maxf(0.0, _fullscreen_cooldown - delta)
 	_update_interstitial_eligibility()
+	_refresh_stale_ads()
+
+
+## Süresi dolmuş HAZIR reklamları at ve tazele (geçiş + ödüllü; Google: reklamlar bir saatte sona erer) — aktif saat
+## adımında, öne dönüşte (uyku sonrası duvar saati), ödüllü pencere / CTA anında.
+func _refresh_stale_ads() -> void:
 	if _interstitial_state == InterstitialState.READY and _interstitial_expired():
-		# Google: reklam bir saatte sona erer — süresi dolanı at, tazele.
 		_discard_ready_interstitial()
 		_preload_interstitial()
+	if _rewarded_state == RewardedState.READY and _rewarded_expired():
+		_discard_ready_rewarded()
+		_preload_rewarded()
 
 
 ## Herhangi bir tam ekran reklam kapandı: geçiş reklamı için bekleme başlar.
@@ -1372,8 +1489,11 @@ func try_show_interstitial(break_name: String, continue_callback: Callable) -> b
 	if reason != "":
 		AdEvents.emit(&"interstitial_skipped_not_ready", {"natural_break": break_name,
 			"active_elapsed_sec": _active_elapsed, "reason": reason, "eligible": _interstitial_eligible})
-		if _interstitial_eligible and (reason == "not_ready" or reason == "failed" or reason == "expired"):
-			# Uygun ama reklam yok: bir sonraki mola için yükleme dene.
+		if _interstitial_eligible:
+			# Uygun ama bu mola atlandı (hangi sebeple olursa olsun): reklam yoksa / süresi dolduysa bir sonraki mola
+			# için sınırlı yükleme (`_kick_interstitial_load` yalnız boş / hatalı durumda, aralıklı) — TASK/052.
+			if reason == "expired":
+				_discard_ready_interstitial()
 			_kick_interstitial_load()
 		return false
 	_break_seq += 1
@@ -1403,6 +1523,9 @@ func _interstitial_block_reason() -> String:
 		return "sdk_refused"
 	if not ads_allowed() or not _sdk_ready:
 		return "consent"
+	if consent_form_covering():
+		# TASK/052: UMP gizlilik seçenekleri formu açık (Ayarlar'dan) — geçiş reklamı formun üstüne açılmaz.
+		return "consent_form"
 	if _app_paused:
 		# TASK/052: uygulama ön planda değil (başka bir etkinlik örtüyor / arka plan) — oyuncu molada değil.
 		return "app_paused"
@@ -1485,11 +1608,13 @@ func _on_interstitial_loaded(ad_id: String) -> void:
 		# Gösterim sürerken gelen ikinci yükleme: kapanınca hazır olacak.
 		_interstitial_ready_id = ad_id
 		_interstitial_loaded_msec = Time.get_ticks_msec()
+		_interstitial_loaded_unix = Time.get_unix_time_from_system()
 		return
 	if not _interstitial_ready_id.is_empty() and _interstitial_ready_id != ad_id:
 		_backend.remove_interstitial(_interstitial_ready_id)
 	_interstitial_ready_id = ad_id
 	_interstitial_loaded_msec = Time.get_ticks_msec()
+	_interstitial_loaded_unix = Time.get_unix_time_from_system()
 	_set_interstitial_state(InterstitialState.READY)
 
 
@@ -1547,7 +1672,7 @@ func _on_interstitial_showed(ad_id: String) -> void:
 	_interstitial_showed_id = ad_id
 	AdEvents.emit(&"interstitial_showed", {"ad_id": ad_id, "natural_break": _break_name,
 		"active_elapsed_sec": _active_elapsed, "rounds": _interstitial_rounds})
-	# Gerçek tam ekran gösterim başladı: sayaç + saat şimdi sıfırlanır (yalnız burada).
+	# Gerçek tam ekran gösterim başladı: sayaç + saat şimdi sıfırlanır (gösterim sayıldı).
 	_reset_interstitial_gates()
 	_lease_on_showed(LeaseKind.INTERSTITIAL, ad_id)
 
@@ -1570,6 +1695,9 @@ func _on_interstitial_dismissed(ad_id: String) -> void:
 			# gösterim: yalnız bekleme; kimlik emekli (eklentinin sahipsiz yeniden yüklemesi elenir).
 			_interstitial_showing_id = ""
 			_retire(_retired_interstitial_ids, ad_id)
+			if ad_id != _interstitial_showed_id:
+				# "gösterildi" de kaybolduysa kapanış gösterimin kanıtı: sayaçlar sıfırlanır, gösterim sayılmaz.
+				_reset_interstitial_gates()
 			_start_fullscreen_cooldown()
 		return
 	_interstitial_closed(ad_id, "")
@@ -1578,14 +1706,21 @@ func _on_interstitial_dismissed(ad_id: String) -> void:
 ## Geçiş reklamının kapanışı — SDK geri çağrısı (`recovered` boş) ya da tam ekran kirasının "kapandı"
 ## kurtarması (`recovered` = sebep, TASK/052). Mola tam bir kez biter (`_finish_break`), 60 sn bekleme başlar,
 ## sıradaki reklam yüklenir. Kurtarmadan sonra gelen geç kapanış eski sayılır (kimlik emekli, ikinci işlem yok).
+## "gösterildi"si gelmemiş reklamın kapanışı da gösterimin kanıtıdır: sıklık sayaçları sıfırlanır (gösterim
+## SAYILMAZ) — SDK kapanışı ile örtülme kanıtlı kurtarma için TEK kural.
 func _interstitial_closed(ad_id: String, recovered: String) -> void:
 	_lease_end()
+	if ad_id != _interstitial_showed_id:
+		_reset_interstitial_gates()
 	var ctx: Dictionary = {"ad_id": ad_id, "natural_break": _break_name, "active_elapsed_sec": _active_elapsed}
 	if not recovered.is_empty():
 		ctx["recovered"] = recovered
 	AdEvents.emit(&"interstitial_dismissed", ctx)
 	_interstitial_showing_id = ""
 	_retire(_retired_interstitial_ids, ad_id)
+	if not recovered.is_empty():
+		# Kurtarılan kapanışta SDK kapanışı gelmedi: eklenti nesnesi önbellekte kalmasın.
+		_backend.remove_interstitial(ad_id)
 	_set_interstitial_state(InterstitialState.READY if not _interstitial_ready_id.is_empty()
 		else InterstitialState.DISMISSED)
 	_start_fullscreen_cooldown()
@@ -1642,23 +1777,34 @@ func _set_interstitial_state(state: InterstitialState) -> void:
 # gösterim hatası geri çağrısıyla biter (belirleyici). SDK susarsa kira YALNIZ uygulamanın örtülmediğine dair kanıtla
 # kurtarılır — kira başına tek zamanlayıcı, kira jetonuna bağlı, tam bir kez:
 #   - APPLICATION_RESUMED geldi                              -> SHOW_RESUME_GRACE (3 sn; M8.9-01'den beri aynı pay)
-#   - istekten / SDK "gösterildi"den beri hiç PAUSED yok    -> FULLSCREEN_UNCOVERED_LEASE_SEC (5 sn; TASK/048 onayı)
-#   - PAUSED geldi, RESUMED gelmedi, ama PAUSED'dan >= 5 sn sonra uygulamaya YENİ dokunuş ulaştı -> 5 sn
+#   - gösterim isteğinden beri hiç PAUSED yok ("gösterildi" öncesi) -> FULLSCREEN_UNCOVERED_LEASE_SEC (5 sn; TASK/048)
+#   - geçiş: SDK "gösterildi" dedi, hiç PAUSED yok          -> "gösterildi"den 5 sn (sonuç reklamın altında açılabilir;
+#     ödül yok — ucuz yanlış tahmin)
+#   - ödüllü: SDK "gösterildi" dedi, hiç PAUSED yok          -> SÜREYE BAĞLI BIRAKMA YOK; yalnız "gösterildi"den >= 5 sn
+#     sonra uygulamaya ulaşan YENİ dokunuş (reklam üstteyse dokunuş ona gider) -> 5 sn
+#   - PAUSED geldi, RESUMED gelmedi, ama PAUSED'dan >= 5 sn sonra uygulamaya YENİ dokunuş ulaştı -> 5 sn (ve
+#     `_app_paused` düşer — uygulama düzeyinde öne dönüş)
+#   - Android'de onPause'un FOCUS_OUT'u ile onResume'un FOCUS_IN'i arasındaki RESUMED (Vulkan: onStart'ta, üstte reklam
+#     varken de) öne dönüş SAYILMAZ — pay FOCUS_IN'le başlar
 #   - uygulama duraklatılmışken (reklam üstte ya da arka plan) SÜREYE BAĞLI BIRAKMA YOK
-# Sonuç kanıta göre: SDK "gösterildi" dedi ya da uygulama örtüldü -> "kapandı" (kapanış anlamı: 60 sn bekleme; geçişte
-# sıklık sayaçları sıfırlanır — gösterim SAYILMAZ; ödüllüde ödül YALNIZ zaten kazanıldıysa, o an verilmişti); hiçbiri
-# -> "gösterilmedi" (gösterim hatası anlamı: bekleme yok, uygunluk kalır, ödül yok). SDK'nın tam ekran reklamı uygulama
-# tarafından KAPATILMAZ; sahte kapatma düğmesi, sahte ödül, sayılmamış gösterim YOK. Kurtarmadan sonra gelen geç geri
-# çağrılar sahiplik için eskidir (kimlikler emekli).
+# Örtülme kanıtı yalnız gösterim çağrısından SONRAKİ PAUSED'dır (önceden duraklatılmış uygulama sayılmaz).
+# Sonuç kanıta göre: SDK "gösterildi" dedi, uygulama örtüldü ya da (ödüllü) "ödül kazanıldı" geldi -> "kapandı"
+# (kapanış anlamı: 60 sn bekleme; geçişte "gösterildi" yoksa sıklık sayaçları `_interstitial_closed`'da sıfırlanır —
+# gösterim SAYILMAZ; ödüllüde ödül YALNIZ zaten kazanıldıysa, o an verilmişti; eklenti nesnesi önbellekten düşer);
+# hiçbiri -> "gösterilmedi" (gösterim hatası anlamı: bekleme yok, uygunluk kalır, ödül yok). SDK'nın tam ekran
+# reklamı uygulama tarafından KAPATILMAZ; sahte kapatma düğmesi, sahte ödül, sayılmamış gösterim YOK. Kurtarmadan
+# sonra gelen geç geri çağrılar sahiplik için eskidir (kimlikler emekli).
 
 func _lease_begin(kind: LeaseKind, ad_id: String) -> void:
 	_lease_token += 1
 	_lease_kind = kind
 	_lease_ad_id = ad_id
 	_lease_showed = false
-	_lease_covered_seen = _app_paused
+	# Yalnız gösterim çağrısından SONRAKİ PAUSED örtülme kanıtıdır: zaten duraklatılmış uygulamada (etkinlik geçişi /
+	# çoklu pencere) önceki duraklatma "reklamımız örttü" sayılmaz. Duraklatılmışken zamanlayıcı kurulmaz.
+	_lease_covered_seen = false
 	_lease_resumed_seen = false
-	_lease_paused_msec = Time.get_ticks_msec() if _app_paused else -1
+	_lease_showed_msec = -1
 	_lease_input_uncovered = false
 	_lease_arm(FULLSCREEN_UNCOVERED_LEASE_SEC)
 
@@ -1685,21 +1831,29 @@ func _lease_arm(seconds: float) -> void:
 	_lease_timer = _start_timer(seconds, _on_lease_timeout.bind(_lease_token))
 
 
-## SDK "gösterildi": hiç örtülmemiş kirada örtülmemiş sınır bu andan yeniden sayılır (gerçek reklam şimdi
-## uygulamayı duraklatmalı; PAUSED gelince sayım durur).
+## SDK "gösterildi". Hiç örtülmemiş GEÇİŞ kirasında örtülmemiş sınır bu andan yeniden sayılır (gerçek reklam şimdi
+## uygulamayı duraklatmalı; PAUSED gelince sayım durur). Hiç örtülmemiş ÖDÜLLÜ kirada süreye bağlı bırakma kalkar:
+## reklam gerçekten ekrandaysa (etkinliği duraklatmayan bir gösterim yolu dahil) hak edilen ödül kesilmesin — kira
+## yalnız "gösterildi"den sonraki girdi kanıtıyla (`_input`) ya da duraklatma + öne dönüş payıyla biter.
 func _lease_on_showed(kind: LeaseKind, ad_id: String) -> void:
 	if _lease_kind != kind or _lease_ad_id != ad_id:
 		return
 	_lease_showed = true
-	if not _lease_covered_seen and not _app_paused:
-		_lease_arm(FULLSCREEN_UNCOVERED_LEASE_SEC)
+	_lease_showed_msec = Time.get_ticks_msec()
+	if _lease_covered_seen or _app_paused:
+		return
+	if kind == LeaseKind.REWARDED:
+		_lease_input_uncovered = false
+		_cancel_timer(_lease_timer)
+		_lease_timer = null
+		return
+	_lease_arm(FULLSCREEN_UNCOVERED_LEASE_SEC)
 
 
 func _lease_on_paused() -> void:
 	if _lease_kind == LeaseKind.NONE:
 		return
 	_lease_covered_seen = true
-	_lease_paused_msec = Time.get_ticks_msec()
 	_lease_input_uncovered = false
 	_cancel_timer(_lease_timer)
 	_lease_timer = null
@@ -1724,8 +1878,10 @@ func _on_lease_timeout(token: int) -> void:
 func _recover_lease() -> void:
 	var kind: LeaseKind = _lease_kind
 	var ad_id: String = _lease_ad_id
-	var showed: bool = _lease_showed
-	var closed: bool = showed or _lease_covered_seen
+	# Ödüllüde "ödül kazanıldı" geldiyse reklam gösterilmiştir (ödül o an verildi): "gösterilemedi" sayılmaz.
+	var earned: bool = (kind == LeaseKind.REWARDED and _request["active"] and _request["ad_id"] == ad_id
+		and bool(_request["earned"]))
+	var closed: bool = _lease_showed or _lease_covered_seen or earned
 	var reason: String = RECOVERY_UNCOVERED_LEASE
 	if _lease_input_uncovered:
 		reason = RECOVERY_INPUT_EVIDENCE
@@ -1737,10 +1893,8 @@ func _recover_lease() -> void:
 			if not closed:
 				_interstitial_not_shown(ad_id, reason)
 				return
-			if not showed:
-				# "gösterildi" kayboldu ama reklam uygulamayı örttü: gerçek gösterim büyük olasılıkla oldu — art arda
-				# zorunlu reklam olmasın diye sayaçlar sıfırlanır; gösterim SAYILMAZ (SDK bildirmedi).
-				_reset_interstitial_gates()
+			# "gösterildi" kaybolduysa (yalnız örtülme kanıtı) sayaçları `_interstitial_closed` sıfırlar — gösterim
+			# SAYILMAZ; art arda zorunlu reklam olmaz (SDK kapanışıyla aynı tek kural).
 			_interstitial_closed(ad_id, reason)
 		LeaseKind.REWARDED:
 			if closed:
@@ -1770,6 +1924,11 @@ func lease_kind() -> LeaseKind:
 ## Bu süreçte kurtarılan kira sayısı (teşhis; SDK kapanışı gelmeden biten tam ekran molaları).
 func fullscreen_recoveries() -> int:
 	return _lease_recoveries
+
+
+## RESUMED kaybolmuşken uygulamaya ulaşan dokunuşla öne dönüş sayılan kez (teşhis).
+func input_resumes() -> int:
+	return _input_resumes
 
 
 # --- Banner ----------------------------------------------------------------------
@@ -1907,13 +2066,13 @@ func _cancel_timer(timer: SceneTreeTimer) -> void:
 # --- Testler / teşhis --------------------------------------------------------------
 
 func describe() -> String:
-	return "age=%s attached=%s age_blocked=%s ads=%s papi=%s priv=%s sdk=%s onb=%s rewarded=%s ready=%s inter=%s elig=%s active=%.0f rounds=%d cool=%.0f banner=%s surface=%s slot=%d req=%s lease=%s recov=%d" % [
+	return "age=%s attached=%s age_blocked=%s ads=%s papi=%s priv=%s sdk=%s onb=%s rewarded=%s ready=%s inter=%s elig=%s active=%.0f rounds=%d cool=%.0f banner=%s surface=%s slot=%d req=%s lease=%s recov=%d inres=%d" % [
 		AgeGate.band_name(_age_band), str(_backend_attached), str(_age_session_blocked),
 		AdsState.keys()[_state], str(_privacy_api), str(_privacy_options_required), str(_sdk_ready), str(_onboarding_completed),
 		RewardedState.keys()[_rewarded_state], str(is_rewarded_ready()),
 		InterstitialState.keys()[_interstitial_state], str(_interstitial_eligible), _active_elapsed, _interstitial_rounds,
 		_fullscreen_cooldown, BannerState.keys()[_banner_state], Surface.keys()[_surface],
-		int(_banner_slot_px), str(_request["active"]), LeaseKind.keys()[_lease_kind], _lease_recoveries]
+		int(_banner_slot_px), str(_request["active"]), LeaseKind.keys()[_lease_kind], _lease_recoveries, _input_resumes]
 
 
 func rewarded_attempts() -> int:

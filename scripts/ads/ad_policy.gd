@@ -14,9 +14,12 @@ extends RefCounted
 ##      ekran kapalı, UMP formu, herhangi bir tam ekran reklam, onboarding tamamlanmamış, yaş bandı reklamsız)
 ##   3. herhangi bir tam ekran reklamın (ödüllü ya da geçiş) kapanışından bu yana FULLSCREEN_AD_COOLDOWN_SEC aktif sn
 ##   4. başka tam ekran reklam yok (ödüllü talep / geçiş molası), reklam HAZIR (yüklü, süresi dolmamış), yaş / rıza /
-##      SDK reklama izin veriyor, uygulama ön planda
-## Hazır değilse sonuç HEMEN açılır (beklenmez); uygunluk korunur, sonraki doğal molada denenir. Sayaç ve saat yalnız
-## gerçek gösterimde sıfırlanır (yükleme / gösterim hatası, onay gelmemesi sıfırlamaz).
+##      SDK reklama izin veriyor, UMP gizlilik formu açık değil, uygulama ön planda
+## Hazır değilse sonuç HEMEN açılır (beklenmez); uygunluk korunur, sonraki doğal molada denenir. Sayaç ve saat SDK
+## "gösterildi"de (geç gelen dahil, bir kez; gösterim sayılır) ve "gösterildi"si gelmemiş reklamın kapanışında (SDK
+## kapanışı ya da örtülme kanıtlı mola kurtarması; gösterim SAYILMAZ) sıfırlanır; yükleme / gösterim hatası ve
+## "gösterilmedi" kurtarması sıfırlamaz. Sayım kapsamı aktif süre saatiyle aynı: rıza reddi / SDK beklemesi sayımı
+## durdurmaz (gösterimi durdurur).
 ##
 ## ÖDÜLLÜ KOTALAR — tek kaynakları DEĞİŞMEDİ, burada yalnız okunur (kopya sayı YOK; `rewarded_caps()`):
 ##   devam GameBoard.MAX_REVIVES_PER_ROUND · güç refill'i RewardedPolicy.DAILY_POWER_REFILLS (dört gücün toplamı) ·
@@ -24,8 +27,9 @@ extends RefCounted
 ##   "ödül kazanıldı" geri çağrısıyla tüketilir; ödüllü reklam her zaman oyuncunun açık seçimidir (CTA), kendiliğinden
 ##   açılmaz.
 ##
-## APP-OPEN REKLAMI: YOK (TASK/052 kararı — docs/monetization/ADS_SYSTEM.md §18): açılışta oyuncunun beklediği bir
-## yükleme yüzeyi yok (Ana Sayfa hemen etkileşimli; rıza + yaş + SDK ondan SONRA açılır).
+## APP-OPEN REKLAMI: YOK — v1 non-goal (PROJECT_CONTEXT); TASK/052 yeniden denetledi ve ertelendi
+## (docs/monetization/ADS_SYSTEM.md §18.4): açılışta oyuncunun beklediği bir yükleme yüzeyi yok (Ana Sayfa hemen
+## etkileşimli; rıza + yaş + SDK ondan SONRA açılır).
 
 ## Önceki gerçek geçiş reklamından bu yana gereken kesinleşen NORMAL round sayısı (TASK/052; altına inilmez).
 const FORCED_INTERSTITIAL_MIN_ROUNDS: int = 2
@@ -46,7 +50,8 @@ static func forced_interstitial_gates_met(active_elapsed_sec: float, normal_roun
 
 ## Kesinleşen bir round zorunlu geçiş reklamı sayacına girer mi: yalnız NORMAL round ve yalnız monetizasyon bu süreçte
 ## açıkken (onboarding tamam — tutorial ve tutorial'dan doğan round reklamsız kalır; yaş bandı reklama izinli). Meydan
-## okuma (TASK/047) yöneticiye hiç ulaşmaz (ayrı bitiş işleyicisi) — burada ayrıca reddedilir.
+## okuma (TASK/047) yöneticiye hiç ulaşmaz — yalıtım Main'in ayrı bitiş işleyicisindedir (suite'ler kaynakla
+## denetler); ilk argüman kuralı yazılı tutar (bugünkü tek çağıran — yönetici — sabit false geçer).
 static func round_counts(is_daily_challenge: bool, monetization_active: bool) -> bool:
 	return monetization_active and not is_daily_challenge
 
