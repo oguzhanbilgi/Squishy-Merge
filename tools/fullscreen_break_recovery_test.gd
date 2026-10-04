@@ -32,13 +32,18 @@ extends Node
 ##                 GERÇEK dokunuşla çalışır
 ##   T jeton       eski kiranın zamanlayıcısı YENİ (örtülü) ödüllü talebi bitiremez
 ##   O yetim       eklentinin sahipsiz yeniden yükleme hatası (emekli kimlik) süren önyüklemeyi bozmaz
+##   U sertleştir. inceleme bulguları: Vulkan'ın odak kaybındaki sahte RESUMED'ı kirayı bırakmaz; ilk karenin dev
+##                 delta'sı saate sızmaz; ödüllüde "gösterildi" sonrası süreye bağlı bırakma yok (girdi kanıtı); kazanılmış
+##                 ödül "gösterilemedi" sayılmaz; "gösterildi"siz kapanış sayaçları sıfırlar (tek kural); süresi dolan hazır
+##                 reklam (ödüllü dahil, duvar saati) atılır; kurtarılan reklam önbellekten düşer; atlanan uygun mola
+##                 yüklemeyi tetikler; yinelenen ödüllü hatası eskidir; kayıp RESUMED'ı dokunuş onarır
 ##   S kaynak      kurtarma yolunda ödül / gösterim çağrısı yok; tek zamanlayıcı; Main tek noktada round bildirir
 
 const MAIN_SCENE: PackedScene = preload("res://scenes/main.tscn")
 const DIR: String = "user://qa_fullscreen_break"
 const PATH: String = DIR + "/save.json"
 const SCALE: float = 0.05
-const SECTIONS: int = 17
+const SECTIONS: int = 18
 const MON: String = "2026-09-28"
 const THU: String = "2026-10-01"
 const BACK_GAP_MSEC: int = 320
@@ -103,6 +108,7 @@ func _ready() -> void:
 	await _input_result_ownership()
 	await _token_ownership()
 	await _orphan_reload()
+	await _review_hardening()
 	_source_contract()
 	_c("%d/%d bölüm sonuna kadar koştu (betik hatası yok)" % [_sections_done, SECTIONS], _sections_done == SECTIONS)
 
@@ -298,10 +304,11 @@ func _background_resume() -> void:
 	_c("D3: dışlama penceresinden sonra uygulamaya ulaşan YENİ dokunuş: sınırın yarısında hâlâ sürüyor", m.break_pending())
 	await _wait(_lease_sec() + 0.1)
 	await _settle(2)
-	_c("D3: girdi kanıtından sonra mola TAM bir kez kurtarıldı (input_evidence), sonuç bir kez; RESUMED hâlâ gelmedi",
+	_c("D3: girdi kanıtından sonra mola TAM bir kez kurtarıldı (input_evidence), sonuç bir kez; RESUMED hâlâ gelmedi ama "
+		+ "dokunuş öne dönüş sayıldı (duraklatma düştü — banner / saat / doğal mola takılı kalmaz)",
 		not m.break_pending() and _main._result.visible and _shows == 1 and _main._result_seq == seq + 1
 		and _recoveries(m) == 1 and str(AdEvents.last(&"interstitial_dismissed").get("recovered", "")) == "input_evidence"
-		and bool(m.get("_app_paused")))
+		and not bool(m.get("_app_paused")))
 	_resume()
 	await _settle(2)
 	_sections_done += 1
@@ -471,14 +478,17 @@ func _rewarded_reward_then_lost_close() -> void:
 	await _settle(2)
 	_c("H1: 'ödül kazanıldı' → devam TAM bir kez (1/2), teklif kapandı", rid != "" and board.revives_used() == 1
 		and not _main._revive.visible)
-	await _wait(_lease_sec() * 0.5)
-	_c("H1: kapanış gelmedi: sınırın yarısında talep hâlâ açık", m.has_active_request())
+	await _wait(_lease_sec() * 4.0)
+	_c("H1: kapanış gelmedi, uygulama hiç duraklatılmadı: ödüllüde 'gösterildi'den sonra süreye bağlı bırakma YOK — "
+		+ "sınırın 4 katında talep hâlâ açık", m.has_active_request() and _recoveries(m) == 0)
+	_evidence(m)
 	await _wait(_lease_sec() + 0.1)
 	await _settle(2)
-	_c("H1: kurtarma talebi kapattı: ödül YİNE 1 (çift yok), 60 sn bekleme, kurtarma 1, olay recovered, tam ekran yok",
+	_c("H1: uygulamaya ulaşan yeni basış (girdi kanıtı) → kurtarma talebi kapattı: ödül YİNE 1 (çift yok), 60 sn bekleme, "
+		+ "kurtarma 1, olay recovered=input_evidence, tam ekran yok",
 		not m.has_active_request() and board.revives_used() == 1 and is_equal_approx(m.fullscreen_cooldown_sec(),
 		MonetizationManager.FULLSCREEN_AD_COOLDOWN_SEC) and _recoveries(m) == 1
-		and str(AdEvents.last(&"rewarded_dismissed").get("recovered", "")) == "uncovered_lease"
+		and str(AdEvents.last(&"rewarded_dismissed").get("recovered", "")) == "input_evidence"
 		and not m.fullscreen_ad_active())
 	_fake.emit_rewarded_dismissed(rid)
 	_fake.emit_rewarded_earned(rid)
@@ -503,6 +513,8 @@ func _rewarded_reward_then_lost_close() -> void:
 	await _settle(2)
 	_c("H2: 'ödül kazanıldı' (+ yinelenen) → stok TAM +1, kota TAM 1", rid != ""
 		and SaveManager.powerup_count(PowerUp.Type.SHAKE) == 1 and RewardedPolicy.grants_today() == 1)
+	await _wait(_lease_sec() + 0.05)
+	_evidence(m)
 	await _wait(_lease_sec() + 0.1)
 	await _settle(2)
 	_fake.emit_rewarded_dismissed(rid)
@@ -522,6 +534,8 @@ func _rewarded_reward_then_lost_close() -> void:
 	fake.emit_rewarded_earned(did)
 	fake.emit_rewarded_earned(did)
 	_c("H3: yinelenen 'ödül kazanıldı' → yönetici Main'e TAM bir ödül iletti", did != "" and stub.dough_grants == 1)
+	await _wait(_lease_sec() + 0.05)
+	_evidence(mm)
 	await _wait(_lease_sec() + 0.1)
 	await _settle(1)
 	fake.emit_rewarded_earned(did)
@@ -565,9 +579,14 @@ func _rewarded_no_reward() -> void:
 	await _settle(1)
 	var rid: String = m.request_info()["ad_id"]
 	_fake.emit_rewarded_showed(rid)
+	await _wait(_lease_sec() * 4.0)
+	_c("I1: gösterildi, duraklatma / kapanış yok: talep süreyle kesilmedi (sınırın 4 katı)", rid != ""
+		and m.has_active_request() and board.revives_used() == 0)
+	_evidence(m)
 	await _wait(_lease_sec() + 0.1)
 	await _settle(2)
-	_c("I1: gösterildi, ödül yok, kapanış kayıp → kurtarma: devam 0 (sahte ödül yok), teklif AÇIK, not 'tamamını izle'",
+	_c("I1: gösterildi, ödül yok, kapanış kayıp → girdi kanıtıyla kurtarma: devam 0 (sahte ödül yok), teklif AÇIK, not "
+		+ "'tamamını izle'",
 		rid != "" and not m.has_active_request() and board.revives_used() == 0 and _main._revive.visible
 		and board.is_fail_pending() and _main._revive.note_text() == MonetizationManager.NOTE_NOT_EARNED)
 	# I2: SDK gösterim çağrısına hiç cevap vermedi (uygulama örtülmedi) — "gösterilmedi".
@@ -596,9 +615,12 @@ func _rewarded_no_reward() -> void:
 	mm.show_rewarded_daily_dough(stub, THU, 7)
 	var did: String = mm.request_info()["ad_id"]
 	fake.emit_rewarded_showed(did)
+	await _wait(_lease_sec() + 0.05)
+	_evidence(mm)
 	await _wait(_lease_sec() + 0.1)
 	await _settle(1)
-	_c("I3: günlük +Hamur: gösterildi, ödül yok, kapanış kayıp → kurtarma: Hamur ödülü 0, not 'tamamını izle'", did != ""
+	_c("I3: günlük +Hamur: gösterildi, ödül yok, kapanış kayıp → girdi kanıtıyla kurtarma: Hamur ödülü 0, not 'tamamını "
+		+ "izle'", did != ""
 		and stub.dough_grants == 0 and not mm.has_active_request()
 		and stub.unavailable_daily == [MonetizationManager.NOTE_NOT_EARNED])
 	fake.emit_rewarded_earned(did)
@@ -650,6 +672,28 @@ func _background_only() -> void:
 	await _wait(_grace_sec() + 0.1)
 	await _settle(2)
 	_c("J2: öne dönüş payından sonra talep kapandı, devam 0", not m.has_active_request() and board.revives_used() == 0)
+	# J3: ödüllü talep uygulama ZATEN duraklatılmışken başladı (çoklu pencere / etkinlik geçişi anı): kira örtülü
+	# başlar — süre işlemez; öne dönüş payıyla biter, ödül yok. Önceki duraklatma reklamın örtmesi sayılmaz ve
+	# "gösterildi" de gelmedi → "gösterilmedi".
+	var fake := FakeAdBackend.new()
+	var mm: MonetizationManager = _manager(fake)
+	var stub := _StubMain.new()
+	add_child(stub)
+	fake.complete_rewarded_load(true)
+	mm.notification(NOTIFICATION_APPLICATION_PAUSED)
+	mm.show_rewarded_daily_dough(stub, THU, 9)
+	var did: String = mm.request_info()["ad_id"]
+	await _wait(_lease_sec() * 4.0)
+	_c("J3: talep uygulama duraklatılmışken başladı: kira sınırının 4 katı boyunca talep SÜRÜYOR", did != ""
+		and mm.has_active_request())
+	mm.notification(NOTIFICATION_APPLICATION_RESUMED)
+	await _wait(_grace_sec() + 0.1)
+	_c("J3: öne dönüş payından sonra talep kapandı — 'gösterilmedi' (önceki duraklatma reklamın kanıtı değil): Hamur "
+		+ "ödülü 0, not 'gösterilemedi', bekleme YOK, reklam önbellekten düştü", not mm.has_active_request()
+		and stub.dough_grants == 0 and stub.unavailable_daily == [MonetizationManager.NOTE_SHOW_FAILED]
+		and mm.fullscreen_cooldown_sec() == 0.0 and fake.rewarded_removed.has(did))
+	stub.queue_free()
+	await _free(mm)
 	_sections_done += 1
 
 
@@ -837,6 +881,267 @@ func _orphan_reload() -> void:
 		m.interstitial_state() == MonetizationManager.InterstitialState.FAILED and m.interstitial_attempts() == 1
 		and m.has_pending_interstitial_retry())
 	await _free(m)
+	_sections_done += 1
+
+
+# --- U) İnceleme sertleştirmesi -------------------------------------------------------------------------------
+
+## Android onPause'un sırası (GodotVulkanRenderView): FOCUS_OUT, sonra PAUSED.
+func _focus_out_pause() -> void:
+	get_tree().root.propagate_notification(NOTIFICATION_APPLICATION_FOCUS_OUT)
+	get_tree().root.propagate_notification(NOTIFICATION_APPLICATION_PAUSED)
+
+
+## Android onResume'un sırası: RESUMED, sonra FOCUS_IN (etkinlik gerçekten en üstte).
+func _real_resume() -> void:
+	get_tree().root.propagate_notification(NOTIFICATION_APPLICATION_RESUMED)
+	get_tree().root.propagate_notification(NOTIFICATION_APPLICATION_FOCUS_IN)
+
+
+## Yöneticiye doğrudan yeni bir basış (girdi kanıtının birim yolu; gerçek görünüm yolu D3 / U11'de).
+func _evidence(m: MonetizationManager) -> void:
+	var touch := InputEventScreenTouch.new()
+	touch.index = 0
+	touch.position = Vector2(360, 700)
+	touch.pressed = true
+	m._input(touch)
+
+
+func _field(m: Object, name: String, fallback: Variant) -> Variant:
+	var value: Variant = m.get(name)
+	return fallback if value == null else value
+
+
+## Yönetici betiğinin sabiti (düzeltmesiz kodda yoksa `fallback`).
+func _const(m: Object, name: String, fallback: Variant) -> Variant:
+	return (m.get_script() as GDScript).get_script_constant_map().get(name, fallback)
+
+
+func _review_hardening() -> void:
+	print("-- U: inceleme sertleştirmesi — Vulkan sahte RESUMED, saat sınırı, ödüllü 'gösterildi' sonrası, tek sıfırlama "
+		+ "kuralı, süre dolumu, önbellek, yükleme tetiği, yinelenen hata, kayıp RESUMED onarımı")
+	# U1: Godot 4.6 Vulkan — HOME / kilit / arama sırasında reklam üstte; dönüşte etkinlik onStart'ta yeniden başlar ve
+	# RESUMED gelir ama etkinlik ÖNE GELMEDİ (FOCUS_IN yok, reklam hâlâ üstte).
+	var m: MonetizationManager = await _stuck_break()
+	var seq: int = _main._result_seq
+	_focus_out_pause()
+	get_tree().root.propagate_notification(NOTIFICATION_APPLICATION_PAUSED)
+	get_tree().root.propagate_notification(NOTIFICATION_APPLICATION_RESUMED)
+	await _wait(_grace_sec() * 4.0)
+	await _settle(2)
+	_c("U1: odak kaybındayken gelen RESUMED (Vulkan onStart, reklam üstte): pay sınırının 4 katı boyunca mola SÜRÜYOR, "
+		+ "uygulama duraklatılmış sayılıyor, kurtarma 0", m.break_pending() and not _main._result.visible
+		and bool(m.get("_app_paused")) and _recoveries(m) == 0)
+	_real_resume()
+	await _wait(_grace_sec() + 0.1)
+	await _settle(2)
+	_c("U1: gerçek öne dönüş (RESUMED + FOCUS_IN): pay sonunda TAM bir kez kurtarma (resume_grace), sonuç bir kez",
+		not m.break_pending() and _main._result.visible and _shows == 1 and _main._result_seq == seq + 1
+		and _recoveries(m) == 1 and str(AdEvents.last(&"interstitial_dismissed").get("recovered", "")) == "resume_grace"
+		and not bool(m.get("_app_paused")))
+	# U2: aynı sahte RESUMED ödüllü talepte — oyuncu reklamı bitirir, ödül GERÇEK geri çağrıyla gelir ve verilir.
+	await _boot()
+	m = _main._ads
+	var board: Node2D = await _start(3)
+	board._enter_fail_pending()
+	await _settle(2)
+	_main._revive.continue_button().pressed.emit()
+	await _settle(1)
+	var rid: String = m.request_info()["ad_id"]
+	_focus_out_pause()
+	_fake.emit_rewarded_showed(rid)
+	get_tree().root.propagate_notification(NOTIFICATION_APPLICATION_PAUSED)
+	get_tree().root.propagate_notification(NOTIFICATION_APPLICATION_RESUMED)
+	await _wait(_grace_sec() * 4.0)
+	_c("U2: ödüllü + sahte RESUMED: talep AÇIK kaldı (ödülsüz kapanış varsayılmadı)", rid != "" and m.has_active_request()
+		and board.revives_used() == 0)
+	_fake.emit_rewarded_earned(rid)
+	await _settle(2)
+	_c("U2: reklam bitince gelen 'ödül kazanıldı' YETKİLİ: devam TAM bir kez", board.revives_used() == 1)
+	_real_resume()
+	await _wait(_grace_sec() + 0.1)
+	await _settle(2)
+	_c("U2: gerçek öne dönüşte talep kapandı ('kapandı'), devam yine 1, 'tamamını izle' notu YOK", not m.has_active_request()
+		and board.revives_used() == 1 and _main._revive.note_text() != MonetizationManager.NOTE_NOT_EARNED)
+	# U3: arka plandan dönüşte ilk karenin dev delta'sı aktif saate sızmaz.
+	await _boot()
+	m = _main._ads
+	var before: float = m.active_elapsed_sec()
+	_pause()
+	_resume()
+	m._process(360.0)
+	var cap: float = float(_const(m, "ACTIVE_TICK_MAX_SEC", -1.0))
+	_c("U3: dönüşteki ilk kare 360 sn delta: aktif saat en çok kare sınırı kadar arttı (sızıntı yok)", cap > 0.0
+		and m.active_elapsed_sec() - before <= cap + 0.001 and m.active_elapsed_sec() > before)
+	# U4: ödüllü, SDK "gösterildi" dedi ama uygulama hiç duraklatılmadı (etkinliği duraklatmayan gösterim yolu): süreye
+	# bağlı bırakma YOK; yalnız "gösterildi"den sonra uygulamaya ulaşan yeni dokunuş.
+	var fake := FakeAdBackend.new()
+	var mm: MonetizationManager = _manager(fake)
+	var stub := _StubMain.new()
+	add_child(stub)
+	fake.complete_rewarded_load(true)
+	mm.show_rewarded_daily_dough(stub, THU, 11)
+	var did: String = mm.request_info()["ad_id"]
+	fake.emit_rewarded_showed(did)
+	_evidence(mm)
+	await _wait(_lease_sec() * 4.0)
+	_c("U4: 'gösterildi', duraklatma yok: kira sınırının 4 katı boyunca talep AÇIK (ödül sözü süreyle kesilmez); "
+		+ "'gösterildi'den hemen sonraki basış kanıt sayılmadı", did != "" and mm.has_active_request()
+		and stub.unavailable_daily.is_empty() and _recoveries(mm) == 0)
+	fake.emit_rewarded_earned(did)
+	_c("U4: reklam sürerken gelen 'ödül kazanıldı' verildi (talep hâlâ açık)", stub.dough_grants == 1
+		and mm.has_active_request())
+	_evidence(mm)
+	await _wait(_lease_sec() * 0.5)
+	_c("U4: 'gösterildi'den sonra uygulamaya ulaşan yeni basış: sınırın yarısında talep hâlâ açık", mm.has_active_request())
+	await _wait(_lease_sec() + 0.1)
+	_c("U4: girdi kanıtıyla TAM bir kez kapandı (input_evidence): ödül 1, not yok, 60 sn bekleme, eklenti nesnesi "
+		+ "önbellekten düştü", not mm.has_active_request() and stub.dough_grants == 1 and stub.unavailable_daily.is_empty()
+		and str(AdEvents.last(&"rewarded_dismissed").get("recovered", "")) == "input_evidence"
+		and is_equal_approx(mm.fullscreen_cooldown_sec(), MonetizationManager.FULLSCREEN_AD_COOLDOWN_SEC)
+		and fake.rewarded_removed.has(did))
+	# U5: "ödül kazanıldı" geldi ama "gösterildi" ve PAUSED kayboldu: "gösterilemedi" sayılmaz.
+	fake.complete_rewarded_load(true)
+	mm._fullscreen_cooldown = 0.0
+	stub.unavailable_daily.clear()
+	mm.show_rewarded_daily_dough(stub, THU, 12)
+	var eid: String = mm.request_info()["ad_id"]
+	fake.emit_rewarded_earned(eid)
+	await _wait(_lease_sec() + 0.1)
+	_c("U5: 'ödül kazanıldı' + 'gösterildi' / PAUSED kayıp → 'kapandı': ödül 2 (bir kez daha), 'gösterilemedi' notu YOK, "
+		+ "60 sn bekleme", eid != "" and eid != did and not mm.has_active_request() and stub.dough_grants == 2
+		and stub.unavailable_daily.is_empty()
+		and is_equal_approx(mm.fullscreen_cooldown_sec(), MonetizationManager.FULLSCREEN_AD_COOLDOWN_SEC))
+	# U10: yinelenen SDK "gösterilemedi" süren önyüklemeyi bozmaz (kapanan kimlik emekli).
+	mm._fullscreen_cooldown = 0.0
+	while not fake.pending_rewarded.is_empty():
+		fake.complete_rewarded_load(true)
+	mm.show_rewarded_daily_dough(stub, THU, 13)
+	var fid: String = mm.request_info()["ad_id"]
+	fake.emit_rewarded_show_failed(fid)
+	await _settle(1)
+	var loads: int = fake.rewarded_loads
+	var state: int = mm.rewarded_state()
+	fake.emit_rewarded_show_failed(fid)
+	await _settle(1)
+	_c("U10: yinelenen 'gösterilemedi' ESKİ: önyükleme durumu ve yükleme sayısı değişmedi", fid != ""
+		and state == MonetizationManager.RewardedState.LOADING and mm.rewarded_state() == state
+		and fake.rewarded_loads == loads)
+	stub.queue_free()
+	await _free(mm)
+	# U6: geçiş — SDK kapanışı geldi ama "gösterildi" kayboldu: kapanış gösterimin kanıtı, sayaçlar sıfırlanır,
+	# gösterim SAYILMAZ (kurtarmanın örtülme kuralıyla aynı tek kural).
+	fake = FakeAdBackend.new()
+	mm = _manager(fake)
+	_gates(mm)
+	var counter := _Counter.new()
+	mm.try_show_interstitial("round_finish", counter.hit)
+	var iid: String = fake.interstitial_shows[-1] if not fake.interstitial_shows.is_empty() else ""
+	fake.emit_interstitial_dismissed(iid)
+	await _settle(1)
+	_c("U6: 'gösterildi' kayıp + SDK kapanışı: mola bir kez, sayaçlar sıfırlandı (saat 0, round 0, uygun değil), gösterim "
+		+ "SAYILMADI, 60 sn bekleme", iid != "" and counter.calls == 1 and mm.active_elapsed_sec() == 0.0
+		and _rounds(mm) == 0 and not mm.interstitial_eligible() and mm.interstitial_shows() == 0
+		and is_equal_approx(mm.fullscreen_cooldown_sec(), MonetizationManager.FULLSCREEN_AD_COOLDOWN_SEC))
+	# U6b: "gösterilmedi" kurtarmasından SONRA kendi reklamımızın geç kapanışı ("gösterildi" yine yok) → sıfırlama.
+	while not fake.pending_interstitial.is_empty():
+		fake.complete_interstitial_load(true)
+	mm._fullscreen_cooldown = 0.0
+	_gates(mm)
+	counter = _Counter.new()
+	mm.try_show_interstitial("round_finish", counter.hit)
+	var lid: String = fake.interstitial_shows[-1]
+	await _wait(_lease_sec() + 0.1)
+	_c("U6b ön koşul: 'gösterilmedi' kurtarması — sayaçlar korundu", counter.calls == 1 and lid != iid
+		and _rounds(mm) >= AdPolicy.FORCED_INTERSTITIAL_MIN_ROUNDS and mm.interstitial_eligible())
+	fake.emit_interstitial_dismissed(lid)
+	await _settle(1)
+	_c("U6b: geç kapanış (gösterildi yok): sayaçlar sıfırlandı, gösterim SAYILMADI, 60 sn bekleme, ikinci mola yok",
+		counter.calls == 1 and _rounds(mm) == 0 and not mm.interstitial_eligible() and mm.interstitial_shows() == 0
+		and is_equal_approx(mm.fullscreen_cooldown_sec(), MonetizationManager.FULLSCREEN_AD_COOLDOWN_SEC))
+	# U9: uygun mola başka sebeple atlansa da (bekleme) tükenmiş yükleme döngüsü yeniden tetiklenir. Kapılar ÖNCE
+	# sağlanır (uygunluk anının kendi tetiği geçsin), sonra döngü tükenmiş + bekleme sürüyor kurulur.
+	_gates(mm)
+	mm._cancel_timer(mm._interstitial_retry_timer)
+	mm._interstitial_retry_timer = null
+	mm._discard_ready_interstitial()
+	mm._set_interstitial_state(MonetizationManager.InterstitialState.FAILED)
+	while not fake.pending_interstitial.is_empty():
+		fake.complete_interstitial_load(false)
+	mm._interstitial_attempts = MonetizationManager.INTERSTITIAL_MAX_ATTEMPTS
+	mm._interstitial_last_attempt_msec = -100000
+	mm._fullscreen_cooldown = MonetizationManager.FULLSCREEN_AD_COOLDOWN_SEC
+	var iloads: int = fake.interstitial_loads
+	counter = _Counter.new()
+	var shown: bool = mm.try_show_interstitial("round_finish", counter.hit)
+	_c("U9: uygun mola 'cooldown' ile atlandı, yükleme döngüsü tükenmişti: bir sonraki mola için yükleme tetiklendi",
+		not shown and AdEvents.last(&"interstitial_skipped_not_ready").get("reason", "") == "cooldown"
+		and fake.interstitial_loads == iloads + 1)
+	await _free(mm)
+	# U7: hazır reklamın süresi dolar (Google: bir saat) — ödüllü de; motor saati uykuda durur, duvar saati yakalar.
+	await _boot()
+	m = _main._ads
+	var old: String = str(_field(m, "_ready_ad_id", ""))
+	var limit_ms: int = int(float(_const(m, "REWARDED_MAX_AGE_SEC", 0.0)) * 1000.0)
+	m.set("_rewarded_loaded_msec", Time.get_ticks_msec() - limit_ms - 100)
+	_c("U7: ödüllü reklam motor saatine göre bir saati aştı: hazır DEĞİL (gösterilmez)", limit_ms > 0 and old != ""
+		and not m.is_rewarded_ready())
+	var rloads: int = _fake.rewarded_loads
+	m._tick_active(0.1)
+	_c("U7: aktif saat adımında süresi dolan ödüllü atıldı + tazeleniyor (eklentiden düştü, yeni yükleme)",
+		_fake.rewarded_removed.has(old) and _fake.rewarded_loads == rloads + 1
+		and m.rewarded_state() == MonetizationManager.RewardedState.LOADING)
+	var fresh: String = _fake.complete_rewarded_load(true)
+	await _settle(1)
+	m.set("_rewarded_loaded_unix", Time.get_unix_time_from_system() - float(limit_ms) / 1000.0 - 100.0)
+	_c("U7: duvar saatine göre (cihaz uykusu — motor saati durdu) süresi dolan ödüllü de hazır DEĞİL", fresh != ""
+		and not m.is_rewarded_ready() and m.rewarded_note() == MonetizationManager.NOTE_PREPARING)
+	board = await _start(3)
+	rloads = _fake.rewarded_loads
+	board._enter_fail_pending()
+	await _settle(2)
+	_main._revive.continue_button().pressed.emit()
+	await _settle(1)
+	_c("U7: devam CTA'sı süresi dolmuş reklamı GÖSTERMEDİ: talep yok, reklam atıldı, yeni yükleme, devam 0",
+		not m.has_active_request() and _fake.rewarded_removed.has(fresh) and _fake.rewarded_loads == rloads + 1
+		and board.revives_used() == 0 and _fake.rewarded_shows.size() == 0)
+	_main.decline_revive()
+	await _wait(_delay() + 0.1)
+	await _settle(2)
+	var inter: String = str(_field(m, "_interstitial_ready_id", ""))
+	m.set("_interstitial_loaded_unix", Time.get_unix_time_from_system()
+		- MonetizationManager.INTERSTITIAL_MAX_AGE_SEC * MonetizationManager.time_scale - 100.0)
+	var iloads2: int = _fake.interstitial_loads
+	_pause()
+	_resume()
+	await _settle(1)
+	_c("U7: geçiş reklamı duvar saatine göre doldu: öne dönüşte atıldı + tazeleniyor", inter != ""
+		and _fake.interstitial_removed.has(inter) and _fake.interstitial_loads == iloads2 + 1
+		and m.interstitial_state() == MonetizationManager.InterstitialState.LOADING)
+	# U8: kurtarılan "kapandı" eklenti nesnesini önbellekten düşürür (geçiş).
+	m = await _stuck_break()
+	var sid: String = m.interstitial_showing_id()
+	await _wait(_lease_sec() + 0.1)
+	await _settle(2)
+	_c("U8: geçiş 'kapandı' kurtarması reklam nesnesini eklenti önbelleğinden düşürdü", sid != "" and not m.break_pending()
+		and _fake.interstitial_removed.has(sid))
+	# U11: kira YOKKEN RESUMED kayboldu: uygulamaya ulaşan yeni dokunuş öne dönüştür — banner, saat, doğal mola geri.
+	# (Dokunuşlar board'a düşer: Ana Sayfa düğmelerine basıp yüzey değiştirmesin.)
+	await _boot()
+	m = _main._ads
+	await _start(3)
+	_c("U11 ön koşul: oyun yüzeyinde banner görünür", m.banner_state() == MonetizationManager.BannerState.SHOWN)
+	_pause()
+	await _press()
+	_c("U11: duraklatıldı (RESUMED gelmeyecek), dışlama penceresindeki dokunuş: hâlâ duraklatılmış, banner gizli",
+		bool(m.get("_app_paused")) and m.banner_state() == MonetizationManager.BannerState.LOADED)
+	await _wait(_lease_sec() + 0.05)
+	await _press()
+	await _settle(1)
+	_c("U11: dışlamadan sonra uygulamaya ulaşan yeni dokunuş: öne dönüş sayıldı — duraklatma düştü, banner yeniden "
+		+ "görünür, aktif saat sayıyor, doğal mola 'app_paused' ile atlanmaz", not bool(m.get("_app_paused"))
+		and m.banner_state() == MonetizationManager.BannerState.SHOWN and _clock_counts(m)
+		and (int(m.call("input_resumes")) == 1 if m.has_method("input_resumes") else false))
 	_sections_done += 1
 
 

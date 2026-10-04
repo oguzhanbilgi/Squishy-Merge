@@ -391,16 +391,33 @@ func _no_ready() -> void:
 	await _settle(2)
 	var outcome: Dictionary = await _play_round()
 	_c("P7: öne dönüşten sonra sonraki doğal molada gösterildi", outcome["shown"])
+	# UMP gizlilik seçenekleri formu (Ayarlar'dan) açıkken doğal mola gelirse geçiş formun üstüne açılmaz (TASK/052
+	# inceleme L4-03): sonuç hemen, uygunluk + reklam kalır; form kapanınca sonraki molada gösterilir.
+	_gates(ads)
+	ads.set("_privacy_options_required", true)
+	var opened: bool = ads.show_privacy_options()
+	outcome = await _play_round()
+	_c("P7: gizlilik formu açıkken doğal mola: geçiş denenmedi (consent_form), sonuç açıldı, uygunluk + reklam kaldı",
+		opened and ads.consent_form_covering() and not outcome["shown"] and outcome["result"]
+		and outcome["reason"] == "consent_form" and ads.interstitial_eligible()
+		and ads.interstitial_state() == MonetizationManager.InterstitialState.READY)
+	_fake.dismiss_privacy_form()
+	await _settle(2)
+	outcome = await _play_round()
+	_c("P7: form kapandıktan sonra sonraki doğal molada gösterildi", not ads.consent_form_covering() and outcome["shown"])
 	_sections_done += 1
 
 
 # --- P8) App-open -----------------------------------------------------------------------------------------------
 
 func _app_open() -> void:
-	print("-- P8: app-open reklamı UYGULANMADI (N/A — ADS_SYSTEM §18)")
+	print("-- P8: app-open reklamı UYGULANMADI (N/A — ADS_SYSTEM §18.4)")
 	var found: Array[String] = []
-	for path: String in ["res://scripts/ads/monetization_manager.gd", "res://scripts/ads/admob_backend.gd",
-			"res://scripts/ads/ad_backend.gd", "res://scripts/main.gd", "res://scripts/ads/ad_policy.gd"]:
+	var scripts: Array[String] = _scripts_under("res://scripts")
+	_c("P8 ön koşul: üretim betiklerinin hepsi tarandı (%d dosya, yönetici + Main dahil)" % scripts.size(),
+		scripts.size() > 20 and scripts.has("res://scripts/ads/monetization_manager.gd")
+		and scripts.has("res://scripts/main.gd"))
+	for path: String in scripts:
 		var code: String = _strip_comments(FileAccess.get_file_as_string(path))
 		for token: String in ["app_open", "load_app_open_ad", "show_app_open_ad", "auto_show_on_resume"]:
 			if code.contains(token):
@@ -408,6 +425,20 @@ func _app_open() -> void:
 	_c("P8: üretim kodunda app-open yolu YOK (yükleme / gösterim / öne dönüşte otomatik gösterim) %s" % str(found),
 		found.is_empty())
 	_sections_done += 1
+
+
+## `root` altındaki her .gd (özyinelemeli) — P8 app-open taraması tek bir dosya listesine bağlı kalmasın.
+func _scripts_under(root: String) -> Array[String]:
+	var out: Array[String] = []
+	var dir := DirAccess.open(root)
+	if dir == null:
+		return out
+	for file: String in dir.get_files():
+		if file.ends_with(".gd"):
+			out.append(root.path_join(file))
+	for sub: String in dir.get_directories():
+		out.append_array(_scripts_under(root.path_join(sub)))
+	return out
 
 
 # --- P9) Ödüllü kotalar -----------------------------------------------------------------------------------------
