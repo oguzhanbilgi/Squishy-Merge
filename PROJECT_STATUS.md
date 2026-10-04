@@ -96,17 +96,26 @@ dokunuş sahipliği; masaüstü + Samsung A36 kapıları GEÇTİ — kontrollü 
 onayıyla ff-only alındı `1293eb2 → 4bae821`):** "Yeniden Başlat" / TEKRAR / Harita / Sonsuz düğümüne hızlı ikinci dokunuş
 (basılı tutulsa da) ve değişimden önce basılmış, canlı bir kontrolün tutmadığı parmak artık yeni board'da parça
 bırakmaz — `_start_level` mevcut 300 ms yatışmayı board ağaca eklendikten sonra bir kez kurar, `GameBoard` basışı
-kendisine ulaşmamış dizinin sürüklemesini / bırakışını işlemez (§4.31). **TASK/052 (2026-10-04; dalda — READY FOR OWNER
-REVIEW, main'e ALINMADI):** bitmeyen tam ekran molası düzeltildi (token'lı tam ekran kirası; ödül asla kurtarmayla
-verilmez; Godot Vulkan'ın onStart RESUMED'ı reklam üstteyken sayılmaz) + gelir odaklı zorunlu geçiş politikası
-`AdPolicy` (2 kesinleşen normal round + 300 aktif sn, önce 900 sn; ödüllü kotalar ve app-open değişmedi / eklenmedi);
-mutasyon 47 / 47, tam masaüstü kapısı 49 / 49 temiz (6100 kontrol), Samsung A36: GEÇTİ — normal TEST geçiş reklamı, bayat mola kurtarması (sahte + gerçek), arka plan / kayıp öne dönüş / Vulkan onStart (L1-1), ödüllü D1–D3 (sahte ödül yok), sıklık politikası, TASK/049–051 korunması; logcat temiz, QA kaldırıldı (§4.32).
+kendisine ulaşmamış dizinin sürüklemesini / bırakışını işlemez (§4.31). **TASK/052 (2026-10-04; main'de — tam ekran mola
+kurtarma + gelir odaklı geçiş politikası; masaüstü + Samsung A36 kapıları GEÇTİ — kontrollü tam masaüstü kapısı 49 / 49
+temiz; owner onayıyla ff-only alındı `1d2fb28 → c7e3ccc`):** bitmeyen tam ekran molası düzeltildi (token'lı tam ekran
+kirası; ödül asla kurtarmayla verilmez; Godot Vulkan'ın onStart RESUMED'ı reklam üstteyken sayılmaz) + gelir odaklı
+zorunlu geçiş politikası `AdPolicy` (owner kabulüyle ilk üretim varsayılanı: 2 kesinleşen normal round + 300 aktif sn,
+önce 900 sn; ödüllü kotalar değişmedi, app-open ertelendi); mutasyon 47 / 47, tam masaüstü kapısı 49 / 49 temiz (6100
+kontrol), Samsung A36: GEÇTİ — normal TEST geçiş reklamı, bayat mola kurtarması (sahte + gerçek), arka plan / kayıp öne
+dönüş / Vulkan onStart (L1-1), ödüllü D1–D3 (sahte ödül yok), sıklık politikası, TASK/049–051 korunması; logcat temiz,
+QA kaldırıldı (§4.32). Sonraki ürün / stabilizasyon görevi owner seçimi (TASK/053 tanımlanmadı).
 Release izi ayrı. Sırada: içerik derecesi + yargı bölgesi kararları + 13+ seçici uyum riski (owner) → gizlilik
 politikası → upload anahtarı → gerçek AdMob kimlikleri → mağaza varlıkları / Play Console,
 sonra ilk imzalı üretim AAB'si ve M10 (Play kapalı test) ·
-**Branch / main:** TASK/052 `task/052-fullscreen-break-recovery-monetization` (main `1d2fb28`'den — `1d2fb28` = TASK/051
-doküman eşitlemesi, canonical main == origin/main; 10 commit: `635917b` düzeltme · `4649af1` politika · `5e3f707` + `6ec4f93` + `5de685d` testler · `334422c` inceleme sertleştirmesi · `050ddac` testler · `41b194d` sertleştirme takibi · `e16da5a` testler (kapılardan geçen aday) · son commit doküman / A36 kaydı; READY FOR OWNER REVIEW, main DEĞİŞMEDİ, merge yok) ·
-önce `main` == origin/main == `4bae821` — TASK/051 `task/051-start-level-touch-settle` (main
+**Branch / main:** `main` == origin/main == `c7e3ccc` — TASK/052 `task/052-fullscreen-break-recovery-monetization` (main
+`1d2fb28`'den, 10 commit: `635917b` düzeltme (kira) · `4649af1` politika (`AdPolicy`) · `5e3f707` + `6ec4f93` + `5de685d`
+testler · `334422c` inceleme sertleştirmesi · `050ddac` testler · `41b194d` sertleştirme takibi · `e16da5a` testler
+(kapılardan geçen üretim / test adayı) · `c7e3ccc` doküman / A36 kaydı (yalnız doküman); masaüstü + Samsung A36 kapıları
+GEÇTİ 2026-10-04) owner onayıyla ff-only entegre (`1d2fb28 → c7e3ccc`, 2026-10-04; merge commit / rebase / squash /
+cherry-pick / force push yok; dal duruyor, son incelenen HEAD `c7e3ccc`) · önce TASK/051 doküman eşitlemesi
+`docs/051-main-sync` owner onayıyla ff-only (`4bae821 → 1d2fb28`, 2026-10-04; merge commit yok; dal duruyor) · önce
+TASK/051 `task/051-start-level-touch-settle` (main
 `1293eb2`'den, 6 commit: `abe05c1` düzeltme · `5b76a68` yeni suite · `aa14b4b` TASK/048 suite uyarlaması · `ec8d14c` +
 `12ca7ba` suite sağlamlaştırması (yalnız test; `12ca7ba` kapılardan geçen üretim / test adayı) · `4bae821` doküman /
 A36 kaydı (yalnız doküman); masaüstü + Samsung A36 kapıları GEÇTİ 2026-10-04) owner onayıyla ff-only entegre
@@ -223,8 +232,9 @@ hedefliyor.
 
 - **v1 (soft-launch öncesi plan):** ödüllü devam (revive) + ödüllü güç
   refill'i + banner (Ana Sayfa / Harita / Mağaza / Koleksiyon / oyun) +
-  **geçiş reklamı** (15 dk aktif süre, yalnız round bitişi molası, 60 sn
-  bekleme) + **günlük ödüller** (ücretsiz sandık 1/gün, reklamlı sandık 2/gün,
+  **geçiş reklamı** (TASK/052'den beri main'de: önceki gerçek gösterimden bu
+  yana 2 kesinleşen normal round + 300 aktif sn — önce 15 dk; yalnız round
+  bitişi molası, 60 sn bekleme) + **günlük ödüller** (ücretsiz sandık 1/gün, reklamlı sandık 2/gün,
   reklamlı +150 Hamur 1/gün) — Google AdMob, `M8.9-01` ve `M8.9-02` **ikisi de
   main'de** (33b6382 / 9561a4c) ve Samsung A36'da TEST reklamlarıyla doğrulandı
   (docs/monetization/); üretim kimlikleri/hesap kurulumu ayrı adım. App-open
@@ -2564,7 +2574,8 @@ formatına yalnız `haptics_enabled` (varsayılan true) eklendi. Ayrıntı ve
   kesinleşmede mola / refill'i kapatmak (§4.24 önerisinin ikinci yarısı — yarışı kaynağında da kapatır) +
   `_start_level`'da yatışma — ayrı görev. *(İlk yarısı → TASK/049 ile yapıldı — main'de `f6cd072`, §4.29;
   `_start_level` yatışması açık.)* *(`_start_level` yatışması → TASK/051 ile düzeltildi — main'de `4bae821`,
-  §4.31.)* Ayrı kalan, açık: basılı Koleksiyon kartı + GERİ sentetik bırakışı; genel
+  §4.31.)* *(Hiç bitmeyen mola → TASK/052 ile düzeltildi — main'de `c7e3ccc`, §4.32.)* Ayrı kalan, açık: basılı
+  Koleksiyon kartı + GERİ sentetik bırakışı; genel
   GUI ACTION_CANCEL (modal / karartma, Sarsıntı düğmesi); T5 hedef kartı kırpması "Büyük Dumpl…".
 
 ### 4.29 Round bitişi pencere sahipliği (TASK/049)
@@ -2695,9 +2706,10 @@ formatına yalnız `haptics_enabled` (varsayılan true) eklendi. Ayrıntı ve
 - **Açık (owner kararı, bu görevde düzeltilmedi):** (1) `_start_level` 300 ms yatışma kurmaz — yeniden başlatmada hızlı
   çift dokunuş / basılı parmak yeni board'a düşebilir *(→ TASK/051 ile düzeltildi — main'de `4bae821`, §4.31)*; (2) hiç bitmeyen tam
   ekran molada molanın çıkış kapısı yok
-  (yönetici zaman aşımı / öne dönüş payına dek); (3) RESULT_DELAY / reklam beklemesinde açılan (ya da bitişte açık)
-  Ayarlar sonucun üstünde kalır (görsel); (4) basılı Koleksiyon kartı + Android GERİ sentetik bırakışı; (5) genel GUI
-  ACTION_CANCEL (modal / karartma iptali, Sarsıntı düğmesi); (6) T5 hedef kartı kırpması "Büyük Dumpl…"; + ayrı,
+  (yönetici zaman aşımı / öne dönüş payına dek) *(→ TASK/052 ile düzeltildi — main'de `c7e3ccc`, §4.32)*; (3)
+  RESULT_DELAY / reklam beklemesinde açılan (ya da bitişte açık) Ayarlar sonucun üstünde kalır (görsel); (4) basılı
+  Koleksiyon kartı + Android GERİ sentetik bırakışı; (5) genel GUI ACTION_CANCEL (modal / karartma iptali, Sarsıntı
+  düğmesi); (6) T5 hedef kartı kırpması "Büyük Dumpl…"; + ayrı,
   önceden var olan gözlem: meydan okumanın aynı karede merge ile molada bitmesi (yukarıda; `25860df`'de de var)
   *(→ TASK/050 ile düzeltildi — main'de `8f9e259`, §4.30)*.
   Masaüstü zamanlama hassas üç suite denetimi (yukarıda) test sağlamlığı notu olarak kayda geçti (fark testinde aday =
@@ -2806,8 +2818,9 @@ formatına yalnız `haptics_enabled` (varsayılan true) eklendi. Ayrıntı ve
   kayıt şeması, reklam politikası, görsel değişiklik yok.
 - **Açık (owner kararı, bu görevde düzeltilmedi):** (1) `_start_level` yatışma / çift dokunuş / basılı parmak
   *(→ TASK/051 ile düzeltildi — main'de `4bae821`, §4.31)*; (2) hiç
-  bitmeyen tam ekran molada çıkış kapısı; (3) gecikmede Ayarlar sonucun üstünde (görsel); (4) Koleksiyon kartı + GERİ;
-  (5) genel GUI ACTION_CANCEL; (6) T5 kırpması "Büyük Dumpl…".
+  bitmeyen tam ekran molada çıkış kapısı *(→ TASK/052 ile düzeltildi — main'de `c7e3ccc`, §4.32)*; (3) gecikmede
+  Ayarlar sonucun üstünde (görsel); (4) Koleksiyon kartı + GERİ; (5) genel GUI ACTION_CANCEL; (6) T5 kırpması "Büyük
+  Dumpl…".
 
 ### 4.31 Round başlangıcında dokunuş sahipliği (TASK/051)
 
@@ -2927,7 +2940,8 @@ formatına yalnız `haptics_enabled` (varsayılan true) eklendi. Ayrıntı ve
   TASK/047 meydan okuma (yalnız atlatan parmak hamle harcamaz), TASK/048 nesil / erteleme / fırlatma sahipliği, TASK/049
   normal bitiş sahipliği, TASK/050 meydan okuma bitişi, RESULT_DELAY 0,8 sn, DROP_COOLDOWN 0,4 sn, fizik, mola
   semantiği, reklam politikası, kayıt şeması; görsel değişiklik yok.
-- **Açık (owner kararı, bu görevde düzeltilmedi):** (2) hiç bitmeyen tam ekran molada çıkış kapısı; (3) gecikmede
+- **Açık (owner kararı, bu görevde düzeltilmedi):** (2) hiç bitmeyen tam ekran molada çıkış kapısı *(→ TASK/052 ile
+  düzeltildi — main'de `c7e3ccc`, §4.32)*; (3) gecikmede
   Ayarlar sonucun üstünde (görsel); (4) Koleksiyon kartı + GERİ; (5) genel GUI ACTION_CANCEL; (6) T5 kırpması "Büyük
   Dumpl…". İncelemenin kayda geçirdiği önceden var olan, kapsam dışı gözlemler (düzeltilmedi, yeni görev açılmadı):
   Harita `_on_node_pressed` / `_on_endless_pressed`'de kapalı-ekran kapısı yok — basılı düğüm + Android GERİ, gizleme
@@ -2937,11 +2951,24 @@ formatına yalnız `haptics_enabled` (varsayılan true) eklendi. Ayrıntı ve
 
 ### 4.32 Tam ekran mola kurtarma + gelir odaklı geçiş politikası (TASK/052)
 
-> **READY FOR OWNER REVIEW — dalda, main'e ALINMADI** (`task/052-fullscreen-break-recovery-monetization`, temel
-> `1d2fb28` = main; main DEĞİŞMEDİ). Zincir: `635917b` düzeltme (kira) · `4649af1` politika (AdPolicy, 2 round + 300 sn) ·
-> `5e3f707` + `6ec4f93` + `5de685d` testler · `334422c` inceleme sertleştirmesi · `050ddac` testler · `41b194d`
-> sertleştirme takibi · `e16da5a` testler (kapılardan geçen üretim / test adayı) · son commit doküman / A36 kaydı (yalnız doküman). Ayrıntı:
-> docs/monetization/ADS_SYSTEM.md §18 (tasarım, denetimler, riskler) + §19 (hesap tarafı kontrol listesi).
+> **✅ TAMAM, main'de** — owner onayıyla ff-only `1d2fb28 → c7e3ccc` (2026-10-04; merge commit / rebase / squash /
+> cherry-pick / force push yok; dal `task/052-fullscreen-break-recovery-monetization` duruyor, son incelenen HEAD
+> `c7e3ccc`). Zincir (main `1d2fb28`'den, 10 commit): `635917b` düzeltme (kira) · `4649af1` politika (AdPolicy, 2 round +
+> 300 sn) · `5e3f707` + `6ec4f93` + `5de685d` testler · `334422c` inceleme sertleştirmesi · `050ddac` testler · `41b194d`
+> sertleştirme takibi · `e16da5a` testler (kapılardan geçen üretim / test adayı) · `c7e3ccc` doküman / A36 kaydı (yalnız
+> doküman). Entegrasyondan ÖNCE tamamlanan doğrulama: odak — son aday `e16da5a`'da 15 suite, hepsi 0 FAIL / 0 SCRIPT
+> ERROR (fullscreen_break_recovery 117 · ad_policy 54 · interstitial 62 · monetization 258 · daily_rewards 179 ·
+> result_delay_race 197 · round_finish_modal 164 · start_level_touch_settle 126 · daily_challenge_flow 76 ·
+> daily_challenge_terminal_modal 178 · age_ad_routing 122 · tutorial 205 · refill 119 · revive_refill_ui 266 · revive
+> 120); mutasyon 47 / 47 uygulanabilir mutant açık FAIL kontrolleriyle öldü (yalnız SCRIPT ERROR ile öldürme yok, geri
+> koymalar bayt-aynı); 8 inceleme merceği + sertleştirme takip incelemesi (tüm BLOCKER / HIGH giderildi; Vulkan sahte
+> RESUMED HIGH'ı düzeltildi ve A36'da doğrulandı); kontrollü tam masaüstü kapısı (`e16da5a`) 49 / 49 temiz — 6100
+> kontrol, 0 FAIL, 0 SCRIPT ERROR, bot 2 / 2, sahibin kaydı bayt-aynı — ve Samsung A36 kapısı GEÇTİ (aşağıda).
+> Entegrasyon ve doküman eşitlemesi sırasında hiçbir kapı yeniden koşulmadı. Owner kararları (2 round + 300 sn ilk
+> üretim varsayılanı, ayrı ilk gün yasağı yok, ödüllü kotalar aynı, app-open ertelendi, native takipler not, yayın
+> öncesi uyum yeniden incelemesi): ADS_SYSTEM §18.7. Aşağıdaki maddeler dal aşamasında yazıldı (tarihsel); güncel açık
+> maddeler PROJECT_CONTEXT → Next action'da. Ayrıntı: docs/monetization/ADS_SYSTEM.md §18 (tasarım, denetimler,
+> riskler, owner kararları) + §19 (hesap tarafı kontrol listesi).
 
 - **Hata (önceden var olan, açık madde (2)):** uygulamanın KENDİ tam ekran molası — geçiş reklamı molası (Main
   `_round_break_generation`, sonuç bekliyor) ya da ödüllü talep — SDK'nın kapanış / hata geri çağrısı kaybolursa hiç
@@ -2957,7 +2984,9 @@ formatına yalnız `haptics_enabled` (varsayılan true) eklendi. Ayrıntı ve
   (reklam üstteyken) öne dönüş sayılmaz — yalnız onResume'un FOCUS_IN'i (şablon bayt kodundan doğrulandı).
 - **Politika:** `AdPolicy` — önceki gerçek gösterimden bu yana ≥ 2 kesinleşen NORMAL round VE ≥ 300 aktif sn (önce 900
   sn), 60 sn bekleme aynen, meydan okuma / tutorial sayılmaz, `app_paused` / `consent_form` engel sebepleri; ödüllü kotalar
-  DEĞİŞMEDİ; app-open eklenmedi (ertelendi). Envanter simülasyonu 46 molada 19 gösterim (önce 4).
+  DEĞİŞMEDİ; app-open eklenmedi (ertelendi). Envanter simülasyonu (deterministik, sentetik): 46 doğal molada 19 uygun
+  zorunlu geçiş fırsatı (önce 4) — toplam fırsat 4,75 kat, +15 mutlak, %375 göreli artış; yalnız uygun envanter,
+  gösterim / gelir / ARPDAU garantisi değil (ADS_SYSTEM §18.3).
 - **Doğrulama:** `fullscreen_break_recovery_test` 117 / 117 + `ad_policy_test` 54 / 54 (+ uyarlanan süitler); mutasyon
   47 / 47 (açık FAIL, 0 yalnız-betik-hatası, bayt-aynı geri koyma); 8 mercekli inceleme + sertleştirme takip incelemesi
   (BLOCKER 0; HIGH L1-1 giderildi, L5-1 bu doküman güncellemesi); kontrollü tam masaüstü kapısı (`e16da5a`) 49 / 49
@@ -3737,12 +3766,21 @@ Owner'ın yapacağı / onaylayacağı:)*
   parmak yeni board'da parça bırakmaz) → ✅ **main'de** (§4.31; masaüstü + Samsung A36 kapıları GEÇTİ — kontrollü
   kanonik tam masaüstü kapısı 46 / 46 temiz; owner onayıyla ff-only `1293eb2 → 4bae821`, 2026-10-04; dal
   `task/051-start-level-touch-settle` duruyor).
-- **Sıradaki görev:** owner seçer (TASK/052 tanımlanmadı). Açık, ayrı maddeler — hiç bitmeyen tam ekran reklam
-  molasında çıkış kapısı · erteleme ya da sonuç / reklam beklemesinde Ayarlar (görsel; sonucun üstünde kalır) — §4.28
-  / §4.29; Koleksiyon kartı + GERİ · genel GUI ACTION_CANCEL · T5 hedef kartı kırpması — §4.26 / §4.27 —
-  kendiliğinden sıradaki görev seçilmez. *(Mola üstünde sonuç → TASK/049 ile kapatıldı — main'de `f6cd072`. Meydan
-  okumanın aynı karede merge ile molada bitmesi → TASK/050 ile kapatıldı — main'de `8f9e259`, §4.30. `_start_level`
-  yatışması / çift dokunuş / basılı parmak → TASK/051 ile kapatıldı — main'de `4bae821`, §4.31.)*
+- **TASK/052** — tam ekran mola kurtarma (token'lı tam ekran kirası; SDK geri çağrıları yetkili, bayat uygulama molası
+  yalnız örtülmeme kanıtıyla biter, ödül asla kurtarmayla verilmez) + gelir odaklı zorunlu geçiş politikası
+  (`AdPolicy`: 2 kesinleşen normal round + 300 aktif sn, önce 900 sn; ödüllü kotalar değişmedi, app-open ertelendi) →
+  ✅ **main'de** (§4.32; masaüstü + Samsung A36 kapıları GEÇTİ — kontrollü tam masaüstü kapısı 49 / 49 temiz; owner
+  onayıyla ff-only `1d2fb28 → c7e3ccc`, 2026-10-04; dal `task/052-fullscreen-break-recovery-monetization` duruyor).
+- **Sıradaki görev:** owner seçer (TASK/053 tanımlanmadı). Açık, ayrı maddeler — erteleme ya da sonuç / reklam
+  beklemesinde Ayarlar (görsel; sonucun üstünde kalır) — §4.28 / §4.29; Koleksiyon kartı + GERİ · genel GUI
+  ACTION_CANCEL · T5 hedef kartı kırpması — §4.26 / §4.27 — kendiliğinden sıradaki görev seçilmez. TASK/052 takip
+  gözlemleri yalnız not (görev DEĞİL): trafik sonrası elde tutma / ARPDAU incelemesi, isteğe bağlı daha güçlü ilk gün
+  koruması A/B testi, native yetim yeniden yükleme temizliği ve banner iş parçacığı yarışı incelemesi, yayından önce
+  TEEN / uyum yeniden incelemesi, mediation / bidding / hesap tarafı iyileştirme, App Open yalnız gerçek bir yükleme /
+  bekleme yüzeyi olursa (ADS_SYSTEM §18.5 / §18.7 / §19). *(Mola üstünde sonuç → TASK/049 ile kapatıldı — main'de
+  `f6cd072`. Meydan okumanın aynı karede merge ile molada bitmesi → TASK/050 ile kapatıldı — main'de `8f9e259`, §4.30.
+  `_start_level` yatışması / çift dokunuş / basılı parmak → TASK/051 ile kapatıldı — main'de `4bae821`, §4.31. Hiç
+  bitmeyen tam ekran reklam molasında çıkış kapısı → TASK/052 ile kapatıldı — main'de `c7e3ccc`, §4.32.)*
 - ~~**Kararlılık (öneri — TASK/045 engeli değil):** atomik kayıt (`save_game()` yerinde kesip
   yazıyor; geçici dosya + yedekten kurtarma) · güç hedefleme bırakış-düşürme (Büyütücü ve
   Bomba hedef dokunuşunun bırakışı bekleyen parçayı da düşürebilir) · Koleksiyon detayı

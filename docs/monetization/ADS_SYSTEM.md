@@ -71,14 +71,15 @@
 > reklam sözleşmesi (yüzeyler, kotalar, geçiş cadence'ı) TEEN / ADULT için DEĞİŞMEDİ.
 > Ayrıntı: [AGE_BAND_ROUTING.md](AGE_BAND_ROUTING.md), §17.
 >
-> **TASK/052 (2026-10-04; dal `task/052-fullscreen-break-recovery-monetization`, main'e ALINMADI — owner
-> incelemesi):** bitmeyen tam ekran molası DÜZELTİLDİ — geçiş molası ve ödüllü talep token'lı bir tam ekran
-> kirasına bağlı; SDK kapanış / hata geri çağrısı gelmezse kira yalnız örtülmeme kanıtıyla (öne dönüş + 3 sn, hiç
-> örtülmeden 5 sn, kayıp öne dönüşte yeni dokunuş + 5 sn; Android'de gerçek öne dönüş = onResume'un odağı — Godot
-> Vulkan'ın onStart RESUMED'ı reklam üstteyken sayılmaz; ödüllüde "gösterildi" sonrası süreye bağlı bırakma yok) biter,
-> ödül asla bu yolla verilmez, SDK reklamı kapatılmaz. Geçiş politikası `AdPolicy`'de: önceki gerçek gösterimden bu yana ≥ 2 kesinleşen NORMAL round VE
-> ≥ 300 aktif sn (önce 900 sn), 60 sn bekleme aynen; ödüllü kotalar DEĞİŞMEDİ; app-open eklenmedi. Banner
-> PAUSED'da gizlenir / duraklatılır. Ayrıntı ve hesap tarafı kontrol listesi: §18, §19.
+> **TASK/052 (2026-10-04; `task/052-fullscreen-break-recovery-monetization` owner onayıyla main'e ff-only alındı
+> `1d2fb28 → c7e3ccc`, merge commit yok, dal duruyor):** bitmeyen tam ekran molası DÜZELTİLDİ — geçiş molası ve
+> ödüllü talep token'lı bir tam ekran kirasına bağlı; SDK kapanış / hata geri çağrısı gelmezse kira yalnız örtülmeme
+> kanıtıyla (öne dönüş + 3 sn, hiç örtülmeden 5 sn, kayıp öne dönüşte yeni dokunuş + 5 sn; Android'de gerçek öne
+> dönüş = onResume'un odağı — Godot Vulkan'ın onStart RESUMED'ı reklam üstteyken sayılmaz; ödüllüde "gösterildi"
+> sonrası süreye bağlı bırakma yok) biter, ödül asla bu yolla verilmez, SDK reklamı kapatılmaz. Geçiş politikası
+> `AdPolicy`'de: önceki gerçek gösterimden bu yana ≥ 2 kesinleşen NORMAL round VE ≥ 300 aktif sn (önce 900 sn), 60 sn
+> bekleme aynen — owner kabulüyle ilk üretim varsayılanı; ödüllü kotalar DEĞİŞMEDİ; app-open eklenmedi (ertelendi).
+> Banner PAUSED'da gizlenir / duraklatılır. Ayrıntı, owner kararları ve hesap tarafı kontrol listesi: §18, §18.7, §19.
 
 ## 1. Kapsam (v1 monetizasyon planı)
 
@@ -942,7 +943,9 @@ Kanonik ayrıntı: [AGE_BAND_ROUTING.md](AGE_BAND_ROUTING.md). Özet (kod gerçe
 
 ## 18. TASK/052 — tam ekran mola kurtarma + gelir odaklı geçiş politikası (2026-10-04)
 
-Dal `task/052-fullscreen-break-recovery-monetization` (temel `1d2fb28` = main); **main'e ALINMADI — owner incelemesi.**
+Dal `task/052-fullscreen-break-recovery-monetization` (temel `1d2fb28`); **✅ main'de** — owner onayıyla ff-only
+`1d2fb28 → c7e3ccc` (2026-10-04; merge commit / rebase / squash / cherry-pick / force push yok; dal duruyor). Doğrulamanın
+tamamı (§18.6) entegrasyondan ÖNCE tamamlandı; entegrasyon ve doküman eşitlemesi sırasında kapı yeniden koşulmadı.
 Faz A izi (kod değişmeden önce): `build/qa_052/trace/TRACE.md`; temelde deterministik yeniden üretim:
 `build/qa_052/baseline/`.
 
@@ -1030,9 +1033,11 @@ sonuç ekranından ÖNCE (`Main._on_round_finished` tek çağrı noktası) — v
   **2 round + 300 sn'nin altına inilmez**; uzak yapılandırma yok.
 - Aktif süre tanımı aynı (arka plan / ekran kapalı, UMP formu, tam ekran reklam, onboarding öncesi, reklamsız yaş bandı
   sayılmaz; meydan okuma oynanışı da dahil her ön plan süresi sayılır — yalnız ROUND sayacına girmez).
-- Envanter simülasyonu (`tools/ad_inventory_sim.gd`, gerçek Main + FakeAdBackend, 7 oturum tipi): TASK/052'de 46 doğal
-  moladan **19** zorunlu gösterim, temel (900 sn) **4** — S1 5 dk / 2 round 1 (0), S2 10 dk / 4 round 2 (0), S3 20 dk /
-  8 round 4 (1), S4 + ödüllü devam 3 (1), S5 + meydan okuma 4 (1; meydan okuma bitişinde deneme yok), S6 60 sn'lik 10
+- Envanter simülasyonu (`tools/ad_inventory_sim.gd`, gerçek Main + FakeAdBackend, 7 oturum tipi; deterministik,
+  sentetik): 46 doğal moladan uygun zorunlu geçiş fırsatı — TASK/052 **19**, temel (900 sn) **4** → toplam fırsat
+  **4,75 kat**, **+15** mutlak, **%375** göreli artış. Bu yalnız UYGUN ENVANTERDİR — gerçek gösterim, gelir, ARPDAU ya da
+  para garantisi DEĞİLDİR. Oturum dökümü — TASK/052 (temel): S1 5 dk / 2 round 1 (0), S2 10 dk / 4 round 2 (0), S3 20
+  dk / 8 round 4 (1), S4 + ödüllü devam 3 (1), S5 + meydan okuma 4 (1; meydan okuma bitişinde deneme yok), S6 60 sn'lik 10
   round 2 (0), S7 taze kurulum (tutorial + Level 1 sayılmaz) 3 (1). Ayrıntı `build/qa_052/policy/`. Çekinceler (inceleme L7-5): üst sınırdır — %100 doluluk, ADULT bandı (üretimdeki yaş ekranı S7'de atlanır), çoğu oturumda 150 sn'lik round, sonuç / kabuk süresi sayılmaz; gerçek 30–90 sn'lik round'larda etkin kural 300 sn saatidir.
 - Google'ın "Disallowed interstitial implementations" sayfası (support.google.com/admob/answer/6201362) her iki
   kullanıcı eyleminden sonra en fazla bir geçiş reklamı önerir ve art arda geçişi uygunsuz örnek sayar; kural aynı yönde
@@ -1080,20 +1085,33 @@ Yerleşim matrisi (biçim, uygunluk, kota, doğal mola, opt-in, kaldıraç, elde
    değişirse ya da mediation eklenirse (etkinliği duraklatmayan, ör. diyalog tabanlı bir tam ekran) yeniden
    doğrulanmalı: aksi hâlde ödüllüde "gösterildi"den 5 sn sonra kapanış sayılır ve sonra gelen "ödül kazanıldı" eski
    kalır (oyuncu ödülü alamaz); geçişte sonuç reklamın arkasında açılır.
-4. Eklentinin yetim yeniden yüklemesi (18.4) — native düzeltme owner kararı.
+4. **Native eklenti takipleri — not, aktif görev DEĞİL (owner kararı 2026-10-04, §18.7):** (a) eklentinin yetim yeniden
+   yüklemesi (18.4) — temizliği native düzeltme ister; (b) **banner iş parçacığı yarışı** (inceleme L6-4, LOW, zamanlamaya
+   bağlı, DOĞRULANMADI): eklentinin önceden var olan native `Banner.show()` / `hide()` görünürlük denetimi Godot iş
+   parçacığında okunur, değişiklik sonra UI iş parçacığında çalışır; TASK/052'nin her PAUSED / RESUMED'daki gizle / göster
+   çağrısı bu yolu daha sık tetikler. Çok kısa bir duraklat / sürdür arasında banner bir sonraki yüzey / yaşam döngüsü
+   değişimine dek görünmez kalabilir; ters sırada iki `addView` gönderilebilir, ikincisi UI iş parçacığında
+   `IllegalStateException` atar (kuramsal). Önerilen düzeltme (a) ile aynı native yamada (denetimleri UI
+   çalıştırılabilirinin içinde yapmak, `addView`'u `getParent() == null` ile korumak); GDScript değişikliği gerekmez.
+   A36 kapısında çökme / ANR 0.
 5. **Sıklık ve elde tutma (inceleme L7-1 / L7-2):** 30–90 sn'lik round'larda 2 round şartı nadiren bağlar, etkin kural
-   300 sn saatidir → aktif saatte tam dolulukta ≈ 10–12 zorunlu geçiş (önce ≈ 4); 5–15 dk'lık oturumlar 0'dan 1–2
-   reklama çıkar; ilk zorunlu geçiş yaş ekranından ≈ 5–6 aktif dakika sonra (önce ≈ 15). Bu, owner brifinin "ilk gelir
-   odaklı varsayılanı"dır (altına inilmez); geri alınabilir (tek sabit çifti, önceki 900 sn). Uygulamada analitik SDK
-   yok (non-goal) — etki kapalı / açık testte Play Console elde tutma + AdMob raporlarıyla, önceden belirlenen bir
-   inceleme noktasında değerlendirilmeli. Owner seçenekleri (her biri §12.2'yi değiştirir): ilk gün koruması
-   (`onboarding_completed_day` ile ertesi güne dek 900 sn ya da zorunlu geçiş yok), uzun arka plandan dönüşü soğuk
-   açılış gibi saymak (sayaçlar sıfır — bugün sayaçlar sıcak dönüşe taşınır, 900 sn'de de öyleydi), yalnız geçiş
-   öncesi daha uzun "dokunmayı bırak" aralığı (bugün RESULT_DELAY 0,8 sn), reklamı sonuç ekranından sonra (Sonraki /
-   Ana Sayfa'da) göstermek, reddedilen devam teklifinden hemen sonra ya da hızlı kayıp-tekrar döngüsünde atlamak,
-   ödüllüden sonra daha uzun reklamsız pencere.
+   300 sn saatidir → aktif saatte tam dolulukta ≈ 10–12 zorunlu geçiş (önce ≈ 4) — bu, round süresi varsayımına (30–90
+   sn) dayanan AYRI bir saatlik tahmindir, §18.3'teki 4 → 19 sentetik simülasyon sonucu değildir; 5–15 dk'lık
+   oturumlar 0'dan 1–2 reklama çıkar; ilk zorunlu geçiş yaş ekranından ≈ 5–6 aktif dakika sonra (önce ≈ 15). Bu,
+   owner brifinin "ilk gelir odaklı varsayılanı"dır (altına inilmez); geri alınabilir (tek sabit çifti, önceki 900
+   sn). Uygulamada analitik SDK yok (non-goal) — etki kapalı / açık testte Play Console elde tutma + AdMob
+   raporlarıyla, önceden belirlenen bir inceleme noktasında değerlendirilmeli. Owner seçenekleri (her biri §12.2'yi
+   değiştirir): ilk gün koruması (`onboarding_completed_day` ile ertesi güne dek 900 sn ya da zorunlu geçiş yok), uzun
+   arka plandan dönüşü soğuk açılış gibi saymak (sayaçlar sıfır — bugün sayaçlar sıcak dönüşe taşınır, 900 sn'de de
+   öyleydi), yalnız geçiş öncesi daha uzun "dokunmayı bırak" aralığı (bugün RESULT_DELAY 0,8 sn), reklamı sonuç
+   ekranından sonra (Sonraki / Ana Sayfa'da) göstermek, reddedilen devam teklifinden hemen sonra ya da hızlı
+   kayıp-tekrar döngüsünde atlamak, ödüllüden sonra daha uzun reklamsız pencere. *(Owner kararı 2026-10-04 — §18.7: 2
+   round + 300 sn ilk üretim varsayılanı olarak kabul edildi; ayrı bir ilk gün yasağı şimdi eklenmedi, daha güçlü ilk
+   gün koruması ileride A/B testiyle denenebilir; bu listedeki diğer seçenekler uygulanmadı.)*
 6. **TEEN bandı:** yeni cadence 13–17 için de geçerli (bantlar arası sözleşme aynı); AGE_BAND_ROUTING §9'daki açık UYUM
-   maddeleri 900 sn'ye göre yazılmıştı — owner yeniden değerlendirmeli (hukuki sonuç çıkarılmadı).
+   maddeleri 900 sn'ye göre yazılmıştı — owner yeniden değerlendirmeli (hukuki sonuç çıkarılmadı). *(Owner kararı
+   2026-10-04 — §18.7: TEEN / rıza / gizlilik yönlendirmesi herkese açık yayından ÖNCE yeniden incelenir; uyum onayı
+   tamamlanmadı.)*
 7. Kurtarma yolunda ödülsüz kapanış notu mevcut metindir ("Ödül için reklamın tamamını izlemen gerekiyor."; kota
    tüketilmez) — geri çağrıları kaybolan nadir bir tam izlemede oyuncuya haksız gelebilir; nötr metin owner seçeneği.
 
@@ -1120,7 +1138,34 @@ Yerleşim matrisi (biçim, uygunluk, kota, doğal mola, opt-in, kaldıraç, elde
   yetim yüklemesi). Kararlar: `build/qa_052/review/DISPOSITIONS.md`.
 - **Kontrollü tam masaüstü kapısı (`e16da5a`):** 49 / 49 koşu temiz — 6100 kontrol, 0 FAIL, 0 SCRIPT ERROR, bot 2 / 2
   (Level 3, ikisi de kazandı), envanter simülasyonu 19 / 46; sahibin kaydı bayt-aynı, kullanıcı verisi listesi değişmedi.
+- **Odak suite'ler (son aday `e16da5a`; hepsi 0 FAIL / 0 SCRIPT ERROR):** fullscreen_break_recovery 117 · ad_policy 54 ·
+  interstitial 62 · monetization 258 · daily_rewards 179 · result_delay_race 197 · round_finish_modal 164 ·
+  start_level_touch_settle 126 · daily_challenge_flow 76 · daily_challenge_terminal_modal 178 · age_ad_routing 122 ·
+  tutorial 205 · refill 119 · revive_refill_ui 266 · revive 120.
 - **Samsung A36 (yalnız QA paketi, Google TEST / örnek kimlikler):** **GEÇTİ** (2026-10-04; QA APK `e16da5a`'dan, `verify_apk` PASS; telefonun gezinme kipi ve saati değişmedi). **A:** 2. normal round + 300 sn'de gerçek TEST geçiş reklamı — FOCUS_OUT +68 ms, PAUSED +72 ms, SDK "gösterildi" +128 ms; gerçek GERİ ile kapanış → sonuç bir kez, sıradaki reklam önyüklendi. **E:** ilk round (332 sn) yok · gösterimden hemen sonraki round yok · 2 round ama 37 sn yok · 2 round + 300 sn uygun · meydan okuma bitişinde sıfır deneme (sayaç değişmedi; TASK/050 molası bitişte kapandı) · tutorial ve tutorial'dan doğan Level 1 sayılmadı, tutorial sonrası ilk normal round 412 sn'de bile yok, ikinci round'da reklam. **B1** (sahte arka uç — temel hatanın birebiri): "gösterildi", kapanış yok → 4,99 sn'de `uncovered_lease`; mola sırasında ertelenen üretim "Yeniden Başlat"ı eski sonucun YERİNE çalıştı; geç kapanış eski; gerçek dokunuş 1 bırakış. **B2** (gerçek TEST reklamı, kapanış saklı): gerçek öne dönüşten 3,0 sn sonra `resume_grace`, sonuç bir kez. **C1:** sahte molada gerçek HOME → 15 sn arka planda bitiş yok → dönüşte RESUMED (onStart) sonra FOCUS_IN, pay FOCUS_IN'den 2,98 sn sonra. **C2:** kayıp öne dönüş (yalnız yöneticiye simüle) + gerçek dokunuş → 5 sn sonra `input_evidence`, duraklatma düştü. **C3 (inceleme L1-1):** gerçek reklam üstteyken HOME + Son Uygulamalar dönüşü → Vulkan onStart RESUMED focus_in'siz geldi; kira ~27 sn, SDK kapanışına dek korundu, kurtarma 0. **D1:** gerçek devam CTA'sı → PAUSED "gösterildi"den önce, ödül ~8 sn'de tam bir kez. **D2:** kapanış saklı → ödül bir kez, 2,97 sn'de kurtarma. **D3:** ödül + kapanış saklı — TEST reklamının açtığı Play Store yarım sayfası nedeniyle girdi durduruldu, ~47 dk yalnız okuma yoklaması; bu sürede kira hiç süreyle bırakılmadı; owner reklamı kapattıktan sonra (QA uygulamasına tek dokunuş) `resume_grace`, devam 0 (sahte ödül yok). **G:** TASK/049 / 050 / 051 korundu. **F:** app-open N/A. Logcat: SCRIPT ERROR / çökme / ANR 0, yalnız Google örnek yayıncısı; QA kaldırıldı, üretim paketi hiç kurulmadı, `com.example` dokunulmadı. Kayıt: `build/qa_052-gate/device/GATE_LOG.md`.
+
+### 18.7 Owner kararları — main entegrasyonu (2026-10-04, güncel)
+
+TASK/052 owner onayıyla ff-only main'e alınırken (`1d2fb28 → c7e3ccc`) kabul edilen, bugün geçerli kararlar:
+
+- **Zorunlu geçiş:** ilk üretim varsayılanı **2 kesinleşen normal round + 300 aktif sn** + mevcut 60 sn genel tam ekran
+  beklemesi (`AdPolicy`, GAME_DESIGN §12.2). Matematiksel olarak sonsuza dek en iyi ilan EDİLMEDİ; ileride ayar ancak
+  canlı metrikle (§19 madde 7).
+- **İlk gün koruması:** ayrı bir tam gün zorunlu reklam yasağı şimdi EKLENMEDİ. Mevcut yeni oyuncu koruması: tutorial
+  reklamsız; tutorial (ve tutorial'dan doğan round) sayılmaz; ilk normal round uygun olamaz; 2 round ve 300 sn
+  kapılarının ikisi de gerekir. Daha güçlü bir ilk gün politikası ileride A/B testiyle denenebilir.
+- **Ödüllü:** kotalar / ödüller DEĞİŞMEDİ (devam, refill, ödüllü sandık, +150 Hamur — mevcut sözleşmeler); daha çok
+  izletmek için ödül azaltılmaz. Ödüllü envanter artırılmadı.
+- **App-open:** ERTELENDİ / uygulanmadı (§18.4) — ancak ürün ileride gerçek bir yükleme / bekleme yüzeyi edinirse yeniden
+  düşünülür; onboarding / tutorial / rıza sırası aynen.
+- **Native eklenti takipleri — not, aktif görev DEĞİL:** yetim yeniden yükleme temizliği; banner iş parçacığı yarışı
+  incelemesi (§18.5 madde 4).
+- **Uyum — yayın şartı:** monetizasyon sıklığı değiştiği için TEEN / rıza / gizlilik yönlendirmesi herkese açık
+  yayından ÖNCE yeniden incelenir (§18.5 madde 6). Hukuki / uyum onayı TAMAMLANMADI.
+- **Takip gözlemleri — yalnız not, görev DEĞİL:** trafik sonrası canlı elde tutma / ARPDAU incelemesi; isteğe bağlı daha
+  güçlü ilk gün koruması A/B testi; native yetim yeniden yükleme temizliği; native banner iş parçacığı yarışı incelemesi;
+  yayından önce üretim TEEN / uyum yeniden incelemesi; mediation / bidding / hesap tarafı iyileştirme (§19); App Open
+  yalnız ileride gerçek bir yükleme / bekleme yüzeyi olursa.
 
 ## 19. Hesap tarafı AdMob kontrol listesi (owner — TASK/052)
 
@@ -1128,17 +1173,20 @@ Bu görev AdMob hesabına **GİRMEDİ, hiçbir hesap ayarı değiştirilmedi**; 
 kimlikleri kullanıldı. Aşağıdakiler owner'ın hesapta yapacağı / doğrulayacağı işler; her madde resmî Google sayfasına
 bağlanır (2026-10-04'te okundu). Uyum değerlendirmeleri owner incelemesinde AÇIK.
 
+**Durum (2026-10-04, main entegrasyonu):** owner bu repo görevinde AdMob hesap ayarlarını henüz DEĞİŞTİRMEDİ —
+aşağıdakiler uygulanmış DEĞİL, önerilen işlerdir (yalnız doküman).
+
 1. **eCPM tabanı — başlangıç Google optimize taban (her reklam birimi için).** Varsayılan Google optimize taban (tüm
    fiyatlar); yüksek / orta taban (Beta) ve elle taban seçenekleri var; yüksek taban doluluğu düşürebilir
    (support.google.com/admob/answer/3418058). Trafik olmadan elle para birimi değeri TAHMİN EDİLMEZ; deneme veriyle
    (mediation gruplarında A/B, sonuç için en az 10.000 istek — answer/9572326).
-2. **Bidding / mediation — değerlendir, körlemesine ekleme.** Bidding ortakları gerçek zamanlı açık artırmayla yarışır;
-   ek kurulum + mediation grubu gerekir (answer/9234488). Kod tarafında adaptör YOK; eklenirse Google'ın mediation
-   rehberi SDK'nın açıkça başlatılmasını ister (developers.google.com/admob/android/mediation) ve §18.5 madde 3
-   (yaşam döngüsü varsayımı) yeniden doğrulanır.
-3. **Üçüncü taraf ortaklar yalnız hesap eşlemesi + gizlilik / rıza yapılandırmasından sonra:** ortaklar Privacy &
-   messaging'in GDPR / ABD eyaletleri listelerine eklenmezse reklam sunmayabilir (mediation rehberi); GDPR ortak listesi
-   (answer/10113004). UMP mesajlarının hesapta yayında olduğunu doğrula.
+2. **Bidding / mediation — uygun ağ ve bölgeler için değerlendir, körlemesine ekleme.** Bidding ortakları gerçek
+   zamanlı açık artırmayla yarışır; ek kurulum + mediation grubu gerekir (answer/9234488). Kod tarafında adaptör
+   YOK; eklenirse Google'ın mediation rehberi SDK'nın açıkça başlatılmasını ister
+   (developers.google.com/admob/android/mediation) ve §18.5 madde 3 (yaşam döngüsü varsayımı) yeniden doğrulanır.
+3. **Üçüncü taraf ortaklar yalnız hesap eşlemesi + SDK / adaptör + gizlilik / rıza ortak yapılandırmasından sonra:**
+   ortaklar Privacy & messaging'in GDPR / ABD eyaletleri listelerine eklenmezse reklam sunmayabilir (mediation
+   rehberi); GDPR ortak listesi (answer/10113004). UMP mesajlarının hesapta yayında olduğunu doğrula.
 4. **Banner yenilemeyi konsolda doğrula:** Google optimize otomatik yenileme önerilir, özel değer 30–150 sn
    (answer/3245199); kod yenileme isteği göndermez. Mediation eklenirse üçüncü taraf arayüzlerinde banner yenilemesi
    kapatılmalı (mediation rehberi).
@@ -1149,8 +1197,9 @@ bağlanır (2026-10-04'te okundu). Uyum değerlendirmeleri owner incelemesinde A
    tutucu üretim kimliği YOK. Kendi gerçek reklamlarına tıklanmaz.
 7. **Sıklığı sıkılaştırmadan / gevşetmeden önce yeterli trafikle izle:** match rate (yanıt alan istek oranı), show rate
    (dönen reklamların gösterilme oranı) — glossary table/16327896 — eCPM, gösterim / DAU, ödüllü katılım (opt-in) oranı,
-   ARPDAU, D1 / D7 elde tutma (Play Console). Yetim yeniden yükleme (§18.4) show rate'i düşürür. 2 round + 300 sn
-   yalnız `AdPolicy` sabitlerinden ayarlanır (altına inilmez).
+   ARPDAU, oturum süresi, D1 / D7 elde tutma (Play Console), çökme / ANR, reklamla ilgili olumsuz yorumlar. Yetim
+   yeniden yükleme (§18.4) show rate'i düşürür. 2 round + 300 sn yalnız `AdPolicy` sabitlerinden ayarlanır (altına
+   inilmez).
 8. **İsteğe bağlı sunucu tarafı yedek sınır:** gerçek geçiş birimi oluşturulunca gevşek bir birim sıklık sınırı
    (Google ve üçüncü taraf kaynaklara uygulanır; kısa sunucu gecikmesi sınırı zaman zaman aşabilir; sayfada önerilen
    değer YOK — answer/6244508). İstemci kuralını ezmeyecek gevşeklikte.

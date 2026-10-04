@@ -29,10 +29,10 @@ sevenler. Kısa oturumlarla (30–90 sn round) oynamayı tercih eden kullanıcı
 ## Business model
 - **Soft-launch öncesi monetizasyon planı (owner kararı, M8.9):** ödüllü
   devam (revive) + ödüllü güç refill'i + banner (Ana Sayfa / Harita / Mağaza /
-  Koleksiyon / oyun) + **geçiş reklamı** (main: 15 dk aktif süre — TASK/052
-  dalında, owner incelemesinde: önceki gerçek gösterimden bu yana 2 kesinleşen
-  normal round + 300 sn aktif süre; yalnız round bitişi molasında, 60 sn tam
-  ekran beklemesi) + **günlük ödüller** (ücretsiz
+  Koleksiyon / oyun) + **geçiş reklamı** (TASK/052'den beri main'de, owner
+  kabulüyle ilk üretim varsayılanı: önceki gerçek gösterimden bu yana 2
+  kesinleşen normal round + 300 sn aktif süre — önce 15 dk; yalnız round bitişi
+  molasında, 60 sn tam ekran beklemesi) + **günlük ödüller** (ücretsiz
   sandık 1/gün, reklamlı sandık 2/gün, reklamlı +150 Hamur 1/gün, otomatik
   GÜNLÜK ÖDÜLLER penceresi + Mağaza kartı) **v1'DE VAR** — Google AdMob,
   `M8.9-01` temeli A36'da doğrulanıp main'e alındı, `M8.9-02` genişletmesi test
@@ -80,7 +80,16 @@ alınacak — şimdi tahmin/vaat yok.
 [Current release blockers](#current-release-blockers) +
 [Next action](#next-action); aşağıdaki "Milestone tarihçesi" değil.
 
-- **Repo (2026-10-04):** `main == origin/main == 4bae821bd9ebe8ffa33bb84f04bc8dfa67f0c023` — **TASK/051 owner
+- **Repo (2026-10-04):** `main == origin/main == c7e3ccc0007f9edf54d89f8d52de3749b187ef94` — **TASK/052 owner
+  onayıyla ff-only main'e alındı** (`1d2fb28 → c7e3ccc`; merge commit / rebase / squash / cherry-pick / force push
+  YOK). Doğrulanmış doğrusal zincir, 10 commit: `635917b` düzeltme (kira) · `4649af1` politika (`AdPolicy`) ·
+  `5e3f707` + `6ec4f93` + `5de685d` testler · `334422c` inceleme sertleştirmesi · `050ddac` testler · `41b194d`
+  sertleştirme takibi · `e16da5a` testler (kapılardan geçen üretim / test adayı) · `c7e3ccc` doküman / A36 kaydı
+  (yalnız doküman). Dal referans için duruyor (`task/052-fullscreen-break-recovery-monetization` = son incelenen HEAD
+  `c7e3ccc`, yerelde ve origin'de).
+  Önce (2026-10-04): TASK/051 doküman eşitlemesi `docs/051-main-sync` owner onayıyla ff-only `4bae821 → 1d2fb28`
+  (merge commit yok, dal duruyor).
+  Önce (2026-10-04): **TASK/051 owner
   onayıyla ff-only main'e alındı** (`1293eb2 → 4bae821`; merge commit / rebase / squash / cherry-pick / force push
   YOK). Doğrulanmış doğrusal zincir, 6 commit: `abe05c1` düzeltme · `5b76a68` yeni suite · `aa14b4b` TASK/048 suite
   uyarlaması · `ec8d14c` + `12ca7ba` suite sağlamlaştırması (yalnız test; `12ca7ba` kapılardan geçen üretim / test
@@ -127,20 +136,44 @@ alınacak — şimdi tahmin/vaat yok.
   (`bc40da1` · `ed08b07` · `1ff0ba1` · `98d209e` · `b90bc3c`); merge commit / rebase / squash /
   cherry-pick YOK. Dallar referans için duruyor (`task/046-daily-weekly-missions` = `5092dad`,
   `task/046-1-age-gate-13plus-redesign` = `b90bc3c`).
-- **TASK/052 — tam ekran mola kurtarma + gelir odaklı geçiş politikası — READY FOR OWNER REVIEW, dalda (main'e
-  ALINMADI; main DEĞİŞMEDİ `1d2fb28`)** — dal `task/052-fullscreen-break-recovery-monetization` (10 commit; kapılardan
-  geçen üretim / test adayı `e16da5a`, üstünde yalnız doküman). **Hata (önceden var olan — açık madde (2)):** SDK'nın
+- **TASK/052 — tam ekran mola kurtarma + gelir odaklı geçiş politikası — TAMAM, main'de** (owner onayıyla ff-only
+  `1d2fb28 → c7e3ccc`, 2026-10-04; doğrulamanın tamamı entegrasyondan ÖNCE tamamlandı — aşağıda; entegrasyon ve doküman
+  eşitlemesi sırasında hiçbir kapı yeniden koşulmadı). **Hata (önceden var olan — eski açık madde (2)):** SDK'nın
   kapanış / hata geri çağrısı kaybolursa uygulamanın kendi tam ekran molası (geçiş molası / ödüllü talep) hiç
   bitmeyebiliyordu — sonuç açılmıyor, mola / GERİ açılmıyor, ertelenen değişim ve sonraki tüm reklamlar süreç boyunca
-  ölüyordu; düzeltmesiz `1d2fb28`'de deterministik yeniden üretildi. **Düzeltme:** token'lı tam ekran kirası — SDK geri
-  çağrıları yetkili; gelmezse kira yalnız örtülmeme kanıtıyla biter (gerçek öne dönüş + 3 sn, hiç örtülmeden 5 sn, kayıp
-  öne dönüşte yeni dokunuş + 5 sn; örtülüyken süre işlemez; ödüllüde "gösterildi" sonrası süreye bağlı bırakma yok; Godot
-  Vulkan'ın onStart RESUMED'ı reklam üstteyken sayılmaz), ödül asla kurtarmayla verilmez, SDK reklamı kapatılmaz.
-  **Politika:** `AdPolicy` — 2 kesinleşen normal round + 300 aktif sn (önce 900 sn), 60 sn bekleme, meydan okuma /
-  tutorial sayılmaz; ödüllü kotalar DEĞİŞMEDİ; app-open eklenmedi (ertelendi). **Doğrulama:** mutasyon 47 / 47 (açık
-  FAIL); 8 mercekli inceleme + sertleştirme takip incelemesi (HIGH giderildi); kontrollü tam masaüstü kapısı (`e16da5a`)
-  49 / 49 temiz, 6100 kontrol, 0 hata, 0 SCRIPT ERROR, bot 2/2, sahibin kaydı bayt-aynı; **Samsung A36:** GEÇTİ — normal TEST geçiş reklamı, bayat mola kurtarması (sahte + gerçek), arka plan / kayıp öne dönüş / Vulkan onStart (L1-1), ödüllü D1–D3 (sahte ödül yok), sıklık politikası, TASK/049–051 korunması; logcat temiz, QA kaldırıldı.
-  Ayrıntı: docs/monetization/ADS_SYSTEM.md §18 / §19, PROJECT_STATUS §4.32.
+  ölüyordu; düzeltmesiz `1d2fb28`'de bayat tam ekran kilidi deterministik yeniden üretildi. **Düzeltme:** uygulamanın
+  tam ekran molası token'lı bir kiraya bağlı — SDK kapanış / hata geri çağrıları yetkili kalır; gelmezse bayat uygulama
+  molası yalnız örtülmeme kanıtıyla güvenle biter (gerçek öne dönüş + 3 sn, hiç örtülmeden 5 sn, kayıp öne dönüşte yeni
+  dokunuş + 5 sn; örtülüyken süre işlemez; ödüllüde "gösterildi" sonrası süreye bağlı bırakma yok); geç / yinelenen geri
+  çağrılar eski sayılır, ikinci kez işlenmez (tek sonuç, tek mola geri çağrısı, tek ödül); ödüllü kurtarma asla ödül
+  uydurmaz (ödül yalnız SDK "ödül kazanıldı" ile), SDK reklamı uygulama tarafından kapatılmaz; Godot 4.6.3 Vulkan'ın
+  sahte RESUMED'ı (Activity.onStart, reklam hâlâ üstteyken) öne dönüş sayılmaz — yalnız onResume'un FOCUS_IN kanıtı.
+  **Zorunlu geçiş politikası (`AdPolicy`, ilk üretim varsayılanı):** yalnız kesinleşen NORMAL round'lar; önceki gerçek
+  gösterimden bu yana en az 2 kesinleşen normal round VE en az 300 aktif sn; 60 sn genel tam ekran beklemesi; reklam
+  zaten HAZIR olmalı — reklam beklenmez, hazır değilse sonuç hemen; meydan okumada geçiş reklamı yok; tutorial koruması
+  aynen; tam ekran reklamlar üst üste binmez. Önceki politika: yalnız 900 aktif sn. **Ödüllü kotalar DEĞİŞMEDİ** (devam,
+  refill, ödüllü sandık, +150 Hamur — mevcut sözleşmeler; ödüllü envanter artırılmadı). **App-open ERTELENDİ /
+  uygulanmadı** (Ana Sayfa etkileşimli olmadan önce uygun bir yükleme / bekleme yüzeyi yok; onboarding / tutorial / rıza
+  sırası aynen). **Banner / önyükleme:** uygulama duraklatılınca banner gizlenir / duraklatılır (aynı tek banner
+  görünümü; uygulama tarafında hızlı yenileme döngüsü yok); yüklü tam ekran / ödüllü reklam 3300 sn'de tazelenir;
+  kurtarılan bayat tam ekran nesnesi önbellekten düşer; atlanan uygun molalardan sonra önyükleme yeniden başlayabilir;
+  yinelenen / eski geri çağrılar ve hatalar token'la süzülür. **Envanter farkı (deterministik sentetik koşu, 46 doğal
+  mola):** uygun zorunlu geçiş fırsatı temel 4 → TASK/052 19 — toplam fırsat 4,75 kat, +15 mutlak, %375 göreli artış;
+  yalnız UYGUN ENVANTER — gösterim, gelir, ARPDAU ya da para garantisi DEĞİL (ADS_SYSTEM §18.3). **Doğrulama
+  (entegrasyondan ÖNCE):** odak — son aday `e16da5a`, hepsi 0 FAIL / 0 SCRIPT ERROR: fullscreen_break_recovery 117 ·
+  ad_policy 54 · interstitial 62 · monetization 258 · daily_rewards 179 · result_delay_race 197 · round_finish_modal 164 ·
+  start_level_touch_settle 126 · daily_challenge_flow 76 · daily_challenge_terminal_modal 178 · age_ad_routing 122 ·
+  tutorial 205 · refill 119 · revive_refill_ui 266 · revive 120; mutasyon 47 / 47 uygulanabilir mutant açık FAIL
+  kontrolleriyle öldü (yalnız SCRIPT ERROR ile öldürme yok, geri koymalar bayt-aynı); 8 inceleme merceği + sertleştirme
+  takip incelemesi (tüm BLOCKER / HIGH giderildi; Vulkan sahte RESUMED HIGH'ı düzeltildi ve A36'da doğrulandı); kontrollü
+  tam masaüstü kapısı (`e16da5a`) 49 / 49 temiz, 6100 kontrol, 0 FAIL, 0 SCRIPT ERROR, bot 2 / 2, sahibin kaydı
+  bayt-aynı; **Samsung A36 kapısı GEÇTİ** (yalnız QA paketi, Google TEST / örnek kimlikler; telefonun gezinme kipi ve
+  saati değişmedi): normal TEST geçiş reklamı; 2 round / 300 sn sıklık davranışı; meydan okumada geçiş reklamı yok;
+  tutorial koruması; sahte ve gerçek TEST reklamıyla kayıp kapanış kurtarması; HOME / arka plan / FOCUS_IN kurtarması;
+  kayıp öne dönüş + dokunuş kanıtı; FOCUS_IN'siz Vulkan RESUMED'da kira korundu; normal ödüllü; kazanılan ödül + kayıp
+  kapanış; kayıp ödül + kayıp kapanış → sahte ödül sıfır; TASK/049 / TASK/050 / TASK/051 korunması; SCRIPT ERROR /
+  çökme / ANR 0; QA kaldırıldı, üretim paketi hiç kurulmadı, owner uygulaması (`com.example`) dokunulmadı. Ayrıntı:
+  docs/monetization/ADS_SYSTEM.md §18 / §19, PROJECT_STATUS §4.32.
 - **TASK/051 — round başlangıcında dokunuş sahipliği (`_start_level` yatışması / çift dokunuş / basılı parmak) — TAMAM,
   main'de** (owner onayıyla ff-only `1293eb2 → 4bae821`, 2026-10-04; doğrulamanın tamamı entegrasyondan ÖNCE
   tamamlandı — aşağıda; entegrasyon ve doküman eşitlemesi sırasında hiçbir kapı yeniden koşulmadı). **Hata (önceden
@@ -449,6 +482,10 @@ alınacak — şimdi tahmin/vaat yok.
   `sdk_refused` + yaş işlemi kilidi değişti; kullanıcıya görünen reklam sözleşmesi aynı.)*
   *(TASK/043, main'de: monetizasyonun AÇILMA koşulu değişti — yaş bandı; reklam
   yüzeyleri, kotalar, geçiş reklamı zamanlaması, ekonomi ve reklamsız tutorial AYNI.)*
+  *(TASK/052, main'de 2026-10-04: TEST-reklam monetizasyonu gerçek bir blokaj — hiç bitmeyen
+  tam ekran molası — ve owner brifiyle açıldı: token'lı tam ekran kirası + geçiş reklamı
+  zamanlaması `AdPolicy` 2 kesinleşen normal round + 300 aktif sn (önce 900 sn); reklam
+  yüzeyleri, ödüllü kotalar, ekonomi ve reklamsız tutorial AYNI; app-open eklenmedi.)*
   *(TASK/044, main'de: meta / kabuk UI — Koleksiyon, Profil, Ana Sayfa avatarı — ve
   gameplay skin katmanının kaldırılması; fizik, merge, skor, ekonomi, reklam
   sözleşmesi AYNI.)*
@@ -625,6 +662,9 @@ Bugün açık olan maddelerin tamamı — adımlar ve ayrıntı:
    AGE_BAND_ROUTING §0.1 / §9.10) — AÇIK: owner "Build as specified" seçti; uyumlu / onaylı /
    hukuken güvenli DENMEZ — owner / hukuk kararı. Release kapısı bunu uyum kararı olarak
    denetlemez (yalnız kod sözleşmesi olarak 13+ seçim kuralını denetler).
+   *(TASK/052 sonrası — owner kararı 2026-10-04: zorunlu geçiş sıklığı main'de değişti (2 round +
+   300 sn, önce 900 sn); TEEN / rıza / gizlilik yönlendirmesi herkese açık yayından ÖNCE yeniden
+   incelenir — hukuki / uyum onayı tamamlanmadı; ADS_SYSTEM §18.5 / §18.7.)*
 4. **Gizlilik politikası metni + herkese açık HTTPS URL'i** — project.godot
    `squishy/privacy/policy_url` + Play Console alanı.
 5. **Upload anahtarı** — owner oluşturur (checklist §4); yalnız ortam
@@ -857,18 +897,45 @@ patolojik bir cihazda zamanlama engeli kuramsal olarak aşılabilir. 300 ms kano
 ilk çizim ~16 ms; gerçek ikinci dokunuşlar ~110–118 ms'de yutuldu; pencereden sonraki 0,35 sn sınır dokunuşu tam 1
 normal bırakış verdi. *(Sonra: TASK/052 owner brifiyle tanımlandı — aşağıda.)*
 
-**Stabilizasyon + gelir — TASK/052 tam ekran mola kurtarma + gelir odaklı geçiş politikası: READY FOR OWNER REVIEW, dalda
-(main'e ALINMADI).** Dal `task/052-fullscreen-break-recovery-monetization`, main `1d2fb28`'den; owner incelemesi ve
-entegrasyon kararı bekliyor (merge EDİLMEDİ). Açık madde (2) **FIXED ON TASK/052 BRANCH**. Owner için ayrıca: ADS_SYSTEM
-§18.5 (sıklık / elde tutma deneyi için inceleme noktası, ilk gün koruması seçeneği, eklentinin yetim yeniden yüklemesi —
-native, TEEN uyum maddelerinin yeni cadence'la yeniden değerlendirilmesi) ve §19 hesap tarafı AdMob işleri (optimize
-taban, bidding / mediation değerlendirmesi, ortak eşleme + gizlilik, banner yenileme, QA / üretim kimlik ayrımı,
-izlenecek metrikler). Aşağıdaki açık maddelerden hiçbiri kendiliğinden seçilmez.
+**Stabilizasyon + gelir — TASK/052 tam ekran mola kurtarma + gelir odaklı geçiş politikası: ✅ TAMAM, main'de** (owner
+onayıyla ff-only `1d2fb28 → c7e3ccc`, 2026-10-04; merge commit / rebase / squash / cherry-pick / force push yok; dal
+`task/052-fullscreen-break-recovery-monetization` duruyor, son incelenen HEAD `c7e3ccc`; kapılardan geçen üretim / test
+adayı `e16da5a`, üstünde yalnız doküman). Eski açık madde (2) kapandı — **hiç bitmeyen tam ekran reklam molası / çıkış
+yok: FIXED + MAIN (TASK/052)**. Zorunlu geçiş politikası main'de: 2 kesinleşen normal round + 300 aktif sn (önce 900
+sn); ödüllü kotalar DEĞİŞMEDİ; app-open ERTELENDİ. Entegrasyondan ÖNCE tamamlanan doğrulama: odak 15 suite (`e16da5a`)
+0 FAIL / 0 SCRIPT ERROR; mutasyon 47 / 47; 8 mercekli inceleme + sertleştirme takibi (BLOCKER / HIGH giderildi);
+kontrollü tam masaüstü kapısı (`e16da5a`) 49 / 49 temiz (6100 kontrol, 0 FAIL, 0 SCRIPT ERROR, bot 2 / 2); **Samsung
+A36 kapısı GEÇTİ** (2026-10-04; yalnız QA paketi; QA kaldırıldı, üretim paketi hiç kurulmadı, `com.example`
+dokunulmadı) — PROJECT_STATUS §4.32. Entegrasyon ve bu doküman eşitlemesi sırasında hiçbir kapı yeniden koşulmadı.
 
-Açık, owner kararı bekleyen ayrı maddeler (**BAŞLAMADI**; hiçbiri kendiliğinden seçilmez; (1) TASK/051 ile
-kapandı — aşağıda; (2) TASK/052 dalında düzeltildi): ~~(2) geçiş reklamı molası HİÇ bitmezse (çift SDK / yaşam
-döngüsü arızası) yöneticinin onay zaman aşımı / öne dönüş payı molayı bitirene dek çıkış kapısı yoktur~~ → **FIXED ON
-TASK/052 BRANCH** (token'lı tam ekran kirası; main'e alınmadı — §4.32); (3) erteleme sürerken HUD Ayarlar açılırsa yeni round Ayarlar'ın
+**Monetizasyon owner kararları — güncel (2026-10-04, TASK/052 main entegrasyonu; ADS_SYSTEM §18.7):**
+- **Zorunlu geçiş:** kabul edilen ilk üretim varsayılanı **2 kesinleşen normal round + 300 aktif sn** + mevcut 60 sn
+  genel tam ekran beklemesi. Matematiksel olarak sonsuza dek en iyi ilan EDİLMEDİ; ileride ayar ancak canlı metrikle.
+- **İlk gün koruması:** ayrı bir tam gün zorunlu reklam yasağı şimdi EKLENMEDİ. Mevcut yeni oyuncu koruması: tutorial
+  reklamsız, tutorial sayılmaz, ilk normal round uygun olamaz, 2 round ve 300 sn kapılarının ikisi de gerekir. Daha
+  güçlü bir ilk gün politikası ileride A/B testiyle denenebilir.
+- **Ödüllü:** kotalar / ödüller DEĞİŞMEDİ; daha çok izletmek için ödül azaltılmaz.
+- **App-open:** ERTELENDİ — ancak ürün ileride gerçek bir yükleme / bekleme yüzeyi edinirse yeniden düşünülür.
+- **Native eklenti takipleri — not, aktif görev DEĞİL:** yetim yeniden yükleme temizliği; banner iş parçacığı yarışı
+  incelemesi (ADS_SYSTEM §18.5).
+- **Uyum — yayın şartı:** monetizasyon sıklığı değiştiği için TEEN / rıza / gizlilik yönlendirmesi herkese açık
+  yayından ÖNCE yeniden incelenir; hukuki / uyum onayı TAMAMLANMADI (release izi madde 3 / 3a–3c).
+- **AdMob hesap tarafı — yalnız doküman (ADS_SYSTEM §19):** owner bu repo görevinde AdMob hesap ayarlarını DEĞİŞTİRMEDİ;
+  aşağıdakiler uygulanmış değil, önerilen işler: (1) tahmini agresif elle taban yerine Google optimize eCPM tabanıyla
+  başla; (2) uygun ağ ve bölgeler için bidding / mediation değerlendir; (3) üçüncü taraf ağları yalnız hesap eşlemesi,
+  SDK / adaptör ve gizlilik / rıza ortak kurulumundan sonra ekle; (4) banner yenilemeyi AdMob konsolunda doğrula; (5)
+  QA / test ve üretim kimliklerini ayrı tut; (6) app-open uygulanmadıkça app-open birimi gerekmez; (7) yeterli gerçek
+  trafikten sonra izle: match rate, show rate, eCPM, gösterim / DAU, ödüllü katılım oranı, ARPDAU, oturum süresi, D1 / D7
+  elde tutma, çökme / ANR, reklamla ilgili olumsuz yorumlar.
+
+**Sıradaki ürün / stabilizasyon görevi owner seçimi** (TASK/053 tanımlanmadı) — aşağıdaki açık maddelerden hiçbiri
+kendiliğinden seçilmez. TASK/052 takip gözlemleri yalnız NOT (görev değil): trafik sonrası canlı elde tutma / ARPDAU
+incelemesi; isteğe bağlı daha güçlü ilk gün koruması A/B testi; native yetim yeniden yükleme temizliği; native banner
+iş parçacığı yarışı incelemesi; yayından önce üretim TEEN / uyum yeniden incelemesi; mediation / bidding / hesap
+tarafı iyileştirme; App Open yalnız ileride gerçek bir yükleme / bekleme yüzeyi olursa.
+
+Açık, owner kararı bekleyen ayrı maddeler (**BAŞLAMADI**; hiçbiri kendiliğinden seçilmez; (1) TASK/051 ile, (2)
+TASK/052 ile kapandı — aşağıda): (3) erteleme sürerken HUD Ayarlar açılırsa yeni round Ayarlar'ın
 altında başlar; RESULT_DELAY / reklam beklemesinde açılan ya da bitişte açık Ayarlar sonucun üstünde kalır (görsel;
 TASK/049 Ayarlar'ı bilinçli olarak kapatmaz); (4) basılı Koleksiyon kartı + Android GERİ sentetik bırakışı (yukarıda,
 TASK/045.2; ACTION_CANCEL'in tahta tarafı TASK/046.2'de giderildi — main'de); (5) genel GUI ACTION_CANCEL — modal /
@@ -882,7 +949,10 @@ işleyicisinde kapalı-ekran kapısı yok — basılı düğüm + Android GERİ,
 başlatabilir (statik çıkarım, yeniden üretilmedi; (4) ile aynı motor sınıfı; TASK/051 sonrası bırakış düşmez); Yeniden
 Başlat sırasında mola karartmasında basılı kalan parmak, mola o parmak kalkmadan yeniden açılırsa kalkışında onu
 kapatır (gizli karartmanın parmak odağı; parça düşmez).
-**Kapanan — main'de:** ~~(1) `_start_level` 300 ms parmak yatışması kurmaz — "Yeniden Başlat" / TEKRAR / Harita
+**Kapanan — main'de:** ~~(2) geçiş reklamı molası HİÇ bitmezse (çift SDK / yaşam döngüsü arızası) yöneticinin onay
+zaman aşımı / öne dönüş payı molayı bitirene dek çıkış kapısı yoktur — hiç bitmeyen tam ekran reklam molası / çıkış
+yok~~ → **TASK/052** (`c7e3ccc`, §4.32 — FIXED + MAIN; token'lı tam ekran kirası);
+~~(1) `_start_level` 300 ms parmak yatışması kurmaz — "Yeniden Başlat" / TEKRAR / Harita
 kartına hızlı çift dokunuşun ikincisi, ya da ertelenen yeniden başlatmada mola bittiği anda bitmiş board'da basılı
 kalan parmağın bırakışı yeni round'a parça düşürebilir (önceden var olan)~~ ve ~~öneri: `_start_level`'da yatışma~~
 → **TASK/051** (`4bae821`, §4.31 — FIXED + MAIN);
