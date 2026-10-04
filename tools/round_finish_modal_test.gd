@@ -34,7 +34,8 @@ extends Node
 ##                  gecikme / sonuçtan sonra değişmez; molasız kontrolle aynı fark, aynı anahtarlar
 ##   H TASK/048     değiştirilen round eski sonuç / reklam açmaz (üretim yeniden başlatma işleyicisi); fırlatma aralığı
 ##                  ertelemesi aynen; geçerli round geçerli reklam + sonuç
-##   I Ayarlar      bitişte açık Ayarlar ve gecikmede açılan Ayarlar KAPANMAZ (genel pencere kuralı DEĞİL)
+##   I Ayarlar      TASK/053: bitişte açık Ayarlar aynı temizlikle kapanır (kapanış 1, eylem yok); gecikmede dişli Ayarlar'ı
+##                  AÇMAZ — sonuç tek başına (ayrıntı: settings_terminal_ownership_test)
 ##   J refill       stok 0 güç → refill penceresi dönüşüm sırasında: bitişte kapanır; satın alma / ödül / reklam isteği /
 ##                  stok / Hamur / kota değişmez; önceden istenmiş ödüllü talep iptal edilmez / verilmez (kendi yolu:
 ##                  kazanılırsa verilir, kazanılmazsa hiçbir şey; pencere geri gelmez)
@@ -48,7 +49,8 @@ extends Node
 ##   R başka yol    aynı karede merge: mola açıldıktan sonra raporlanan temasın ertelenmiş merge'i round'u molada bitirir
 ##                  (Dumpling'in gönderdiği aynı sinyal — dar dikiş) → aynı temizlik
 ##   P kaynak       RESULT_DELAY 0,8 / 300 ms / iptal koruması aynen; temizlik ilerleme yazıldıktan SONRA, gecikmeden ÖNCE,
-##                  normal yolda (+ TASK/050 meydan okuma işleyicisi); Ayarlar'a / gezinmeye / kayda dokunmaz; kapalı
+##                  normal yolda (+ TASK/050 meydan okuma işleyicisi); TASK/053'ten beri Ayarlar'ı da kapatır; diğer ikincil
+##                  pencerelere / gezinmeye / kayda dokunmaz; kapalı
 ##                  mola hiçbir eylem yaymaz
 
 const MAIN_SCENE: PackedScene = preload("res://scenes/main.tscn")
@@ -652,8 +654,8 @@ func _task048() -> void:
 # --- I) Ayarlar ---------------------------------------------------------------------------------------------
 
 func _settings() -> void:
-	print("-- I: Ayarlar TASK/049 temizliğine girmez (genel pencere kuralı değil)")
-	# I1 — Ayarlar bitiş ANINDA açık (HUD dişlisine dönüşüm sırasında gerçek dokunuş): kapanmaz.
+	print("-- I: Ayarlar (TASK/053) — bitişte açık Ayarlar aynı temizlikle kapanır; gecikmede dişli Ayarlar'ı açmaz")
+	# I1 — Ayarlar bitiş ANINDA açık (HUD dişlisine dönüşüm sırasında gerçek dokunuş): bitişte kapanır.
 	await _fresh()
 	var board: Node2D = await _start(_level(3))
 	await _wait_settled()
@@ -666,15 +668,16 @@ func _settings() -> void:
 	var timer: SceneTreeTimer = _last_timer
 	_c("I1 kurulum: dönüşüm sırasında gerçek dişli dokunuşu Ayarlar'ı açtı (board donuk), round bitti", open_first
 		and board.is_finished() and not _at_finish.is_empty())
-	_c("I1: bitiş anında Ayarlar AÇIK KALDI (temizlik Ayarlar'ı kapatmaz), kapanış sinyali yok", _af("settings")
-		and _actions_in(_af("actions"), ["settings_closed"]) == 0 and _main._settings.visible)
+	_c("I1 (TASK/053): bitiş anında Ayarlar KAPANDI (aynı temizlik), kapanış sinyali tam 1, mola eylemi yok",
+		not _af("settings") and _actions_in(_af("actions"), ["settings_closed"]) == 1
+		and _actions_in(_af("actions"), ["resume", "restart", "exit"]) == 0 and not _main._settings.visible)
 	await _after(timer)
-	_c("  … I1: gecikmeden sonra sonuç açıldı, Ayarlar hâlâ üstünde (mevcut davranış — kayda geçen açık madde)",
-		_main._result.visible and _shows == 1 and _main._settings.visible and _actions["settings_closed"] == 0)
+	_c("  … I1: gecikmeden sonra sonuç açıldı, Ayarlar üstünde DEĞİL, kapanış hâlâ 1",
+		_main._result.visible and _shows == 1 and not _main._settings.visible and _actions["settings_closed"] == 1)
 	await _back()
-	_c("  … I1: Android geri Ayarlar'ı kapattı (kendi kuralı), sonuç açık kaldı", not _main._settings.visible
+	_c("  … I1: sonuçta Android geri yok sayıldı — sonuç açık, Ayarlar açılmadı, mola yok", not _main._settings.visible
 		and _actions["settings_closed"] == 1 and _main._result.visible and not _main.is_pause_open())
-	# I2 — Ayarlar gecikme İÇİNDE açılır: kapanmaz, sonuç altına açılır, KAPAT çalışır.
+	# I2 — gecikme İÇİNDE gerçek dişli dokunuşu: Ayarlar AÇILMAZ (TASK/053), sonuç tek başına açılır.
 	await _fresh()
 	board = await _start(_level(3))
 	await _wait_settled()
@@ -682,15 +685,11 @@ func _settings() -> void:
 	timer = _last_timer
 	await _until_left(timer, 0.5)
 	await _finger_tap(_center(board._hud.settings_button))
-	_c("I2: gecikme içinde gerçek dişli dokunuşu Ayarlar'ı açtı (mevcut davranış)", _main._settings.visible
-		and timer.time_left > 0.0 and not _main._result.visible)
+	_c("I2 (TASK/053): gecikme içinde gerçek dişli dokunuşu Ayarlar'ı AÇMADI, board donmadı", not _main._settings.visible
+		and timer.time_left > 0.0 and not _main._result.visible and not board._is_menu_paused)
 	await _after(timer)
-	_c("  … I2: sonuç açıldı, Ayarlar kapanmadı (üstünde)", _main._result.visible and _main._settings.visible
-		and _actions["settings_closed"] == 0)
-	await _finger_tap(_center(_main._settings.frame().get_meta(&"close_button")))
-	await _settle(2)
-	_c("  … I2: Ayarlar'ın X'i gerçek dokunuşla kapattı, sonuç açık", not _main._settings.visible
-		and _actions["settings_closed"] == 1 and _main._result.visible)
+	_c("  … I2: sonuç açıldı, Ayarlar yok, kapanış sinyali yok", _main._result.visible and not _main._settings.visible
+		and _actions["settings_closed"] == 0 and _shows == 1)
 	_sections_done += 1
 
 
@@ -1032,17 +1031,18 @@ func _source_contract() -> void:
 		.contains("\telif not touch.canceled:"))
 	_c("geçiş reklamı tek çağrı noktası (Main round bitişi)", code.count("_ads.try_show_interstitial(") == 1)
 	var helper: String = _function(code, "func %s(" % CLEANUP)
-	_c("terminal pencere temizliği tek fonksiyonda: molayı close_menu ile, refill'i hide_refill ile kapatır",
-		helper != "" and helper.contains("_pause.close_menu()") and helper.contains("_refill.hide_refill()"))
-	var forbidden: Array[String] = ["_settings", "close_settings", "_daily_rewards", "_chest_info", "_missions",
+	_c("terminal pencere temizliği tek fonksiyonda: molayı close_menu ile, refill'i hide_refill ile, Ayarlar'ı (TASK/053) close_settings ile kapatır",
+		helper != "" and helper.contains("_pause.close_menu()") and helper.contains("_refill.hide_refill()")
+		and helper.contains("close_settings()"))
+	var forbidden: Array[String] = ["_daily_rewards", "_chest_info", "_missions",
 		"_challenge_sheet", "_age_panel", "resume_game(", "_on_pause_restart(", "abandon_run(", "_start_level(",
 		"_clear_board(", "_finish_refill(", "_on_refill_closed(", "grant_", "save_game", "SaveManager",
-		"_cancel_rewarded_request(", "_clear_refill_request(", "_show_tab(", "_result.", "emit("]
+		"_cancel_rewarded_request(", "_clear_refill_request(", "_show_tab(", "_result.", "emit(", "open_settings("]
 	var leaks: Array[String] = []
 	for token in forbidden:
 		if helper.contains(token):
 			leaks.append(token)
-	_c("  … temizlik Ayarlar'a / ikincil pencerelere / gezinmeye / round değişimine / kayda / ödüllü talebe dokunmaz%s"
+	_c("  … temizlik diğer ikincil pencerelere / gezinmeye / round değişimine / kayda / ödüllü talebe dokunmaz%s"
 		% ("" if leaks.is_empty() else " (sızan: %s)" % ", ".join(leaks)), helper != "" and leaks.is_empty())
 	var finish_fn: String = _function(code, "func _on_round_finished(")
 	var guard: int = finish_fn.find("_round_finalized = true")

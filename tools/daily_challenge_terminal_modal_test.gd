@@ -45,11 +45,12 @@ extends Node
 ##   P iptal        meydan okumada ACTION_CANCEL 0 bırakış / 0 hamle, sonraki bağımsız dokunuş 1
 ##   Q gizli katman temizlikten sonra eski mola noktaları / GERİ hiçbir şey yakalamaz (dokunuş HUD'a ulaşır); öne dönüş
 ##                  gecikmede sonucu bozmaz; sonuç düğmesi dokunuşu alır
-##   T Ayarlar      kapsam dışı ama korunur: kritik pencerede gerçek dişliyle açılan / gecikmede açılan Ayarlar KAPANMAZ,
-##                  sonuç altına açılır (mevcut davranış), GERİ / X kendi kuralıyla kapatır, sonuç düğmesi çalışır
+##   T Ayarlar      TASK/053: kritik pencerede gerçek dişliyle açılan Ayarlar bitişte aynı temizlikle kapanır (+20 bir kez),
+##                  sonuç tek başına, GERİ yok sayılır, sonuç düğmesi çalışır; gecikmede dişli Ayarlar'ı AÇMAZ
+##                  (ayrıntı: settings_terminal_ownership_test)
 ##   S kaynak       temizlik meydan okuma işleyicisinde ödülden SONRA, gecikmeden ÖNCE, işleyici düzeyinde tek kez; temizlik
-##                  gövdesi TAM iki korumalı satır; normal yol aynen; deneme kimliği / reklamsızlık / TASK/047 kilitleri /
-##                  PauseMenu kapısı aynen
+##                  gövdesi TAM üç korumalı satır (mola, refill, TASK/053 Ayarlar); normal yol aynen; deneme kimliği /
+##                  reklamsızlık / TASK/047 kilitleri / PauseMenu kapısı aynen
 
 const MAIN_SCENE: PackedScene = preload("res://scenes/main.tscn")
 const DIR: String = "user://qa_dc_terminal_modal"
@@ -990,7 +991,7 @@ func _no_input_catcher() -> void:
 # --- T) Ayarlar — kapsam dışı, korunur ---------------------------------------------------------------------
 
 func _settings_terminal() -> void:
-	print("-- T: Ayarlar kapsam dışı — meydan okuma bitişi Ayarlar'ı KAPATMAZ (mevcut davranış korunur)")
+	print("-- T: Ayarlar (TASK/053) — meydan okuma bitişi açık Ayarlar'ı aynı temizlikle kapatır; gecikmede dişli açmaz")
 	# T1 — Ayarlar kritik pencerede GERÇEK HUD dişlisiyle açılır (aynı menü dondurması): aynı karede merge meydan okumayı
 	# Ayarlar açıkken bitirir.
 	var board: Node2D = await _win_under_pause("gear")
@@ -999,37 +1000,34 @@ func _settings_terminal() -> void:
 	_c("T1 kurulum (%d deneme): Ayarlar gerçek dişliyle temas raporlanmadan ÖNCE açıldı (board donuk), meydan okuma Ayarlar açıkken kazanıldı"
 		% _attempts, ok)
 	if ok:
-		_c("T1: bitiş anında Ayarlar AÇIK KALDI (temizlik Ayarlar'ı kapatmaz), mola yok, kapanış sinyali yok, +20 yazıldı",
-			_af("settings") and not _af("pause") and _actions["settings_closed"] == 0 and _af("dough") == _pre_dough + 20)
+		_c("T1 (TASK/053): bitiş anında Ayarlar KAPANDI (aynı temizlik), mola yok, kapanış sinyali tam 1, +20 yazıldı",
+			not _af("settings") and not _af("pause") and _actions_in(_af("actions"), ["settings_closed"]) == 1
+			and _af("dough") == _pre_dough + 20)
 		await _after(timer)
-		_c("  … gecikmeden sonra sonuç açıldı, Ayarlar hâlâ üstünde (mevcut davranış — kayda geçen açık madde)",
-			_main._result.visible and _main._settings.visible and _shows == 1)
+		_c("  … gecikmeden sonra sonuç açıldı, Ayarlar üstünde DEĞİL, kapanış hâlâ 1",
+			_main._result.visible and not _main._settings.visible and _shows == 1 and _actions["settings_closed"] == 1)
 		await _back()
-		_c("  … Android geri Ayarlar'ı kapattı (kendi kuralı), sonuç açık kaldı", not _main._settings.visible
+		_c("  … sonuçta Android geri yok sayıldı — sonuç açık, Ayarlar açılmadı", not _main._settings.visible
 			and _main._result.visible and _actions["settings_closed"] == 1)
 		await _wait_settled()
 		await _finger_tap(_center(_main._result.primary_button()))
 		await _settle(2)
 		_c("  … sonuç düğmesi gerçek dokunuşu aldı (sonuç çıkışı 1) → Ana Sayfa", _actions["result_exit"] == 1
 			and _main._board == null and _main._active_tab == 0)
-	# T2 — Ayarlar gecikme İÇİNDE (molada biten meydan okumadan sonra) gerçek dişliyle açılır: kapanmaz, sonuç altına açılır.
+	# T2 — gecikme İÇİNDE (molada biten meydan okumadan sonra) gerçek dişli dokunuşu: Ayarlar AÇILMAZ (TASK/053).
 	board = await _win_under_pause("call")
 	timer = _last_timer
 	var settled: bool = board != null and not _af("pause")
 	if board != null:
 		await _finger_tap(_center(board._hud.settings_button))
 		await _settle(2)
-	_c("T2: molada kazanıldı (bitişte kapandı); gecikme içinde gerçek dişli dokunuşu Ayarlar'ı açtı (mevcut davranış)",
-		settled and _main._settings.visible)
+	_c("T2 (TASK/053): molada kazanıldı (bitişte kapandı); gecikme içinde gerçek dişli dokunuşu Ayarlar'ı AÇMADI",
+		settled and not _main._settings.visible)
 	await _after(timer)
-	_c("  … sonuç açıldı, Ayarlar kapanmadı (üstünde), mola yok", _main._result.visible and _main._settings.visible
+	_c("  … sonuç açıldı, Ayarlar yok, mola yok", _main._result.visible and not _main._settings.visible
 		and not _main.is_pause_open() and _shows == 1)
-	var close: Variant = _main._settings.frame().get_meta(&"close_button")
-	await _wait_settled()
-	if close is Control:
-		await _finger_tap(_center(close as Control))
-	await _settle(2)
-	_c("  … Ayarlar'ın X'i gerçek dokunuşla kapattı, sonuç açık", not _main._settings.visible and _main._result.visible)
+	_c("  … Ayarlar hiç kapanmadı (açılmadığı için kapanış sinyali yok), sonuç açık", _actions["settings_closed"] == 0
+		and _main._result.visible)
 	_sections_done += 1
 
 
@@ -1066,10 +1064,11 @@ func _source_contract() -> void:
 		var text: String = raw.strip_edges()
 		if text != "":
 			body.append(text)
-	_c("paylaşılan temizlik gövdesi TAM iki korumalı satır (başka hiçbir şey yok): %s" % str(body), _same(body, [
-		"if _pause != null and _pause.visible:", "_pause.close_menu()", "if _refill != null and _refill.visible:",
-		"_refill.hide_refill()"]))
-	var forbidden: Array[String] = ["_settings", "close_settings", "_daily_rewards", "_chest_info", "_missions",
+	_c("paylaşılan temizlik gövdesi TAM üç korumalı satır — mola, refill, Ayarlar (TASK/053) — başka hiçbir şey yok: %s"
+		% str(body), _same(body, ["if _pause != null and _pause.visible:", "_pause.close_menu()",
+		"if _refill != null and _refill.visible:", "_refill.hide_refill()", "if _settings != null and _settings.visible:",
+		"close_settings()"]))
+	var forbidden: Array[String] = ["_daily_rewards", "_chest_info", "_missions",
 		"_challenge_sheet", "_age_panel", "resume_game(", "_on_pause_restart(", "abandon_run(", "_start_level(",
 		"start_daily_challenge(", "_retry_daily_challenge(", "_leave_daily_challenge(", "_clear_board(", "_finish_refill(",
 		"_on_refill_closed(", "grant_", "save_game", "SaveManager", "_cancel_rewarded_request(", "_clear_refill_request(",
@@ -1080,9 +1079,10 @@ func _source_contract() -> void:
 	for token in forbidden:
 		if helper.contains(token):
 			leaks.append(token)
-	_c("paylaşılan temizlik aynen: yalnız molayı (close_menu) ve refill'i (hide_refill) kapatır; Ayarlar / gezinme / round / kayıt / gün / reklam yok%s"
+	_c("paylaşılan temizlik: yalnız molayı (close_menu), refill'i (hide_refill) ve Ayarlar'ı (close_settings — TASK/053) kapatır; gezinme / round / kayıt / gün / reklam yok%s"
 		% ("" if leaks.is_empty() else " (sızan: %s)" % ", ".join(leaks)), helper != ""
-		and helper.contains("_pause.close_menu()") and helper.contains("_refill.hide_refill()") and leaks.is_empty())
+		and helper.contains("_pause.close_menu()") and helper.contains("_refill.hide_refill()")
+		and helper.contains("close_settings()") and leaks.is_empty())
 	var hits: Array[String] = []
 	for token in ["_on_round_finished", "try_show_interstitial", "_round_break_generation", "record_round_finished",
 			"add_merges", "record_mission_round", "PlayerProgression", "_collect_rewards", "show_rewarded", "_settings",
