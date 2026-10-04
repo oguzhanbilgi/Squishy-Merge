@@ -610,10 +610,21 @@ func _show_tab(tab: int, auto_daily: bool = true) -> void:
 # --- Ayarlar (M8.5-10) ---
 
 func open_settings() -> void:
+	# TASK/053: kabul edilen round bitişi ön planın sahibi — sonuç beklenirken (RESULT_DELAY / geçiş reklamı molası;
+	# HUD dişlisi bu aralıkta hâlâ dokunulabilir) ve sonuç açıkken Ayarlar açılmaz (katman 13, sonucun 10'unun üstüne
+	# çıkardı). Tek açma noktası: HUD dişlisi, Profil dişlisi, QA yolları buradan geçer.
+	if _terminal_round_owns_screen():
+		return
 	_settings.open_panel()
 	# TASK/044 A36: Profil dişlisine çift dokunuşun ikincisi Ayarlar'ın karartmasına
 	# düşüp pencereyi hemen kapatmasın.
 	settle_touch_input()
+
+
+## TASK/053: kesinleşen round'un board'u hâlâ ekranda — sonuç bekleniyor ya da açık. Yeni round (`_begin_round`) bayrağı
+## indirir; çıkış / terk board'u kaldırır (Profil / kabuk yolu etkilenmez).
+func _terminal_round_owns_screen() -> bool:
+	return _round_finalized and _board != null and is_instance_valid(_board)
 
 
 ## Ekran / pencere geçişinden sonraki TOUCH_SETTLE_MSEC boyunca BAŞLAYAN parmak dizileri
@@ -1796,14 +1807,17 @@ func _on_round_finished(won: bool) -> void:
 ## dondurmasıdır — dönüşüm o pencere açıkken tamamlanıp round'u bitirebilir. Bitiş kabul edilince mola ve stok 0
 ## refill penceresi EYLEMSİZ kapanır: Devam Et / Yeniden Başlat / Ana Menüye Dön, satın alma, ödüllü istek, refill,
 ## bırakış, board değişimi, kayıt YOK (board'un menü / refill dondurması `GameBoard._finish`'te bırakıldı). Açık
-## bir ödüllü refill talebine dokunulmaz: iptal edilmez, ödül verilmez — kendi token yolu sürer. Ayarlar bilinçli
-## olarak dışarıda (ayrı açık madde). Pencere yoksa ya da tekrar çağrılırsa hiçbir şey yapmaz. TASK/050: meydan okuma
+## bir ödüllü refill talebine dokunulmaz: iptal edilmez, ödül verilmez — kendi token yolu sürer. TASK/053: açık Ayarlar
+## da kendi kapanış yoluyla kapanır (katman 13 — sonucun üstünde kalırdı); kapanış işleyicisi bitmiş board'da hiçbir
+## şey yapmaz, tercih yazılmaz. Pencere yoksa ya da tekrar çağrılırsa hiçbir şey yapmaz. TASK/050: meydan okuma
 ## bitişi de çağırır (`_on_challenge_round_finished`) — ortak pencere temizliği, ayrı iş mantığı.
 func _dismiss_terminal_gameplay_overlays() -> void:
 	if _pause != null and _pause.visible:
 		_pause.close_menu()
 	if _refill != null and _refill.visible:
 		_refill.hide_refill()
+	if _settings != null and _settings.visible:
+		close_settings()
 
 
 ## Sonuç ekranını açar — round bitişi başına tam bir kez (`seq`; geç gelen

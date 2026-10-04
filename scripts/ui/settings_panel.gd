@@ -218,7 +218,14 @@ func close_panel() -> void:
 	closed.emit()
 
 
+## TASK/053: KAPALI pencere eylem üretmez. Pencere bir kontrol BASILIYKEN gizlenirse (round bitişi Ayarlar'ı kapatır; ya
+## da Android geri) Godot gizleme anında o düğmeye sentetik bırakış yollar ve son girdi işlenmemişse BaseButton onu
+## tıklama sayar (TASK/049'un Mola dersi) — tercih yazılmaz, yaş / gizlilik penceresi açılmaz, tarayıcı açılmaz.
+## Anahtarın görünümü bir sonraki `open_panel()`'da kayıttan yeniden kurulur. Gizlilik metni (yalnız pencere içi,
+## açılışta kapanır) ve kapanış (`close_panel` zaten görünürlükle korunur) bu kapsamda değil.
 func _on_sfx_toggled(on: bool) -> void:
+	if not visible:
+		return
 	SaveManager.set_sfx_enabled(on)
 	# Açınca duyulur bir onay; kapatınca zaten sessiz.
 	if on:
@@ -226,6 +233,8 @@ func _on_sfx_toggled(on: bool) -> void:
 
 
 func _on_haptics_toggled(on: bool) -> void:
+	if not visible:
+		return
 	SaveManager.set_haptics_enabled(on)
 	# Açınca hissedilir bir onay (destekleyen cihazda); kapatınca zaten yok.
 	if on:
@@ -275,7 +284,7 @@ func _apply_privacy_options_visibility() -> void:
 
 
 func _on_privacy_options_pressed() -> void:
-	if not _privacy_options_required() or not _privacy_options_source.has_method("show_privacy_options"):
+	if not visible or not _privacy_options_required() or not _privacy_options_source.has_method("show_privacy_options"):
 		return
 	AudioManager.play(&"ui_tap")
 	_privacy_options_source.show_privacy_options()
@@ -301,7 +310,7 @@ func _apply_privacy_policy_visibility() -> void:
 
 func _on_privacy_policy_pressed() -> void:
 	var url: String = privacy_policy_url()
-	if url.is_empty():
+	if not visible or url.is_empty():
 		return
 	AudioManager.play(&"ui_tap")
 	OS.shell_open(url)
@@ -326,7 +335,7 @@ func _apply_age_info_visibility() -> void:
 
 
 func _on_age_info_pressed() -> void:
-	if not _age_info_visible:
+	if not visible or not _age_info_visible:
 		return
 	AudioManager.play(&"ui_tap")
 	age_info_requested.emit()
