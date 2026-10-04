@@ -395,6 +395,22 @@ func _duplicates() -> void:
 	_c("F: gösterildi + gösterildi + kapanış → gösterim BİR kez sayıldı, geri çağrı bir kez", m2.interstitial_shows() == 1
 		and counter2.calls == 1)
 	await _free(m2)
+	# Kurtarma yolu da tam bir kez (Main'in sonuç / nesil korumalarından bağımsız — yöneticinin kendi geri çağrısı).
+	var fake3 := FakeAdBackend.new()
+	var m3: MonetizationManager = _manager(fake3)
+	_gates(m3)
+	var counter3 := _Counter.new()
+	m3.try_show_interstitial("round_finish", counter3.hit)
+	var id3: String = fake3.interstitial_shows[-1] if not fake3.interstitial_shows.is_empty() else ""
+	fake3.emit_interstitial_showed(id3)
+	await _wait(_lease_sec() + 0.1)
+	_c("F: kapanış kayıp → kurtarma: mola geri çağrısı TAM bir kez", id3 != "" and counter3.calls == 1
+		and not m3.break_pending())
+	fake3.emit_interstitial_dismissed(id3)
+	fake3.emit_interstitial_show_failed(id3)
+	await _settle(1)
+	_c("F: kurtarmadan sonra geç kapanış + hata: geri çağrı hâlâ 1", counter3.calls == 1)
+	await _free(m3)
 	_sections_done += 1
 
 
