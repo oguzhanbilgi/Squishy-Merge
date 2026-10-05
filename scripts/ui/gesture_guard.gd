@@ -15,8 +15,13 @@ extends Node
 ##   (3) eylemi yalnız `allows` doğruysa çalıştırır: düğme ekranda VE (işaretçi basışı yok — klavye / erişilebilirlik /
 ##       kısayol / kodla `pressed` — YA DA basışın gerçek, iptal edilmemiş bırakışı görüldü). İç aygıtlı bırakış `gui_input`
 ##       yaymaz → odak kaybındaki bayat tıklama (kök Viewport odağı bu bileşenin bildiriminden önce düşürür) eylemsiz kalır.
-## Global girdi yutma, zaman aşımı, Input değişikliği yok; yalnız açıkça sahiplenilen düğmeler. Önkoşul: düğme bırakışta
-## eylem kipinde ve yalnız sol düğme maskeli (uygulamanın tüm düğmeleri); Android uzun basış = sağ tık KAPALI kalmalı.
+## Global girdi yutma, zaman aşımı, Input değişikliği yok; yalnız açıkça sahiplenilen düğmeler. Önkoşullar: düğme bırakışta
+## eylem kipinde ve yalnız sol düğme maskeli (uygulamanın tüm düğmeleri); Android uzun basış = sağ tık ve pan / ölçek
+## jestleri KAPALI kalmalı (açılırsa motor bu jestlerde ACTION_CANCEL üretir). `own` + `allows` kullanan röle (ör. paylaşılan
+## ScreenTopBar'ın tüketicileri) `allows`'u `pressed` yayımı İÇİNDE okumalı (CONNECT_DEFERRED değil). Motor sınırı: Android
+## 13+'ta birden çok parmaklı bir jestte tek işaretçinin iptali (POINTER_UP + FLAG_CANCELED — ör. avuç / kavrama reddi)
+## Godot'ya düz bırakış olarak gelir; o işaretçi fare öykünen ilk parmaksa ayırt edilemez. Tek parmak ACTION_CANCEL'ı
+## (kenar geri kaydırması, sistem jesti) her zaman `canceled` taşır.
 ## API:
 ##   GestureGuard.on_pressed(button, action)  sahiplen + `action`ı yalnız geçerli etkinleştirmede çalıştır
 ##   GestureGuard.own(button)                  yalnız sahiplen (eylemi çağıran `GestureGuard.allows` ile denetler)
@@ -60,29 +65,40 @@ static func on_pressed(button: BaseButton, action: Callable) -> GestureGuard:
 
 ## Bu düğmenin şu anki `pressed` / `toggled`'ı eylem üretebilir mi (sahipsiz düğme: yalnız görünürlük).
 static func allows(button: BaseButton) -> bool:
-	if button.has_meta(META) and is_instance_valid(button.get_meta(META)):
-		return (button.get_meta(META) as GestureGuard).allows_activation()
-	return button.is_visible_in_tree()
+	var guard: GestureGuard = _guard_of(button)
+	return guard.allows_activation() if guard != null else button.is_visible_in_tree()
 
 
 ## Açık geçersizleştirme: basılı işaretçi basışı eylemsiz biter.
 static func invalidate(button: BaseButton) -> void:
-	if button.has_meta(META) and is_instance_valid(button.get_meta(META)):
-		(button.get_meta(META) as GestureGuard).end_press()
+	var guard: GestureGuard = _guard_of(button)
+	if guard != null:
+		guard.end_press()
+
+
+## Düğmenin GEÇERLİ sahibi (meta başka bir düğmeye ait / serbest bırakılmış bir bileşeni gösteriyorsa null).
+static func _guard_of(button: BaseButton) -> GestureGuard:
+	var guard: Variant = button.get_meta(META) if button.has_meta(META) else null
+	if is_instance_valid(guard) and (guard as GestureGuard)._button == button:
+		return guard as GestureGuard
+	return null
 
 
 func allows_activation() -> bool:
 	return _button.is_visible_in_tree() and (not _held or _released)
 
 
-## Basılı işaretçi basışını eylemsiz bitirir (zaten devre dışıysa motor basışı sıfırlamıştır).
+## Basılı işaretçi basışını eylemsiz bitirir; sahiplik her durumda temizlenir (devre dışı düğmede motor basışı zaten
+## sıfırlamıştır — yalnız `disabled` turu atlanır).
 func end_press() -> void:
 	_released = false
-	if not _held or _button.disabled:
+	if not _held:
+		return
+	_held = false
+	if _button.disabled:
 		return
 	_button.disabled = true
 	_button.disabled = false
-	_held = false
 
 
 func _run(action: Callable) -> void:
@@ -105,6 +121,7 @@ func _on_gui_input(event: InputEvent) -> void:
 
 func _on_button_down() -> void:
 	_held = _pointer_press
+	_pointer_press = false
 
 
 func _on_button_up() -> void:
@@ -117,5 +134,11 @@ func _on_visibility_changed() -> void:
 
 
 func _notification(what: int) -> void:
-	if (what == NOTIFICATION_WM_WINDOW_FOCUS_OUT or what == NOTIFICATION_WM_GO_BACK_REQUEST) and _held:
-		end_press()
+	match what:
+		NOTIFICATION_WM_WINDOW_FOCUS_OUT, NOTIFICATION_WM_GO_BACK_REQUEST:
+			end_press()
+		NOTIFICATION_EXIT_TREE:
+			# Motor basışı ağaçtan çıkışta button_up yaymadan sıfırlar: sahiplik de (asılı kalıp işaretçisiz
+			# etkinleştirmeyi engellemesin).
+			_held = false
+			_released = false

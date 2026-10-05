@@ -18,7 +18,9 @@ extends Node
 ##
 ## Geçersiz dizi kipleri (parmak 0, kontrolün ortası): "cancel" DOWN → ACTION_CANCEL → bayat UP · "back" DOWN → işlenmeyen
 ## olay (cihazdaki GERİ tuş olayı) → Android GERİ → bayat UP · "focus" DOWN → işlenmeyen olay → pencere odağı kaybı →
-## dönüş → bayat UP · "focus_handled" DOWN → odak kaybı (son girdi işlenmiş) → dönüş → bayat UP.
+## dönüş → bayat UP · "focus_handled" DOWN → odak kaybı (son girdi işlenmiş) → dönüş → bayat UP. İptalden / odak
+## kaybından sonraki bayat UP motor yolunda hiçbir kontrole ulaşmaz (fare / dokunuş odağı yok) — eksiksizlik için yollanır.
+## GERİ ve odak bildirimleri cihaz yolu gibi dağıtılır (`_window_notify`: kökten aşağı, düğümleri meşgul işaretlemeden).
 ##
 ## Bölümler:
 ##   A Profil vitrini     dolu yuva iptal / GERİ / sekme değişimi → 0 gezinme, 0 detay; KOLEKSİYONA GİT, unvan, TÜM
@@ -44,7 +46,9 @@ extends Node
 ##   J işaretçisiz        kodla `pressed` (erişilebilirlik tıklamasının yolu), klavye ui_accept, kodla anahtar → tam bir
 ##                        kez; gizli düğmeye ulaşan kod `pressed`'i eylemsiz
 ##   K çok parmak         düğmeler yalnız 0. parmağın öykünülen faresini görür; ikinci parmak düğmeye basamaz / başka
-##                        düğmenin dokunuşunu bozmaz; tüm jest iptali 0 harcama
+##                        düğmenin dokunuşunu bozmaz; tüm jest iptali (her parmağa, tek yığın) 0 harcama; tek-işaretçi
+##                        iptali Android 13+'ta Godot'ya düz bırakış olarak gelir (motor sınırı — 2+ parmak, ör. avuç
+##                        reddi); ikinci parmağın karartma dokunuşu basılı SATIN AL'ı geçersiz kılar; iki parmak tek kapanış
 ##   L ekonomi kaydı      iptal edilen refill / güç / Mağaza / günlük AÇ kayda dokunmaz; geçerli refill tam bir kez yazar
 ##   M gezinme            GERİ zinciri çalışır; karartma iptali + aynı jestin GERİ'si tek eylem (çıkış yok, ikinci
 ##                        gezinme yok); bayat pencere yeniden açılmaz
@@ -62,6 +66,7 @@ const BACK_GAP_MSEC: int = 320
 const LEVEL_PATH: String = "res://resources/levels/level_08.tres"
 const GUARD_META: StringName = &"gesture_guard"
 const SHOWCASE_ID: StringName = &"rare_02"
+const GUARD_PATH: String = "res://scripts/ui/gesture_guard.gd"
 
 var _fails: int = 0
 var _checks: int = 0
@@ -212,37 +217,54 @@ func _profile_showcase() -> void:
 	_c("A5 basılı yuva + sekme değişimi (Mağaza) + bırak: Mağaza'da kalındı, detay açılmadı, `pressed` doğmadı",
 		_main._active_tab == 3 and not album.is_detail_open() and _count("slot.pressed") == 0)
 
-	await _boot()
-	await _tab(4)
-	profile = _main._screens[4]
-	var cta: Button = profile.collection_cta()
-	profile.scroll().ensure_control_visible(cta)
-	await _wait_settled()
-	_watch(cta, "cta")
-	_mark()
-	await _gesture(cta, "cancel")
-	_c("A6 KOLEKSİYONA GİT iptal + bayat UP: Profil'de kalındı", _main._active_tab == 4 and _count("cta.pressed") == 0)
-	await _gesture(cta, "back")
-	_c("A7 KOLEKSİYONA GİT basılı + GERİ + bırak: Ana Sayfa, Koleksiyon'a gidilmedi", _main._active_tab == 0
-		and not _main._screens[2].visible and _count("cta.pressed") == 0)
+	for mode: String in ["cancel", "back"]:
+		await _boot()
+		await _tab(4)
+		profile = _main._screens[4]
+		var cta: Button = profile.collection_cta()
+		profile.scroll().ensure_control_visible(cta)
+		await _wait_settled()
+		_watch(cta, "cta")
+		_pre("A6/A7 KOLEKSİYONA GİT [%s]" % mode, profile.visible and _main._active_tab == 4 and cta.is_visible_in_tree()
+			and not profile.has_open_overlay())
+		_mark()
+		await _gesture(cta, mode)
+		if mode == "cancel":
+			_c("A6 KOLEKSİYONA GİT iptal + bayat UP: Profil'de kalındı", _main._active_tab == 4 and _count("cta.pressed") == 0)
+		else:
+			_c("A7 KOLEKSİYONA GİT basılı + GERİ + bırak: Ana Sayfa, Koleksiyon'a gidilmedi", _main._active_tab == 0
+				and not _main._screens[2].visible and _count("cta.pressed") == 0)
 
 	await _boot()
 	await _tab(4)
 	profile = _main._screens[4]
 	var title: Button = profile.title_button()
-	var achievements: Button = profile.achievements_cta()
 	_watch(title, "title")
-	_watch(achievements, "achievements")
+	_pre("A8 unvan", profile.visible and title.is_visible_in_tree() and not profile.has_open_overlay())
 	_mark()
 	await _gesture(title, "cancel")
 	_c("A8 unvan düğmesi iptali: unvan seçici açılmadı", not profile.title_selector().visible and _count("title.pressed") == 0)
+
+	await _boot()
+	await _tab(4)
+	profile = _main._screens[4]
+	var achievements: Button = profile.achievements_cta()
 	profile.scroll().ensure_control_visible(achievements)
 	await _wait_settled()
+	_watch(achievements, "achievements")
+	_pre("A9 TÜM BAŞARIMLAR", profile.visible and achievements.is_visible_in_tree() and not profile.has_open_overlay())
+	_mark()
 	await _gesture(achievements, "cancel")
 	_c("A9 TÜM BAŞARIMLAR iptali: başarım penceresi açılmadı", not profile.achievements_overlay().visible
 		and _count("achievements.pressed") == 0)
-	profile.scroll().scroll_vertical = 0
-	await _wait_settled()
+
+	await _boot()
+	await _tab(4)
+	profile = _main._screens[4]
+	title = profile.title_button()
+	_watch(title, "title")
+	_pre("A10 unvan", profile.visible and title.is_visible_in_tree() and not profile.has_open_overlay())
+	_mark()
 	await _gesture(title, "back")
 	_c("A10 unvan düğmesi basılı + GERİ: Ana Sayfa, gizli Profil'de unvan seçici AÇILMADI", _main._active_tab == 0
 		and not profile.title_selector().visible and not profile.has_open_overlay())
@@ -306,6 +328,30 @@ func _profile_gear() -> void:
 	_c("B7 taze satır dokunuşu tam bir kez: unvan Hamur Ustası (bellek + disk)",
 		String(SaveManager.data.get("selected_title_id", "")) == "hamur_ustasi" and _disk("selected_title_id") == "hamur_ustasi"
 		and _count("row.pressed") == 1)
+	# Seçimden sonraki 350 ms seçici kilidi geçsin: aksi hâlde odak kaybı kontrolü kilide takılıp boşa geçerdi.
+	await get_tree().create_timer(0.45).timeout
+	var selector: Control = profile.title_selector()
+	var default_row: Button = selector.row(&"birlestirici")
+	_pre("B8 unvan satırı", selector.visible and default_row.is_visible_in_tree() and not default_row.disabled)
+	await _gesture(default_row, "focus")
+	_c("B8 unvan satırı basılı + odak kaybı: unvan yazılmadı (Hamur Ustası kaldı, bellek + disk)",
+		String(SaveManager.data.get("selected_title_id", "")) == "hamur_ustasi" and _disk("selected_title_id") == "hamur_ustasi")
+	var selector_x: Button = selector.frame().get_meta(&"close_button")
+	_watch(selector_x, "selector_x")
+	_mark()
+	await _gesture(selector_x, "cancel")
+	_c("B9 unvan seçici X iptali: seçici AÇIK kaldı, `pressed` doğmadı", selector.visible and _count("selector_x.pressed") == 0)
+	selector.close()
+	await _wait_settled()
+	profile.open_achievements()
+	await _wait_settled()
+	var overlay: Control = profile.achievements_overlay()
+	var overlay_x: Button = overlay.frame().get_meta(&"close_button")
+	_watch(overlay_x, "overlay_x")
+	_mark()
+	await _gesture(overlay_x, "cancel")
+	_c("B10 başarımlar penceresi X iptali: pencere AÇIK kaldı, `pressed` doğmadı", overlay.visible
+		and _count("overlay_x.pressed") == 0)
 	_sections_done += 1
 
 
@@ -347,6 +393,14 @@ func _map() -> void:
 	await _gesture(back, "cancel")
 	_c("C4 üst çubuk \"+\" / geri iptali: Harita'da kalındı", _main._active_tab == 1 and _count("add.pressed") == 0
 		and _count("map_back.pressed") == 0)
+
+	await _boot()
+	await _tab(1)
+	map = _main._screens[1]
+	add = map.top_bar().add_button()
+	_watch(add, "add")
+	_pre("C5 \"+\"", map.visible and _main._active_tab == 1 and add.is_visible_in_tree())
+	_mark()
 	await _gesture(add, "back")
 	_record("C5 + basılı + GERİ")
 	_c("C5 \"+\" basılı + GERİ + bırak: Ana Sayfa GÖRÜNÜR (boş ekran yok), Mağaza'ya gidilmedi", _main._active_tab == 0
@@ -365,6 +419,14 @@ func _map() -> void:
 	_mark()
 	await _gesture(endless, "cancel")
 	_c("C7 açık Sonsuz madalyonu iptali: round başlamadı", not _board_live() and _count("endless.pressed") == 0)
+	await _gesture(endless, "back")
+	_c("C9 Sonsuz basılı + GERİ + bırak: Ana Sayfa, round başlamadı", not _board_live() and _main._active_tab == 0
+		and _count("endless.pressed") == 0)
+	await _tab(1)
+	endless = map.endless_node()
+	_watch(endless, "endless")
+	await _gesture(endless, "focus")
+	_c("C10 Sonsuz basılı + odak kaybı: round başlamadı, Harita'da kalındı", not _board_live() and _main._active_tab == 1)
 	await _wait_settled()
 	await _tap(endless)
 	_c("C8 taze Sonsuz dokunuşu: round başladı (pozitif kontrol)", _board_live() and _count("map.level_chosen") == 1)
@@ -515,9 +577,11 @@ func _cancel_matrix() -> void:
 	_mark()
 	await _gesture(ad, "cancel")
 	var no_ad: bool = stub.calls.is_empty() and _count("ad.pressed") == 0
+	await _gesture(ad, "focus")
+	no_ad = no_ad and stub.calls.is_empty()
 	await _wait_settled()
 	await _tap(ad)
-	_c("E günlük REKLAM İZLE (+Hamur): iptal → reklam isteği YOK; taze → tam bir istek", no_ad
+	_c("E günlük REKLAM İZLE (+Hamur): iptal / odak kaybı → reklam isteği YOK; taze → tam bir istek", no_ad
 		and stub.calls == ["daily_dough"])
 
 	await _boot()
@@ -603,6 +667,10 @@ func _cancel_matrix() -> void:
 	_c("E mola Yeniden Başlat / Ana Menüye Dön iptali: round terk edilmedi (aynı board), mola açık",
 		_main._board == board and _board_live() and _main.is_pause_open() and _count("restart.pressed") == 0
 		and _count("exit.pressed") == 0)
+	await _gesture(restart, "back")
+	_c("E mola Yeniden Başlat basılı + GERİ (mola kapanır) + bırak: round yeniden başlamadı (aynı board)",
+		_main._board == board and _board_live() and not _main.is_pause_open() and _count("restart.pressed") == 0)
+	_main.open_pause_menu()
 	await _wait_settled()
 	await _tap(restart)
 	_c("E taze Yeniden Başlat: tam bir yeniden başlatma (yeni board)", _board_live() and _main._board != board)
@@ -634,9 +702,11 @@ func _cancel_matrix() -> void:
 	_mark()
 	await _gesture(cont, "cancel")
 	var no_revive_ad: bool = stub.calls.is_empty() and _main._revive.visible and _count("revive.pressed") == 0
+	await _gesture(cont, "focus")
+	no_revive_ad = no_revive_ad and stub.calls.is_empty() and _main._revive.visible
 	await _wait_settled()
 	await _tap(cont)
-	_c("E devam teklifi DEVAM ET: iptal → reklam isteği YOK, teklif açık; taze → tam bir istek", no_revive_ad
+	_c("E devam teklifi DEVAM ET: iptal / odak kaybı → reklam isteği YOK, teklif açık; taze → tam bir istek", no_revive_ad
 		and stub.calls == ["revive"])
 
 	await _boot()
@@ -804,6 +874,37 @@ func _focus_loss() -> void:
 	await _tap(sfx)
 	_c("G5 ardından taze anahtar dokunuşu tam bir kez: kapandı (disk)", not SaveManager.sfx_enabled()
 		and _disk("sfx_enabled") == false and not sfx.button_pressed)
+	await get_tree().create_timer(0.3).timeout
+	await _gesture(sfx, "focus")
+	await get_tree().create_timer(0.3).timeout
+	_c("G6 geçerli dokunuştan SONRA aynı anahtarda odak kaybı: önceki bırakış yeni basışa geçmez — tercih yazılmadı (kapalı, disk), anahtar + topuz kapalı",
+		not SaveManager.sfx_enabled() and _disk("sfx_enabled") == false and not sfx.button_pressed
+		and is_equal_approx(float(sfx.get("_knob")), 0.0))
+	var probe: UiToggle = UiKit.switch_toggle(true)
+	add_child(probe)
+	await _settle(1)
+	probe.button_pressed = false
+	probe.set_on(true)
+	await get_tree().create_timer(0.3).timeout
+	_c("G7 UiToggle.set_on süren topuz animasyonunu durdurur (bağlantı sırasından bağımsız geri alma): anahtar + topuz açık",
+		probe.button_pressed and is_equal_approx(float(probe.get("_knob")), 1.0))
+	probe.queue_free()
+
+	await _boot({"powerups": {"bomb": 0, "upgrade": 2, "shake": 2, "clear_small": 1}})
+	var board: Node2D = await _start_round()
+	_spawn(board)
+	var shake: Button = board.get_node("HUD").power_bar.slot(PowerUp.Type.SHAKE)
+	await _tap(shake)
+	var used_once: bool = SaveManager.powerup_count(PowerUp.Type.SHAKE) == 1
+	await get_tree().create_timer(0.6).timeout
+	_spawn(board)
+	await _settle(2)
+	_pre("G8 Sarsıntı yuvası", shake.is_visible_in_tree() and not shake.disabled)
+	await _gesture(shake, "focus")
+	var powerups: Variant = _disk("powerups")
+	_c("G8 geçerli Sarsıntı dokunuşundan SONRA aynı yuvada odak kaybı: ikinci kullanım YOK (stok 2 → 1, disk 1)", used_once
+		and SaveManager.powerup_count(PowerUp.Type.SHAKE) == 1 and powerups is Dictionary
+		and int((powerups as Dictionary).get("shake", -1)) == 1)
 
 	await _boot()
 	await _tab(4)
@@ -811,27 +912,27 @@ func _focus_loss() -> void:
 	_watch(gear, "gear")
 	_mark()
 	await _gesture(gear, "focus_handled")
-	_record("G6 dişli odak (işlenmiş)")
-	_c("G6 dişli basılı + odak kaybı (son girdi işlenmiş) + bırak: Ayarlar açılmadı", not _main._settings.visible
+	_record("G9 dişli odak (işlenmiş)")
+	_c("G9 dişli basılı + odak kaybı (son girdi işlenmiş) + bırak: Ayarlar açılmadı", not _main._settings.visible
 		and _count("gear.pressed") == 0)
 	await _wait_settled()
 	_mark()
 	await _tap(gear)
-	_c("G7 ardından taze dişli dokunuşu: button_down 1 (asılı basış yok) ve Ayarlar tam bir kez",
+	_c("G10 ardından taze dişli dokunuşu: button_down 1 (asılı basış yok) ve Ayarlar tam bir kez",
 		_count("gear.down") == 1 and _main._settings.visible and _count("gear.pressed") == 1)
 
 	# Paylaşılan üst çubuk tüketici tarafında sahipli (own + allows): odak kaybının bayat tıklaması röleden geçse de gezinmez.
 	await _boot()
 	await _tab(4)
 	await _gesture(_main._screens[4].top_bar().back_button(), "focus")
-	_c("G8 Profil üst çubuk geri odak kaybı: Profil'de kalındı", _main._active_tab == 4)
+	_c("G11 Profil üst çubuk geri odak kaybı: Profil'de kalındı", _main._active_tab == 4)
 	await _tab(1)
 	await _gesture(_main._screens[1].top_bar().add_button(), "focus")
 	await _gesture(_main._screens[1].top_bar().back_button(), "focus")
-	_c("G9 Harita üst çubuk \"+\" / geri odak kaybı: Harita'da kalındı", _main._active_tab == 1)
+	_c("G12 Harita üst çubuk \"+\" / geri odak kaybı: Harita'da kalındı", _main._active_tab == 1)
 	await _tab(3)
 	await _gesture(_main._screens[3].top_bar().back_button(), "focus")
-	_c("G10 Mağaza üst çubuk geri odak kaybı: Mağaza'da kalındı", _main._active_tab == 3)
+	_c("G13 Mağaza üst çubuk geri odak kaybı: Mağaza'da kalındı", _main._active_tab == 3)
 	_sections_done += 1
 
 
@@ -876,6 +977,48 @@ func _fresh_after_hide() -> void:
 	await _tap(yes)
 	_c("H4 yeniden açılan onayda taze SATIN AL: button_down 1, tam bir harcama (900 → 720)", _count("yes.down") == 1
 		and _econ_is(720, 3))
+
+	# Açık geçersizleştirme API'si (statik başvuru yok: taban ağacında yardımcı yoksa açık FAIL).
+	var guard_script: Script = load(GUARD_PATH) if ResourceLoader.exists(GUARD_PATH) else null
+	await _boot()
+	await _tab(1)
+	var node: Button = _main._screens[1].nodes()[0]
+	await _finger(_center(node), true)
+	if guard_script != null:
+		guard_script.invalidate(node)
+	await _finger(_center(node), false)
+	await _settle(3)
+	var invalidated: bool = guard_script != null and not _board_live() and _main._active_tab == 1
+	await _wait_settled()
+	await _tap(node)
+	_c("H5 GestureGuard.invalidate (açık geçersizleştirme): basılı düğüm bırakılınca seviye başlamadı; taze dokunuş tam bir kez",
+		invalidated and _board_live() and _count("map.level_chosen") == 1)
+
+	# Basılıyken ağaçtan çıkıp dönen sahipli düğme: motor basışı çıkışta sıfırlar (button_up yaymadan) — sahiplik de.
+	var layer := CanvasLayer.new()
+	layer.layer = 100
+	add_child(layer)
+	var plain := Button.new()
+	plain.position = Vector2(260.0, 560.0)
+	plain.size = Vector2(200.0, 80.0)
+	layer.add_child(plain)
+	var fired: Array[int] = [0]
+	if guard_script != null:
+		guard_script.on_pressed(plain, func() -> void: fired[0] += 1)
+	await _settle(2)
+	var at: Vector2 = _center(plain)
+	await _finger(at, true)
+	layer.remove_child(plain)
+	await _settle(1)
+	layer.add_child(plain)
+	await _settle(1)
+	plain.pressed.emit()
+	await _settle(1)
+	await _finger(at, false)
+	await _settle(2)
+	_c("H6 basılıyken ağaçtan çıkıp dönen sahipli düğme: kod / erişilebilirlik `pressed`'i tam bir kez çalışır (asılı sahiplik kalmaz)",
+		guard_script != null and fired[0] == 1)
+	layer.queue_free()
 	_sections_done += 1
 
 
@@ -991,23 +1134,62 @@ func _multi_touch() -> void:
 	var shop: CanvasLayer = _main._screens[3]
 	await _ensure_confirm(shop, shop.power_card(PowerUp.Type.UPGRADE).buy_button())
 	var yes: Button = shop.get("_confirm_yes")
-	var elsewhere: Vector2 = _screen(Vector2(360.0, 1180.0))
+	var frame: Rect2 = shop.confirm_frame().get_global_rect()
+	var inside: Vector2 = _screen(Vector2(frame.get_center().x, frame.position.y + 40.0))
 	await _finger(_center(yes), true, 0)
-	await _finger(elsewhere, true, 1)
-	await _cancel_finger(_center(yes), 0)
-	await _cancel_finger(elsewhere, 1)
+	await _finger(inside, true, 1)
+	# Android ACTION_CANCEL: motor izlenen HER parmağa iptal edilen bırakış yollar — tek yığında (aynı kare).
+	for pair: Array in [[_center(yes), 0], [inside, 1]]:
+		var cancel := _touch_event(pair[0], false, int(pair[1]))
+		cancel.canceled = true
+		Input.parse_input_event(cancel)
+	Input.flush_buffered_events()
+	await _settle(2)
 	await _finger(_center(yes), false, 0)
 	await _settle(3)
-	_c("K2 iki parmak + tüm jest ACTION_CANCEL (Android her parmağa iptal yollar) + bayat UP: harcama yok",
+	_c("K2 iki parmak + tüm jest ACTION_CANCEL (her parmağa, tek yığın) + bayat UP: harcama yok, pencere açık",
 		_econ_is(900, 2) and shop.is_confirm_open())
 	await _wait_settled()
 	await _finger(_center(yes), true, 0)
-	await _finger(elsewhere, true, 1)
-	await _cancel_finger(elsewhere, 1)
+	await _finger(inside, true, 1)
+	await _finger(inside, false, 1)
 	await _finger(_center(yes), false, 0)
 	await _settle(3)
-	_c("K3 parmak 0 SATIN AL'da, YALNIZ parmak 1 iptal edildi, parmak 0 gerçekten kalktı: tam bir harcama (900 → 720)",
+	_c("K3 parmak 0 SATIN AL'da, parmak 1 pencere içinde (düğme dışı) kalkar — Android 13+ tek-işaretçi iptalinin Godot'daki düz bırakışı: parmak 0'ın gerçek kalkışıyla tam bir harcama (900 → 720)",
 		_econ_is(720, 3))
+
+	await _boot()
+	await _tab(3)
+	shop = _main._screens[3]
+	var card_buy: Button = shop.power_card(PowerUp.Type.UPGRADE).buy_button()
+	await _ensure_confirm(shop, card_buy)
+	yes = shop.get("_confirm_yes")
+	var dim_at: Vector2 = _shop_dim_point(shop)
+	await _finger(_center(yes), true, 0)
+	await _finger(dim_at, true, 1)
+	# Parmak 1'in karartma bırakışı ve parmak 0'ın SATIN AL bırakışı AYNI girdi yığınında (tek kare): pencere birincisinde
+	# eşzamanlı kapanır (CanvasLayer görünürlüğü çocuklara anında yayılır), ikincisi işlenirken basış çoktan bitmiştir.
+	Input.parse_input_event(_touch_event(dim_at, false, 1))
+	Input.parse_input_event(_touch_event(_center(yes), false, 0))
+	Input.flush_buffered_events()
+	await _settle(3)
+	var closed_by_dim: bool = not shop.is_confirm_open()
+	_c("K5 parmak 0 SATIN AL'da basılıyken parmak 1 karartmaya dokunur, iki bırakış aynı yığında: pencere kapandı, parmak 0'ın kalkışı harcamaz (900 / 2)",
+		closed_by_dim and _econ_is(900, 2))
+	await _ensure_confirm(shop, card_buy)
+	var confirm: Control = shop.get("_confirm")
+	var closes: Array[int] = [0]
+	confirm.visibility_changed.connect(func() -> void:
+		if not confirm.visible:
+			closes[0] += 1)
+	var second: Vector2 = dim_at + Vector2(60.0, 0.0)
+	await _finger(dim_at, true, 0)
+	await _finger(second, true, 1)
+	await _finger(second, false, 1)
+	await _finger(dim_at, false, 0)
+	await _settle(3)
+	_c("K6 iki parmak aynı karartmada: tek kapanış, harcama yok, Mağaza'da kalındı", not shop.is_confirm_open()
+		and closes[0] == 1 and _econ_is(900, 2) and _main._active_tab == 3)
 
 	# Sahiplik düğme başına: bir düğmenin basılı durumu başka bir sahipli düğmenin etkinleştirmesini engellemez.
 	await _boot()
@@ -1268,6 +1450,19 @@ func _source_contract() -> void:
 		if FileAccess.get_file_as_string("res://scripts/ui/%s" % String(pair[0])).contains(String(pair[1])):
 			leftover.append("%s: %s" % [pair[0], pair[1]])
 	_c("  … korumasız doğrudan bağlama kalmadı %s" % str(leftover), leftover.is_empty())
+	var relay_gaps: Array[String] = []
+	for path: String in _scripts_under("res://scripts"):
+		if path.ends_with("/screen_top_bar.gd"):
+			continue
+		var src: String = _strip_comments(FileAccess.get_file_as_string(path))
+		if not src.contains("ScreenTopBar"):
+			continue
+		for sig: String in ["back", "add", "action"]:
+			if src.contains("_bar.%s_pressed.connect(" % sig) and not (src.contains("GestureGuard.allows(_bar.%s_button())" % sig)
+					or src.contains("_gesture_ok(_bar.%s_button())" % sig)):
+				relay_gaps.append("%s: %s" % [path.get_file(), sig])
+	_c("her ScreenTopBar tüketicisi rölesini sahiplik kapısından geçirir (GestureGuard.allows / Koleksiyon _gesture_ok) %s"
+		% str(relay_gaps), relay_gaps.is_empty())
 	var settings_code: String = _strip_comments(FileAccess.get_file_as_string("res://scripts/ui/settings_panel.gd"))
 	for name: String in ["func _on_sfx_toggled(", "func _on_haptics_toggled("]:
 		var fn: String = _function(settings_code, name)
@@ -1275,9 +1470,10 @@ func _source_contract() -> void:
 		_c("  … %s: TASK/053 görünürlük kapısı + sahiplik kapısı yazmadan ÖNCE, reddedilen anahtar kayıttan geri kurulur"
 			% name.trim_prefix("func ").trim_suffix("("), fn.find("not visible") >= 0 and fn.find("not visible") < write
 			and fn.find("GestureGuard.allows(") >= 0 and fn.find("GestureGuard.allows(") < write and fn.contains(".set_on(SaveManager."))
-	_c("UiToggle topuzu anahtarın şu anki durumuna kayar (reddedilen anahtar topuzu kaydırmaz)",
-		_function(_strip_comments(FileAccess.get_file_as_string("res://scripts/ui/ui_toggle.gd")), "func _on_toggled(")
-			.contains("1.0 if button_pressed else 0.0"))
+	var toggle_code: String = _strip_comments(FileAccess.get_file_as_string("res://scripts/ui/ui_toggle.gd"))
+	_c("UiToggle topuzu anahtarın şu anki durumuna kayar; set_on süren topuz animasyonunu durdurur",
+		_function(toggle_code, "func _on_toggled(").contains("1.0 if button_pressed else 0.0")
+		and _function(toggle_code, "func set_on(").contains(".kill()"))
 	var dim: String = _function(_strip_comments(FileAccess.get_file_as_string("res://scripts/ui/ui_kit.gd")),
 		"static func attach_dim_close(")
 	_c("paylaşılan karartma kapanışı iptal edilen bırakışta kapatmaz (dokunuş + fare)", dim.contains("not touch.canceled")
@@ -1568,8 +1764,25 @@ func _unhandled_key() -> void:
 ## Pencere odağı (Android onPause → FOCUS_OUT, onResume → FOCUS_IN): kök pencereden aşağı, motorun sırasıyla.
 func _window_focus(focused: bool) -> void:
 	_ev("FOCUS_%s" % ("IN" if focused else "OUT"))
-	get_tree().root.propagate_notification(NOTIFICATION_WM_WINDOW_FOCUS_IN if focused else NOTIFICATION_WM_WINDOW_FOCUS_OUT)
+	_window_notify(NOTIFICATION_WM_WINDOW_FOCUS_IN if focused else NOTIFICATION_WM_WINDOW_FOCUS_OUT)
 	await _settle(2)
+
+
+## Pencere bildirimini motorun cihaz yolu gibi dağıtır (`Window::_propagate_window_notification`): önce kök, sonra
+## çocuklar sırayla (iç düğümler dahil, alt pencereler hariç), düğümleri MEŞGUL işaretlemeden — `propagate_notification`
+## bildirim sırasında çocuk eklemeyi reddeder, cihazda öyle değildir (GERİ işleyicisi bir board ekleyebilir).
+func _window_notify(what: int) -> void:
+	_notify_tree(get_tree().root, what)
+
+
+func _notify_tree(node: Node, what: int) -> void:
+	node.notification(what)
+	var i: int = 0
+	while i < node.get_child_count(true):
+		var child: Node = node.get_child(i, true)
+		if not (child is Window):
+			_notify_tree(child, what)
+		i += 1
 
 
 ## Android geri (Main'in 250 ms debounce'u gerçek saatle — iki basış arasında boşluk).
@@ -1580,7 +1793,7 @@ func _back() -> void:
 		await get_tree().create_timer(float(gap) / 1000.0).timeout
 	_last_back_msec = Time.get_ticks_msec()
 	_ev("BACK")
-	get_tree().root.propagate_notification(NOTIFICATION_WM_GO_BACK_REQUEST)
+	_window_notify(NOTIFICATION_WM_GO_BACK_REQUEST)
 	await _settle(1)
 
 
@@ -1609,6 +1822,24 @@ func _owned(button: BaseButton) -> bool:
 
 func _count(key: String) -> int:
 	return int(_n.get(key, 0))
+
+
+## Senaryonun ön koşulu (kurulum gerçekten hedef durumu kurdu mu) — tabanda da geçmeli; geçmezse senaryo boşa koşmuştur.
+func _pre(tag: String, ok: bool) -> void:
+	_c("  … %s (ön koşul): hedef ekranda ve etkileşime hazır, açık pencere yok" % tag, ok)
+
+
+func _scripts_under(dir: String) -> Array[String]:
+	var out: Array[String] = []
+	var access := DirAccess.open(dir)
+	if access == null:
+		return out
+	for file: String in access.get_files():
+		if file.ends_with(".gd"):
+			out.append(dir.path_join(file))
+	for sub: String in access.get_directories():
+		out.append_array(_scripts_under(dir.path_join(sub)))
+	return out
 
 
 func _bump(key: String) -> void:

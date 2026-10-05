@@ -364,7 +364,8 @@ func _cancel() -> void:
 	await _down_cancel(_center(close))
 	_c("D detay X: DOWN + CANCEL → detay KAPANMADI (kapanış 0)", _n.get("close.down", 0) == 1 and album.is_detail_open()
 		and _n.get("detail_off", 0) == 0)
-	# Karartma özel bırakış yolu (paylaşılan `attach_dim_close` iptali ayırt etmez — Koleksiyon kendi kaydıyla süzer).
+	# Karartma özel bırakış yolu (Koleksiyon kendi kaydıyla süzer; TASK/055'ten beri paylaşılan `attach_dim_close` da iptali
+	# süzer — iki katmanlı, davranış aynı).
 	_mark()
 	await _down_cancel(_dim_point(album))
 	_c("D karartma: DOWN + CANCEL → detay KAPANMADI (dokunuş karartmaya ulaştı, kapanış 0)", _n.get("dim.down", 0) == 1
@@ -989,7 +990,7 @@ func _source_contract() -> void:
 		and recorder_at >= 0 and recorder_at < detail_fn.find("UiKit.attach_dim_close(")
 		and detail_fn.contains("if not _dim_release_canceled:"))
 	var card_src: String = _strip_comments(FileAccess.get_file_as_string("res://scripts/ui/collection_skin_card.gd"))
-	_c("kart sınıfı ve paylaşılan yardımcılar dokunulmadan: kart yalnız selected yayar, ScreenTopBar / attach_dim_close aynen",
+	_c("kart sınıfı ve paylaşılan yardımcılar: kart yalnız selected yayar, ScreenTopBar aynen, attach_dim_close kapanışı çağırır (TASK/055: iptali de süzer)",
 		card_src.contains("pressed.connect(func() -> void: selected.emit(_id))")
 		and FileAccess.get_file_as_string("res://scripts/ui/screen_top_bar.gd").contains("_back.pressed.connect(func() -> void: back_pressed.emit())")
 		and _function(_strip_comments(FileAccess.get_file_as_string("res://scripts/ui/ui_kit.gd")), "static func attach_dim_close(")

@@ -796,8 +796,10 @@ func _held_variant(control: String, unhandled: bool, with_ads: bool) -> void:
 	var visible_target: bool = target != null and target.is_visible_in_tree()
 	var pos: Vector2 = _center(target) if target != null else Vector2.ZERO
 	var clicks: Array[int] = [0]
+	var ups: Array[int] = [0]
 	if target is BaseButton:
 		(target as BaseButton).pressed.connect(func() -> void: clicks[0] += 1)
+		(target as BaseButton).button_up.connect(func() -> void: ups[0] += 1)
 	var toggle: bool = control == "ses" or control == "titreşim"
 	_reset_marks()
 	_toggles = 0
@@ -808,6 +810,7 @@ func _held_variant(control: String, unhandled: bool, with_ads: bool) -> void:
 		and (not unhandled or not get_viewport().is_input_handled())
 	board._finish(true)
 	await _settle(1)
+	var ended_at_finish: int = ups[0]
 	var timer: SceneTreeTimer = _last_timer
 	var closed_at_finish: bool = not _af("settings")
 	await _finger(pos, false)
@@ -820,9 +823,12 @@ func _held_variant(control: String, unhandled: bool, with_ads: bool) -> void:
 		and AudioManager.is_sfx_enabled() and Haptics.is_enabled() and not _main._settings.visible
 		and not _main._age_panel.visible and _actions["age_info"] == 0 and _actions["settings_closed"] == 1)
 	if unhandled:
-		# Pozitif kontrol: koruma gerçekten sınandı — gizlenen pencerenin kontrolü sentetik bırakışı TIKLAMA saydı.
-		_c("  … K [%s] pozitif kontrol: gizlenen kontrol sentetik bırakışı tam 1 tıklama saydı (anahtarda toggled %d)"
-			% [tag, 1 if toggle else 0], clicks[0] == 1 and _toggles == (1 if toggle else 0))
+		# Pozitif kontrol: kurulum tehlikeli yolu gerçekten kurdu (parmak kontrolde basılı, son olay işlenmemiş, pencere bitişte
+		# gizlendi). TASK/055'ten beri kontrolün basışı gizlenme bildiriminde — motorun sentetik bırakışından ÖNCE — biter: basış
+		# parmak kalkmadan sona erdi (button_up), sentetik tıklama hiç doğmadı (0), anahtar dönmedi. (TASK/053 tabanında aynı
+		# dizide motor bırakışı tam 1 tıklama sayıyor, panelin görünürlük kapısı onu eylemsiz bırakıyordu.)
+		_c("  … K [%s] pozitif kontrol: gizlenen kontrolün basışı bitişte sona erdi (parmak kalkmadan), sentetik tıklama doğmadı (TASK/055)"
+			% tag, ended_at_finish >= 1 and clicks[0] == 0 and _toggles == 0)
 	await _after(timer)
 	_c("  … K [%s] sonuç tek başına, bir kez; diskte tercih aynı%s" % [tag, _above_note()], _result_alone() and _shows == 1
 		and _disk_value("sfx_enabled") == true and _disk_value("haptics_enabled") == true)

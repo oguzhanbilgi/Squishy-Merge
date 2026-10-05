@@ -26,6 +26,8 @@ var off_variation: StringName = &"ToggleOff"
 var knob_texture: Texture2D = null
 
 var _knob: float = 0.0
+## Süren topuz animasyonu (`set_on` onu durdurur: anında kurulan durum animasyonca ezilmesin).
+var _slide: Tween
 var _track_on: StyleBox
 var _track_off: StyleBox
 
@@ -51,6 +53,8 @@ func _ready() -> void:
 
 func set_on(on: bool) -> void:
 	set_pressed_no_signal(on)
+	if _slide != null and _slide.is_valid():
+		_slide.kill()
 	_knob = 1.0 if on else 0.0
 	queue_redraw()
 
@@ -64,10 +68,13 @@ func _notification(what: int) -> void:
 
 
 ## Topuz anahtarın ŞU ANKİ durumuna kayar (yayılan değere değil): kendisinden önce bağlı bir işleyici geçersiz bir
-## dokunuşu reddedip anahtarı `set_on` ile geri aldıysa (TASK/055 Ayarlar) topuz da yerinde kalır.
+## dokunuşu reddedip anahtarı `set_on` ile geri aldıysa (TASK/055 Ayarlar) topuz da yerinde kalır; sonra bağlı bir
+## işleyicinin `set_on`'u da bu animasyonu durdurur — geri alma bağlantı sırasından bağımsız.
 func _on_toggled(_on: bool) -> void:
-	var tween: Tween = create_tween()
-	tween.tween_method(_set_knob, _knob, 1.0 if button_pressed else 0.0, SLIDE_TIME) \
+	if _slide != null and _slide.is_valid():
+		_slide.kill()
+	_slide = create_tween()
+	_slide.tween_method(_set_knob, _knob, 1.0 if button_pressed else 0.0, SLIDE_TIME) \
 		.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
 
 
