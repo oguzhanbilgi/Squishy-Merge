@@ -1,6 +1,6 @@
 # PROJECT_STATUS.md — Squishy Merge, tam proje raporu
 
-**Son güncelleme:** 2026-10-04 · **Durum:** M0–M8 tamamlandı; M8.5–M8.10
+**Son güncelleme:** 2026-10-05 · **Durum:** M0–M8 tamamlandı; M8.5–M8.10
 (release/product stabilization: UI yeniden inşası, gameplay cilası, ses,
 AdMob TEST-reklam monetizasyonu + günlük ödüller, ilk açılış tutorial'ı)
 tamamlandı ve main'de; M9-01 production release hazırlığı (kod) tamamlandı,
@@ -104,11 +104,21 @@ zorunlu geçiş politikası `AdPolicy` (owner kabulüyle ilk üretim varsayılan
 önce 900 sn; ödüllü kotalar değişmedi, app-open ertelendi); mutasyon 47 / 47, tam masaüstü kapısı 49 / 49 temiz (6100
 kontrol), Samsung A36: GEÇTİ — normal TEST geçiş reklamı, bayat mola kurtarması (sahte + gerçek), arka plan / kayıp öne
 dönüş / Vulkan onStart (L1-1), ödüllü D1–D3 (sahte ödül yok), sıklık politikası, TASK/049–051 korunması; logcat temiz,
-QA kaldırıldı (§4.32). Sonraki ürün / stabilizasyon görevi owner seçimi (TASK/053 tanımlanmadı).
+QA kaldırıldı (§4.32). **TASK/053 (2026-10-05; dalda — READY FOR OWNER REVIEW, main'e ALINMADI):** kabul edilen
+round bitişi ön planın sahibi — terminal temizlik açık Ayarlar'ı da kapatır, kesinleşen round'un board'u ekrandayken
+Ayarlar açılmaz (`open_settings()` açılışı raporlar; HUD dişlisi yalnız açılışta dondurur), gizlenen Ayarlar eylem
+üretmez; mutasyon 19 / 19, tam masaüstü kapısı 50 / 50 temiz (6228 kontrol), Samsung A36: GEÇTİ
+(2026-10-05; yalnız QA paketi): bitişte açık Ayarlar bitişte kapandı, beklemede gerçek dişli reddedildi, GERİ /
+meydan okuma / TASK/049–050 korunuyor; logcat temiz, QA kaldırıldı (§4.33).
+TASK/054 tanımlanmadı.
 Release izi ayrı. Sırada: içerik derecesi + yargı bölgesi kararları + 13+ seçici uyum riski (owner) → gizlilik
 politikası → upload anahtarı → gerçek AdMob kimlikleri → mağaza varlıkları / Play Console,
 sonra ilk imzalı üretim AAB'si ve M10 (Play kapalı test) ·
-**Branch / main:** `main` == origin/main == `c7e3ccc` — TASK/052 `task/052-fullscreen-break-recovery-monetization` (main
+**Branch / main:** TASK/053 `task/053-settings-terminal-ownership` (main `5b7a727`'den — `5b7a727` = TASK/052 doküman
+eşitlemesi, canonical main == origin/main; 5 commit: `796e1e7` düzeltme · `4b29c26` test · `fd4f6e6` inceleme
+sertleştirmesi · `be44ca4` test (kapılardan geçen üretim / test adayı) · son commit doküman / A36 kaydı (yalnız
+doküman); READY FOR OWNER REVIEW, main'e ALINMADI) · önce `main` == origin/main == `c7e3ccc` — TASK/052
+`task/052-fullscreen-break-recovery-monetization` (main
 `1d2fb28`'den, 10 commit: `635917b` düzeltme (kira) · `4649af1` politika (`AdPolicy`) · `5e3f707` + `6ec4f93` + `5de685d`
 testler · `334422c` inceleme sertleştirmesi · `050ddac` testler · `41b194d` sertleştirme takibi · `e16da5a` testler
 (kapılardan geçen üretim / test adayı) · `c7e3ccc` doküman / A36 kaydı (yalnız doküman); masaüstü + Samsung A36 kapıları
@@ -2994,6 +3004,72 @@ formatına yalnız `haptics_enabled` (varsayılan true) eklendi. Ayrıntı ve
 - **Kalan / owner:** ADS_SYSTEM §18.5 (geç SDK gösterimi, dokunuşsuz kayıp öne dönüş, eklentinin yetim yeniden
   yüklemesi — native, sıklık / elde tutma deneyi, TEEN uyum maddeleri) ve §19 hesap tarafı işler.
 
+### 4.33 Ayarlar / terminal sonuç sahipliği (TASK/053)
+
+> **READY FOR OWNER REVIEW — dalda, main'e ALINMADI** (`task/053-settings-terminal-ownership`, temel `5b7a727` = main;
+> main DEĞİŞMEDİ). Zincir: `796e1e7` düzeltme · `4b29c26` test (yeni suite + TASK/049 / 050 suite uyarlaması) ·
+> `fd4f6e6` inceleme sertleştirmesi · `be44ca4` test (kapılardan geçen üretim / test adayı) · son commit doküman / A36
+> kaydı (yalnız doküman). Açık madde (3) bu dalda kapandı; (4) Koleksiyon kartı + GERİ, (5) genel GUI ACTION_CANCEL,
+> (6) T5 hedef kartı kırpması AÇIK.
+
+- **Hata (önceden var olan, açık madde (3)):** Ayarlar `CanvasLayer` katman 13, sonuç katman 10 — ikisi birden
+  görünürse Ayarlar üstte, karartması sonucun girdisini tutar. (1) TASK/049'un terminal temizliği
+  (`_dismiss_terminal_gameplay_overlays`, normal + TASK/050 meydan okuma bitişi) Ayarlar'ı bilerek dışarıda bırakıyordu:
+  menü dondurmasında da round biter (Büyütücü dönüşümü 0,15 sn board tween'i; aynı karede ertelenmiş merge), bitişte
+  açık Ayarlar sonuç açıldığında hâlâ üstündeydi. (2) HUD dişlisinin yolu (`_on_board_settings_requested` →
+  `open_settings`) round'un kesinleştiğine bakmıyordu (`open_pause_menu` bakıyor): dişli bitişten sonra dokunulabilir
+  kalıyor; RESULT_DELAY (0,8 sn) ya da geçiş reklamı molası içinde Ayarlar açılıyor, sonuç onun altında açılıyordu;
+  TASK/048'in ertelenen yeniden başlatması yeni round'u Ayarlar'ın altında başlatıyordu. Faz A izlemesi + düzeltmesiz
+  `5b7a727`'de deterministik yeniden üretim (A–E kayıtları: round nesli, sonuç sırası, Ayarlar / mola / refill
+  görünürlüğü, menü dondurması, sonuç görünürlüğü, olay sırası / zaman damgaları; yeni suite'in o sürümü 57 / 116 FAIL,
+  0 SCRIPT ERROR).
+- **Düzeltme (en küçük sahiplik düzeltmesi; gecikme / gezinme yeniden yazımı yok):** terminal temizlik açık Ayarlar'ı da
+  kendi kapanış yoluyla kapatır (`close_settings()`; kapanış işleyicisi bitmiş board'da hiçbir şey yapmaz, tercih
+  yazılmaz; sıra mola → refill → Ayarlar, gecikmeden ÖNCE, round başına bir kez); `open_settings()` (tek açma noktası:
+  HUD dişlisi, Profil dişlisi, QA) `_terminal_round_owns_screen()` — `_round_finalized` + board ekranda — iken açmaz ve
+  `false` döndürür; HUD dişlisi board'u yalnız `open_settings()` `true` döndürünce dondurur (reddedilen açılış board'a
+  dokunmaz); `SettingsPanel` gizliyken ses / titreşim / Yaş bilgisi / gizlilik seçenekleri / politika işleyicileri
+  eylem üretmez (pencere bir kontrol basılıyken gizlenirse Godot gizleme anında sentetik bırakış yollar; son girdi
+  işlenmemişse BaseButton bunu tıklama sayar — TASK/049'un mola dersi; korumasız sürümde tercih yazılıyor, yaş paneli
+  sonucun üstüne açılıyordu). Yeni round (`_begin_round`) bayrağı indirir; çıkış / terk board'u kaldırır — Profil / kabuk
+  yolu etkilenmez. Bitiş dışında Ayarlar, GERİ, kalıcılık AYNEN; RESULT_DELAY 0,8 sn, 300 ms yatışma, TASK/046.2 iptal
+  koruması ve TASK/048 nesil / erteleme yolu değişmedi.
+- **Bilinçli sınırlar (inceleme notu, düzeltilmedi):** Ayarlar'dan açılan alt pencereler (yaş bilgisi paneli katman 14,
+  UMP gizlilik formu, tarayıcı) temizliğin dışında — dokunuşla bitişte açık olamazlar (menü dondurmasında bitiş yalnız
+  0,15 sn dönüşüm / aynı kare merge; `open_settings` 300 ms yatışma kurar; gizli Ayarlar onları açmaz); anahtarın süren
+  topuz animasyonu / basış ölçeği kozmetik (Android GERİ yolunda tabanda da aynı); bitmiş board'da reddedilen dişli
+  dokunma sesini / squish'i oynatır (bitmiş board'daki HUD geri reddiyle aynı — owner cila kararı).
+- **Doğrulama:** yeni `tools/settings_terminal_ownership_test` 129 / 129 (A bitişte açık — gerçek dişli dönüşüm
+  sırasında; B bekleme / sonuç / reklam molasında açma girişimi — gerçek dokunuşlarda pozitif kontrol: istek dişliye
+  ulaştı; C bitiş dışında aynen; D GERİ; E mola / refill + Ayarlar; F menü dondurması sızmaz — F4 kapalı kapıda canlı
+  board donmaz; G meydan okuma; H TASK/048; I tekrar / çıkış; J yinelenen bitiş; K tercih kalıcılığı + basılı kontrol
+  varyantları — "+ olay" varyantlarında gizli tıklama tam 1, yeniden açılışta anahtar = kayıt; P kaynak sözleşmesi);
+  uyarlanan `round_finish_modal_test` 163 (§I) ve `daily_challenge_terminal_modal_test` 178 (§T) — ikisi eskiden
+  "Ayarlar sonucun üstünde kalır"ı mevcut davranış olarak kilitliyordu; taban farkı (116 kontrollü sürüm, aynı koşucu):
+  taban 57 · yalnız temizlik 27 · yalnız kapı 36 · pencere korumaları olmadan 7 · tam 0 FAIL; mutasyon 19 / 19 (brifin 8
+  sınıfı + tasarım mutantları; hepsi açık FAIL, 0 yalnız-betik-hatası, sha doğrulamalı bayt-aynı geri koyma; M06 bitmiş
+  board'da dondurma ve M14 gizlilik işleyicileri yalnız kaynak sözleşmesiyle — M06 sertleştirmeden sonra davranışsal
+  eşdeğer, M14'ün davranışsal varyantı masaüstünde gerçek tarayıcı açardı); 8 mercekli salt-okunur inceleme (4 ajan)
+  BLOCKER / HIGH / MEDIUM 0 — LOW / NIT sertleştirmesi `fd4f6e6` / `be44ca4`; kontrollü tam masaüstü kapısı (`be44ca4`)
+  50 / 50 temiz — 6228 kontrol, 0 FAIL, 0 SCRIPT ERROR, bot 2 / 2, sahibin kaydı bayt-aynı; Samsung A36: **GEÇTİ**
+  (2026-10-05; QA APK `be44ca4`'ten, sha `11c947ec…`, `verify_apk` PASS; yalnız `com.obappstudio.squishymerge.qa`,
+  Google örnek kimlikleri; RUNBOOK §0–§6). **1a** Büyütücü dönüşümü sırasında uygulama içi GUI dişli dokunuşu Ayarlar'ı
+  açtı (board donuk), round Ayarlar açıkken bitti: Ayarlar bitiş işleyicisinde kapandı (kapanış 1, FINISH kaydından
+  önce), menü dondurması bırakıldı, sonuç 0,79 sn sonra tek başına; sonuçta iki gerçek GERİ yok sayıldı (görüntü: yalnız
+  sonuç kartı). **1b** gerçek adb dişli dokunuşu canlı round'da Ayarlar'ı açtı ve board'u dondurdu; dar dikişle
+  (`GameBoard._finish`) bitiş → aynı sonuç. **2a** bitişten 285 ms sonra uygulama içi GUI dişli basışı dişliye ulaştı,
+  Ayarlar açılmadı, board donmadı; **2b** GERÇEK adb dokunuşu bitişten 233 ms sonra dişliye ulaştı (`finalized=true`,
+  sonuç henüz yok), Ayarlar açılmadı, sonuç 0,80 sn'de tek başına. **3** canlı round'da gerçek dişli → Ayarlar (board
+  donuk), gerçek GERİ kapattı (kapanış 1, mola açılmadı, board çözüldü), ardından gerçek tahta dokunuşu tam 1 bırakış.
+  **4** meydan okuma aynı karede Ayarlar açıkken kazanıldı → Ayarlar bitişte kapandı, CHALLENGE_WIN 0,77 sn'de tek
+  başına, +20 bir kez (görüntü), sonuç düğmesine gerçek dokunuş → Ana Sayfa; ertesi QA gününde (uygulamanın gün kancası
+  `t47_clock`; cihaz saati değişmedi) beklemede GUI dişli reddedildi, +20 bir kez. **5** TASK/049 (dönüşüm sırasında
+  Android GERİ yoluyla mola → bitişte eylemsiz kapandı, sonuç tek başına) ve TASK/050 (meydan okuma molada aynı karede
+  kazanıldı → mola kapandı, CHALLENGE_WIN tek başına, +20) korunuyor. Kapı boyunca gerçek dokunuş 5 / 5 (yabancı girdi
+  yok); logcat: 1 QA süreci, 0 SCRIPT ERROR / çökme / ANR / Godot hatası, yalnız Google örnek yayıncısı; QA kaldırıldı,
+  üretim paketi hiç kurulmadı, `com.example` dokunulmadı, gezinme kipi / otomatik saat / saat değişmedi; yalnız bu
+  oturumun başlattığı adb daemon'u durduruldu.
+
 ## 5. Dosya/klasör yapısı ve script envanteri
 
 ```
@@ -3771,16 +3847,21 @@ Owner'ın yapacağı / onaylayacağı:)*
   (`AdPolicy`: 2 kesinleşen normal round + 300 aktif sn, önce 900 sn; ödüllü kotalar değişmedi, app-open ertelendi) →
   ✅ **main'de** (§4.32; masaüstü + Samsung A36 kapıları GEÇTİ — kontrollü tam masaüstü kapısı 49 / 49 temiz; owner
   onayıyla ff-only `1d2fb28 → c7e3ccc`, 2026-10-04; dal `task/052-fullscreen-break-recovery-monetization` duruyor).
-- **Sıradaki görev:** owner seçer (TASK/053 tanımlanmadı). Açık, ayrı maddeler — erteleme ya da sonuç / reklam
-  beklemesinde Ayarlar (görsel; sonucun üstünde kalır) — §4.28 / §4.29; Koleksiyon kartı + GERİ · genel GUI
-  ACTION_CANCEL · T5 hedef kartı kırpması — §4.26 / §4.27 — kendiliğinden sıradaki görev seçilmez. TASK/052 takip
-  gözlemleri yalnız not (görev DEĞİL): trafik sonrası elde tutma / ARPDAU incelemesi, isteğe bağlı daha güçlü ilk gün
-  koruması A/B testi, native yetim yeniden yükleme temizliği ve banner iş parçacığı yarışı incelemesi, yayından önce
+- **TASK/053** — Ayarlar / terminal sonuç sahipliği (terminal temizlik açık Ayarlar'ı da kapatır; kesinleşen round'un
+  board'u ekrandayken Ayarlar açılmaz; HUD dişlisi yalnız açılışta dondurur; gizlenen Ayarlar eylem üretmez) → **READY
+  FOR OWNER REVIEW, dalda** (§4.33; masaüstü + Samsung A36 kapıları GEÇTİ — kontrollü tam masaüstü kapısı 50 / 50
+  temiz; main'e ALINMADI, merge owner kararı; dal `task/053-settings-terminal-ownership`).
+- **Sıradaki görev:** owner seçer (TASK/054 tanımlanmadı; TASK/053 dalda owner incelemesi bekliyor). Açık, ayrı
+  maddeler — Koleksiyon kartı + GERİ · genel GUI ACTION_CANCEL · T5 hedef kartı kırpması — §4.26 / §4.27 —
+  kendiliğinden sıradaki görev seçilmez. TASK/052 takip gözlemleri yalnız not (görev DEĞİL): trafik sonrası elde
+  tutma / ARPDAU incelemesi, isteğe bağlı daha güçlü ilk gün koruması A/B testi, native yetim yeniden yükleme
+  temizliği ve banner iş parçacığı yarışı incelemesi, yayından önce
   TEEN / uyum yeniden incelemesi, mediation / bidding / hesap tarafı iyileştirme, App Open yalnız gerçek bir yükleme /
   bekleme yüzeyi olursa (ADS_SYSTEM §18.5 / §18.7 / §19). *(Mola üstünde sonuç → TASK/049 ile kapatıldı — main'de
   `f6cd072`. Meydan okumanın aynı karede merge ile molada bitmesi → TASK/050 ile kapatıldı — main'de `8f9e259`, §4.30.
   `_start_level` yatışması / çift dokunuş / basılı parmak → TASK/051 ile kapatıldı — main'de `4bae821`, §4.31. Hiç
-  bitmeyen tam ekran reklam molasında çıkış kapısı → TASK/052 ile kapatıldı — main'de `c7e3ccc`, §4.32.)*
+  bitmeyen tam ekran reklam molasında çıkış kapısı → TASK/052 ile kapatıldı — main'de `c7e3ccc`, §4.32. Erteleme ya da
+  sonuç / reklam beklemesinde Ayarlar → TASK/053 dalında düzeltildi — main'e alınmadı, §4.33.)*
 - ~~**Kararlılık (öneri — TASK/045 engeli değil):** atomik kayıt (`save_game()` yerinde kesip
   yazıyor; geçici dosya + yedekten kurtarma) · güç hedefleme bırakış-düşürme (Büyütücü ve
   Bomba hedef dokunuşunun bırakışı bekleyen parçayı da düşürebilir) · Koleksiyon detayı

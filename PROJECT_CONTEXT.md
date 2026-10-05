@@ -76,7 +76,7 @@ alınacak — şimdi tahmin/vaat yok.
 
 ## Current state
 
-**Kanonik durum — 2026-10-04.** Bugünün gerçeği bu bölüm +
+**Kanonik durum — 2026-10-05.** Bugünün gerçeği bu bölüm +
 [Current release blockers](#current-release-blockers) +
 [Next action](#next-action); aşağıdaki "Milestone tarihçesi" değil.
 
@@ -136,6 +136,31 @@ alınacak — şimdi tahmin/vaat yok.
   (`bc40da1` · `ed08b07` · `1ff0ba1` · `98d209e` · `b90bc3c`); merge commit / rebase / squash /
   cherry-pick YOK. Dallar referans için duruyor (`task/046-daily-weekly-missions` = `5092dad`,
   `task/046-1-age-gate-13plus-redesign` = `b90bc3c`).
+- **TASK/053 — Ayarlar / terminal sonuç sahipliği — READY FOR OWNER REVIEW, dalda (main'e ALINMADI; main DEĞİŞMEDİ
+  `5b7a727`)** — dal `task/053-settings-terminal-ownership` (5 commit; kapılardan geçen üretim / test adayı `be44ca4`,
+  üstünde yalnız doküman). **Hata (önceden var olan — açık madde (3)):** Ayarlar katman 13, sonuç katman 10 — ikisi
+  birden görünürse Ayarlar üstte, karartması sonucun girdisini tutar. TASK/049'un terminal temizliği Ayarlar'ı bilerek
+  dışarıda bırakıyordu (bitişte açık Ayarlar sonucun üstünde kalıyordu — Büyütücü dönüşümü / aynı karede merge menü
+  dondurmasında da round'u bitirir) ve HUD dişlisi kesinleşen round'a bakmıyordu (RESULT_DELAY / geçiş reklamı molası
+  içinde Ayarlar açılıyor, sonuç — ya da TASK/048'in ertelenen yeniden başlatmasının yeni round'u — onun altında
+  açılıyordu); düzeltmesiz `5b7a727`'de deterministik yeniden üretildi (yeni suite'in o sürümü 57 / 116 FAIL, 0 SCRIPT
+  ERROR). **Düzeltme (en küçük sahiplik düzeltmesi):** kabul edilen bitiş ön planın sahibi — TASK/049 / 050 terminal
+  temizliği (normal + meydan okuma, gecikmeden ÖNCE) açık Ayarlar'ı da kendi kapanış yoluyla kapatır; `open_settings()`
+  kesinleşen round'un board'u ekrandayken açmaz ve açılışı raporlar (bool); HUD dişlisi board'u yalnız pencere gerçekten
+  açıldıysa dondurur; gizlenen Ayarlar'ın işleyicileri (ses / titreşim / Yaş bilgisi / gizlilik seçenekleri / politika)
+  eylem üretmez — gizleme anındaki sentetik tıklama tercih yazmaz, pencere açmaz. Bitiş dışında Ayarlar, Profil dişlisi,
+  Android GERİ ve kalıcılık AYNEN; RESULT_DELAY 0,8 sn, 300 ms yatışma ve TASK/048 nesil koruması değişmedi; Ayarlar
+  global olarak kapatılmadı. **Doğrulama:** yeni `settings_terminal_ownership_test` 129 / 129 (uyarlanan
+  `round_finish_modal_test` 163 · `daily_challenge_terminal_modal_test` 178 — ikisi de eskiden "Ayarlar sonucun üstünde
+  kalır"ı mevcut davranış olarak kilitliyordu); taban farkı (suite'in 116 kontrollü sürümü): taban 57 · yalnız temizlik
+  27 · yalnız kapı 36 · pencere korumaları olmadan 7 · tam düzeltme 0 FAIL — her parça gerekli; mutasyon 19 / 19 (açık
+  FAIL, 0 SCRIPT ERROR, bayt-aynı geri koyma); 8 mercekli salt-okunur inceleme BLOCKER / HIGH / MEDIUM 0 (LOW / NIT
+  sertleştirmesi uygulandı); kontrollü tam masaüstü kapısı (`be44ca4`) 50 / 50 temiz — 6228 kontrol, 0 FAIL, 0 SCRIPT
+  ERROR, bot 2 / 2, sahibin kaydı bayt-aynı; **Samsung A36:** GEÇTİ (2026-10-05; yalnız QA paketi, `be44ca4`
+  APK'sı): bitişte açık Ayarlar bitişte kapandı ve sonuç tek başına açıldı (GUI ve gerçek adb dişli); beklemede
+  dişli — gerçek adb dokunuşu dahil — Ayarlar'ı açmadı; Ayarlar'dan GERİ aynen; meydan okuma (+20, iki QA günü) ve
+  TASK/049 / 050 korunuyor; logcat temiz, yabancı girdi yok; QA kaldırıldı, üretim paketi kurulmadı, gezinme kipi ve
+  saat değişmedi). Ayrıntı: PROJECT_STATUS §4.33.
 - **TASK/052 — tam ekran mola kurtarma + gelir odaklı geçiş politikası — TAMAM, main'de** (owner onayıyla ff-only
   `1d2fb28 → c7e3ccc`, 2026-10-04; doğrulamanın tamamı entegrasyondan ÖNCE tamamlandı — aşağıda; entegrasyon ve doküman
   eşitlemesi sırasında hiçbir kapı yeniden koşulmadı). **Hata (önceden var olan — eski açık madde (2)):** SDK'nın
@@ -928,18 +953,24 @@ dokunulmadı) — PROJECT_STATUS §4.32. Entegrasyon ve bu doküman eşitlemesi 
   trafikten sonra izle: match rate, show rate, eCPM, gösterim / DAU, ödüllü katılım oranı, ARPDAU, oturum süresi, D1 / D7
   elde tutma, çökme / ANR, reklamla ilgili olumsuz yorumlar.
 
-**Sıradaki ürün / stabilizasyon görevi owner seçimi** (TASK/053 tanımlanmadı) — aşağıdaki açık maddelerden hiçbiri
-kendiliğinden seçilmez. TASK/052 takip gözlemleri yalnız NOT (görev değil): trafik sonrası canlı elde tutma / ARPDAU
+**Stabilizasyon — TASK/053 Ayarlar / terminal sonuç sahipliği: READY FOR OWNER REVIEW, dalda (main'e ALINMADI).** Dal
+`task/053-settings-terminal-ownership`, main `5b7a727`'den; owner incelemesi ve entegrasyon kararı bekliyor (merge
+EDİLMEDİ). Açık madde (3) **FIXED ON TASK/053 BRANCH**. Owner için ayrıca (isteğe bağlı cila, düzeltilmedi): bitmiş
+board'da reddedilen dişli dokunuşu dokunma sesini / squish'i yine oynatır — bitmiş board'daki HUD geri reddiyle aynı
+(oynanış dondurulmuş; PROJECT_STATUS §4.33). TASK/054 tanımlanmadı; aşağıdaki açık maddelerden hiçbiri kendiliğinden
+seçilmez. TASK/052 takip gözlemleri yalnız NOT (görev değil): trafik sonrası canlı elde tutma / ARPDAU
 incelemesi; isteğe bağlı daha güçlü ilk gün koruması A/B testi; native yetim yeniden yükleme temizliği; native banner
 iş parçacığı yarışı incelemesi; yayından önce üretim TEEN / uyum yeniden incelemesi; mediation / bidding / hesap
 tarafı iyileştirme; App Open yalnız ileride gerçek bir yükleme / bekleme yüzeyi olursa.
 
 Açık, owner kararı bekleyen ayrı maddeler (**BAŞLAMADI**; hiçbiri kendiliğinden seçilmez; (1) TASK/051 ile, (2)
-TASK/052 ile kapandı — aşağıda): (3) erteleme sürerken HUD Ayarlar açılırsa yeni round Ayarlar'ın
-altında başlar; RESULT_DELAY / reklam beklemesinde açılan ya da bitişte açık Ayarlar sonucun üstünde kalır (görsel;
-TASK/049 Ayarlar'ı bilinçli olarak kapatmaz); (4) basılı Koleksiyon kartı + Android GERİ sentetik bırakışı (yukarıda,
-TASK/045.2; ACTION_CANCEL'in tahta tarafı TASK/046.2'de giderildi — main'de); (5) genel GUI ACTION_CANCEL — modal /
-karartma iptal davranışı ve güç düğmesinin iptal edilen dokunuşta çalışması (TASK/046.2 A36 kapısı gözlemi: Sarsıntı
+TASK/052 ile kapandı — aşağıda; (3) TASK/053 dalında düzeltildi): ~~(3) erteleme sürerken HUD Ayarlar açılırsa yeni
+round Ayarlar'ın altında başlar; RESULT_DELAY / reklam beklemesinde açılan ya da bitişte açık Ayarlar sonucun üstünde
+kalır (görsel; TASK/049 Ayarlar'ı bilinçli olarak kapatmaz)~~ → **FIXED ON TASK/053 BRANCH** (terminal temizlik
+Ayarlar'ı kapatır, kesinleşen round'da açılmaz; main'e alınmadı — PROJECT_STATUS §4.33); (4) basılı Koleksiyon kartı +
+Android GERİ sentetik bırakışı (yukarıda, TASK/045.2; ACTION_CANCEL'in tahta tarafı TASK/046.2'de giderildi —
+main'de); (5) genel GUI ACTION_CANCEL — modal / karartma iptal davranışı ve güç düğmesinin iptal edilen dokunuşta
+çalışması (TASK/046.2 A36 kapısı gözlemi: Sarsıntı
 düğmesinde gerçek ACTION_CANCEL stoğu 1 → 0 tüketti, parça düşmedi; §4.26); (6) HUD hedef kartı T5 adını "Büyük
 Dumpl…" diye kırpar (önceden var olan kart, normal Level 3'te de; PROJECT_STATUS §4.27 (d)). Meydan okuma güç
 düğmelerini gizleyip kilitlediği için (5)'teki Sarsıntı iptal hatası meydan okumayı etkilemez; meydan okumanın KENDİ
