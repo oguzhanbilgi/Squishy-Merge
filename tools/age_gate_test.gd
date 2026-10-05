@@ -1,7 +1,7 @@
 extends Node
 ## TASK/043 + TASK/046.1 — yaş ekranı modeli + kaydı + UI deterministik testi (İNTERNET, CİHAZ,
-## EKLENTİ YOK; saat `AgeGate.clock_override` ile enjekte edilir). docs/monetization/
-## AGE_BAND_ROUTING.md.
+## EKLENTİ YOK; saat `AgeGate.clock_override` ile, kayıt senaryolarının günü `DailyRewards.clock_override` ile
+## enjekte edilir — cihaz takvimine bağlı değil). docs/monetization/AGE_BAND_ROUTING.md.
 ##
 ##   TAKVİM     artık yıl (1900 / 2000 / 2024 / 2100), ay uzunlukları, geçersiz tarihler,
 ##              kesin YYYY-MM-DD ayrıştırma, gün numarası, 29 Şubat yıl dönümü -> 1 Mart
@@ -87,6 +87,7 @@ func _ready() -> void:
 	_test_retired_flow()
 
 	AgeGate.clock_override = ""
+	DailyRewards.clock_override = ""
 	get_window().size = Vector2i(720, 1280)
 	SaveManager.data = _saved
 	_restore_save_file()
@@ -531,9 +532,19 @@ func _disk_text() -> String:
 	return FileAccess.get_file_as_string(SaveManager.SAVE_PATH)
 
 
+## Kayıt senaryolarının GÜNLÜK ÖDÜLLER günü (enjekte): kayıt yüklemesi görev dönemini kabul edilen günden açar
+## (`_migrate_missions` → `Missions.accepted_day()` → `DailyRewards.day_key()`), sonraki kayıt onu diske yazar. Gün
+## enjekte edilmezse cihaz takviminin günü ve o haftanın pazartesisi kayda girer; aşağıdaki "eski 13. yaş günü
+## (LEGACY_13TH) hiçbir kopyada kalmaz" kontrolleri o günün haftasında (2026-10-05 … 11) çakışırdı. Bölümün kendi
+## "bugün"ü; haftası (2026-09-28) LEGACY_13TH'in haftasından farklı.
+const SAVE_DAY: String = "2026-10-01"
+const LEGACY_13TH: String = "2026-10-05"
+
+
 func _test_save_format() -> void:
 	print("-- kayıt: anahtarlar, eski kayıt, kalıcılık, bozuk kayıt, yeniden giriş, ham tarih YOK")
-	var today: Dictionary = _d("2026-10-01")
+	DailyRewards.clock_override = SAVE_DAY
+	var today: Dictionary = _d(SAVE_DAY)
 	_c("DEFAULT_DATA: age_ad_band UNKNOWN + next_age_transition_date boş (iki anahtar, doğum tarihi anahtarı yok)",
 		SaveManager.DEFAULT_DATA["age_ad_band"] == "UNKNOWN" and SaveManager.DEFAULT_DATA["next_age_transition_date"] == ""
 		and not _has_dob_key(SaveManager.DEFAULT_DATA))
@@ -551,6 +562,12 @@ func _test_save_format() -> void:
 	_c("eski kayıt dosyasında yaş anahtarı yok; yüklemede varsayılan UNKNOWN (bellekte), dosya değişmedi",
 		not _disk_text().contains("age_ad_band") and SaveManager.age_ad_band_raw() == "UNKNOWN"
 		and FileAccess.get_file_as_bytes(SaveManager.SAVE_PATH) == legacy_bytes)
+	var period: Dictionary = SaveManager.data.get("missions", {})
+	_c("(ön koşul) kayıt günü ENJEKTE, cihaz takvimine düşmez: yüklemenin açtığı görev dönemi %s (hafta %s); eski 13. yaş günü %s ve haftası %s ile çakışmaz"
+		% [SAVE_DAY, Missions.week_start(SAVE_DAY), LEGACY_13TH, Missions.week_start(LEGACY_13TH)],
+		DailyRewards.today_local() == SAVE_DAY and period.get("day_key") == SAVE_DAY
+		and period.get("week_start_day_key") == Missions.week_start(SAVE_DAY)
+		and Missions.week_start(SAVE_DAY) != Missions.week_start(LEGACY_13TH) and SAVE_DAY != LEGACY_13TH)
 	var legacy_band: int = SaveManager.resolve_age_band_at_launch(today)
 	_c("eski kayıt (anahtar yok) -> UNKNOWN; açılışta YAZMA yok; ilerleme duruyor (level 6, 420 Hamur)",
 		legacy_band == AgeGate.Band.UNKNOWN and FileAccess.get_file_as_bytes(SaveManager.SAVE_PATH) == legacy_bytes
@@ -622,6 +639,7 @@ func _test_save_format() -> void:
 	_c("yeniden giriş üzerine yazar: ADULT -> TEEN (tek kayıt, geçiş yeni)", SaveManager.age_ad_band_raw() == "TEEN"
 		and SaveManager.next_age_transition_raw() == "2028-01-01")
 	_c("store_age_band doğum tarihi parametresi ALMAZ (bant + geçiş)", _method_args(SaveManager, "store_age_band") == ["band", "transition"])
+	DailyRewards.clock_override = ""
 
 
 static func _has_dob_key(data: Variant) -> bool:
