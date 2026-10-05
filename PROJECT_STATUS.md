@@ -114,8 +114,9 @@ kaldırıldı) (§4.33). **TASK/054 (2026-10-05; Koleksiyon basılı dokunuş + 
 BRANCH, READY FOR OWNER REVIEW, main'e ALINMADI):** pozitif dokunuş sahipliği — Koleksiyon düğmesinin eylemi yalnız
 düğme ekrandayken ve basışın gerçek, iptal edilmemiş bırakışı görüldüyse çalışır; gizlenen / odak kaybındaki basılı
 düğmenin basışı biter; X / karartma ACTION_CANCEL'da kapatmaz; taban farkı 59 → 0 FAIL, mutasyon 25 / 25, tam masaüstü
-kapısı 51 koşuda 50 temiz (tek istisna önceden var olan, yalnız 2026-10-05'te düşen `age_gate_test` tarih bombası —
-main'de de aynı), Samsung A36: GEÇTİ (§4.34). Sonraki ürün / stabilizasyon görevi owner seçimi (TASK/055 tanımlanmadı,
+kapısı 51 / 51 temiz (son aday `db5542f`, üretim kodu `158022e` ile bayt-aynı: 6324 kontrol, 0 FAIL, 0 SCRIPT ERROR; ilk
+koşunun açığa çıkardığı, main'de de aynı olan `age_gate_test` tarih fikstürü hatası yalnız-test düzeltmesiyle
+giderildi), Samsung A36: GEÇTİ (§4.34). Sonraki ürün / stabilizasyon görevi owner seçimi (TASK/055 tanımlanmadı,
 başlamadı).
 Release izi ayrı. Sırada: içerik derecesi + yargı bölgesi kararları + 13+ seçici uyum riski (owner) → gizlilik
 politikası → upload anahtarı → gerçek AdMob kimlikleri → mağaza varlıkları / Play Console,
@@ -3091,11 +3092,12 @@ formatına yalnız `haptics_enabled` (varsayılan true) eklendi. Ayrıntı ve
 ### 4.34 Koleksiyon basılı dokunuş + Android GERİ (TASK/054)
 
 > **FIXED ON TASK/054 BRANCH — READY FOR OWNER REVIEW, main'e ALINMADI** (`task/054-collection-hold-android-back`, main
-> `6a4a2b2`'den; main DEĞİŞMEDİ, merge owner kararı). Zincir (6 kod / test commit'i + doküman): `e49293e` düzeltme ·
-> `ef08df1` + `6322101` test · `84770b3` inceleme sertleştirmesi · `3d4cb4a` + `158022e` test (kapılardan geçen üretim /
-> test adayı `158022e`) · doküman / A36 kaydı (yalnız doküman). Eski açık madde (4) FIXED ON TASK/054 BRANCH; AÇIK kalan
-> tam 2 madde: (5) genel GUI ACTION_CANCEL, (6) T5 hedef kartı kırpması `Büyük Dumpl…` (PROJECT_CONTEXT → Next action).
-> TASK/055 tanımlanmadı, başlamadı.
+> `6a4a2b2`'den; main DEĞİŞMEDİ, merge owner kararı). Zincir (7 kod / test commit'i + 2 doküman): `e49293e` düzeltme ·
+> `ef08df1` + `6322101` test · `84770b3` inceleme sertleştirmesi · `3d4cb4a` + `158022e` test (A36'dan geçen üretim
+> adayı `158022e`) · `a5b3e35` doküman / A36 kaydı · `db5542f` yalnız test (`age_gate_test` tarih fikstürü
+> deterministik; son tam masaüstü kapısından geçen aday — üretim kodu `158022e` ile bayt-aynı) · doküman (son kapı).
+> Eski açık madde (4) FIXED ON TASK/054 BRANCH; AÇIK kalan tam 2 madde: (5) genel GUI ACTION_CANCEL, (6) T5 hedef kartı
+> kırpması `Büyük Dumpl…` (PROJECT_CONTEXT → Next action). TASK/055 tanımlanmadı, başlamadı.
 
 - **Hata (önceden var olan, eski açık madde (4)):** Godot 4.6.3 basılı bir düğmenin fare odağını düşürürken — düğme
   gizlenince (`Viewport::_gui_hide_control`: Android GERİ, sekme değişimi, detay kapanışı) ya da pencere odağı gidince
@@ -3150,24 +3152,38 @@ formatına yalnız `haptics_enabled` (varsayılan true) eklendi. Ayrıntı ve
   mercek (`6322101`) + sertleştirme incelemesi (`158022e`) — BLOCKER / HIGH 0; MEDIUM pencere odağı kaybı ve X /
   karartma iptali `84770b3`'te giderildi, Profil vitrin yuvası ve Mağaza iptali kapsam dışı kaydedildi; LOW / NIT test
   sertleştirmesi; koruma grubu 13 suite 1553 kontrol (TASK/051, TASK/053, Koleksiyon, Profil, Ana Sayfa, Harita, Mağaza,
-  ekonomi, kalıcılık, günlük pencere kapısı); kontrollü tam masaüstü kapısı (`158022e`) 51 koşu — 50 temiz, 6321
-  kontrol, 0 SCRIPT ERROR, sahibin kaydı bayt-aynı; tek istisna `age_gate_test` 207 / 209: TASK/054'ten BAĞIMSIZ,
-  önceden var olan tarih bombası (eski UNDER_13 bölümü 13. yaş gününü "2026-10-05" seçiyor; `DailyRewards.today_local()`
-  gerçek tarihi kayda `last_seen_day_key` olarak yazıyor → "kayıtta 2026-10-05 kalmaz" kontrolü yalnız 2026-10-05'te
-  düşer; üretim ağacı main `6a4a2b2` iken aynı 2 FAIL; 2026-10-04 23:22'ye kadarki her kapıda 209 / 209; ertesi günden
-  itibaren kendiliğinden geçer). **Samsung A36: GEÇTİ** (2026-10-05; QA APK `158022e`'den, sha `d325537c…`, `verify_apk`
-  PASS — sertleştirilmiş aday belirteçleri var, ilk adayınki yok; yalnız `com.obappstudio.squishymerge.qa`, Google örnek
-  kimlikleri): **1** basılı kart + gerçek GERİ + bırak 5 / 5 — her koşuda `ALBUM off` ile aynı ms'de basış bitti,
-  PRESSED / detay 0, Ana Sayfa; **2** madalyonla yeniden açılış (bayat detay yok) + taze dokunuş tam 1 detay; **3**
-  VİTRİNE EKLE basılı + GERİ → vitrin bellek + disk aynı, sonra taze dokunuş tam 1 ekleme; kilitli MAĞAZAYA GİT basılı +
-  GERİ → Mağaza'ya gidilmedi; **4** VİTRİNDEN ÇIKAR basılı + hızlı çift GERİ → tek detay kapanışı + tek gezinme, vitrin
-  aynı; **5** gerçek `input motionevent CANCEL`: kart (motorun PRESSED'i koruma tarafından reddedildi), iptal + bayat
-  UP, ardından taze dokunuş tam 1; karartma ve X iptali detayı kapatmadı; karartma iptali + GERİ tek gezinme
-  (Koleksiyon'da kalındı); **6** GERİ zinciri, üst çubuk geri / "+" tam 1 gezinme, X / karartma normal dokunuşu tam 1
-  kapanış. Gate boyunca gerçek dokunuş 28 / 28 (yabancı girdi yok); logcat: 1 QA süreci, 0 SCRIPT ERROR / çökme / ANR /
-  Godot hatası, yalnız Google örnek yayıncısı; QA kaldırıldı, üretim paketi hiç kurulmadı, `com.example` dokunulmadı,
-  gezinme kipi / otomatik saat / saat değişmedi; yalnız bu oturumun başlattığı adb daemon'u durduruldu. Pencere odağı
-  kaybı A36'da sürülmedi (sahibin telefonunda HOME / güç / arama gerektirir) — masaüstü O bölümü.
+  ekonomi, kalıcılık, günlük pencere kapısı); **kontrollü tam masaüstü kapısı — son aday `db5542f` (üretim kodu
+  `158022e` ile bayt-aynı): 51 / 51 temiz, 6324 kontrol, 0 FAIL, 0 SCRIPT ERROR, bot 2 / 2, sahibin kaydı bayt-aynı.**
+  Kapı geçmişi: ilk tam kapı (`158022e`, 51 koşu — 50 temiz, 6321 kontrol, 0 SCRIPT ERROR) önceden var olan bir test
+  fikstürü hatasını açığa çıkardı — `age_gate_test` 207 / 209, TASK/054'ten BAĞIMSIZ (aynı gün üretim ağacı main
+  `6a4a2b2` iken aynı 2 FAIL; 2026-10-04 23:22'ye kadarki her kapıda 209 / 209). Kök neden (yönlendirilmiş kayıtta tanı
+  sondasıyla kanıtlandı): `_test_save_format` eski UNDER_13 bölümü 13. yaş gününü "2026-10-05" seçiyor ve "eski tarih
+  hiçbir kopyada kalmaz" diye TÜM kayıt metnini tarıyor; kayıt yüklemesi (`_migrate_missions`) fikstürde görev bloğu
+  olmadığı için dönemi `Missions.accepted_day()` → `DailyRewards.day_key()` → cihaz takviminden açıyor, sonraki kayıt
+  `missions.day_key` + `missions.week_start_day_key`'i (haftanın pazartesisi) diske yazıyor → 2026-10-05 … 11 haftasında
+  iki kontrol düşüyordu (yaş mantığı her durumda doğru; enjekte 2026-10-08 de çakışır, 2026-10-12 / 2026-10-01
+  çakışmaz). **Yalnız-test düzeltmesi `db5542f`:** kayıt bölümü mevcut `DailyRewards.clock_override` kancasını bölümün
+  kendi gününe (`SAVE_DAY` 2026-10-01, haftası 2026-09-28) sabitler, bölüm / test sonunda sıfırlar; yeni negatif kontrol
+  yüklemenin açtığı görev döneminin enjekte günden geldiğini ve eski 13. yaş gününün haftasıyla çakışmadığını doğrular —
+  sabitleme kaldırılınca (cihaz takvimine düşüş) açık FAIL verir (doğrulandı: 207 / 210, yeni kontrol + iki eski
+  kontrol). İddialar, yaş sınırı anlamı (geçiş öncesi / tam geçiş günü / sonrası, saklanan bant + sonraki geçiş tarihi,
+  kayıt / yeniden yükleme, aynı kayıtta GÜNLÜK ÖDÜLLER / görev durumu) aynen; `age_gate_test` 210 / 210, ilgili
+  `age_ad_routing_test` 122 / 122, `age_gate_ui_test` 26 / 26, `missions_test` 136 / 136, `daily_rewards_test` 179 /
+  179. **Samsung A36: GEÇTİ** (2026-10-05; QA APK `158022e`'den, sha `d325537c…`, `verify_apk` PASS — sertleştirilmiş
+  aday belirteçleri var, ilk adayınki yok; yalnız `com.obappstudio.squishymerge.qa`, Google örnek kimlikleri): **1**
+  basılı kart + gerçek GERİ + bırak 5 / 5 — her koşuda `ALBUM off` ile aynı ms'de basış bitti, PRESSED / detay 0, Ana
+  Sayfa; **2** madalyonla yeniden açılış (bayat detay yok) + taze dokunuş tam 1 detay; **3** VİTRİNE EKLE basılı + GERİ
+  → vitrin bellek + disk aynı, sonra taze dokunuş tam 1 ekleme; kilitli MAĞAZAYA GİT basılı + GERİ → Mağaza'ya
+  gidilmedi; **4** VİTRİNDEN ÇIKAR basılı + hızlı çift GERİ → tek detay kapanışı + tek gezinme, vitrin aynı; **5**
+  gerçek `input motionevent CANCEL`: kart (motorun PRESSED'i koruma tarafından reddedildi), iptal + bayat UP, ardından
+  taze dokunuş tam 1; karartma ve X iptali detayı kapatmadı; karartma iptali + GERİ tek gezinme (Koleksiyon'da kalındı);
+  **6** GERİ zinciri, üst çubuk geri / "+" tam 1 gezinme, X / karartma normal dokunuşu tam 1 kapanış. Gate boyunca
+  gerçek dokunuş 28 / 28 (yabancı girdi yok); logcat: 1 QA süreci, 0 SCRIPT ERROR / çökme / ANR / Godot hatası, yalnız
+  Google örnek yayıncısı; QA kaldırıldı, üretim paketi hiç kurulmadı, `com.example` dokunulmadı, gezinme kipi / otomatik
+  saat / saat değişmedi; yalnız bu oturumun başlattığı adb daemon'u durduruldu. Pencere odağı kaybı A36'da sürülmedi
+  (sahibin telefonunda HOME / güç / arama gerektirir) — masaüstü O bölümü. A36 yeniden koşulmadı: son sertleştirme
+  (`db5542f`) yalnız test / belge değiştirdi, üretim ağacı `158022e` ile bayt-aynı — üretim mutasyonu 25 / 25 de bu
+  yüzden geçerli, yeniden koşulmadı.
 
 ## 5. Dosya/klasör yapısı ve script envanteri
 
@@ -3952,9 +3968,9 @@ Owner'ın yapacağı / onaylayacağı:)*
   onayıyla ff-only `5b7a727 → 275c537`, 2026-10-05; dal `task/053-settings-terminal-ownership` duruyor).
 - **TASK/054** — Koleksiyon basılı dokunuş + Android GERİ (pozitif dokunuş sahipliği: eylem yalnız ekrandaki düğmenin
   gerçek, iptal edilmemiş bırakışıyla; gizlenen / odak kaybındaki basılı düğmenin basışı biter; X / karartma iptalde
-  kapatmaz) → **FIXED ON TASK/054 BRANCH** (§4.34; masaüstü + Samsung A36 kapıları GEÇTİ — tam masaüstü kapısı 51 koşuda
-  50 temiz, tek istisna önceden var olan `age_gate_test` tarih bombası; dal `task/054-collection-hold-android-back`,
-  READY FOR OWNER REVIEW, main'e ALINMADI).
+  kapatmaz) → **FIXED ON TASK/054 BRANCH** (§4.34; masaüstü + Samsung A36 kapıları GEÇTİ — tam masaüstü kapısı 51 / 51
+  temiz, 0 FAIL; ilk koşunun açığa çıkardığı önceden var olan `age_gate_test` tarih fikstürü hatası yalnız-test
+  düzeltmesiyle giderildi; dal `task/054-collection-hold-android-back`, READY FOR OWNER REVIEW, main'e ALINMADI).
 - **Sıradaki görev:** owner seçer (TASK/055 tanımlanmadı, başlamadı). Açık, ayrı maddeler (tam 2) — genel GUI
   ACTION_CANCEL · T5 hedef kartı kırpması `Büyük Dumpl…` — §4.26 / §4.27 — kendiliğinden sıradaki görev seçilmez
   (Koleksiyon kartı + GERİ → FIXED ON TASK/054 BRANCH, §4.34). TASK/052 takip gözlemleri yalnız not (görev DEĞİL):

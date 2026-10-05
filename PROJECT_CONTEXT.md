@@ -83,8 +83,10 @@ alınacak — şimdi tahmin/vaat yok.
 - **Dal (2026-10-05): TASK/054 — Koleksiyon basılı dokunuş + Android GERİ — FIXED ON TASK/054 BRANCH, READY FOR OWNER
   REVIEW; main'e ALINMADI, main DEĞİŞMEDİ** (`main == origin/main == 6a4a2b2` — TASK/053 doküman eşitlemesi, yalnız
   doküman, `275c537`'nin üstünde). Dal `task/054-collection-hold-android-back` (main `6a4a2b2`'den): `e49293e` düzeltme
-  · `ef08df1` + `6322101` test · `84770b3` inceleme sertleştirmesi · `3d4cb4a` + `158022e` test (kapılardan geçen üretim
-  / test adayı `158022e`) · doküman / A36 kaydı (yalnız doküman). **Hata (önceden var olan — eski açık madde (4)):**
+  · `ef08df1` + `6322101` test · `84770b3` inceleme sertleştirmesi · `3d4cb4a` + `158022e` test (A36'dan geçen üretim
+  adayı `158022e`) · `a5b3e35` doküman / A36 kaydı · `db5542f` yalnız test (`age_gate_test` tarih fikstürü
+  deterministik; son kapıdan geçen aday — üretim kodu `158022e` ile bayt-aynı) · doküman (son kapı). **Hata (önceden var
+  olan — eski açık madde (4)):**
   Godot 4.6.3 basılı bir düğmenin fare odağını düşürürken (düğme gizlenince — Android GERİ, sekme değişimi, detay
   kapanışı — ya da pencere odağı gidince) ona sentetik bir bırakış yollar; son girdi işlenmemişse (cihazda GERİ tuşunun
   kendisi) BaseButton bunu tıklama sayar; ACTION_CANCEL bırakışını da sayar, paylaşılan karartma kapanışı iptali ayırt
@@ -101,15 +103,21 @@ alınacak — şimdi tahmin/vaat yok.
   (koruma yok 21, pozitif sahiplik yok 16, gizlenmede basış bitirme yok 5, karartma süzgeci yok 5, odak kaybında basış
   bitirme yok 3) · tam 0 FAIL; mutasyon 25 / 25 (açık FAIL); 5 salt-okunur inceleyici (8 mercek + sertleştirme
   incelemesi) BLOCKER / HIGH 0, MEDIUM'lar giderildi ya da kapsam dışı kaydedildi; koruma grubu 13 suite 1553 kontrol;
-  kontrollü tam masaüstü kapısı (`158022e`) 51 koşu — 50 temiz, 6321 kontrol, 0 SCRIPT ERROR, sahibin kaydı bayt-aynı;
-  tek istisna `age_gate_test` 207 / 209 — TASK/054'ten BAĞIMSIZ, önceden var olan tarih bombası (eski UNDER_13 bölümü
-  13. yaş gününü "2026-10-05" seçiyor, günlük gün anahtarı gerçek tarihi kayda yazıyor → yalnız 2026-10-05'te
-  tetiklenir; main `6a4a2b2` üretim koduyla aynı 2 FAIL; önceki her kapıda 209 / 209); **Samsung A36: GEÇTİ**
+  **kontrollü tam masaüstü kapısı — son aday `db5542f` (üretim kodu `158022e` ile bayt-aynı): 51 / 51 temiz, 6324
+  kontrol, 0 FAIL, 0 SCRIPT ERROR, bot 2 / 2, sahibin kaydı bayt-aynı.** İlk tam kapı (`158022e`) önceden var olan bir
+  test fikstürü hatasını açığa çıkarmıştı: `age_gate_test` 207 / 209 — eski UNDER_13 bölümü 13. yaş gününü
+  "2026-10-05" seçiyor, kayıt yüklemesi görev dönemini cihaz takviminin gününden açıyor (`_migrate_missions` →
+  `Missions.accepted_day()` → `DailyRewards.day_key()`) ve sonraki kayıt o günü + haftanın pazartesisini diske yazıyordu
+  → "eski tarih hiçbir kopyada kalmaz" kontrolleri 2026-10-05 … 11 haftasında düşüyordu; üretim kodu main `6a4a2b2`
+  iken aynı 2 FAIL (TASK/054'ten BAĞIMSIZ). `db5542f` yalnız-test düzeltmesi: kayıt bölümü mevcut
+  `DailyRewards.clock_override` kancasını bölümün kendi gününe (2026-10-01) sabitler, kancanın gerçekten kullanıldığını
+  bir negatif kontrol kanıtlar (iddialar / yaş anlamı aynen; `age_gate_test` 210 / 210); **Samsung A36: GEÇTİ**
   (2026-10-05, yalnız QA paketi, `158022e` APK'sı): basılı kart + gerçek GERİ 5 / 5 bayat eylem 0, madalyonla yeniden
   açılış + taze dokunuş tam 1, VİTRİNE EKLE / MAĞAZAYA GİT basılı + GERİ yazma / gezinme 0, hızlı çift GERİ tek kapanış
   + tek gezinme, gerçek ACTION_CANCEL (kart / X / karartma) 0 eylem ve karartma iptali + GERİ tek gezinme, regresyonlar
   aynen; 0 SCRIPT ERROR / çökme / ANR, yabancı girdi yok; QA kaldırıldı, üretim paketi hiç kurulmadı, `com.example`
-  dokunulmadı, gezinme kipi / saat değişmedi. Ayrıntı: PROJECT_STATUS §4.34. TASK/055 başlamadı.
+  dokunulmadı, gezinme kipi / saat değişmedi. A36 yeniden koşulmadı (son sertleştirme yalnız test / belge; üretim
+  ağacı `158022e` ile bayt-aynı). Ayrıntı: PROJECT_STATUS §4.34. TASK/055 başlamadı.
 - **Repo (2026-10-05):** `main == origin/main == 275c5370a7753ddfb4b8d0cf845c3fa428f5759b` — **TASK/053 owner
   onayıyla ff-only main'e alındı** (`5b7a727 → 275c537`; merge commit / rebase / squash / cherry-pick / force push
   YOK). Doğrulanmış doğrusal zincir, 5 commit: `796e1e7` düzeltme · `4b29c26` test (yeni suite + TASK/049 / 050 suite
@@ -1029,9 +1037,9 @@ Koleksiyon'un kendi kontrollerini ve karartmasını kapsar; paylaşılan `UiKit.
 kararı; düzeltilmedi, görev açılmadı): aynı motor sınıfı başka ekranlarda — Profil vitrin yuvası (basılı + GERİ →
 gizlemedeki bayat tıklama Koleksiyon detayını açabilir; statik çıkarım), Profil dişlisi / KOLEKSİYONA GİT, Harita düğümü
 (aşağıda); Mağaza SATIN AL ACTION_CANCEL bırakışında Hamur harcar ((5)'in parçası); Android 13+ tek parmak iptali
-(POINTER_UP + FLAG_CANCELED) Godot'ya düz bırakış olarak gelir (motor sınırı); `age_gate_test`'in eski UNDER_13 bölümü
-yalnız 2026-10-05 tarihinde düşen bir tarih bombası taşır (13. yaş günü "2026-10-05" seçilmiş, günlük gün anahtarı
-gerçek tarihi kayda yazıyor; ertesi günden itibaren kendiliğinden geçer). Meydan okuma güç düğmelerini gizleyip
+(POINTER_UP + FLAG_CANCELED) Godot'ya düz bırakış olarak gelir (motor sınırı). TASK/054 kapısının açığa çıkardığı
+önceden var olan `age_gate_test` tarih fikstürü hatası (2026-10-05 haftası) dalda yalnız-test düzeltmesiyle giderildi
+(`db5542f`, §4.34). Meydan okuma güç düğmelerini gizleyip
 kilitlediği için (5)'teki Sarsıntı iptal hatası meydan okumayı etkilemez; meydan okumanın KENDİ gecikmeli sonucu deneme
 kimliğiyle korunur (TASK/047). TASK/051 incelemesinin kayda geçirdiği önceden var olan, kapsam dışı gözlemler (yalnız
 inceleme notu; owner kararı; düzeltilmedi, görev açılmadı): Harita / Sonsuz düğümü işleyicisinde kapalı-ekran kapısı yok
