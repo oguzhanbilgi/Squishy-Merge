@@ -33,7 +33,9 @@ extends Node
 ##                   sonra kalkarsa 0 eylem, GERİ'siz kalkarsa normal tek seçim
 ##   I hızlı GERİ    birincil basılı → GERİ (detay) → GERİ (Ana Sayfa) → bırak: tek kapanış, tek gezinme, 0 eylem
 ##   J basılı durum  gizlenen basılı düğmenin basışı biter: sonraki taze basış button_down yayar (kart, üst çubuk, birincil,
-##                   kutu), ölçek 1.0
+##                   kutu, detay X), ölçek 1.0. STOP düğmelerde (üst çubuk / detay düğmeleri / kutu) dokunuşu düğme işler →
+##                   motorun gizleme bırakışı deterministik DÜŞER (asılı durumu en iyi bunlar sınar); PASS kartta olay
+##                   ScrollContainer'a da geçer → bırakışın düşüp düşmemesi motor durumuna bağlı
 ##   K kayıt         bayat dizilerden sonra Hamur / vitrin / açık parçalar bellekte ve diskte aynı
 ##   L normal        tek dokunuş tam bir kez: kart → detay, birincil → vitrine ekler, ikincil → çıkarır, kutu → değiştirir,
 ##                   üst çubuk geri → Ana Sayfa, "+" → Mağaza
@@ -557,6 +559,21 @@ func _hold_state() -> void:
 	_c("J kutu: adım kapanınca basış bitti; yeniden açılan adımda taze basış button_down 1, tam 1 değiştirme",
 		_n.get("tile.down", 0) == 1 and SaveManager.profile_showcase().has(OWNED)
 		and SaveManager.profile_showcase().size() == 3)
+	# Detay X: basılı + GERİ (detay kapanır, olay yok) → detayı yeniden aç → X'e taze dokunuş.
+	album = await _open_fresh()
+	await _open_detail(album, OWNED)
+	var close: Button = album.detail_frame().get_meta(&"close_button")
+	_watch(close, "close")
+	pos = _center(close)
+	await _hold(pos, "none")
+	await _back()
+	await _finger(pos, false)
+	await _settle(3)
+	await _open_detail(album, OWNED)
+	_mark()
+	await _tap(close)
+	_c("J detay X: detay kapanınca basış bitti; yeniden açılan detayda X'e taze basış button_down 1, detay kapandı",
+		_n.get("close.down", 0) == 1 and not album.is_detail_open())
 	_sections_done += 1
 
 
