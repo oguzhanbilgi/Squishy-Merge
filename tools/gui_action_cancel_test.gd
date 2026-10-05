@@ -994,7 +994,8 @@ func _fresh_after_hide() -> void:
 	_c("H5 GestureGuard.invalidate (açık geçersizleştirme): basılı düğüm bırakılınca seviye başlamadı; taze dokunuş tam bir kez",
 		invalidated and _board_live() and _count("map.level_chosen") == 1)
 
-	# Basılıyken ağaçtan çıkıp dönen sahipli düğme: motor basışı çıkışta sıfırlar (button_up yaymadan) — sahiplik de.
+	# Basılıyken ağaçtan çıkıp dönen sahipli düğme: motor (4.6.3) çıkışta basışı sıfırlar ve button_up yayar — sahiplik
+	# asılı kalmaz (motor bunu yapmayı bırakırsa bu kontrol yakalar).
 	var layer := CanvasLayer.new()
 	layer.layer = 100
 	add_child(layer)

@@ -133,12 +133,8 @@ func _on_visibility_changed() -> void:
 		end_press()
 
 
+## Pencere odağı kaybı / Android GERİ isteği: basılı işaretçi basışı eylemsiz biter. (Ağaçtan çıkan basılı düğme ayrıca
+## ele alınmaz: motor (4.6.3) o anda button_up yayar → `_on_button_up` sahipliği temizler.)
 func _notification(what: int) -> void:
-	match what:
-		NOTIFICATION_WM_WINDOW_FOCUS_OUT, NOTIFICATION_WM_GO_BACK_REQUEST:
-			end_press()
-		NOTIFICATION_EXIT_TREE:
-			# Motor basışı ağaçtan çıkışta button_up yaymadan sıfırlar: sahiplik de (asılı kalıp işaretçisiz
-			# etkinleştirmeyi engellemesin).
-			_held = false
-			_released = false
+	if what == NOTIFICATION_WM_WINDOW_FOCUS_OUT or what == NOTIFICATION_WM_GO_BACK_REQUEST:
+		end_press()
