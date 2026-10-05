@@ -105,6 +105,9 @@ const BURST_TIME: float = 0.55
 ## değiştirir (VİTRİNE EKLE → AVATAR YAP / VİTRİNDEN ÇIKAR) ve pencere yeniden
 ## ortalanır — hızlı çift dokunuşun ikinci yarısı istenmeyen bir eyleme düşmesin.
 const ACTION_LOCK_MSEC: int = 350
+## TASK/054 dokunuş sahipliği (bkz. `_own_gesture`): düğmenin son gerçek bırakışı iptal mi / basılı tutuluyor mu.
+const META_GESTURE_CANCELED: StringName = &"collection_gesture_canceled"
+const META_GESTURE_HELD: StringName = &"collection_gesture_held"
 
 var _bar: ScreenTopBar
 var _cards: Array[CollectionSkinCard] = []
@@ -168,8 +171,15 @@ func _ready() -> void:
 	_gallery_haze.texture = _seam_gradient(Color(UiTokens.WORLD_INDIGO, 0.82),
 		GALLERY_HAZE_ABOVE / (GALLERY_HAZE_ABOVE + GALLERY_HAZE_BELOW))
 	_bar = ScreenTopBar.new(TITLE, true)
-	_bar.back_pressed.connect(func() -> void: home_requested.emit())
-	_bar.add_pressed.connect(func() -> void: shop_requested.emit())
+	# TASK/054: gezinme yalnız ekrandaki üst çubuktan ve iptal edilmemiş bırakışla (bkz. `_own_gesture`).
+	_own_gesture(_bar.back_button())
+	_own_gesture(_bar.add_button())
+	_bar.back_pressed.connect(func() -> void:
+		if _gesture_ok(_bar.back_button()):
+			home_requested.emit())
+	_bar.add_pressed.connect(func() -> void:
+		if _gesture_ok(_bar.add_button()):
+			shop_requested.emit())
 	_root.add_child(_bar)
 	_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_SHOW_NEVER
 	_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
@@ -341,6 +351,7 @@ func _build_gallery() -> void:
 		sections[rarity] = section
 	for entry in SkinEntry.all(false):
 		var card := CollectionSkinCard.create(entry)
+		_own_gesture(card)
 		card.selected.connect(_on_card_selected)
 		var section: VBoxContainer = sections[entry.rarity]
 		var row: HBoxContainer = section.get_child(section.get_child_count() - 1) if section.get_child_count() > 0 else null
@@ -443,12 +454,16 @@ func _build_detail() -> void:
 	footer.add_theme_constant_override("separation", UiTokens.SPACE_SM)
 	_detail_primary = UiKit.candy_button(ADD_TEXT, &"ButtonPrimary", 64.0)
 	_detail_primary.name = "Primary"
+	_own_gesture(_detail_primary)
 	_detail_primary.pressed.connect(_on_detail_primary)
 	footer.add_child(_detail_primary)
 	_detail_secondary = UiKit.candy_button(REMOVE_TEXT, &"ButtonSecondary", 58.0)
 	_detail_secondary.name = "Secondary"
+	_own_gesture(_detail_secondary)
 	_detail_secondary.pressed.connect(_on_detail_secondary)
 	footer.add_child(_detail_secondary)
+	# X / karartma yalnız kapatır (kapalı detayda kapanış etkisiz); X'in asılı basışı da gizlenince biter.
+	_own_gesture(_detail_frame.get_meta(&"close_button"))
 	(_detail_frame.get_meta(&"close_button") as Button).pressed.connect(close_detail)
 	UiKit.attach_dim_close(_detail_dim, close_detail)
 
@@ -517,6 +532,7 @@ func _make_replace_tile(slot: int) -> Button:
 	tile.set_meta(&"swatch", swatch)
 	tile.set_meta(&"name_label", name_label)
 	tile.set_meta(&"slot", slot)
+	_own_gesture(tile)
 	tile.pressed.connect(func() -> void: _on_replace_slot(slot))
 	UiMotion.attach_press(tile)
 	return tile
@@ -630,6 +646,9 @@ func focus_card(skin_id: StringName) -> void:
 
 
 func _on_card_selected(skin_id: StringName) -> void:
+	var card: CollectionSkinCard = _card_by_id.get(String(skin_id))
+	if card == null or not _gesture_ok(card):
+		return
 	AudioManager.play(&"ui_select")
 	open_detail(skin_id)
 
@@ -788,7 +807,7 @@ func _lock_actions() -> void:
 
 
 func _on_detail_primary() -> void:
-	if _actions_locked():
+	if _actions_locked() or not _gesture_ok(_detail_primary):
 		return
 	var entry: SkinEntry = SkinEntry.find(_detail_id)
 	if entry == null:
@@ -817,7 +836,7 @@ func _on_detail_primary() -> void:
 
 
 func _on_detail_secondary() -> void:
-	if _actions_locked():
+	if _actions_locked() or not _gesture_ok(_detail_secondary):
 		return
 	_lock_actions()
 	if _replacing:
@@ -835,7 +854,7 @@ func _remove_from_showcase(skin_id: StringName) -> void:
 
 
 func _on_replace_slot(slot: int) -> void:
-	if _actions_locked() or not _replacing or slot >= _replace_tiles.size():
+	if _actions_locked() or not _replacing or slot >= _replace_tiles.size() or not _gesture_ok(_replace_tiles[slot]):
 		return
 	var tile: Button = _replace_tiles[slot]
 	if not tile.has_meta(&"skin_id"):
@@ -916,6 +935,46 @@ func handle_back() -> bool:
 			close_detail()
 		return true
 	return false
+
+
+# --- Dokunuş sahipliği (TASK/054) ----------------------------------------------
+
+## Koleksiyon düğmesinin dokunuşu, basışın başladığı ve HÂLÂ ekranda olan yüzeye aittir. Godot (4.6) basılı bir
+## düğmeyi gizlerken (Android GERİ, sekme değişimi, detay kapanışı) ona sentetik bir bırakış yollar; son girdi
+## işlenmemişse (parmak titremesi, işlenmeyen bir tuş) BaseButton bunu `pressed` sayar — gizli albümde detay açılır,
+## kapanmış detayın vitrin eylemi kayda yazar, GERİ'den sonra Mağaza'ya gidilirdi. Android ACTION_CANCEL bırakışını
+## da `pressed` sayar (iptal bayrağına bakmaz). Bu yüzden: (1) düğme basılıyken gizlenince basış genel API'yle hemen
+## bitirilir — `visibility_changed` CanvasItem bildiriminde, Control'ün gizleme işinden (motorun sentetik bırakışı)
+## ÖNCE yayılır: bırakış artık tıklama sayılmaz ve basılı durum asılı kalmaz (bırakış düşseydi
+## `pressed_down_with_focus` kalır, sonraki basış button_down / dokunuş sesi / basış ölçeği üretmezdi); (2) eylem
+## yalnız `_gesture_ok`'ta — düğme hâlâ ekranda VE gerçek bırakış iptal değil (iptal bayrağı `gui_input`'tan: sentetik
+## bırakış bu sinyali yaymaz, gerçek olay BaseButton'dan önce gelir); basış bitmeden ulaşan bir `pressed` da eylemsiz.
+func _own_gesture(button: BaseButton) -> void:
+	button.gui_input.connect(func(event: InputEvent) -> void:
+		var click := event as InputEventMouseButton
+		if click != null and click.button_index == MOUSE_BUTTON_LEFT:
+			button.set_meta(META_GESTURE_CANCELED, not click.pressed and click.canceled))
+	button.button_down.connect(func() -> void: button.set_meta(META_GESTURE_HELD, true))
+	button.button_up.connect(func() -> void:
+		button.set_meta(META_GESTURE_HELD, false)
+		button.set_meta(META_GESTURE_CANCELED, false))
+	button.visibility_changed.connect(func() -> void:
+		if not button.is_visible_in_tree() and button.get_meta(META_GESTURE_HELD, false):
+			_end_press(button))
+
+
+## Bu düğmenin bırakışı eylem üretebilir: düğme hâlâ ekranda VE bırakış iptal edilmedi.
+func _gesture_ok(button: BaseButton) -> bool:
+	return button.is_visible_in_tree() and not button.get_meta(META_GESTURE_CANCELED, false)
+
+
+## Basılıyken gizlenen düğmenin basışını bitirir: `disabled` basış durumunu (press_attempt / pressing_inside /
+## pressed_down_with_focus) sıfırlar ve button_up yayar (UiMotion basış ölçeğini bırakır); eylem üretmez.
+static func _end_press(button: BaseButton) -> void:
+	if button.disabled:
+		return
+	button.disabled = true
+	button.disabled = false
 
 
 # --- Dokular (programatik, asset yok) ----------------------------------------
