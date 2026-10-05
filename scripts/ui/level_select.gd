@@ -152,8 +152,15 @@ func _ready() -> void:
 	_haze.texture = _vertical_gradient(Color(0.96, 0.97, 1.0, 0.72), Color(0.96, 0.97, 1.0, 0.0))
 	_vignette.texture = _radial_vignette()
 	_bar.set_title("HARİTA")
-	_bar.back_pressed.connect(func() -> void: home_requested.emit())
-	_bar.add_pressed.connect(func() -> void: shop_requested.emit())
+	# TASK/055: üst çubuk (paylaşılan ScreenTopBar) Harita tarafında sahiplenilir — gezinme yalnız geçerli dokunuşla.
+	GestureGuard.own(_bar.back_button())
+	GestureGuard.own(_bar.add_button())
+	_bar.back_pressed.connect(func() -> void:
+		if GestureGuard.allows(_bar.back_button()):
+			home_requested.emit())
+	_bar.add_pressed.connect(func() -> void:
+		if GestureGuard.allows(_bar.add_button()):
+			shop_requested.emit())
 	for spec in SPARKLES:
 		var spark := UiKit.art(STAR_ART, float(spec[1]))
 		_fx_layer.add_child(spark)
@@ -332,7 +339,7 @@ func refresh() -> void:
 		var state: MapLevelNode.State = _state_for(level.level_number, highest)
 		var node := MapLevelNode.new()
 		node.setup_level(level.level_number, state, SaveManager.stars_for_level(level.level_number))
-		node.pressed.connect(_on_node_pressed.bind(node, level))
+		GestureGuard.on_pressed(node, _on_node_pressed.bind(node, level))
 		_node_layer.add_child(node)
 		_nodes.append(node)
 		if state == MapLevelNode.State.CURRENT and level.level_number == highest:
@@ -342,7 +349,7 @@ func refresh() -> void:
 	_endless = MapLevelNode.new()
 	_endless.setup_endless(endless_open, SaveManager.endless_high_score(),
 		ENDLESS_REQUIREMENT % _levels.size())
-	_endless.pressed.connect(_on_endless_pressed)
+	GestureGuard.on_pressed(_endless, _on_endless_pressed)
 	_node_layer.add_child(_endless)
 	# Her şey bitmişse yolculuğun hedefi Sonsuz: hale oraya.
 	if _focus == null and endless_open:

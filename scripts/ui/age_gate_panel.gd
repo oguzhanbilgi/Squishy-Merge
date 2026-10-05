@@ -125,7 +125,7 @@ func _ready() -> void:
 	_frame.name = "AgeGateShell"
 	_anchor.add_child(_frame)
 	_close_x = _frame.get_meta(&"close_button")
-	_close_x.pressed.connect(_on_cancel)
+	GestureGuard.on_pressed(_close_x, _on_cancel)
 	UiKit.attach_dim_close(_dim, _on_dim_released)
 	_build_hero(_frame.get_meta(&"hero"))
 	var body: VBoxContainer = _frame.get_meta(&"body")
@@ -306,15 +306,15 @@ func _build_footer(footer: VBoxContainer) -> void:
 	_confirm = UiKit.cta("ONAYLA", "", &"ButtonCTA")
 	_confirm.name = "ConfirmButton"
 	_confirm.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_confirm.pressed.connect(press_confirm)
+	GestureGuard.on_pressed(_confirm, press_confirm)
 	_confirm_row.add_child(_confirm)
 	_cancel = UiKit.button("Vazgeç", &"ButtonSecondary")
 	_cancel.name = "Cancel"
-	_cancel.pressed.connect(_on_cancel)
+	GestureGuard.on_pressed(_cancel, _on_cancel)
 	footer.add_child(_cancel)
 	_done = UiKit.cta("TAMAM", "", &"ButtonCTA")
 	_done.name = "DoneButton"
-	_done.pressed.connect(press_done)
+	GestureGuard.on_pressed(_done, press_done)
 	footer.add_child(_done)
 
 

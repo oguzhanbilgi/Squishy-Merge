@@ -227,7 +227,7 @@ func _build_top() -> void:
 	# SettingsPanel, mantık kopyalanmadı); oyun içi ayarlar HUD'da kaldı.
 	_avatar_button = AvatarButton.new(BAR_HEIGHT)
 	_avatar_button.name = "Profile"
-	_avatar_button.pressed.connect(func() -> void: profile_requested.emit())
+	GestureGuard.on_pressed(_avatar_button, func() -> void: profile_requested.emit())
 	_root.add_child(_avatar_button)
 	_streak_pill = UiKit.home_pill(UiIcons.FLAME, "", false, BAR_HEIGHT)
 	_streak_pill.name = "StreakPill"
@@ -236,7 +236,7 @@ func _build_top() -> void:
 	_dough_pill = UiKit.home_pill(UiIcons.DOUGH, "", true, BAR_HEIGHT)
 	_dough_pill.name = "DoughPill"
 	_dough_pill.minimum_size_changed.connect(_layout)
-	(_dough_pill.get_meta(&"add_button") as Button).pressed.connect(
+	GestureGuard.on_pressed(_dough_pill.get_meta(&"add_button") as Button,
 		func() -> void: shop_requested.emit())
 	_root.add_child(_dough_pill)
 
@@ -298,28 +298,28 @@ func _build_features() -> void:
 	daily.name = "Daily"
 	daily.set_icon("gift", UiTokens.PINK)
 	daily.set_label("GÜNLÜK")
-	daily.pressed.connect(func() -> void: daily_requested.emit())
+	GestureGuard.on_pressed(daily, func() -> void: daily_requested.emit())
 	_add_feature(&"daily", daily)
 
 	var collection := HomeFeatureButton.new()
 	collection.name = "Collection"
 	collection.set_art(DUMPLING_VISUAL.TEXTURES[0])
 	collection.set_label("KOLEKSİYON")
-	collection.pressed.connect(func() -> void: collection_requested.emit())
+	GestureGuard.on_pressed(collection, func() -> void: collection_requested.emit())
 	_add_feature(&"collection", collection)
 
 	var shop := HomeFeatureButton.new()
 	shop.name = "Shop"
 	shop.set_icon("shop", UiTokens.CYAN)
 	shop.set_label("MAĞAZA")
-	shop.pressed.connect(func() -> void: shop_requested.emit())
+	GestureGuard.on_pressed(shop, func() -> void: shop_requested.emit())
 	_add_feature(&"shop", shop)
 
 	var chest := HomeFeatureButton.new()
 	chest.name = "Chest"
 	chest.set_art(CHEST_ART)
 	chest.set_label("SANDIK")
-	chest.pressed.connect(func() -> void: chest_requested.emit())
+	GestureGuard.on_pressed(chest, func() -> void: chest_requested.emit())
 	_add_feature(&"chest", chest)
 
 
@@ -340,7 +340,7 @@ func _build_missions_entry() -> void:
 	_missions.theme_type_variation = &"ButtonHomePill"
 	_missions.focus_mode = Control.FOCUS_NONE
 	_missions.set_anchors_preset(Control.PRESET_TOP_LEFT)
-	_missions.pressed.connect(func() -> void: missions_requested.emit())
+	GestureGuard.on_pressed(_missions, func() -> void: missions_requested.emit())
 	UiKit.hud_shadow(_missions, 6.0, 0.28, null, 16.0)
 	var rim := UiKit.flat_plate("label_round", UiTokens.LAVENDER_LIGHT)
 	rim.show_behind_parent = true
@@ -428,7 +428,7 @@ func _build_challenge_entry() -> void:
 	_challenge.theme_type_variation = &"ButtonHomePill"
 	_challenge.focus_mode = Control.FOCUS_NONE
 	_challenge.set_anchors_preset(Control.PRESET_TOP_LEFT)
-	_challenge.pressed.connect(func() -> void: challenge_requested.emit())
+	GestureGuard.on_pressed(_challenge, func() -> void: challenge_requested.emit())
 	UiKit.hud_shadow(_challenge, 6.0, 0.28, null, 16.0)
 	var rim := UiKit.flat_plate("label_round", UiTokens.LAVENDER_LIGHT)
 	rim.show_behind_parent = true
@@ -540,7 +540,7 @@ func _build_play_row() -> void:
 	_play = UiKit.hero_cta("OYNA")
 	_play.name = "Play"
 	_play.set_anchors_preset(Control.PRESET_FULL_RECT)
-	_play.pressed.connect(func() -> void: play_pressed.emit())
+	GestureGuard.on_pressed(_play, func() -> void: play_pressed.emit())
 	_play_pulse.add_child(_play)
 
 
@@ -556,7 +556,7 @@ func _build_level_pill() -> void:
 	_level.name = "Level"
 	_level.theme_type_variation = &"ButtonHomePill"
 	_level.focus_mode = Control.FOCUS_NONE
-	_level.pressed.connect(func() -> void: map_requested.emit())
+	GestureGuard.on_pressed(_level, func() -> void: map_requested.emit())
 	UiKit.hud_shadow(_level, 6.0, 0.28, null, 16.0)
 	var rim := UiKit.flat_plate("label_round", UiTokens.LAVENDER_LIGHT)
 	rim.show_behind_parent = true

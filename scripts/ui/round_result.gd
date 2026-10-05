@@ -320,11 +320,11 @@ func _build_footer() -> void:
 	footer.add_child(gap)
 	_primary = UiKit.cta(PRIMARY_WIN, "", &"ButtonCTA", "map")
 	_primary.name = "Primary"
-	_primary.pressed.connect(_on_primary_pressed)
+	GestureGuard.on_pressed(_primary, _on_primary_pressed)
 	footer.add_child(_primary)
 	_secondary = UiKit.button(SECONDARY_WIN, &"ButtonSecondary", "refresh")
 	_secondary.name = "Secondary"
-	_secondary.pressed.connect(_on_secondary_pressed)
+	GestureGuard.on_pressed(_secondary, _on_secondary_pressed)
 	footer.add_child(_secondary)
 
 

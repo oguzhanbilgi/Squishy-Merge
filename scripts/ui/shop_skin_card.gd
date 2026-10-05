@@ -212,7 +212,7 @@ func _init() -> void:
 	# Butondan baslayan dikey surukleme Magaza'yi kaydirsin (06.3, A36: STOP
 	# ile 0 px); dokunus yine tek `pressed` -> buy_requested.
 	UiKit.make_candy_button_scrollable(_buy)
-	_buy.pressed.connect(func() -> void:
+	GestureGuard.on_pressed(_buy, func() -> void:
 		if _skin != null:
 			buy_requested.emit(_skin))
 	action.add_child(_buy)

@@ -57,7 +57,7 @@ func _init() -> void:
 	body.add_theme_constant_override("separation", 12)
 	for id in AchievementCatalog.title_ids():
 		var row := TitleRow.new()
-		row.pressed.connect(_on_row_pressed.bind(id))
+		GestureGuard.on_pressed(row, _on_row_pressed.bind(id))
 		body.add_child(row)
 		_rows.append(row)
 	# Son satırın gölgesi / dudağı kaydırma kırpmasına takılmasın.
@@ -65,7 +65,7 @@ func _init() -> void:
 	tail.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	tail.custom_minimum_size = Vector2(0, 6)
 	body.add_child(tail)
-	(_frame.get_meta(&"close_button") as Button).pressed.connect(close)
+	GestureGuard.on_pressed(_frame.get_meta(&"close_button") as Button, close)
 	UiKit.attach_dim_close(_dim, close)
 	resized.connect(func() -> void:
 		if visible:

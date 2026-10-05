@@ -90,10 +90,12 @@ func _ready() -> void:
 	body.add_theme_constant_override("separation", UiTokens.SPACE_XS)
 
 	_sfx_toggle = _make_toggle()
+	GestureGuard.own(_sfx_toggle)
 	_sfx_toggle.toggled.connect(_on_sfx_toggled)
 	body.add_child(UiKit.settings_row("sound_on", "Ses Efektleri", _sfx_toggle))
 	body.add_child(UiKit.settings_divider())
 	_haptics_toggle = _make_toggle()
+	GestureGuard.own(_haptics_toggle)
 	_haptics_toggle.toggled.connect(_on_haptics_toggled)
 	body.add_child(UiKit.settings_row("vibration", "Titreşim", _haptics_toggle))
 	body.add_child(UiKit.settings_divider())
@@ -134,7 +136,7 @@ func _ready() -> void:
 	body.add_child(_privacy_options_divider)
 	_privacy_options_button = UiKit.button(PRIVACY_OPTIONS_BUTTON, &"ButtonSecondary")
 	_privacy_options_button.custom_minimum_size = Vector2(132, UiTokens.HEIGHT_NORMAL)
-	_privacy_options_button.pressed.connect(_on_privacy_options_pressed)
+	GestureGuard.on_pressed(_privacy_options_button, _on_privacy_options_pressed)
 	_privacy_options_row = UiKit.settings_row("lock", PRIVACY_OPTIONS_TITLE, _privacy_options_button)
 	_privacy_options_row.name = "PrivacyOptionsRow"
 	_privacy_options_row.visible = false
@@ -147,7 +149,7 @@ func _ready() -> void:
 	body.add_child(_privacy_policy_divider)
 	_privacy_policy_button = UiKit.button(PRIVACY_OPTIONS_BUTTON, &"ButtonSecondary")
 	_privacy_policy_button.custom_minimum_size = Vector2(132, UiTokens.HEIGHT_NORMAL)
-	_privacy_policy_button.pressed.connect(_on_privacy_policy_pressed)
+	GestureGuard.on_pressed(_privacy_policy_button, _on_privacy_policy_pressed)
 	_privacy_policy_row = UiKit.settings_row("help", PRIVACY_POLICY_TITLE, _privacy_policy_button)
 	_privacy_policy_row.name = "PrivacyPolicyRow"
 	body.add_child(_privacy_policy_row)
@@ -159,7 +161,7 @@ func _ready() -> void:
 	body.add_child(_age_info_divider)
 	_age_info_button = UiKit.button(AGE_INFO_BUTTON, &"ButtonSecondary")
 	_age_info_button.custom_minimum_size = Vector2(132, UiTokens.HEIGHT_NORMAL)
-	_age_info_button.pressed.connect(_on_age_info_pressed)
+	GestureGuard.on_pressed(_age_info_button, _on_age_info_pressed)
 	_age_info_row = UiKit.settings_row("calendar", AGE_INFO_TITLE, _age_info_button)
 	_age_info_row.name = "AgeInfoRow"
 	body.add_child(_age_info_row)
@@ -177,10 +179,10 @@ func _ready() -> void:
 	footer.add_child(_about)
 	_close = UiKit.button("Kapat", &"ButtonSecondary")
 	_close.name = "Close"
-	_close.pressed.connect(close_panel)
+	GestureGuard.on_pressed(_close, close_panel)
 	footer.add_child(_close)
 
-	(_frame.get_meta(&"close_button") as Button).pressed.connect(close_panel)
+	GestureGuard.on_pressed(_frame.get_meta(&"close_button") as Button, close_panel)
 	UiKit.attach_dim_close(_dim, close_panel)
 	UiKit.modal_relayout(_frame)
 
@@ -227,6 +229,11 @@ func close_panel() -> void:
 func _on_sfx_toggled(on: bool) -> void:
 	if not visible:
 		return
+	# TASK/055: geçersiz dokunuşun (pencere odağı kaybındaki bayat tıklama) anahtarı tercih YAZMAZ; anahtar kayıttaki
+	# değere geri döner (iptal / gizleme yolunda motor anahtarı hiç çevirmez — GestureGuard basışı önceden bitirir).
+	if not GestureGuard.allows(_sfx_toggle):
+		_sfx_toggle.set_on(SaveManager.sfx_enabled())
+		return
 	SaveManager.set_sfx_enabled(on)
 	# Açınca duyulur bir onay; kapatınca zaten sessiz.
 	if on:
@@ -235,6 +242,9 @@ func _on_sfx_toggled(on: bool) -> void:
 
 func _on_haptics_toggled(on: bool) -> void:
 	if not visible:
+		return
+	if not GestureGuard.allows(_haptics_toggle):
+		_haptics_toggle.set_on(SaveManager.haptics_enabled())
 		return
 	SaveManager.set_haptics_enabled(on)
 	# Açınca hissedilir bir onay (destekleyen cihazda); kapatınca zaten yok.

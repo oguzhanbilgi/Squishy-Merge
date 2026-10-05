@@ -1681,11 +1681,14 @@ static func _scroll_fade_texture() -> Texture2D:
 
 ## Karartmaya dokunma = kapat, tum ikincil pencerelerde TEK anlam: parmak /
 ## tik BIRAKILINCA (basista degil — kaydirma ya da iptal edilen dokunus
-## kapatmasin). Emulasyon olaylari (device -1: dokunmadan uretilen fare —
-## Android, `emulate_mouse_from_touch`; fareden uretilen dokunus — masaustu,
-## proje ayari `emulate_touch_from_mouse`) atlanir: bir dokunus/tik tam BIR
-## kez tetikler. `dim` girdi almaya devam eder (arkadaki ekrana tiklama
-## sizmaz).
+## kapatmasin; TASK/055: Android ACTION_CANCEL birakisi `canceled` tasir ve
+## kapatmaz — kenar geri kaydirmasi once iptal, sonra GERI uretir: yoksa
+## pencere kapanir, ayni jestin GERI'si alttaki katmanda ikinci kez islerdi,
+## Ana Sayfa'da uygulamadan cikardi). Emulasyon olaylari (device -1:
+## dokunmadan uretilen fare — Android, `emulate_mouse_from_touch`; fareden
+## uretilen dokunus — masaustu, proje ayari `emulate_touch_from_mouse`)
+## atlanir: bir dokunus/tik tam BIR kez tetikler. `dim` girdi almaya devam
+## eder (arkadaki ekrana tiklama sizmaz).
 static func attach_dim_close(dim: Control, on_close: Callable) -> void:
 	dim.mouse_filter = Control.MOUSE_FILTER_STOP
 	dim.gui_input.connect(func(event: InputEvent) -> void:
@@ -1693,11 +1696,11 @@ static func attach_dim_close(dim: Control, on_close: Callable) -> void:
 			return
 		var touch := event as InputEventScreenTouch
 		if touch != null:
-			if not touch.pressed:
+			if not touch.pressed and not touch.canceled:
 				on_close.call()
 			return
 		var click := event as InputEventMouseButton
-		if click != null and not click.pressed and click.button_index == MOUSE_BUTTON_LEFT:
+		if click != null and not click.pressed and not click.canceled and click.button_index == MOUSE_BUTTON_LEFT:
 			on_close.call())
 
 

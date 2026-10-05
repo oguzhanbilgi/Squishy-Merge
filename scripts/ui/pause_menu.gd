@@ -42,18 +42,18 @@ func _ready() -> void:
 	footer.add_child(top_gap)
 	_resume = UiKit.cta("DEVAM ET", "", &"ButtonCTA", "play")
 	_resume.name = "Resume"
-	_resume.pressed.connect(_emit_if_open.bind(resume_pressed))
+	GestureGuard.on_pressed(_resume, _emit_if_open.bind(resume_pressed))
 	footer.add_child(_resume)
 	_restart = UiKit.button("Yeniden Başlat", &"ButtonSecondary", "refresh")
 	_restart.name = "Restart"
-	_restart.pressed.connect(_emit_if_open.bind(restart_pressed))
+	GestureGuard.on_pressed(_restart, _emit_if_open.bind(restart_pressed))
 	footer.add_child(_restart)
 	footer.add_child(UiKit.settings_divider())
 	_exit = UiKit.button("Ana Menüye Dön", &"ButtonDanger", "home")
 	_exit.name = "Exit"
-	_exit.pressed.connect(_emit_if_open.bind(exit_pressed))
+	GestureGuard.on_pressed(_exit, _emit_if_open.bind(exit_pressed))
 	footer.add_child(_exit)
-	(_frame.get_meta(&"close_button") as Button).pressed.connect(_emit_if_open.bind(resume_pressed))
+	GestureGuard.on_pressed(_frame.get_meta(&"close_button") as Button, _emit_if_open.bind(resume_pressed))
 	UiKit.attach_dim_close(_dim, _emit_if_open.bind(resume_pressed))
 	UiKit.modal_relayout(_frame)
 

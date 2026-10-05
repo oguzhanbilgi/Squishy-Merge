@@ -136,8 +136,16 @@ func _ready() -> void:
 	_vignette.texture = _radial_vignette()
 	_haze.texture = _band_gradient(Color(UiTokens.WORLD_INDIGO, 0.78), Color(UiTokens.WORLD_INDIGO, 0.0))
 	_bar = ScreenTopBar.new(TITLE, false, "settings")
-	_bar.back_pressed.connect(func() -> void: home_requested.emit())
-	_bar.action_pressed.connect(func() -> void: settings_requested.emit())
+	# TASK/055: üst çubuk (paylaşılan ScreenTopBar) Profil tarafında sahiplenilir — gezinme / Ayarlar yalnız geçerli
+	# dokunuşla (bkz. GestureGuard).
+	GestureGuard.own(_bar.back_button())
+	GestureGuard.own(_bar.action_button())
+	_bar.back_pressed.connect(func() -> void:
+		if GestureGuard.allows(_bar.back_button()):
+			home_requested.emit())
+	_bar.action_pressed.connect(func() -> void:
+		if GestureGuard.allows(_bar.action_button()):
+			settings_requested.emit())
 	_root.add_child(_bar)
 	_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_SHOW_NEVER
 	_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
@@ -343,7 +351,7 @@ func _make_title_button() -> Button:
 		button.custom_minimum_size.x = row.get_combined_minimum_size().x + TITLE_BUTTON_MARGIN.x + TITLE_BUTTON_MARGIN.z
 	row.minimum_size_changed.connect(fit)
 	fit.call()
-	button.pressed.connect(open_title_selector)
+	GestureGuard.on_pressed(button, open_title_selector)
 	UiMotion.attach_press(button)
 	_scroll.scroll_started.connect(func() -> void: UiMotion.release(button))
 	return button
@@ -404,7 +412,7 @@ func _build_achievements() -> void:
 	_achievements_cta = UiKit.candy_button(ACHIEVEMENTS_CTA, &"ButtonPrimary", 58.0)
 	_achievements_cta.name = "AchievementsCta"
 	UiKit.make_candy_button_scrollable(_achievements_cta)
-	_achievements_cta.pressed.connect(open_achievements)
+	GestureGuard.on_pressed(_achievements_cta, open_achievements)
 	_scroll.scroll_started.connect(func() -> void: UiKit.release_candy_button(_achievements_cta))
 	column.add_child(_achievements_cta)
 
@@ -437,7 +445,7 @@ func _build_showcase() -> void:
 	_content.add_child(row)
 	for i in SaveManager.SHOWCASE_MAX:
 		var slot := ProfileShowcaseSlot.new(i)
-		slot.pressed.connect(_on_slot_pressed.bind(i))
+		GestureGuard.on_pressed(slot, _on_slot_pressed.bind(i))
 		row.add_child(slot)
 		_slots.append(slot)
 	var note := UiKit.label(SHOWCASE_NOTE, &"LabelCaption", HORIZONTAL_ALIGNMENT_CENTER)
@@ -581,7 +589,7 @@ func _build_collection() -> void:
 	_collection_cta = UiKit.candy_button(COLLECTION_CTA, &"ButtonPrimary", 58.0)
 	_collection_cta.name = "CollectionCta"
 	UiKit.make_candy_button_scrollable(_collection_cta)
-	_collection_cta.pressed.connect(func() -> void: collection_requested.emit())
+	GestureGuard.on_pressed(_collection_cta, func() -> void: collection_requested.emit())
 	# Parmak CTA'da başlayıp kaydırırsa BaseButton basışı iptal eder ama
 	# button_up yaymaz: basış görseli burada bırakılır (Mağaza 06.3 deseni).
 	_scroll.scroll_started.connect(func() -> void: UiKit.release_candy_button(_collection_cta))

@@ -121,11 +121,11 @@ func _build_row1() -> void:
 	# Sol küme: geri + ayarlar (glossy kare candy butonlar).
 	back_button = UiKit.hud_icon_button("back", GameplayLayout.SETTINGS_SIZE)
 	back_button.name = "Back"
-	back_button.pressed.connect(func() -> void: back_pressed.emit())
+	GestureGuard.on_pressed(back_button, func() -> void: back_pressed.emit())
 	add_child(back_button)
 	settings_button = UiKit.hud_icon_button("settings", GameplayLayout.SETTINGS_SIZE)
 	settings_button.name = "Settings"
-	settings_button.pressed.connect(func() -> void: settings_pressed.emit())
+	GestureGuard.on_pressed(settings_button, func() -> void: settings_pressed.emit())
 	add_child(settings_button)
 
 	# Skor: glossy lavanta plaka, iki yanda yıldız, koyu erik başlık, beyaz
@@ -208,7 +208,7 @@ func _build_row1() -> void:
 	next_row.add_child(next_art)
 	exit_button = UiKit.hud_icon_button("home", GameplayLayout.SETTINGS_SIZE, &"ButtonHudExit")
 	exit_button.name = "Exit"
-	exit_button.pressed.connect(func() -> void: exit_pressed.emit())
+	GestureGuard.on_pressed(exit_button, func() -> void: exit_pressed.emit())
 	add_child(exit_button)
 
 

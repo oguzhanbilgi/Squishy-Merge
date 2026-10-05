@@ -168,7 +168,7 @@ func _ready() -> void:
 	_build_reveal()
 	_build_footer()
 	_close_button = _frame.get_meta(&"close_button")
-	_close_button.pressed.connect(close_popup)
+	GestureGuard.on_pressed(_close_button, close_popup)
 	UiKit.attach_dim_close(_dim, close_popup)
 	UiKit.modal_relayout(_frame)
 
@@ -235,7 +235,7 @@ func _build_cards() -> void:
 	_free = UiKit.button(FREE_BUTTON, &"ButtonPurchase")
 	_free.name = "Free"
 	_free.custom_minimum_size = Vector2(0, OPTION_BUTTON_HEIGHT)
-	_free.pressed.connect(_on_free_pressed)
+	GestureGuard.on_pressed(_free, _on_free_pressed)
 	var free_parts: Dictionary = _option_card("FreeCard", CHEST_ART, FREE_ACCENT, FREE_TITLE, FREE_SUB, _free)
 	_free_card = free_parts["card"]
 	_free_status = free_parts["status"]
@@ -246,7 +246,7 @@ func _build_cards() -> void:
 	_dough = UiKit.button(AD_BUTTON, &"ButtonPrimary", "movie")
 	_dough.name = "Dough"
 	_dough.custom_minimum_size = Vector2(0, OPTION_BUTTON_HEIGHT)
-	_dough.pressed.connect(_on_dough_pressed)
+	GestureGuard.on_pressed(_dough, _on_dough_pressed)
 	var dough_parts: Dictionary = _option_card("DoughCard", DOUGH_ART, DOUGH_ACCENT,
 		DOUGH_TITLE % DailyRewards.AD_DOUGH_AMOUNT, DOUGH_SUB, _dough)
 	_dough_card = dough_parts["card"]
@@ -258,7 +258,7 @@ func _build_cards() -> void:
 	_chest = UiKit.button(AD_BUTTON, &"ButtonPrimary", "movie")
 	_chest.name = "AdChest"
 	_chest.custom_minimum_size = Vector2(0, OPTION_BUTTON_HEIGHT)
-	_chest.pressed.connect(_on_chest_pressed)
+	GestureGuard.on_pressed(_chest, _on_chest_pressed)
 	var chest_parts: Dictionary = _option_card("AdChestCard", CHEST_ART, CHEST_ACCENT, CHEST_TITLE, CHEST_SUB, _chest)
 	_chest_card = chest_parts["card"]
 	_chest_status = chest_parts["status"]
@@ -404,7 +404,7 @@ func _build_footer() -> void:
 	footer.add_child(_continue)
 	_close = UiKit.button(CLOSE_TEXT, &"ButtonSecondary")
 	_close.name = "Close"
-	_close.pressed.connect(close_popup)
+	GestureGuard.on_pressed(_close, close_popup)
 	footer.add_child(_close)
 
 

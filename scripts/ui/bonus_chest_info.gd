@@ -71,11 +71,11 @@ func _ready() -> void:
 	var footer: VBoxContainer = _frame.get_meta(&"footer")
 	_play = UiKit.cta("OYNA", "", &"ButtonCTA", "play")
 	_play.name = "Play"
-	_play.pressed.connect(func() -> void:
+	GestureGuard.on_pressed(_play, func() -> void:
 		_hide()
 		play_pressed.emit())
 	footer.add_child(_play)
-	(_frame.get_meta(&"close_button") as Button).pressed.connect(close_info)
+	GestureGuard.on_pressed(_frame.get_meta(&"close_button") as Button, close_info)
 	UiKit.attach_dim_close(_dim, close_info)
 	UiKit.modal_relayout(_frame)
 

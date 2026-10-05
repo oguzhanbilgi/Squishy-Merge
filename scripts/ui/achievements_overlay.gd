@@ -71,7 +71,7 @@ func _init() -> void:
 	tail.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	tail.custom_minimum_size = Vector2(0, 6)
 	body.add_child(tail)
-	(_frame.get_meta(&"close_button") as Button).pressed.connect(close)
+	GestureGuard.on_pressed(_frame.get_meta(&"close_button") as Button, close)
 	UiKit.attach_dim_close(_dim, close)
 	resized.connect(func() -> void:
 		if visible:

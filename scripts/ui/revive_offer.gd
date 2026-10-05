@@ -118,7 +118,7 @@ func _ready() -> void:
 	footer.add_theme_constant_override("separation", UiTokens.SPACE_SM)
 	_continue = UiKit.cta(PRIMARY, PRIMARY_SUB, &"ButtonCTA", "movie")
 	_continue.name = "Continue"
-	_continue.pressed.connect(_on_continue_pressed)
+	GestureGuard.on_pressed(_continue, _on_continue_pressed)
 	footer.add_child(_continue)
 	_note = UiKit.label("", &"LabelCaption", HORIZONTAL_ALIGNMENT_CENTER)
 	_note.name = "Note"
@@ -127,7 +127,7 @@ func _ready() -> void:
 	footer.add_child(_note)
 	_decline = UiKit.button(SECONDARY, &"ButtonSecondary")
 	_decline.name = "Decline"
-	_decline.pressed.connect(func() -> void: decline_pressed.emit())
+	GestureGuard.on_pressed(_decline, func() -> void: decline_pressed.emit())
 	footer.add_child(_decline)
 	UiKit.modal_relayout(_frame)
 

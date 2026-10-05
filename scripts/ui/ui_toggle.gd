@@ -63,9 +63,11 @@ func _notification(what: int) -> void:
 		UiMotion.release(self)
 
 
-func _on_toggled(on: bool) -> void:
+## Topuz anahtarın ŞU ANKİ durumuna kayar (yayılan değere değil): kendisinden önce bağlı bir işleyici geçersiz bir
+## dokunuşu reddedip anahtarı `set_on` ile geri aldıysa (TASK/055 Ayarlar) topuz da yerinde kalır.
+func _on_toggled(_on: bool) -> void:
 	var tween: Tween = create_tween()
-	tween.tween_method(_set_knob, _knob, 1.0 if on else 0.0, SLIDE_TIME) \
+	tween.tween_method(_set_knob, _knob, 1.0 if button_pressed else 0.0, SLIDE_TIME) \
 		.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
 
 

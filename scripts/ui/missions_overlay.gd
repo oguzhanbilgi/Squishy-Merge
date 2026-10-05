@@ -62,7 +62,7 @@ func _ready() -> void:
 	tail.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	tail.custom_minimum_size = Vector2(0, 4)
 	body.add_child(tail)
-	(_frame.get_meta(&"close_button") as Button).pressed.connect(close_missions)
+	GestureGuard.on_pressed(_frame.get_meta(&"close_button") as Button, close_missions)
 	UiKit.attach_dim_close(_dim, close_missions)
 	# Ekran boyutu değişince (döndürme / pencere) pencere yeniden oturur. Tam ekran kök
 	# dinlenir — `_anchor`'ın kendi payı oturtmayla değişir, onu dinlemek döngü kurardı.

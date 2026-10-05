@@ -125,7 +125,7 @@ func _ready() -> void:
 	_build_options()
 	_build_footer()
 	_close_button = _frame.get_meta(&"close_button")
-	_close_button.pressed.connect(_on_close_pressed)
+	GestureGuard.on_pressed(_close_button, _on_close_pressed)
 	UiKit.attach_dim_close(_dim, _on_close_pressed)
 	UiKit.modal_relayout(_frame)
 
@@ -175,7 +175,7 @@ func _build_options() -> void:
 	_ad = UiKit.button(AD_BUTTON, &"ButtonPrimary", "movie")
 	_ad.name = "Ad"
 	_ad.custom_minimum_size = Vector2(0, OPTION_BUTTON_HEIGHT)
-	_ad.pressed.connect(_on_ad_pressed)
+	GestureGuard.on_pressed(_ad, _on_ad_pressed)
 	var ad_parts: Dictionary = _option_card("AdCard", UiKit.icon_texture("movie"), AD_ACCENT,
 		AD_TITLE, _ad)
 	_ad_card = ad_parts["card"]
@@ -191,7 +191,7 @@ func _build_options() -> void:
 	_dough = UiKit.button(DOUGH_BUTTON, &"ButtonPurchase")
 	_dough.name = "Dough"
 	_dough.custom_minimum_size = Vector2(0, OPTION_BUTTON_HEIGHT)
-	_dough.pressed.connect(_on_dough_pressed)
+	GestureGuard.on_pressed(_dough, _on_dough_pressed)
 	var dough_parts: Dictionary = _option_card("DoughCard", DOUGH_ART, DOUGH_ACCENT,
 		DOUGH_TITLE, _dough)
 	_dough_card = dough_parts["card"]
@@ -289,7 +289,7 @@ func _build_footer() -> void:
 	footer.add_child(_note)
 	_close = UiKit.button(CLOSE_TEXT, &"ButtonSecondary")
 	_close.name = "Close"
-	_close.pressed.connect(_on_close_pressed)
+	GestureGuard.on_pressed(_close, _on_close_pressed)
 	footer.add_child(_close)
 
 

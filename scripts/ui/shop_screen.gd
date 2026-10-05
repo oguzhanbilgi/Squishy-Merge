@@ -122,7 +122,11 @@ func _ready() -> void:
 	_vignette.texture = _radial_vignette()
 	_haze.texture = _band_gradient(Color(UiTokens.WORLD_INDIGO, 0.94), Color(UiTokens.WORLD_INDIGO, 0.0))
 	_bar = ScreenTopBar.new(TITLE, false)
-	_bar.back_pressed.connect(func() -> void: home_requested.emit())
+	# TASK/055: üst çubuk (paylaşılan ScreenTopBar) Mağaza tarafında sahiplenilir — gezinme yalnız geçerli dokunuşla.
+	GestureGuard.own(_bar.back_button())
+	_bar.back_pressed.connect(func() -> void:
+		if GestureGuard.allows(_bar.back_button()):
+			home_requested.emit())
 	_root.add_child(_bar)
 	_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_SHOW_NEVER
 	_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
@@ -254,7 +258,7 @@ func _build_daily_section() -> void:
 	# kaydırma başlayınca basış görseli bırakılır (BaseButton basışı iptal eder).
 	_daily_button.mouse_filter = Control.MOUSE_FILTER_PASS
 	_scroll.scroll_started.connect(func() -> void: UiMotion.release(_daily_button))
-	_daily_button.pressed.connect(func() -> void: daily_rewards_requested.emit())
+	GestureGuard.on_pressed(_daily_button, func() -> void: daily_rewards_requested.emit())
 	column.add_child(_daily_button)
 	_content.add_child(_daily_card)
 	_daily_spacer = _make_spacer(SECTION_SPACER)
@@ -349,14 +353,16 @@ func _build_confirm() -> void:
 	body.add_child(_make_spacer(2.0))
 	_confirm_yes = UiKit.cta("SATIN AL", "", &"ButtonCTA")
 	_confirm_yes.name = "Yes"
-	_confirm_yes.pressed.connect(_on_confirm_yes)
+	GestureGuard.on_pressed(_confirm_yes, _on_confirm_yes)
 	body.add_child(_confirm_yes)
 	_confirm_no = UiKit.button("Vazgeç", &"ButtonSecondary")
 	_confirm_no.name = "No"
-	_confirm_no.pressed.connect(_close_confirm)
+	GestureGuard.on_pressed(_confirm_no, _close_confirm)
 	body.add_child(_confirm_no)
-	(_frame.get_meta(&"close_button") as Button).pressed.connect(_close_confirm)
-	_confirm_dim.gui_input.connect(_on_dim_input)
+	GestureGuard.on_pressed(_frame.get_meta(&"close_button") as Button, _close_confirm)
+	# TASK/055: karartma = Vazgeç, tüm ikincil pencerelerle TEK anlam (UiKit.attach_dim_close): gerçek, iptal edilmemiş
+	# bırakışta kapanır — eski yerel işleyici öykünülen fare BASIŞINDA ve iptal edilen bırakışta da kapatıyordu.
+	UiKit.attach_dim_close(_confirm_dim, _close_confirm)
 	_confirm.visible = false
 
 
@@ -604,17 +610,6 @@ func handle_back() -> bool:
 		_close_confirm()
 		return true
 	return false
-
-
-## Karartmaya dokunmak "Vazgeç" ile aynı.
-func _on_dim_input(event: InputEvent) -> void:
-	var touch := event as InputEventScreenTouch
-	if touch != null and not touch.pressed:
-		_close_confirm()
-		return
-	var click := event as InputEventMouseButton
-	if click != null and click.pressed and click.button_index == MOUSE_BUTTON_LEFT:
-		_close_confirm()
 
 
 func _on_confirm_yes() -> void:

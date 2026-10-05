@@ -135,7 +135,7 @@ func _init() -> void:
 	# Butondan baslayan dikey surukleme Magaza'yi kaydirsin (06.3, A36: STOP
 	# ile 0 px); dokunus yine tek `pressed` -> buy_requested.
 	UiKit.make_candy_button_scrollable(_buy)
-	_buy.pressed.connect(func() -> void: buy_requested.emit(_type))
+	GestureGuard.on_pressed(_buy, func() -> void: buy_requested.emit(_type))
 	column.add_child(_buy)
 	# Stok rozeti (05.1): KUYUNUN sağ üst omzuna oturur — gameplay
 	# madalyonundaki ×N rozetiyle aynı yer (UiKit.power_slot: sağ üst, 6 px

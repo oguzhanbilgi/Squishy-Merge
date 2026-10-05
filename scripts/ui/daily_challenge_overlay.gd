@@ -61,7 +61,7 @@ func _ready() -> void:
 	_build_hero(_frame.get_meta(&"hero"))
 	_build_body(_frame.get_meta(&"body"))
 	_build_footer(_frame.get_meta(&"footer"))
-	(_frame.get_meta(&"close_button") as Button).pressed.connect(close_sheet)
+	GestureGuard.on_pressed(_frame.get_meta(&"close_button") as Button, close_sheet)
 	UiKit.attach_dim_close(_dim, close_sheet)
 	$Center.resized.connect(func() -> void:
 		if visible:
@@ -149,11 +149,11 @@ func _build_body(body: VBoxContainer) -> void:
 func _build_footer(footer: VBoxContainer) -> void:
 	_start = UiKit.cta(START_TEXT, "", &"ButtonCTA", "play")
 	_start.name = "Start"
-	_start.pressed.connect(_on_start_pressed)
+	GestureGuard.on_pressed(_start, _on_start_pressed)
 	footer.add_child(_start)
 	_close_cta = UiKit.cta(CLOSE_TEXT, "", &"ButtonCTA", "close")
 	_close_cta.name = "Close"
-	_close_cta.pressed.connect(close_sheet)
+	GestureGuard.on_pressed(_close_cta, close_sheet)
 	_close_cta.visible = false
 	footer.add_child(_close_cta)
 

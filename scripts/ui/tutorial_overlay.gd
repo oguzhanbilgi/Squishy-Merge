@@ -158,13 +158,13 @@ func _build_card() -> void:
 	_cta_alt.name = "CtaAlt"
 	_cta_alt.custom_minimum_size.x = 190.0
 	_cta_alt.visible = false
-	_cta_alt.pressed.connect(func() -> void: skip_pressed.emit())
+	GestureGuard.on_pressed(_cta_alt, func() -> void: skip_pressed.emit())
 	_buttons.add_child(_cta_alt)
 
 	_cta = UiKit.candy_button("", &"ButtonPrimary", 58.0)
 	_cta.name = "Cta"
 	_cta.custom_minimum_size.x = 210.0
-	_cta.pressed.connect(func() -> void: cta_pressed.emit())
+	GestureGuard.on_pressed(_cta, func() -> void: cta_pressed.emit())
 	_buttons.add_child(_cta)
 
 
@@ -186,7 +186,7 @@ func _build_skip() -> void:
 	UiKit.inset(backing, 0.0, 4.0, 0.0, 4.0)
 	_skip.add_child(backing)
 	UiMotion.attach_press(_skip)
-	_skip.pressed.connect(func() -> void: skip_pressed.emit())
+	GestureGuard.on_pressed(_skip, func() -> void: skip_pressed.emit())
 	_root.add_child(_skip)
 
 

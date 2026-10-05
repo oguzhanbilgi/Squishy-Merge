@@ -35,7 +35,7 @@ func _ready() -> void:
 			SaveManager.powerup_count(type), GameplayLayout.SLOT_SIZE)
 		slot.name = "Slot_%s" % PowerUp.SAVE_KEYS[type]
 		slot.tooltip_text = PowerUp.display_name(type)
-		slot.pressed.connect(func() -> void: power_pressed.emit(int(type)))
+		GestureGuard.on_pressed(slot, func() -> void: power_pressed.emit(int(type)))
 		add_child(slot)
 		_slots[int(type)] = slot
 	refresh()
