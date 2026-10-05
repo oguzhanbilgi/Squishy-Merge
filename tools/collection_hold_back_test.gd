@@ -10,13 +10,14 @@ extends Node
 ##   godot --headless --audio-driver Dummy --path . res://tools/collection_hold_back_test.tscn
 ##
 ## Kök neden (taban 6a4a2b2; Godot 4.6.3 kaynağıyla doğrulandı): basılı bir düğme gizlenince (`Viewport::_gui_hide_control`
-## → `_drop_mouse_focus`) motor ona iç aygıtlı sentetik bir bırakış yollar; bu bırakış — son gerçek girdi işlenmemişse
-## (parmak titremesi PASS kartta, işlenmeyen bir tuş) — BaseButton'a ulaşır ve `pressed` sayılır. BaseButton iptal
-## edilen (ACTION_CANCEL) bırakışı da `pressed` sayar. Koleksiyon'un `pressed` işleyicileri yüzeyin hâlâ ekranda olup
-## olmadığına bakmıyordu: gizli albümde detay açılıyor (yeniden açılışta ekranda bekliyor, ilk taze dokunuşu yutuyor),
-## kapanan detayın VİTRİNE EKLE / VİTRİNDEN ÇIKAR'ı kayda yazıyor, MAĞAZAYA GİT / üst çubuk "+" GERİ'den sonra
-## Mağaza'ya gidiyordu. Bırakış düştüğünde ise BaseButton'ın basılı durumu asılı kalıyor, sonraki basış button_down
-## (dokunuş sesi / basış ölçeği) yaymıyordu.
+## → `_drop_mouse_focus`) — ya da pencere odağı gidince (FOCUS_OUT, aynı düşürme) — motor ona iç aygıtlı sentetik bir
+## bırakış yollar; bu bırakış — son gerçek girdi işlenmemişse (cihazda GERİ tuşunun kendisi / bir ses tuşu; masaüstünde
+## PASS kartta parmak titremesi) — BaseButton'a ulaşır ve `pressed` sayılır. BaseButton iptal edilen (ACTION_CANCEL)
+## bırakışı da `pressed` sayar; paylaşılan karartma kapanışı da iptali ayırt etmez. Koleksiyon'un `pressed`
+## işleyicileri dokunuşun sahibine bakmıyordu: gizli albümde detay açılıyor (yeniden açılışta ekranda bekliyor, ilk taze
+## dokunuşu yutuyor, Ana Sayfa'nın günlük penceresini bastırıyor), kapanan detayın VİTRİNE EKLE / VİTRİNDEN ÇIKAR'ı
+## kayda yazıyor, MAĞAZAYA GİT / üst çubuk "+" GERİ'den sonra Mağaza'ya gidiyordu. Bırakış düştüğünde ise BaseButton'ın
+## basılı durumu asılı kalıyor, sonraki basış button_down (dokunuş sesi / basış ölçeği) yaymıyordu.
 ##
 ## Bölümler:
 ##   A kart + GERİ   basılı kart → GERİ → bırak (olay yok / işlenmeyen olay / parmak titremesi): detay açılmaz (gizlide
@@ -25,31 +26,40 @@ extends Node
 ##   B kart + geçiş  basılı kart → sekme değişimi (Mağaza, Profil) → bırak: 0 eylem
 ##   C detay         birincil (VİTRİNE EKLE / MAĞAZAYA GİT), ikincil (VİTRİNDEN ÇIKAR), değiştirme kutusu, X basılı + GERİ
 ##                   → bırak: yazma yok, gezinme yok, yeniden açılış yok
-##   D İPTAL         ACTION_CANCEL bırakışı: kart, birincil, ikincil, kutu, üst çubuk geri / "+" → 0 eylem, basış biter
-##   E İPTAL + UP    iptalden sonra bayat UP → 0 eylem; ardından taze dokunuş tam bir kez
-##   F taze          bayat diziden sonra yeniden aç → AYNI karta taze dokunuş tam 1 detay (button_down 1)
-##   G sıra          öykünülen fare + dokunuş sırası: normal dokunuş tek seçim; sentetik bırakış görünür olay yaymaz
+##   D İPTAL         ACTION_CANCEL bırakışı: kart, birincil, ikincil, kutu, üst çubuk geri / "+", detay X, karartma → 0
+##                   eylem, basış biter; karartmada İPTAL + GERİ (hareketli gezinme geri kaydırması) → tek gezinme
+##   E İPTAL + UP    iptalden sonra bayat UP (motor dokunuş odağını iptalde bırakmıştı) → 0 eylem; ardından taze dokunuş
+##                   tam bir kez (kart, karartma)
+##   F taze          bayat diziden sonra yeniden aç → AYNI karta taze dokunuş tam 1 detay (button_down 1), sonra da tek
+##   G sıra          öykünülen fare + dokunuş sırası: normal dokunuş tek seçim, gerçek bırakış gui_input'ta `pressed`'ten
+##                   ÖNCE (sahiplik kaydının dayandığı sıra); bayat dizide öykünülen bırakış karta hiç ulaşmaz
 ##   H çok parmak    ikinci parmak GUI düğmesine basamaz (fare öykünmesi yalnız 0. parmak); kartı tutan parmak GERİ'den
 ##                   sonra kalkarsa 0 eylem, GERİ'siz kalkarsa normal tek seçim
 ##   I hızlı GERİ    birincil basılı → GERİ (detay) → GERİ (Ana Sayfa) → bırak: tek kapanış, tek gezinme, 0 eylem
-##   J basılı durum  gizlenen basılı düğmenin basışı biter: sonraki taze basış button_down yayar (kart, üst çubuk, birincil,
-##                   kutu, detay X), ölçek 1.0. STOP düğmelerde (üst çubuk / detay düğmeleri / kutu) dokunuşu düğme işler →
+##   J basılı durum  gizlenen basılı düğmenin basışı biter: sonraki taze basış button_down yayar (kart, kaydırmaya geçmiş
+##                   kart, üst çubuk, birincil, kutu, detay X), ölçek 1.0. STOP düğmelerde ve kaydırmaya geçmiş kartta
 ##                   motorun gizleme bırakışı deterministik DÜŞER (asılı durumu en iyi bunlar sınar); PASS kartta olay
 ##                   ScrollContainer'a da geçer → bırakışın düşüp düşmemesi motor durumuna bağlı
 ##   K kayıt         bayat dizilerden sonra Hamur / vitrin / açık parçalar bellekte ve diskte aynı
 ##   L normal        tek dokunuş tam bir kez: kart → detay, birincil → vitrine ekler, ikincil → çıkarır, kutu → değiştirir,
-##                   üst çubuk geri → Ana Sayfa, "+" → Mağaza
+##                   üst çubuk geri → Ana Sayfa, "+" → Mağaza, detay X / karartma → kapanır
 ##   M gezinme       GERİ: detay → kapanır (Koleksiyon'da kalınır), değiştirme adımı → detaya, detay yok → Ana Sayfa;
 ##                   Ana Sayfa madalyonu → Koleksiyon
-##   S sahiplik      gizli düğmeye ulaşan `pressed` (motor basış bitmeden bırakış verirse) eylem üretmez: kart, üst çubuk
-##                   geri / "+", birincil (iki tür), ikincil
+##   O odak kaybı    basılı düğmede pencere odağı gider (Android onPause): kart (önceki normal dokunuştan sonra), STOP
+##                   birincil (bırakış düşer → basış odak kaybında biter / bırakış ulaşır → eylemsiz) → 0 eylem, taze
+##                   dokunuş tam bir kez
+##   R günlük pencere bugün gösterilmemişken basılı kart + GERİ → Ana Sayfa'da pencere normal açılır, bayat kalkış
+##                   pencereye dokunmaz
+##   S sahiplik      gizli düğmeye ulaşan `pressed` eylem üretmez: gizli albümde kart, üst çubuk geri / "+"; detay
+##                   KAPANIRKEN (düğmenin kendi gizlenme bildirimi, detay id'si / değiştirme adımı hâlâ dururken) VİTRİNE
+##                   EKLE, MAĞAZAYA GİT, VİTRİNDEN ÇIKAR, değiştirme kutusu
 ##   P kaynak        sözleşme (bağlama, korumalar, basış bitirme, paylaşılan yardımcılar)
 ##   N kayıt         sahibin kayıt ailesi bayt-aynı
 
 const MAIN_SCENE: PackedScene = preload("res://scenes/main.tscn")
 const DIR: String = "user://qa_collection_hold"
 const PATH: String = DIR + "/save.json"
-const SECTIONS: int = 14
+const SECTIONS: int = 16
 const MON: String = "2026-09-28"
 const THU: String = "2026-10-01"
 const BACK_GAP_MSEC: int = 320
@@ -110,6 +120,8 @@ func _ready() -> void:
 	await _economy()
 	await _normal_taps()
 	await _navigation()
+	await _focus_out()
+	await _daily_popup()
 	await _hidden_pressed()
 	_source_contract()
 	_c("%d/%d bölüm sonuna kadar koştu (betik hatası yok)" % [_sections_done, SECTIONS], _sections_done == SECTIONS)
@@ -343,13 +355,34 @@ func _cancel() -> void:
 		_c("D üst çubuk %s: DOWN + CANCEL → gezinme YOK (istek 0, Koleksiyon'da)" % which,
 			_n.get("bar_%s.down" % which, 0) == 1 and _n.get("home_requested", 0) == 0 and _n.get("shop_requested", 0) == 0
 			and _main._active_tab == 2 and album.visible)
+	album = await _open_fresh()
+	await _open_detail(album, OWNED)
+	var close: Button = album.detail_frame().get_meta(&"close_button")
+	_watch(close, "close")
+	_mark()
+	await _down_cancel(_center(close))
+	_c("D detay X: DOWN + CANCEL → detay KAPANMADI (kapanış 0)", _n.get("close.down", 0) == 1 and album.is_detail_open()
+		and _n.get("detail_off", 0) == 0)
+	# Karartma özel bırakış yolu (paylaşılan `attach_dim_close` iptali ayırt etmez — Koleksiyon kendi kaydıyla süzer).
+	_mark()
+	await _down_cancel(_dim_point(album))
+	_c("D karartma: DOWN + CANCEL → detay KAPANMADI (dokunuş karartmaya ulaştı, kapanış 0)", _n.get("dim.down", 0) == 1
+		and album.is_detail_open() and _n.get("detail_off", 0) == 0)
+	# Hareketli gezinmenin geri kaydırması karartmadan başlarsa: önce ACTION_CANCEL, sonra GERİ — tek gezinme.
+	_mark()
+	await _down_cancel(_dim_point(album))
+	await _back()
+	await _settle(2)
+	_c("D karartma İPTAL → GERİ: tek gezinme — detay bir kez kapandı, Koleksiyon'da kalındı (Ana Sayfa'ya düşmedi)",
+		_n.get("dim.down", 0) == 1 and not album.is_detail_open() and _n.get("detail_off", 0) == 1
+		and _main._active_tab == 2 and album.visible)
 	_sections_done += 1
 
 
 # --- E) İptal + bayat UP --------------------------------------------------------------------------------------------
 
 func _cancel_then_up() -> void:
-	print("-- E: DOWN + CANCEL + bayat UP → 0 eylem; ardından taze dokunuş tam bir kez")
+	print("-- E: DOWN + CANCEL + bayat UP → 0 eylem (motor dokunuş odağını iptalde bırakmıştı); ardından taze dokunuş tam bir kez")
 	var album: CanvasLayer = await _open_fresh()
 	var card: Button = album.card(OWNED)
 	_watch(card, "card")
@@ -358,13 +391,26 @@ func _cancel_then_up() -> void:
 	await _down_cancel(pos)
 	await _finger(pos, false)
 	await _settle(3)
-	_c("E: CANCEL'dan sonra bayat UP → detay yok (detail_opened 0)", not album.is_detail_open()
-		and _n.get("detail_opened", 0) == 0)
+	_c("E kart: CANCEL'dan sonra bayat UP → detay yok (detail_opened 0)", _n.get("card.down", 0) == 1
+		and not album.is_detail_open() and _n.get("detail_opened", 0) == 0)
 	await _wait_settled()
 	_mark()
 	await _tap(card)
-	_c("  … E: sonraki taze dokunuş tam 1 detay (button_down 1, detail_opened 1, id doğru)", _n.get("card.down", 0) == 1
+	_c("  … E kart: sonraki taze dokunuş tam 1 detay (button_down 1, detail_opened 1, id doğru)", _n.get("card.down", 0) == 1
 		and _n.get("detail_opened", 0) == 1 and album.detail_id() == OWNED)
+	await _wait_settled()
+	var dim_pos: Vector2 = _dim_point(album)
+	_mark()
+	await _down_cancel(dim_pos)
+	await _finger(dim_pos, false)
+	await _settle(3)
+	_c("E karartma: CANCEL'dan sonra bayat UP → detay açık kaldı (kapanış 0)", _n.get("dim.down", 0) == 1
+		and album.is_detail_open() and _n.get("detail_off", 0) == 0)
+	_mark()
+	await _finger_tap(dim_pos)
+	await _settle(3)
+	_c("  … E karartma: sonraki taze dokunuş tam 1 kapanış, Koleksiyon'da", _n.get("dim.down", 0) == 1
+		and not album.is_detail_open() and _n.get("detail_off", 0) == 1 and _main._active_tab == 2)
 	_sections_done += 1
 
 
@@ -386,15 +432,17 @@ func _fresh_after_stale() -> void:
 	await _tap(card)
 	_c("F: yeniden açılışta ilk taze dokunuş AYNI kartta tam 1 detay açtı (button_down 1, detail_opened 1, id doğru)",
 		album.visible and _n.get("card.down", 0) == 1 and _n.get("detail_opened", 0) == 1 and album.detail_id() == OWNED)
-	_c("  … F: ek ayar beklemesi gerekmedi — dokunuş yeniden açılışın standart 300 ms geçiş yatışmasından hemen sonra",
-		album.is_detail_open())
+	await _wait(0.45)
+	await _settle(3)
+	_c("  … F: tam BİR kez — geçiş yatışması / eylem kilidi süresi sonunda da ikinci seçim yok (pressed 1, detail_opened 1)",
+		_n.get("card.pressed", 0) == 1 and _n.get("detail_opened", 0) == 1 and album.is_detail_open())
 	_sections_done += 1
 
 
 # --- G) Öykünülen fare sırası ---------------------------------------------------------------------------------------
 
 func _ordering() -> void:
-	print("-- G: öykünülen fare + dokunuş sırası — normal dokunuş tek seçim, sentetik bırakış görünür olay yaymaz")
+	print("-- G: öykünülen fare + dokunuş sırası — normal dokunuş tek seçim, gerçek bırakış `pressed`'ten önce görülür")
 	var album: CanvasLayer = await _open_fresh()
 	var card: Button = album.card(OWNED)
 	_watch(card, "card")
@@ -407,6 +455,10 @@ func _ordering() -> void:
 		and order.has("ScreenTouch:0:UP") and _n.get("card.pressed", 0) == 1 and _n.get("detail_opened", 0) == 1)
 	_c("  … G: fare basışı dokunuştan ÖNCE işlenir (Android'deki öykünme sırası)",
 		order.find("MouseButton:-1:DOWN") >= 0 and order.find("MouseButton:-1:DOWN") < order.find("ScreenTouch:0:DOWN"))
+	var up_at: int = _event_index("card.gui:MouseButton:-1:UP")
+	var pressed_at: int = _event_index("card.pressed")
+	_c("  … G: gerçek fare bırakışı gui_input'ta `pressed`'ten ÖNCE görülür, dokunuş UP'ı sonra (sahiplik kaydı eylemden önce)",
+		up_at >= 0 and pressed_at > up_at and _event_index("card.gui:ScreenTouch:0:UP") > pressed_at)
 	album = await _open_fresh()
 	card = album.card(OWNED)
 	_watch(card, "card")
@@ -418,8 +470,8 @@ func _ordering() -> void:
 	await _settle(3)
 	order = _gui_order()
 	print("  [KAYIT] G bayat dizi: %s" % " ".join(_events))
-	_c("G: bayat dizi — gizleme anındaki bırakış görünür bir girdi olayı değil (yalnız gerçek DOWN'lar + gizli karta ScreenTouch UP)",
-		not order.has("MouseButton:-1:UP") and not order.has("MouseButton:-2:UP"))
+	_c("G (motor gerçeği): bayat dizide öykünülen fare bırakışı karta HİÇ ulaşmadı — gizlenince fare odağı düştü, kalkış hedefsiz",
+		order.has("MouseButton:-1:DOWN") and not order.has("MouseButton:-1:UP"))
 	_c("  … G: gizli karta ulaşan dokunuş UP'ı (aygıt 0) seçim üretmedi; detay 0", order.has("ScreenTouch:0:UP")
 		and _n.get("detail_opened", 0) == 0 and not album.is_detail_open())
 	_sections_done += 1
@@ -508,6 +560,27 @@ func _hold_state() -> void:
 	await _tap(card)
 	_c("  … J kart: sonraki taze basış button_down YAYDI (1) ve tam 1 detay", _n.get("card.down", 0) == 1
 		and _n.get("detail_opened", 0) == 1)
+	# Kart [kaydırma]: basılıyken galeri kaydırmaya geçti (SCROLL_BEGIN: BaseButton press_attempt'i bırakır, button_up
+	# YOK; cihazda kaydırma olayı işlenir → gizleme bırakışı düşer) → GERİ → bırak → yeniden aç → taze dokunuş.
+	album = await _open_fresh()
+	card = album.card(OWNED)
+	_watch(card, "card")
+	pos = _center(card)
+	_mark()
+	await _finger(pos, true)
+	album.scroll().propagate_notification(Control.NOTIFICATION_SCROLL_BEGIN)
+	await _settle(1)
+	var scrolled: bool = _n.get("card.down", 0) == 1 and _n.get("card.up", 0) == 0
+	await _back()
+	var scroll_ended: bool = _n.get("card.up", 0) == 1 and not album.visible
+	await _finger(pos, false)
+	await _settle(3)
+	_main._show_tab(2)
+	await _wait_settled()
+	_mark()
+	await _tap(card)
+	_c("J kart [kaydırma]: kaydırmaya geçen basılı kartın basışı GERİ'de bitti (button_up 1); yeniden açılışta taze basış button_down 1, tam 1 detay",
+		scrolled and scroll_ended and _n.get("card.down", 0) == 1 and _n.get("detail_opened", 0) == 1)
 	# Üst çubuk geri: basılı + GERİ (olay yok) → yeniden aç → üst çubuk geri taze dokunuş.
 	album = await _open_fresh()
 	var back_button: Button = album.top_bar().back_button()
@@ -654,6 +727,18 @@ func _normal_taps() -> void:
 	_mark()
 	await _tap(album.top_bar().add_button())
 	_c("L üst çubuk \"+\": tam 1 gezinme → Mağaza", _n.get("shop_requested", 0) == 1 and _main._active_tab == 3)
+	album = await _open_fresh()
+	await _open_detail(album, OWNED)
+	_mark()
+	await _tap(album.detail_frame().get_meta(&"close_button"))
+	_c("L detay X: dokunuş → tam 1 kapanış, Koleksiyon'da", not album.is_detail_open() and _n.get("detail_off", 0) == 1
+		and _main._active_tab == 2 and album.visible)
+	await _open_detail(album, OWNED)
+	_mark()
+	await _finger_tap(_dim_point(album))
+	await _settle(3)
+	_c("L karartma: dokunuş → tam 1 kapanış, Koleksiyon'da", _n.get("dim.down", 0) == 1 and not album.is_detail_open()
+		and _n.get("detail_off", 0) == 1 and _main._active_tab == 2 and album.visible)
 	_sections_done += 1
 
 
@@ -684,10 +769,113 @@ func _navigation() -> void:
 	_sections_done += 1
 
 
+# --- O) Pencere odağı kaybı -------------------------------------------------------------------------------------------
+
+func _focus_out() -> void:
+	print("-- O: basılı düğmede pencere odağı kaybı (Android onPause: arka plan / ekran kilidi / arama) → 0 eylem, basış biter")
+	# O1 — kart: önce AYNI karta normal bir dokunuş (önceki dokunuşun gerçek bırakışı yeni basışa sızmamalı), sonra basılı
+	# kart + işlenmeyen olay (cihazda ör. ses tuşu) + odak kaybı: motorun bırakışı karta ULAŞIR ve `pressed` sayılır.
+	var album: CanvasLayer = await _open_fresh()
+	var card: Button = album.card(OWNED)
+	_watch(card, "card")
+	await _tap(card)
+	var first: bool = album.detail_id() == OWNED
+	await _back()
+	await _wait_settled()
+	var econ: Dictionary = _econ()
+	var pos: Vector2 = _center(card)
+	_mark()
+	await _hold(pos, "event")
+	await _window_focus(false)
+	_record("O1 odak kaybı", album)
+	var at_out: bool = not album.is_detail_open() and _n.get("detail_opened", 0) == 0 and _n.get("card.up", 0) == 1
+	await _window_focus(true)
+	await _finger(pos, false)
+	await _settle(3)
+	_c("O1 kart: önceki normal dokunuş detay açtı; basılı kart + odak kaybı → detay AÇILMADI, basış bitti (button_up 1)",
+		first and _n.get("card.down", 0) == 1 and at_out)
+	_c("  … O1: odak dönüp parmak kalkınca da 0 eylem (detay yok, kayıt aynı), Koleksiyon'da", not album.is_detail_open()
+		and _n.get("detail_opened", 0) == 0 and _econ() == econ and _main._active_tab == 2 and album.visible)
+	await _wait_settled()
+	_mark()
+	await _tap(card)
+	_c("  … O1: sonraki taze dokunuş tam 1 detay (button_down 1)", _n.get("card.down", 0) == 1
+		and _n.get("detail_opened", 0) == 1 and album.detail_id() == OWNED)
+	# O2 — STOP birincil (VİTRİNE EKLE), olay yok (son girdi işlenmiş): motorun odak bırakışı DÜŞER → basış odak kaybı
+	# bildiriminde biter (yoksa düğme basılı çizilir, sonraki basış button_down / dokunuş sesi üretmez).
+	album = await _open_fresh()
+	await _open_detail(album, OWNED)
+	var primary: Button = album.detail_primary()
+	_watch(primary, "primary")
+	econ = _econ()
+	pos = _center(primary)
+	_mark()
+	await _hold(pos, "none")
+	await _window_focus(false)
+	var ended: bool = _n.get("primary.up", 0) == 1 and primary.get_draw_mode() != BaseButton.DRAW_PRESSED
+	await _window_focus(true)
+	await _finger(pos, false)
+	await _settle(3)
+	_c("O2 birincil [olay yok]: odak kaybında basış bitti (button_up 1, basılı çizim yok); kalkışta vitrin aynı, detay açık",
+		_n.get("primary.down", 0) == 1 and ended and _econ() == econ and album.is_detail_open())
+	await _wait_settled()
+	_mark()
+	await _tap(primary)
+	_c("  … O2: sonraki taze basış button_down 1, vitrine tam 1 ekleme", _n.get("primary.down", 0) == 1
+		and SaveManager.profile_showcase().has(OWNED) and SaveManager.profile_showcase().size() == 2)
+	# O3 — STOP birincil + işlenmeyen olay + odak kaybı: motorun bırakışı düğmeye ULAŞIR, `pressed` sayılır (TASK/054
+	# incelemesi: ses tuşu + güç tuşu / gelen arama).
+	album = await _open_fresh()
+	await _open_detail(album, OWNED)
+	primary = album.detail_primary()
+	_watch(primary, "primary")
+	econ = _econ()
+	pos = _center(primary)
+	_mark()
+	await _hold(pos, "event")
+	await _window_focus(false)
+	var at_out3: bool = _econ() == econ and _n.get("primary.up", 0) == 1
+	await _window_focus(true)
+	await _finger(pos, false)
+	await _settle(3)
+	_c("O3 birincil [işlenmeyen olay]: odak kaybı bırakışı → vitrine YAZILMADI (bellek + disk), basış bitti, detay açık",
+		_n.get("primary.down", 0) == 1 and at_out3 and _econ() == econ and album.is_detail_open())
+	_sections_done += 1
+
+
+# --- R) Ana Sayfa günlük penceresi -----------------------------------------------------------------------------------
+
+func _daily_popup() -> void:
+	print("-- R: günlük pencere bugün gösterilmemiş + basılı kart + GERİ → Ana Sayfa'da pencere açılır, bayat kalkış dokunmaz")
+	var daily: Dictionary = (_fixture()["daily_rewards"] as Dictionary).duplicate()
+	daily["popup_seen_day"] = ""
+	var album: CanvasLayer = await _open_fresh({"daily_rewards": daily})
+	var popup: CanvasLayer = _main._daily_rewards
+	DailyRewards.auto_popup_enabled = true
+	var due: bool = DailyRewards.popup_due() and not popup.visible
+	var card: Button = album.card(OWNED)
+	_watch(card, "card")
+	var econ: Dictionary = _econ()
+	var pos: Vector2 = _center(card)
+	_mark()
+	await _hold(pos, "event")
+	await _back()
+	_record("R GERİ", album)
+	var at_back: bool = _main._active_tab == 0 and popup.visible and not album.is_detail_open()
+	await _finger(pos, false)
+	await _settle(3)
+	_c("R: ön koşul pencere due; basılı kart (button_down 1) + GERİ → Ana Sayfa'da günlük pencere AÇILDI (gizli detay yok)",
+		due and _n.get("card.down", 0) == 1 and at_back)
+	_c("  … R: parmak kalkınca pencere açık kaldı, detay / seçim 0, Hamur / vitrin aynı (bellek + disk)", popup.visible
+		and not album.is_detail_open() and _n.get("detail_opened", 0) == 0 and _econ() == econ and _main._active_tab == 0)
+	DailyRewards.auto_popup_enabled = false
+	_sections_done += 1
+
+
 # --- S) Gizli düğmeye ulaşan `pressed` -------------------------------------------------------------------------------
 
 func _hidden_pressed() -> void:
-	print("-- S: gizli düğmeye ulaşan `pressed` (motor bırakışı basış bitmeden verirse) eylem üretmez")
+	print("-- S: gizli düğmeye ulaşan `pressed` eylem üretmez — gizli albüm; detay KAPANIRKEN (id / adım hâlâ dururken)")
 	var album: CanvasLayer = await _open_fresh()
 	var card: Button = album.card(OWNED)
 	var bar: ScreenTopBar = album.top_bar()
@@ -704,26 +892,38 @@ func _hidden_pressed() -> void:
 	album = await _open_fresh()
 	await _open_detail(album, OWNED)
 	var econ: Dictionary = _econ()
+	var hook: Dictionary = _press_mid_hide(album, album.detail_primary())
 	album.close_detail(false)
-	album.detail_primary().pressed.emit()
 	await _settle(2)
-	_c("S: kapanmış detayın VİTRİNE EKLE'sine gelen pressed → vitrine yazılmadı", _econ() == econ)
+	_c("S: detay kapanırken (id hâlâ %s) VİTRİNE EKLE'ye gelen pressed → vitrine yazılmadı (bellek + disk)" % hook["id"],
+		hook["fired"] and hook["id"] == OWNED and _econ() == econ)
 	album = await _open_fresh()
 	await _open_detail(album, LOCKED)
-	album.close_detail(false)
+	hook = _press_mid_hide(album, album.detail_primary())
 	_mark()
-	album.detail_primary().pressed.emit()
+	album.close_detail(false)
 	await _settle(2)
-	_c("S: kapanmış detayın MAĞAZAYA GİT'ine gelen pressed → Mağaza isteği 0, Koleksiyon'da", _n.get("shop_skin_requested", 0) == 0
-		and _main._active_tab == 2)
+	_c("S: detay kapanırken (id hâlâ %s) MAĞAZAYA GİT'e gelen pressed → Mağaza isteği 0, Koleksiyon'da" % hook["id"],
+		hook["fired"] and hook["id"] == LOCKED and _n.get("shop_skin_requested", 0) == 0 and _main._active_tab == 2)
 	album = await _open_fresh({"profile_showcase": [String(OTHER), String(OWNED)]})
 	await _open_detail(album, OWNED)
 	econ = _econ()
+	hook = _press_mid_hide(album, album.detail_secondary())
 	album.close_detail(false)
-	album.detail_secondary().pressed.emit()
 	await _settle(2)
-	_c("S: kapanmış detayın VİTRİNDEN ÇIKAR'ına gelen pressed → vitrinden çıkarılmadı", _econ() == econ
-		and SaveManager.profile_showcase().has(OWNED))
+	_c("S: detay kapanırken (id hâlâ %s) VİTRİNDEN ÇIKAR'a gelen pressed → vitrinden çıkarılmadı" % hook["id"],
+		hook["fired"] and hook["id"] == OWNED and _econ() == econ and SaveManager.profile_showcase().has(OWNED))
+	album = await _open_fresh(_full_showcase())
+	await _open_detail(album, OWNED)
+	await _tap(album.detail_primary())
+	await _wait_settled()
+	econ = _econ()
+	var replacing: bool = album.is_replacing()
+	hook = _press_mid_hide(album, album.replace_tiles()[0])
+	album.close_detail(false)
+	await _settle(2)
+	_c("S: detay kapanırken (değiştirme adımı hâlâ açık) kutuya gelen pressed → yuva değişmedi (bellek + disk)",
+		replacing and hook["fired"] and hook["replacing"] and _econ() == econ)
 	_sections_done += 1
 
 
@@ -733,13 +933,19 @@ func _source_contract() -> void:
 	print("-- P: kaynak sözleşmesi")
 	var code: String = _strip_comments(FileAccess.get_file_as_string("res://scripts/ui/collection_screen.gd"))
 	var own: String = _function(code, "func _own_gesture(")
-	_c("_own_gesture: gerçek bırakışın iptal bayrağı gui_input'tan (canceled), basılı durum button_down / button_up'tan; gizlenince basılıysa _end_press",
-		own.contains("gui_input.connect(") and own.contains("click.canceled") and own.contains("button_down.connect(")
-		and own.contains("button_up.connect(") and own.contains("visibility_changed.connect(")
-		and own.contains("_end_press(button)") and own.contains("is_visible_in_tree()"))
+	_c("_own_gesture: gerçek (iptal edilmemiş) bırakış kaydı gui_input'tan, basılı durum button_down / button_up'tan; gizlenince basılıysa _end_press",
+		own.contains("gui_input.connect(") and own.contains("META_GESTURE_RELEASED, not click.pressed and not click.canceled")
+		and own.contains("button_down.connect(") and own.contains("button_up.connect(")
+		and own.contains("visibility_changed.connect(") and own.contains("_end_press(button)")
+		and own.contains("is_visible_in_tree()"))
 	var ok_fn: String = _function(code, "func _gesture_ok(")
-	_c("  … _gesture_ok = düğme ekranda (is_visible_in_tree) VE bırakış iptal değil", ok_fn.contains("is_visible_in_tree()")
-		and ok_fn.contains("META_GESTURE_CANCELED"))
+	_c("  … _gesture_ok = düğme ekranda (is_visible_in_tree) VE (basış yok YA DA gerçek bırakışı görüldü)",
+		ok_fn.contains("is_visible_in_tree()") and ok_fn.contains("not button.get_meta(META_GESTURE_HELD, false)")
+		and ok_fn.contains("or button.get_meta(META_GESTURE_RELEASED, false)"))
+	var focus_fn: String = _function(code, "func _notification(")
+	_c("  … pencere odağı kaybı (NOTIFICATION_WM_WINDOW_FOCUS_OUT) hâlâ basılı sahipli düğmelerin basışını _end_press ile bitirir",
+		focus_fn.contains("NOTIFICATION_WM_WINDOW_FOCUS_OUT") and focus_fn.contains("META_GESTURE_HELD")
+		and focus_fn.contains("_end_press("))
 	var end_fn: String = _function(code, "func _end_press(")
 	_c("  … _end_press basışı genel API'yle bitirir: disabled true → false (zaten devre dışıysa dokunmaz), eylem yaymaz",
 		end_fn.contains("button.disabled = true") and end_fn.contains("button.disabled = false")
@@ -747,7 +953,7 @@ func _source_contract() -> void:
 	var wired: Array[String] = []
 	for token: String in ["_own_gesture(card)", "_own_gesture(_bar.back_button())", "_own_gesture(_bar.add_button())",
 			"_own_gesture(_detail_primary)", "_own_gesture(_detail_secondary)", "_own_gesture(tile)",
-			"_own_gesture(_detail_frame.get_meta(&\"close_button\"))"]:
+			"_own_gesture(close_button)"]:
 		if not code.contains(token):
 			wired.append(token)
 	_c("Koleksiyon'un TÜM düğmeleri sahipliğe bağlı (kart, üst çubuk geri / +, birincil, ikincil, kutu, X)%s"
@@ -772,6 +978,13 @@ func _source_contract() -> void:
 	_c("  … birincil: koruma vitrin yazmasından / Mağaza isteğinden ÖNCE", primary_fn.find("_gesture_ok(_detail_primary)") >= 0
 		and primary_fn.find("_gesture_ok(_detail_primary)") < primary_fn.find("SaveManager.")
 		and primary_fn.find("_gesture_ok(_detail_primary)") < primary_fn.find("shop_skin_requested.emit("))
+	var detail_fn: String = _function(code, "func _build_detail(")
+	var recorder_at: int = detail_fn.find("_dim_release_canceled = event.is_canceled()")
+	_c("  … detay X yalnız _gesture_ok'tan sonra kapatır; karartmanın iptal kaydı paylaşılan attach_dim_close'tan ÖNCE bağlı, kapanış iptalde yok",
+		detail_fn.find("if _gesture_ok(close_button):") >= 0
+		and detail_fn.find("if _gesture_ok(close_button):") < detail_fn.find("close_detail()")
+		and recorder_at >= 0 and recorder_at < detail_fn.find("UiKit.attach_dim_close(")
+		and detail_fn.contains("if not _dim_release_canceled:"))
 	var card_src: String = _strip_comments(FileAccess.get_file_as_string("res://scripts/ui/collection_skin_card.gd"))
 	_c("kart sınıfı ve paylaşılan yardımcılar dokunulmadan: kart yalnız selected yayar, ScreenTopBar / attach_dim_close aynen",
 		card_src.contains("pressed.connect(func() -> void: selected.emit(_id))")
@@ -834,6 +1047,15 @@ func _open_fresh(extra: Dictionary = {}) -> CanvasLayer:
 	album.shop_requested.connect(func() -> void: _bump("shop_requested"))
 	album.shop_skin_requested.connect(func(_id: StringName) -> void: _bump("shop_skin_requested"))
 	album.visibility_changed.connect(func() -> void: _ev("album:%s" % ("on" if album.visible else "off")))
+	var detail: Control = album.get("_detail")
+	detail.visibility_changed.connect(func() -> void:
+		_bump("detail_on" if detail.visible else "detail_off")
+		_ev("detail:%s" % ("on" if detail.visible else "off")))
+	var dim: Control = album.get("_detail_dim")
+	dim.gui_input.connect(func(event: InputEvent) -> void:
+		if event is InputEventScreenTouch:
+			_bump("dim.down" if event.is_pressed() else "dim.up")
+			_ev("dim.gui:ScreenTouch:%s%s" % ["DOWN" if event.is_pressed() else "UP", ":CANCELED" if event.is_canceled() else ""]))
 	_main._show_tab(2)
 	await _wait_settled()
 	return album
@@ -843,6 +1065,32 @@ func _open_fresh(extra: Dictionary = {}) -> CanvasLayer:
 func _open_detail(album: CanvasLayer, id: StringName) -> void:
 	album.open_detail(id)
 	await _wait_settled()
+
+
+## Detay karartmasında, pencerenin (çerçeve) DIŞINDA bir nokta (ekran px): çerçevenin üstündeki / altındaki geniş boşluk.
+func _dim_point(album: CanvasLayer) -> Vector2:
+	var frame: Rect2 = album.detail_frame().get_global_rect()
+	var dim: Rect2 = (album.get("_detail_dim") as Control).get_global_rect()
+	var above: float = frame.position.y - dim.position.y
+	var below: float = dim.end.y - frame.end.y
+	var y: float = dim.position.y + above * 0.5 if above >= below else frame.end.y + below * 0.5
+	return _screen(Vector2(dim.get_center().x, y))
+
+
+## `pressed`'i düğmenin KENDİ gizlenme bildirimi sırasında bir kez yayar: `close_detail` detayı gizlerken detay id'si /
+## değiştirme adımı henüz temizlenmemiştir (motorun basış bitmeden bırakış verdiği en kötü an). Dönen kayıt: tetiklendi
+## mi, o anki id ve adım.
+func _press_mid_hide(album: CanvasLayer, button: BaseButton) -> Dictionary:
+	var hook: Dictionary = {"fired": false, "id": &"", "replacing": false}
+	button.visibility_changed.connect(func() -> void:
+		if hook["fired"] or button.is_visible_in_tree():
+			return
+		hook["fired"] = true
+		hook["id"] = album.detail_id()
+		# Ham bayrak: `is_replacing()` detayın görünürlüğünü de ister (bu anda zaten gizli).
+		hook["replacing"] = bool(album.get("_replacing"))
+		button.pressed.emit())
+	return hook
 
 
 func _watch(button: Button, tag: String) -> void:
@@ -877,6 +1125,14 @@ func _mark() -> void:
 
 func _ev(tag: String) -> void:
 	_events.append("%s@%+d" % [tag, Time.get_ticks_msec() - _t0])
+
+
+## Olay kaydında `prefix` ile başlayan ilk olayın sırası (yoksa -1).
+func _event_index(prefix: String) -> int:
+	for i in _events.size():
+		if _events[i].begins_with(prefix + "@"):
+			return i
+	return -1
 
 
 ## Kartın gui_input kayıtlarından "Tür:aygıt:YÖN" dizisi.
@@ -955,6 +1211,14 @@ func _teardown_main() -> void:
 		_main.queue_free()
 		_main = null
 		await _settle(2)
+
+
+## Pencere odağı (Android onPause → FOCUS_OUT, onResume → FOCUS_IN): kök pencereden aşağı, motorun sırasıyla (önce kök
+## Viewport — fare odağını düşürür — sonra ekranlar).
+func _window_focus(focused: bool) -> void:
+	_ev("FOCUS_%s" % ("IN" if focused else "OUT"))
+	get_tree().root.propagate_notification(NOTIFICATION_WM_WINDOW_FOCUS_IN if focused else NOTIFICATION_WM_WINDOW_FOCUS_OUT)
+	await _settle(2)
 
 
 ## Android geri (Main'in 250 ms debounce'u gerçek saatle — iki basış arasında boşluk).
