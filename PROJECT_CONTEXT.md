@@ -80,45 +80,16 @@ alınacak — şimdi tahmin/vaat yok.
 [Current release blockers](#current-release-blockers) +
 [Next action](#next-action); aşağıdaki "Milestone tarihçesi" değil.
 
-- **Dal (2026-10-05): TASK/054 — Koleksiyon basılı dokunuş + Android GERİ — FIXED ON TASK/054 BRANCH, READY FOR OWNER
-  REVIEW; main'e ALINMADI, main DEĞİŞMEDİ** (`main == origin/main == 6a4a2b2` — TASK/053 doküman eşitlemesi, yalnız
-  doküman, `275c537`'nin üstünde). Dal `task/054-collection-hold-android-back` (main `6a4a2b2`'den): `e49293e` düzeltme
-  · `ef08df1` + `6322101` test · `84770b3` inceleme sertleştirmesi · `3d4cb4a` + `158022e` test (A36'dan geçen üretim
-  adayı `158022e`) · `a5b3e35` doküman / A36 kaydı · `db5542f` yalnız test (`age_gate_test` tarih fikstürü
-  deterministik; son kapıdan geçen aday — üretim kodu `158022e` ile bayt-aynı) · doküman (son kapı). **Hata (önceden var
-  olan — eski açık madde (4)):**
-  Godot 4.6.3 basılı bir düğmenin fare odağını düşürürken (düğme gizlenince — Android GERİ, sekme değişimi, detay
-  kapanışı — ya da pencere odağı gidince) ona sentetik bir bırakış yollar; son girdi işlenmemişse (cihazda GERİ tuşunun
-  kendisi) BaseButton bunu tıklama sayar; ACTION_CANCEL bırakışını da sayar, paylaşılan karartma kapanışı iptali ayırt
-  etmez. Koleksiyon gizli albümde detay açıyor (yeniden açılışta ekranda bekliyor, ilk taze dokunuşu yutuyor, Ana
-  Sayfa'nın günlük penceresini bastırıyor), kapanan detayın vitrin eylemini kayda yazıyor, GERİ'den sonra Mağaza'ya /
-  ikinci kez Ana Sayfa'ya gidiyor, bırakış düşünce basılı durum asılı kalıyordu; düzeltmesiz `6a4a2b2`'de deterministik
-  yeniden üretildi (final suite tabanda 59 / 95 FAIL, 0 SCRIPT ERROR). **Düzeltme (yalnız
-  `scripts/ui/collection_screen.gd`, Koleksiyon-yerel pozitif dokunuş sahipliği):** her Koleksiyon düğmesinin eylemi
-  yalnız düğme hâlâ ekrandayken ve basışın gerçek, iptal edilmemiş bırakışı görüldüyse çalışır (sentetik bırakış
-  `gui_input` yaymaz); basılıyken gizlenen ya da pencere odağı giderken basılı kalan düğmenin basışı genel API'yle
-  biter; detay X ve karartma ACTION_CANCEL'da kapatmaz (karartmanın iptal kaydı paylaşılan yardımcıdan ÖNCE bağlı —
-  UiKit / ScreenTopBar / kart sınıfı / Main / GameBoard DEĞİŞMEDİ; global yutma, GERİ engeli, zaman aşımı yok).
-  **Doğrulama:** yeni `collection_hold_back_test` 95 / 95; taban farkı taban 59 · ilk aday 16 · her parça gerekli
-  (koruma yok 21, pozitif sahiplik yok 16, gizlenmede basış bitirme yok 5, karartma süzgeci yok 5, odak kaybında basış
-  bitirme yok 3) · tam 0 FAIL; mutasyon 25 / 25 (açık FAIL); 5 salt-okunur inceleyici (8 mercek + sertleştirme
-  incelemesi) BLOCKER / HIGH 0, MEDIUM'lar giderildi ya da kapsam dışı kaydedildi; koruma grubu 13 suite 1553 kontrol;
-  **kontrollü tam masaüstü kapısı — son aday `db5542f` (üretim kodu `158022e` ile bayt-aynı): 51 / 51 temiz, 6324
-  kontrol, 0 FAIL, 0 SCRIPT ERROR, bot 2 / 2, sahibin kaydı bayt-aynı.** İlk tam kapı (`158022e`) önceden var olan bir
-  test fikstürü hatasını açığa çıkarmıştı: `age_gate_test` 207 / 209 — eski UNDER_13 bölümü 13. yaş gününü
-  "2026-10-05" seçiyor, kayıt yüklemesi görev dönemini cihaz takviminin gününden açıyor (`_migrate_missions` →
-  `Missions.accepted_day()` → `DailyRewards.day_key()`) ve sonraki kayıt o günü + haftanın pazartesisini diske yazıyordu
-  → "eski tarih hiçbir kopyada kalmaz" kontrolleri 2026-10-05 … 11 haftasında düşüyordu; üretim kodu main `6a4a2b2`
-  iken aynı 2 FAIL (TASK/054'ten BAĞIMSIZ). `db5542f` yalnız-test düzeltmesi: kayıt bölümü mevcut
-  `DailyRewards.clock_override` kancasını bölümün kendi gününe (2026-10-01) sabitler, kancanın gerçekten kullanıldığını
-  bir negatif kontrol kanıtlar (iddialar / yaş anlamı aynen; `age_gate_test` 210 / 210); **Samsung A36: GEÇTİ**
-  (2026-10-05, yalnız QA paketi, `158022e` APK'sı): basılı kart + gerçek GERİ 5 / 5 bayat eylem 0, madalyonla yeniden
-  açılış + taze dokunuş tam 1, VİTRİNE EKLE / MAĞAZAYA GİT basılı + GERİ yazma / gezinme 0, hızlı çift GERİ tek kapanış
-  + tek gezinme, gerçek ACTION_CANCEL (kart / X / karartma) 0 eylem ve karartma iptali + GERİ tek gezinme, regresyonlar
-  aynen; 0 SCRIPT ERROR / çökme / ANR, yabancı girdi yok; QA kaldırıldı, üretim paketi hiç kurulmadı, `com.example`
-  dokunulmadı, gezinme kipi / saat değişmedi. A36 yeniden koşulmadı (son sertleştirme yalnız test / belge; üretim
-  ağacı `158022e` ile bayt-aynı). Ayrıntı: PROJECT_STATUS §4.34. TASK/055 başlamadı.
-- **Repo (2026-10-05):** `main == origin/main == 275c5370a7753ddfb4b8d0cf845c3fa428f5759b` — **TASK/053 owner
+- **Repo (2026-10-05):** `main == origin/main == 88c8570174c1dac3c326f942794ae3c44f166f22` — **TASK/054 owner onayıyla
+  ff-only main'e alındı** (`6a4a2b2 → 88c8570`; merge commit / rebase / squash / cherry-pick / force push YOK).
+  Doğrulanmış doğrusal zincir, 9 commit: `e49293e` düzeltme · `ef08df1` + `6322101` test · `84770b3` inceleme
+  sertleştirmesi · `3d4cb4a` + `158022e` test (A36 ve mutasyondan geçen üretim adayı `158022e`) · `a5b3e35` doküman /
+  A36 kaydı · `db5542f` yalnız test (`age_gate_test` tarih fikstürü deterministik; son tam masaüstü kapısından geçen
+  test adayı — üretim kodu `158022e` ile bayt-aynı) · `88c8570` doküman (son kapı; yalnız doküman). Dal referans için
+  duruyor (`task/054-collection-hold-android-back` = son incelenen HEAD `88c8570`, yerelde ve origin'de).
+  Önce (2026-10-05): TASK/053 doküman eşitlemesi `docs/053-main-sync` owner onayıyla ff-only `275c537 → 6a4a2b2` (merge
+  commit yok, dal duruyor).
+  Önce (2026-10-05): **TASK/053 owner
   onayıyla ff-only main'e alındı** (`5b7a727 → 275c537`; merge commit / rebase / squash / cherry-pick / force push
   YOK). Doğrulanmış doğrusal zincir, 5 commit: `796e1e7` düzeltme · `4b29c26` test (yeni suite + TASK/049 / 050 suite
   uyarlaması) · `fd4f6e6` inceleme sertleştirmesi · `be44ca4` test (kapılardan geçen üretim / test adayı) · `275c537`
@@ -182,6 +153,45 @@ alınacak — şimdi tahmin/vaat yok.
   (`bc40da1` · `ed08b07` · `1ff0ba1` · `98d209e` · `b90bc3c`); merge commit / rebase / squash /
   cherry-pick YOK. Dallar referans için duruyor (`task/046-daily-weekly-missions` = `5092dad`,
   `task/046-1-age-gate-13plus-redesign` = `b90bc3c`).
+- **TASK/054 — Koleksiyon basılı dokunuş + Android GERİ — TAMAM, main'de (COMPLETE + MAIN)** (owner onayıyla ff-only
+  `6a4a2b2 → 88c8570`, 2026-10-05; merge commit / rebase / squash / cherry-pick / force push yok; A36 ve mutasyondan
+  geçen üretim adayı `158022e`, son tam masaüstü kapısından geçen test adayı `db5542f` — üretim kodu `158022e` ile
+  bayt-aynı —, entegre edilen tepe `88c8570` bunun üstünde yalnız doküman; doğrulamanın tamamı entegrasyondan ÖNCE
+  tamamlandı — aşağıda; entegrasyon ve doküman eşitlemesi sırasında hiçbir test / mutasyon / A36 / Godot / derleme
+  kapısı yeniden koşulmadı). **Hata (önceden var olan — eski açık madde (4); Koleksiyon basılı dokunuş + Android GERİ
+  bayat bırakış sorunu KAPANDI — FIXED + MAIN by TASK/054):** Godot 4.6.3 basılı bir GUI düğmesini sentetik bırakış /
+  gizleme / odak kaybı / iptal sırasıyla bitirebilir — düğme gizlenince (Android GERİ, sekme değişimi, detay kapanışı)
+  ya da pencere odağı gidince motor ona sentetik bir bırakış yollar ve son girdi işlenmemişse (cihazda GERİ tuşunun
+  kendisi) BaseButton bunu tıklama sayar; ACTION_CANCEL bırakışını da sayar, paylaşılan karartma kapanışı iptali ayırt
+  etmez. Koleksiyon işleyicileri eylemin hâlâ geçerli, görünür Koleksiyon yüzeyinden ve sahip düğmenin gerçek, iptal
+  edilmemiş bırakışından geldiğinin pozitif kanıtını istemiyordu. Düzeltmesiz `6a4a2b2`'de gerçek etkileşimler: basılı
+  kart + GERİ → bayat detay eylemi; bayat VİTRİNE EKLE / VİTRİNDEN ÇIKAR → kayıt yazması; bayat MAĞAZAYA GİT / "+" →
+  Mağaza'ya gezinme; bayat üst çubuk geri → çift gezinme; ACTION_CANCEL eylem üretebiliyor; bazı iptal edilen basışlar
+  asılı kalıyordu (final suite tabanda 59 / 95 açık FAIL, 0 SCRIPT ERROR). **Düzeltme (üretim değişikliği yalnız
+  `scripts/ui/collection_screen.gd`):** eylem, sahip düğmenin gördüğü gerçek, iptal edilmemiş bir bırakış ister;
+  gizlenen / odağı kaybolan basılı kontrolün basışı güvenle biter; X / karartma ACTION_CANCEL'da eylem üretmez; GERİ /
+  gizleme / gezinme sonrası bayat bırakış → 0 eylem; global girdi yutma, global GERİ engeli, keyfi zaman aşımı, ilgisiz
+  Main / GameBoard / UI mimarisi yeniden yazımı YOK. **Doğrulama (entegrasyondan ÖNCE):** `collection_hold_back_test` 95
+  / 95, 0 SCRIPT ERROR; koruma grubu 13 suite 1553 kontrol, hepsi yeşil, sahibin kaydı bayt-aynı; taban farkı: taban
+  `6a4a2b2` 59 · ilk aday 16 · koruma yok 21 · gerçek-bırakış şartı yok 16 · gizlenmede basış bitirme yok 5 · karartma
+  süzgeci yok 5 · odak kaybında basış bitirme yok 3 · tam düzeltme 0 FAIL; üretim mutasyonu 25 / 25 (açık FAIL, sha
+  doğrulamalı geri koyma); inceleme: ilk adayda 4 salt-okunur ajan / 8 mercek + sertleştirilmiş adayda ek inceleme —
+  BLOCKER 0, HIGH 0, ilgili MEDIUM'lar giderildi. **Önceden var olan `age_gate_test` tarih fikstürü hatası (yalnız test;
+  TASK/054'ten BAĞIMSIZ):** ilk tam masaüstü kapısı (`158022e`) 207 / 209 ile açığa çıkardı; aynı 2 FAIL main `6a4a2b2`
+  üretim koduyla yeniden üretildi. Kök neden: `_test_save_format()` sabit bir tarih kullanıyor; fikstürde görev bloğu
+  olmadığı için `_migrate_missions()` gerçek takvimden görev dönemi açıyor, `missions.day_key` /
+  `missions.week_start_day_key` yokluğu doğrulanan tarihle çakışabiliyordu — çakışma tek gün değil, 2026-10-05'i içeren
+  hafta. Yalnız-test düzeltmesi `db5542f` (`tools/age_gate_test.gd`): mevcut `DailyRewards.clock_override` kancası;
+  üretim yaş / GÜNLÜK ÖDÜLLER davranışı DEĞİŞMEDİ; negatif kontrol enjekte günün gerçekten kullanıldığını kanıtlar;
+  hedefli 6 suite 768 kontrol, 0 FAIL, 0 SCRIPT ERROR, `age_gate_test` 210 / 210. **Son (kabul edilen) tam masaüstü
+  kapısı — test adayı `db5542f`: 51 / 51 temiz, 6324 kontrol, 0 FAIL, 0 SCRIPT ERROR, bot 2 / 2, sahibin kaydı
+  bayt-aynı**; entegre edilen tepe `88c8570` bu adayın üstünde yalnız doküman, üretim baytları aynı. **Samsung A36:
+  GEÇTİ** (üretim adayı `158022e`; yalnız QA paketi): basılı kart + gerçek GERİ 5 / 5 → 0 bayat eylem; yeniden açılış +
+  taze dokunuş tam 1 eylem; bayat vitrin / Mağaza eylemleri engellendi; hızlı GERİ korunuyor; gerçek ACTION_CANCEL
+  engellendi; X / karartma iptali doğru, normal X / karartma dokunuşu korunuyor; 0 SCRIPT ERROR / çökme / ANR; QA
+  kaldırıldı, üretim paketi hiç kurulmadı, owner uygulaması dokunulmadı, gezinme kipi / saat değişmedi. A36 tarih
+  fikstürü sertleştirmesinden sonra yeniden KOŞULMADI — üretim baytları `158022e` ile aynı kaldı. Ayrıntı:
+  PROJECT_STATUS §4.34. TASK/055 başlamadı.
 - **TASK/053 — Ayarlar / terminal sonuç sahipliği — TAMAM, main'de** (owner onayıyla ff-only `5b7a727 → 275c537`,
   2026-10-05; kapılardan geçen üretim / test adayı `be44ca4`, üstünde yalnız doküman; doğrulamanın tamamı entegrasyondan
   ÖNCE tamamlandı — aşağıda; entegrasyon ve doküman eşitlemesi sırasında hiçbir kapı yeniden koşulmadı). **Hata
@@ -1018,36 +1028,49 @@ eşitlemesi sırasında hiçbir kapı yeniden koşulmadı. Eski açık madde (3)
 kozmetik not (owner; engel değil, görev değil): reddedilen dişli dokunuşu olağan dokunma geri bildirimini yine
 verebilir.
 
-**TASK/054 dalda — owner incelemesi bekliyor** (`task/054-collection-hold-android-back`, READY FOR OWNER REVIEW; main'e
-ALINMADI — merge owner kararı; yukarıda, PROJECT_STATUS §4.34). **Sıradaki ürün / stabilizasyon görevi owner seçimi**
-(TASK/055 tanımlanmadı, başlamadı) — aşağıdaki 2 açık maddeden hiçbiri kendiliğinden seçilmez. TASK/052 takip
-gözlemleri yalnız NOT (görev değil): trafik sonrası canlı elde tutma /
+**Stabilizasyon — TASK/054 Koleksiyon basılı dokunuş + Android GERİ: ✅ TAMAM, main'de (COMPLETE + MAIN)** (owner
+onayıyla ff-only `6a4a2b2 → 88c8570`, 2026-10-05; merge commit / rebase / squash / cherry-pick / force push yok; dal
+`task/054-collection-hold-android-back` duruyor, son incelenen HEAD `88c8570`). Bir Koleksiyon dokunuşu yalnız basışın
+başladığı, hâlâ geçerli ve görünür yüzeye aittir: eylem sahip düğmenin gerçek, iptal edilmemiş bırakışını ister; GERİ /
+gizleme / gezinme / odak kaybı / ACTION_CANCEL sonrası bayat bırakış 0 eylem üretir, asılı basış kalmaz, sonraki taze
+dokunuş tam bir kez çalışır; X / karartma iptalde kapatmaz; normal dokunuşlar ve GERİ aynen. Doğrulamanın tamamı
+entegrasyondan ÖNCE tamamlandı (yukarıda; PROJECT_STATUS §4.34) — son kabul edilen tam masaüstü kapısı `db5542f`'te 51 /
+51 temiz (6324 kontrol, 0 FAIL, 0 SCRIPT ERROR), Samsung A36 `158022e`'de GEÇTİ; entegrasyon ve bu doküman eşitlemesi
+sırasında hiçbir kapı yeniden koşulmadı. Eski açık madde (4) **FIXED + MAIN by TASK/054** — Koleksiyon basılı dokunuş +
+Android GERİ bayat bırakış sorunu KAPANDI.
+
+**Sıradaki ürün / stabilizasyon görevi owner seçimi** (TASK/055 tanımlanmadı, başlamadı) — aşağıdaki 2 açık maddeden
+hiçbiri kendiliğinden seçilmez. TASK/052 takip gözlemleri yalnız NOT (görev değil): trafik sonrası canlı elde tutma /
 ARPDAU incelemesi; isteğe bağlı daha güçlü ilk gün koruması A/B testi; native yetim yeniden yükleme temizliği; native
 banner iş parçacığı yarışı incelemesi; yayından önce üretim TEEN / uyum yeniden incelemesi; mediation / bidding / hesap
 tarafı iyileştirme; App Open yalnız ileride gerçek bir yükleme / bekleme yüzeyi olursa.
 
 Açık, owner kararı bekleyen ayrı maddeler — **şu an tam 2 AÇIK** (**BAŞLAMADI**; hiçbiri kendiliğinden seçilmez; (1)
-TASK/051, (2) TASK/052, (3) TASK/053 ile kapandı — aşağıda; (4) dalda düzeltildi): (4) basılı Koleksiyon kartı + Android
-GERİ sentetik bırakışı (TASK/045.2) — **FIXED ON TASK/054 BRANCH** (main'e alınmadı; §4.34); (5) genel GUI ACTION_CANCEL
-— modal / karartma iptal davranışı ve güç düğmesinin iptal edilen dokunuşta çalışması (TASK/046.2 A36 kapısı gözlemi:
-Sarsıntı düğmesinde gerçek ACTION_CANCEL stoğu 1 → 0 tüketti, parça düşmedi; §4.26) — **AÇIK** (TASK/054 yalnız
-Koleksiyon'un kendi kontrollerini ve karartmasını kapsar; paylaşılan `UiKit.attach_dim_close` ve diğer ekranlar aynen);
-(6) HUD hedef kartı T5 adını `Büyük Dumpl…` diye kırpar (önceden var olan kart, normal Level 3'te de; PROJECT_STATUS
-§4.27 (d)) — **AÇIK**. TASK/054 incelemesinin kayda geçirdiği önceden var olan, kapsam dışı gözlemler (yalnız not; owner
-kararı; düzeltilmedi, görev açılmadı): aynı motor sınıfı başka ekranlarda — Profil vitrin yuvası (basılı + GERİ →
-gizlemedeki bayat tıklama Koleksiyon detayını açabilir; statik çıkarım), Profil dişlisi / KOLEKSİYONA GİT, Harita düğümü
-(aşağıda); Mağaza SATIN AL ACTION_CANCEL bırakışında Hamur harcar ((5)'in parçası); Android 13+ tek parmak iptali
-(POINTER_UP + FLAG_CANCELED) Godot'ya düz bırakış olarak gelir (motor sınırı). TASK/054 kapısının açığa çıkardığı
-önceden var olan `age_gate_test` tarih fikstürü hatası (2026-10-05 haftası) dalda yalnız-test düzeltmesiyle giderildi
-(`db5542f`, §4.34). Meydan okuma güç düğmelerini gizleyip
-kilitlediği için (5)'teki Sarsıntı iptal hatası meydan okumayı etkilemez; meydan okumanın KENDİ gecikmeli sonucu deneme
-kimliğiyle korunur (TASK/047). TASK/051 incelemesinin kayda geçirdiği önceden var olan, kapsam dışı gözlemler (yalnız
-inceleme notu; owner kararı; düzeltilmedi, görev açılmadı): Harita / Sonsuz düğümü işleyicisinde kapalı-ekran kapısı yok
-— basılı düğüm + Android GERİ, gizleme anındaki sentetik tıklamayla level başlatabilir (statik çıkarım, yeniden
-üretilmedi; (4) ile aynı motor sınıfı; TASK/051 sonrası bırakış düşmez); Yeniden Başlat sırasında mola karartmasında
+TASK/051, (2) TASK/052, (3) TASK/053, (4) TASK/054 ile kapandı — aşağıda): (5) genel GUI ACTION_CANCEL — modal /
+karartma iptal davranışı ve güç düğmesinin iptal edilen dokunuşta çalışması (TASK/046.2 A36 kapısı gözlemi: Sarsıntı
+düğmesinde gerçek ACTION_CANCEL stoğu 1 → 0 tüketti, parça düşmedi; §4.26) — **AÇIK** (TASK/054 yalnız Koleksiyon'un
+kendi kontrollerini ve karartmasını kapsadı; paylaşılan `UiKit.attach_dim_close` ve diğer ekranlar aynen); (6) HUD hedef
+kartı T5 adını `Büyük Dumpl…` diye kırpar (önceden var olan kart, normal Level 3'te de; PROJECT_STATUS §4.27 (d)) —
+**AÇIK**. TASK/054 incelemesinin kayda geçirdiği önceden var olan, kapsam dışı gözlemler — ileride TASK/055 için kanıt
+(yalnız not; TASK/054 engeli değil; owner kararı; düzeltilmedi, görev açılmadı, TASK/055 BAŞLAMADI): aynı motor sınıfı
+başka ekranlarda — Profil vitrin yuvası (basılı + GERİ → gizlemedeki bayat tıklama Koleksiyon detayını açabilir; statik
+çıkarım), Profil dişlisi / KOLEKSİYONA GİT ve benzer GUI kontrolleri, Harita kontrolü / düğümü (aşağıda); Mağaza SATIN
+AL ACTION_CANCEL bırakışında Hamur harcar ((5)'in parçası); diğer genel GUI ACTION_CANCEL yolları ((5)); Android 13+ tek
+parmak iptali (POINTER_UP + FLAG_CANCELED) Godot'ya düz bırakış olarak gelir (motor sınırı). TASK/054 kapısının açığa
+çıkardığı önceden var olan `age_gate_test` tarih fikstürü hatası (2026-10-05 haftası) yalnız-test düzeltmesiyle
+giderildi — main'de (`db5542f`, §4.34). Meydan okuma güç düğmelerini gizleyip kilitlediği için (5)'teki Sarsıntı iptal
+hatası meydan okumayı etkilemez; meydan okumanın KENDİ gecikmeli sonucu deneme kimliğiyle korunur (TASK/047). TASK/051
+incelemesinin kayda geçirdiği önceden var olan, kapsam dışı gözlemler (yalnız inceleme notu; owner kararı; düzeltilmedi,
+görev açılmadı): Harita / Sonsuz düğümü işleyicisinde kapalı-ekran kapısı yok — basılı düğüm + Android GERİ, gizleme
+anındaki sentetik tıklamayla level başlatabilir (statik çıkarım, yeniden üretilmedi; eski (4) ile aynı motor sınıfı —
+TASK/054 onu yalnız Koleksiyon'da kapattı; TASK/051 sonrası bırakış düşmez); Yeniden Başlat sırasında mola karartmasında
 basılı kalan parmak, mola o parmak kalkmadan yeniden açılırsa kalkışında onu kapatır (gizli karartmanın parmak odağı;
 parça düşmez).
-**Kapanan — main'de:** ~~(3) erteleme sürerken HUD Ayarlar açılırsa yeni round Ayarlar'ın altında başlar;
+**Kapanan — main'de:** ~~(4) basılı Koleksiyon kartı + Android GERİ sentetik bırakışı — basılı kart / detay düğmesi /
+üst çubuk + GERİ, gizleme ya da ACTION_CANCEL sonrası bayat eylem (gizli albümde detay, kayıt yazması, Mağaza'ya / çift
+gezinme), asılı basış (TASK/045.2)~~ → **TASK/054** (`88c8570`, §4.34 — FIXED + MAIN; Koleksiyon-yerel pozitif dokunuş
+sahipliği);
+~~(3) erteleme sürerken HUD Ayarlar açılırsa yeni round Ayarlar'ın altında başlar;
 RESULT_DELAY / reklam beklemesinde açılan ya da bitişte açık Ayarlar sonucun üstünde kalır (görsel; TASK/049 Ayarlar'ı
 bilinçli olarak kapatmazdı)~~ → **TASK/053** (`275c537`, §4.33 — FIXED + MAIN; terminal temizlik açık Ayarlar'ı
 kapatır, kesinleşen round'da Ayarlar açılmaz);
