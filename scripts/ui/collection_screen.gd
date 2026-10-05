@@ -105,8 +105,8 @@ const BURST_TIME: float = 0.55
 ## değiştirir (VİTRİNE EKLE → AVATAR YAP / VİTRİNDEN ÇIKAR) ve pencere yeniden
 ## ortalanır — hızlı çift dokunuşun ikinci yarısı istenmeyen bir eyleme düşmesin.
 const ACTION_LOCK_MSEC: int = 350
-## TASK/054 dokunuş sahipliği (bkz. `_own_gesture`): düğmenin son gerçek bırakışı iptal mi / basılı tutuluyor mu.
-const META_GESTURE_CANCELED: StringName = &"collection_gesture_canceled"
+## TASK/054 dokunuş sahipliği (bkz. `_own_gesture`): basışın gerçek (iptal edilmemiş) bırakışı görüldü mü / basılı mı.
+const META_GESTURE_RELEASED: StringName = &"collection_gesture_released"
 const META_GESTURE_HELD: StringName = &"collection_gesture_held"
 
 var _bar: ScreenTopBar
@@ -145,6 +145,8 @@ var _replace_tiles: Array[Button] = []
 var _detail_id: StringName = &""
 var _replacing: bool = false
 var _action_lock_until: int = 0
+## TASK/054: karartmanın o an işlenen bırakışı iptal mi (ACTION_CANCEL) — kapanış işleyicisi okur.
+var _dim_release_canceled: bool = false
 var _burst: Array[TextureRect] = []
 var _burst_tween: Tween
 var _entry_tween: Tween
@@ -171,7 +173,7 @@ func _ready() -> void:
 	_gallery_haze.texture = _seam_gradient(Color(UiTokens.WORLD_INDIGO, 0.82),
 		GALLERY_HAZE_ABOVE / (GALLERY_HAZE_ABOVE + GALLERY_HAZE_BELOW))
 	_bar = ScreenTopBar.new(TITLE, true)
-	# TASK/054: gezinme yalnız ekrandaki üst çubuktan ve iptal edilmemiş bırakışla (bkz. `_own_gesture`).
+	# TASK/054: gezinme yalnız ekrandaki üst çubuktan ve gerçek (iptal edilmemiş) bırakışla (bkz. `_own_gesture`).
 	_own_gesture(_bar.back_button())
 	_own_gesture(_bar.add_button())
 	_bar.back_pressed.connect(func() -> void:
@@ -462,10 +464,20 @@ func _build_detail() -> void:
 	_own_gesture(_detail_secondary)
 	_detail_secondary.pressed.connect(_on_detail_secondary)
 	footer.add_child(_detail_secondary)
-	# X / karartma yalnız kapatır (kapalı detayda kapanış etkisiz); X'in asılı basışı da gizlenince biter.
-	_own_gesture(_detail_frame.get_meta(&"close_button"))
-	(_detail_frame.get_meta(&"close_button") as Button).pressed.connect(close_detail)
-	UiKit.attach_dim_close(_detail_dim, close_detail)
+	# X / karartma yalnız kapatır (kapalı detayda kapanış etkisiz). TASK/054: iptal edilen dokunuş (ACTION_CANCEL — ör.
+	# hareketli gezinmede karartmadan başlayan geri kaydırması) kapatmaz: X sahiplik korumasından geçer; karartmanın
+	# bırakış kaydı paylaşılan `attach_dim_close` işleyicisinden ÖNCE bağlanır (aynı olayda önce o çalışır).
+	var close_button: Button = _detail_frame.get_meta(&"close_button")
+	_own_gesture(close_button)
+	close_button.pressed.connect(func() -> void:
+		if _gesture_ok(close_button):
+			close_detail())
+	_detail_dim.gui_input.connect(func(event: InputEvent) -> void:
+		if (event is InputEventScreenTouch or event is InputEventMouseButton) and not event.is_pressed():
+			_dim_release_canceled = event.is_canceled())
+	UiKit.attach_dim_close(_detail_dim, func() -> void:
+		if not _dim_release_canceled:
+			close_detail())
 
 
 ## Vitrin doluyken AÇIK değiştirme adımı: vitrindeki üç parça (yuva sırası;
@@ -940,36 +952,50 @@ func handle_back() -> bool:
 # --- Dokunuş sahipliği (TASK/054) ----------------------------------------------
 
 ## Koleksiyon düğmesinin dokunuşu, basışın başladığı ve HÂLÂ ekranda olan yüzeye aittir. Godot (4.6) basılı bir
-## düğmeyi gizlerken (Android GERİ, sekme değişimi, detay kapanışı) ona sentetik bir bırakış yollar; son girdi
-## işlenmemişse (parmak titremesi, işlenmeyen bir tuş) BaseButton bunu `pressed` sayar — gizli albümde detay açılır,
-## kapanmış detayın vitrin eylemi kayda yazar, GERİ'den sonra Mağaza'ya gidilirdi. Android ACTION_CANCEL bırakışını
-## da `pressed` sayar (iptal bayrağına bakmaz). Bu yüzden: (1) düğme basılıyken gizlenince basış genel API'yle hemen
-## bitirilir — `visibility_changed` CanvasItem bildiriminde, Control'ün gizleme işinden (motorun sentetik bırakışı)
-## ÖNCE yayılır: bırakış artık tıklama sayılmaz ve basılı durum asılı kalmaz (bırakış düşseydi
-## `pressed_down_with_focus` kalır, sonraki basış button_down / dokunuş sesi / basış ölçeği üretmezdi); (2) eylem
-## yalnız `_gesture_ok`'ta — düğme hâlâ ekranda VE gerçek bırakış iptal değil (iptal bayrağı `gui_input`'tan: sentetik
-## bırakış bu sinyali yaymaz, gerçek olay BaseButton'dan önce gelir); basış bitmeden ulaşan bir `pressed` da eylemsiz.
+## düğmenin fare odağını düşürürken — düğme gizlenince (Android GERİ, sekme değişimi, detay kapanışı) ya da pencere
+## odağı gidince (Android onPause: arka plan, ekran kilidi, arama) — ona iç aygıtlı sentetik bir bırakış yollar; son
+## girdi işlenmemişse (cihazda GERİ tuşunun kendisi ya da bir ses tuşu; masaüstünde parmak titremesi) BaseButton bunu
+## `pressed` sayar — gizli albümde detay açılır, kapanmış detayın vitrin eylemi kayda yazar, GERİ'den sonra Mağaza'ya
+## gidilirdi. Android ACTION_CANCEL bırakışını da `pressed` sayar (iptal bayrağına bakmaz). Bu yüzden:
+## (1) eylem yalnız `_gesture_ok`'ta: düğme hâlâ ekranda VE basış varsa onun gerçek, iptal edilmemiş bırakışı görüldü
+##     (`gui_input`'tan: sentetik bırakış bu sinyali yaymaz, gerçek olay BaseButton'dan önce gelir). Basışsız gelen
+##     `pressed` (kodla yayılan, erişilebilirlik tıklaması) yalnız görünürlükten geçer;
+## (2) basılıyken gizlenen düğmenin basışı genel API'yle hemen bitirilir — `visibility_changed` CanvasItem
+##     bildiriminde, Control'ün gizleme işinden (sentetik bırakış) ÖNCE yayılır; odak kaybında bırakış düşerse basış
+##     `_notification`'da biter. Basılı durum asılı kalmaz (kalsaydı sonraki basış button_down / dokunuş sesi / basış
+##     ölçeği üretmezdi).
+## Not: Android uzun basış = sağ tık (enable_long_press_as_right_click) KAPALI kalmalı — açılırsa motor uzun basışta
+## ACTION_CANCEL üretir, uzun tutuşlar sessizce eylemsiz kalır.
 func _own_gesture(button: BaseButton) -> void:
 	button.gui_input.connect(func(event: InputEvent) -> void:
 		var click := event as InputEventMouseButton
 		if click != null and click.button_index == MOUSE_BUTTON_LEFT:
-			button.set_meta(META_GESTURE_CANCELED, not click.pressed and click.canceled))
+			button.set_meta(META_GESTURE_RELEASED, not click.pressed and not click.canceled))
 	button.button_down.connect(func() -> void: button.set_meta(META_GESTURE_HELD, true))
-	button.button_up.connect(func() -> void:
-		button.set_meta(META_GESTURE_HELD, false)
-		button.set_meta(META_GESTURE_CANCELED, false))
+	button.button_up.connect(func() -> void: button.set_meta(META_GESTURE_HELD, false))
 	button.visibility_changed.connect(func() -> void:
 		if not button.is_visible_in_tree() and button.get_meta(META_GESTURE_HELD, false):
 			_end_press(button))
 
 
-## Bu düğmenin bırakışı eylem üretebilir: düğme hâlâ ekranda VE bırakış iptal edilmedi.
+## Bu düğmenin `pressed`'i eylem üretebilir: düğme hâlâ ekranda VE (basış yok YA DA basışın gerçek bırakışı görüldü).
 func _gesture_ok(button: BaseButton) -> bool:
-	return button.is_visible_in_tree() and not button.get_meta(META_GESTURE_CANCELED, false)
+	return button.is_visible_in_tree() and (not button.get_meta(META_GESTURE_HELD, false)
+		or button.get_meta(META_GESTURE_RELEASED, false))
 
 
-## Basılıyken gizlenen düğmenin basışını bitirir: `disabled` basış durumunu (press_attempt / pressing_inside /
-## pressed_down_with_focus) sıfırlar ve button_up yayar (UiMotion basış ölçeğini bırakır); eylem üretmez.
+## Pencere odağı gitti: kök Viewport fare odağını bu bildirimden ÖNCE düşürdü; bırakışı düşen (son girdi işlenmişti)
+## basılı düğmenin basışı burada biter.
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_WM_WINDOW_FOCUS_OUT:
+		for button: Node in find_children("*", "BaseButton", true, false):
+			if button.get_meta(META_GESTURE_HELD, false):
+				_end_press(button as BaseButton)
+
+
+## Basılı düğmenin basışını (gizlenince / odak kaybında) bitirir: `disabled` basış durumunu (press_attempt /
+## pressing_inside / pressed_down_with_focus) sıfırlar ve button_up yayar (UiMotion basış ölçeğini bırakır); eylem
+## üretmez.
 static func _end_press(button: BaseButton) -> void:
 	if button.disabled:
 		return
