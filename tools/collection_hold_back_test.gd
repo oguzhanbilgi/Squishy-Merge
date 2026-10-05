@@ -36,10 +36,11 @@ extends Node
 ##   H çok parmak    ikinci parmak GUI düğmesine basamaz (fare öykünmesi yalnız 0. parmak); kartı tutan parmak GERİ'den
 ##                   sonra kalkarsa 0 eylem, GERİ'siz kalkarsa normal tek seçim
 ##   I hızlı GERİ    birincil basılı → GERİ (detay) → GERİ (Ana Sayfa) → bırak: tek kapanış, tek gezinme, 0 eylem
-##   J basılı durum  gizlenen basılı düğmenin basışı biter: sonraki taze basış button_down yayar (kart, kaydırmaya geçmiş
-##                   kart, üst çubuk, birincil, kutu, detay X), ölçek 1.0. STOP düğmelerde ve kaydırmaya geçmiş kartta
-##                   motorun gizleme bırakışı deterministik DÜŞER (asılı durumu en iyi bunlar sınar); PASS kartta olay
-##                   ScrollContainer'a da geçer → bırakışın düşüp düşmemesi motor durumuna bağlı
+##   J basılı durum  gizlenen basılı düğmenin basışı biter: sonraki taze basış button_down yayar (kart, üst çubuk,
+##                   birincil, kutu, detay X), ölçek 1.0. STOP düğmelerde motorun gizleme bırakışı deterministik DÜŞER
+##                   (asılı durumu en iyi bunlar sınar); PASS kartta olay ScrollContainer'a da geçer → bırakışın düşüp
+##                   düşmemesi motor durumuna bağlı. Kaydırmaya geçmiş kart + GERİ: koruma kontrolü (headless'ta dokunmatik
+##                   ekran yok → gerçek sürükleme yok, bırakış tabanda da işlenir)
 ##   K kayıt         bayat dizilerden sonra Hamur / vitrin / açık parçalar bellekte ve diskte aynı
 ##   L normal        tek dokunuş tam bir kez: kart → detay, birincil → vitrine ekler, ikincil → çıkarır, kutu → değiştirir,
 ##                   üst çubuk geri → Ana Sayfa, "+" → Mağaza, detay X / karartma → kapanır
@@ -560,8 +561,10 @@ func _hold_state() -> void:
 	await _tap(card)
 	_c("  … J kart: sonraki taze basış button_down YAYDI (1) ve tam 1 detay", _n.get("card.down", 0) == 1
 		and _n.get("detail_opened", 0) == 1)
-	# Kart [kaydırma]: basılıyken galeri kaydırmaya geçti (SCROLL_BEGIN: BaseButton press_attempt'i bırakır, button_up
-	# YOK; cihazda kaydırma olayı işlenir → gizleme bırakışı düşer) → GERİ → bırak → yeniden aç → taze dokunuş.
+	# Kart [kaydırma] — KORUMA kontrolü: basılıyken galeri kaydırmaya geçti (SCROLL_BEGIN: BaseButton press_attempt'i
+	# bırakır, button_up YOK) → GERİ → bırak → yeniden aç → taze dokunuş. Cihazda sürükleme olayları işlenir → gizleme
+	# bırakışı düşer (basışı `_end_press` bitirir); headless'ta dokunmatik ekran yok → ScrollContainer sürüklemez, bırakış
+	# tabanda da işlenir — burada ayırt edici değil, düzeltmenin bu yolu bozmadığını sınar.
 	album = await _open_fresh()
 	card = album.card(OWNED)
 	_watch(card, "card")
@@ -579,7 +582,7 @@ func _hold_state() -> void:
 	await _wait_settled()
 	_mark()
 	await _tap(card)
-	_c("J kart [kaydırma]: kaydırmaya geçen basılı kartın basışı GERİ'de bitti (button_up 1); yeniden açılışta taze basış button_down 1, tam 1 detay",
+	_c("J kart [kaydırma] (koruma): kaydırmaya geçen basılı kartın basışı GERİ'de bitti (button_up 1); yeniden açılışta taze basış button_down 1, tam 1 detay",
 		scrolled and scroll_ended and _n.get("card.down", 0) == 1 and _n.get("detail_opened", 0) == 1)
 	# Üst çubuk geri: basılı + GERİ (olay yok) → yeniden aç → üst çubuk geri taze dokunuş.
 	album = await _open_fresh()
