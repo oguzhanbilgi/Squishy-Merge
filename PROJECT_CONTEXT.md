@@ -80,6 +80,36 @@ alınacak — şimdi tahmin/vaat yok.
 [Current release blockers](#current-release-blockers) +
 [Next action](#next-action); aşağıdaki "Milestone tarihçesi" değil.
 
+- **Dal (2026-10-05): TASK/054 — Koleksiyon basılı dokunuş + Android GERİ — FIXED ON TASK/054 BRANCH, READY FOR OWNER
+  REVIEW; main'e ALINMADI, main DEĞİŞMEDİ** (`main == origin/main == 6a4a2b2` — TASK/053 doküman eşitlemesi, yalnız
+  doküman, `275c537`'nin üstünde). Dal `task/054-collection-hold-android-back` (main `6a4a2b2`'den): `e49293e` düzeltme
+  · `ef08df1` + `6322101` test · `84770b3` inceleme sertleştirmesi · `3d4cb4a` + `158022e` test (kapılardan geçen üretim
+  / test adayı `158022e`) · doküman / A36 kaydı (yalnız doküman). **Hata (önceden var olan — eski açık madde (4)):**
+  Godot 4.6.3 basılı bir düğmenin fare odağını düşürürken (düğme gizlenince — Android GERİ, sekme değişimi, detay
+  kapanışı — ya da pencere odağı gidince) ona sentetik bir bırakış yollar; son girdi işlenmemişse (cihazda GERİ tuşunun
+  kendisi) BaseButton bunu tıklama sayar; ACTION_CANCEL bırakışını da sayar, paylaşılan karartma kapanışı iptali ayırt
+  etmez. Koleksiyon gizli albümde detay açıyor (yeniden açılışta ekranda bekliyor, ilk taze dokunuşu yutuyor, Ana
+  Sayfa'nın günlük penceresini bastırıyor), kapanan detayın vitrin eylemini kayda yazıyor, GERİ'den sonra Mağaza'ya /
+  ikinci kez Ana Sayfa'ya gidiyor, bırakış düşünce basılı durum asılı kalıyordu; düzeltmesiz `6a4a2b2`'de deterministik
+  yeniden üretildi (final suite tabanda 59 / 95 FAIL, 0 SCRIPT ERROR). **Düzeltme (yalnız
+  `scripts/ui/collection_screen.gd`, Koleksiyon-yerel pozitif dokunuş sahipliği):** her Koleksiyon düğmesinin eylemi
+  yalnız düğme hâlâ ekrandayken ve basışın gerçek, iptal edilmemiş bırakışı görüldüyse çalışır (sentetik bırakış
+  `gui_input` yaymaz); basılıyken gizlenen ya da pencere odağı giderken basılı kalan düğmenin basışı genel API'yle
+  biter; detay X ve karartma ACTION_CANCEL'da kapatmaz (karartmanın iptal kaydı paylaşılan yardımcıdan ÖNCE bağlı —
+  UiKit / ScreenTopBar / kart sınıfı / Main / GameBoard DEĞİŞMEDİ; global yutma, GERİ engeli, zaman aşımı yok).
+  **Doğrulama:** yeni `collection_hold_back_test` 95 / 95; taban farkı taban 59 · ilk aday 16 · her parça gerekli
+  (koruma yok 21, pozitif sahiplik yok 16, gizlenmede basış bitirme yok 5, karartma süzgeci yok 5, odak kaybında basış
+  bitirme yok 3) · tam 0 FAIL; mutasyon 25 / 25 (açık FAIL); 5 salt-okunur inceleyici (8 mercek + sertleştirme
+  incelemesi) BLOCKER / HIGH 0, MEDIUM'lar giderildi ya da kapsam dışı kaydedildi; koruma grubu 13 suite 1553 kontrol;
+  kontrollü tam masaüstü kapısı (`158022e`) 51 koşu — 50 temiz, 6321 kontrol, 0 SCRIPT ERROR, sahibin kaydı bayt-aynı;
+  tek istisna `age_gate_test` 207 / 209 — TASK/054'ten BAĞIMSIZ, önceden var olan tarih bombası (eski UNDER_13 bölümü
+  13. yaş gününü "2026-10-05" seçiyor, günlük gün anahtarı gerçek tarihi kayda yazıyor → yalnız 2026-10-05'te
+  tetiklenir; main `6a4a2b2` üretim koduyla aynı 2 FAIL; önceki her kapıda 209 / 209); **Samsung A36: GEÇTİ**
+  (2026-10-05, yalnız QA paketi, `158022e` APK'sı): basılı kart + gerçek GERİ 5 / 5 bayat eylem 0, madalyonla yeniden
+  açılış + taze dokunuş tam 1, VİTRİNE EKLE / MAĞAZAYA GİT basılı + GERİ yazma / gezinme 0, hızlı çift GERİ tek kapanış
+  + tek gezinme, gerçek ACTION_CANCEL (kart / X / karartma) 0 eylem ve karartma iptali + GERİ tek gezinme, regresyonlar
+  aynen; 0 SCRIPT ERROR / çökme / ANR, yabancı girdi yok; QA kaldırıldı, üretim paketi hiç kurulmadı, `com.example`
+  dokunulmadı, gezinme kipi / saat değişmedi. Ayrıntı: PROJECT_STATUS §4.34. TASK/055 başlamadı.
 - **Repo (2026-10-05):** `main == origin/main == 275c5370a7753ddfb4b8d0cf845c3fa428f5759b` — **TASK/053 owner
   onayıyla ff-only main'e alındı** (`5b7a727 → 275c537`; merge commit / rebase / squash / cherry-pick / force push
   YOK). Doğrulanmış doğrusal zincir, 5 commit: `796e1e7` düzeltme · `4b29c26` test (yeni suite + TASK/049 / 050 suite
@@ -980,26 +1010,35 @@ eşitlemesi sırasında hiçbir kapı yeniden koşulmadı. Eski açık madde (3)
 kozmetik not (owner; engel değil, görev değil): reddedilen dişli dokunuşu olağan dokunma geri bildirimini yine
 verebilir.
 
-**Sıradaki ürün / stabilizasyon görevi owner seçimi** (TASK/054 tanımlanmadı, başlamadı) — aşağıdaki 3 açık maddeden
-hiçbiri kendiliğinden seçilmez. TASK/052 takip gözlemleri yalnız NOT (görev değil): trafik sonrası canlı elde tutma /
+**TASK/054 dalda — owner incelemesi bekliyor** (`task/054-collection-hold-android-back`, READY FOR OWNER REVIEW; main'e
+ALINMADI — merge owner kararı; yukarıda, PROJECT_STATUS §4.34). **Sıradaki ürün / stabilizasyon görevi owner seçimi**
+(TASK/055 tanımlanmadı, başlamadı) — aşağıdaki 2 açık maddeden hiçbiri kendiliğinden seçilmez. TASK/052 takip
+gözlemleri yalnız NOT (görev değil): trafik sonrası canlı elde tutma /
 ARPDAU incelemesi; isteğe bağlı daha güçlü ilk gün koruması A/B testi; native yetim yeniden yükleme temizliği; native
 banner iş parçacığı yarışı incelemesi; yayından önce üretim TEEN / uyum yeniden incelemesi; mediation / bidding / hesap
 tarafı iyileştirme; App Open yalnız ileride gerçek bir yükleme / bekleme yüzeyi olursa.
 
-Açık, owner kararı bekleyen ayrı maddeler — **şu an tam 3** (**BAŞLAMADI**; hiçbiri kendiliğinden seçilmez; (1)
-TASK/051, (2) TASK/052, (3) TASK/053 ile kapandı — aşağıda): (4) basılı Koleksiyon kartı + Android GERİ sentetik
-bırakışı (yukarıda, TASK/045.2; ACTION_CANCEL'in tahta tarafı TASK/046.2'de giderildi — main'de); (5) genel GUI
-ACTION_CANCEL — modal / karartma iptal davranışı ve güç düğmesinin iptal edilen dokunuşta çalışması (TASK/046.2 A36
-kapısı gözlemi: Sarsıntı düğmesinde gerçek ACTION_CANCEL stoğu 1 → 0 tüketti, parça düşmedi; §4.26); (6) HUD hedef
-kartı T5 adını "Büyük
-Dumpl…" diye kırpar (önceden var olan kart, normal Level 3'te de; PROJECT_STATUS §4.27 (d)). Meydan okuma güç
-düğmelerini gizleyip kilitlediği için (5)'teki Sarsıntı iptal hatası meydan okumayı etkilemez; meydan okumanın KENDİ
-gecikmeli sonucu deneme kimliğiyle korunur (TASK/047). TASK/051 incelemesinin kayda geçirdiği önceden var olan, kapsam
-dışı gözlemler (yalnız inceleme notu; owner kararı; düzeltilmedi, görev açılmadı): Harita / Sonsuz düğümü
-işleyicisinde kapalı-ekran kapısı yok — basılı düğüm + Android GERİ, gizleme anındaki sentetik tıklamayla level
-başlatabilir (statik çıkarım, yeniden üretilmedi; (4) ile aynı motor sınıfı; TASK/051 sonrası bırakış düşmez); Yeniden
-Başlat sırasında mola karartmasında basılı kalan parmak, mola o parmak kalkmadan yeniden açılırsa kalkışında onu
-kapatır (gizli karartmanın parmak odağı; parça düşmez).
+Açık, owner kararı bekleyen ayrı maddeler — **şu an tam 2 AÇIK** (**BAŞLAMADI**; hiçbiri kendiliğinden seçilmez; (1)
+TASK/051, (2) TASK/052, (3) TASK/053 ile kapandı — aşağıda; (4) dalda düzeltildi): (4) basılı Koleksiyon kartı + Android
+GERİ sentetik bırakışı (TASK/045.2) — **FIXED ON TASK/054 BRANCH** (main'e alınmadı; §4.34); (5) genel GUI ACTION_CANCEL
+— modal / karartma iptal davranışı ve güç düğmesinin iptal edilen dokunuşta çalışması (TASK/046.2 A36 kapısı gözlemi:
+Sarsıntı düğmesinde gerçek ACTION_CANCEL stoğu 1 → 0 tüketti, parça düşmedi; §4.26) — **AÇIK** (TASK/054 yalnız
+Koleksiyon'un kendi kontrollerini ve karartmasını kapsar; paylaşılan `UiKit.attach_dim_close` ve diğer ekranlar aynen);
+(6) HUD hedef kartı T5 adını `Büyük Dumpl…` diye kırpar (önceden var olan kart, normal Level 3'te de; PROJECT_STATUS
+§4.27 (d)) — **AÇIK**. TASK/054 incelemesinin kayda geçirdiği önceden var olan, kapsam dışı gözlemler (yalnız not; owner
+kararı; düzeltilmedi, görev açılmadı): aynı motor sınıfı başka ekranlarda — Profil vitrin yuvası (basılı + GERİ →
+gizlemedeki bayat tıklama Koleksiyon detayını açabilir; statik çıkarım), Profil dişlisi / KOLEKSİYONA GİT, Harita düğümü
+(aşağıda); Mağaza SATIN AL ACTION_CANCEL bırakışında Hamur harcar ((5)'in parçası); Android 13+ tek parmak iptali
+(POINTER_UP + FLAG_CANCELED) Godot'ya düz bırakış olarak gelir (motor sınırı); `age_gate_test`'in eski UNDER_13 bölümü
+yalnız 2026-10-05 tarihinde düşen bir tarih bombası taşır (13. yaş günü "2026-10-05" seçilmiş, günlük gün anahtarı
+gerçek tarihi kayda yazıyor; ertesi günden itibaren kendiliğinden geçer). Meydan okuma güç düğmelerini gizleyip
+kilitlediği için (5)'teki Sarsıntı iptal hatası meydan okumayı etkilemez; meydan okumanın KENDİ gecikmeli sonucu deneme
+kimliğiyle korunur (TASK/047). TASK/051 incelemesinin kayda geçirdiği önceden var olan, kapsam dışı gözlemler (yalnız
+inceleme notu; owner kararı; düzeltilmedi, görev açılmadı): Harita / Sonsuz düğümü işleyicisinde kapalı-ekran kapısı yok
+— basılı düğüm + Android GERİ, gizleme anındaki sentetik tıklamayla level başlatabilir (statik çıkarım, yeniden
+üretilmedi; (4) ile aynı motor sınıfı; TASK/051 sonrası bırakış düşmez); Yeniden Başlat sırasında mola karartmasında
+basılı kalan parmak, mola o parmak kalkmadan yeniden açılırsa kalkışında onu kapatır (gizli karartmanın parmak odağı;
+parça düşmez).
 **Kapanan — main'de:** ~~(3) erteleme sürerken HUD Ayarlar açılırsa yeni round Ayarlar'ın altında başlar;
 RESULT_DELAY / reklam beklemesinde açılan ya da bitişte açık Ayarlar sonucun üstünde kalır (görsel; TASK/049 Ayarlar'ı
 bilinçli olarak kapatmazdı)~~ → **TASK/053** (`275c537`, §4.33 — FIXED + MAIN; terminal temizlik açık Ayarlar'ı
