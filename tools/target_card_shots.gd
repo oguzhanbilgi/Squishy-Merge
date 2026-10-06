@@ -49,7 +49,12 @@ var _shots: int = 0
 func _ready() -> void:
 	DailyRewards.auto_popup_enabled = false
 	var args: PackedStringArray = OS.get_cmdline_user_args()
-	_out_dir = args[0] if args.size() >= 1 else ProjectSettings.globalize_path("user://target_card_shots")
+	if args.is_empty():
+		# Varsayılan klasör YOK: çıktı asla sahibin `user://` klasörüne düşmez.
+		print("kullanım: godot --path . res://tools/target_card_shots.tscn -- <çıktı_klasörü> [GxY] [ETİKET,...]")
+		get_tree().quit(2)
+		return
+	_out_dir = args[0]
 	DirAccess.make_dir_recursive_absolute(_out_dir)
 	if args.size() >= 2:
 		var parts: PackedStringArray = args[1].split("x")
@@ -78,8 +83,12 @@ func _ready() -> void:
 	SaveManager.save_path = SaveManager.SAVE_PATH
 	SaveManager.data = _saved
 	_remove_dir()
-	print("SHOTS %d -> %s | window %dx%d | owner save family unchanged=%s"
-		% [_shots, _out_dir, _size.x, _size.y, str(_owner_snapshot() == _owner)])
+	var window: Vector2i = DisplayServer.window_get_size()
+	var canvas: Vector2 = get_viewport().get_visible_rect().size
+	print("SHOTS %d -> %s | window requested %dx%d actual %dx%d | canvas %dx%d%s | owner save family unchanged=%s"
+		% [_shots, _out_dir, _size.x, _size.y, window.x, window.y, int(canvas.x), int(canvas.y),
+		"" if int(canvas.x) == 720 else " !! CANVAS WIDTH IS NOT 720 (window clamped / not a phone aspect)",
+		str(_owner_snapshot() == _owner)])
 	get_tree().quit()
 
 
@@ -127,9 +136,9 @@ func _shoot(index: int, spec: Array) -> void:
 	crop = crop.intersection(Rect2i(Vector2i.ZERO, img.get_size()))
 	img.get_region(crop).save_png(_out_dir.path_join(base + "_card.png"))
 	var label: Label = hud.goal_label
-	print("SHOT %s | text='%s' font=%d label_w=%.0f extra='%s' dir=%s"
+	print("SHOT %s | text='%s' font=%d label_w=%.0f extra='%s' dir=%s canvas_w=%.0f"
 		% [base, label.text, label.get_theme_font_size("font_size"), label.size.x, hud.goal_extra.text,
-		"RTL" if hud.goal_plate.is_layout_rtl() else "LTR"])
+		"RTL" if hud.goal_plate.is_layout_rtl() else "LTR", get_viewport().get_visible_rect().size.x])
 	_shots += 1
 	board.queue_free()
 	await get_tree().process_frame

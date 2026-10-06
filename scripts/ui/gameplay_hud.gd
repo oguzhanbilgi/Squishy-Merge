@@ -510,15 +510,17 @@ func set_goal_name(text: String) -> void:
 
 ## Ad puntosu her seferinde GOAL_NAME_FONT_SIZE'dan başlar ve ölçülen genişlik + pay etiketin
 ## kapsayıcıdan aldığı genişliğe sığana kadar düşer (GOAL_NAME_MIN_FONT_SIZE'ın altına inmez).
-## Genişlik kapsayıcı sıralamasından gelir: etiket henüz yerleşmediyse dokunmaz, `resized`
-## gelince (ilk yerleşim, rozet / tuval genişliği değişimi) yeniden sığdırır. Satır yüksekliği
-## taban puntoda sabit: küçülen ad kartın dikey düzenini oynatmaz.
+## Genişlik kapsayıcı sıralamasından gelir: ağaca girerken etiket kendi en küçük genişliğine
+## (1 px) sıkışır — kapsayıcı ona daha fazlasını vermeden dokunmaz; `resized` gelince (ilk
+## yerleşim, rozet / tuval genişliği değişimi) yeniden sığdırır. Ölçülen metin Label'ın çizdiği
+## metindir (`atr`: çeviri olursa çevrilmiş ad) ve genişlik Label'ınki gibi tam sayı. Satır
+## yüksekliği taban puntoda sabit: küçülen ad kartın dikey düzenini oynatmaz.
 func _fit_goal_name() -> void:
-	var available: float = goal_label.size.x - goal_label.get_theme_stylebox("normal").get_minimum_size().x
-	if available <= 0.0:
+	if goal_label.size.x <= goal_label.get_combined_minimum_size().x:
 		return
+	var available: int = int(goal_label.size.x - goal_label.get_theme_stylebox("normal").get_minimum_size().x)
 	var font: Font = goal_label.get_theme_font("font")
-	goal_label.custom_minimum_size.y = font.get_height(GOAL_NAME_FONT_SIZE)
+	goal_label.custom_minimum_size.y = ceilf(font.get_height(GOAL_NAME_FONT_SIZE))
 	var font_size: int = GOAL_NAME_FONT_SIZE
 	while font_size > GOAL_NAME_MIN_FONT_SIZE and _goal_name_width(font, font_size) + GOAL_NAME_FIT_SLACK > available:
 		font_size -= 1
@@ -527,7 +529,13 @@ func _fit_goal_name() -> void:
 
 
 func _goal_name_width(font: Font, font_size: int) -> float:
-	return font.get_string_size(goal_label.text, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size).x
+	return font.get_string_size(goal_label.atr(goal_label.text), HORIZONTAL_ALIGNMENT_LEFT, -1, font_size).x
+
+
+## Dil değişince Label adı yeniden çevirir ama boyutu değişmez (`resized` gelmez): ad yeniden sığdırılır.
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_TRANSLATION_CHANGED and goal_label != null:
+		_fit_goal_name()
 
 
 func set_goal_progress(ratio: float) -> void:
