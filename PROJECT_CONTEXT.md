@@ -90,9 +90,12 @@ alınacak — şimdi tahmin/vaat yok.
   **küresel gezinme kabuğu** (`GlobalNav`: Ana Sayfa · Mağaza · [Harita] · Koleksiyon · Profil — beş gerçek hub
   ekranı; oyun / pencere / yaş / tutorial yüzeylerinde gizli; Android GERİ ve TASK/055 dokunuş sahipliği aynen; içerik
   kabuğun altına girmez). Ekran içerikleri yeniden tasarlanmadı; ekonomi / kayıt / reklam / görev / meydan okuma /
-  güç davranışı değişmedi. **Owner görsel incelemesi SERT KAPI** — inceleme paketi `build/qa_057_visual_review/`
-  (önce / sonra, duyarlı görünümler, bileşen vitrini). **TASK/058 BAŞLAMADI.** Release Readiness **PAUSED / YELLOW**
-  (Product Vision V3 turu bitmeden release'e dönülmez). Ayrıntı: PROJECT_STATUS §4.37, UI_VISUAL_SYSTEM §27.
+  güç davranışı değişmedi. **Görsel Cila Tur 2 (owner incelemesi, 2026-10-06) uygulandı:** hub geri okları
+  KALDIRILDI (Ana Sayfa'ya dönüş kabuk + Android GERİ), tek seçili durum ailesi, kısa ekran + banner'da kompakt kabuk,
+  Harita 16:9 + banner sıkıştırması %18 → %7.4. **Owner görsel incelemesi SERT KAPI** — inceleme paketi
+  `build/qa_057_visual_review/` (Owner Review Round 2) + `build/qa_057_owner_review/TASK057_OWNER_REVIEW.zip`.
+  **TASK/058 BAŞLAMADI.** Release Readiness **PAUSED / YELLOW** (Product Vision V3 turu bitmeden release'e dönülmez).
+  Ayrıntı: PROJECT_STATUS §4.37, UI_VISUAL_SYSTEM §27 (§27.11).
 - **Repo (2026-10-06):** `main == origin/main == ee2778ad8750754f234942de2a31e3882802d341` — **TASK/056 owner onayıyla
   ff-only main'e alındı** (`a8bf454 → ee2778a`; merge commit / rebase / squash / cherry-pick / force push YOK).
   Doğrulanmış doğrusal zincir, 4 commit: `721b97a` düzeltme · `c17fa4c` test · `0c0dc09` inceleme sertleştirmesi
@@ -1183,9 +1186,10 @@ bekler. Yol haritası: TASK/057 UI System V3 + küresel gezinme → 058 Ana Sayf
 HUD V3 + ödüllü güçler → 061 Günlük & Görevler V3 → 062 Mağaza V3 + Başlangıç Paketi → 063 Meydan Okuma merkezi → 064
 Koleksiyon / Profil / Ayarlar cilası → 065 tam UX tutarlılığı + Samsung A36 kabulü → release yeniden. Her büyük UI
 görevi üretim ekran görüntüsü + owner görsel onayı olmadan main'e alınmaz.
-**Şimdiki adım: OWNER GÖRSEL İNCELEMESİ — TASK/057** (`task/057-ui-system-v3-global-nav`, dalda; main'e ALINMADI,
-merge / PR yok). İnceleme paketi `build/qa_057_visual_review/REVIEW_INDEX.md`. Owner onayı (ya da istenen görsel
-değişiklikler) gelmeden TASK/057 tamam sayılmaz, tam kontrollü kapı (A36 dahil) koşulmaz, TASK/058 başlamaz.
+**Şimdiki adım: OWNER GÖRSEL İNCELEMESİ (Tur 2) — TASK/057** (`task/057-ui-system-v3-global-nav`, dalda; main'e
+ALINMADI, merge / PR yok). İnceleme paketi `build/qa_057_visual_review/REVIEW_INDEX.md` (Owner Review Round 2) ve
+`build/qa_057_owner_review/TASK057_OWNER_REVIEW.zip`. Owner onayı (ya da istenen görsel değişiklikler) gelmeden TASK/057
+tamam sayılmaz, tam kontrollü kapı (A36 dahil) koşulmaz, TASK/058 başlamaz.
 
 **Sıradaki ürün / stabilizasyon görevi owner seçimi** — bilinen, izlenen açık ürün maddesi kalmadı (0; ürünün hatasız
 olduğu iddia edilmez); otomatik bir sonraki ürün düzeltme görevi tanımlı değil, TASK/057 OLUŞTURULMADI. *(Sonra

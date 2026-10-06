@@ -138,8 +138,10 @@ Product Vision V3'ü başlattı — aşağıda TASK/057.)*
 UI/UX yenileme + ödüllü güçler + görevler + başlangıç paketi + harita / meydan okuma yol haritası (TASK/057–065);
 Release Readiness PAUSED / YELLOW. **TASK/057 (Squishy UI System V3 + küresel gezinme kabuğu) — dalda, READY FOR OWNER
 VISUAL REVIEW, main'e ALINMADI** (`task/057-ui-system-v3-global-nav`, main `d5237bf`'ten; main DEĞİŞMEDİ): V3 token /
-bileşen temeli + beş hub ekranında küresel alt gezinme; masaüstü odak + koruma + negatif kontroller geçti, Samsung A36
-KOŞULMADI (owner görsel onayından sonra) (§4.37). TASK/058 BAŞLAMADI.
+bileşen temeli + beş hub ekranında küresel alt gezinme; **Görsel Cila Tur 2 (owner incelemesi) uygulandı — yeniden
+READY FOR OWNER REVIEW**: hub geri okları kaldırıldı, tek seçili durum ailesi, kısa ekran + banner'da kompakt kabuk,
+Harita 16:9 + banner sıkıştırması %18 → %7.4; masaüstü odak + koruma + tam regresyon + negatif kontroller geçti, Samsung
+A36 KOŞULMADI (owner görsel onayından sonra) (§4.37). TASK/058 BAŞLAMADI.
 Release izi ayrı. Sırada: içerik derecesi + yargı bölgesi kararları + 13+ seçici uyum riski (owner) → gizlilik
 politikası → upload anahtarı → gerçek AdMob kimlikleri → mağaza varlıkları / Play Console,
 sonra ilk imzalı üretim AAB'si ve M10 (Play kapalı test) ·
@@ -3516,14 +3518,29 @@ formatına yalnız `haptics_enabled` (varsayılan true) eklendi. Ayrıntı ve
   regresyonu (aday `c614e02`) 55 / 55 temiz, 7071 kontrol, 0 FAIL, 0 SCRIPT ERROR, bot 2 / 2; sahibin kayıt ailesi
   bayt-aynı. **Samsung A36 cihaz kapısı KOŞULMADI** (owner görsel onayından sonra, tam kontrollü kapıyla).
 - **Bilinen görsel uzlaşmalar (owner incelemesi):** Ana Sayfa'da OYNA + merkez HARİTA aynı hedef ve üst üste; Ana Sayfa
-  madalyonları / avatar kabukla yineleniyor; hub ekranlarında üst satır geri oku kaldı; Harita 16:9 + banner yuvasında
-  %18 dikey sıkıştırma (düğümler küçülür); Ana Sayfa maskotu A36 + banner'da ~391 px; banner aralığı uyumu AÇIK — §27.9.
+  madalyonları / avatar kabukla yineleniyor; ~~hub ekranlarında üst satır geri oku kaldı~~ (Tur 2: kaldırıldı);
+  ~~Harita 16:9 + banner yuvasında %18~~ (Tur 2: %7.4, kurdele o yerleşimde gizli); Ana Sayfa maskotu A36 + banner'da
+  ~391 px; banner aralığı uyumu AÇIK — §27.9.
 - **Kapsam dışı / sonraki görevler (BAŞLAMADI):** TASK/058 Ana Sayfa V3 · 059 Harita V3 (meydan okuma rotası,
   kaydırılabilir yolculuk) · 060 Gameplay HUD V3 + ödüllü güçler (güç başına kota GAME_DESIGN §5.7.3 değişikliği + owner
   onayı ister) · 061 Günlük & Görevler V3 · 062 Mağaza V3 + Başlangıç Paketi · 063 Meydan Okuma merkezi · 064 Koleksiyon
   / Profil / Ayarlar cilası.
 - **İnceleme notu (önceden var olan, düzeltilmedi):** uygulamaya dönüşte otomatik günlük pencere kapısı Mağaza onayını
   kontrol etmez (pencere onayın üstüne açılabilir; TASK/055 notlarında da kayıtlı) — owner kararı.
+- **Görsel Cila Tur 2 (owner incelemesi, 2026-10-06) — yeniden READY FOR OWNER REVIEW, main'e ALINMADI.** Owner
+  kararları: küresel gezinme yönü TUTULDU (sıra / merkez HARİTA / Ana Sayfa'da kabuk / gizli yüzeyler / 84-64 px /
+  GestureGuard / V3 aynen); **hub geri okları KALDIRILDI** (Harita / Mağaza / Koleksiyon / Profil; `back_button()` null,
+  `home_requested` ve `Main._on_home_requested` yok; Ana Sayfa'ya dönüş kabuk ANA SAYFA + Android GERİ — zincir
+  DEĞİŞMEDİ); kabuk cilası (tepsi ön dudağı, ikon 58 / etiket 19, **tek seçili aile** `NavItem.selected_family()` —
+  merkez yalnız +1 altın halka); **Harita 16:9 + banner %18 REDDEDİLDİ → %7.4** (kompakt kabuk: kullanılabilir yükseklik
+  < 1200 px'te merkez taşması 0, pay 160 → 120, her öğe ≥ 84 px; `MIN_SQUASH_NAV` 0.78 → 0.92; kurdele gerekirse satırını
+  bırakır; sıradaki düğüm ≥ 84 px; 6 haneli Hamur bilinçli sınır); banner aralığı kaide + dikiş (dokunuş almaz, uyum
+  AÇIK); Ana Sayfa OYNA ↔ kabuk +18 px; vitrin bileşen cilası. Doğrulama: odak + koruma {FOCUS}; tam masaüstü regresyonu
+  {FULL}; negatif kontroller {MUT} varyant açık FAIL ile öldü (Tur 2 için: geri oku geri, kompakt öğe < 84, Tur 1
+  sıkıştırması, kompakt kip kapalı, merkezin ayrı seçili malzemesi; owner talimatıyla hafif tutuldu — ek varyant
+  koşulmadı, durdurulan koşunun dosyası bayt-aynı geri konduğu hash ile kanıtlandı); {REV}; sahibin kayıt ailesi
+  bayt-aynı. Zincir: `4f53332` üretim · `f6ece0f` testler · bu doküman commit'i. Ayrıntı UI_VISUAL_SYSTEM §27.11; inceleme paketi `build/qa_057_visual_review/REVIEW_INDEX.md`
+  (Owner Review Round 2) + `build/qa_057_owner_review/TASK057_OWNER_REVIEW.zip` (git dışı).
 
 ## 5. Dosya/klasör yapısı ve script envanteri
 

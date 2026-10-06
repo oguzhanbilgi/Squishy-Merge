@@ -2072,6 +2072,7 @@ tekrar / pratik modu. Hepsi owner kararı ister.
 **Durum:** `task/057-ui-system-v3-global-nav` (kanonik main `d5237bf`'ten). Product Vision V3'ün
 (GitHub Issue #1) ilk uygulama görevi. **Owner görsel incelemesi SERT KAPI:** main'e alınmadı,
 TASK/058 başlamadı. Bu bölüm bir sonraki görevlerin (TASK/058–064) üzerine kuracağı temeli anlatır.
+**Görsel Cila Tur 2 (owner incelemesi, 2026-10-06) uygulandı — §27.11;** yeniden owner incelemesi bekliyor.
 
 **Kural — ikinci sistem YOK:** V3, M8.6 katmanının EVRİMİDİR. Sayılar `UiTokens`'ın V3 bölümünde,
 tipografi rolleri `UiType.V3_ROLES`'ta (mevcut tema variation'ları + token boyutu; tema yeniden
@@ -2138,10 +2139,12 @@ mantığı YOK: durum ve sayaç çağırandan gelir.
 
 Hedefler Main'in GERÇEK beş ekranı (yeni rota yok):
 **ANA SAYFA (0) · MAĞAZA (3) · [ HARİTA (1) ] · KOLEKSİYON (2) · PROFİL (4)**. Merkez HARİTA büyük cyan
-daire (92 px, tepsinin 40 px üstüne taşar, LACİVERT ikon; Ana Sayfa'nın OYNA'sıyla aynı hedef — oyunun ana
-yolu); seçili merkez altın halka + altın hale. Yan öğeler lavanta candy tepside (92 px, kenar payı 12,
-yarıçap 36; ikon 54 + yumuşak gölge, etiket Baloo 18 beyaz); seçili yan öğe tepsiden 14 px yükselen krem
-karo + mor ikon + koyu etiket; basılı (seçili değil) öğe yarı saydam, dudağı çökmüş krem karo; Profil öğesi
+daire (92 px, tepsinin 40 px üstüne taşar — kısa ekran + banner'da KOMPAKT kipte taşmaz, §27.11; LACİVERT ikon;
+Ana Sayfa'nın OYNA'sıyla aynı hedef — oyunun ana yolu). Yan öğeler lavanta candy tepside (92 px, kenar payı 12,
+yarıçap 36, 10 px ön dudak; ikon 58 + yumuşak gölge, etiket Baloo 19 beyaz). **Seçili durum TEK aile**
+(`NavItem.selected_family()`, Tur 2): krem candy + sıcak altın hale; yan öğe tepsiden 14 px yükselen krem karo + mor
+ikon + koyu etiket, merkez aynı krem kaide halkası + aynı hale + etiketi aynı krem hapta koyu, merkeze özgü tek ek
+katman ince altın dış halka. Basılı (seçili değil) öğe yarı saydam, dudağı çökmüş krem karo; Profil öğesi
 oyuncunun avatarı (vitrin değişince hemen tazelenir). Tepsinin arkasında opak koyu DOCK: tepsi üst kenarının
 30 px üstünden ekran altına (banner yuvası dahil) solar — kaydırılan içerik tepsinin altında / yanında görünmez
 ve dokunuş almaz; gerçek banner yuvada dock'un üstüne çizilir. **Dokunma alanı:** seçili olmayan yan öğe yalnız
@@ -2177,15 +2180,16 @@ Gizlenen kabukta basılı öğenin basışı GestureGuard ile eylemsiz biter.
 
 Hub ekranları `set_nav_inset(nav.reserve())` alır (Main verir, banner yuvası kesinleşince yeniden; kabuksuz tek başına
 test 0 — eski yerleşim birebir). `reserve()` = alt boşluk + tepsi 92 + merkez taşması 40 = yuvasız **140 px**
-(720×1280'in %10.9'u), yuvalı **160 px** (`UiKit.bottom_inset`'in ÜSTÜNE). Ana Sayfa: OYNA + level pill'i payın üstünde,
+(720×1280'in %10.9'u), yuvalı **160 px**, kompakt kipte (kısa ekran + yuva) **120 px** (`UiKit.bottom_inset`'in
+ÜSTÜNE). Ana Sayfa: OYNA + level pill'i payın üstünde, kabukla arasında +18 px nefes payı (Tur 2),
 maskot kalan hero bölgesine sığar. Mağaza / Koleksiyon / Profil: kaydırılan içeriğin alt payı + pay — son kart / satır
 kabuğun üstüne kaydırılır; Mağaza geri bildirim plakası da payın üstünde. **Harita:** zemin tepsinin ÜST kenarına kadar
 uzanır (merkez daire dünyaya biner), düğümler payın TAMAMININ üstünde kalır (`set_nav_inset(reserve,
-NavItem.CENTER_RISE)`); zemin dikeyde sıkışırsa düğümler aynı oranda küçülür (gövdeler birbirine değmez). Ölçülen
-sıkıştırma: 720×1600 ve A36 benzeri (yuvalı) 1.000 · 720×1280 yuvasız 0.937 · **16:9 + 112 px banner yuvası 0.819** —
-üst satır + kabuk + yuva tüm yolculuğu `MIN_SQUASH` (0.94) ile sığdıramadığından yalnız bu durumda `MIN_SQUASH_NAV`
-(0.78) tabanına kadar (Sonsuz kalesi üst satırın altında, level 1 kabuğun üstünde kalır). Kalıcı çözüm TASK/059
-(kaydırılabilir yolculuk) — owner kararı. Gelecek MEYDAN OKUMA rotası (TASK/059) için ayrılan bölge: dünyanın sol / sağ
+NavItem.CENTER_RISE)` — kompakt kipte taşma 0); zemin dikeyde sıkışırsa düğümler aynı oranda küçülür (gövdeler
+birbirine değmez; sıradaki düğüm ≥ `TOUCH_TARGET`). Ölçülen sıkıştırma (Tur 2): 720×1600 ve A36 benzeri (yuvalı) 1.000 ·
+720×1280 yuvasız 0.944 · **16:9 + 112 px banner yuvası 0.926 (%7.4; ilk aday 0.819 / %18 owner tarafından
+reddedildi)** — `MIN_SQUASH_NAV` 0.92 (en çok %8) tavan; bu yerleşimde kabuk kompakt ve başlık kurdelesi satırını
+bırakır (§27.11); 16:9 + 128 px yuva 0.909, yalnız uç durumlarda son çare `MIN_SQUASH_NAV_HARD` 0.88. Kalıcı çözüm TASK/059 (kaydırılabilir yolculuk) — owner kararı. Gelecek MEYDAN OKUMA rotası (TASK/059) için ayrılan bölge: dünyanın sol / sağ
 yan bantları ve kabuğun üstündeki alt dünya şeridi — kabuk ayak izi (alt 140 px + banner yuvası) hiçbir harita ögesine
 verilmez.
 
@@ -2210,11 +2214,12 @@ hak akışı) → **TASK/062**; Meydan Okuma merkezi → **TASK/063**; Koleksiyo
 - Ana Sayfa'da büyük OYNA ile kabuğun merkez HARİTA dairesi aynı hedefe gider ve üst üste durur —
   Ana Sayfa V3 (TASK/058) OYNA'nın davranışını / yerini belirler.
 - Ana Sayfa'daki Koleksiyon / Mağaza madalyonları ve sol üst avatar artık kabukla yinelenir — TASK/058.
-- Harita / Mağaza / Koleksiyon / Profil üst satırındaki geri oku (→ Ana Sayfa) kaldı (GERİ zinciri ve
-  TASK/055 testleri ona dayanıyor) — kaldırılması owner kararı.
+- ~~Harita / Mağaza / Koleksiyon / Profil üst satırındaki geri oku kaldı~~ → **Tur 2: owner kararıyla KALDIRILDI**
+  (§27.11); Android GERİ zinciri aynen.
 - A36'da banner yuvası 112 px: Harita ve Profil (banner yüzeyi değil) kabuğun altında boş bant gösterir —
   kabuğun konumu sekmeler arasında sabit kalsın diye bilinçli.
-- Harita: 720×1280 yuvasız %6.3, **16:9 + banner yuvasında %18** dikey sıkıştırma (düğümler küçülür) — TASK/059.
+- Harita: ~~16:9 + banner yuvasında %18~~ → **Tur 2: %7.4** (kompakt kabuk + kurdele satırı); 720×1280 yuvasız %5.6
+  — kalıcı çözüm TASK/059.
 - Ana Sayfa maskotu kabukla küçülür (A36 benzeri + banner: ~391 px, önce ~597; 720×1280: 538) — Ana Sayfa V3
   (TASK/058) hiyerarşiyi yeniden kurar.
 - Kabuk ile banner arası 28 px dokunulmayan aralık: AdMob yerleşim politikasına uygunluğu birebir resmî metinle
@@ -2230,3 +2235,41 @@ görünümde paylar + doğrudan alt pay, geç gelen banner yuvası, kabuk görü
 SATIN AL ve Koleksiyon son kart GERÇEK dokunuşla). Kabukla uyarlanan koruma suite'leri (niyet aynı): `home_ui_test`,
 `map_ui_test`, `monetization_test`, `profile_test`. Görsel inceleme: `tools/hub_nav_shots.tscn` (taban ve aday aynı
 araçla; masaüstü / 720×1600 / A36 benzeri), `tools/ui_v3_showcase.tscn` (üretim bileşenleriyle vitrin, 5 sayfa).
+
+### 27.11 Görsel Cila Tur 2 (owner incelemesi, 2026-10-06)
+
+Owner kararları (değişmeyenler): sıra ANA SAYFA · MAĞAZA · [HARİTA] · KOLEKSİYON · PROFİL, merkez vurgulu HARİTA, kabuk
+Ana Sayfa'da da var, oyun / pencerelerde gizli, 84 / 64 px dokunma kuralı, GestureGuard, V3 token / bileşenleri.
+
+- **Hub geri okları KALDIRILDI** (Harita / Mağaza / Koleksiyon / Profil): `ScreenTopBar.back_button()` her zaman
+  null, `back_pressed` / ekranların `home_requested`'i / `Main._on_home_requested` yok. Ana Sayfa'ya dönüş kabuğun
+  ANA SAYFA'sı + Android sistem GERİ (DEĞİŞMEDİ). Pencere / detay kapatma ve oyun içi geri aynen. Üst satır: kurdele
+  ekranın tam ortasında (en az 220 px, 27 px başlık), sağda kaynak pill'i (Profil'de dişli), sol taraf nefes payı.
+- **Kabuk cilası:** tepsi 10 px ön dudak + iç aydınlık bant (candy hacmi); ikonlar 58 px; etiketler Baloo 19 (tepsi
+  yüksekliği aynı 92); seçili durum TEK aile (§27.4, `applied_selection()` testle kilitli); seçili olmayan beyaz
+  picto + gölge, beyaz etiket (soluk değil); basılı = dudağa inen yarı saydam krem karo + koyu etiket.
+- **Kısıtlı yerleşim (kullanılabilir yükseklik < 1200 px; pratikte 16:9 + banner):** kabuk KOMPAKT — merkez daire
+  62 px (ikon 44) tepsi kenarına oturur (3 px dekoratif taşma, dokunuş almaz), etiketi yan etiketlerden 4 px aşağıda;
+  dokunma alanı tam tepsi dilimi (her öğe ≥ 84 px), pay 160 → 120; seçili yan karonun yükselişi yalnız görsel. Harita:
+  yolculuk başlık satırıyla ancak > %8 sıkıştırmayla sığıyorsa başlık kurdelesi satırını bırakır (Harita kimliği
+  kabuğun seçili HARİTA'sında; kilit rozeti tepeden ≥ 4 px); Hamur pill'i kaleyle yatayda çakışırsa kale pill'in altına
+  iner; yine sığmazsa son çare `MIN_SQUASH_NAV_HARD` 0.88 (arayüzle çakışmaktansa). Pill genişleyince karar yeniden
+  verilir. Ölçüm: 16:9 + 112 yuva **sy/sx 0.926** (en küçük düğüm 67 px, sıradaki 84 px; Hamur 5 haneye kadar aynı);
+  16:9 + 128 yuva (en büyük gerçekçi uyarlanabilir banner) 0.909; uç durumlar 6 haneli Hamur 0.880 (kalenin sağ üst
+  köşesi pill kenarına ~1 px değer) ve üst güvenli pay 40 0.885 — v1'de ulaşılamaz / 16:9'da nadir.
+- **Banner aralığı:** 28 px aralık dock'un parçası — tepsinin altında koyu lavanta kaide + yuvanın üst kenarında ince
+  açık dikiş (`BannerPlinth`, dokunuş almaz); ölü gri şerit değil, sıfıra indirilmedi. AdMob uyumu AÇIK (§27.9).
+- **Ana Sayfa:** OYNA ile kabuğun en üst noktası arasına +18 px (`NAV_PLAY_CLEARANCE`); hero bölgesi kısalınca yan
+  dumpling'ler level pill'inin arkasına inmez (A36 bulgusu; sınır gerçek çizim boyuyla). Yinelenen madalyonlar TASK/058.
+- **Seçili merkez:** krem kaide halkası 10 px (kompaktta 7) — yan karoyla aynı malzeme; dış altın halka yan karoyla aynı
+  RESTING derinlikte; basılı önizleme karosu α 0.68 (pasif gibi soluk değil).
+- **Bileşenler (vitrin):** HERO CTA 10 px dudak + ELEVATED gölge; FeatureCard kuyu 96 / sanat 82, başlık 27, alt yazı
+  koyu yüzeyde tam beyaz (≥ 4.5:1); OfferCard premium = sıcak kraliyet moru candy (`SURFACE_PREMIUM`) + altın halka +
+  altın hale + yıldız parıltıları (beyaz web kartı değil); PowerCard stok kabarcığı 56 px / rakam 34; kompakt CTA yan
+  pay 12, ikon 24; rozetler bir kademe küçük (nokta 18, hap 26). Bunlar yalnız vitrinde / yeni yüzeylerde (FeatureCard /
+  OfferCard / PowerCard'ın üretim tüketicisi yok; Ana Sayfa OYNA `UiKit.hero_cta`) — onaylı M8.6 ekranları aynen.
+- Test / vitrin kancası: `GlobalNav.set_compact_override(-1 / 0 / 1)` (üretim çağırmaz).
+- Testler: `global_nav_shell_test` L bölümü (geri oku yok + kaynak sözleşmesi, beş sekmede tek seçili aile, kompakt kip
+  dokunma alanı / etiket hizası / kaide / dock, Harita ≤ %8 + düğümler + kale ↔ pill, Hamur 5–6 hane, üst güvenli pay 40)
+  + B bölümünde her sekmede aile + I bölümünde yan dumpling ↔ level pill; `ui_system_v3_test` seçili ailenin çizim yolu
+  kaynak sözleşmesi; geri okuna dayanan koruma testleri kabuk ANA SAYFA / Android GERİ'ye taşındı (niyet aynı).
