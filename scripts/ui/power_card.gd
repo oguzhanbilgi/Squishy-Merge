@@ -16,7 +16,8 @@ extends Control
 const WIDTH: float = 200.0
 const WELL: float = 112.0
 const ART: float = 92.0
-const STOCK_SIZE: float = 46.0
+## TASK/057 Tur 2: stok rakamı güçlü okunsun (owner) — daha büyük kabarcık + 34 px rakam.
+const STOCK_SIZE: float = 56.0
 const PAD: float = 14.0
 const AD_TEXT: String = "REKLAM İZLE"
 
@@ -53,12 +54,12 @@ func _init(type: int = PowerUp.Type.BOMB, stock: int = 0, with_ad: bool = true) 
 	_stock_bubble.name = "Stock"
 	_stock_bubble.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_stock_bubble.size = Vector2(STOCK_SIZE, STOCK_SIZE)
-	_stock_bubble.position = Vector2(WELL - STOCK_SIZE * 0.62, -STOCK_SIZE * 0.22)
+	_stock_bubble.position = Vector2(WELL - STOCK_SIZE * 0.60, -STOCK_SIZE * 0.10)
 	_stock_bubble.draw.connect(_draw_stock)
 	well_holder.add_child(_stock_bubble)
-	_stock_label = UiType.v3_label("0", UiType.V3_BUTTON, true, HORIZONTAL_ALIGNMENT_CENTER, 28)
+	_stock_label = UiType.v3_label("0", UiType.V3_BUTTON, true, HORIZONTAL_ALIGNMENT_CENTER, 34)
 	_stock_label.name = "Count"
-	_stock_label.position = Vector2(0.0, -3.0)
+	_stock_label.position = Vector2(0.0, -4.0)
 	_stock_label.size = Vector2(STOCK_SIZE, STOCK_SIZE)
 	_stock_bubble.add_child(_stock_label)
 	_name = UiType.v3_label(UiType.upper_tr(PowerUp.display_name(_type)), UiType.V3_CARD_TITLE, false,
@@ -146,4 +147,4 @@ func _draw() -> void:
 func _draw_stock() -> void:
 	var color: Color = UiTokens.NAVY_PURPLE if _stock > 0 else UiTokens.ROLE_DISABLED
 	UiKit.draw_candy_circle(_stock_bubble, Vector2(STOCK_SIZE, STOCK_SIZE) * 0.5 - Vector2(0.0, 1.0),
-		STOCK_SIZE - 4.0, color, color.darkened(0.35), 3.0, 3.0, UiTokens.DEPTH_RESTING, Color.WHITE, 3.0, 0.22)
+		STOCK_SIZE - 4.0, color, color.darkened(0.35), 4.0, 4.0, UiTokens.DEPTH_RESTING, Color.WHITE, 3.5, 0.24)

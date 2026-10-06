@@ -171,7 +171,7 @@ const TYPE_BUTTON_HERO: int = 36
 const TYPE_BUTTON: int = 26
 const TYPE_BUTTON_COMPACT: int = 21
 const TYPE_BADGE: int = 16
-const TYPE_NAV: int = 18
+const TYPE_NAV: int = 19
 ## En kucuk izinli yazi (meta / sayac). V3'te bunun altinda metin yok.
 const TYPE_META: int = 14
 
@@ -251,13 +251,21 @@ const SURFACE_ELEVATED: Color = Color("fffcf5")
 ## Hub yüzeyi (özellik kartı): koyu lavanta — beyaz başlık / alt yazı ≥ 4.5:1 (LAVENDER_DEEP'te 3.8:1 idi).
 const SURFACE_HUB: Color = Color("6c55c4")
 const SURFACE_HUB_DEEP: Color = Color("43308a")
+## Premium teklif yüzü (TASK/057 Tur 2): beyaz web kartı değil — sıcak kraliyet moru candy, altın halka + altın
+## parıltı ile (paletin altın kuralı: yalnız teklif / premium anı).
+const SURFACE_PREMIUM: Color = Color("7a4fd2")
+const SURFACE_PREMIUM_DEEP: Color = Color("432591")
 ## Gezinme: tepsi + secili kabarcik.
 ## Tepsi: beyaz etiket ≥ 4.5:1 (5.0:1).
 const NAV_TRAY: Color = Color("7259c9")
-const NAV_TRAY_DEEP: Color = Color("3f2d86")
+## Tepsinin ön dudağı (yükseltilmiş ön kenar): koyu erik-lavanta.
+const NAV_TRAY_DEEP: Color = Color("33246f")
 const NAV_SELECTED: Color = CREAM
 const NAV_SELECTED_DEEP: Color = Color("d9c7f2")
-const NAV_ICON_IDLE: Color = Color("efe6ff")
+## Seçili ailenin sıcak ışıması (yan karo ve merkez kaide AYNI).
+const NAV_SELECTED_GLOW: Color = Color(1.0, 0.86, 0.45, 0.55)
+## Seçili olmayan ikon: saf beyaz + gölge (soluk / pasif görünmez).
+const NAV_ICON_IDLE: Color = Color("ffffff")
 ## Seçili olmayan etiket tam beyaz: tepside 4.7:1 (α .78'de 3.5:1 idi — küçük yazıda yetersiz).
 const NAV_LABEL_IDLE: Color = TEXT_ON_DARK
 ## Tepsinin arkasındaki opak taban (dock) — koyu dünya tonu.

@@ -2,9 +2,8 @@ extends CanvasLayer
 ## Mağaza — production casual-game dükkânı (M8.6-05; GAME_DESIGN §5.6 skinler,
 ## §5.7 güçler). Dikey bir oyun mağazası, ayar listesi DEĞİL:
 ##
-##   ÜST     `ScreenTopBar` (sabit): oturmuş geri (→ Ana Sayfa) · pembe
-##           "MAĞAZA" kurdelesi · Hamur pill'i — "+" YOK (Mağaza zaten "+"in
-##           hedefi; kendine giden ölü rota olmasın), yalnız bakiye.
+##   ÜST     `ScreenTopBar` (sabit): pembe "MAĞAZA" kurdelesi · Hamur pill'i — "+" YOK (Mağaza zaten "+"in
+##           hedefi; kendine giden ölü rota olmasın), yalnız bakiye. Geri oku YOK (TASK/057 Tur 2).
 ##   İÇERİK  gerçek ScrollContainer (üst satırın ALTINDAN kayar, üstte koyu
 ##           haze ile solar): GÜNLÜK ÖDÜLLER bölüm plakası + tek geniş kart
 ##           (M8.9-02: durum rozeti HAZIR / "N ödül kaldı" / BUGÜNLÜK
@@ -28,8 +27,6 @@ extends CanvasLayer
 ## (sessiz başarısızlık yok, bedava para yok). Başarıda kart pop + stok /
 ## bakiye anında kanonik modelden.
 
-## Üst satırdaki geri butonu (→ Ana Sayfa, main._on_home_requested).
-signal home_requested
 ## GÜNLÜK ÖDÜLLER kartının AÇ butonu (M8.9-02) → Main pencereyi açar. Kart
 ## ödül VERMEZ, kayda yazmaz; durumu yalnız `DailyRewards.state()`'ten okur.
 signal daily_rewards_requested
@@ -126,11 +123,7 @@ func _ready() -> void:
 	_vignette.texture = _radial_vignette()
 	_haze.texture = _band_gradient(Color(UiTokens.WORLD_INDIGO, 0.94), Color(UiTokens.WORLD_INDIGO, 0.0))
 	_bar = ScreenTopBar.new(TITLE, false)
-	# TASK/055: üst çubuk (paylaşılan ScreenTopBar) Mağaza tarafında sahiplenilir — gezinme yalnız geçerli dokunuşla.
-	GestureGuard.own(_bar.back_button())
-	_bar.back_pressed.connect(func() -> void:
-		if GestureGuard.allows(_bar.back_button()):
-			home_requested.emit())
+	# TASK/057 Tur 2: üst satırda geri oku yok — Ana Sayfa'ya dönüş küresel gezinme kabuğunda + Android GERİ.
 	_root.add_child(_bar)
 	_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_SHOW_NEVER
 	_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED

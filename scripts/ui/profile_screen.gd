@@ -2,7 +2,7 @@ extends CanvasLayer
 ## Profil (TASK/044) — oyuncunun uzun vadeli kimliği / vitrini / istatistikleri.
 ## Candy dünyada dikey bir oyun profili; ayar tablosu ya da dashboard DEĞİL.
 ##
-##   ÜST      `ScreenTopBar` (sabit): oturmuş geri (→ Ana Sayfa) · pembe
+##   ÜST      `ScreenTopBar` (sabit; TASK/057 Tur 2'den beri geri okusuz) · pembe
 ##            "PROFİL" kurdelesi · sağda dişli çark (→ Ayarlar: Main'in TEK
 ##            `SettingsPanel`'i açılır; ayar mantığı burada KOPYALANMADI).
 ##   KİMLİK   krem kart: büyük `AvatarButton` (vitrinin ilk parçası; boşsa
@@ -30,7 +30,6 @@ extends CanvasLayer
 ## yazmaz. Reklam yüzeyi değil (Main: Surface.NONE — banner yok, pencereler de
 ## banner'sız; yeni reklam yüzeyi owner kararı ister).
 
-signal home_requested
 ## Dişli çark → Main.open_settings (tek SettingsPanel).
 signal settings_requested
 signal collection_requested
@@ -140,13 +139,9 @@ func _ready() -> void:
 	_vignette.texture = _radial_vignette()
 	_haze.texture = _band_gradient(Color(UiTokens.WORLD_INDIGO, 0.78), Color(UiTokens.WORLD_INDIGO, 0.0))
 	_bar = ScreenTopBar.new(TITLE, false, "settings")
-	# TASK/055: üst çubuk (paylaşılan ScreenTopBar) Profil tarafında sahiplenilir — gezinme / Ayarlar yalnız geçerli
-	# dokunuşla (bkz. GestureGuard).
-	GestureGuard.own(_bar.back_button())
+	# TASK/055: üst çubuk (paylaşılan ScreenTopBar) Profil tarafında sahiplenilir — Ayarlar yalnız geçerli dokunuşla
+	# (bkz. GestureGuard). TASK/057 Tur 2: geri oku yok (Ana Sayfa'ya dönüş küresel gezinme kabuğunda + Android GERİ).
 	GestureGuard.own(_bar.action_button())
-	_bar.back_pressed.connect(func() -> void:
-		if GestureGuard.allows(_bar.back_button()):
-			home_requested.emit())
 	_bar.action_pressed.connect(func() -> void:
 		if GestureGuard.allows(_bar.action_button()):
 			settings_requested.emit())

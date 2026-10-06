@@ -37,8 +37,10 @@ const RADII: Dictionary = {
 	SizeClass.NORMAL: UiTokens.RADIUS_CONTROL,
 	SizeClass.COMPACT: UiTokens.RADIUS_CONTROL,
 }
-const ICON_SIZES: Dictionary = {SizeClass.HERO: 44.0, SizeClass.NORMAL: 36.0, SizeClass.COMPACT: 28.0}
-const SIDE_PAD: Dictionary = {SizeClass.HERO: 36.0, SizeClass.NORMAL: 24.0, SizeClass.COMPACT: 16.0}
+const ICON_SIZES: Dictionary = {SizeClass.HERO: 44.0, SizeClass.NORMAL: 36.0, SizeClass.COMPACT: 24.0}
+const SIDE_PAD: Dictionary = {SizeClass.HERO: 36.0, SizeClass.NORMAL: 24.0, SizeClass.COMPACT: 12.0}
+## TASK/057 Tur 2: kahraman CTA daha boyutlu — kalın dudak + yükseltilmiş gölge (basışta yine LIP_PRESSED'e iner).
+const LIP_HERO: float = 10.0
 const MIN_WIDTHS: Dictionary = {SizeClass.HERO: 320.0, SizeClass.NORMAL: 200.0, SizeClass.COMPACT: 132.0}
 const RIM_WIDTH: float = 3.0
 const DOUGH_ART: Texture2D = preload("res://assets/visual/ui/icon_dough.png")
@@ -221,7 +223,7 @@ func set_scrollable(value: bool) -> void:
 
 ## Testler / inceleme: yüzün dinlenme konumundan çökmesi (px). Dinlenmede 0.
 func face_offset() -> float:
-	return UiTokens.LIP_REST - _lip if not _is_flat() else 0.0
+	return _rest_lip() - _lip if not _is_flat() else 0.0
 
 
 func is_pressed_visual() -> bool:
@@ -246,7 +248,9 @@ func _is_flat() -> bool:
 
 
 func _rest_lip() -> float:
-	return UiTokens.LIP_FLAT if _is_flat() else UiTokens.LIP_REST
+	if _is_flat():
+		return UiTokens.LIP_FLAT
+	return LIP_HERO if _size_class == SizeClass.HERO else UiTokens.LIP_REST
 
 
 ## [yüz, dudak, halka, yazı rengi, yazı koyu yüzeyde mi].
@@ -351,8 +355,9 @@ func _place_row() -> void:
 func _draw() -> void:
 	var pal: Array = _palette()
 	var rim_w: float = RIM_WIDTH if _state != State.CLAIMED else float(UiTokens.BORDER_STANDARD)
-	var depth: Dictionary = {} if _is_flat() else UiTokens.DEPTH_RESTING
-	var gloss: float = UiTokens.GLOSS_ALPHA * (0.4 if _is_flat() else 0.8)
+	var depth: Dictionary = {} if _is_flat() else (UiTokens.DEPTH_ELEVATED if _size_class == SizeClass.HERO
+		else UiTokens.DEPTH_RESTING)
+	var gloss: float = UiTokens.GLOSS_ALPHA * (0.4 if _is_flat() else (0.95 if _size_class == SizeClass.HERO else 0.8))
 	UiKit.draw_candy(self, Rect2(Vector2.ZERO, size), pal[0], pal[1], float(RADII[_size_class]),
 		_lip, _rest_lip(), depth, pal[2], rim_w, gloss)
 

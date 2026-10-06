@@ -109,6 +109,11 @@ const CHALLENGE_GAP: float = 10.0
 const CHALLENGE_WIDTH_MIN: float = 236.0
 const CHALLENGE_WIDTH_MAX: float = 320.0
 const BOTTOM_MARGIN: float = 28.0
+## TASK/057 Tur 2: kabuk varken OYNA ile kabuğun en üst noktası (merkez daire / kompakt tepsi) arasına ek nefes payı
+## — iki büyük dokunma hedefi birbirine yapışık okunmasın (owner incelemesi).
+const NAV_PLAY_CLEARANCE: float = 18.0
+## Yan dumpling'lerin alt kenarı ile level pill'i (hero bölgesinin altı) arası en az boşluk (±4 px salınım dahil).
+const SIDE_PILL_CLEARANCE: float = 8.0
 const MASCOT_MIN: float = 320.0
 const MASCOT_MAX: float = 600.0
 const MASCOT_REF: float = 600.0
@@ -679,7 +684,7 @@ func _layout() -> void:
 	var safe_top: float = _safe_top_override if _safe_top_override >= 0.0 else UiKit.safe_top(view)
 	# Alt butce: gesture bar + banner yuvasi (M8.9-01; eklentisiz 0) + kuresel gezinme
 	# kabugu (TASK/057): OYNA kabugun merkez dairesinin USTUNDE biter.
-	var safe_bottom: float = UiKit.bottom_inset(view) + _nav_inset
+	var safe_bottom: float = UiKit.bottom_inset(view) + _nav_inset + (NAV_PLAY_CLEARANCE if _nav_inset > 0.0 else 0.0)
 	var extra: float = maxf(view.y - 1280.0, 0.0)
 
 	# ÜST satır.
@@ -786,7 +791,12 @@ func _layout() -> void:
 		var spec: Array = SIDE_DUMPLINGS[i]
 		var box: float = float(spec[2]) * scale_k
 		var at: Vector2 = center + (spec[1] as Vector2) * Vector2(mascot_w, mascot_h) + Vector2(0.0, side_drop)
-		_side_homes[i] = at - Vector2(box, box) * 0.5
+		var home_at: Vector2 = at - Vector2(box, box) * 0.5
+		# TASK/057 Tur 2: kabuk payıyla hero bölgesi kısalınca yan dumpling level pill'inin arkasına inmesin (A36).
+		# Çizilen boy `box`tan büyük olabilir (sanatın en küçük boyu): sınır gerçek boyla.
+		var drawn: float = maxf(box, _sides[i].get_combined_minimum_size().y)
+		home_at.y = minf(home_at.y, hero_bottom - hero_top - drawn - SIDE_PILL_CLEARANCE)
+		_side_homes[i] = home_at
 		_sides[i].position = _side_homes[i]
 		_sides[i].size = Vector2(box, box)
 		_sides[i].pivot_offset = Vector2(box, box) * 0.5

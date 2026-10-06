@@ -24,8 +24,16 @@ extends CanvasLayer
 ## dahil) solan koyu taban — kaydırılan içerik tepsinin altında / yanında görünmez, dokunuş almaz (STOP); gerçek
 ## banner (native görünüm) yuvada dock'un üstüne çizilir. Hub ekranları içeriği `reserve()` kadar yukarıda
 ## bitirir (Main `set_nav_inset` ile verir).
+##
+## KOMPAKT KİP (TASK/057 Tur 2): kısa ekran + banner yuvasında (kullanılabilir yükseklik < COMPACT_BELOW_HEIGHT)
+## merkez daire tepsinin üstüne TAŞMAZ (dekoratif taşma 40 px) — beş hedef, ≥ TOUCH_TARGET dokunma alanı ve seçili
+## durum aynen; pay 40 px küçülür (Harita'nın sıkıştırılmadan sığması için). Konum oturumda sabit (yuva sabit).
+## Banner aralığı dock'un parçası: tepsinin altında koyu lavanta KAİDE + yuvanın üst kenarında ince açık dikiş —
+## kazara bırakılmış gri şerit gibi görünmez, dokunuş almaz (STOP).
 
 signal destination_requested(tab: int)
+## Kompakt kip açıldı / kapandı (pay değişti) — Main hub ekranlarının payını yeniler.
+signal layout_changed
 
 const LAYER: int = 6
 ## Görünen sıra: [ekran indeksi, etiket, picto rolü, merkez mi, avatar mı].
@@ -48,18 +56,26 @@ const TRAY_MAX_WIDTH: float = 696.0
 ## Dock'un tepsi üst kenarının üstüne solma payı ve tam opaklığa ulaştığı derinlik.
 const DOCK_FADE_ABOVE: float = 30.0
 const DOCK_SOLID_BELOW: float = 26.0
-## Hub içeriğinin bırakması gereken alt pay — banner YOKKEN (banner / gesture bar payının ÜSTÜNE): alt boşluk +
-## tepsi + merkez taşması. Banner varken `reserve()` BANNER_GAP ile hesaplar.
-const RESERVE: float = BOTTOM_GAP + TRAY_HEIGHT + NavItem.CENTER_RISE
+## Kullanılabilir yükseklik (ekran − üst güvenli pay − alt pay) bunun altındaysa kompakt kip (pratikte 16:9 + banner;
+## yuvasız da büyük güvenli paylarda tetiklenebilir). Hub içeriğinin payı her zaman `reserve()`.
+const COMPACT_BELOW_HEIGHT: float = 1200.0
+## Banner aralığı kaidesi: tepsinin altından yuvaya kadar, tepsiden biraz geniş.
+const PLINTH_OVERHANG: float = 6.0
 
 var _root: Control
 var _dock: TextureRect
 var _dock_block: Control
+var _plinth: Control
 var _tray: Control
+var _compact: bool = false
+## Son yayımlanan pay (`layout_changed` yalnız değişince).
+var _last_reserve: float = -1.0
 var _items: Dictionary = {}
 var _order: Array[NavItem] = []
 var _current: int = -1
 var _bottom_inset_override: float = -1.0
+## Test / vitrin kancası: -1 otomatik (kullanılabilir yükseklik), 0 normal, 1 kompakt.
+var _compact_override: int = -1
 var _banner_override: float = -1.0
 
 
@@ -84,6 +100,11 @@ func _init() -> void:
 	_dock_block.name = "DockBlock"
 	_dock_block.mouse_filter = Control.MOUSE_FILTER_STOP
 	_root.add_child(_dock_block)
+	_plinth = Control.new()
+	_plinth.name = "BannerPlinth"
+	_plinth.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_plinth.draw.connect(_draw_plinth)
+	_root.add_child(_plinth)
 	_tray = Control.new()
 	_tray.name = "Tray"
 	_tray.mouse_filter = Control.MOUSE_FILTER_STOP
@@ -144,9 +165,19 @@ func bottom_gap() -> float:
 	return BANNER_GAP if _banner_slot() > 0.0 else BOTTOM_GAP
 
 
+## Merkez dairenin tepsi üstüne taşması: normal kipte CENTER_RISE, kompakt kipte 0.
+func center_rise() -> float:
+	return 0.0 if _compact else NavItem.CENTER_RISE
+
+
+## Kısıtlı yerleşim (kısa ekran + banner) kompakt kipi açık mı.
+func is_compact() -> bool:
+	return _compact
+
+
 ## Hub içeriğinin bırakacağı alt pay (`UiKit.bottom_inset`'in ÜSTÜNE).
 func reserve() -> float:
-	return bottom_gap() + TRAY_HEIGHT + NavItem.CENTER_RISE
+	return bottom_gap() + TRAY_HEIGHT + center_rise()
 
 
 ## Tepsinin ekran dikdörtgeni (merkez taşması HARİÇ).
@@ -155,11 +186,12 @@ func tray_rect() -> Rect2:
 
 
 ## Kabuğun kapladığı tüm DOKUNMA / içerik alanı (merkez taşması dahil) — içerik bunun üstünde bitmeli. Seçili
-## merkezin altın halesi bunun ~20 px üstüne yalnız IŞIK olarak taşar (dokunma almaz, içeriği örtmez).
+## merkezin altın halesi bunun ~20 px üstüne yalnız IŞIK olarak taşar (dokunma almaz, içeriği örtmez). Kompakt kipte
+## seçili yan karonun 14 px yükselişi ve merkez dairenin birkaç px taşması da yalnız görseldir (dokunma alanı tepsi).
 func footprint() -> Rect2:
 	var rect: Rect2 = tray_rect()
-	rect.position.y -= NavItem.CENTER_RISE
-	rect.size.y += NavItem.CENTER_RISE
+	rect.position.y -= center_rise()
+	rect.size.y += center_rise()
 	return rect
 
 
@@ -182,11 +214,22 @@ func set_bottom_inset_override(px: float, banner_px: float = -1.0) -> void:
 	relayout()
 
 
+## Test / vitrin kancası: kompakt kararı (-1 otomatik, 0 normal, 1 kompakt). Üretim çağırmaz.
+func set_compact_override(mode: int) -> void:
+	_compact_override = mode
+	relayout()
+
+
 func relayout() -> void:
 	var view: Vector2 = _root.size
 	if view.x <= 0.0 or view.y <= 0.0:
 		view = _root.get_viewport_rect().size if _root.is_inside_tree() else Vector2(720.0, 1280.0)
 	var inset: float = _bottom_inset_override if _bottom_inset_override >= 0.0 else UiKit.bottom_inset(view)
+	var usable: float = view.y - UiKit.safe_top(view) - inset
+	var was_compact: bool = _compact
+	_compact = usable < COMPACT_BELOW_HEIGHT
+	if _compact_override >= 0:
+		_compact = _compact_override == 1
 	var width: float = minf(view.x - SIDE_MARGIN * 2.0, TRAY_MAX_WIDTH)
 	var left: float = (view.x - width) * 0.5
 	var bottom: float = view.y - inset - bottom_gap()
@@ -200,23 +243,53 @@ func relayout() -> void:
 		0.05, 0.95), 1.0])
 	_dock_block.position = Vector2(0.0, tray_top)
 	_dock_block.size = Vector2(view.x, view.y - tray_top)
+	_plinth.position = Vector2(left - PLINTH_OVERHANG, bottom - 14.0)
+	_plinth.size = Vector2(width + PLINTH_OVERHANG * 2.0, bottom_gap() + 14.0)
+	_plinth.visible = _banner_slot() > 0.0
+	_plinth.queue_redraw()
 	var slot: float = (width - TRAY_PAD_X * 2.0) / float(_order.size())
+	var rise: float = center_rise()
 	for i in _order.size():
 		var item: NavItem = _order[i]
-		item.position = Vector2(left + TRAY_PAD_X + slot * float(i), tray_top - NavItem.CENTER_RISE)
-		item.size = Vector2(slot, TRAY_HEIGHT + NavItem.CENTER_RISE)
-		item.set_tray_top(NavItem.CENTER_RISE)
+		item.set_compact(_compact)
+		item.position = Vector2(left + TRAY_PAD_X + slot * float(i), tray_top - rise)
+		item.size = Vector2(slot, TRAY_HEIGHT + rise)
+		item.set_tray_top(rise)
 	_tray.queue_redraw()
+	# Pay değişti (kompakt kip ya da banner aralığı): hub ekranları yeni payı alır.
+	if was_compact != _compact or not is_equal_approx(_last_reserve, reserve()):
+		_last_reserve = reserve()
+		layout_changed.emit()
 
 
 func _banner_slot() -> float:
 	return _banner_override if _banner_override >= 0.0 else UiKit.banner_slot()
 
 
+## Tepsi: kalın ön dudak (yükseltilmiş ön kenar), açık lavanta halka, yumuşak yüzer gölge, alçak gloss + iç yüzde
+## hafif aydınlık bant (candy hacmi; düz araç çubuğu değil).
+const TRAY_LIP: float = 10.0
+
+
 func _draw_tray() -> void:
-	UiKit.draw_candy(_tray, Rect2(Vector2.ZERO, _tray.size), UiTokens.NAV_TRAY, UiTokens.NAV_TRAY_DEEP,
-		UiTokens.RADIUS_MODAL, UiTokens.LIP_REST, UiTokens.LIP_REST, UiTokens.DEPTH_FLOATING,
-		UiTokens.LAVENDER_LIGHT, float(UiTokens.BORDER_STANDARD), 0.07, 0.26)
+	var face: Rect2 = UiKit.draw_candy(_tray, Rect2(Vector2.ZERO, _tray.size), UiTokens.NAV_TRAY, UiTokens.NAV_TRAY_DEEP,
+		UiTokens.RADIUS_MODAL, TRAY_LIP, TRAY_LIP, UiTokens.DEPTH_FLOATING, UiTokens.LAVENDER_LIGHT,
+		float(UiTokens.BORDER_STANDARD), 0.10, 0.24)
+	# İç aydınlık: yüzün orta bandında çok hafif açık ton (yumuşak, şişkin hacim).
+	var glow := UiKit.v3_box(Color(1, 1, 1, 0.05), UiTokens.RADIUS_MODAL - 8.0)
+	_tray.draw_style_box(glow, Rect2(face.position + Vector2(14.0, face.size.y * 0.30),
+		Vector2(face.size.x - 28.0, face.size.y * 0.42)))
+
+
+## Banner aralığı kaidesi: tepsinin altında koyu lavanta, yuva üst kenarında ince açık dikiş.
+func _draw_plinth() -> void:
+	var rect := Rect2(Vector2.ZERO, _plinth.size)
+	var box := UiKit.v3_box(Color(UiTokens.NAV_TRAY_DEEP, 0.85), 18.0)
+	box.corner_radius_top_left = 0
+	box.corner_radius_top_right = 0
+	_plinth.draw_style_box(box, rect)
+	_plinth.draw_rect(Rect2(Vector2(-200.0, rect.size.y - 2.0), Vector2(rect.size.x + 400.0, 2.0)),
+		Color(UiTokens.LAVENDER_LIGHT, 0.28))
 
 
 ## Dock dokusu: üstte saydam → tepsi gövdesi hizasında koyu dünya rengi (solma oranı yerleşimde ayarlanır).

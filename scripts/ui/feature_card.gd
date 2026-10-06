@@ -12,8 +12,11 @@ extends Button
 ## iner. Rozet `badge()` (AttentionBadge) sağ üst köşeye oturur. Eylem: `GestureGuard.on_pressed`.
 
 const HEIGHT: float = 124.0
-const WELL: float = 92.0
-const ART: float = 76.0
+## TASK/057 Tur 2: ikon ve başlık önce okunsun (owner) — kuyu / sanat bir kademe büyük, başlık 27 px (hiyerarşi boyla;
+## alt yazı koyu yüzeyde tam beyaz kalır — 16 px metinde ≥ 4.5:1).
+const WELL: float = 96.0
+const ART: float = 82.0
+const TITLE_SIZE: int = 27
 const CHEVRON: float = 44.0
 const PAD: float = 18.0
 
@@ -72,7 +75,7 @@ func _init(title: String = "", subtitle: String = "", accent: Color = UiTokens.P
 	column.add_theme_constant_override("separation", 2)
 	column.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_row.add_child(column)
-	_title = UiType.v3_label(title, UiType.V3_CARD_TITLE, not _on_light)
+	_title = UiType.v3_label(title, UiType.V3_CARD_TITLE, not _on_light, HORIZONTAL_ALIGNMENT_LEFT, TITLE_SIZE)
 	_title.name = "Title"
 	_title.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	column.add_child(_title)

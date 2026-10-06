@@ -5,8 +5,8 @@ extends CanvasLayer
 ## üstünde aşağıdan yukarı on level düğümü + kaledeki Sonsuz Mod madalyonu,
 ## aralarında candy patika (MapTrail). Dashboard/kart/grid DEĞİL.
 ##
-##   ÜST     `ScreenTopBar`: geri (→ Ana Sayfa) · pembe "HARİTA" kurdelesi ·
-##           Hamur pill'i + nane "+" (→ Mağaza). Home ile aynı satır geometrisi.
+##   ÜST     `ScreenTopBar`: pembe "HARİTA" kurdelesi · Hamur pill'i + nane "+" (→ Mağaza). Home ile aynı satır
+##           geometrisi; geri oku YOK (TASK/057 Tur 2 — Ana Sayfa'ya dönüş küresel gezinme kabuğunda).
 ##   DÜNYA   `map_background.png` KEEP_ASPECT_COVERED — cihaz üst güvenli payı
 ##           (punch-hole) kadar aşağıdan başlar, üstteki bant gök rengi + haze;
 ##           kenarlarda yumuşak erik vignette; eski tam ekran karartma YOK.
@@ -38,7 +38,6 @@ extends CanvasLayer
 ## (`level_chosen` → main._start_level) DEĞİŞMEDİ. Kayıt yalnızca OKUNUR.
 
 signal level_chosen(level: LevelData)
-signal home_requested
 signal shop_requested
 
 ## Harita zemini doku boyutu (map_background.png).
@@ -123,6 +122,9 @@ var _bottom_inset_override: float = -1.0
 ## kenarına kadar uzanır (merkez daire dünyanın üstüne biner), düğümler ise payın TAMAMININ üstünde kalır.
 var _nav_inset: float = 0.0
 var _nav_overlap: float = 0.0
+## TASK/057 Tur 2: başlık kurdelesi kısıtlı yerleşimde satırını bıraktı mı; son geçişin istediği sıkıştırma (sy/sx).
+var _title_yielded: bool = false
+var _fit_needed_squash: float = 1.0
 ## Dünya dikdörtgeni (cover): son yerleşimde hesaplandı.
 var _world: Rect2 = Rect2(Vector2.ZERO, MAP_SIZE)
 ## Yatay ölçek (doku px → ekran px). Dikey ölçek `_world_scale_y` (yuva
@@ -135,13 +137,20 @@ const FIT_MARGIN: float = 12.0
 ## Dikey sıkıştırma tabanı (sy / sx); altına inilmez (bantlı düzen yerine
 ## küçük bir taşma kabul edilir — hedef oranlarda gerekmiyor).
 const MIN_SQUASH: float = 0.94
-## TASK/057: gezinme kabuğu varken taban MIN_SQUASH yerine bu değer olur — sıkıştırma yine yalnız GEREKTİĞİ kadar
-## (yolculuk sığmıyorsa) uygulanır: uzun ekranlarda 0, 720×1280 yuvasız ~%6.3, 16:9 + banner yuvası ~%18 (üst
-## satır + kabuk + yuva ≈ 300 px; Sonsuz kalesi üst satırın, level 1 kabuğun üstünde kalsın diye). Düğümler aynı
-## oranda küçülür (16:9 + yuvada odak düğümü ~73 px — TOUCH_TARGET altında, TOUCH_MIN üstünde). Dünya ~1000 px'ten
-## kısaysa (16:9 + yuva + büyük alt güvenli pay) bu taban da yetmeyebilir. Görsel uzlaşma owner incelemesinde;
-## kalıcı çözüm TASK/059 (kaydırılabilir yolculuk).
-const MIN_SQUASH_NAV: float = 0.78
+## TASK/057 Tur 2: gezinme kabuğu varken dikey sıkıştırma TAVANI %8 (owner: ilk adayın ~%18'i reddedildi). Kısa
+## ekran + banner yuvasında kabuk kompakt kipe geçer (merkez taşması yok) ve gerekirse başlık kurdelesi satırını
+## bırakır (`_fit_world`) — böylece 16:9 + yuva da bu tavanın içinde kalır. Sıkıştırma yalnız gerektiği kadar;
+## düğümler aynı oranda küçülür (odak düğümü ≥ TOUCH_TARGET). Kalıcı çözüm TASK/059 (kaydırılabilir yolculuk).
+const MIN_SQUASH_NAV: float = 0.92
+## Son çare (yalnız kurdele bırakıldığı hâlde sığmıyorsa: 6 haneli Hamur pill'i kaleye uzanır ya da kısa ekran + yuva +
+## büyük üst güvenli pay): Sonsuz kalesi / düğümler arayüzle çakışmasın diye en çok %12.
+const MIN_SQUASH_NAV_HARD: float = 0.88
+## Kalenin kilit rozeti madalyonun üstüne çapın bu oranı kadar taşar (MapLevelNode: -0.08 d).
+const ENDLESS_LOCK_RISE: float = 0.08
+## Kale (kilit dahil) ile Hamur pill'i arasındaki en az boşluk.
+const PILL_CLEARANCE: float = 6.0
+## Kurdele bırakıldığında kilit rozetinin tepesi ile güvenli alanın üstü arası en az boşluk.
+const LOCK_TOP_GAP: float = 4.0
 
 @onready var _root: Control = $Root
 @onready var _art: TextureRect = $Root/MapBackground
@@ -165,14 +174,14 @@ func _ready() -> void:
 	_vignette.texture = _radial_vignette()
 	_bar.set_title("HARİTA")
 	# TASK/055: üst çubuk (paylaşılan ScreenTopBar) Harita tarafında sahiplenilir — gezinme yalnız geçerli dokunuşla.
-	GestureGuard.own(_bar.back_button())
+	# TASK/057 Tur 2: geri oku yok (Ana Sayfa'ya dönüş küresel gezinme kabuğunda + Android GERİ).
 	GestureGuard.own(_bar.add_button())
-	_bar.back_pressed.connect(func() -> void:
-		if GestureGuard.allows(_bar.back_button()):
-			home_requested.emit())
 	_bar.add_pressed.connect(func() -> void:
 		if GestureGuard.allows(_bar.add_button()):
 			shop_requested.emit())
+	# TASK/057 Tur 2: Hamur pill'i genişleyince (bakiye haneleri) kısıtlı yerleşimin kurdele / kale kararı yeniden
+	# verilir (ertelenmiş: önce üst satır pill'i yerleştirir).
+	_bar.pill().minimum_size_changed.connect(_layout, CONNECT_DEFERRED)
 	for spec in SPARKLES:
 		var spark := UiKit.art(STAR_ART, float(spec[1]))
 		_fx_layer.add_child(spark)
@@ -217,6 +226,24 @@ func _bottom_inset() -> float:
 ## kırpma ortalanır (eski davranış); sığmıyorsa önce kırpma iki uca göre
 ## seçilir, o da yetmezse sy düşürülür.
 func _fit_world(view: Vector2, safe_top: float, bottom_inset: float) -> void:
+	# TASK/057 Tur 2: önce başlık kurdelesiyle. Kabuk varken yolculuk ancak MIN_SQUASH_NAV'ın (≤ %8) altında
+	# sığıyorsa kurdele satırını bırakır (Harita kimliği kabuğun seçili HARİTA'sında): kale güvenli alanın üstüne
+	# çıkar — Hamur pill'i kaleyle yatayda çakışıyorsa (çok haneli bakiye) pill'in altında kalır. Bu da yetmezse
+	# (ör. kısa ekran + yuva + büyük üst güvenli pay) son çare MIN_SQUASH_NAV_HARD: arayüzle çakışmaktansa biraz
+	# daha sıkıştırma.
+	_title_yielded = false
+	_fit_pass(view, safe_top, bottom_inset, true, MIN_SQUASH_NAV)
+	if _nav_inset > 0.0 and _fit_needed_squash < MIN_SQUASH_NAV - 0.0005:
+		_title_yielded = true
+		_fit_pass(view, safe_top, bottom_inset, false, MIN_SQUASH_NAV)
+		if _fit_needed_squash < MIN_SQUASH_NAV - 0.0005:
+			_fit_pass(view, safe_top, bottom_inset, false, MIN_SQUASH_NAV_HARD)
+	_bar.set_title_visible(not _title_yielded)
+
+
+## Tek sığdırma geçişi (iki iç tur: düğüm boyu sıkıştırmayla küçüldüğü için uçların payı yeniden ölçülür).
+## `nav_floor`: kabuk varken dikey ölçek tabanı (sy / sx).
+func _fit_pass(view: Vector2, safe_top: float, bottom_inset: float, with_title: bool, nav_floor: float) -> void:
 	# TASK/057: kabuk payının dünyanın altına giremeyen kısmı dünyayı kısaltır; `node_room` düğümlerin
 	# kullanabileceği dünya yüksekliği (merkez dairenin taşması kadar daha kısa).
 	var world_bottom: float = bottom_inset + maxf(_nav_inset - _nav_overlap, 0.0)
@@ -226,28 +253,52 @@ func _fit_world(view: Vector2, safe_top: float, bottom_inset: float) -> void:
 	_world_scale = sx
 	_world_scale_y = sx
 	_crop_top = (MAP_SIZE.y - _world.size.y / sx) * 0.5
+	_fit_needed_squash = 1.0
 	if world_bottom <= 0.0 and node_room >= _world.size.y:
 		return
-	var ns: float = _node_world_scale()
-	var bar_bottom: float = _bar.height() + 3.0 - _world.position.y
-	# Doku uzayında iki uç: kale madalyonunun üstü, level 1 plakasının altı.
 	var top_anchor: float = ENDLESS_POSITION.y
-	var top_extent: float = MapLevelNode.ENDLESS_DIAMETER * ns * 0.5
 	var bottom_anchor: float = NODE_POSITIONS[0].y
-	var bottom_extent: float = MapLevelNode.LEVEL_DIAMETER * MapLevelNode.CURRENT_SCALE * ns * 0.5 \
-		+ MapLevelNode.LIP - MapLevelNode.PLAQUE_OVERLAP + MapLevelNode.PLAQUE_HEIGHT + 2.0
-	var span_budget: float = node_room - 2.0 * FIT_MARGIN - bar_bottom - top_extent - bottom_extent
-	var sy: float = minf(sx, span_budget / maxf(bottom_anchor - top_anchor, 1.0))
-	# Dikey cover'ı kaybetmemek için taban: dünya yüksekliği / doku yüksekliği.
-	var squash_floor: float = MIN_SQUASH_NAV if _nav_inset > 0.0 else MIN_SQUASH
-	sy = maxf(sy, maxf(_world.size.y / MAP_SIZE.y, sx * squash_floor))
-	_world_scale_y = sy
-	var total_crop: float = maxf(MAP_SIZE.y - _world.size.y / sy, 0.0)
-	var crop_max: float = top_anchor - (bar_bottom + FIT_MARGIN + top_extent) / sy
-	var crop_min: float = bottom_anchor - (node_room - FIT_MARGIN - bottom_extent) / sy
-	var crop: float = total_crop * 0.5
-	crop = clampf(crop, crop_min, crop_max) if crop_min <= crop_max else crop_min
-	_crop_top = clampf(crop, 0.0, total_crop)
+	var turns: int = 2 if _nav_inset > 0.0 else 1
+	for _turn in turns:
+		var ns: float = _node_world_scale()
+		# Doku uzayında iki uç: kale madalyonunun üstü, level 1 plakasının altı.
+		var top_extent: float = MapLevelNode.ENDLESS_DIAMETER * ns * 0.5
+		var bottom_extent: float = MapLevelNode.LEVEL_DIAMETER * MapLevelNode.CURRENT_SCALE * ns * 0.5 \
+			+ MapLevelNode.LIP - MapLevelNode.PLAQUE_OVERLAP + MapLevelNode.PLAQUE_HEIGHT + 2.0
+		# Kalenin üst sınırı (dünya üstünden, FIT_MARGIN hariç): başlık satırının altı; satır bırakıldıysa kilit
+		# rozetinin taşması kadar (kale ekranın tepesine yapışmaz) ya da yatayda çakışan Hamur pill'inin altı.
+		var bar_bottom: float = _bar.height() + 3.0 - _world.position.y
+		if not with_title:
+			bar_bottom = _castle_top_clearance(view, ns)
+		var span_budget: float = node_room - 2.0 * FIT_MARGIN - bar_bottom - top_extent - bottom_extent
+		var needed: float = span_budget / maxf(bottom_anchor - top_anchor, 1.0)
+		_fit_needed_squash = minf(needed / sx, 1.0)
+		var sy: float = minf(sx, needed)
+		# Dikey cover'ı kaybetmemek için taban: dünya yüksekliği / doku yüksekliği.
+		var squash_floor: float = nav_floor if _nav_inset > 0.0 else MIN_SQUASH
+		sy = maxf(sy, maxf(_world.size.y / MAP_SIZE.y, sx * squash_floor))
+		_world_scale_y = sy
+		var total_crop: float = maxf(MAP_SIZE.y - _world.size.y / sy, 0.0)
+		var crop_max: float = top_anchor - (bar_bottom + FIT_MARGIN + top_extent) / sy
+		var crop_min: float = bottom_anchor - (node_room - FIT_MARGIN - bottom_extent) / sy
+		var crop: float = total_crop * 0.5
+		crop = clampf(crop, crop_min, crop_max) if crop_min <= crop_max else crop_min
+		_crop_top = clampf(crop, 0.0, total_crop)
+
+
+## Başlık satırı bırakıldığında kale tepesinin dünya üstünden (FIT_MARGIN hariç) en az uzaklığı: kilit rozeti kalenin
+## üstüne ENDLESS_LOCK_RISE kadar taşar; Hamur pill'i kale + kilit kutusuyla yatayda çakışıyorsa kilit pill'in
+## altında başlar.
+func _castle_top_clearance(view: Vector2, ns: float) -> float:
+	var d: float = MapLevelNode.ENDLESS_DIAMETER * ns
+	var lock_rise: float = d * ENDLESS_LOCK_RISE
+	var cx: float = (ENDLESS_POSITION.x - MAP_SIZE.x * 0.5) * _world_scale + view.x * 0.5
+	var pill: Rect2 = _bar.pill().get_rect()
+	# Kilit rozetinin tepesi güvenli alanın en az LOCK_TOP_GAP altında (kale FIT_MARGIN'in içinde kalabilir).
+	var lock_clear: float = maxf(lock_rise + LOCK_TOP_GAP - FIT_MARGIN, 0.0)
+	if cx + d * 0.5 + PILL_CLEARANCE > pill.position.x:
+		return maxf(lock_clear, pill.end.y + PILL_CLEARANCE + lock_rise - FIT_MARGIN - _world.position.y)
+	return lock_clear
 
 
 func _layout() -> void:
@@ -325,6 +376,9 @@ func _node_diameter(index: int, current: bool) -> float:
 	var d: float = MapLevelNode.LEVEL_DIAMETER * lerpf(DEPTH_MIN, 1.0, t) * _node_world_scale()
 	if current:
 		d *= MapLevelNode.CURRENT_SCALE
+		# TASK/057 Tur 2: kabuk varken sıradaki (ana dokunma) düğümü sıkıştırmada da ≥ TOUCH_TARGET.
+		if _nav_inset > 0.0:
+			d = maxf(d, float(UiTokens.TOUCH_TARGET))
 	return d
 
 
@@ -568,6 +622,11 @@ func set_nav_inset(px: float, overlap: float = 0.0) -> void:
 ## Düğümlerin bitmesi gereken alt çizgi (ekran y): dünya altı − kabuk taşması − kenar payı.
 func node_floor() -> float:
 	return _world.end.y - minf(_nav_overlap, _nav_inset) - FIT_MARGIN
+
+
+## Kısıtlı yerleşimde başlık kurdelesi satırını bıraktı mı (testler / inceleme).
+func title_yielded() -> bool:
+	return _title_yielded
 
 
 ## Test/çekim kancası: alt pay (banner yuvası) da verilir.

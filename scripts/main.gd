@@ -250,26 +250,22 @@ func _ready() -> void:
 	home.challenge_requested.connect(open_daily_challenge)
 	var select: CanvasLayer = LEVEL_SELECT_SCENE.instantiate()
 	select.level_chosen.connect(_start_level)
-	# Harita (M8.6-04): kendi ust satiri — geri -> Ana Sayfa, Hamur "+" -> Magaza.
-	select.home_requested.connect(_on_home_requested)
+	# Harita (M8.6-04): kendi ust satiri — Hamur "+" -> Magaza. TASK/057 Tur 2: hub ekranlarinda geri oku yok;
+	# Ana Sayfa'ya donus kuresel gezinme kabugunda + Android geri.
 	select.shop_requested.connect(_on_shop_requested)
 	var album: CanvasLayer = COLLECTION_SCENE.instantiate()
-	# Koleksiyon (M8.6-06): kendi ust satiri — geri -> Ana Sayfa, Hamur "+" ve
-	# kilitli skin'in MAGAZAYA GIT'i -> Magaza.
-	album.home_requested.connect(_on_home_requested)
+	# Koleksiyon (M8.6-06): kendi ust satiri — Hamur "+" ve kilitli skin'in MAGAZAYA GIT'i -> Magaza.
 	album.shop_requested.connect(_on_shop_requested)
 	album.shop_skin_requested.connect(_on_shop_skin_requested)
 	# Parça detayı açıldı (TASK/044): çift dokunuşun ikincisi karartmaya düşüp kapatmasın.
 	album.detail_opened.connect(settle_touch_input)
 	var shop: CanvasLayer = SHOP_SCENE.instantiate()
-	# Magaza (M8.6-05): kendi ust satiri — geri -> Ana Sayfa; sekme cubugu yok.
-	shop.home_requested.connect(_on_home_requested)
+	# Magaza (M8.6-05): kendi ust satiri (yalniz bakiye).
 	# Magaza GUNLUK ODULLER karti (M8.9-02): ayni pencere, gun boyu acilabilir.
 	shop.daily_rewards_requested.connect(open_daily_rewards)
 	var profile: CanvasLayer = PROFILE_SCENE.instantiate()
-	# Profil (TASK/044): geri -> Ana Sayfa, dişli çark -> Ayarlar (tek panel),
-	# vitrin yuvası / KOLEKSİYONA GİT -> Koleksiyon (dolu yuva: o parçanın detayı).
-	profile.home_requested.connect(_on_home_requested)
+	# Profil (TASK/044): dişli çark -> Ayarlar (tek panel), vitrin yuvası / KOLEKSİYONA GİT -> Koleksiyon (dolu
+	# yuva: o parçanın detayı).
 	profile.settings_requested.connect(open_settings)
 	profile.collection_requested.connect(_on_collection_requested)
 	profile.collectible_requested.connect(_on_collectible_requested)
@@ -904,6 +900,8 @@ func _hide_shell() -> void:
 func _build_global_nav() -> void:
 	_nav = GlobalNav.new()
 	_nav.destination_requested.connect(_on_nav_destination)
+	# Kompakt kip (kısa ekran + banner) payı değiştirir: hub ekranları yeni payı alır.
+	_nav.layout_changed.connect(_apply_nav_insets)
 	add_child(_nav)
 	# Profil öğesi avatarı vitrin değişince (Koleksiyon detayı) hemen tazelenir. Metot bağlantısı: Main serbest
 	# kalınca motor bağlantıyı koparır (autoload'da bayat lambda kalmaz).
@@ -928,7 +926,7 @@ func _apply_nav_insets() -> void:
 		if not screen.has_method("set_nav_inset"):
 			continue
 		if screen == _screens[1]:
-			screen.set_nav_inset(_nav.reserve(), NavItem.CENTER_RISE)
+			screen.set_nav_inset(_nav.reserve(), _nav.center_rise())
 		else:
 			screen.set_nav_inset(_nav.reserve())
 
@@ -977,12 +975,6 @@ func global_nav() -> GlobalNav:
 
 func _on_play_pressed() -> void:
 	_show_tab(1)
-
-
-## Harita (M8.6-04), Magaza (M8.6-05) ve Koleksiyon (M8.6-06) ust
-## satirindaki geri butonu: Ana Sayfa.
-func _on_home_requested() -> void:
-	_show_tab(0)
 
 
 ## Koleksiyon vitrinindeki kilitli skin'in "MAĞAZAYA GİT" kısayolu, Ana

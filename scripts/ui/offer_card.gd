@@ -9,8 +9,10 @@ extends Control
 ##     (güç)(güç)(güç)(güç)  (Hamur)      ödül içeriği: sanat + adet cipi (çerçevesiz)
 ##           [  fiyat CTA  ]              SquishyButton (CURRENCY ya da PRIMARY)
 ##
-## Premium durum: altın kalın halka + altın parıltı (GLOW_PREMIUM) — yalnız teklif/premium anda
-## (paletin altın kuralı). Kart dokunma almaz; tek eylem fiyat CTA'sı (`price_button()`).
+## Premium durum: sıcak kraliyet moru candy yüz (SURFACE_PREMIUM — beyaz web kartı değil) + altın kalın halka +
+## altın parıltı (GLOW_PREMIUM) + ödüllerin arkasında yumuşak altın hale ve birkaç yıldız parıltısı — yalnız
+## teklif/premium anda (paletin altın kuralı). Premium kapalıysa krem yüz. Kart dokunma almaz; tek eylem fiyat
+## CTA'sı (`price_button()`).
 
 const WIDTH_MIN: float = 560.0
 const PAD: float = 22.0
@@ -36,6 +38,8 @@ func _init(title: String = "", price_text: String = "", premium: bool = true) ->
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_glow = UiKit.patch("popup_glow", UiTokens.GLOW_PREMIUM)
 	_glow.name = "Glow"
+	# Konum / boy `_place`ten (UiKit.patch tam-dikdörtgen çapası boyu ezmesin).
+	_glow.set_anchors_preset(Control.PRESET_TOP_LEFT)
 	_glow.show_behind_parent = true
 	add_child(_glow)
 	_column = VBoxContainer.new()
@@ -81,6 +85,7 @@ func _init(title: String = "", price_text: String = "", premium: bool = true) ->
 	_value_tag.minimum_size_changed.connect(_place)
 	resized.connect(_place)
 	_column.minimum_size_changed.connect(_sync_min)
+	_rewards.item_rect_changed.connect(queue_redraw)
 	set_premium(premium)
 	_sync_min()
 
@@ -201,12 +206,44 @@ func _place() -> void:
 		_value_tag.position = Vector2(size.x - _value_tag.size.x - 12.0, -_value_tag.size.y * 0.55)
 
 
+## Premium yüzdeki yıldız parıltıları: (kart genişliği / yüksekliği oranı, yarıçap px).
+const SPARKLES: Array = [[Vector2(0.08, 0.30), 9.0], [Vector2(0.93, 0.36), 7.0], [Vector2(0.11, 0.78), 6.0],
+	[Vector2(0.90, 0.80), 8.0]]
+
+
 func _draw() -> void:
-	var rim: Color = UiTokens.BORDER_COLOR_PREMIUM if _premium else UiTokens.LAVENDER_LIGHT
-	var rim_w: float = float(UiTokens.BORDER_PREMIUM if _premium else UiTokens.BORDER_STANDARD)
-	UiKit.draw_candy(self, Rect2(Vector2.ZERO, size), UiTokens.SURFACE_ELEVATED, UiTokens.SURFACE_NEUTRAL_DEEP,
-		UiTokens.RADIUS_FEATURE, UiTokens.LIP_CARD, UiTokens.LIP_CARD, UiTokens.DEPTH_FLOATING, rim, rim_w,
-		UiTokens.GLOSS_ALPHA * 0.5)
+	if not _premium:
+		UiKit.draw_candy(self, Rect2(Vector2.ZERO, size), UiTokens.SURFACE_ELEVATED, UiTokens.SURFACE_NEUTRAL_DEEP,
+			UiTokens.RADIUS_FEATURE, UiTokens.LIP_CARD, UiTokens.LIP_CARD, UiTokens.DEPTH_FLOATING,
+			UiTokens.LAVENDER_LIGHT, float(UiTokens.BORDER_STANDARD), UiTokens.GLOSS_ALPHA * 0.5)
+		return
+	var face: Rect2 = UiKit.draw_candy(self, Rect2(Vector2.ZERO, size), UiTokens.SURFACE_PREMIUM,
+		UiTokens.SURFACE_PREMIUM_DEEP, UiTokens.RADIUS_FEATURE, UiTokens.LIP_CARD, UiTokens.LIP_CARD,
+		UiTokens.DEPTH_FLOATING, UiTokens.BORDER_COLOR_PREMIUM, float(UiTokens.BORDER_PREMIUM), UiTokens.GLOSS_ALPHA * 0.22,
+		0.12)
+	# Ödüllerin arkasında yumuşak altın hale (iç içe azalan halkalar — sert kenar yok).
+	if _rewards != null and _rewards.size.y > 0.0:
+		var center: Vector2 = _column.position + _rewards.position + _rewards.size * 0.5
+		var reach: float = minf(face.size.x * 0.5, 300.0)
+		for step in 5:
+			var t: float = float(step) / 4.0
+			draw_set_transform(center, 0.0, Vector2(1.0, 0.42))
+			draw_circle(Vector2.ZERO, reach * (1.0 - t * 0.55), Color(UiTokens.GOLD, 0.05 + t * 0.03))
+		draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+	for spec: Array in SPARKLES:
+		var at := Vector2(face.position.x + face.size.x * (spec[0] as Vector2).x,
+			face.position.y + face.size.y * (spec[0] as Vector2).y)
+		_draw_sparkle(at, float(spec[1]))
+
+
+## Dört köşeli yıldız parıltısı (açık altın, yumuşak).
+func _draw_sparkle(at: Vector2, r: float) -> void:
+	var points := PackedVector2Array()
+	for i in 8:
+		var angle: float = float(i) * PI / 4.0 - PI / 2.0
+		var radius: float = r if i % 2 == 0 else r * 0.32
+		points.append(at + Vector2(cos(angle), sin(angle)) * radius)
+	draw_colored_polygon(points, Color(UiTokens.GOLD_BRIGHT, 0.85))
 
 
 func _draw_band() -> void:

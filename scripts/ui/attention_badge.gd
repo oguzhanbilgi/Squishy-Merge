@@ -2,7 +2,7 @@ class_name AttentionBadge
 extends Control
 ## Squishy UI System V3 (TASK/057) — dikkat rozeti (kırmızı nokta karşılığı). Tek bileşen, dört görünüm:
 ##
-##   DOT     yalnız nokta (bir şey var) — 20 px
+##   DOT     yalnız nokta (bir şey var) — 18 px
 ##   COUNT   sayı (1..99, üstü "99+"); 0 → NONE
 ##   NEW     "YENİ" hapı
 ##   CLAIM   alınmaya hazır — "!" (ödülü bekleyen giriş)
@@ -15,9 +15,11 @@ extends Control
 
 enum Mode { NONE, DOT, COUNT, NEW, CLAIM }
 
-const DOT_SIZE: float = 20.0
-const PILL_HEIGHT: float = 30.0
-const RING: float = 3.0
+## TASK/057 Tur 2: rozetler bir kademe küçüldü (owner: kartları / gezinmeyi bastırmasın).
+const DOT_SIZE: float = 18.0
+const PILL_HEIGHT: float = 26.0
+const PILL_PAD: float = 14.0
+const RING: float = 2.5
 const LIP: float = 2.0
 const NEW_TEXT: String = "YENİ"
 const CLAIM_TEXT: String = "!"
@@ -112,7 +114,7 @@ func _resize() -> void:
 	if _label.visible:
 		var text_w: float = _label.get_combined_minimum_size().x
 		h = PILL_HEIGHT
-		w = maxf(PILL_HEIGHT, text_w + 18.0)
+		w = maxf(PILL_HEIGHT, text_w + PILL_PAD)
 	size = Vector2(w, h)
 	# Köşeye oturtulan rozet ebeveynin minimumuna katılmaz; konteyner içinde (bölüm başlığı) kendi boyunu ister.
 	custom_minimum_size = Vector2.ZERO if _anchored else Vector2(w, h)

@@ -4,7 +4,7 @@ extends CanvasLayer
 ## tamamlama / statü hedefi). Envanter tablosu DEĞİL: kartlar albümün kendisi,
 ## dokunulan parça büyük detay penceresinde incelenir.
 ##
-##   ÜST      `ScreenTopBar` (sabit): oturmuş geri (→ Ana Sayfa) · pembe
+##   ÜST      `ScreenTopBar` (sabit; TASK/057 Tur 2'den beri geri okusuz) · pembe
 ##            "KOLEKSİYON" kurdelesi · Hamur pill'i + nane "+" (→ Mağaza:
 ##            kilitli parçaların satın alma yeri).
 ##   BAŞLIK   (sabit, satırın altında) albüm plakası: KOLEKSİYON N/20 + nane
@@ -33,8 +33,6 @@ extends CanvasLayer
 ## sinyalleriyle senkron (görünmezken keşfedilen yeni parça bir sonraki açılışta
 ## albümde öne alınır).
 
-## Üst satırdaki geri butonu (→ Ana Sayfa, main._on_home_requested).
-signal home_requested
 ## Hamur "+" (→ Mağaza, main._on_shop_requested).
 signal shop_requested
 ## Kilitli parçanın MAĞAZAYA GİT'i: Mağaza o parçanın kartına kaydırır
@@ -178,11 +176,8 @@ func _ready() -> void:
 		GALLERY_HAZE_ABOVE / (GALLERY_HAZE_ABOVE + GALLERY_HAZE_BELOW))
 	_bar = ScreenTopBar.new(TITLE, true)
 	# TASK/054: gezinme yalnız ekrandaki üst çubuktan ve gerçek (iptal edilmemiş) bırakışla (bkz. `_own_gesture`).
-	_own_gesture(_bar.back_button())
+	# TASK/057 Tur 2: geri oku yok (Ana Sayfa'ya dönüş küresel gezinme kabuğunda + Android GERİ).
 	_own_gesture(_bar.add_button())
-	_bar.back_pressed.connect(func() -> void:
-		if _gesture_ok(_bar.back_button()):
-			home_requested.emit())
 	_bar.add_pressed.connect(func() -> void:
 		if _gesture_ok(_bar.add_button()):
 			shop_requested.emit())
