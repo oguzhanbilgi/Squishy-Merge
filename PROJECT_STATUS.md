@@ -126,20 +126,23 @@ masaüstü kapısı 52 / 52 temiz (`7671882`: 6472 kontrol, 0 FAIL, 0 SCRIPT ERR
 AL iptalinde Hamur değişimi 0, taze geçerli alım tam −180) (§4.35); genel GUI ACTION_CANCEL sorunu KAPANDI (eski açık
 madde (5) — FIXED + MAIN).
 **TASK/056 (2026-10-06; HUD hedef kartı T5 kırpması `Büyük Dumpl…`; masaüstü + Samsung A36 kapıları GEÇTİ —
-kontrollü tam masaüstü kapısı 53 / 53 temiz; DALDA, READY FOR OWNER REVIEW — main'e alınmadı, main `a8bf454`
-değişmedi):** skor hedefi ad satırından başlık satırına taşındı, ad 20 px'ten en az 16 px'e sınırlı sığdırma (çizilen
-metin, tam sayı genişlik, 2 px pay); kopya ve kart geometrisi aynı; taban farkı 141 → 0 FAIL, mutasyon 19 / 19, tam
+kontrollü tam masaüstü kapısı 53 / 53 temiz; owner onayıyla ff-only alındı `a8bf454 → ee2778a`):** skor hedefi ad
+satırından başlık satırına taşındı, ad 20 px'ten en az 16 px'e sınırlı sığdırma (çizilen metin, tam sayı genişlik, 2
+px pay); kopya ve kart geometrisi aynı; taban farkı 141 → 0 FAIL, mutasyon 19 / 19 uygulanabilir ve 1 eşdeğer, tam
 masaüstü kapısı 53 / 53 temiz (`0c0dc09`: 6800 kontrol, 0 FAIL, 0 SCRIPT ERROR), Samsung A36: GEÇTİ (L03 ve meydan
-okuma T5 `Büyük Dumpling` tam) (§4.36); açık madde (6) FIXED ON TASK/056 BRANCH — bilinen, izlenen açık ürün
-maddesi: 0. Sonraki ürün / stabilizasyon görevi owner seçimi (TASK/057 tanımlanmadı).
+okuma T5 `Büyük Dumpling` tam; ürün dili Türkçe, EN / RTL yalnız-test vekilleri) (§4.36); T5 hedef kartı kırpması
+KAPANDI (eski açık madde (6) — FIXED + MAIN). Bilinen, izlenen açık ürün maddesi: 0 (ürünün hatasız olduğu iddia
+edilmez). Sonraki ürün / stabilizasyon görevi owner seçimi (TASK/057 oluşturulmadı).
 Release izi ayrı. Sırada: içerik derecesi + yargı bölgesi kararları + 13+ seçici uyum riski (owner) → gizlilik
 politikası → upload anahtarı → gerçek AdMob kimlikleri → mağaza varlıkları / Play Console,
 sonra ilk imzalı üretim AAB'si ve M10 (Play kapalı test) ·
-**Branch / main:** dal `task/056-t5-target-card-truncation` (main `a8bf454`'ten — `a8bf454` = TASK/055 doküman
-eşitlemesi; `721b97a` düzeltme · `c17fa4c` test · `0c0dc09` inceleme sertleştirmesi (masaüstü kapısından ve Samsung
-A36'dan geçen son üretim / test adayı) · doküman / A36 kaydı (yalnız doküman); masaüstü + Samsung A36 kapıları GEÇTİ
-2026-10-06) — READY FOR OWNER REVIEW, main'e ALINMADI; `main` == origin/main == `a8bf454` DEĞİŞMEDİ · önce:
-`main` == origin/main == `e0c1a71` — TASK/055 `task/055-gui-action-cancel` (main `60f8b71`'den —
+**Branch / main:** `main` == origin/main == `ee2778a` — TASK/056 `task/056-t5-target-card-truncation` (main
+`a8bf454`'ten — `a8bf454` = TASK/055 doküman eşitlemesi; 4 commit: `721b97a` düzeltme · `c17fa4c` test · `0c0dc09`
+inceleme sertleştirmesi (masaüstü kapısından ve Samsung A36'dan geçen son üretim / test adayı) · `ee2778a` doküman /
+A36 kaydı (yalnız doküman); masaüstü + Samsung A36 kapıları GEÇTİ 2026-10-06) owner onayıyla ff-only entegre
+(`a8bf454 → ee2778a`, 2026-10-06; merge commit / rebase / squash / cherry-pick / force push yok; dal duruyor, son
+incelenen HEAD `ee2778a`) · önce TASK/055 doküman eşitlemesi `docs/055-main-sync` owner onayıyla ff-only (`e0c1a71 →
+a8bf454`, 2026-10-06; merge commit yok; dal duruyor) · önce TASK/055 `task/055-gui-action-cancel` (main `60f8b71`'den —
 `60f8b71` = TASK/054 doküman eşitlemesi; 5 commit: `1db02b6` düzeltme · `855d49a` test · `287781f` inceleme
 sertleştirmesi · `7671882` gereksiz dal temizliği (masaüstü kapılarından ve Samsung A36'dan geçen son üretim / test
 adayı) · `e0c1a71` doküman / A36 kaydı (yalnız doküman); masaüstü kapıları 2026-10-05, Samsung A36 2026-10-06 GEÇTİ)
@@ -2463,8 +2466,8 @@ formatına yalnız `haptics_enabled` (varsayılan true) eklendi. Ayrıntı ve
   (meydan okumanın yeni düğmeleri de iptalde öteki düğmeler gibi davranır; güç düğmeleri gizli + kilitli olduğundan
   Sarsıntı varyantı meydan okumada oluşamaz) *(→ TASK/055 ile kapatıldı — main'de `e0c1a71`, §4.35)* — o tarihte açık;
   (d) HUD hedef kartı T5 adını "Büyük Dumpl…" diye kırpar (önceden var olan kart, normal Level 3'te de; brif "hedef
-  kartını koru") *(→ TASK/056 dalında düzeltildi — §4.36)*; (e) HAMLE plakası mevcut yıldız süslü skor plakasını
-  kullanır, HUD kalan / sonuç kullanılan / bütçe
+  kartını koru") *(→ TASK/056 ile kapatıldı — main'de `ee2778a`, §4.36)*; (e) HAMLE plakası mevcut yıldız süslü
+  skor plakasını kullanır, HUD kalan / sonuç kullanılan / bütçe
   gösterir (brif kilitli); (f) mola "Yeniden Başlat" gece yarısından sonra kopya taşımadan güncel günü başlatır (brif
   §20 ile uyumlu); (g) bilinmeyen sürüm bloğu varsayılana iner (görevlerle aynı kural), uzak gelecek tamamlanma günü o
   güne kadar ✓ gösterir (günlük ödüllerin taban kuralıyla aynı), başarısız kayıt yazmasında bellek ödüllü kalır (mevcut
@@ -2627,8 +2630,8 @@ formatına yalnız `haptics_enabled` (varsayılan true) eklendi. Ayrıntı ve
   mola → TASK/052 ile düzeltildi — main'de `c7e3ccc`, §4.32.)* *(Ertelemede / beklemede Ayarlar → TASK/053 ile
   düzeltildi — main'de `275c537`, §4.33.)* *(Basılı Koleksiyon kartı + GERİ → TASK/054 ile düzeltildi — main'de
   `88c8570`, §4.34.)* *(Genel GUI ACTION_CANCEL (modal / karartma, Sarsıntı düğmesi) → TASK/055 ile düzeltildi — main'de
-  `e0c1a71`, §4.35.)* Ayrı kalan, açık: T5 hedef kartı kırpması "Büyük Dumpl…" *(→ TASK/056 dalında düzeltildi —
-  §4.36)*.
+  `e0c1a71`, §4.35.)* Ayrı kalan, açık: T5 hedef kartı kırpması "Büyük Dumpl…" *(→ TASK/056 ile kapatıldı —
+  main'de `ee2778a`, §4.36)*.
 
 ### 4.29 Round bitişi pencere sahipliği (TASK/049)
 
@@ -2762,8 +2765,8 @@ formatına yalnız `haptics_enabled` (varsayılan true) eklendi. Ayrıntı ve
   sonucun üstünde kalır (görsel) *(→ TASK/053 ile düzeltildi — main'de `275c537`, §4.33)*; (4) basılı Koleksiyon kartı +
   Android GERİ sentetik bırakışı *(→ TASK/054 ile düzeltildi — main'de `88c8570`, §4.34)*; (5) genel GUI ACTION_CANCEL
   (modal / karartma iptali, Sarsıntı düğmesi) *(→ TASK/055 ile düzeltildi — main'de `e0c1a71`, §4.35)*; (6) T5 hedef
-  kartı kırpması "Büyük Dumpl…" *(→ TASK/056 dalında düzeltildi — §4.36)*; + ayrı, önceden var olan gözlem: meydan
-  okumanın aynı karede merge ile molada bitmesi
+  kartı kırpması "Büyük Dumpl…" *(→ TASK/056 ile kapatıldı — main'de `ee2778a`, §4.36)*; + ayrı, önceden var olan
+  gözlem: meydan okumanın aynı karede merge ile molada bitmesi
   (yukarıda; `25860df`'de de var) *(→ TASK/050 ile düzeltildi — main'de `8f9e259`, §4.30)*. Masaüstü zamanlama hassas üç
   suite denetimi (yukarıda) test sağlamlığı notu olarak kayda geçti (fark testinde aday = taban; kontrollü kanonik
   koşuda düşmedi).
@@ -2874,7 +2877,7 @@ formatına yalnız `haptics_enabled` (varsayılan true) eklendi. Ayrıntı ve
   düzeltildi — main'de `c7e3ccc`, §4.32)*; (3) gecikmede Ayarlar sonucun üstünde (görsel) *(→ TASK/053 ile düzeltildi —
   main'de `275c537`, §4.33)*; (4) Koleksiyon kartı + GERİ *(→ TASK/054 ile düzeltildi — main'de `88c8570`, §4.34)*; (5)
   genel GUI ACTION_CANCEL *(→ TASK/055 ile düzeltildi — main'de `e0c1a71`, §4.35)*; (6) T5 kırpması "Büyük Dumpl…"
-  *(→ TASK/056 dalında düzeltildi — §4.36)*.
+  *(→ TASK/056 ile kapatıldı — main'de `ee2778a`, §4.36)*.
 
 ### 4.31 Round başlangıcında dokunuş sahipliği (TASK/051)
 
@@ -2998,7 +3001,7 @@ formatına yalnız `haptics_enabled` (varsayılan true) eklendi. Ayrıntı ve
   düzeltildi — main'de `c7e3ccc`, §4.32)*; (3) gecikmede Ayarlar sonucun üstünde (görsel) *(→ TASK/053 ile düzeltildi —
   main'de `275c537`, §4.33)*; (4) Koleksiyon kartı + GERİ *(→ TASK/054 ile düzeltildi — main'de `88c8570`, §4.34)*; (5)
   genel GUI ACTION_CANCEL *(→ TASK/055 ile düzeltildi — main'de `e0c1a71`, §4.35)*; (6) T5 kırpması "Büyük Dumpl…"
-  *(→ TASK/056 dalında düzeltildi — §4.36)*.
+  *(→ TASK/056 ile kapatıldı — main'de `ee2778a`, §4.36)*.
   İncelemenin kayda geçirdiği önceden var olan, kapsam dışı gözlemler (düzeltilmedi, yeni görev açılmadı): Harita
   `_on_node_pressed` / `_on_endless_pressed`'de kapalı-ekran kapısı yok — basılı düğüm + Android GERİ, gizleme anındaki
   sentetik tıklamayla level başlatabilir (statik çıkarım, yeniden üretilmedi; (4) ile aynı motor sınıfı; TASK/051
@@ -3061,7 +3064,7 @@ formatına yalnız `haptics_enabled` (varsayılan true) eklendi. Ayrıntı ve
 > doküman eşitlemesi sırasında hiçbir kapı yeniden koşulmadı. Eski açık madde (3) FIXED + MAIN; o tarihte açık kalan tam
 > 3 madde: (4) Koleksiyon kartı + GERİ *(→ TASK/054 ile kapatıldı — main'de `88c8570`, §4.34)*, (5) genel GUI
 > ACTION_CANCEL *(→ TASK/055 ile kapatıldı — main'de `e0c1a71`, §4.35)*, (6) T5 hedef kartı kırpması (PROJECT_CONTEXT →
-> Next action) *(→ TASK/056 dalında düzeltildi — §4.36)*. TASK/054 o tarihte tanımlanmamıştı.
+> Next action) *(→ TASK/056 ile kapatıldı — main'de `ee2778a`, §4.36)*. TASK/054 o tarihte tanımlanmamıştı.
 
 - **Hata (önceden var olan, eski açık madde (3) — FIXED + MAIN):** Ayarlar `CanvasLayer` katman 13, sonuç katman 10 —
   ikisi birden görünürse Ayarlar üstte, karartması sonucun girdisini tutar. (1) TASK/049'un terminal temizliği
@@ -3136,7 +3139,7 @@ formatına yalnız `haptics_enabled` (varsayılan true) eklendi. Ayrıntı ve
 > / A36 / Godot / derleme kapısı yeniden koşulmadı. Eski açık madde (4) — Koleksiyon basılı dokunuş + Android GERİ bayat
 > bırakış sorunu — FIXED + MAIN (KAPANDI); o tarihte AÇIK kalan tam 2 madde: (5) genel GUI ACTION_CANCEL *(→ TASK/055
 > ile kapatıldı — main'de `e0c1a71`, §4.35)*, (6) T5 hedef kartı kırpması `Büyük Dumpl…` (PROJECT_CONTEXT → Next
-> action) *(→ TASK/056 dalında düzeltildi — §4.36)*. TASK/055 o tarihte tanımlanmamıştı.
+> action) *(→ TASK/056 ile kapatıldı — main'de `ee2778a`, §4.36)*. TASK/055 o tarihte tanımlanmamıştı.
 
 - **Hata (önceden var olan, eski açık madde (4) — FIXED + MAIN):** Godot 4.6.3 basılı bir düğmenin fare odağını
   düşürürken — düğme gizlenince (`Viewport::_gui_hide_control`: Android GERİ, sekme değişimi, detay kapanışı) ya da
@@ -3245,7 +3248,7 @@ formatına yalnız `haptics_enabled` (varsayılan true) eklendi. Ayrıntı ve
 > / 2, sahibin kaydı bayt-aynı; Samsung A36 (`7671882` QA APK'sı) GEÇTİ — iptal edilen Mağaza SATIN AL'da Hamur
 > harcaması 0. Eski açık madde (5) — genel GUI ACTION_CANCEL — FIXED + MAIN by TASK/055 (KAPANDI); AÇIK kalan tek ürün
 > maddesi (6) T5 hedef kartı kırpması `Büyük Dumpl…` (PROJECT_CONTEXT → Next action). TASK/056 tanımlanmadı, başlamadı.
-> *(Sonra: (6) TASK/056 dalında düzeltildi — FIXED ON TASK/056 BRANCH, §4.36.)*
+> *(Sonra: (6) TASK/056 ile kapatıldı — FIXED + MAIN, main'de `ee2778a`, §4.36.)*
 
 - **Kök neden (Faz A motor sondası, Godot 4.6.3):** BaseButton Android ACTION_CANCEL bırakışını tıklama sayar
   (`canceled`'a bakmaz); basılı bir düğme gizlenince ya da pencere odağı gidince Viewport ona iç aygıtlı bir bırakış
@@ -3350,12 +3353,21 @@ formatına yalnız `haptics_enabled` (varsayılan true) eklendi. Ayrıntı ve
 
 ### 4.36 HUD hedef kartı ad sığdırma — T5 `Büyük Dumpl…` (TASK/056)
 
-> **Dalda — FIXED ON TASK/056 BRANCH, READY FOR OWNER REVIEW (main'e ALINMADI; `main == origin/main == a8bf454`
-> DEĞİŞMEDİ).** Dal `task/056-t5-target-card-truncation` (main `a8bf454`'ten — TASK/055 doküman eşitlemesi): `721b97a`
-> düzeltme · `c17fa4c` test · `0c0dc09` inceleme sertleştirmesi (masaüstü kapısından ve Samsung A36'dan geçen son üretim
-> ve test adayı) · doküman / A36 kaydı (yalnız doküman). Üretim farkı yalnız `scripts/ui/gameplay_hud.gd`. Eski açık
-> madde (6) — HUD hedef kartı T5 kırpması `Büyük Dumpl…` (§4.27 (d)) — FIXED ON TASK/056 BRANCH; bilinen, izlenen açık
-> ürün maddesi: 0 (ürünün hatasız olduğu iddia edilmez).
+> **✅ TAMAM, main'de (COMPLETE + MAIN)** — owner onayıyla ff-only `a8bf454 → ee2778a` (2026-10-06; merge commit /
+> rebase / squash / cherry-pick / force push yok; dal `task/056-t5-target-card-truncation` duruyor, son incelenen HEAD
+> `ee2778a`).
+> Zincir (main `a8bf454`'ten, 4 commit): `721b97a` düzeltme · `c17fa4c` test · `0c0dc09` inceleme sertleştirmesi
+> (masaüstü + Samsung A36 kapılarından geçen son üretim / test adayı) · `ee2778a` doküman / A36 kaydı (yalnız doküman;
+> test edilen adayın üstünde). Üretim farkı yalnız `scripts/ui/gameplay_hud.gd`. Aşağıdaki doğrulamanın tamamı
+> entegrasyondan ÖNCE tamamlandı; entegrasyon ve doküman eşitlemesi sırasında hiçbir odak test / mutasyon / inceleme /
+> masaüstü / A36 / Godot / derleme kapısı yeniden koşulmadı. Kabul edilen son kanıt: odak `target_card_text_fit_test`
+> 328 / 328, 0 SCRIPT ERROR; taban farkı `a8bf454` 141 FAIL → son aday 0 FAIL; mutasyon 20 varyant — 19 / 19
+> uygulanabilir mutant açık FAIL ile öldü, 1 eşdeğer (satır yüksekliği yuvarlaması); inceleme 4 salt-okunur inceleyici
+> / 8 mercek — 0 BLOCKER / 0 HIGH; kontrollü tam masaüstü kapısı (`0c0dc09`) 53 / 53 temiz, 6800 kontrol, 0 FAIL, 0
+> SCRIPT ERROR, bot 2 / 2, sahibin kaydı bayt-aynı; Samsung A36 (`0c0dc09` QA APK'sı) GEÇTİ — Türkçe T5 Level 3'te ve
+> meydan okumada tam (ürün dili Türkçe; EN / RTL yalnız-test vekilleri). Eski açık madde (6) — HUD hedef kartı T5
+> kırpması `Büyük Dumpl…` (§4.27 (d)) — FIXED + MAIN by TASK/056 (KAPANDI); bilinen, izlenen açık ürün maddesi: 0
+> (ürünün hatasız olduğu iddia edilmez). TASK/057 oluşturulmadı.
 
 - **Kanonik metin ve dil:** T5 = `Büyük Dumpling` (`TierConfig.TIERS`, GAME_DESIGN §2 — değişmedi). Ürün tek dilli
   Türkçe: projede çeviri kaynağı / yerel ayarı yok (`project.godot`'ta `internationalization` bölümü yok;
@@ -4247,12 +4259,13 @@ Owner'ın yapacağı / onaylayacağı:)*
   GEÇTİ — kontrollü tam masaüstü kapısı 52 / 52 temiz, 0 FAIL; owner onayıyla ff-only `60f8b71 → e0c1a71`, 2026-10-06;
   dal `task/055-gui-action-cancel` duruyor).
 - **TASK/056** — HUD hedef kartı T5 kırpması `Büyük Dumpl…` (skor hedefi ad satırından başlık satırına; ad 20 px'ten
-  en az 16 px'e sınırlı sığdırma) → **dalda, READY FOR OWNER REVIEW** (§4.36; masaüstü + Samsung A36 kapıları GEÇTİ —
-  kontrollü tam masaüstü kapısı 53 / 53 temiz, 0 FAIL; `task/056-t5-target-card-truncation`, main'e alınmadı — merge
-  owner kararı).
-- **Sıradaki görev:** owner seçer (TASK/057 tanımlanmadı). Bilinen, izlenen açık ürün maddesi: 0 — T5 hedef kartı
-  kırpması `Büyük Dumpl…` (§4.27) → TASK/056 dalında düzeltildi (§4.36; main'e alınması owner onayı bekliyor);
-  kendiliğinden sıradaki görev seçilmez (Koleksiyon kartı + GERİ → TASK/054 ile kapatıldı —
+  en az 16 px'e sınırlı sığdırma) → ✅ **main'de** (§4.36; masaüstü + Samsung A36 kapıları GEÇTİ — kontrollü tam
+  masaüstü kapısı 53 / 53 temiz, 0 FAIL; owner onayıyla ff-only `a8bf454 → ee2778a`, 2026-10-06; dal
+  `task/056-t5-target-card-truncation` duruyor).
+- **Sıradaki görev:** owner seçer — TASK/057 oluşturulmadı; otomatik bir sonraki ürün düzeltme görevi tanımlı değil.
+  Bilinen, izlenen açık ürün maddesi: 0 (ürünün hatasız olduğu iddia edilmez) — T5 hedef kartı kırpması `Büyük Dumpl…`
+  (§4.27) → TASK/056 ile kapatıldı — main'de `ee2778a`, §4.36; kendiliğinden sıradaki görev seçilmez (Koleksiyon
+  kartı + GERİ → TASK/054 ile kapatıldı —
   main'de `88c8570`, §4.34; genel GUI ACTION_CANCEL → TASK/055 ile kapatıldı — main'de `e0c1a71`, §4.35). TASK/052 takip
   gözlemleri yalnız not (görev DEĞİL): trafik sonrası elde tutma / ARPDAU incelemesi, isteğe bağlı daha güçlü ilk gün
   koruması A/B testi, native yetim yeniden yükleme temizliği ve banner iş parçacığı yarışı incelemesi, yayından önce
