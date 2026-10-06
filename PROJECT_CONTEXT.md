@@ -80,6 +80,37 @@ alınacak — şimdi tahmin/vaat yok.
 [Current release blockers](#current-release-blockers) +
 [Next action](#next-action); aşağıdaki "Milestone tarihçesi" değil.
 
+- **Dal (2026-10-06): TASK/056 — HUD hedef kartı T5 kırpması `Büyük Dumpl…` — FIXED ON TASK/056 BRANCH, READY FOR
+  OWNER REVIEW; main'e ALINMADI, main DEĞİŞMEDİ** (`main == origin/main == a8bf454` — TASK/055 doküman eşitlemesi).
+  Dal `task/056-t5-target-card-truncation` (main `a8bf454`'ten): `721b97a` düzeltme · `c17fa4c` test · `0c0dc09`
+  inceleme sertleştirmesi (masaüstü kapısından ve Samsung A36'dan geçen son üretim / test adayı) · doküman / A36 kaydı
+  (yalnız doküman). **Hata (önceden var olan — açık madde (6)):** HUD hedef kartının ad etiketi (Baloo2-Bold 20 px,
+  kırpma + üç nokta) her desteklenen kompozisyonda yalnız 141 px alıyordu (tuval `canvas_items` + `expand` ile hiçbir
+  telefonda 720'nin altına inmez — kart her telefonda 300 px); 8 kanonik adın 4'ü 20 px'te daha geniş (T2 147 · T4 145
+  · T5 148 · T7 151 px). Düzeltmesiz `a8bf454`'te gerçek GameBoard + production HUD ile yeniden üretildi (çekimle
+  doğrulandı): L03 `Büyük Dumpli…`, meydan okuma T5 `Büyük Dumpl…` (bildirilen; BUGÜN rozeti etiketi 136 px'e
+  indiriyor), L01 / L02 `Şişkin Dumpli…`, L06 / L07 `Jumbo Dumpli…`, skor hedefli L08 `Jumbo` / L10 `Dumpli` (75 px;
+  6 karakterden azı kalınca Godot üç nokta eklemez — sessiz kırpma). **Kök neden:** (1) skor hedefi (`+N skor`) HUD
+  v3'ten (`29504e5`) beri ad satırında kardeş — boşken 7 px, doluyken 73 px ayırıyordu (yorumu "hedef adı ile yer için
+  yarışmaz" bayat kalmıştı); (2) adın sabit 20 px puntosu sığdırılmıyordu — ad satırının en fazlası 148 px (meydan
+  okumada 143), T7 (151) ve meydan okuma T5'i (148) 20 px'te sığmaz. **Düzeltme (yalnız `scripts/ui/gameplay_hud.gd`):**
+  skor hedefi HEDEF / REKOR başlık satırının sağ ucuna taşındı (ad satırı = portre + ad); ad 20 px tasarım puntosunda
+  kalır, çizilen metnin (`atr`) ölçülen genişliği + 2 px pay etiketin kapsayıcıdan aldığı tam sayı genişliğe sığana
+  kadar 1 px adımlarla en az 16 px'e iner (okunur taban; tabanda da sığmayan metin kartın içinde üç noktayla kesilir);
+  metin, genişlik ya da dil değişince yeniden sığdırılır; ad satırı yüksekliği sabit. Kopya, tier adları, kart / rozet
+  / portre / çubuk geometrisi ve girdi DEĞİŞMEDİ; tier'a özel istisna / kısaltılmış kopya / genel punto küçültme YOK.
+  Sonuç: T2 / T5 / T7 19 px, diğerleri 20 px, hepsi tam. **Doğrulama:** odak suite `target_card_text_fit_test` 328 /
+  328 (54'ü yapısal pozitif kontrol; Godot 4.6.3 `Label::_shape()` aynen yeniden koşulur); taban farkı `a8bf454` 141
+  FAIL / 0 SCRIPT ERROR → 0; mutasyon 19 / 19 uygulanabilir mutant açık FAIL ile öldü (m20 eşdeğer); 4 salt-okunur
+  inceleyici / 8 mercek — 0 BLOCKER / 0 HIGH (1 MEDIUM ve LOW'lar `0c0dc09`'da kapandı); kontrollü tam masaüstü kapısı
+  (`0c0dc09`) 53 / 53 temiz, 6800 kontrol, 0 FAIL, 0 SCRIPT ERROR, bot 2 / 2, sahibin kaydı bayt-aynı; **Samsung A36:
+  GEÇTİ** (2026-10-06, yalnız QA paketi): gerçek dokunuşla L03 ve meydan okuma T5 `Büyük Dumpling` tam (cihazda ölçüm
+  140 / 148 ve 140 / 143 px, kırpma yok), L01 T4 / L04 T6 / L08 T7 + "+6 750 skor" tam, hedef kartı dokunuşu / HUD
+  dişlisi / GERİ / mola normal (TASK/055 korunuyor), 0 SCRIPT ERROR / çökme / ANR, yabancı girdi yok; QA kaldırıldı,
+  üretim paketi hiç kurulmadı, `com.example` dokunulmadı, gezinme kipi / saat değişmedi. **TR / EN / AR:** ürün tek
+  dilli Türkçe — EN / AR ürün dili değil (N/A); EN için Godot çeviri hattından yalnız-test kataloğu, AR için RTL
+  yerleşim vekili (yalnız test; Arapça şekillendirme kanıtlanmaz) masaüstünde ve A36'da geçti. Ayrıntı: PROJECT_STATUS
+  §4.36.
 - **Repo (2026-10-06):** `main == origin/main == e0c1a71820e731e7194ee638f9834fa121955865` — **TASK/055 owner onayıyla
   ff-only main'e alındı** (`60f8b71 → e0c1a71`; merge commit / rebase / squash / cherry-pick / force push YOK).
   Doğrulanmış doğrusal zincir, 5 commit: `1db02b6` düzeltme · `855d49a` test · `287781f` inceleme sertleştirmesi ·
@@ -205,7 +236,8 @@ alınacak — şimdi tahmin/vaat yok.
   erişilebilirlik ve fiziksel odak kaybı N/A — masaüstü deterministik testleri kapsıyor. 0 SCRIPT ERROR / çökme / ANR /
   beklenmeyen Godot hatası; girdi hesabı 25 / 25, yabancı girdi yok; QA kaldırıldı, üretim paketi hiç kurulmadı, owner
   uygulaması dokunulmadı, gezinme kipi / otomatik saat / saat dilimi değişmedi, yalnız bu oturumun başlattığı adb
-  daemon'u durduruldu. A36 entegrasyondan sonra yeniden KOŞULMADI. Ayrıntı: PROJECT_STATUS §4.35. TASK/056 başlamadı.
+  daemon'u durduruldu. A36 entegrasyondan sonra yeniden KOŞULMADI. Ayrıntı: PROJECT_STATUS §4.35. TASK/056 başlamadı
+  *(→ sonra: TASK/056 dalda, yukarıda)*.
 - **TASK/054 — Koleksiyon basılı dokunuş + Android GERİ — TAMAM, main'de (COMPLETE + MAIN)** (owner onayıyla ff-only
   `6a4a2b2 → 88c8570`, 2026-10-05; merge commit / rebase / squash / cherry-pick / force push yok; A36 ve mutasyondan
   geçen üretim adayı `158022e`, son tam masaüstü kapısından geçen test adayı `db5542f` — üretim kodu `158022e` ile
@@ -1106,15 +1138,18 @@ temiz (6472 kontrol, 0 FAIL, 0 SCRIPT ERROR, bot 2 / 2), Samsung A36 `7671882`'d
 eşitlemesi sırasında hiçbir kapı yeniden koşulmadı. Eski açık madde (5) **FIXED + MAIN by TASK/055** — genel GUI
 ACTION_CANCEL sorunu KAPANDI.
 
-**Sıradaki ürün / stabilizasyon görevi owner seçimi** (TASK/056 tanımlanmadı, başlamadı) — aşağıdaki tek açık madde
-kendiliğinden seçilmez. TASK/052 takip gözlemleri yalnız NOT (görev değil): trafik sonrası canlı elde tutma / ARPDAU
+**TASK/056 dalda — owner incelemesi bekliyor** (`task/056-t5-target-card-truncation`, READY FOR OWNER REVIEW; main'e
+ALINMADI — merge owner kararı; yukarıda, PROJECT_STATUS §4.36). **Sıradaki ürün / stabilizasyon görevi owner seçimi**
+(TASK/057 tanımlanmadı) — bilinen, izlenen açık ürün maddesi kalmadı. TASK/052 takip gözlemleri yalnız NOT (görev
+değil): trafik sonrası canlı elde tutma / ARPDAU
 incelemesi; isteğe bağlı daha güçlü ilk gün koruması A/B testi; native yetim yeniden yükleme temizliği; native banner iş
 parçacığı yarışı incelemesi; yayından önce üretim TEEN / uyum yeniden incelemesi; mediation / bidding / hesap tarafı
 iyileştirme; App Open yalnız ileride gerçek bir yükleme / bekleme yüzeyi olursa.
 
-Açık, owner kararı bekleyen ayrı maddeler — **şu an tam 1 AÇIK** (**BAŞLAMADI**; kendiliğinden seçilmez; (1) TASK/051,
-(2) TASK/052, (3) TASK/053, (4) TASK/054, (5) TASK/055 ile kapandı — aşağıda): (6) HUD hedef kartı T5 adını `Büyük
-Dumpl…` diye kırpar (önceden var olan kart, normal Level 3'te de; PROJECT_STATUS §4.27 (d)) — **AÇIK**. TASK/054
+Açık, owner kararı bekleyen ayrı maddeler — **şu an 0 AÇIK ürün maddesi** (bilinen, izlenen; ürünün hatasız olduğu
+iddia edilmez; (1) TASK/051, (2) TASK/052, (3) TASK/053, (4) TASK/054, (5) TASK/055 ile kapandı — aşağıda; (6) dalda
+düzeltildi): (6) HUD hedef kartı T5 adını `Büyük Dumpl…` diye kırpar (önceden var olan kart, normal Level 3'te de;
+PROJECT_STATUS §4.27 (d)) — **FIXED ON TASK/056 BRANCH** (main'e alınmadı; PROJECT_STATUS §4.36). TASK/054
 incelemesinin kayda geçirdiği önceden var olan gözlemler *(→ TASK/055 ile düzeltildi — main'de `e0c1a71`, §4.35; Android
 13+ çok parmaklı tek-işaretçi iptali motor sınırı olarak kalır)*: aynı motor sınıfı başka ekranlarda — Profil vitrin
 yuvası (basılı + GERİ → gizlemedeki bayat tıklama Koleksiyon detayını açabilir; statik çıkarım), Profil dişlisi /

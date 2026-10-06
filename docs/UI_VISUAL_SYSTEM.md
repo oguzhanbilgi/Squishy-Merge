@@ -418,11 +418,19 @@ Köşe butonu iç parlama α .16, gölge 4 px/α .20. Yerleşim, davranış, boa
    `PanelHudFrame` (`label_round` `LAVENDER_DEEP`, 6/6/6/8) içinde `PanelHudCard`
    (`label_round` krem) + gölge + açık halka + gloss + çerçeve kenarlarında
    altın yıldız. İçerik: altın `label_round` level rozeti (taç 30 üstte, Baloo
-   24 numara; sonsuzda "SONSUZ" 15) · sütun: "HEDEF"/"REKOR"
-   (`LabelHudCaptionDark`, lavanta-mor) → krem-derin pill içinde hedef
-   portresi 30 + ad (`LabelSection` Baloo 22, mor) → `ProgressBarHud`
-   (`slider_thin_bg` koyu mor ray + `slider_fill_sm` nane, 18 px) sağ ucunda
-   "%N" `LabelBadgeOnDark`. Skor hedefi ad satırının sağında 12 px.
+   24 numara; sonsuzda "SONSUZ" 15) · sütun: başlık satırı "HEDEF"/"REKOR"
+   (`LabelHudCaptionDark`, lavanta-mor) + sağ ucunda skor hedefi ("+N skor",
+   12 px; L8 / L10) → krem-derin pill içinde hedef portresi 28 + ad
+   (`LabelSection` Baloo, 20 px tasarım puntosu, mor) → `ProgressBarHud`
+   (`slider_thin_bg` koyu mor ray + `slider_fill_sm` nane, 22 px) sağ ucunda
+   "%N" `LabelBadgeOnDark`. **Ad sığdırma (TASK/056):** ad satırında yalnız
+   portre + ad var (skor hedefi ad için yer ayırmaz); ad 20 px'ten başlar,
+   çizilen metnin ölçülen genişliği + 2 px pay etiketin genişliğine sığana
+   kadar 1 px adımlarla en az 16 px'e iner (`GameplayHud.GOAL_NAME_*`),
+   metin / genişlik / dil değişince yeniden sığdırılır; tabanda da sığmazsa
+   kart içinde üç nokta. Ad satırı yüksekliği 20 px'in satır yüksekliğinde
+   sabit. 720 tuvalde ad etiketi 148 px (meydan okuma 143, sonsuz 180):
+   kanonik tier adları 19–20 px'te tam (T2 / T5 / T7 19 px).
 3. **Sıradaki** — aynı `hud_card` (150×62): "SIRADAKI" + tier dokusu 38.
    (Mockup'taki konuşma balonu kuyruğu bilinçli olarak yok — kuyruk sağ
    tepsinin üstüne taşıyordu.)
