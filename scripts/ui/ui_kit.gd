@@ -1748,3 +1748,145 @@ static func settings_divider() -> Control:
 	line.custom_minimum_size = Vector2(0, 2)
 	line.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	return line
+
+
+# --- Squishy UI System V3 (TASK/057) ------------------------------------------
+#
+# V3 yuzeyleri dokudan degil StyleBoxFlat'ten cizilir: yaricap, kenar, dudak ve
+# golge TOKEN'dan gelir (UiTokens V3 bolumu), her boyda ayni geometri. Recete
+# (arkadan one): dis halka + golge (DEPTH_*) → koyu taban = dudak → yuz (dudak
+# kadar kisa; basinca asagi iner) → ust ic isik cizgisi → gloss. M8.6 bilesenleri
+# (candy_button, home_pill, section_header...) DEGISMEDI; V3 bilesenleri
+# (SquishyButton, FeatureCard, OfferCard, PowerCard, AttentionBadge, NavItem) bu
+# tek ciziciyi paylasir.
+
+## Yuvarlak koseli duz kutu (V3 cizimleri icin; anti-aliased).
+static func v3_box(color: Color, radius: float, border_color: Color = Color(0, 0, 0, 0),
+		border: int = 0) -> StyleBoxFlat:
+	var box := StyleBoxFlat.new()
+	box.bg_color = color
+	box.set_corner_radius_all(int(round(radius)))
+	box.corner_detail = 12
+	box.anti_aliasing = true
+	if border > 0:
+		box.border_color = border_color
+		box.set_border_width_all(border)
+	return box
+
+
+## V3 cip kutusu (sayac / sure / adet / deger etiketi): yuvarlak hap, isteğe bagli beyaz kenar.
+static func v3_chip(color: Color, border: int = 0) -> StyleBoxFlat:
+	var box := v3_box(color, 14.0, Color.WHITE, border)
+	box.content_margin_left = 11.0
+	box.content_margin_right = 11.0
+	box.content_margin_top = 1.0
+	box.content_margin_bottom = 3.0
+	return box
+
+
+## Candy yuzeyini `item`in `_draw`'inda cizer ve YUZ dikdortgenini dondurur
+## (icerik onun icine yerlesir). `lip` = su anki dudak (dinlenme `rest_lip`,
+## basili LIP_PRESSED): yuz yuksekligi sabit (h - rest_lip), basinca yuz
+## (rest_lip - lip) px asagi kayar — opaklik degil gercek cokme. `rim` dis
+## halka (kontrolun disina `rim_width` px tasar), `depth` golge kademesi.
+static func draw_candy(item: CanvasItem, rect: Rect2, face: Color, deep: Color, radius: float,
+		lip: float, rest_lip: float, depth: Dictionary = {}, rim: Color = Color(0, 0, 0, 0),
+		rim_width: float = 0.0, gloss: float = UiTokens.GLOSS_ALPHA,
+		gloss_share: float = UiTokens.GLOSS_SHARE) -> Rect2:
+	var r: float = minf(radius, rect.size.y * 0.5)
+	if rim_width > 0.0 or not depth.is_empty():
+		var outer := v3_box(rim if rim_width > 0.0 else deep, r + rim_width)
+		if not depth.is_empty():
+			UiTokens.shadow_apply(outer, depth)
+		item.draw_style_box(outer, rect.grow(rim_width))
+	item.draw_style_box(v3_box(deep, r), rect)
+	var face_h: float = maxf(rect.size.y - rest_lip, 1.0)
+	var face_rect := Rect2(rect.position + Vector2(0.0, rest_lip - lip), Vector2(rect.size.x, face_h))
+	item.draw_style_box(v3_box(face, r), face_rect)
+	# Ust ic isik: yuzun ust kenarinda ince acik bant (candy kenari).
+	var light := v3_box(Color(1, 1, 1, 0.0), r)
+	light.border_color = Color(face.lightened(0.45), 0.85)
+	light.border_width_top = 2
+	light.draw_center = false
+	item.draw_style_box(light, face_rect)
+	if gloss > 0.0:
+		var inset_x: float = clampf(r * 0.45, 5.0, 16.0)
+		var g_rect := Rect2(face_rect.position + Vector2(inset_x, 3.0),
+			Vector2(face_rect.size.x - inset_x * 2.0, face_rect.size.y * gloss_share))
+		var g_box := v3_box(Color(1, 1, 1, gloss), maxf(r - 4.0, 4.0))
+		g_box.corner_radius_bottom_left = int(maxf(r * 0.6, 4.0))
+		g_box.corner_radius_bottom_right = int(maxf(r * 0.6, 4.0))
+		item.draw_style_box(g_box, g_rect)
+	return face_rect
+
+
+## Daire candy (gezinme merkezi, kuyu): ayni recete, tam yuvarlak.
+static func draw_candy_circle(item: CanvasItem, center: Vector2, diameter: float, face: Color,
+		deep: Color, lip: float, rest_lip: float, depth: Dictionary = {},
+		rim: Color = Color(0, 0, 0, 0), rim_width: float = 0.0,
+		gloss: float = UiTokens.GLOSS_ALPHA) -> Rect2:
+	var rect := Rect2(center - Vector2(diameter, diameter + rest_lip) * 0.5, Vector2(diameter, diameter + rest_lip))
+	return draw_candy(item, rect, face, deep, diameter * 0.5, lip, rest_lip, depth, rim, rim_width, gloss)
+
+
+## Bolum basligi V3: `section_header` (M8.6-05) AYNEN + istege bagli sag
+## aksesuar (sayac rozeti / AttentionBadge) plakanin icinde, basligin saginda.
+## Ikinci bir baslik bileseni DEGIL — ayni plaka, ayni iki yan cizgi.
+static func section_header_v3(title: String, accessory: Control = null,
+		tint: Color = UiTokens.LAVENDER_DEEP) -> HBoxContainer:
+	var row: HBoxContainer = section_header(title, tint)
+	var label_node: Label = row.get_meta(&"title_label")
+	label_node.add_theme_font_size_override("font_size", UiTokens.TYPE_SECTION)
+	label_node.set_meta(&"v3_role", UiType.V3_SECTION)
+	if accessory != null:
+		# Plaka bir PanelContainer: ikinci cocuk ust uste binerdi — baslik + aksesuar bir satira.
+		var plate: PanelContainer = row.get_meta(&"plate")
+		var line := HBoxContainer.new()
+		line.name = "TitleLine"
+		line.alignment = BoxContainer.ALIGNMENT_CENTER
+		line.add_theme_constant_override("separation", UiTokens.SPACE_SM)
+		line.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		plate.remove_child(label_node)
+		line.add_child(label_node)
+		accessory.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		line.add_child(accessory)
+		plate.add_child(line)
+		row.set_meta(&"accessory", accessory)
+	return row
+
+
+## V3 onay penceresi: `modal_shell` v2 (oturmus X, kaydirilan govde, sabit
+## altlik) + govde mesaji + altlikta yan yana ikincil / birincil SquishyButton.
+## Iskeleti CAGIRAN monte eder (karartma + CenterContainer — `attach_dim_close`
+## birakista kapatir, TASK/055 iptali kapatmaz) ve dugmeleri
+## `GestureGuard.on_pressed` ile baglar. Meta: "primary_button",
+## "secondary_button", "message_label" (+ modal_shell metalari).
+static func confirm_shell(title: String, message: String, primary_text: String,
+		secondary_text: String = "VAZGEÇ", primary_kind: int = 0, width: float = 560.0) -> Control:
+	var frame: Control = modal_shell(title, width, &"ribbon", false, true)
+	var body: VBoxContainer = frame.get_meta(&"body")
+	var message_label: Label = UiType.v3_label(message, UiType.V3_BODY, false, HORIZONTAL_ALIGNMENT_CENTER)
+	message_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	message_label.custom_minimum_size = Vector2(width - 96.0, 0.0)
+	body.add_child(message_label)
+	var footer: VBoxContainer = frame.get_meta(&"footer")
+	var row := HBoxContainer.new()
+	row.name = "Actions"
+	row.add_theme_constant_override("separation", UiTokens.SPACE_MD)
+	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	footer.add_child(row)
+	var secondary: SquishyButton = null
+	if not secondary_text.is_empty():
+		secondary = SquishyButton.new(secondary_text, SquishyButton.Kind.SECONDARY)
+		secondary.name = "Secondary"
+		secondary.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		row.add_child(secondary)
+	var primary := SquishyButton.new(primary_text, primary_kind)
+	primary.name = "Primary"
+	primary.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	row.add_child(primary)
+	frame.set_meta(&"primary_button", primary)
+	frame.set_meta(&"secondary_button", secondary)
+	frame.set_meta(&"message_label", message_label)
+	modal_relayout(frame)
+	return frame

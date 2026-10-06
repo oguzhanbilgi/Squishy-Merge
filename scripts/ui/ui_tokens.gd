@@ -125,6 +125,155 @@ const GLOW_SUBTLE: Color = Color(0.94, 0.42, 0.66, 0.35)
 const GLOW_PREMIUM: Color = Color(1.0, 0.82, 0.4, 0.6)
 
 
+# =============================================================================
+# Squishy UI System V3 (TASK/057) — yukaridaki M8.6 tokenlarinin EVRIMI, ikinci
+# bir sistem DEGIL. V3 bilesenleri (SquishyButton, FeatureCard, OfferCard,
+# PowerCard, AttentionBadge, NavItem / GlobalNav) yalniz bu bolumu + yukaridaki
+# paleti okur. Belge: docs/UI_VISUAL_SYSTEM.md §27.
+# =============================================================================
+
+# --- V3 olcum temeli (A36 olcumu, TASK/057 Faz A) ----------------------------
+## Mantiksal tuval genisligi HER telefonda 720 px (`canvas_items` + `expand`;
+## yukseklik serbest). Samsung A36: 1080 px fiziksel, yogunluk 2.625 →
+## 1 tuval px = 1.5 fiziksel px = 0.571 dp. 360 dp genislikli dar telefonda
+## 1 tuval px = 0.5 dp. Yani mevcut 56 px ikon butonu A36'da yalniz 32 dp,
+## eski TOUCH_MIN 48 px = 27 dp (Android onerisi 48 dp) — "kucuk buton" hissinin
+## olculmus kaynagi.
+const DP_PER_PX_A36: float = 0.571
+## V3 dokunma kurali: birincil kontroller (CTA, gezinme ogesi, kart) en az
+## TOUCH_TARGET = 84 px (A36'da 48 dp; 360 dp telefonda 42 dp). Kart ici kompakt
+## eylemler (odul / reklam / fiyat dugmesi) en az TOUCH_COMPACT = 64 px yukseklik
+## + komsusuyla en az SPACE_MD bosluk (A36'da 37 dp). Bunun altinda yeni V3
+## kontrolu YOK; eski 56 px kose butonlari TASK/060/064'te ele alinir.
+const TOUCH_TARGET: int = 84
+const TOUCH_COMPACT: int = 64
+## V3 CTA boy sınıfları (dudak dahil): kahraman · normal (= TOUCH_TARGET) · kompakt (= TOUCH_COMPACT).
+const BUTTON_HEIGHT_HERO: int = 108
+const BUTTON_HEIGHT: int = TOUCH_TARGET
+const BUTTON_HEIGHT_COMPACT: int = TOUCH_COMPACT
+## Eski (M8.6) ↔ V3 eşleşmesi — eski tokenlar onaylı M8.6 ekranlarında AYNEN kalır, yeni / yeniden tasarlanan
+## yüzeyler V3 adını kullanır: TOUCH_MIN 48 → TOUCH_TARGET 84 / TOUCH_COMPACT 64 · RADIUS_SMALL / MEDIUM / LARGE
+## (12 / 20 / 28; 9-slice dokulu M8.6 bileşenleri) → RADIUS_COMPACT / CONTROL / FEATURE / MODAL (14 / 22 / 30 / 36;
+## StyleBoxFlat V3 çizimi) · SHADOW_SOFT / NORMAL / ELEVATED → DEPTH_RESTING / ELEVATED / FLOATING (candy dudağıyla
+## birlikte) · HEIGHT_* (Button01 dokusu) → BUTTON_HEIGHT_* · tema yazı boyutları → TYPE_* (UiType.v3).
+
+# --- V3 tipografi olcegi (Turkce okunurluk once; en kucuk yazi 14) ---------
+## Rol → boyut. Font ailesi rolun tema variation'indan gelir (UiType.V3_ROLES):
+## Baloo 2 = baslik / CTA / rozet, Nunito = govde / veri. Ekran basina keyfi
+## boyut YAZILMAZ; V3 bilesenleri yalniz bu olcegi kullanir.
+const TYPE_HERO: int = 44
+const TYPE_SCREEN_TITLE: int = 30
+const TYPE_SECTION: int = 24
+const TYPE_CARD_TITLE: int = 23
+const TYPE_BODY: int = 19
+const TYPE_SECONDARY: int = 16
+const TYPE_BUTTON_HERO: int = 36
+const TYPE_BUTTON: int = 26
+const TYPE_BUTTON_COMPACT: int = 21
+const TYPE_BADGE: int = 16
+const TYPE_NAV: int = 18
+## En kucuk izinli yazi (meta / sayac). V3'te bunun altinda metin yok.
+const TYPE_META: int = 14
+
+# --- V3 bosluk olcegi --------------------------------------------------------
+## Mevcut SPACE_XS..XL (4/8/12/20/32) korunur; V3 adlari onlara baglanir + iki uc.
+const SPACE_MICRO: int = 2
+const SPACE_2XL: int = 48
+
+# --- V3 yaricap aileleri ------------------------------------------------------
+## Kompakt kontrol (rozet, kucuk cip) · standart buton / kart · buyuk ozellik /
+## teklif karti · pencere / gezinme tepsisi. Hepsi StyleBoxFlat ile cizilir.
+const RADIUS_COMPACT: int = 14
+const RADIUS_CONTROL: int = 22
+const RADIUS_FEATURE: int = 30
+const RADIUS_MODAL: int = 36
+
+# --- V3 derinlik modeli (candy "dudak") --------------------------------------
+## Her V3 yuzeyi ayni recete: yumusak erik golge → koyu taban (dudak) → yuz →
+## ust ic isik cizgisi → gloss. Dinlenmede yuz dudagin LIP_REST px ustunde;
+## basinca LIP_PRESSED'e iner (gorsel cokme, yalniz opaklik degil); pasif /
+## alinmis kontrol duzdur (LIP_FLAT). Golge yalniz bu uc kademeden secilir.
+const LIP_REST: float = 7.0
+const LIP_PRESSED: float = 2.0
+const LIP_FLAT: float = 2.0
+const LIP_CARD: float = 6.0
+## Golge kademeleri: dinlenen yuzey / yukseltilmis kart / pencere ve tepsi.
+const DEPTH_RESTING: Dictionary = {"color": Color(0.10, 0.04, 0.22, 0.28), "size": 6, "offset": Vector2(0, 4)}
+const DEPTH_ELEVATED: Dictionary = {"color": Color(0.10, 0.04, 0.22, 0.36), "size": 12, "offset": Vector2(0, 7)}
+const DEPTH_FLOATING: Dictionary = {"color": Color(0.05, 0.02, 0.14, 0.50), "size": 20, "offset": Vector2(0, 8)}
+## Gloss: yuzun ust bolumu, beyaz alfa.
+const GLOSS_ALPHA: float = 0.26
+const GLOSS_SHARE: float = 0.38
+
+# --- V3 kenar (border) rolleri -----------------------------------------------
+## Kural: kenar HIYERARSI tasimaz (boyut / ikon / derinlik tasir). Yalniz:
+## standart yuzey kenari (ince acik halka), secili (kalin beyaz-altin),
+## premium (altin), pasif (gri). "Cerceve icinde cerceve" YOK: bir V3 kartin
+## icinde ikinci bir kenarli panel acilmaz.
+const BORDER_STANDARD: int = 3
+const BORDER_SELECTED: int = 4
+const BORDER_PREMIUM: int = 4
+const BORDER_COLOR_STANDARD: Color = Color(1, 1, 1, 0.55)
+const BORDER_COLOR_SELECTED: Color = Color("fff3c4")
+const BORDER_COLOR_PREMIUM: Color = Color("ffcf4d")
+const BORDER_COLOR_DISABLED: Color = Color(1, 1, 1, 0.25)
+
+# --- V3 renk rolleri (paletten turetilir; ekran kodu ham renk YAZMAZ) --------
+## Birincil eylem (OYNA / BASLA): candy cyan.
+const ROLE_PRIMARY: Color = CYAN
+const ROLE_PRIMARY_DEEP: Color = Color("2a86c6")
+## Ikincil eylem: koyu lavanta (HUD v5 / ust satir pill'leriyle ayni aile).
+const ROLE_SECONDARY: Color = LAVENDER_DEEP
+const ROLE_SECONDARY_DEEP: Color = Color("5b46a8")
+## Odul alma (ODULU AL): nane.
+const ROLE_REWARD: Color = MINT
+const ROLE_REWARD_DEEP: Color = MINT_DEEP
+## Odullu reklam (REKLAM IZLE n/2): candy pembe (vurgu ailesi; odul nanesinden ayrik).
+const ROLE_AD: Color = PINK
+const ROLE_AD_DEEP: Color = PINK_DEEP
+## Para birimi / satin alma (fiyat dugmesi): nane yuz + altin Hamur ikonu.
+const ROLE_CURRENCY: Color = Color("62d38a")
+const ROLE_CURRENCY_DEEP: Color = Color("2b8f50")
+## Hamur yetmiyor: dokunulabilir, pasif griden AYRIK — krem yuz + mercan-koyu fiyat (yetmeyen fiyat okunur).
+const ROLE_CURRENCY_MUTED: Color = Color("fffcf5")
+const ROLE_CURRENCY_MUTED_DEEP: Color = Color("e3d6e6")
+const TEXT_INSUFFICIENT: Color = Color("b8394a")
+## Premium / teklif: altin.
+const ROLE_PREMIUM: Color = GOLD
+const ROLE_PREMIUM_DEEP: Color = GOLD_DEEP
+## Yikici (nadir): mercan kirmizi.
+const ROLE_DANGER: Color = Color("ef5b6b")
+const ROLE_DANGER_DEEP: Color = Color("b8394a")
+## Yuzeyler: notr krem / yukseltilmis (daha acik) / koyu hub yuzeyi (lavanta).
+const SURFACE_NEUTRAL: Color = CREAM
+const SURFACE_NEUTRAL_DEEP: Color = Color("e3d6e6")
+const SURFACE_ELEVATED: Color = Color("fffcf5")
+## Hub yüzeyi (özellik kartı): koyu lavanta — beyaz başlık / alt yazı ≥ 4.5:1 (LAVENDER_DEEP'te 3.8:1 idi).
+const SURFACE_HUB: Color = Color("6c55c4")
+const SURFACE_HUB_DEEP: Color = Color("43308a")
+## Gezinme: tepsi + secili kabarcik.
+## Tepsi: beyaz etiket ≥ 4.5:1 (5.0:1).
+const NAV_TRAY: Color = Color("7259c9")
+const NAV_TRAY_DEEP: Color = Color("3f2d86")
+const NAV_SELECTED: Color = CREAM
+const NAV_SELECTED_DEEP: Color = Color("d9c7f2")
+const NAV_ICON_IDLE: Color = Color("efe6ff")
+## Seçili olmayan etiket tam beyaz: tepside 4.7:1 (α .78'de 3.5:1 idi — küçük yazıda yetersiz).
+const NAV_LABEL_IDLE: Color = TEXT_ON_DARK
+## Tepsinin arkasındaki opak taban (dock) — koyu dünya tonu.
+const NAV_DOCK: Color = Color("140f35")
+const NAV_ICON_SELECTED: Color = Color("5a3fb0")
+## Pasif: mevcut DISABLED / TEXT_DISABLED (4.8:1 olculdu).
+const ROLE_DISABLED: Color = DISABLED
+const ROLE_DISABLED_DEEP: Color = DISABLED_DEEP
+## Dikkat rozeti (kirmizi nokta karsiligi): mercan-kirmizi + beyaz halka.
+const ATTENTION: Color = Color("ff4d6a")
+const ATTENTION_DEEP: Color = Color("c92a4a")
+## Para birimi rengi (Hamur rakami, fiyat): altin; krem ustunde koyu altin.
+const CURRENCY: Color = GOLD
+const CURRENCY_ON_LIGHT: Color = GOLD_DEEP
+
+
 static func rarity_color(rarity: int) -> Color:
 	match rarity:
 		SkinData.Rarity.RARE: return RARITY_RARE

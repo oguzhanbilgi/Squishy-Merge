@@ -66,3 +66,65 @@ const TAB_BUTTON: StringName = &"TabButton"
 static func apply(control: Control, role: StringName) -> Control:
 	control.theme_type_variation = role
 	return control
+
+
+# --- Squishy UI System V3 (TASK/057) -------------------------------------------
+#
+# V3 tipografi hiyerarşisi: dokuz rol, boyutlar `UiTokens.TYPE_*`. Font ailesi ve
+# rengi mevcut tema variation'ından (krem yüzey / koyu yüzey), boyut tokendan —
+# tema YENİDEN ÜRETİLMEDİ, yeni font yok. Her V3 bileşeni metnini yalnız
+# `UiType.v3()` / `UiType.v3_label()` ile kurar; böylece "ekran başına keyfi
+# boyut" ve sessiz varsayılan-font düşüşü olamaz (ui_system_v3_test tarar).
+
+const V3_HERO: StringName = &"hero"
+const V3_SCREEN_TITLE: StringName = &"screen_title"
+const V3_SECTION: StringName = &"section"
+const V3_CARD_TITLE: StringName = &"card_title"
+const V3_BODY: StringName = &"body"
+const V3_SECONDARY: StringName = &"secondary"
+const V3_BUTTON: StringName = &"button"
+const V3_BADGE: StringName = &"badge"
+const V3_META: StringName = &"meta"
+const V3_NAV: StringName = &"nav"
+
+## rol → [krem yüzey variation'ı, koyu yüzey variation'ı, boyut].
+const V3_ROLES: Dictionary = {
+	&"hero": [&"LabelDisplay", &"LabelDisplayOnDark", UiTokens.TYPE_HERO],
+	&"screen_title": [&"LabelTitle", &"LabelTitleOnDark", UiTokens.TYPE_SCREEN_TITLE],
+	&"section": [&"LabelSection", &"LabelSectionOnDark", UiTokens.TYPE_SECTION],
+	&"card_title": [&"LabelSection", &"LabelSectionOnDark", UiTokens.TYPE_CARD_TITLE],
+	&"body": [&"LabelBody", &"LabelBodyOnDark", UiTokens.TYPE_BODY],
+	&"secondary": [&"LabelCaption", &"LabelCaptionOnDark", UiTokens.TYPE_SECONDARY],
+	&"button": [&"LabelTitle", &"LabelTitleOnDark", UiTokens.TYPE_BUTTON],
+	&"badge": [&"LabelBadge", &"LabelBadgeOnDark", UiTokens.TYPE_BADGE],
+	&"meta": [&"LabelHudCaptionDark", &"LabelHudCaption", UiTokens.TYPE_META],
+	&"nav": [&"LabelBadgeOnDark", &"LabelBadgeOnDark", UiTokens.TYPE_NAV],
+}
+
+
+## V3 rolünü uygular: variation (font ailesi + renk + gölge) + token boyutu.
+## `size` > 0 yalnız bileşen içi sınırlı sığdırma için (ör. buton boy sınıfı);
+## yine de TYPE_META'nın altına inilmez.
+static func v3(label: Label, role: StringName, on_dark: bool = false, size: int = 0) -> Label:
+	var spec: Array = V3_ROLES.get(role, V3_ROLES[V3_BODY])
+	label.theme_type_variation = spec[1] if on_dark else spec[0]
+	var px: int = size if size > 0 else int(spec[2])
+	label.add_theme_font_size_override("font_size", maxi(px, UiTokens.TYPE_META))
+	label.set_meta(&"v3_role", role)
+	return label
+
+
+## Yeni V3 etiketi (fare almaz).
+static func v3_label(text: String, role: StringName, on_dark: bool = false,
+		align: HorizontalAlignment = HORIZONTAL_ALIGNMENT_LEFT, size: int = 0) -> Label:
+	var label := Label.new()
+	label.text = text
+	label.horizontal_alignment = align
+	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	return v3(label, role, on_dark, size)
+
+
+## Türkçe büyük harf: Godot `to_upper` i → I yapar (İ olmalı) ve ı'yı bilmez.
+static func upper_tr(text: String) -> String:
+	return text.replace("i", "İ").replace("ı", "I").to_upper()
