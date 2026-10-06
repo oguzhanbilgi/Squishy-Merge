@@ -75,6 +75,9 @@ func _ready() -> void:
 	_c("V3 bileşenleri kayda hiç yazmadı (yönlendirilen yol boş kaldı)", not wrote)
 	_c("sahibin gerçek kayıt ailesi (kanonik + .tmp + .bak) bayt-aynı", _owner_snapshot() == _owner_state)
 	print("\nSONUC: %d kontrol, %d hata" % [_checks, _fails])
+	# Bekleyen queue_free / basış tween'leri bitsin (çıkışta "kaynak hâlâ kullanımda" gürültüsü olmasın).
+	for _i in 4:
+		await get_tree().process_frame
 	get_tree().quit(1 if _fails > 0 else 0)
 
 
@@ -534,7 +537,9 @@ func _skeletons() -> void:
 	_c("onay altlığı görünür, düğmeler ≥ TOUCH_TARGET yükseklik", (frame.get_meta(&"footer") as Control).visible
 		and primary.size.y >= UiTokens.TOUCH_TARGET and secondary.size.y >= UiTokens.TOUCH_TARGET)
 	var single: Control = UiKit.confirm_shell("BİLGİ", "Mesaj", "TAMAM", "")
-	_c("ikincil eylemsiz onay: yalnız birincil", single.get_meta(&"secondary_button") == null)
+	# get_meta(ad, null) varsayılansız sayılır ve hata basar — önce has_meta.
+	_c("ikincil eylemsiz onay: yalnız birincil", not single.has_meta(&"secondary_button")
+		or single.get_meta(&"secondary_button") == null)
 	single.free()
 	anchor.queue_free()
 	await _settle(1)
@@ -556,10 +561,22 @@ func _navigation() -> void:
 		.get_theme_color("font_color")).is_equal_approx(UiTokens.TEXT_PRIMARY) and (nav.item_button(0).label_node()
 		.get_theme_color("font_color")).is_equal_approx(UiTokens.NAV_LABEL_IDLE))
 	nav.set_current(1)
-	_c("merkez seçili: etiket beyaz (tepside okunur), seçim altın halka + hale ile; ikon lacivert",
-		nav.item_button(1).is_selected() and nav.item_button(1).label_node().get_theme_color("font_color")
-		.is_equal_approx(UiTokens.TEXT_ON_DARK) and (nav.item_button(1).icon_node() as CanvasItem).self_modulate
-		.is_equal_approx(UiTokens.TEXT_ON_ACCENT))
+	# TASK/057 Tur 2: seçili durum TEK aile — merkez de yan öğeyle aynı krem malzemeyi uygular (etiket aynı krem hapta
+	# koyu); cyan dairede ikon lacivert kalır, merkeze özgü ek katman yalnız ince altın dış halka.
+	_c("merkez seçili: seçili aileyi uygular (etiket koyu krem hapta, yan öğeyle aynı); ikon cyan üstünde lacivert",
+		nav.item_button(1).is_selected() and nav.item_button(1).applied_selection() == NavItem.selected_family()
+		and nav.item_button(1).label_node().get_theme_color("font_color").is_equal_approx(UiTokens.TEXT_PRIMARY)
+		and (nav.item_button(1).icon_node() as CanvasItem).self_modulate.is_equal_approx(UiTokens.TEXT_ON_ACCENT))
+	_c("seçili olmayan öğeler hiçbir seçili malzeme uygulamaz", nav.items().all(func(i: NavItem) -> bool:
+		return i.is_selected() or i.applied_selection().is_empty()))
+	# Çizim de tek aileden: NavItem._draw seçili dolgu / dudak / ışımayı YALNIZ `_applied`'dan okur (doğrudan seçili
+	# token yazmaz) — `applied_selection()` sözleşmesi çizimle ayrışamaz.
+	var nav_src: String = FileAccess.get_file_as_string("res://scripts/ui/nav_item.gd")
+	var draw_body: String = nav_src.substr(nav_src.find("func _draw() -> void:"),
+		nav_src.find("func _set_pressed_visual") - nav_src.find("func _draw() -> void:"))
+	_c("NavItem._draw seçili malzemeyi yalnız `_applied`'dan çizer (NAV_SELECTED* tokenı doğrudan yok)",
+		not draw_body.is_empty() and draw_body.contains("_applied[\"fill\"]") and draw_body.contains("_applied[\"glow\"]")
+		and not draw_body.contains("NAV_SELECTED"))
 	nav.set_current(99)
 	_c("bilinmeyen hedef: hiçbir öğe seçili değil", nav.items().all(func(i: NavItem) -> bool: return not i.is_selected()))
 	nav.badge(0).show_dot()

@@ -14,7 +14,7 @@ extends Node
 ##   07_locked_tap         kilitli düğüme dokunuş (kilit sallanırken)
 ##   08_unlock_mid         açılış animasyonu ortası (3 → 4 bitmiş gibi tazeleme)
 ##   09_unlock_done        açılış animasyonu sonu
-##   10_back_home          geri → Ana Sayfa (rota hedefi)
+##   10_back_home          kabuk ANA SAYFA → Ana Sayfa (rota hedefi; TASK/057 Tur 2: üst çubukta geri oku yok)
 ##   11_plus_shop          Hamur "+" → Mağaza (rota hedefi)
 ##
 ## Kullanım:
@@ -103,7 +103,8 @@ func _ready() -> void:
 
 	_apply_progress(4, {"1": 2, "2": 3, "3": 3}, 0)
 	await _show_map()
-	_map().top_bar().back_button().pressed.emit()
+	# TASK/057 Tur 2: Harita üst çubuğunda geri oku yok — Ana Sayfa'ya dönüş kabuğun ANA SAYFA öğesi.
+	_main.global_nav().item_button(0).pressed.emit()
 	await _settle()
 	await _capture("10_back_home")
 	await _show_map()

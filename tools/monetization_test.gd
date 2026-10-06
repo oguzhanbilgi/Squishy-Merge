@@ -1222,9 +1222,11 @@ func _test_main_integration() -> void:
 		and m.get_parent() == _main)
 	var slot: float = m.banner_slot_px()
 	var play_y: float = _main._screens[0]._play_pulse.position.y
-	# TASK/057: gezinme kabuğu yuva varken reklamla arasına dokunulmayan BANNER_GAP bırakır (yuvasız BOTTOM_GAP) —
+	# TASK/057: kabuğun payı yuvayla değişir: reklamla arasına BANNER_GAP (yuvasız BOTTOM_GAP); Tur 2: kısa ekran +
+	# yuvada KOMPAKT kip merkez taşmasını (40) bırakır. Fark = yuvalı pay − yuvasız normal pay —
 	# OYNA yuva + bu fark kadar yukarıda.
-	var gap_delta: float = (GlobalNav.BANNER_GAP - GlobalNav.BOTTOM_GAP) if _main.has_method("global_nav") else 0.0
+	var gap_delta: float = (_main.global_nav().reserve() - (GlobalNav.BOTTOM_GAP + GlobalNav.TRAY_HEIGHT
+		+ NavItem.CENTER_RISE)) if _main.has_method("global_nav") else 0.0
 	_c("banner yuvası ekranlardan önce hesaplandı: Ana Sayfa OYNA yuva kadar yukarıda (%d px + kabuk aralığı %d px)" % [
 		int(slot), int(gap_delta)], slot > 0.0 and is_equal_approx(base_play_y - play_y, slot + gap_delta))
 	_c("Ana Sayfa yüzeyi seçildi", m.surface() == MonetizationManager.Surface.HOME)
@@ -1250,13 +1252,20 @@ func _test_main_integration() -> void:
 		nodes_clear = nodes_clear and node.get_global_rect().end.y <= slot_top
 		if node._plaque.visible:
 			nodes_clear = nodes_clear and node._plaque.get_global_rect().end.y <= slot_top
-	_c("Harita: 10 düğüm (+ plaka) ve Sonsuz kalesi yuvaya girmiyor, kale üst satırın altında",
-		nodes_clear and map_screen.endless_node().get_global_rect().position.y >= map_screen.top_bar().get_global_rect().end.y
-		and map_screen.endless_node().get_global_rect().end.y <= slot_top)
-	# TASK/057: 16:9 + yuva + kabuk tek durumda MIN_SQUASH_NAV tabanı (owner incelemesinde görsel uzlaşma).
-	var squash_floor: float = map_screen.MIN_SQUASH_NAV if nav != null else 0.94
-	_c("Harita dünya dikey sıkıştırması sınırlı (>= %.2f) ve yatay ölçek cover" % squash_floor,
-		map_screen.world_scale().y >= squash_floor - 0.001
+	# TASK/057 Tur 2: kısıtlı yerleşimde başlık kurdelesi satırını bırakabilir — kale o zaman güvenli alanda ve Hamur
+	# pill'iyle çakışmaz; kurdele görünürken kale üst satırın altında.
+	var castle: Rect2 = map_screen.endless_node().get_global_rect()
+	var castle_top_ok: bool = castle.position.y >= map_screen.top_bar().get_global_rect().end.y
+	if map_screen.has_method("title_yielded") and map_screen.title_yielded():
+		castle_top_ok = castle.position.y >= 0.0 and not castle.intersects(map_screen.top_bar().pill().get_global_rect())
+	_c("Harita: 10 düğüm (+ plaka) ve Sonsuz kalesi yuvaya girmiyor, kale üst satırın altında (ya da kurdele bırakıldıysa"
+		+ " güvenli alanda, pill'le çakışmadan)", nodes_clear and castle_top_ok and castle.end.y <= slot_top)
+	# TASK/057 Tur 2: kabuk + yuva varken taban MIN_SQUASH_NAV (0.92); bu test en büyük gerçekçi yuvayı (128 px) 16:9'da
+	# kurar — kurdele bırakılsa da sığmazsa son çare MIN_SQUASH_NAV_HARD (0.88). Oran sy / sx.
+	var squash_floor: float = map_screen.MIN_SQUASH_NAV_HARD if nav != null else 0.94
+	var squash_ratio: float = map_screen.world_scale().y / map_screen.world_scale().x
+	_c("Harita dünya dikey sıkıştırması sınırlı (sy/sx %.3f >= %.2f) ve yatay ölçek cover" % [squash_ratio, squash_floor],
+		squash_ratio >= squash_floor - 0.001
 		and map_screen.world_scale().y <= map_screen.world_scale().x + 0.001)
 	_main._show_tab(3)
 	_c("Mağaza -> gösterili kalır", fake.banner_shows.size() == 1 and fake.banner_hides.is_empty())

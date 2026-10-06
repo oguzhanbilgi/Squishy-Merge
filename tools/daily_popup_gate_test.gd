@@ -209,7 +209,8 @@ func _next_opportunity(album: CanvasLayer) -> void:
 	await _settle(2)
 	_c("tekrar: detay açıkken öne dönüş engellendi", _blocked(album))
 	album.close_detail()
-	_main._on_home_requested()
+	# TASK/057 Tur 2: `_on_home_requested` kalktı (geri oku yok) — aynı Ana Sayfa geçişi `_show_tab(0)`.
+	_main._show_tab(0)
 	await _settle(2)
 	_c("detay kapat → Ana Sayfa'ya dönüş: pencere Ana Sayfa'da açıldı", _main._active_tab == 0 and _popup().visible
 		and not DailyRewards.popup_due())
@@ -239,7 +240,7 @@ func _next_opportunity(album: CanvasLayer) -> void:
 	await _settle(3)
 	_c("MAĞAZAYA GİT → Mağaza: pencere AÇILMADI (hedef kart kaybolmaz), due kaldı", _main._active_tab == 3
 		and not album.is_detail_open() and not _popup().visible and DailyRewards.popup_due())
-	_main._on_home_requested()
+	_main._show_tab(0)
 	await _settle(2)
 	_c("  … sonraki geçiş (Ana Sayfa): pencere açıldı", _main._active_tab == 0 and _popup().visible
 		and not DailyRewards.popup_due())

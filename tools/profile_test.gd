@@ -6,7 +6,7 @@ extends Node
 ##
 ## Kontroller:
 ##   yapı      Main'de 5. ekran; reklam yüzeyi DEĞİL (Surface.NONE); üst satır
-##             geri · "PROFİL" · dişli çark (Hamur pill'i yok); tek SettingsPanel;
+##             "PROFİL" · dişli çark (Hamur pill'i yok; TASK/057 Tur 2: geri oku yok); tek SettingsPanel;
 ##             Profil ekranı / modeli kayda YAZMAZ, satın almaz (TASK/045: tek yazma
 ##             yolu unvan seçici — progression_ui_test); TASK/045 bölümleri gerçek
 ##             (LV rozeti + XP rayı, unvan, BAŞARIMLAR); kamera / galeri yok; güçler
@@ -15,13 +15,13 @@ extends Node
 ##             başı ya da kanonik), 3 vitrin yuvası (0 / 1 / 3 dolu), altı
 ##             istatistik kanonik alanlardan (PlayerProfile ile aynı, uydurma
 ##             yok — boş değer "—"), güç stokları, koleksiyon N/20 + rarity.
-##   rotalar   Ana Sayfa avatarı → Profil; geri / Android geri → Ana Sayfa; dişli
+##   rotalar   Ana Sayfa avatarı → Profil; kabuk ANA SAYFA / Android geri → Ana Sayfa; dişli
 ##             → Ayarlar (Profil'de kalınır; geri önce Ayarlar'ı kapatır); dolu
 ##             yuva → Koleksiyon'da o parçanın detayı; boş yuva / KOLEKSİYONA GİT
 ##             → Koleksiyon; Koleksiyon'daki vitrin değişikliği Profil'e yansır;
 ##             oyun içi HUD ayarları + mola AYNEN çalışır.
 ##   yatışma   hızlı çift dokunuş (A36 kapısı): ekran / detay / Ayarlar açılışından
-##             sonra 300 ms PARMAK basışı yutulur — avatar ↔ Profil geri, KOLEKSİYONA
+##             sonra 300 ms PARMAK basışı yutulur — avatar → Profil (aynı nokta), kabuk ANA SAYFA → avatar, KOLEKSİYONA
 ##             GİT → albüm kartı, karartmaya düşen ikinci dokunuş; kod yolu
 ##             (`pressed.emit()`) ve masaüstü fare etkilenmez.
 ##   sayaçlar  gerçek round bitişi: tur +1 ve oluşturulan en yüksek tier (tek
@@ -130,8 +130,8 @@ func _structure(profile: CanvasLayer) -> void:
 		_main.TAB_SURFACES[4] == MonetizationManager.Surface.NONE
 		and not MonetizationManager.BANNER_SURFACES.has(MonetizationManager.Surface.NONE))
 	var bar: ScreenTopBar = profile.top_bar()
-	_c("üst satır: geri + 'PROFİL' kurdelesi + dişli çark (ButtonHomeIcon, 56 px); Hamur pill'i YOK",
-		bar.title_text() == "PROFİL" and bar.back_button() != null and profile.settings_button() != null
+	_c("üst satır: 'PROFİL' kurdelesi + dişli çark (ButtonHomeIcon, 56 px); Hamur pill'i YOK; TASK/057 Tur 2: geri oku YOK",
+		bar.title_text() == "PROFİL" and bar.back_button() == null and profile.settings_button() != null
 		and profile.settings_button().theme_type_variation == &"ButtonHomeIcon"
 		and profile.settings_button().custom_minimum_size.x >= 48.0 and bar.add_button() == null
 		and _count_variation(profile, &"PanelHomePill") == 0)
@@ -148,6 +148,9 @@ func _structure(profile: CanvasLayer) -> void:
 			if text.contains(word):
 				writes.append(word)
 	_c("Profil / model / yuva / avatar kayda YAZMAZ, satın almaz, ödül vermez (kaynak taraması) %s" % str(writes), writes.is_empty())
+	_c("TASK/057 Tur 2: Profil kaynağında geri oku yok (home_requested / back_button() yok), ScreenTopBar'da back_pressed yok",
+		not src.contains("home_requested") and not src.contains("back_button()")
+		and not FileAccess.get_file_as_string("res://scripts/ui/screen_top_bar.gd").contains("back_pressed"))
 	var fakes: Array[String] = []
 	var word_re := RegEx.new()
 	for text in [src, slot_src, tile_src, model_src, avatar_src]:
@@ -295,8 +298,11 @@ func _routes(home: CanvasLayer, profile: CanvasLayer) -> void:
 	profile.settings_button().pressed.emit()
 	_main.close_settings()
 	_c("Ayarlar KAPAT → Profil'de kalınır", not _main._settings.visible and _main._active_tab == 4)
-	profile.top_bar().back_button().pressed.emit()
-	_c("Profil geri → Ana Sayfa", _main._active_tab == 0 and home.visible and not profile.visible)
+	# TASK/057 Tur 2: Profil üst çubuğunda geri oku yok — Ana Sayfa'ya dönüş küresel kabuğun ANA SAYFA öğesi.
+	var nav_before: int = _main.nav_navigations
+	_main.global_nav().item_button(0).pressed.emit()
+	_c("Profil'de kabuk ANA SAYFA → Ana Sayfa (tam 1 gezinme)", _main._active_tab == 0 and home.visible
+		and not profile.visible and _main.nav_navigations == nav_before + 1)
 	_main._show_tab(4)
 	_main._last_back_msec = -1000
 	_main._notification(NOTIFICATION_WM_GO_BACK_REQUEST)
@@ -390,16 +396,21 @@ func _touch_settle(home: CanvasLayer, profile: CanvasLayer) -> void:
 	_main._show_tab(0)
 	await _wait_settled()
 	var avatar_pos: Vector2 = _screen_center(home.profile_button())
-	_c("ön koşul: Profil geri, Ana Sayfa avatarıyla aynı noktada", profile.top_bar().back_button().get_global_rect()
-		.has_point(home.profile_button().get_global_rect().get_center()))
+	# TASK/057 Tur 2: Profil üst çubuğunda geri oku yok — avatarın noktasında artık Profil geri'si yok; Ana Sayfa'ya
+	# dönüş kabuğun ANA SAYFA öğesi (parmakla).
+	_c("ön koşul (TASK/057 Tur 2): Profil üst çubuğunda geri oku yok (back_button() null)",
+		profile.top_bar().back_button() == null)
+	var home_item: Button = _main.global_nav().item_button(0)
 	await _finger_tap(avatar_pos)
 	_c("parmak dokunuşu: Ana Sayfa avatarı → Profil", _main._active_tab == 4 and profile.visible)
 	await _finger_tap(avatar_pos)
-	_c("hemen ikinci dokunuş (aynı nokta = Profil geri) yutuldu: Profil'de kalındı", _main._active_tab == 4
+	_c("hemen ikinci dokunuş (aynı nokta) yutuldu: Profil'de kalındı", _main._active_tab == 4
 		and profile.visible)
 	await _wait_settled()
-	await _finger_tap(_screen_center(profile.top_bar().back_button()))
-	_c("yatışmadan sonra Profil geri parmakla çalışır → Ana Sayfa", _main._active_tab == 0 and home.visible)
+	var nav_before: int = _main.nav_navigations
+	await _finger_tap(_screen_center(home_item))
+	_c("yatışmadan sonra kabuk ANA SAYFA parmakla çalışır → Ana Sayfa (tam 1 gezinme)", _main._active_tab == 0
+		and home.visible and _main.nav_navigations == nav_before + 1)
 	await _finger_tap(avatar_pos)
 	_c("geri dönüşün hemen ardından avatar dokunuşu yutuldu (Profil açılmadı)", _main._active_tab == 0)
 	await _wait_settled()
@@ -455,11 +466,11 @@ func _touch_settle(home: CanvasLayer, profile: CanvasLayer) -> void:
 	_main._show_tab(0)
 	home.profile_button().pressed.emit()
 	_c("kod yolu: geçişin hemen ardından pressed.emit() → Profil", _main._active_tab == 4)
-	profile.top_bar().back_button().pressed.emit()
-	_c("kod yolu: geçişin hemen ardından geri → Ana Sayfa", _main._active_tab == 0)
+	home_item.pressed.emit()
+	_c("kod yolu: geçişin hemen ardından kabuk ANA SAYFA → Ana Sayfa", _main._active_tab == 0)
 	_main._show_tab(4)
-	await _mouse_click(_screen_center(profile.top_bar().back_button()))
-	_c("masaüstü fare tıklaması (device 0) geçişin hemen ardından çalışır → Ana Sayfa", _main._active_tab == 0)
+	await _mouse_click(_screen_center(home_item))
+	_c("masaüstü fare tıklaması (device 0) geçişin hemen ardından kabuk ANA SAYFA'da çalışır → Ana Sayfa", _main._active_tab == 0)
 	await _wait_settled()
 
 
@@ -544,12 +555,12 @@ func _check_layout(profile: CanvasLayer, safe_top: float, window_tag: String) ->
 	await get_tree().process_frame
 	var bar: ScreenTopBar = profile.top_bar()
 	var screen_rect: Rect2 = Rect2(Vector2(0, safe_top), Vector2(view.x, view.y - safe_top))
-	var back: Rect2 = bar.back_button().get_global_rect()
+	# TASK/057 Tur 2: üst satırda geri oku yok — satır = kurdele + dişli.
 	var gear: Rect2 = profile.settings_button().get_global_rect()
 	var ribbon: Rect2 = bar.title_plate().get_global_rect()
-	_c("%s üst satır güvenli payın altında: geri / dişli ≥ 48, ekranda; kurdele ikisine de binmez" % tag,
-		screen_rect.encloses(back) and screen_rect.encloses(gear) and back.size.y >= 48.0 and gear.size.x >= 48.0
-		and back.position.y >= safe_top + ScreenTopBar.TOP_MARGIN - 0.5 and not ribbon.intersects(back)
+	_c("%s üst satır güvenli payın altında: dişli ≥ 48, ekranda; kurdele dişliye binmez; geri oku yok" % tag,
+		bar.back_button() == null and screen_rect.encloses(gear) and gear.size.x >= 48.0 and gear.size.y >= 48.0
+		and gear.position.y >= safe_top + ScreenTopBar.TOP_MARGIN - 0.5
 		and not ribbon.intersects(gear) and gear.end.x <= view.x - 24.0 + 0.5)
 	var content: VBoxContainer = profile.content()
 	var inside: bool = true
@@ -624,14 +635,14 @@ func _check_layout(profile: CanvasLayer, safe_top: float, window_tag: String) ->
 				print("    alt dudağa biniyor: ", card.name, " / ", node.name, " ", nr, " kart ", cr)
 	_c("%s kart içerikleri (yazı / buton / avatar) krem yüzde — pişmiş alt dudağa binmiyor" % tag, lip_ok)
 	var max_scroll: float = maxf(scroll.get_v_scroll_bar().max_value - scroll.size.y, 0.0)
-	var bar_before: Vector2 = bar.back_button().global_position
+	var bar_before: Vector2 = profile.settings_button().global_position
 	scroll.scroll_vertical = int(max_scroll) + 10
 	await get_tree().process_frame
 	await get_tree().process_frame
 	var cta: Rect2 = profile.collection_cta().get_global_rect()
 	_c("%s kaydırma sonunda KOLEKSİYONA GİT tamamen ekranda, alt pay ≥ 40, ≥ 48 yükseklik; üst satır sabit" % tag,
 		cta.end.y <= view.y - 40.0 - UiKit.bottom_inset(view) + 0.5 and cta.position.y >= bar.height()
-		and cta.size.y >= 48.0 and bar.back_button().global_position == bar_before)
+		and cta.size.y >= 48.0 and profile.settings_button().global_position == bar_before)
 	scroll.scroll_vertical = 0
 	await get_tree().process_frame
 
@@ -678,9 +689,10 @@ func _ads_surface() -> void:
 	_main.close_settings()
 	_c("Profil / Ayarlar geçişi geçiş reklamı ya da ödüllü reklam açmadı", fake.interstitial_shows.size() == interstitial_before
 		and fake.rewarded_shows.size() == rewarded_before)
-	_main._screens[4].top_bar().back_button().pressed.emit()
+	# TASK/057 Tur 2: Profil üst çubuğunda geri oku yok — Ana Sayfa'ya dönüş kabuğun ANA SAYFA öğesi.
+	_main.global_nav().item_button(0).pressed.emit()
 	await _settle(2)
-	_c("Ana Sayfa'ya dönünce banner geri geldi", ads.surface() == MonetizationManager.Surface.HOME
+	_c("Ana Sayfa'ya dönünce banner geri geldi", _main._active_tab == 0 and ads.surface() == MonetizationManager.Surface.HOME
 		and ads.banner_state() == MonetizationManager.BannerState.SHOWN)
 	# TASK/043 yolu artık Profil'den (inceleme merceği 7): dişli → Yaş bilgisi →
 	# SDK sonrası farklı bant → oturum reklamsız; Ana Sayfa'da banner geri GELMEZ.
@@ -703,7 +715,7 @@ func _ads_surface() -> void:
 	panel.done_button().pressed.emit()
 	_main.close_settings()
 	await _settle(1)
-	_main._screens[4].top_bar().back_button().pressed.emit()
+	_main.global_nav().item_button(0).pressed.emit()
 	await _settle(2)
 	_c("Ana Sayfa'ya dönünce banner GERİ GELMEDİ (oturum kilidi Profil yolundan da geçerli)", _main._active_tab == 0
 		and ads.banner_state() != MonetizationManager.BannerState.SHOWN and fake.banner_shows.size() == shows_before)

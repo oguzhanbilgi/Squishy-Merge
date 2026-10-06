@@ -26,8 +26,9 @@ extends Node
 ##   B kart + geçiş  basılı kart → sekme değişimi (Mağaza, Profil) → bırak: 0 eylem
 ##   C detay         birincil (VİTRİNE EKLE / MAĞAZAYA GİT), ikincil (VİTRİNDEN ÇIKAR), değiştirme kutusu, X basılı + GERİ
 ##                   → bırak: yazma yok, gezinme yok, yeniden açılış yok
-##   D İPTAL         ACTION_CANCEL bırakışı: kart, birincil, ikincil, kutu, üst çubuk geri / "+", detay X, karartma → 0
-##                   eylem, basış biter; karartmada İPTAL + GERİ (hareketli gezinme geri kaydırması) → tek gezinme
+##   D İPTAL         ACTION_CANCEL bırakışı: kart, birincil, ikincil, kutu, kabuk ANA SAYFA / üst çubuk "+", detay X,
+##                   karartma → 0 eylem, basış biter; karartmada İPTAL + GERİ (hareketli gezinme geri kaydırması) → tek
+##                   gezinme (TASK/057 Tur 2: üst çubukta geri oku yok — Ana Sayfa rotası küresel kabuğun ANA SAYFA öğesi)
 ##   E İPTAL + UP    iptalden sonra bayat UP (motor dokunuş odağını iptalde bırakmıştı) → 0 eylem; ardından taze dokunuş
 ##                   tam bir kez (kart, karartma)
 ##   F taze          bayat diziden sonra yeniden aç → AYNI karta taze dokunuş tam 1 detay (button_down 1), sonra da tek
@@ -36,14 +37,15 @@ extends Node
 ##   H çok parmak    ikinci parmak GUI düğmesine basamaz (fare öykünmesi yalnız 0. parmak); kartı tutan parmak GERİ'den
 ##                   sonra kalkarsa 0 eylem, GERİ'siz kalkarsa normal tek seçim
 ##   I hızlı GERİ    birincil basılı → GERİ (detay) → GERİ (Ana Sayfa) → bırak: tek kapanış, tek gezinme, 0 eylem
-##   J basılı durum  gizlenen basılı düğmenin basışı biter: sonraki taze basış button_down yayar (kart, üst çubuk,
+##   J basılı durum  gizlenen basılı düğmenin basışı biter: sonraki taze basış button_down yayar (kart, üst çubuk "+",
 ##                   birincil, kutu, detay X), ölçek 1.0. STOP düğmelerde motorun gizleme bırakışı deterministik DÜŞER
 ##                   (asılı durumu en iyi bunlar sınar); PASS kartta olay ScrollContainer'a da geçer → bırakışın düşüp
 ##                   düşmemesi motor durumuna bağlı. Kaydırmaya geçmiş kart + GERİ: koruma kontrolü (headless'ta dokunmatik
 ##                   ekran yok → gerçek sürükleme yok, bırakış tabanda da işlenir)
 ##   K kayıt         bayat dizilerden sonra Hamur / vitrin / açık parçalar bellekte ve diskte aynı
 ##   L normal        tek dokunuş tam bir kez: kart → detay, birincil → vitrine ekler, ikincil → çıkarır, kutu → değiştirir,
-##                   üst çubuk geri → Ana Sayfa, "+" → Mağaza, detay X / karartma → kapanır
+##                   kabuk ANA SAYFA → Ana Sayfa, üst çubuk "+" → Mağaza, detay X / karartma → kapanır; üst çubukta geri
+##                   oku yok (TASK/057 Tur 2)
 ##   M gezinme       GERİ: detay → kapanır (Koleksiyon'da kalınır), değiştirme adımı → detaya, detay yok → Ana Sayfa;
 ##                   Ana Sayfa madalyonu → Koleksiyon
 ##   O odak kaybı    basılı düğmede pencere odağı gider (Android onPause): kart (önceki normal dokunuştan sonra), STOP
@@ -51,7 +53,7 @@ extends Node
 ##                   dokunuş tam bir kez
 ##   R günlük pencere bugün gösterilmemişken basılı kart + GERİ → Ana Sayfa'da pencere normal açılır, bayat kalkış
 ##                   pencereye dokunmaz
-##   S sahiplik      gizli düğmeye ulaşan `pressed` eylem üretmez: gizli albümde kart, üst çubuk geri / "+"; detay
+##   S sahiplik      gizli düğmeye ulaşan `pressed` eylem üretmez: gizli albümde kart, üst çubuk "+"; detay
 ##                   KAPANIRKEN (düğmenin kendi gizlenme bildirimi, detay id'si / değiştirme adımı hâlâ dururken) VİTRİNE
 ##                   EKLE, MAĞAZAYA GİT, VİTRİNDEN ÇIKAR, değiştirme kutusu
 ##   P kaynak        sözleşme (bağlama, korumalar, basış bitirme, paylaşılan yardımcılar)
@@ -81,6 +83,8 @@ var _n: Dictionary = {}
 var _events: Array[String] = []
 var _t0: int = 0
 var _last_back_msec: int = -100000
+## `_main.nav_navigations` son `_mark` / `_open_fresh` anında (TASK/057 Tur 2).
+var _nav_mark: int = 0
 
 
 func _c(name: String, ok: bool) -> void:
@@ -310,7 +314,7 @@ func _detail_back() -> void:
 # --- D) ACTION_CANCEL ----------------------------------------------------------------------------------------------
 
 func _cancel() -> void:
-	print("-- D: ACTION_CANCEL (canceled bırakış) → 0 eylem: kart, birincil, ikincil, kutu, üst çubuk geri / \"+\"")
+	print("-- D: ACTION_CANCEL (canceled bırakış) → 0 eylem: kart, birincil, ikincil, kutu, kabuk ANA SAYFA / üst çubuk \"+\"")
 	var album: CanvasLayer = await _open_fresh()
 	var card: Button = album.card(OWNED)
 	_watch(card, "card")
@@ -346,15 +350,18 @@ func _cancel() -> void:
 	await _down_cancel(_center(tile))
 	_c("D kutu: değiştirme adımında DOWN + CANCEL → yuva DEĞİŞMEDİ, adım açık kaldı", _n.get("tile.down", 0) == 1
 		and _econ() == econ and album.is_replacing())
-	for which: String in ["back", "add"]:
+	# TASK/057 Tur 2: üst çubukta geri oku yok — Ana Sayfa rotası küresel kabuğun ANA SAYFA öğesi (GlobalNav'da
+	# GestureGuard sahipli); "+" üst çubukta kaldı.
+	for which: String in ["nav_home", "bar_add"]:
 		album = await _open_fresh()
 		var bar: ScreenTopBar = album.top_bar()
-		var button: Button = bar.back_button() if which == "back" else bar.add_button()
-		_watch(button, "bar_" + which)
+		var button: Button = _main.global_nav().item_button(0) if which == "nav_home" else bar.add_button()
+		_watch(button, which)
 		_mark()
 		await _down_cancel(_center(button))
-		_c("D üst çubuk %s: DOWN + CANCEL → gezinme YOK (istek 0, Koleksiyon'da)" % which,
-			_n.get("bar_%s.down" % which, 0) == 1 and _n.get("home_requested", 0) == 0 and _n.get("shop_requested", 0) == 0
+		_c("D %s: DOWN + CANCEL → gezinme YOK (kabuk gezinmesi 0, Mağaza isteği 0, Koleksiyon'da)"
+			% ("kabuk ANA SAYFA" if which == "nav_home" else "üst çubuk \"+\""),
+			_n.get("%s.down" % which, 0) == 1 and _nav_delta() == 0 and _n.get("shop_requested", 0) == 0
 			and _main._active_tab == 2 and album.visible)
 	album = await _open_fresh()
 	await _open_detail(album, OWNED)
@@ -486,14 +493,15 @@ func _multi_touch() -> void:
 	var album: CanvasLayer = await _open_fresh()
 	var card: Button = album.card(OWNED)
 	_watch(card, "card")
-	var bar: ScreenTopBar = album.top_bar()
+	# TASK/057 Tur 2: üst çubukta geri oku yok — Ana Sayfa rotası kabuğun ANA SAYFA öğesi.
+	var home_item: Button = _main.global_nav().item_button(0)
 	var pos: Vector2 = _center(card)
 	_mark()
 	await _finger(pos, true, 0)
-	await _finger_tap(_center(bar.back_button()), 1)
+	await _finger_tap(_center(home_item), 1)
 	await _settle(2)
-	_c("H: parmak 0 kartı tutarken parmak 1 üst çubuk geriye dokundu → gezinme YOK (fare öykünmesi yalnız 0. parmak)",
-		_main._active_tab == 2 and album.visible and _n.get("home_requested", 0) == 0)
+	_c("H: parmak 0 kartı tutarken parmak 1 kabuk ANA SAYFA'ya dokundu → gezinme YOK (fare öykünmesi yalnız 0. parmak)",
+		_main._active_tab == 2 and album.visible and _nav_delta() == 0)
 	await _finger(pos, false, 0)
 	await _settle(3)
 	_c("  … H: GERİ olmadan parmak 0 GÖRÜNÜR kartta kalktı → normal tek seçim (bayat değil)", _n.get("detail_opened", 0) == 1
@@ -535,7 +543,7 @@ func _rapid_back() -> void:
 	_c("I: 1. GERİ detayı kapattı (Koleksiyon'da), 2. GERİ Ana Sayfa'ya çıktı", first and second)
 	_c("  … I: bırakışta vitrin aynı, detay yeniden açılmadı, ek gezinme / çıkış isteği yok", _econ() == econ
 		and _n.get("detail_opened", 0) == 0 and _main._active_tab == 0 and int(_main.get("quit_requests")) == 0
-		and _n.get("shop_requested", 0) == 0 and _n.get("home_requested", 0) == 0)
+		and _n.get("shop_requested", 0) == 0 and _nav_delta() == 0)
 	_sections_done += 1
 
 
@@ -585,21 +593,23 @@ func _hold_state() -> void:
 	await _tap(card)
 	_c("J kart [kaydırma] (koruma): kaydırmaya geçen basılı kartın basışı GERİ'de bitti (button_up 1); yeniden açılışta taze basış button_down 1, tam 1 detay",
 		scrolled and scroll_ended and _n.get("card.down", 0) == 1 and _n.get("detail_opened", 0) == 1)
-	# Üst çubuk geri: basılı + GERİ (olay yok) → yeniden aç → üst çubuk geri taze dokunuş.
+	# Üst çubuk "+": basılı + GERİ (olay yok) → yeniden aç → "+"ya taze dokunuş. (TASK/057 Tur 2: üst çubukta geri oku
+	# yok — kalan üst çubuk düğmesi "+".)
 	album = await _open_fresh()
-	var back_button: Button = album.top_bar().back_button()
-	_watch(back_button, "bar_back")
-	pos = _center(back_button)
+	var add_button: Button = album.top_bar().add_button()
+	_watch(add_button, "bar_add")
+	pos = _center(add_button)
 	await _hold(pos, "none")
 	await _back()
 	await _finger(pos, false)
 	await _settle(3)
+	var add_ended: bool = _n.get("shop_requested", 0) == 0 and _main._active_tab == 0
 	_main._show_tab(2)
 	await _wait_settled()
 	_mark()
-	await _tap(back_button)
-	_c("J üst çubuk geri: taze basış button_down 1, tek gezinme (Ana Sayfa)", _n.get("bar_back.down", 0) == 1
-		and _n.get("home_requested", 0) == 1 and _main._active_tab == 0)
+	await _tap(add_button)
+	_c("J üst çubuk \"+\": GERİ'de 0 gezinme; yeniden açılışta taze basış button_down 1, tek gezinme (Mağaza)", add_ended
+		and _n.get("bar_add.down", 0) == 1 and _n.get("shop_requested", 0) == 1 and _main._active_tab == 3)
 	# Birincil: basılı + GERİ (detay kapanır, olay yok) → detayı yeniden aç → taze dokunuş.
 	album = await _open_fresh()
 	await _open_detail(album, OWNED)
@@ -697,7 +707,7 @@ func _economy() -> void:
 # --- L) Normal tek dokunuşlar ---------------------------------------------------------------------------------------
 
 func _normal_taps() -> void:
-	print("-- L: normal tek dokunuş tam bir kez — kart, birincil, ikincil, kutu, üst çubuk geri / \"+\"")
+	print("-- L: normal tek dokunuş tam bir kez — kart, birincil, ikincil, kutu, kabuk ANA SAYFA / üst çubuk \"+\"")
 	var album: CanvasLayer = await _open_fresh()
 	var card: Button = album.card(OWNED)
 	_watch(card, "card")
@@ -723,10 +733,13 @@ func _normal_taps() -> void:
 	_c("L kutu: değiştirme adımında 2. yuva → tam 1 değiştirme (yeni parça girdi, eskisi çıktı, boyut 3)",
 		SaveManager.profile_showcase().has(OWNED) and not SaveManager.profile_showcase().has(old)
 		and SaveManager.profile_showcase().size() == 3)
+	# TASK/057 Tur 2: üst çubukta geri oku yok — Ana Sayfa'ya dönüş kabuğun ANA SAYFA öğesi.
 	album = await _open_fresh()
+	_c("TASK/057 Tur 2: Koleksiyon üst çubuğunda geri oku yok (back_button() null)", album.top_bar().back_button() == null)
 	_mark()
-	await _tap(album.top_bar().back_button())
-	_c("L üst çubuk geri: tam 1 gezinme → Ana Sayfa", _n.get("home_requested", 0) == 1 and _main._active_tab == 0)
+	await _tap(_main.global_nav().item_button(0))
+	_c("L kabuk ANA SAYFA: tam 1 gezinme → Ana Sayfa", _nav_delta() == 1 and _main._active_tab == 0
+		and not album.visible)
 	album = await _open_fresh()
 	_mark()
 	await _tap(album.top_bar().add_button())
@@ -887,11 +900,11 @@ func _hidden_pressed() -> void:
 	await _settle(2)
 	_mark()
 	card.pressed.emit()
-	bar.back_button().pressed.emit()
+	# TASK/057 Tur 2: üst çubukta geri oku yok — kalan üst çubuk düğmesi "+".
 	bar.add_button().pressed.emit()
 	await _settle(2)
-	_c("S: Koleksiyon gizliyken karta / üst çubuk geriye / \"+\"ya gelen pressed → detay 0, gezinme isteği 0, Ana Sayfa'da",
-		not album.is_detail_open() and _n.get("detail_opened", 0) == 0 and _n.get("home_requested", 0) == 0
+	_c("S: Koleksiyon gizliyken karta / üst çubuk \"+\"ya gelen pressed → detay 0, gezinme 0 (Mağaza isteği 0, kabuk 0), Ana Sayfa'da",
+		not album.is_detail_open() and _n.get("detail_opened", 0) == 0 and _nav_delta() == 0
 		and _n.get("shop_requested", 0) == 0 and _main._active_tab == 0)
 	album = await _open_fresh()
 	await _open_detail(album, OWNED)
@@ -955,13 +968,15 @@ func _source_contract() -> void:
 		end_fn.contains("button.disabled = true") and end_fn.contains("button.disabled = false")
 		and end_fn.find("button.disabled = true") < end_fn.find("button.disabled = false") and not end_fn.contains("emit"))
 	var wired: Array[String] = []
-	for token: String in ["_own_gesture(card)", "_own_gesture(_bar.back_button())", "_own_gesture(_bar.add_button())",
+	for token: String in ["_own_gesture(card)", "_own_gesture(_bar.add_button())",
 			"_own_gesture(_detail_primary)", "_own_gesture(_detail_secondary)", "_own_gesture(tile)",
 			"_own_gesture(close_button)"]:
 		if not code.contains(token):
 			wired.append(token)
-	_c("Koleksiyon'un TÜM düğmeleri sahipliğe bağlı (kart, üst çubuk geri / +, birincil, ikincil, kutu, X)%s"
+	_c("Koleksiyon'un TÜM düğmeleri sahipliğe bağlı (kart, üst çubuk +, birincil, ikincil, kutu, X)%s"
 		% ("" if wired.is_empty() else " (eksik: %s)" % ", ".join(wired)), wired.is_empty())
+	_c("TASK/057 Tur 2: Koleksiyon üst çubuğunda geri oku yok — kaynakta back_button() sahipliği / koruması ve home_requested yok",
+		not code.contains("back_button()") and not code.contains("home_requested"))
 	var guarded: Array[String] = []
 	for pair: Array in [["func _on_card_selected(", "_gesture_ok(card)"], ["func _on_detail_primary(", "_gesture_ok(_detail_primary)"],
 			["func _on_detail_secondary(", "_gesture_ok(_detail_secondary)"],
@@ -973,10 +988,8 @@ func _source_contract() -> void:
 	_c("eylem işleyicileri sahiplik korumasından geçer (kart seçimi, birincil, ikincil, kutu)%s"
 		% ("" if guarded.is_empty() else " (korumasız: %s)" % ", ".join(guarded)), guarded.is_empty())
 	var ready_fn: String = _function(code, "func _ready(")
-	_c("  … üst çubuk gezinmesi korumalı: home_requested / shop_requested yalnız _gesture_ok'tan sonra",
-		ready_fn.find("_gesture_ok(_bar.back_button())") >= 0
-		and ready_fn.find("_gesture_ok(_bar.back_button())") < ready_fn.find("home_requested.emit()")
-		and ready_fn.find("_gesture_ok(_bar.add_button())") >= 0
+	_c("  … üst çubuk gezinmesi korumalı: shop_requested (\"+\") yalnız _gesture_ok'tan sonra",
+		ready_fn.find("_gesture_ok(_bar.add_button())") >= 0
 		and ready_fn.find("_gesture_ok(_bar.add_button())") < ready_fn.find("shop_requested.emit()"))
 	var primary_fn: String = _function(code, "func _on_detail_primary(")
 	_c("  … birincil: koruma vitrin yazmasından / Mağaza isteğinden ÖNCE", primary_fn.find("_gesture_ok(_detail_primary)") >= 0
@@ -990,9 +1003,10 @@ func _source_contract() -> void:
 		and recorder_at >= 0 and recorder_at < detail_fn.find("UiKit.attach_dim_close(")
 		and detail_fn.contains("if not _dim_release_canceled:"))
 	var card_src: String = _strip_comments(FileAccess.get_file_as_string("res://scripts/ui/collection_skin_card.gd"))
-	_c("kart sınıfı ve paylaşılan yardımcılar: kart yalnız selected yayar, ScreenTopBar aynen, attach_dim_close kapanışı çağırır (TASK/055: iptali de süzer)",
+	var bar_src: String = FileAccess.get_file_as_string("res://scripts/ui/screen_top_bar.gd")
+	_c("kart sınıfı ve paylaşılan yardımcılar: kart yalnız selected yayar, ScreenTopBar \"+\" aynen (TASK/057 Tur 2: geri oku yok — back_pressed yok), attach_dim_close kapanışı çağırır (TASK/055: iptali de süzer)",
 		card_src.contains("pressed.connect(func() -> void: selected.emit(_id))")
-		and FileAccess.get_file_as_string("res://scripts/ui/screen_top_bar.gd").contains("_back.pressed.connect(func() -> void: back_pressed.emit())")
+		and bar_src.contains("pressed.connect(func() -> void: add_pressed.emit())") and not bar_src.contains("back_pressed")
 		and _function(_strip_comments(FileAccess.get_file_as_string("res://scripts/ui/ui_kit.gd")), "static func attach_dim_close(")
 			.contains("on_close.call()"))
 	_c("Main'in geri yönlendirmesi / geçiş yatışması değişmedi (Koleksiyon handle_back, 300 ms)",
@@ -1047,7 +1061,7 @@ func _open_fresh(extra: Dictionary = {}) -> CanvasLayer:
 	_events = []
 	var album: CanvasLayer = _main._screens[2]
 	album.detail_opened.connect(func() -> void: _bump("detail_opened"))
-	album.home_requested.connect(func() -> void: _bump("home_requested"))
+	# TASK/057 Tur 2: albümde home_requested yok (geri oku kalktı) — Ana Sayfa gezinmesi `_nav_delta()` ile sayılır.
 	album.shop_requested.connect(func() -> void: _bump("shop_requested"))
 	album.shop_skin_requested.connect(func(_id: StringName) -> void: _bump("shop_skin_requested"))
 	album.visibility_changed.connect(func() -> void: _ev("album:%s" % ("on" if album.visible else "off")))
@@ -1062,6 +1076,7 @@ func _open_fresh(extra: Dictionary = {}) -> CanvasLayer:
 			_ev("dim.gui:ScreenTouch:%s%s" % ["DOWN" if event.is_pressed() else "UP", ":CANCELED" if event.is_canceled() else ""]))
 	_main._show_tab(2)
 	await _wait_settled()
+	_nav_mark = int(_main.get("nav_navigations"))
 	return album
 
 
@@ -1125,6 +1140,14 @@ func _mark() -> void:
 	_n = {}
 	_events = []
 	_t0 = Time.get_ticks_msec()
+	if _main != null and is_instance_valid(_main):
+		_nav_mark = int(_main.get("nav_navigations"))
+
+
+## Son `_mark` / `_open_fresh`'ten beri kabuğun (GlobalNav) yaptığı gezinme sayısı (TASK/057 Tur 2: Ana Sayfa'ya dönüş
+## kabuğun ANA SAYFA öğesinden — eski `home_requested` sayacının yerine).
+func _nav_delta() -> int:
+	return int(_main.get("nav_navigations")) - _nav_mark
 
 
 func _ev(tag: String) -> void:

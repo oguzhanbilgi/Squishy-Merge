@@ -4,7 +4,7 @@ extends Node
 ##
 ##   godot --headless --audio-driver Dummy --path . res://tools/collection_ui_test.tscn
 ##
-## Kontroller: yapı (ScreenTopBar + "KOLEKSİYON", geri, Hamur pill'i + "+",
+## Kontroller: yapı (ScreenTopBar + "KOLEKSİYON", geri oku YOK — TASK/057 Tur 2, Hamur pill'i + "+",
 ## alt sekme çubuğu YOK, sabit albüm başlığı, gerçek ScrollContainer, dört
 ## rarity plakası, tam 20 katalog kartı — TASK/044: "Varsayılan" kartı / seçim
 ## halkası / vitrin paneli / TAK YOK); katalog (sıra, 8/6/4/2, her kart GERÇEK
@@ -163,9 +163,13 @@ func _ready() -> void:
 	await get_tree().process_frame
 	await get_tree().process_frame
 	var bar: ScreenTopBar = screen.top_bar()
-	_c("üst satır ScreenTopBar: geri ButtonHomeIcon (oturmuş), Hamur PanelHomePill", bar != null
-		and bar.back_button().theme_type_variation == &"ButtonHomeIcon" and bar.back_button().has_meta(&"face")
+	_c("TASK/057 Tur 2: üst satır ScreenTopBar, sol üstte geri oku yok (back_button() null), Hamur PanelHomePill", bar != null
+		and bar.back_button() == null
 		and (bar.pill().get_meta(&"pill") as PanelContainer).theme_type_variation == &"PanelHomePill")
+	_c("TASK/057 Tur 2: Koleksiyon kaynağında geri oku yok (home_requested / back_button() yok), ScreenTopBar'da back_pressed yok",
+		not FileAccess.get_file_as_string("res://scripts/ui/collection_screen.gd").contains("home_requested")
+		and not FileAccess.get_file_as_string("res://scripts/ui/collection_screen.gd").contains("back_button()")
+		and not FileAccess.get_file_as_string("res://scripts/ui/screen_top_bar.gd").contains("back_pressed"))
 	_c("başlık 'KOLEKSİYON' (noktalı İ) pembe HeaderRibbon", bar.title_text() == "KOLEKSİYON"
 		and bar.title_plate().theme_type_variation == &"HeaderRibbon")
 	_c("Hamur pill'inde nane '+' VAR (→ Mağaza; kilitli parçaların alınacağı yer)", bar.add_button() != null
@@ -571,8 +575,11 @@ func _ready() -> void:
 	print("-- rotalar")
 	_main._show_tab(2)
 	await get_tree().process_frame
-	bar.back_button().pressed.emit()
-	_c("geri → Ana Sayfa", _main._active_tab == 0 and home.visible and not screen.visible)
+	# TASK/057 Tur 2: üst çubukta geri oku yok — Ana Sayfa'ya dönüş küresel kabuğun ANA SAYFA öğesi.
+	var nav_before: int = _main.nav_navigations
+	_main.global_nav().item_button(0).pressed.emit()
+	_c("kabuk ANA SAYFA → Ana Sayfa (tam 1 gezinme)", _main._active_tab == 0 and home.visible and not screen.visible
+		and _main.nav_navigations == nav_before + 1)
 	home.feature_button(&"collection").pressed.emit()
 	_c("Home KOLEKSİYON madalyonu → Koleksiyon (tek örnek)", _main._active_tab == 2 and screen.visible
 		and _count_class(_main, "CollectionSkinCard") == 20)
@@ -605,19 +612,20 @@ func _ready() -> void:
 	await get_tree().process_frame
 	_c("Home Koleksiyon madalyonu aynı sayıyı gösteriyor (4/20)", home.feature_button(&"collection").badge_text() == "4/20")
 	# A36 cihaz kapısı (06.2): basış + bırakış AYNI karede (çok kısa dokunuş /
-	# adb tap) → geri butonu ekran gizlenirken 0.94'te asılı kalıyordu.
-	var back: Button = bar.back_button()
-	var back_center: Vector2 = back.get_global_rect().get_center()
-	_send_click(back_center, true)
-	_send_click(back_center, false)
+	# adb tap) → üst çubuk butonu ekran gizlenirken 0.94'te asılı kalıyordu. TASK/057 Tur 2: geri oku
+	# yok — aynı sınama üst çubuğun kalan butonu "+" (→ Mağaza, Koleksiyon gizlenir) ile.
+	var add: Button = bar.add_button()
+	var add_center: Vector2 = add.get_global_rect().get_center()
+	_send_click(add_center, true)
+	_send_click(add_center, false)
 	await get_tree().process_frame
-	var went_home: bool = _main._active_tab == 0 and not screen.visible
+	var went_shop: bool = _main._active_tab == 3 and not screen.visible
 	await get_tree().create_timer(0.4).timeout
 	_main._show_tab(2)
 	await get_tree().create_timer(0.3).timeout
 	await get_tree().process_frame
-	_c("aynı karede basıp bırakılan geri butonu → Ana Sayfa; Koleksiyon yeniden açılınca buton ölçeği 1.0 (0.94'te asılı değil)",
-		went_home and back.scale.is_equal_approx(Vector2.ONE))
+	_c("aynı karede basıp bırakılan '+' → Mağaza; Koleksiyon yeniden açılınca buton ölçeği 1.0 (0.94'te asılı değil)",
+		went_shop and add.scale.is_equal_approx(Vector2.ONE))
 	var first_card: CollectionSkinCard = screen.card(&"common_01")
 	var card_center: Vector2 = first_card.get_global_rect().get_center()
 	_send_click(card_center, true)
@@ -845,13 +853,14 @@ func _check_layout(screen: CanvasLayer, safe_top: float, window_tag: String) -> 
 	var bar_bottom: float = bar.height()
 	var screen_rect: Rect2 = Rect2(Vector2(0, safe_top), Vector2(view.x, view.y - safe_top))
 	var bar_ok: bool = true
-	for control in [bar.back_button(), bar.pill(), bar.title_plate()]:
+	# TASK/057 Tur 2: üst satırda geri oku yok — satır = başlık kurdelesi + Hamur pill'i ("+").
+	for control in [bar.pill(), bar.title_plate()]:
 		if not screen_rect.encloses(control.get_global_rect()):
 			bar_ok = false
 			print("    üst satır ekran dışı: ", control.name, " ", control.get_global_rect())
 	_c("%s üst satır güvenli payın altında, ekranda; satır yüksekliği %d" % [tag, int(bar_bottom)], bar_ok
 		and is_equal_approx(bar_bottom, safe_top + ScreenTopBar.TOP_MARGIN + ScreenTopBar.ROW_HEIGHT))
-	_c("%s geri ≥ 48, '+' ≥ 48" % tag, bar.back_button().size.x >= 48.0 and bar.back_button().size.y >= 48.0
+	_c("%s geri oku yok (TASK/057 Tur 2), '+' ≥ 48" % tag, bar.back_button() == null
 		and bar.add_button().size.x >= 48.0 and bar.add_button().size.y >= 48.0)
 	var header: Rect2 = screen.header().get_global_rect()
 	var bar_rect: Rect2 = Rect2(Vector2(0, safe_top), Vector2(view.x, bar_bottom - safe_top))
@@ -930,7 +939,7 @@ func _check_layout(screen: CanvasLayer, safe_top: float, window_tag: String) -> 
 		badge_ok and showcased.get_global_rect().encloses(plate) and plate.end.y <= face_bottom - 2.0
 		and showcased.get_global_rect().encloses(showcased._name_label.get_global_rect()))
 	# Kaydırma: sonuna git, son kart tamamen görünür + alt pay; satır ve başlık oynamaz.
-	var bar_pos_before: Vector2 = bar.back_button().global_position
+	var bar_pos_before: Vector2 = bar.pill().global_position
 	var header_before: Vector2 = screen.header().global_position
 	var max_scroll: float = scroll.get_v_scroll_bar().max_value - scroll.size.y
 	scroll.scroll_vertical = int(max_scroll) + 10
@@ -940,7 +949,7 @@ func _check_layout(screen: CanvasLayer, safe_top: float, window_tag: String) -> 
 	_c("%s albüm kaydırılabilir (max > 0), sonunda son kart tamamen ekranda, alt pay ≥ 40" % tag,
 		max_scroll > 0.0 and last.end.y <= view.y - 40.0 and last.position.y >= gallery_y)
 	_c("%s kaydırma üst satırı ve başlığı OYNATMADI (sabit)" % tag,
-		bar.back_button().global_position == bar_pos_before and screen.header().global_position == header_before)
+		bar.pill().global_position == bar_pos_before and screen.header().global_position == header_before)
 	scroll.scroll_vertical = 0
 	await get_tree().process_frame
 	# Detay penceresi: kilitli / sahip / vitrinde (iki eylem) / değiştirme adımı.

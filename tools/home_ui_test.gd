@@ -268,8 +268,12 @@ func _ready() -> void:
 	_c("Profil dişli çarkı → Ayarlar (Main'in tek SettingsPanel'i)", _main._settings.visible and _main._active_tab == 4)
 	_main.close_settings()
 	_c("ayarlar kapandı, Profil'de kalındı", not _main._settings.visible and _main._active_tab == 4 and profile.visible)
-	profile.top_bar().back_button().pressed.emit()
-	_c("Profil geri → Ana Sayfa", _main._active_tab == 0 and home.visible and not profile.visible)
+	# TASK/057 Tur 2: Profil üst çubuğunda geri oku yok — Ana Sayfa'ya dönüş küresel kabuğun ANA SAYFA öğesi.
+	_c("TASK/057 Tur 2: Profil üst çubuğunda geri oku yok (back_button() null)", profile.top_bar().back_button() == null)
+	var nav_before: int = _main.nav_navigations
+	_main.global_nav().item_button(0).pressed.emit()
+	_c("Profil'de kabuk ANA SAYFA → Ana Sayfa (tam 1 gezinme)", _main._active_tab == 0 and home.visible
+		and not profile.visible and _main.nav_navigations == nav_before + 1)
 	_c("Ana Sayfa ekranı hareket ediyor (process açık)", home.is_processing())
 	_main._show_tab(1)
 	_c("gizliyken hareket durur", not home.is_processing())

@@ -567,9 +567,11 @@ func _test_main_legacy_unknown() -> void:
 	var slot: float = m.banner_slot_px()
 	var play_bottom_after: float = home._play_pulse.position.y + home._play_pulse.size.y
 	var view_h: float = home._root.size.y
-	# TASK/057: gezinme kabuğu yuva varken reklamla arasına dokunulmayan BANNER_GAP bırakır (yuvasız BOTTOM_GAP) — OYNA
+	# TASK/057: kabuğun payı yuvayla değişir: reklamla arasına BANNER_GAP (yuvasız BOTTOM_GAP); Tur 2: kısa ekran +
+	# yuvada KOMPAKT kip merkez taşmasını (40) bırakır. Fark = yuvalı pay − yuvasız normal pay — OYNA
 	# yuva + bu fark kadar yukarı.
-	var gap_delta: float = (GlobalNav.BANNER_GAP - GlobalNav.BOTTOM_GAP) if _main.has_method("global_nav") else 0.0
+	var gap_delta: float = (_main.global_nav().reserve() - (GlobalNav.BOTTOM_GAP + GlobalNav.TRAY_HEIGHT
+		+ NavItem.CENTER_RISE)) if _main.has_method("global_nav") else 0.0
 	_c("yaş girilince yuva açıldı ve görünür Ana Sayfa HEMEN yeniden yerleşti: OYNA yuva kadar yukarı, banner'ın üstünde (%.0f px + kabuk aralığı %.0f px)" % [slot, gap_delta],
 		slot > 0.0 and is_equal_approx(play_bottom_before - play_bottom_after, slot + gap_delta)
 		and play_bottom_after <= view_h - UiKit.bottom_inset(home._root.size) + 0.5)

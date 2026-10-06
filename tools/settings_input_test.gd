@@ -28,7 +28,8 @@ extends Node
 ##                      pencere bittikten sonraki bırakışı da), çift dokunuş koruması
 ##   hedefli güçler     Bomba / Büyütücü silahlıyken Ayarlar → GERİ: ilk dokunuş hedef, bırakış
 ##                      tüketilir (drop yok), sonraki bağımsız dokunuş düşürür
-##   Profil Ayarlar     Profil dişlisi → GERİ / KAPAT / karartma → ilk dokunuş (geri) çalışır;
+##   Profil Ayarlar     Profil dişlisi → GERİ / KAPAT / karartma → ilk dokunuş (kabuk ANA SAYFA; TASK/057
+##                      Tur 2: üst çubukta geri oku yok) çalışır;
 ##                      çift dokunuş koruması
 ##   pencereler         Mola / Refill / Devam (oyun), Koleksiyon detayı / Başarımlar / Unvanlar
 ##                      / Günlük / Sandık (kabuk): aç → GERİ (ya da buton) → ilk dokunuş çalışır
@@ -404,9 +405,11 @@ func _profile_settings() -> void:
 		_c("Profil %s: Ayarlar tam bir kez kapandı, Profil görünür" % _mode_name(mode), not _main._settings.visible
 			and _closes == closes_before + 1 and _main._active_tab == 4 and profile.visible)
 		await _wait_settled()
-		await _finger_tap(_center(profile.top_bar().back_button()))
-		_c("Profil %s: ilk dokunuş (Profil geri) çalıştı → Ana Sayfa, bastırılan dizi yok" % _mode_name(mode),
-			_main._active_tab == 0 and home.visible and _no_settled())
+		# TASK/057 Tur 2: Profil üst çubuğunda geri oku yok — ilk dokunuş kabuğun ANA SAYFA öğesine.
+		var nav_before: int = _main.nav_navigations
+		await _finger_tap(_center(_main.global_nav().item_button(0)))
+		_c("Profil %s: ilk dokunuş (kabuk ANA SAYFA) çalıştı → Ana Sayfa (tam 1 gezinme), bastırılan dizi yok" % _mode_name(mode),
+			_main._active_tab == 0 and home.visible and _main.nav_navigations == nav_before + 1 and _no_settled())
 	print("-- Profil dişlisi çift dokunuş koruması (TASK/044)")
 	_main._show_tab(4)
 	await _wait_settled()

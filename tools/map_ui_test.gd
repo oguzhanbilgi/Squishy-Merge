@@ -6,7 +6,8 @@ extends Node
 ##
 ## Kontroller: veri/ilerleme (10 level + Sonsuz; üç kayıt durumunda düğüm
 ## durumları kanonik SaveManager verisinden; Sonsuz kuralı; yıldızlar);
-## rotalar (geri → Ana Sayfa, Android geri → Ana Sayfa, Hamur "+" → Mağaza,
+## rotalar (kabuk ANA SAYFA → Ana Sayfa — TASK/057 Tur 2: üst çubukta geri oku
+## yok —, Android geri → Ana Sayfa, Hamur "+" → Mağaza,
 ## sıradaki düğüm → kanonik level başlangıcı, kilitli başlamaz, Sonsuz
 ## yalnız açıkken); görsel yapı (tek dünya zemini, dashboard kartı / sekme
 ## çubuğu yok, sıradaki düğüm daha güçlü, dokunma ≥ 48, üst satırla ve
@@ -101,10 +102,14 @@ func _ready() -> void:
 		and _count_variation(map, &"IconButton") == 0)
 	_c("eski tam ekran karartma (Scrim) yok", map.get_node_or_null("Scrim") == null and map.get_node_or_null("Root/Scrim") == null)
 	var bar: ScreenTopBar = map.top_bar()
-	_c("üst satır ScreenTopBar: geri ButtonHomeIcon (oturmuş), Hamur PanelHomePill + ButtonHomeAdd", bar != null
-		and bar.back_button().theme_type_variation == &"ButtonHomeIcon" and bar.back_button().has_meta(&"face")
+	_c("TASK/057 Tur 2: üst satır ScreenTopBar, sol üstte geri oku yok (back_button() null), Hamur PanelHomePill + ButtonHomeAdd",
+		bar != null and bar.back_button() == null
 		and (bar.pill().get_meta(&"pill") as PanelContainer).theme_type_variation == &"PanelHomePill"
 		and bar.add_button().theme_type_variation == &"ButtonHomeAdd")
+	_c("TASK/057 Tur 2: Harita kaynağında geri oku yok (home_requested / back_button() yok), ScreenTopBar'da back_pressed yok",
+		not FileAccess.get_file_as_string("res://scripts/ui/level_select.gd").contains("home_requested")
+		and not FileAccess.get_file_as_string("res://scripts/ui/level_select.gd").contains("back_button()")
+		and not FileAccess.get_file_as_string("res://scripts/ui/screen_top_bar.gd").contains("back_pressed"))
 	_c("başlık 'HARİTA' (noktalı İ) pembe HeaderRibbon", bar.title_text() == "HARİTA"
 		and bar.title_plate().theme_type_variation == &"HeaderRibbon")
 	_c("Harita'da sekme çubuğu YOK (M8.6-06: TabBar düğümü main'de yok)", _main.get_node_or_null("TabBar") == null and not ("_tabs" in _main))
@@ -200,8 +205,11 @@ func _ready() -> void:
 	_main._show_tab(1)
 	_refresh(map)
 	await get_tree().process_frame
-	bar.back_button().pressed.emit()
-	_c("geri → Ana Sayfa", _main._active_tab == 0 and _main._screens[0].visible and not map.visible)
+	# TASK/057 Tur 2: üst çubukta geri oku yok — Ana Sayfa'ya dönüş küresel kabuğun ANA SAYFA öğesi.
+	var nav_before: int = _main.nav_navigations
+	_main.global_nav().item_button(0).pressed.emit()
+	_c("kabuk ANA SAYFA → Ana Sayfa (tam 1 gezinme)", _main._active_tab == 0 and _main._screens[0].visible and not map.visible
+		and _main.nav_navigations == nav_before + 1)
 	_main._show_tab(1)
 	bar.add_button().pressed.emit()
 	_c("Hamur '+' → Mağaza", _main._active_tab == 3 and _main._screens[3].visible)
@@ -486,7 +494,8 @@ func _check_layout(map: CanvasLayer, view: Vector2, safe_top: float, window_tag:
 	_c("%s 11 düğüm (plaka dahil) güvenli alanda" % tag, inside)
 	_c("%s dokunma hedefleri ≥ 48×48" % tag, touch)
 	_c("%s hiçbir düğüm üst satırın altına girmiyor" % tag, below_bar)
-	var bar_controls: Array[Control] = [bar.back_button(), bar.pill(), bar.title_plate()]
+	# TASK/057 Tur 2: üst satırda geri oku yok — satır = başlık kurdelesi + Hamur pill'i ("+").
+	var bar_controls: Array[Control] = [bar.pill(), bar.title_plate()]
 	var bar_clear: bool = true
 	for control in bar_controls:
 		var rect: Rect2 = control.get_global_rect()
@@ -498,7 +507,7 @@ func _check_layout(map: CanvasLayer, view: Vector2, safe_top: float, window_tag:
 				bar_clear = false
 				print("    üst satır düğümle kesişiyor: ", control.name, " ", node.name)
 	_c("%s üst satır güvenli payın altında, düğümlerle kesişmiyor" % tag, bar_clear)
-	_c("%s geri butonu ve '+' ≥ 48 px" % tag, bar.back_button().size.x >= 48.0 and bar.add_button().size.x >= 48.0)
+	_c("%s geri oku yok (TASK/057 Tur 2), '+' ≥ 48 px" % tag, bar.back_button() == null and bar.add_button().size.x >= 48.0)
 	var overlap: bool = false
 	var visual_overlap: bool = false
 	for i in all_nodes.size():

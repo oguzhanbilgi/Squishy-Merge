@@ -17,7 +17,8 @@ extends Node
 ## TAKILI durumu yok, satın alınan parça vitrine OTOMATİK eklenmez); SATIN AL üzerinden sürükleme (06.3: gerçek basış → hareket →
 ## bırakış dizisi Mağaza'yı kaydırır, onay açılmaz, kayıt/Hamur/stok değişmez,
 ## buton basılı kalmaz; dokunuş tam bir onay; fling de kaydırır — güç ve skin
-## butonu); rotalar (geri → Ana Sayfa, Android geri → önce onay kapanır sonra
+## butonu); rotalar (kabuk ANA SAYFA → Ana Sayfa — TASK/057 Tur 2: üst çubukta geri
+## oku yok —, Android geri → önce onay kapanır sonra
 ## Ana Sayfa, çıkış yok); dört pencere + A36 payı (kırpma/çakışma yok,
 ## dokunma ≥ 48, sabit üst satır, ilk kart satırın altında, en alt
 ## erişilebilir); kayıt dosyası değişmez; kaynak hijyeni + sahte ürün yok.
@@ -127,9 +128,13 @@ func _ready() -> void:
 	await get_tree().process_frame
 	await get_tree().process_frame
 	var bar: ScreenTopBar = shop.top_bar()
-	_c("üst satır ScreenTopBar: geri ButtonHomeIcon (oturmuş), Hamur PanelHomePill", bar != null
-		and bar.back_button().theme_type_variation == &"ButtonHomeIcon" and bar.back_button().has_meta(&"face")
+	_c("TASK/057 Tur 2: üst satır ScreenTopBar, sol üstte geri oku yok (back_button() null), Hamur PanelHomePill", bar != null
+		and bar.back_button() == null
 		and (bar.pill().get_meta(&"pill") as PanelContainer).theme_type_variation == &"PanelHomePill")
+	_c("TASK/057 Tur 2: Mağaza kaynağında geri oku yok (home_requested / back_button() yok), ScreenTopBar'da back_pressed yok",
+		not FileAccess.get_file_as_string("res://scripts/ui/shop_screen.gd").contains("home_requested")
+		and not FileAccess.get_file_as_string("res://scripts/ui/shop_screen.gd").contains("back_button()")
+		and not FileAccess.get_file_as_string("res://scripts/ui/screen_top_bar.gd").contains("back_pressed"))
 	_c("başlık 'MAĞAZA' (noktalı İ, Ğ) pembe HeaderRibbon", bar.title_text() == "MAĞAZA"
 		and bar.title_plate().theme_type_variation == &"HeaderRibbon")
 	_c("Mağaza'da Hamur pill'inde '+' YOK (kendine giden rota yok)", bar.add_button() == null
@@ -520,8 +525,11 @@ func _ready() -> void:
 	_apply_mid()
 	_main._show_tab(3)
 	await get_tree().process_frame
-	bar.back_button().pressed.emit()
-	_c("geri → Ana Sayfa", _main._active_tab == 0 and _main._screens[0].visible and not shop.visible)
+	# TASK/057 Tur 2: üst çubukta geri oku yok — Ana Sayfa'ya dönüş küresel kabuğun ANA SAYFA öğesi.
+	var nav_before: int = _main.nav_navigations
+	_main.global_nav().item_button(0).pressed.emit()
+	_c("kabuk ANA SAYFA → Ana Sayfa (tam 1 gezinme)", _main._active_tab == 0 and _main._screens[0].visible and not shop.visible
+		and _main.nav_navigations == nav_before + 1)
 	_main._screens[0].feature_button(&"shop").pressed.emit()
 	_c("Home MAĞAZA madalyonu → Mağaza (tek örnek, çubuk yok)", _main._active_tab == 3 and shop.visible
 		and _main.get_node_or_null("TabBar") == null and _count_class(_main, "ShopPowerCard") == 4)
@@ -573,7 +581,8 @@ func _ready() -> void:
 	await get_tree().process_frame
 	await get_tree().process_frame
 	await _check_layout(shop, Vector2(VIEWS[1]), A36_SAFE_TOP, "720x1560")
-	_c("A36: üst satır punch-hole altından başlar (geri butonu y ≥ 61)", bar.back_button().global_position.y >= A36_SAFE_TOP)
+	# TASK/057 Tur 2: geri oku yok — satırın ilk düğmesi Hamur pill'i.
+	_c("A36: üst satır punch-hole altından başlar (Hamur pill'i y ≥ 61)", bar.pill().global_position.y >= A36_SAFE_TOP)
 	shop._layout_with_safe_top(-1.0)
 	await _resize(VIEWS[0])
 
@@ -817,7 +826,7 @@ func _all_cards(shop: CanvasLayer) -> Array[Control]:
 
 ## Yerleşim: üst satır güvenli payın altında ve sabit; kartlar 2 sütun,
 ## yatayda ekranda, birbiriyle kesişmiyor, ilk kart satırın altında
-## başlıyor; SATIN AL / geri ≥ 48; kaydırma sonunda son kart tamamen
+## başlıyor; SATIN AL ≥ 48, geri oku yok (TASK/057 Tur 2); kaydırma sonunda son kart tamamen
 ## görünür ve alt paya sığıyor; kaydırma üst satırı oynatmıyor.
 func _check_layout(shop: CanvasLayer, view: Vector2, safe_top: float, window_tag: String) -> void:
 	var tag: String = "%s (tuval %dx%d)%s" % [window_tag, int(view.x), int(view.y), " +A36" if safe_top > 0.0 else ""]
@@ -829,14 +838,15 @@ func _check_layout(shop: CanvasLayer, view: Vector2, safe_top: float, window_tag
 	await get_tree().process_frame
 	var bar_bottom: float = bar.height()
 	var screen: Rect2 = Rect2(Vector2(0, safe_top), Vector2(720.0, view.y - safe_top))
-	var bar_controls: Array[Control] = [bar.back_button(), bar.pill(), bar.title_plate()]
+	# TASK/057 Tur 2: üst satırda geri oku yok — satır = başlık kurdelesi + Hamur pill'i.
+	var bar_controls: Array[Control] = [bar.pill(), bar.title_plate()]
 	var bar_ok: bool = true
 	for control in bar_controls:
 		if not screen.encloses(control.get_global_rect()):
 			bar_ok = false
 			print("    üst satır ekran dışı: ", control.name, " ", control.get_global_rect())
 	_c("%s üst satır güvenli payın altında, ekranda" % tag, bar_ok)
-	_c("%s geri butonu ≥ 48 px" % tag, bar.back_button().size.x >= 48.0 and bar.back_button().size.y >= 48.0)
+	_c("%s geri oku yok (TASK/057 Tur 2: back_button() null)" % tag, bar.back_button() == null)
 	var cards: Array[Control] = _all_cards(shop)
 	var inside_x: bool = true
 	var touch: bool = true
@@ -887,7 +897,7 @@ func _check_layout(shop: CanvasLayer, view: Vector2, safe_top: float, window_tag
 		bomb._body.size.y <= bomb.size.y + 0.5 and bomb._body.get_combined_minimum_size().y <= bomb.size.y + 0.5
 		and skin._body.get_combined_minimum_size().y <= skin.size.y + 0.5)
 	# Kaydırma: sonuna git, son kart tamamen görünür + alt pay; üst satır oynamaz.
-	var bar_pos_before: Vector2 = bar.back_button().global_position
+	var bar_pos_before: Vector2 = bar.pill().global_position
 	var max_scroll: float = scroll.get_v_scroll_bar().max_value - scroll.size.y
 	scroll.scroll_vertical = int(max_scroll) + 10
 	await get_tree().process_frame
@@ -895,7 +905,7 @@ func _check_layout(shop: CanvasLayer, view: Vector2, safe_top: float, window_tag
 	var last: Rect2 = cards[cards.size() - 1].get_global_rect()
 	_c("%s içerik kaydırılabilir (max > 0) ve sonunda son kart tamamen ekranda, alt pay ≥ 40" % tag,
 		max_scroll > 0.0 and last.end.y <= view.y - 40.0 and last.position.y >= bar_bottom)
-	_c("%s kaydırma üst satırı oynatmadı (sabit)" % tag, bar.back_button().global_position == bar_pos_before)
+	_c("%s kaydırma üst satırı oynatmadı (sabit)" % tag, bar.pill().global_position == bar_pos_before)
 	_c("%s kaydırma sonunda ilk kart satırın altına girip kayboldu" % tag, cards[0].get_global_rect().end.y < bar_bottom)
 	_c("%s ScrollContainer tam ekran (y 0, yükseklik = tuval): içerik satırın ALTINDAN kayar, kırpılmaz" % tag,
 		scroll.global_position.y == 0.0 and is_equal_approx(scroll.size.y, view.y))
@@ -904,7 +914,7 @@ func _check_layout(shop: CanvasLayer, view: Vector2, safe_top: float, window_tag
 	await get_tree().process_frame
 	var bar_rect: Rect2 = Rect2(Vector2(0, safe_top), Vector2(720.0, bar_bottom - safe_top))
 	_c("%s orta kaydırmada bir kart üst satırla kesişiyor (satırın altında, haze örtüyor), satır yerinde" % tag,
-		cards[0].get_global_rect().intersects(bar_rect) and bar.back_button().global_position == bar_pos_before)
+		cards[0].get_global_rect().intersects(bar_rect) and bar.pill().global_position == bar_pos_before)
 	var haze: TextureRect = shop.haze()
 	var haze_tex: GradientTexture2D = haze.texture as GradientTexture2D
 	_c("%s üst haze satır boyunca düz bant (≥ .88 alfa) + %d px solma" % [tag, int(shop.HAZE_FADE)],

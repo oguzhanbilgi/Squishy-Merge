@@ -24,7 +24,7 @@ extends Node
 ##   14_shop_scrolled_bottom    kaydırma sonu (alt pay)
 ##   15_shop_confirm_power      güç onay penceresi
 ##   16_shop_confirm_skin       skin onay penceresi
-##   17_back_home               geri → Ana Sayfa (rota hedefi)
+##   17_back_home               kabuk ANA SAYFA → Ana Sayfa (rota hedefi; TASK/057 Tur 2: üst çubukta geri oku yok)
 ##
 ## Kullanım:
 ##   godot --path . res://tools/shop_shots.tscn -- <çıktı_klasörü> [GxY] [safe=61]
@@ -146,7 +146,8 @@ func _ready() -> void:
 	await _capture("14_shop_scrolled_bottom")
 
 	await _show_shop()
-	_shop().top_bar().back_button().pressed.emit()
+	# TASK/057 Tur 2: Mağaza üst çubuğunda geri oku yok — Ana Sayfa'ya dönüş kabuğun ANA SAYFA öğesi.
+	_main.global_nav().item_button(0).pressed.emit()
 	await _settle()
 	await _capture("17_back_home")
 

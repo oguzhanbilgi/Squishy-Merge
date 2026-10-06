@@ -5,8 +5,9 @@ extends Node
 ## uyum yazması, gezinme, pencere açma / kapama YOK; basış güvenle biter; sonraki taze dokunuş tam bir kez çalışır. Kod /
 ## klavye / erişilebilirlik etkinleştirmesi ve sonuçsuz doğal düğmeler aynen.
 ## Gerçek Main, gerçek ekranlar, gerçek parmak olayları (`Input.parse_input_event`, Android'deki gibi öykünülen fare).
-## Headless. Taban (60f8b71) üzerinde de koşar: GestureGuard sınıfına statik başvuru YOK (sahiplik `gesture_guard`
-## meta'sından okunur) — taban farkı betik hatasıyla değil, açık FAIL'lerle görünür.
+## Headless. GestureGuard sınıfına statik başvuru YOK (sahiplik `gesture_guard` meta'sından okunur). TASK/057 Tur 2'den
+## beri küresel gezinme kabuğunu (`global_nav()`, `nav_navigations`) kullanır — artık eski taban (60f8b71) üzerinde
+## koşmaz (hub üst satırlarında geri oku yok; Ana Sayfa'ya dönüş kabuk ANA SAYFA).
 ## SAHİBİN GERÇEK KAYDINA DOKUNMAZ: SaveManager test boyunca `user://qa_gui_action_cancel/` altındaki bir yola
 ## yönlendirilir, sonda geri alınır; gerçek kayıt ailesi (kanonik + .tmp + .bak) başta / sonda bayt bayt karşılaştırılır.
 ##   godot --headless --audio-driver Dummy --path . res://tools/gui_action_cancel_test.tscn
@@ -25,8 +26,9 @@ extends Node
 ## Bölümler:
 ##   A Profil vitrini     dolu yuva iptal / GERİ / sekme değişimi → 0 gezinme, 0 detay; KOLEKSİYONA GİT, unvan, TÜM
 ##                        BAŞARIMLAR iptal / GERİ → 0; gizli Profil'de bayat pencere kalmaz; taze dokunuş tam bir kez
-##   B Profil dişlisi     dişli / üst çubuk geri iptal / GERİ → Ayarlar açılmaz, gezinme yok; unvan satırı iptali unvan
-##                        yazmaz; taze dokunuşlar tam bir kez
+##   B Profil dişlisi     dişli / kabuk ANA SAYFA iptal / GERİ → Ayarlar açılmaz, gezinme yok; unvan satırı iptali unvan
+##                        yazmaz; taze dokunuşlar tam bir kez (TASK/057 Tur 2: hub üst çubuğunda geri oku yok — Ana
+##                        Sayfa'ya dönüş küresel kabuğun ANA SAYFA öğesi)
 ##   C Harita             düğüm iptal / GERİ → seviye başlamaz; "+" basılı + GERİ → Ana Sayfa görünür (boş ekran yok);
 ##                        Sonsuz iptali round başlatmaz; taze dokunuşlar tam bir kez
 ##   D Mağaza SATIN AL    kesin Hamur: kart iptali onay açmaz; onay SATIN AL iptal / odak kaybı / GERİ → 0 Hamur, stok
@@ -276,7 +278,7 @@ func _profile_showcase() -> void:
 # --- B: Profil dişlisi ve benzer kontroller --------------------------------------------------------------------------
 
 func _profile_gear() -> void:
-	print("-- B: Profil dişlisi / üst çubuk / unvan satırı")
+	print("-- B: Profil dişlisi / kabuk ANA SAYFA / unvan satırı")
 	await _boot()
 	await _tab(4)
 	var profile: CanvasLayer = _main._screens[4]
@@ -299,15 +301,21 @@ func _profile_gear() -> void:
 		and _count("gear.pressed") == 1)
 	_main.close_settings()
 	await _wait_settled()
-	var back: Button = profile.top_bar().back_button()
-	_watch(back, "bar_back")
+	# TASK/057 Tur 2: Profil üst çubuğunda geri oku yok — Ana Sayfa'ya dönüş kabuğun ANA SAYFA öğesi (GlobalNav'da sahipli).
+	_c("B4a TASK/057 Tur 2: Profil üst çubuğunda geri oku yok (back_button() null)", profile.top_bar().back_button() == null)
+	var home_item: Button = _main.global_nav().item_button(0)
+	_watch(home_item, "nav_home")
+	var navs: int = _main.nav_navigations
 	_mark()
-	await _gesture(back, "cancel")
-	_c("B4 üst çubuk geri iptali: Profil'de kalındı", _main._active_tab == 4 and _count("bar_back.pressed") == 0)
+	await _gesture(home_item, "cancel")
+	_c("B4 kabuk ANA SAYFA iptali: Profil'de kalındı, 0 gezinme, `pressed` doğmadı", _main._active_tab == 4
+		and _count("nav_home.pressed") == 0 and _main.nav_navigations == navs)
 	await _wait_settled()
+	navs = _main.nav_navigations
 	_mark()
-	await _tap(back)
-	_c("B5 taze üst çubuk geri: tam bir kez Ana Sayfa", _main._active_tab == 0 and _count("profile.home_requested") == 1)
+	await _tap(home_item)
+	_c("B5 taze kabuk ANA SAYFA: tam bir kez Ana Sayfa", _main._active_tab == 0 and _main.nav_navigations == navs + 1
+		and _count("nav_home.pressed") == 1)
 
 	await _boot({"total_merges": 150, "unlocked_achievements": ["merge_10", "merge_100"]})
 	await _tab(4)
@@ -385,14 +393,17 @@ func _map() -> void:
 	await _tab(1)
 	map = _main._screens[1]
 	var add: Button = map.top_bar().add_button()
-	var back: Button = map.top_bar().back_button()
+	# TASK/057 Tur 2: Harita üst çubuğunda geri oku yok — Ana Sayfa rotası kabuğun ANA SAYFA öğesi.
+	var home_item: Button = _main.global_nav().item_button(0)
 	_watch(add, "add")
-	_watch(back, "map_back")
+	_watch(home_item, "nav_home")
+	var navs: int = _main.nav_navigations
 	_mark()
 	await _gesture(add, "cancel")
-	await _gesture(back, "cancel")
-	_c("C4 üst çubuk \"+\" / geri iptali: Harita'da kalındı", _main._active_tab == 1 and _count("add.pressed") == 0
-		and _count("map_back.pressed") == 0)
+	await _gesture(home_item, "cancel")
+	_c("C4 üst çubuk \"+\" / kabuk ANA SAYFA iptali: Harita'da kalındı, 0 gezinme", _main._active_tab == 1
+		and _count("add.pressed") == 0 and _count("nav_home.pressed") == 0 and _main.nav_navigations == navs
+		and map.top_bar().back_button() == null)
 
 	await _boot()
 	await _tab(1)
@@ -922,17 +933,21 @@ func _focus_loss() -> void:
 		_count("gear.down") == 1 and _main._settings.visible and _count("gear.pressed") == 1)
 
 	# Paylaşılan üst çubuk tüketici tarafında sahipli (own + allows): odak kaybının bayat tıklaması röleden geçse de gezinmez.
+	# TASK/057 Tur 2: hub üst çubuğunda geri oku yok — kalan üst çubuk düğmeleri (Profil dişlisi, Harita "+") ve Ana
+	# Sayfa rotası olan kabuk ANA SAYFA öğesi (GlobalNav'da sahipli).
 	await _boot()
 	await _tab(4)
-	await _gesture(_main._screens[4].top_bar().back_button(), "focus")
-	_c("G11 Profil üst çubuk geri odak kaybı: Profil'de kalındı", _main._active_tab == 4)
+	await _gesture(_main._screens[4].top_bar().action_button(), "focus")
+	_c("G11 Profil üst çubuk dişlisi odak kaybı (işlenmeyen olay): Profil'de kalındı, Ayarlar açılmadı", _main._active_tab == 4
+		and not _main._settings.visible)
 	await _tab(1)
 	await _gesture(_main._screens[1].top_bar().add_button(), "focus")
-	await _gesture(_main._screens[1].top_bar().back_button(), "focus")
-	_c("G12 Harita üst çubuk \"+\" / geri odak kaybı: Harita'da kalındı", _main._active_tab == 1)
+	_c("G12 Harita üst çubuk \"+\" odak kaybı: Harita'da kalındı", _main._active_tab == 1)
 	await _tab(3)
-	await _gesture(_main._screens[3].top_bar().back_button(), "focus")
-	_c("G13 Mağaza üst çubuk geri odak kaybı: Mağaza'da kalındı", _main._active_tab == 3)
+	var navs: int = _main.nav_navigations
+	await _gesture(_main.global_nav().item_button(0), "focus")
+	_c("G13 Mağaza'da kabuk ANA SAYFA odak kaybı: Mağaza'da kalındı, 0 gezinme", _main._active_tab == 3
+		and _main.nav_navigations == navs)
 	_sections_done += 1
 
 
@@ -1116,19 +1131,21 @@ func _multi_touch() -> void:
 	await _tab(1)
 	var map: CanvasLayer = _main._screens[1]
 	var node: Button = map.nodes()[0]
-	var back: Button = map.top_bar().back_button()
+	# TASK/057 Tur 2: Harita üst çubuğunda geri oku yok — ikinci parmak kalan üst çubuk düğmesine ("+") dokunur.
+	var add: Button = map.top_bar().add_button()
 	_watch(node, "node")
-	_watch(back, "map_back")
+	_watch(add, "map_add")
 	_mark()
 	await _finger(_center(node), true, 0)
-	await _finger(_center(back), true, 1)
-	await _finger(_center(back), false, 1)
+	await _finger(_center(add), true, 1)
+	await _finger(_center(add), false, 1)
 	await _settle(2)
-	var held: bool = _main._active_tab == 1 and not _board_live() and _count("map_back.down") == 0
+	var held: bool = _main._active_tab == 1 and not _board_live() and _count("map_add.down") == 0
 	await _finger(_center(node), false, 0)
 	await _settle(3)
-	_c("K1 parmak 0 düğümde, parmak 1 üst çubuk geride dokunup kalkar: geri basılmadı (fare öykünmesi yalnız 0. parmak); parmak 0 kalkınca tam bir seviye",
-		held and _board_live() and _count("node.pressed") == 1 and _count("map_back.pressed") == 0)
+	_c("K1 parmak 0 düğümde, parmak 1 üst çubuk \"+\"da dokunup kalkar: \"+\" basılmadı (fare öykünmesi yalnız 0. parmak); parmak 0 kalkınca tam bir seviye",
+		held and _board_live() and _count("node.pressed") == 1 and _count("map_add.pressed") == 0
+		and _count("map.shop_requested") == 0)
 
 	await _boot()
 	await _tab(3)
@@ -1197,15 +1214,17 @@ func _multi_touch() -> void:
 	await _tab(1)
 	map = _main._screens[1]
 	node = map.nodes()[0]
+	# TASK/057 Tur 2: Harita üst çubuğunda geri oku yok — başka sahipli düğme kabuğun ANA SAYFA öğesi.
+	var navs: int = _main.nav_navigations
 	_mark()
 	await _finger(_center(node), true, 0)
-	map.top_bar().back_button().pressed.emit()
+	_main.global_nav().item_button(0).pressed.emit()
 	await _settle(3)
-	var went_home: bool = _main._active_tab == 0 and _count("map.home_requested") == 1
+	var went_home: bool = _main._active_tab == 0 and _main.nav_navigations == navs + 1
 	await _finger(_center(node), false, 0)
 	await _settle(3)
-	_c("K4 düğüm basılıyken başka sahipli düğmeye (üst çubuk geri) erişilebilirlik / kod `pressed`'i: tam bir kez Ana Sayfa; düğümün sonraki kalkışı eylemsiz",
-		went_home and not _board_live() and _main._active_tab == 0)
+	_c("K4 düğüm basılıyken başka sahipli düğmeye (kabuk ANA SAYFA) erişilebilirlik / kod `pressed`'i: tam bir kez Ana Sayfa; düğümün sonraki kalkışı eylemsiz",
+		went_home and not _board_live() and _main._active_tab == 0 and _main.nav_navigations == navs + 1)
 	_sections_done += 1
 
 
@@ -1340,12 +1359,13 @@ func _ownership_sweep() -> void:
 		"Ana Sayfa MAĞAZA": home.feature_button(&"shop"), "Ana Sayfa SANDIK": home.feature_button(&"chest"),
 		"Ana Sayfa GÖREVLER": home.missions_button(), "Ana Sayfa MEYDAN OKUMA": home.challenge_button(),
 		"Ana Sayfa OYNA": home.play_button(), "Ana Sayfa seviye hapı": home.level_button(),
-		"Harita Sonsuz": map.endless_node(), "Harita üst çubuk geri": map.top_bar().back_button(),
-		"Harita üst çubuk +": map.top_bar().add_button(),
-		"Mağaza üst çubuk geri": shop.top_bar().back_button(), "Mağaza günlük AÇ": shop.daily_button(),
+		# TASK/057 Tur 2: hub üst çubuğunda geri oku yok (Harita / Mağaza / Profil) — Ana Sayfa rotası kabuğun ANA SAYFA öğesi.
+		"kabuk ANA SAYFA": _main.global_nav().item_button(0),
+		"Harita Sonsuz": map.endless_node(), "Harita üst çubuk +": map.top_bar().add_button(),
+		"Mağaza günlük AÇ": shop.daily_button(),
 		"Mağaza onay SATIN AL": shop.get("_confirm_yes"), "Mağaza onay Vazgeç": shop.get("_confirm_no"),
 		"Mağaza onay X": shop.confirm_frame().get_meta(&"close_button"),
-		"Profil üst çubuk geri": profile.top_bar().back_button(), "Profil dişli": profile.top_bar().action_button(),
+		"Profil dişli": profile.top_bar().action_button(),
 		"Profil unvan": profile.title_button(), "Profil TÜM BAŞARIMLAR": profile.achievements_cta(),
 		"Profil KOLEKSİYONA GİT": profile.collection_cta(),
 		"unvan seçici X": profile.title_selector().frame().get_meta(&"close_button"),
@@ -1452,18 +1472,34 @@ func _source_contract() -> void:
 			leftover.append("%s: %s" % [pair[0], pair[1]])
 	_c("  … korumasız doğrudan bağlama kalmadı %s" % str(leftover), leftover.is_empty())
 	var relay_gaps: Array[String] = []
+	var back_leftovers: Array[String] = []
 	for path: String in _scripts_under("res://scripts"):
 		if path.ends_with("/screen_top_bar.gd"):
 			continue
 		var src: String = _strip_comments(FileAccess.get_file_as_string(path))
 		if not src.contains("ScreenTopBar"):
 			continue
-		for sig: String in ["back", "add", "action"]:
+		# TASK/057 Tur 2: üst çubukta geri oku yok — röleler yalnız "+" ve sağ ikon.
+		for sig: String in ["add", "action"]:
 			if src.contains("_bar.%s_pressed.connect(" % sig) and not (src.contains("GestureGuard.allows(_bar.%s_button())" % sig)
 					or src.contains("_gesture_ok(_bar.%s_button())" % sig)):
 				relay_gaps.append("%s: %s" % [path.get_file(), sig])
+		for token: String in ["back_pressed", "_bar.back_button()", "home_requested"]:
+			if src.contains(token):
+				back_leftovers.append("%s: %s" % [path.get_file(), token])
 	_c("her ScreenTopBar tüketicisi rölesini sahiplik kapısından geçirir (GestureGuard.allows / Koleksiyon _gesture_ok) %s"
 		% str(relay_gaps), relay_gaps.is_empty())
+	_c("TASK/057 Tur 2: hub üst çubuğunda geri oku yok — hiçbir ScreenTopBar tüketicisinde back_pressed / _bar.back_button() / home_requested yok %s"
+		% str(back_leftovers), back_leftovers.is_empty())
+	var hub_back: Array[String] = []
+	for file: String in ["profile_screen.gd", "level_select.gd", "shop_screen.gd", "collection_screen.gd"]:
+		var hub_src: String = _strip_comments(FileAccess.get_file_as_string("res://scripts/ui/%s" % file))
+		for token: String in ["GestureGuard.own(_bar.back_button())", "GestureGuard.allows(_bar.back_button())",
+				"_own_gesture(_bar.back_button())", "_gesture_ok(_bar.back_button())", "home_requested"]:
+			if hub_src.contains(token):
+				hub_back.append("%s: %s" % [file, token])
+	_c("TASK/057 Tur 2: Profil / Harita / Mağaza / Koleksiyon kaynağında geri oku sahipliği / koruması ve home_requested yok %s"
+		% str(hub_back), hub_back.is_empty())
 	var settings_code: String = _strip_comments(FileAccess.get_file_as_string("res://scripts/ui/settings_panel.gd"))
 	for name: String in ["func _on_sfx_toggled(", "func _on_haptics_toggled("]:
 		var fn: String = _function(settings_code, name)
@@ -1497,10 +1533,12 @@ func _source_contract() -> void:
 			"res://scripts/ui/collection_skin_card.gd", "res://scripts/main.gd", "res://scripts/game/game_board.gd"]:
 		if FileAccess.get_file_as_string(path).contains("GestureGuard"):
 			untouched.append(path.get_file())
+	# TASK/057 Tur 2: ScreenTopBar'da geri oku yok — "+" rölesi aynen, back_pressed yok.
+	var bar_src: String = FileAccess.get_file_as_string("res://scripts/ui/screen_top_bar.gd")
 	_c("paylaşılan ScreenTopBar, TASK/054 Koleksiyon, Main gezinmesi ve GameBoard bu yardımcıya bağlanmadı %s" % str(untouched),
-		untouched.is_empty() and FileAccess.get_file_as_string("res://scripts/ui/screen_top_bar.gd")
-			.contains("_back.pressed.connect(func() -> void: back_pressed.emit())")
+		untouched.is_empty() and bar_src.contains("pressed.connect(func() -> void: add_pressed.emit())")
 		and FileAccess.get_file_as_string("res://scripts/ui/collection_screen.gd").contains("func _own_gesture("))
+	_c("TASK/057 Tur 2: ScreenTopBar'da geri oku yok (back_pressed sinyali / rölesi yok)", not bar_src.contains("back_pressed"))
 	_c("Main geri yönlendirmesi / 300 ms geçiş yatışması değişmedi",
 		_function(_strip_comments(FileAccess.get_file_as_string("res://scripts/main.gd")), "func _notification(")
 			.contains("active.handle_back()")
@@ -1516,8 +1554,9 @@ func _fixed_sites() -> Array:
 		["home_screen.gd", "GestureGuard.on_pressed(shop,"], ["home_screen.gd", "GestureGuard.on_pressed(chest,"],
 		["home_screen.gd", "GestureGuard.on_pressed(_missions,"], ["home_screen.gd", "GestureGuard.on_pressed(_challenge,"],
 		["home_screen.gd", "GestureGuard.on_pressed(_play,"], ["home_screen.gd", "GestureGuard.on_pressed(_level,"],
-		["profile_screen.gd", "GestureGuard.own(_bar.back_button())"], ["profile_screen.gd", "GestureGuard.own(_bar.action_button())"],
-		["profile_screen.gd", "GestureGuard.allows(_bar.back_button())"], ["profile_screen.gd", "GestureGuard.allows(_bar.action_button())"],
+		# TASK/057 Tur 2: hub üst çubuğunda geri oku yok — geri satırları kalktı (yokluk `_source_contract`ta ayrıca sınanır).
+		["profile_screen.gd", "GestureGuard.own(_bar.action_button())"],
+		["profile_screen.gd", "GestureGuard.allows(_bar.action_button())"],
 		["profile_screen.gd", "GestureGuard.on_pressed(button, open_title_selector)"],
 		["profile_screen.gd", "GestureGuard.on_pressed(_achievements_cta, open_achievements)"],
 		["profile_screen.gd", "GestureGuard.on_pressed(slot, _on_slot_pressed.bind(i))"],
@@ -1525,11 +1564,10 @@ func _fixed_sites() -> Array:
 		["title_selector.gd", "GestureGuard.on_pressed(row, _on_row_pressed.bind(id))"],
 		["title_selector.gd", "GestureGuard.on_pressed(_frame.get_meta(&\"close_button\") as Button, close)"],
 		["achievements_overlay.gd", "GestureGuard.on_pressed(_frame.get_meta(&\"close_button\") as Button, close)"],
-		["level_select.gd", "GestureGuard.own(_bar.back_button())"], ["level_select.gd", "GestureGuard.own(_bar.add_button())"],
-		["level_select.gd", "GestureGuard.allows(_bar.back_button())"], ["level_select.gd", "GestureGuard.allows(_bar.add_button())"],
+		["level_select.gd", "GestureGuard.own(_bar.add_button())"],
+		["level_select.gd", "GestureGuard.allows(_bar.add_button())"],
 		["level_select.gd", "GestureGuard.on_pressed(node, _on_node_pressed.bind(node, level))"],
 		["level_select.gd", "GestureGuard.on_pressed(_endless, _on_endless_pressed)"],
-		["shop_screen.gd", "GestureGuard.own(_bar.back_button())"], ["shop_screen.gd", "GestureGuard.allows(_bar.back_button())"],
 		["shop_screen.gd", "GestureGuard.on_pressed(_daily_button,"], ["shop_screen.gd", "GestureGuard.on_pressed(_confirm_yes, _on_confirm_yes)"],
 		["shop_screen.gd", "GestureGuard.on_pressed(_confirm_no, _close_confirm)"],
 		["shop_screen.gd", "GestureGuard.on_pressed(_frame.get_meta(&\"close_button\") as Button, _close_confirm)"],
@@ -1617,11 +1655,10 @@ func _boot(extra: Dictionary = {}) -> void:
 	var map: CanvasLayer = _main._screens[1]
 	map.connect("level_chosen", func(_level: Variant) -> void: _bump("map.level_chosen"))
 	map.connect("shop_requested", func() -> void: _bump("map.shop_requested"))
-	map.connect("home_requested", func() -> void: _bump("map.home_requested"))
+	# TASK/057 Tur 2: Harita / Profil'de home_requested yok (geri oku kalktı) — Ana Sayfa gezinmesi `_main.nav_navigations`.
 	var album: CanvasLayer = _main._screens[2]
 	album.connect("detail_opened", func() -> void: _bump("album.detail_opened"))
 	var profile: CanvasLayer = _main._screens[4]
-	profile.connect("home_requested", func() -> void: _bump("profile.home_requested"))
 	profile.connect("settings_requested", func() -> void: _bump("profile.settings_requested"))
 
 

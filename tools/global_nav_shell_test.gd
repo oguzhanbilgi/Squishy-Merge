@@ -24,14 +24,19 @@ extends Node
 ##                    ekranların alt payı (doğrudan) ve son içerik; geç gelen banner yuvası (onay sonrası) kabuğu ve payları
 ##                    yeniden kurar
 ##   K dokunuş        tepsi üstündeki şerit içeriğe kalır (yan öğe yalnız seçili karo payı, merkez yalnız daire); dock
-##                    tepsinin altını / yanını tutar; kabuk görünürken Harita düğümü / üst satır geri, Mağaza son satır
-##                    SATIN AL ve Koleksiyon son kart GERÇEK dokunuşla çalışır (0 gezinme)
+##                    tepsinin altını / yanını tutar; kabuk görünürken Harita düğümü, Mağaza son satır SATIN AL ve
+##                    Koleksiyon son kart GERÇEK dokunuşla çalışır (0 gezinme); Harita'dan kabuk ANA SAYFA → Ana Sayfa
+##   L Tur 2          (owner incelemesi, TASK/057 Tur 2) hub üst satırlarında GERİ OKU YOK (GERİ zinciri G'de aynen);
+##                    seçili durum TEK aile (her öğe aynı malzeme / parıltı; merkez yalnız +1 premium halka); kısıtlı
+##                    16:9 + banner yerleşimi: kabuk KOMPAKT (merkez taşması 0), her öğe ≥ TOUCH_TARGET, yuva kabukla
+##                    çakışmaz, aralık kaidesi dokunuş almaz, Harita sıkıştırması ≤ %8 (ilk aday ~%18 reddedildi), düğümler
+##                    güvenli ve kabuğun üstünde, Sonsuz kalesi üst satırın pill'iyle çakışmaz
 ##   J kayıt          sahibin kayıt ailesi bayt-aynı
 
 const MAIN_SCENE: PackedScene = preload("res://scenes/main.tscn")
 const DIR: String = "user://qa_global_nav"
 const PATH: String = DIR + "/save.json"
-const SECTIONS: int = 10
+const SECTIONS: int = 11
 const MON: String = "2026-09-28"
 const THU: String = "2026-10-01"
 const BACK_GAP_MSEC: int = 320
@@ -86,6 +91,7 @@ func _ready() -> void:
 	await _visibility()
 	await _insets()
 	await _touch_reach()
+	await _round2()
 	_c("%d/%d bölüm sonuna kadar koştu (betik hatası yok)" % [_sections_done, SECTIONS], _sections_done == SECTIONS)
 
 	print("-- J: kayıt")
@@ -188,6 +194,8 @@ func _selected_state() -> void:
 		var selected: Array = nav.items().filter(func(i: NavItem) -> bool: return i.is_selected())
 		_c("sekme %d: kabuk görünür, tam bir öğe seçili ve o sekme" % tab,
 			nav.visible and selected.size() == 1 and (selected[0] as NavItem).tab() == tab and nav.current() == tab)
+		_c("sekme %d: seçili öğe TEK seçili aile malzemesini uygular, diğerleri hiçbirini (Tur 2)" % tab,
+			_family_ok(nav))
 		if tab == 0:
 			tray = nav.tray_rect()
 		else:
@@ -521,8 +529,9 @@ func _insets() -> void:
 	_c("geç yuva: tepsi alt kenarı 1280 → 1280 − 112 − 28 = %.0f (önce %.0f)" % [nav.tray_rect().end.y, before_end],
 		is_equal_approx(before_end, 1280.0 - GlobalNav.BOTTOM_GAP)
 		and is_equal_approx(nav.tray_rect().end.y, 1280.0 - A36_SLOT - GlobalNav.BANNER_GAP))
-	_c("geç yuva: pay %.0f = 28 + 92 + 40; Mağaza alt payı doğrudan 64 + 112 + 160" % nav.reserve(),
-		is_equal_approx(nav.reserve(), GlobalNav.BANNER_GAP + GlobalNav.TRAY_HEIGHT + NavItem.CENTER_RISE)
+	_c("geç yuva (16:9 + 112 → kompakt kip, Tur 2): pay %.0f = 28 + 92 + 0; Mağaza alt payı doğrudan 64 + 112 + pay" % nav.reserve(),
+		nav.is_compact() and is_zero_approx(nav.center_rise())
+		and is_equal_approx(nav.reserve(), GlobalNav.BANNER_GAP + GlobalNav.TRAY_HEIGHT)
 		and (_main._screens[3]._margin as MarginContainer).get_theme_constant("margin_bottom")
 		== int(_main._screens[3].BOTTOM_PADDING + A36_SLOT + nav.reserve()))
 	await _tab(0)
@@ -551,6 +560,13 @@ func _check_insets(tag: String, safe_top: float) -> void:
 	_c("%s: Ana Sayfa maskotu level pill'ine değmez ve en az %d px (%.0f)" % [tag, int(home.MASCOT_MIN),
 		home.mascot_rect().size.y], home.mascot_rect().end.y <= level.position.y + 1.0
 		and home.mascot_rect().size.y >= home.MASCOT_MIN - 1.0)
+	var sides_clear: bool = true
+	for side: Control in home._sides:
+		var ok_side: bool = not side.get_global_rect().intersects(level) and not side.get_global_rect().intersects(play)
+		if not ok_side:
+			print("    yan dumpling %s ∩ level %s / OYNA %s" % [str(side.get_global_rect()), str(level), str(play)])
+		sides_clear = sides_clear and ok_side
+	_c("%s: Ana Sayfa yan dumpling'leri level pill'inin / OYNA'nın arkasına inmez (Tur 2, A36 bulgusu)" % tag, sides_clear)
 	# Harita.
 	await _tab(1)
 	var map: CanvasLayer = _main._screens[1]
@@ -560,17 +576,28 @@ func _check_insets(tag: String, safe_top: float) -> void:
 	var endless: MapLevelNode = map.endless_node()
 	_c("%s: Harita düğümleri + OYNA plakası kabuğun üstünde (en alt %.0f ≤ %.0f)" % [tag, lowest, floor_y],
 		lowest <= floor_y)
-	_c("%s: Sonsuz kalesi üst satırın altında (%.0f ≥ %.0f)" % [tag, endless.get_global_rect().position.y,
-		(map.top_bar() as ScreenTopBar).height()], endless.get_global_rect().position.y
-		>= (map.top_bar() as ScreenTopBar).height() - 2.0)
-	_c("%s: Harita zemini tepsinin üst kenarına kadar (merkez daire dünyaya biner)" % tag,
+	var bar: ScreenTopBar = map.top_bar()
+	if map.title_yielded():
+		# Tur 2: kısıtlı yerleşimde kurdele satırını bıraktı — kale güvenli alanın içinde, sağ pill'le çakışmaz.
+		_c("%s: başlık kurdelesi satırı bıraktı; Sonsuz kalesi güvenli alanda (%.0f ≥ %.0f) ve Hamur pill'iyle çakışmaz" % [
+			tag, endless.get_global_rect().position.y, safe_top], not bar.is_title_visible()
+			and endless.get_global_rect().position.y >= safe_top + 2.0
+			and not endless.get_global_rect().intersects(bar.pill().get_global_rect()))
+	else:
+		_c("%s: Sonsuz kalesi üst satırın altında (%.0f ≥ %.0f); kurdele görünür" % [tag, endless.get_global_rect().position.y,
+			bar.height()], endless.get_global_rect().position.y >= bar.height() - 2.0 and bar.is_title_visible())
+	_c("%s: Harita zemini tepsinin üst kenarına kadar (normal kipte merkez daire dünyaya biner)" % tag,
 		absf(map.world_rect().end.y - nav.tray_rect().position.y) <= 1.0)
 	var squash: float = map.world_scale().y / map.world_scale().x
-	# Banner yokken 720×1280'de bile kabukla ~%6.3 (0.937; eski M8.9-02 banner'lı düzenle aynı büyüklük), uzun
-	# ekranlarda 0; kısa ekran + banner yuvasında MIN_SQUASH_NAV tabanına kadar (owner incelemesi).
+	# Banner yokken 720×1280'de kabukla ~%6.3 (0.937), uzun ekranlarda 0; Tur 2: kısa ekran + banner yuvasında da
+	# MIN_SQUASH_NAV (0.92 = en çok %8) — ilk adayın ~%18'i (0.819) owner tarafından reddedildi.
 	var squash_floor: float = 0.93 if UiKit.banner_slot() <= 0.0 else map.MIN_SQUASH_NAV
-	_c("%s: Harita dikey sıkıştırma tabanın üstünde (sy/sx = %.3f ≥ %.2f; yalnız kabuk + yuva + kısa ekranda %.2f)" % [
-		tag, squash, squash_floor, map.MIN_SQUASH_NAV], squash >= squash_floor - 0.001)
+	_c("%s: Harita dikey sıkıştırma ≤ %%8 (sy/sx = %.3f ≥ %.2f; taban MIN_SQUASH_NAV %.2f)" % [
+		tag, squash, squash_floor, map.MIN_SQUASH_NAV], squash >= squash_floor - 0.001 and map.MIN_SQUASH_NAV >= 0.92)
+	var focus: MapLevelNode = map.focus_node()
+	if focus != null:
+		print("    %s: Harita odak düğümü çapı %.1f px, sy/sx %.3f, kurdele %s, kabuk %s" % [tag, focus.diameter(), squash,
+			"bıraktı" if map.title_yielded() else "görünür", "kompakt" if nav.is_compact() else "normal"])
 	# Kaydırılan ekranlar: son içerik kabuğun üstünde, sona kaydırılabilir.
 	for spec in [[3, "Mağaza"], [2, "Koleksiyon"], [4, "Profil"]]:
 		await _tab(int(spec[0]))
@@ -628,9 +655,11 @@ func _touch_reach() -> void:
 		and _main.nav_navigations == before and not nav.visible)
 	_main.abandon_run()
 	await _wait_settled()
-	await _tap((map.top_bar() as ScreenTopBar).back_button())
+	before = _main.nav_navigations
+	await _tap(nav.item_button(0))
 	await _wait_settled()
-	_c("Harita üst satır geri (kabuk görünürken) → Ana Sayfa", _visible_screens() == [0] and nav.item_button(0).is_selected())
+	_c("Harita → kabuk ANA SAYFA (gerçek dokunuş; üst satırda geri oku yok) → Ana Sayfa, tam 1 gezinme",
+		_visible_screens() == [0] and nav.item_button(0).is_selected() and _main.nav_navigations == before + 1)
 	# Mağaza: sona kaydır, son satırın SATIN AL'ı gerçek dokunuşla onayı açar.
 	await _tab(3)
 	var shop: CanvasLayer = _main._screens[3]
@@ -666,6 +695,175 @@ func _touch_reach() -> void:
 	album.close_detail(false)
 	await _wait_settled()
 	_sections_done += 1
+
+
+# --- L: Tur 2 (owner incelemesi) --------------------------------------------------------------------------------------
+
+func _round2() -> void:
+	print("-- L: Tur 2 — geri oku yok, tek seçili aile, kısıtlı 16:9 + banner yerleşimi")
+	get_window().size = Vector2i(720, 1280)
+	UiKit.set_banner_slot(0.0)
+	await _boot()
+	var nav: GlobalNav = _nav()
+	# Geri oku yok: dört hub ekranının üst satırı ok içermez (Ana Sayfa'ya dönüş kabukta + Android GERİ).
+	var no_arrow: bool = true
+	for tab: int in [1, 3, 2, 4]:
+		await _tab(tab)
+		var bar: ScreenTopBar = _main._screens[tab].top_bar()
+		no_arrow = no_arrow and bar.back_button() == null and bar.find_child("Back", true, false) == null
+		for child: Node in bar.get_children():
+			if child is Button:
+				no_arrow = no_arrow and child == bar.action_button()
+	_c("Harita / Mağaza / Koleksiyon / Profil üst satırında geri oku yok (yalnız kurdele + Hamur pill / dişli)", no_arrow)
+	_c("kaynak sözleşmesi: ScreenTopBar `back_pressed` yaymaz; hub ekranlarında `home_requested` yok",
+		not FileAccess.get_file_as_string("res://scripts/ui/screen_top_bar.gd").contains("signal back_pressed")
+		and ["level_select", "shop_screen", "collection_screen", "profile_screen"].all(func(f: String) -> bool:
+			return not FileAccess.get_file_as_string("res://scripts/ui/%s.gd" % f).contains("home_requested")))
+	_c("Profil dişlisi ve Harita / Koleksiyon Hamur \"+\" yerinde; Mağaza'da \"+\" yok (yeni işlev yok)",
+		_main._screens[4].top_bar().action_button() != null and _main._screens[1].top_bar().add_button() != null
+		and _main._screens[2].top_bar().add_button() != null and _main._screens[3].top_bar().add_button() == null)
+	var fam: Dictionary = NavItem.selected_family()
+	_c("seçili aile tek tanım: krem dolgu + altın parıltı",
+		fam.get("fill") == UiTokens.NAV_SELECTED and fam.get("glow") == UiTokens.NAV_SELECTED_GLOW)
+	var same: bool = true
+	for tab: int in TABS:
+		await _tab(tab)
+		same = same and _family_ok(nav)
+	_c("beş sekmenin her birinde seçili öğe aynı aileyi uygular (merkez Harita dahil)", same)
+	# Kısıtlı yerleşim: 720×1280 + banner 112 (16:9).
+	UiKit.set_banner_slot(A36_SLOT)
+	await _boot()
+	nav = _nav()
+	_main._on_banner_slot_changed(A36_SLOT)
+	await _settle(2)
+	var view: Vector2 = nav.get_viewport().get_visible_rect().size
+	_c("16:9 + banner: kabuk KOMPAKT (merkez taşması 0, pay %.0f)" % nav.reserve(), nav.is_compact()
+		and is_zero_approx(nav.center_rise()) and is_equal_approx(nav.reserve(), GlobalNav.BANNER_GAP + GlobalNav.TRAY_HEIGHT))
+	var min_side: float = 9999.0
+	for item: NavItem in nav.items():
+		var r: Rect2 = item.get_global_rect()
+		min_side = minf(min_side, minf(r.size.x, r.size.y))
+	_c("16:9 + banner: her kabuk öğesinin dokunma alanı ≥ %d px (en küçük kenar %.0f)" % [UiTokens.TOUCH_TARGET, min_side],
+		min_side >= UiTokens.TOUCH_TARGET)
+	var center: NavItem = nav.item_button(1)
+	var mid := Vector2(center.size.x * 0.5, center.tray_top() + GlobalNav.TRAY_HEIGHT * 0.5)
+	# Karşılaştırma seçili OLMAYAN yan öğeyle (seçili karo etiketi birkaç px yükselir).
+	var plain: NavItem = nav.items().filter(func(i: NavItem) -> bool: return not i.is_selected() and not i.is_center())[0]
+	var side_label_y: float = plain.label_node().get_global_rect().position.y
+	var center_label_y: float = center.label_node().get_global_rect().position.y
+	_c("16:9 + banner: kompakt merkez etiketi yan etiketlerle neredeyse aynı çizgide (fark %.0f px ≤ 6), tepsi yüzünde"
+		% (center_label_y - side_label_y), absf(center_label_y - side_label_y) <= 6.0
+		and center.label_node().get_global_rect().end.y <= nav.tray_rect().end.y)
+	_c("16:9 + banner: kompakt merkezin dekoratif taşması dokunuş almaz (tepsi üstü 2 px: hayır, tepsi içi: evet)",
+		not center._has_point(Vector2(center.size.x * 0.5, center.tray_top() - 2.0))
+		and center._has_point(Vector2(center.size.x * 0.5, center.tray_top() + 2.0)))
+	_c("16:9 + banner: kompakt kabuk dokunma alanı tepsiden başlar (seçili yan karonun yükselişi yalnız görsel)",
+		nav.items().all(func(i: NavItem) -> bool: return not i._has_point(Vector2(i.size.x * 0.5, i.tray_top() - 6.0))))
+	_c("16:9 + banner: kompakt merkez (Harita) tepsi yüksekliğinin tamamında dokunulur (%d px)" % int(GlobalNav.TRAY_HEIGHT),
+		center.is_compact() and center._has_point(mid) and center._has_point(Vector2(4.0, center.tray_top() + 4.0))
+		and center._has_point(Vector2(center.size.x - 4.0, center.tray_top() + GlobalNav.TRAY_HEIGHT - 4.0)))
+	var slot_top: float = view.y - A36_SLOT
+	var plinth: Control = nav.get_node("Root/BannerPlinth")
+	_c("16:9 + banner: yuva kabukla çakışmaz (tepsi altı %.0f + 28 = yuva üstü %.0f)" % [nav.tray_rect().end.y, slot_top],
+		is_equal_approx(nav.tray_rect().end.y + GlobalNav.BANNER_GAP, slot_top))
+	_c("16:9 + banner: aralık kaidesi görünür, dokunuş almaz, yuvaya taşmaz (dock'un parçası; ölü gri şerit değil)",
+		plinth.visible and plinth.mouse_filter == Control.MOUSE_FILTER_IGNORE
+		and plinth.get_global_rect().end.y <= slot_top + 0.5)
+	var dock: Rect2 = nav.dock_block_rect()
+	_c("16:9 + banner: tepsi üstünden ekran altına dock dokunuş tutar (kabuk altında içerik etkileşimi yok)",
+		is_equal_approx(dock.position.y, nav.tray_rect().position.y) and is_equal_approx(dock.end.y, view.y))
+	var family_compact: bool = true
+	for tab: int in TABS:
+		await _tab(tab)
+		family_compact = family_compact and _family_ok(nav) and nav.visible
+	_c("16:9 + banner: beş sekmede seçili aile aynı (kompakt kipte de)", family_compact)
+	await _tab(1)
+	var map: CanvasLayer = _main._screens[1]
+	var squash: float = map.world_scale().y / map.world_scale().x
+	_c("16:9 + banner: Harita sıkıştırması ≤ %%8 (sy/sx %.3f ≥ 0.92; ilk aday 0.819 reddedildi)" % squash,
+		squash >= 0.92 - 0.001)
+	var floor_y: float = nav.footprint().position.y
+	var bar2: ScreenTopBar = map.top_bar()
+	var inside: bool = true
+	var smallest: float = 9999.0
+	for node: MapLevelNode in map.nodes():
+		var r: Rect2 = node.get_global_rect()
+		smallest = minf(smallest, node.diameter())
+		inside = inside and r.position.y >= 0.0 and _node_bottom(node) <= floor_y and r.position.x >= 0.0 \
+			and r.end.x <= view.x and not r.intersects(bar2.pill().get_global_rect())
+	var endless: MapLevelNode = map.endless_node()
+	inside = inside and endless.get_global_rect().position.y >= 0.0 \
+		and not endless.get_global_rect().intersects(bar2.pill().get_global_rect())
+	_c("16:9 + banner: tüm düğümler + Sonsuz kalesi ekranda, kabuğun üstünde, Hamur pill'iyle çakışmaz (en küçük %.0f px ≥ %d)"
+		% [smallest, UiTokens.TOUCH_MIN], inside and smallest >= UiTokens.TOUCH_MIN)
+	var focus: MapLevelNode = map.focus_node()
+	_c("16:9 + banner: odak (sıradaki) düğüm ≥ TOUCH_TARGET (%.1f px)" % focus.diameter(), focus.diameter()
+		>= UiTokens.TOUCH_TARGET - 0.5)
+	print("    16:9 + banner: kurdele %s, sy/sx %.3f (eski 0.819), en küçük düğüm %.1f, odak %.1f" % [
+		"bıraktı" if map.title_yielded() else "görünür", squash, smallest, focus.diameter()])
+	var before: int = _main.nav_navigations
+	await _tap(focus)
+	await _wait_settled()
+	_c("16:9 + banner: odak düğümüne gerçek dokunuş round başlatır (0 gezinme, kabuk gizli)", _main._board != null
+		and _main.nav_navigations == before and not nav.visible)
+	_main.abandon_run()
+	await _wait_settled()
+	# Geniş Hamur pill'i (5-6 hane): kurdele / kale kararı pill'in gerçek genişliğiyle verilir.
+	for dough: int in [12480, 99999, 999999]:
+		await _boot({"dough": dough})
+		_main._on_banner_slot_changed(A36_SLOT)
+		await _tab(1)
+		await _settle(3)
+		var m: CanvasLayer = _main._screens[1]
+		var b: ScreenTopBar = m.top_bar()
+		var e: Rect2 = m.endless_node().get_global_rect()
+		var p: Rect2 = b.pill().get_global_rect()
+		var s: float = m.world_scale().y / m.world_scale().x
+		var overlap: bool = e.intersects(p) or (b.is_title_visible() and e.intersects(b.title_plate().get_global_rect()))
+		print("    Hamur %d: pill x %.0f..%.0f, kale x %.0f..%.0f y %.0f, kurdele %s, sy/sx %.3f, çakışma %s" % [dough,
+			p.position.x, p.end.x, e.position.x, e.end.x, e.position.y, "bıraktı" if m.title_yielded() else "görünür", s,
+			str(overlap)])
+		if dough <= 99999:
+			_c("16:9 + banner, Hamur %d: kurdele bıraktı, kale pill / kurdeleyle çakışmaz, sy/sx %.3f ≥ 0.92" % [dough, s],
+				m.title_yielded() and not overlap and s >= 0.92 - 0.001)
+		else:
+			# 6 hane: pill kaleyle yatayda çakışır → kale pill'in altına iner; sığmazsa son çare MIN_SQUASH_NAV_HARD.
+			# Kurdele HİÇ geri gelmez (kale kurdeleye binmez).
+			_c("16:9 + banner, Hamur %d (uç durum): kurdele bırakılmış kalır, kale kurdeleye binmez, sy/sx %.3f ≥ %.2f" % [
+				dough, s, m.MIN_SQUASH_NAV_HARD], m.title_yielded() and not b.is_title_visible()
+				and s >= m.MIN_SQUASH_NAV_HARD - 0.001 and e.position.y >= 0.0)
+	# Büyük üst güvenli pay (40) + 16:9 + yuva: kurdele bırakılsa da %8'e sığmaz → son çare taban; kale güvenli alanda.
+	await _boot()
+	_main._on_banner_slot_changed(A36_SLOT)
+	await _tab(1)
+	var tall: CanvasLayer = _main._screens[1]
+	tall._layout_with_safe_top(40.0)
+	await _settle(2)
+	var ts: float = tall.world_scale().y / tall.world_scale().x
+	var lowest: float = 0.0
+	for node: MapLevelNode in tall.nodes():
+		lowest = maxf(lowest, _node_bottom(node))
+	print("    16:9 + banner + üst 40: sy/sx %.3f, kale y %.0f, en alt %.0f, kabuk %.0f" % [ts,
+		tall.endless_node().get_global_rect().position.y, lowest, _nav().footprint().position.y])
+	_c("16:9 + banner + üst güvenli pay 40 (uç durum): kale güvenli alanda (≥ 40), düğümler kabuğun üstünde, sy/sx %.3f ≥ %.2f"
+		% [ts, tall.MIN_SQUASH_NAV_HARD], tall.endless_node().get_global_rect().position.y >= 40.0 - 0.5
+		and lowest <= _nav().footprint().position.y and ts >= tall.MIN_SQUASH_NAV_HARD - 0.001)
+	tall._layout_with_safe_top(0.0)
+	get_window().size = Vector2i(720, 1280)
+	UiKit.set_banner_slot(0.0)
+	_sections_done += 1
+
+
+## Seçili öğe NavItem.selected_family()'yi uygular, diğer öğeler boş (seçili aile tek kaynak).
+func _family_ok(nav: GlobalNav) -> bool:
+	var fam: Dictionary = NavItem.selected_family()
+	var ok: bool = true
+	for item: NavItem in nav.items():
+		if item.is_selected():
+			ok = ok and item.applied_selection() == fam
+		else:
+			ok = ok and item.applied_selection().is_empty()
+	return ok
 
 
 # --- Ortak ---------------------------------------------------------------------------------------------------------------

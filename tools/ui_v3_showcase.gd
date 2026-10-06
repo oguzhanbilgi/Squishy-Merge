@@ -246,24 +246,41 @@ func _page_badges_nav(page: Control) -> void:
 	notes.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	column.add_child(notes)
 	# Gerçek GlobalNav: sayfanın ortasında (kendi katmanı; alt payı ezilerek ortaya alınır).
+	# TASK/057 Tur 2: üç tepsi — seçili yan öğe (normal), seçili merkez (normal) ve seçili merkez (KOMPAKT kip: kısa
+	# ekran + banner). Vitrinde tepsi sayfanın ortasına ezilmiş payla alındığı için kip açıkça verilir.
+	var h: float = get_viewport_rect().size.y
 	var nav := GlobalNav.new()
 	page.add_child(nav)
-	nav.set_bottom_inset_override(get_viewport_rect().size.y * 0.42)
+	nav.set_compact_override(0)
+	nav.set_bottom_inset_override(h * 0.47)
 	nav.set_current(3)
 	nav.badge(0).show_dot()
 	nav.badge(4).show_new()
 	nav.badge(3).show_count(2)
 	var nav2 := GlobalNav.new()
 	page.add_child(nav2)
-	nav2.set_bottom_inset_override(get_viewport_rect().size.y * 0.18)
+	nav2.set_compact_override(0)
+	nav2.set_bottom_inset_override(h * 0.245)
 	nav2.set_current(1)
 	nav2.set_item_enabled(4, false)
-	var caption2 := _caption("Seçili merkez: Harita (altın halka + hale) · pasif örnek: Profil")
-	caption2.position = Vector2(MARGIN, get_viewport_rect().size.y * 0.82 - 12.0)
-	page.add_child(caption2)
-	var caption1 := _caption("Aynı tepsi, aynı konum — hub ekranlarında sekmeler arasında zıplamaz")
-	caption1.position = Vector2(MARGIN, get_viewport_rect().size.y * 0.58 - 4.0)
-	page.add_child(caption1)
+	var nav3 := GlobalNav.new()
+	page.add_child(nav3)
+	nav3.set_compact_override(1)
+	nav3.set_bottom_inset_override(h * 0.03)
+	nav3.set_current(1)
+	# Altyazılar kabukların (katman 6) dock'unun ÜSTÜNDE ayrı katmanda — dock tepsinin altını koyu tutar.
+	var notes_layer := CanvasLayer.new()
+	notes_layer.layer = 7
+	page.add_child(notes_layer)
+	var caption1 := _caption("Tek seçili aile: krem candy + altın hale · basılı önizleme: Koleksiyon")
+	caption1.position = Vector2(MARGIN, h * 0.53 + 6.0)
+	notes_layer.add_child(caption1)
+	var caption2 := _caption("Seçili merkez: aynı krem kaide + hale, ek tek katman ince altın halka · pasif: Profil")
+	caption2.position = Vector2(MARGIN, h * 0.755 + 6.0)
+	notes_layer.add_child(caption2)
+	var caption3 := _caption("Kompakt kip (kısa ekran + banner): merkez tepside, dokunma alanı yine tam tepsi")
+	caption3.position = Vector2(MARGIN, h * 0.97 - GlobalNav.TRAY_HEIGHT - GlobalNav.BOTTOM_GAP - 44.0)
+	notes_layer.add_child(caption3)
 	await get_tree().process_frame
 	_press(nav.item_button(2))
 
