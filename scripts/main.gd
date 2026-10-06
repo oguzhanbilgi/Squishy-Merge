@@ -9,6 +9,8 @@ extends Node2D
 ## sekme çubuğu M8.6-06 ile tamamen kalktı (UI_VISUAL_SYSTEM §14.4).
 ## Profil (TASK/044): Ana Sayfa'nın sol üst avatarından; Ayarlar'a Profil'in
 ## dişli çarkından (aynı tek `SettingsPanel`), oyun içi HUD yolu değişmedi.
+## Küresel gezinme kabuğu (TASK/057, `GlobalNav`): beş hub ekranı arasında Ana Sayfa'ya dönmeden
+## geçiş; görünürlük ve seçili hedef YALNIZ burada (`_sync_nav`), hub dışı yüzeylerde gizli.
 
 const HOME_SCENE: PackedScene = preload("res://scenes/ui/home_screen.tscn")
 const LEVEL_SELECT_SCENE: PackedScene = preload("res://scenes/ui/level_select.tscn")
@@ -185,6 +187,12 @@ var _current_level: LevelData
 ## 4 Profil (TASK/044).
 var _screens: Array[CanvasLayer] = []
 var _active_tab: int = 0
+## Küresel gezinme kabuğu (TASK/057). Testler `global_nav()` ile okur.
+var _nav: GlobalNav
+## Test sayacı: kabuktan gelen ve GERÇEKTEN ekran değiştiren gezinmeler (aynı hedef / bayat dokunuş sayılmaz).
+var nav_navigations: int = 0
+## `_show_tab` ekran döngüsü sürerken ara görünürlük değişimleri kabuğu senkronlamaz.
+var _nav_sync_suspended: bool = false
 ## Ekran indeksi -> reklam yüzeyi (banner yalnız yöneticinin izin verdiği
 ## yüzeylerde; Harita v1'de banner dışı — ADS_SYSTEM §6). Profil reklam yüzeyi
 ## DEĞİL (Surface.NONE — TASK/044 yeni reklam yüzeyi açmaz).
@@ -270,6 +278,7 @@ func _ready() -> void:
 	_screens = [home, select, album, shop, profile]
 	for screen in _screens:
 		add_child(screen)
+	_build_global_nav()
 
 	_daily_rewards = DAILY_REWARDS_SCENE.instantiate()
 	_daily_rewards.free_chest_requested.connect(_on_daily_free_chest_requested)
@@ -320,6 +329,7 @@ func _ready() -> void:
 	add_child(_challenge_sheet)
 
 	_tutorial_overlay = TUTORIAL_OVERLAY_SCENE.instantiate()
+	_tutorial_overlay.visibility_changed.connect(_sync_nav)
 	add_child(_tutorial_overlay)
 	_tutorial = TutorialController.new()
 	_tutorial.name = "TutorialController"
@@ -337,7 +347,12 @@ func _ready() -> void:
 	_age_panel.opened.connect(settle_touch_input)
 	_age_panel.settle_requested.connect(settle_touch_input)
 	_age_panel.visibility_changed.connect(_on_age_panel_visibility_changed)
+	_age_panel.visibility_changed.connect(_sync_nav)
 	add_child(_age_panel)
+	# TASK/057: Main'in engelleyici pencereleri açılınca / kapanınca gezinme kabuğu yeniden değerlendirilir.
+	for layer in [_result, _daily_rewards, _revive, _refill, _settings, _pause, _chest_info, _missions,
+			_challenge_sheet]:
+		(layer as CanvasLayer).visibility_changed.connect(_sync_nav)
 	_settings.age_info_requested.connect(_open_age_reentry)
 	_refresh_age_settings_row()
 
@@ -420,6 +435,11 @@ func _activate_monetization_if_safe() -> void:
 ## alt payla hemen yeniden yerleşir — banner içeriğin altına binmez. Board varken
 ## yuva değişmez (§19); yeni round zaten güncel payla kurulur.
 func _on_banner_slot_changed(_px: float) -> void:
+	# TASK/057: gezinme kabuğu yuvanın ÜSTÜNDE (banner aralığıyla) durur — yuva kesinleşince (oturumda bir kez)
+	# yeniden yerleşir ve hub ekranlarının payı yenilenir.
+	if _nav != null:
+		_nav.relayout()
+		_apply_nav_insets()
 	if _board != null and is_instance_valid(_board):
 		return
 	if _active_tab < 0 or _active_tab >= _screens.size():
@@ -583,6 +603,8 @@ func _show_tab(tab: int, auto_daily: bool = true) -> void:
 		_challenge_sheet.close_sheet(false)
 	_active_tab = tab
 	_set_ad_surface(TAB_SURFACES[tab])
+	# TASK/057: ekranlar sırayla gizlenip gösterilirken kabuk ara durumda yanıp sönmesin — tek senkron sonda.
+	_nav_sync_suspended = true
 	for i in _screens.size():
 		var screen: CanvasLayer = _screens[i]
 		screen.visible = i == tab
@@ -595,6 +617,11 @@ func _show_tab(tab: int, auto_daily: bool = true) -> void:
 		# TASK/044 A36: Ana Sayfa avatarı ile Profil geri AYNI dikdörtgende; çift
 		# dokunuş ekranlar arasında sıçramasın (KOLEKSİYONA GİT → albüm kartı da).
 		settle_touch_input()
+	# TASK/057: kabuk seçili hedefi ve görünürlüğü (avatar vitrin değişmiş olabilir).
+	_nav_sync_suspended = false
+	if _nav != null:
+		_nav.refresh()
+	_sync_nav()
 	# Güvenli kabuk geçişi: tutorial round'u sırasında ertelenmiş
 	# monetizasyon açılışı (rıza + yükleme + banner yuvası) burada başlar.
 	_activate_monetization_if_safe()
@@ -862,6 +889,90 @@ func _hide_shell() -> void:
 		_missions.close_missions(false)
 	if _challenge_sheet != null and _challenge_sheet.visible:
 		_challenge_sheet.close_sheet(false)
+	_sync_nav()
+
+
+# --- Küresel gezinme kabuğu (TASK/057) ---
+#
+# SÖZLEŞME: kabuk YALNIZ bir hub ekranı (Ana Sayfa / Harita / Mağaza / Koleksiyon / Profil) ön plandayken
+# ve engelleyici hiçbir yüzey yokken görünür. Gizli: oyun (board — tutorial dahil), sonuç, devam / refill,
+# mola, Ayarlar, günlük ödüller, sandık bilgisi, GÖREVLER, MEYDAN OKUMA, yaş ekranı, tutorial katmanı ve
+# ekranın kendi penceresi (Mağaza onayı, Koleksiyon detayı, Profil başarımlar / unvan). Gizlenen kabukta
+# basılı öğenin basışı eylemsiz biter — öğelerin dokunuş sahipliği GlobalNav'da (TASK/055); Main yalnız
+# hedef isteğini alır. Android GERİ zinciri DEĞİŞMEDİ.
+
+func _build_global_nav() -> void:
+	_nav = GlobalNav.new()
+	_nav.destination_requested.connect(_on_nav_destination)
+	add_child(_nav)
+	# Profil öğesi avatarı vitrin değişince (Koleksiyon detayı) hemen tazelenir. Metot bağlantısı: Main serbest
+	# kalınca motor bağlantıyı koparır (autoload'da bayat lambda kalmaz).
+	SaveManager.showcase_changed.connect(_on_showcase_changed_for_nav)
+	for screen in _screens:
+		screen.visibility_changed.connect(_sync_nav)
+		if screen.has_signal(&"overlay_changed"):
+			screen.connect(&"overlay_changed", _sync_nav)
+	_apply_nav_insets()
+	_nav.visible = false
+
+
+func _on_showcase_changed_for_nav(_ids: Array) -> void:
+	if _nav != null:
+		_nav.refresh()
+
+
+## Hub ekranlarına kabuğun payı (banner yuvası değişince yeniden). Harita: zemin tepsinin üst kenarına kadar,
+## düğümler payın tamamının üstünde.
+func _apply_nav_insets() -> void:
+	for screen in _screens:
+		if not screen.has_method("set_nav_inset"):
+			continue
+		if screen == _screens[1]:
+			screen.set_nav_inset(_nav.reserve(), NavItem.CENTER_RISE)
+		else:
+			screen.set_nav_inset(_nav.reserve())
+
+
+## Kabuğun görünürlüğü + seçili hedef (tek karar noktası). Sinyallerle çağrılır (yoklama yok).
+func _sync_nav() -> void:
+	if _nav == null or _nav_sync_suspended:
+		return
+	var hub: bool = _active_tab >= 0 and _active_tab < _screens.size() and _screens[_active_tab].visible
+	_nav.set_current(_active_tab)
+	_nav.visible = hub and not _nav_blocked()
+
+
+## Kabuğun görünmemesi gereken bir yüzey açık mı (bkz. sözleşme).
+func _nav_blocked() -> bool:
+	if _board != null and is_instance_valid(_board):
+		return true
+	for layer in [_result, _revive, _refill, _settings, _pause, _chest_info, _daily_rewards, _missions,
+			_challenge_sheet, _age_panel, _tutorial_overlay]:
+		if layer != null and (layer as CanvasLayer).visible:
+			return true
+	if _active_tab >= 0 and _active_tab < _screens.size():
+		var screen: CanvasLayer = _screens[_active_tab]
+		if screen.has_method("has_open_overlay") and screen.has_open_overlay():
+			return true
+	return false
+
+
+## Kabuk öğesi (GlobalNav'ın TASK/055 sahipliğinden geçmiş geçerli dokunuş): hedef ekran. Görünmeyen kabuktan gelen istek
+## (kodla / bayat) ve zaten açık hedef yok sayılır — yinelenen rota, ikinci giriş animasyonu yok.
+func _on_nav_destination(tab: int) -> void:
+	if _nav == null or not _nav.visible or _nav_blocked():
+		return
+	if tab < 0 or tab >= _screens.size():
+		return
+	if tab == _active_tab and _screens[tab].visible:
+		return
+	nav_navigations += 1
+	_show_tab(tab)
+
+
+## Testler / çekim aracı.
+func global_nav() -> GlobalNav:
+	return _nav
 
 
 func _on_play_pressed() -> void:

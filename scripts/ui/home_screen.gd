@@ -180,6 +180,8 @@ var _daily_claimable: bool = false
 ## Test kancası: cihaz üst güvenli payı (A36 punch-hole) masaüstünde
 ## okunamaz; negatif = gerçek değeri kullan.
 var _safe_top_override: float = -1.0
+## TASK/057: küresel gezinme kabuğunun alt payı (Main `set_nav_inset`); kabuksuz (tek başına test) 0.
+var _nav_inset: float = 0.0
 
 @onready var _root: Control = $Root
 @onready var _backdrop: Control = $Backdrop
@@ -675,8 +677,9 @@ func _layout() -> void:
 	if view.x <= 0.0 or view.y <= 0.0:
 		return
 	var safe_top: float = _safe_top_override if _safe_top_override >= 0.0 else UiKit.safe_top(view)
-	# Alt butce: gesture bar + banner yuvasi (M8.9-01; eklentisiz 0).
-	var safe_bottom: float = UiKit.bottom_inset(view)
+	# Alt butce: gesture bar + banner yuvasi (M8.9-01; eklentisiz 0) + kuresel gezinme
+	# kabugu (TASK/057): OYNA kabugun merkez dairesinin USTUNDE biter.
+	var safe_bottom: float = UiKit.bottom_inset(view) + _nav_inset
 	var extra: float = maxf(view.y - 1280.0, 0.0)
 
 	# ÜST satır.
@@ -951,6 +954,16 @@ func _badge_margin() -> Vector4:
 func _layout_with_safe_top(safe_top: float) -> void:
 	_safe_top_override = safe_top
 	_layout()
+
+
+## TASK/057: küresel gezinme kabuğunun alt payı (tuval px). Main kabuğu kurunca verir.
+func set_nav_inset(px: float) -> void:
+	_nav_inset = maxf(px, 0.0)
+	_layout()
+
+
+func nav_inset() -> float:
+	return _nav_inset
 
 
 func play_button() -> Button:

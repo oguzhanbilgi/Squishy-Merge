@@ -118,6 +118,11 @@ var _safe_top_override: float = -1.0
 ## Test kancası: alt pay (banner yuvası + gesture bar); negatif = gerçek
 ## (`UiKit.bottom_inset`).
 var _bottom_inset_override: float = -1.0
+## TASK/057: küresel gezinme kabuğunun alt payı (Main `set_nav_inset`; kabuksuz 0) ve bu payın
+## dünyanın ALTINA girebilen kısmı (kabuğun merkez dairesinin tepsi üstüne taşması): zemin tepsinin üst
+## kenarına kadar uzanır (merkez daire dünyanın üstüne biner), düğümler ise payın TAMAMININ üstünde kalır.
+var _nav_inset: float = 0.0
+var _nav_overlap: float = 0.0
 ## Dünya dikdörtgeni (cover): son yerleşimde hesaplandı.
 var _world: Rect2 = Rect2(Vector2.ZERO, MAP_SIZE)
 ## Yatay ölçek (doku px → ekran px). Dikey ölçek `_world_scale_y` (yuva
@@ -130,6 +135,11 @@ const FIT_MARGIN: float = 12.0
 ## Dikey sıkıştırma tabanı (sy / sx); altına inilmez (bantlı düzen yerine
 ## küçük bir taşma kabul edilir — hedef oranlarda gerekmiyor).
 const MIN_SQUASH: float = 0.94
+## TASK/057: gezinme kabuğu varken kısa ekran + banner yuvası (16:9 + yuva) tüm yolculuğu MIN_SQUASH'ta
+## sığdıramaz (üst satır + kabuk + yuva ≈ 300 px). Sonsuz kalesi üst satırın altına, level 1 kabuğun altına
+## girmesin diye zemin YALNIZ o durumda bu tabana kadar dikeyde sıkıştırılır (düğümler sıkışmaz). Görsel uzlaşma
+## owner incelemesinde; kalıcı çözüm TASK/059 (kaydırılabilir yolculuk).
+const MIN_SQUASH_NAV: float = 0.78
 
 @onready var _root: Control = $Root
 @onready var _art: TextureRect = $Root/MapBackground
@@ -205,12 +215,16 @@ func _bottom_inset() -> float:
 ## kırpma ortalanır (eski davranış); sığmıyorsa önce kırpma iki uca göre
 ## seçilir, o da yetmezse sy düşürülür.
 func _fit_world(view: Vector2, safe_top: float, bottom_inset: float) -> void:
-	_world = Rect2(0.0, safe_top, view.x, maxf(view.y - safe_top - bottom_inset, 1.0))
+	# TASK/057: kabuk payının dünyanın altına giremeyen kısmı dünyayı kısaltır; `node_room` düğümlerin
+	# kullanabileceği dünya yüksekliği (merkez dairenin taşması kadar daha kısa).
+	var world_bottom: float = bottom_inset + maxf(_nav_inset - _nav_overlap, 0.0)
+	_world = Rect2(0.0, safe_top, view.x, maxf(view.y - safe_top - world_bottom, 1.0))
+	var node_room: float = maxf(_world.size.y - minf(_nav_overlap, _nav_inset), 1.0)
 	var sx: float = maxf(_world.size.x / MAP_SIZE.x, _world.size.y / MAP_SIZE.y)
 	_world_scale = sx
 	_world_scale_y = sx
 	_crop_top = (MAP_SIZE.y - _world.size.y / sx) * 0.5
-	if bottom_inset <= 0.0:
+	if world_bottom <= 0.0 and node_room >= _world.size.y:
 		return
 	var ns: float = _node_world_scale()
 	var bar_bottom: float = _bar.height() + 3.0 - _world.position.y
@@ -220,14 +234,15 @@ func _fit_world(view: Vector2, safe_top: float, bottom_inset: float) -> void:
 	var bottom_anchor: float = NODE_POSITIONS[0].y
 	var bottom_extent: float = MapLevelNode.LEVEL_DIAMETER * MapLevelNode.CURRENT_SCALE * ns * 0.5 \
 		+ MapLevelNode.LIP - MapLevelNode.PLAQUE_OVERLAP + MapLevelNode.PLAQUE_HEIGHT + 2.0
-	var span_budget: float = _world.size.y - 2.0 * FIT_MARGIN - bar_bottom - top_extent - bottom_extent
+	var span_budget: float = node_room - 2.0 * FIT_MARGIN - bar_bottom - top_extent - bottom_extent
 	var sy: float = minf(sx, span_budget / maxf(bottom_anchor - top_anchor, 1.0))
 	# Dikey cover'ı kaybetmemek için taban: dünya yüksekliği / doku yüksekliği.
-	sy = maxf(sy, maxf(_world.size.y / MAP_SIZE.y, sx * MIN_SQUASH))
+	var squash_floor: float = MIN_SQUASH_NAV if _nav_inset > 0.0 else MIN_SQUASH
+	sy = maxf(sy, maxf(_world.size.y / MAP_SIZE.y, sx * squash_floor))
 	_world_scale_y = sy
 	var total_crop: float = maxf(MAP_SIZE.y - _world.size.y / sy, 0.0)
 	var crop_max: float = top_anchor - (bar_bottom + FIT_MARGIN + top_extent) / sy
-	var crop_min: float = bottom_anchor - (_world.size.y - FIT_MARGIN - bottom_extent) / sy
+	var crop_min: float = bottom_anchor - (node_room - FIT_MARGIN - bottom_extent) / sy
 	var crop: float = total_crop * 0.5
 	crop = clampf(crop, crop_min, crop_max) if crop_min <= crop_max else crop_min
 	_crop_top = clampf(crop, 0.0, total_crop)
@@ -244,8 +259,10 @@ func _layout() -> void:
 	_fit_world(view, safe_top, _bottom_inset())
 	_art.position = _world.position
 	_art.size = _world.size
-	if is_equal_approx(_world_scale_y, _world_scale):
-		# Cover: dokuyu Godot kırpar (eski yol, yuva yokken birebir).
+	var centered_crop: float = (MAP_SIZE.y - _world.size.y / _world_scale) * 0.5
+	if is_equal_approx(_world_scale_y, _world_scale) and absf(_crop_top - centered_crop) < 0.5:
+		# Cover: dokuyu Godot ORTADAN kırpar (eski yol, yuva yokken birebir). Kırpma ortada değilse (düğümler
+		# sığsın diye kaydırıldı) aşağıdaki atlas yolu — zemin ile düğümler aynı kırpmayı kullanır.
 		_art.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
 		_art.texture = MAP_TEXTURE
 	else:
@@ -310,7 +327,12 @@ func _node_diameter(index: int, current: bool) -> float:
 
 
 func _node_world_scale() -> float:
-	return 1.0 + maxf(_world_scale - 1.0, 0.0) * NODE_WORLD_SCALE_SHARE
+	var scale: float = 1.0 + maxf(_world_scale - 1.0, 0.0) * NODE_WORLD_SCALE_SHARE
+	# TASK/057: kabuk varken zemin dikeyde sıkışırsa düğümler arası mesafe kısalır — düğümler de aynı oranda küçülür
+	# (gövdeler birbirine değmez; en küçük düğüm yine ≥ 48 px). Kabuksuz yol (tek başına testler) birebir eski.
+	if _nav_inset > 0.0 and _world_scale > 0.0:
+		scale *= clampf(_world_scale_y / _world_scale, MIN_SQUASH_NAV, 1.0)
+	return scale
 
 
 ## Tamamlanmış segment sayısı: level k tamamlandıysa k→k+1 segmenti sıcak.
@@ -531,6 +553,19 @@ static func _radial_vignette() -> GradientTexture2D:
 func _layout_with_safe_top(safe_top: float) -> void:
 	_safe_top_override = safe_top
 	_layout()
+
+
+## TASK/057: küresel gezinme kabuğunun alt payı (tuval px) ve dünyanın altına girebilen kısmı (merkez
+## daire taşması). Level 1 düğümü / OYNA plakası kabuğun üstünde kalır.
+func set_nav_inset(px: float, overlap: float = 0.0) -> void:
+	_nav_inset = maxf(px, 0.0)
+	_nav_overlap = clampf(overlap, 0.0, _nav_inset)
+	_layout()
+
+
+## Düğümlerin bitmesi gereken alt çizgi (ekran y): dünya altı − kabuk taşması − kenar payı.
+func node_floor() -> float:
+	return _world.end.y - minf(_nav_overlap, _nav_inset) - FIT_MARGIN
 
 
 ## Test/çekim kancası: alt pay (banner yuvası) da verilir.

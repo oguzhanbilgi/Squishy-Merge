@@ -39,6 +39,8 @@ signal collectible_requested(skin_id: StringName)
 ## Başarımlar / unvan penceresi açıldı ya da kapandı (Main: 300 ms parmak yatışması —
 ## hızlı çift dokunuşun ikincisi yeni görünen kontrole düşmesin; TASK/044 koruması).
 signal overlay_toggled
+## TASK/057: ekran içi pencere (başarımlar / unvan) görünürlüğü değişti — Main gezinme kabuğunu gizler / gösterir.
+signal overlay_changed
 
 const TITLE: String = "PROFİL"
 const SIDE_MARGIN: float = 24.0
@@ -121,6 +123,8 @@ var _achievements: AchievementsOverlay
 var _titles: TitleSelector
 ## Test kancası: cihaz üst güvenli payı (A36 punch-hole) masaüstünde okunamaz.
 var _safe_top_override: float = -1.0
+## TASK/057: küresel gezinme kabuğunun alt payı (Main `set_nav_inset`); kabuksuz 0.
+var _nav_inset: float = 0.0
 
 @onready var _root: Control = $Root
 @onready var _backdrop: Control = $Root/Backdrop
@@ -422,10 +426,12 @@ func _build_overlays() -> void:
 	_achievements = AchievementsOverlay.new()
 	_achievements.opened.connect(func() -> void: overlay_toggled.emit())
 	_achievements.closed.connect(func() -> void: overlay_toggled.emit())
+	_achievements.visibility_changed.connect(func() -> void: overlay_changed.emit())
 	_root.add_child(_achievements)
 	_titles = TitleSelector.new()
 	_titles.opened.connect(func() -> void: overlay_toggled.emit())
 	_titles.closed.connect(func() -> void: overlay_toggled.emit())
+	_titles.visibility_changed.connect(func() -> void: overlay_changed.emit())
 	_titles.title_selected.connect(func(_id: StringName) -> void: _refresh_identity())
 	_root.add_child(_titles)
 
@@ -624,7 +630,7 @@ func _layout() -> void:
 	_margin.add_theme_constant_override("margin_left", int(SIDE_MARGIN))
 	_margin.add_theme_constant_override("margin_right", int(SIDE_MARGIN))
 	_margin.add_theme_constant_override("margin_top", int(_bar.height() + CONTENT_TOP_GAP))
-	_margin.add_theme_constant_override("margin_bottom", int(BOTTOM_PADDING + UiKit.bottom_inset(view)))
+	_margin.add_theme_constant_override("margin_bottom", int(BOTTOM_PADDING + UiKit.bottom_inset(view) + _nav_inset))
 
 
 # --- Tazeleme -----------------------------------------------------------------
@@ -833,6 +839,12 @@ static func _radial_vignette() -> GradientTexture2D:
 
 
 # --- Testler / çekim aracı ----------------------------------------------------
+
+## TASK/057: küresel gezinme kabuğunun alt payı (tuval px): son içerik kabuğun üstüne kayar.
+func set_nav_inset(px: float) -> void:
+	_nav_inset = maxf(px, 0.0)
+	_layout()
+
 
 func _layout_with_safe_top(safe_top: float) -> void:
 	_safe_top_override = safe_top

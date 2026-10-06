@@ -43,6 +43,8 @@ signal shop_skin_requested(skin_id: StringName)
 ## Detay penceresi KAPALIYKEN açıldı (main: kısa parmak yatışması — çift dokunuşun
 ## ikincisi karartmaya düşüp pencereyi hemen kapatmasın; TASK/044 A36 kapısı).
 signal detail_opened
+## TASK/057: ekran içi pencere (parça detayı) açıldı / kapandı — Main gezinme kabuğunu gizler / gösterir.
+signal overlay_changed
 
 const TITLE: String = "KOLEKSİYON"
 const SIDE_MARGIN: float = 24.0
@@ -154,6 +156,8 @@ var _time: float = 0.0
 ## Test kancası: cihaz üst güvenli payı (A36 punch-hole) masaüstünde
 ## okunamaz; negatif = gerçek değeri kullan.
 var _safe_top_override: float = -1.0
+## TASK/057: küresel gezinme kabuğunun alt payı (Main `set_nav_inset`); kabuksuz 0.
+var _nav_inset: float = 0.0
 
 @onready var _root: Control = $Root
 @onready var _backdrop: Control = $Root/Backdrop
@@ -375,6 +379,7 @@ func _build_gallery() -> void:
 ## (vitrin doluyken) değiştirme adımı; sabit altlık: eylem butonları.
 func _build_detail() -> void:
 	_detail = Control.new()
+	_detail.visibility_changed.connect(func() -> void: overlay_changed.emit())
 	_detail.name = "Detail"
 	_detail.set_anchors_preset(Control.PRESET_FULL_RECT)
 	_detail.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -596,7 +601,7 @@ func _layout() -> void:
 	_margin.add_theme_constant_override("margin_left", int(SIDE_MARGIN))
 	_margin.add_theme_constant_override("margin_right", int(SIDE_MARGIN))
 	_margin.add_theme_constant_override("margin_top", int(GALLERY_TOP_PAD))
-	_margin.add_theme_constant_override("margin_bottom", int(BOTTOM_PADDING + UiKit.bottom_inset(view)))
+	_margin.add_theme_constant_override("margin_bottom", int(BOTTOM_PADDING + UiKit.bottom_inset(view) + _nav_inset))
 	_gallery_haze.position = Vector2(0.0, gallery_y - GALLERY_HAZE_ABOVE)
 	_gallery_haze.size = Vector2(view.x, GALLERY_HAZE_ABOVE + GALLERY_HAZE_BELOW)
 	_fx.position = Vector2.ZERO
@@ -1052,6 +1057,17 @@ static func _radial_vignette() -> GradientTexture2D:
 
 
 # --- Testler / çekim aracı ----------------------------------------------------
+
+## TASK/057: küresel gezinme kabuğunun alt payı (tuval px): galerinin son satırı kabuğun üstüne kayar.
+func set_nav_inset(px: float) -> void:
+	_nav_inset = maxf(px, 0.0)
+	_layout()
+
+
+## TASK/057: ekran içi pencere açık mı (parça detayı) — açıkken gezinme kabuğu gizlenir.
+func has_open_overlay() -> bool:
+	return _detail != null and _detail.visible
+
 
 func _layout_with_safe_top(safe_top: float) -> void:
 	_safe_top_override = safe_top

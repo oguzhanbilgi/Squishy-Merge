@@ -33,6 +33,8 @@ signal home_requested
 ## GÜNLÜK ÖDÜLLER kartının AÇ butonu (M8.9-02) → Main pencereyi açar. Kart
 ## ödül VERMEZ, kayda yazmaz; durumu yalnız `DailyRewards.state()`'ten okur.
 signal daily_rewards_requested
+## TASK/057: ekran içi pencere (onay) açıldı / kapandı — Main gezinme kabuğunu gizler / gösterir.
+signal overlay_changed
 
 const TITLE: String = "MAĞAZA"
 const SIDE_MARGIN: float = 24.0
@@ -104,6 +106,8 @@ var _entry_tween: Tween
 ## Test kancası: cihaz üst güvenli payı (A36 punch-hole) masaüstünde
 ## okunamaz; negatif = gerçek değeri kullan.
 var _safe_top_override: float = -1.0
+## TASK/057: küresel gezinme kabuğunun alt payı (Main `set_nav_inset`); kabuksuz 0.
+var _nav_inset: float = 0.0
 
 @onready var _root: Control = $Root
 @onready var _backdrop: Control = $Root/Backdrop
@@ -133,6 +137,7 @@ func _ready() -> void:
 	_build_content()
 	_build_confirm()
 	_build_toast()
+	_confirm.visibility_changed.connect(func() -> void: overlay_changed.emit())
 	_root.resized.connect(_layout)
 	visibility_changed.connect(func() -> void:
 		set_process(visible)
@@ -427,7 +432,7 @@ func _layout() -> void:
 	_margin.add_theme_constant_override("margin_left", int(SIDE_MARGIN))
 	_margin.add_theme_constant_override("margin_right", int(SIDE_MARGIN))
 	_margin.add_theme_constant_override("margin_top", int(_bar.height() + CONTENT_TOP_GAP))
-	_margin.add_theme_constant_override("margin_bottom", int(BOTTOM_PADDING + UiKit.bottom_inset(view)))
+	_margin.add_theme_constant_override("margin_bottom", int(BOTTOM_PADDING + UiKit.bottom_inset(view) + _nav_inset))
 
 
 # --- Tazeleme -----------------------------------------------------------------
@@ -673,11 +678,11 @@ func _show_toast(message: String, tint: Color, text_color: Color = UiTokens.TEXT
 	var h: float = maxf(min.y, 56.0)
 	var view: Vector2 = _root.size
 	_toast.size = Vector2(w, h)
-	var y: float = view.y - TOAST_BOTTOM - UiKit.bottom_inset(view) - h
+	var y: float = view.y - TOAST_BOTTOM - UiKit.bottom_inset(view) - _nav_inset - h
 	if card != null and is_instance_valid(card):
 		var rect: Rect2 = card.get_global_rect()
 		y = rect.end.y + TOAST_CARD_GAP
-		if y + h > view.y - UiKit.bottom_inset(view) - 24.0:
+		if y + h > view.y - UiKit.bottom_inset(view) - _nav_inset - 24.0:
 			y = rect.position.y - h - TOAST_CARD_GAP
 		y = clampf(y, _bar.height() + 8.0, view.y - h - 24.0)
 	_toast.set_meta(&"toast_home", Vector2((view.x - w) * 0.5, y))
@@ -723,6 +728,17 @@ static func _radial_vignette() -> GradientTexture2D:
 func _layout_with_safe_top(safe_top: float) -> void:
 	_safe_top_override = safe_top
 	_layout()
+
+
+## TASK/057: küresel gezinme kabuğunun alt payı (tuval px): son içerik + geri bildirim plakası kabuğun üstünde.
+func set_nav_inset(px: float) -> void:
+	_nav_inset = maxf(px, 0.0)
+	_layout()
+
+
+## TASK/057: ekran içi pencere açık mı (onay) — açıkken gezinme kabuğu gizlenir.
+func has_open_overlay() -> bool:
+	return _confirm != null and _confirm.visible
 
 
 func top_bar() -> ScreenTopBar:
