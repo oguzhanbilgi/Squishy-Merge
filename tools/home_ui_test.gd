@@ -508,7 +508,9 @@ func _check_layout(home: CanvasLayer, view: Vector2, safe_top: float, window_tag
 		if not screen.encloses(home.feature_button(key).visual_rect()):
 			medallions_safe = false
 	_c("%s madalyonlar (plaka dahil) güvenli alanda" % tag, medallions_safe)
-	_c("%s OYNA alt kenara yakın (≤ 60 px pay), 480×96, ≥ 48 dokunma" % tag, view.y - play_rect.end.y <= 60.0 + (view.y - 1280.0) * home.EXTRA_BOTTOM_SHARE + 1.0
+	# TASK/057: Main'de küresel gezinme kabuğu var — OYNA içerik alanının altına (kabuğun payının üstüne) yakın.
+	var content_bottom: float = view.y - (home.nav_inset() if home.has_method("nav_inset") else 0.0)
+	_c("%s OYNA alt kenara yakın (≤ 60 px pay), 480×96, ≥ 48 dokunma" % tag, content_bottom - play_rect.end.y <= 60.0 + (view.y - 1280.0) * home.EXTRA_BOTTOM_SHARE + 1.0
 		and absf(play_rect.size.x - home.PLAY_WIDTH) <= home.PLAY_WIDTH * 0.02
 		and absf(play_rect.size.y - home.PLAY_HEIGHT) <= home.PLAY_HEIGHT * 0.02
 		and play_rect.size.x >= 420.0 and play_rect.size.y >= 82.0)

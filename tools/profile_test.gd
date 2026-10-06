@@ -345,6 +345,33 @@ func _routes(home: CanvasLayer, profile: CanvasLayer) -> void:
 	await _settle(1)
 
 
+## TASK/057: Profil'i, KOLEKSİYONA GİT'in ortası albümün (açılışta kaydırma 0) bir kartının içine düşecek kadar
+## yukarıdan geri kaydırır; CTA kabuğun ayak izinin üstünde kalır. Uygun konum yoksa dokunmaz (ön koşul FAIL eder).
+func _align_cta_over_album_card(profile: CanvasLayer, album: CanvasLayer) -> void:
+	var scroll: ScrollContainer = profile.scroll()
+	var cta: Control = profile.collection_cta()
+	var rect: Rect2 = cta.get_global_rect()
+	var floor_y: float = get_viewport().get_visible_rect().size.y
+	if _main.has_method("global_nav"):
+		floor_y = (_main.call("global_nav") as Object).call("footprint").position.y
+	var offset: float = float(album.scroll().scroll_vertical)
+	for card: CollectionSkinCard in album.cards():
+		var card_rect: Rect2 = card.get_global_rect()
+		card_rect.position.y += offset
+		if card_rect.position.x > rect.get_center().x or card_rect.end.x < rect.get_center().x:
+			continue
+		var target: float = maxf(card_rect.position.y + 10.0, rect.get_center().y)
+		if target > card_rect.end.y - 10.0 or target + rect.size.y * 0.5 > floor_y - 2.0:
+			continue
+		var delta: float = target - rect.get_center().y
+		if delta > float(scroll.scroll_vertical):
+			continue
+		scroll.scroll_vertical = int(float(scroll.scroll_vertical) - ceilf(delta))
+		await _settle(2)
+		await _wait_settled()
+		return
+
+
 # --- Geçiş sonrası parmak yatışması (TASK/044 A36 kapısı) ----------------------------
 
 ## A36'da gerçek hızlı çift dokunuş (ikinci basış ilk bırakıştan ~130–150 ms sonra):
@@ -383,6 +410,11 @@ func _touch_settle(home: CanvasLayer, profile: CanvasLayer) -> void:
 	scroll.scroll_vertical = int(scroll.get_v_scroll_bar().max_value)
 	await _settle(2)
 	await _wait_settled()
+	# TASK/057: küresel gezinme kabuğu Profil'in alt payını büyüttü — en alta kaydırılmış KOLEKSİYONA GİT artık
+	# albümün bir kartına değil bölüm başlığına denk geliyor. Senaryo aynen (geçişte çift dokunuşun ikincisi
+	# albüm kartına SIZMAZ): Profil, CTA'nın ortası (kabuğun üstünde kalarak) açılıştaki albümün bir kartının
+	# üstüne gelecek kadar geri kaydırılır.
+	await _align_cta_over_album_card(profile, album)
 	var cta_pos: Vector2 = _screen_center(profile.collection_cta())
 	await _finger_tap(cta_pos)
 	_c("KOLEKSİYONA GİT (parmak) → Koleksiyon", _main._active_tab == 2 and album.visible)

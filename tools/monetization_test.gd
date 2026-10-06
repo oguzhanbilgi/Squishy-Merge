@@ -1222,8 +1222,11 @@ func _test_main_integration() -> void:
 		and m.get_parent() == _main)
 	var slot: float = m.banner_slot_px()
 	var play_y: float = _main._screens[0]._play_pulse.position.y
-	_c("banner yuvası ekranlardan önce hesaplandı: Ana Sayfa OYNA yuva kadar yukarıda (%d px)" % int(slot),
-		slot > 0.0 and is_equal_approx(base_play_y - play_y, slot))
+	# TASK/057: gezinme kabuğu yuva varken reklamla arasına dokunulmayan BANNER_GAP bırakır (yuvasız BOTTOM_GAP) —
+	# OYNA yuva + bu fark kadar yukarıda.
+	var gap_delta: float = (GlobalNav.BANNER_GAP - GlobalNav.BOTTOM_GAP) if _main.has_method("global_nav") else 0.0
+	_c("banner yuvası ekranlardan önce hesaplandı: Ana Sayfa OYNA yuva kadar yukarıda (%d px + kabuk aralığı %d px)" % [
+		int(slot), int(gap_delta)], slot > 0.0 and is_equal_approx(base_play_y - play_y, slot + gap_delta))
 	_c("Ana Sayfa yüzeyi seçildi", m.surface() == MonetizationManager.Surface.HOME)
 	fake.complete_consent_update(true)
 	fake.complete_init()
@@ -1233,9 +1236,15 @@ func _test_main_integration() -> void:
 	_main._show_tab(1)
 	await _settle(2)
 	var map_screen: CanvasLayer = _main._screens[1]
+	# TASK/057: Main'de küresel gezinme kabuğu yuvanın ÜSTÜNDE — Harita dünyası kabuğun tepsisinin üst kenarında
+	# biter (yuvanın üstünde), düğümler kabuğun ayak izinin de üstünde.
+	var nav: GlobalNav = _main.global_nav() if _main.has_method("global_nav") else null
+	var world_end: float = nav.tray_rect().position.y if nav != null else 1280.0 - slot
 	_c("Harita -> banner gösterili kalır (M8.9-02), Harita dünyası yuvanın üstünde biter", fake.banner_hides.is_empty()
-		and is_equal_approx(map_screen.world_rect().end.y, 1280.0 - slot))
+		and is_equal_approx(map_screen.world_rect().end.y, world_end) and world_end <= 1280.0 - slot)
 	var slot_top: float = 1280.0 - slot
+	if nav != null:
+		slot_top = minf(slot_top, nav.footprint().position.y)
 	var nodes_clear: bool = true
 	for node in map_screen.nodes():
 		nodes_clear = nodes_clear and node.get_global_rect().end.y <= slot_top
@@ -1244,7 +1253,10 @@ func _test_main_integration() -> void:
 	_c("Harita: 10 düğüm (+ plaka) ve Sonsuz kalesi yuvaya girmiyor, kale üst satırın altında",
 		nodes_clear and map_screen.endless_node().get_global_rect().position.y >= map_screen.top_bar().get_global_rect().end.y
 		and map_screen.endless_node().get_global_rect().end.y <= slot_top)
-	_c("Harita dünya dikey sıkıştırması sınırlı (>= 0.94) ve yatay ölçek cover", map_screen.world_scale().y >= 0.94
+	# TASK/057: 16:9 + yuva + kabuk tek durumda MIN_SQUASH_NAV tabanı (owner incelemesinde görsel uzlaşma).
+	var squash_floor: float = map_screen.MIN_SQUASH_NAV if nav != null else 0.94
+	_c("Harita dünya dikey sıkıştırması sınırlı (>= %.2f) ve yatay ölçek cover" % squash_floor,
+		map_screen.world_scale().y >= squash_floor - 0.001
 		and map_screen.world_scale().y <= map_screen.world_scale().x + 0.001)
 	_main._show_tab(3)
 	_c("Mağaza -> gösterili kalır", fake.banner_shows.size() == 1 and fake.banner_hides.is_empty())

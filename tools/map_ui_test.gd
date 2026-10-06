@@ -82,8 +82,16 @@ func _ready() -> void:
 	_c("11 düğüm de MapLevelNode (tek bileşen)", _count_class(map, "MapLevelNode") == 11)
 	_c("düğümler grid değil (x farklı, y aşağıdan yukarı azalır)", map.nodes()[0].position.x != map.nodes()[1].position.x
 		and map.nodes()[0].position.y > map.nodes()[9].position.y and map.nodes()[9].position.y > map.endless_node().position.y)
-	_c("tek dünya zemini (map_background) — KEEP_ASPECT_COVERED", _count_texture(map, "map_background") == 1
-		and map.map_art().stretch_mode == TextureRect.STRETCH_KEEP_ASPECT_COVERED)
+	# TASK/057: Main'de gezinme kabuğu var — 720×1280'de zemin kabuğun üstüne sığmak için sınırlı sıkıştırmayla
+	# (atlas, map_background'ın kendisi) çizilir; kabuksuz yol eskisi gibi KEEP_ASPECT_COVERED.
+	var art_tex: Texture2D = map.map_art().texture
+	var on_atlas: bool = art_tex is AtlasTexture and (art_tex as AtlasTexture).atlas != null \
+		and (art_tex as AtlasTexture).atlas.resource_path.contains("map_background")
+	var shell: bool = map.has_method("node_floor") and float(map.get("_nav_inset")) > 0.0
+	_c("tek dünya zemini (map_background) — KEEP_ASPECT_COVERED (kabuk varken sınırlı sıkıştırma atlası)",
+		(_count_texture(map, "map_background") == 1 and map.map_art().stretch_mode == TextureRect.STRETCH_KEEP_ASPECT_COVERED)
+		or (shell and on_atlas and _count_texture(map, "map_background") == 0
+			and map.map_art().stretch_mode == TextureRect.STRETCH_SCALE))
 	_c("MapTrail var ve 11 nokta bağlıyor", _count_class(map, "MapTrail") == 1 and map.trail().point_count() == 11)
 	_c("Home dashboard parçası yok (kart / HomeFeatureButton / ButtonCard / PanelCard)", _count_class(map, "HomeFeatureButton") == 0
 		and _count_variation(map, &"ButtonCard") == 0 and _count_variation(map, &"PanelCard") == 0
@@ -513,5 +521,9 @@ func _check_layout(map: CanvasLayer, view: Vector2, safe_top: float, window_tag:
 	_c("%s odak düğümü var, hale açık ve en büyük level düğümü" % tag, strongest)
 	_c("%s Sonsuz görünür ve erişilebilir" % tag, map.endless_node().is_visible_in_tree()
 		and screen.encloses(map.endless_node().get_global_rect()))
-	_c("%s dünya zemini ekranı kaplıyor" % tag, map.map_art().get_global_rect().encloses(
-		Rect2(Vector2(0, safe_top), Vector2(720.0, view.y - safe_top))))
+	# TASK/057: kabuk varken zemin tepsinin üst kenarına kadar (altı kabuğun opak dock'u).
+	var world_bottom: float = view.y
+	if map.has_method("node_floor") and float(map.get("_nav_inset")) > 0.0 and _main.has_method("global_nav"):
+		world_bottom = (_main.call("global_nav") as GlobalNav).tray_rect().position.y
+	_c("%s dünya zemini ekranı (kabuk varsa tepsiye kadar) kaplıyor" % tag, map.map_art().get_global_rect().encloses(
+		Rect2(Vector2(0, safe_top), Vector2(720.0, world_bottom - safe_top))))
