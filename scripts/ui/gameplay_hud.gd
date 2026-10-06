@@ -33,6 +33,12 @@ const DUMPLING_VISUAL: GDScript = preload("res://scripts/game/dumpling_visual.gd
 ## değil — candy-night zemin görünmeye devam eder).
 const SCRIM_ALPHA: float = 0.42
 const SCRIM_TAIL: float = 56.0
+## Hedef adı (TASK/056): tasarım puntosu ve okunur taban. Ad, etiketin kapsayıcıdan aldığı gerçek
+## genişliğe (+ pay) sığana kadar 1 px adımlarla küçülür; tabanda da sığmazsa (bugünkü tier
+## adlarının hiçbiri) etiketin üç noktası son çare — metin kartın dışına taşmaz, kopya kısaltılmaz.
+const GOAL_NAME_FONT_SIZE: int = 20
+const GOAL_NAME_MIN_FONT_SIZE: int = 16
+const GOAL_NAME_FIT_SLACK: float = 2.0
 
 var power_bar: PowerBar
 var strip: EvolutionStrip
@@ -281,11 +287,21 @@ func _build_row2() -> void:
 	column.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	row.add_child(column)
 	# Hiyerarşi: küçük başlık (HEDEF / REKOR) → hedef adı → ilerleme.
+	# Başlık satırının sağ ucunda skor hedefi ("+5 000 skor") — küçük ikincil yazı ad satırında
+	# yer için yarışmaz (TASK/056: ad satırındayken boşken 7 px, doluyken 73 px alıp adı kırpıyordu).
+	var caption_row := HBoxContainer.new()
+	caption_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	column.add_child(caption_row)
 	goal_caption = UiKit.hud_caption("Hedef")
 	goal_caption.theme_type_variation = &"LabelHudCaptionDark"
 	goal_caption.add_theme_color_override("font_color", UiTokens.LAVENDER_DEEP.darkened(0.15))
 	goal_caption.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
-	column.add_child(goal_caption)
+	goal_caption.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	caption_row.add_child(goal_caption)
+	goal_extra = UiKit.label("", &"LabelHudCaptionDark", HORIZONTAL_ALIGNMENT_RIGHT)
+	goal_extra.add_theme_font_size_override("font_size", 12)
+	goal_extra.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	caption_row.add_child(goal_extra)
 	var goal_row := HBoxContainer.new()
 	goal_row.add_theme_constant_override("separation", UiTokens.SPACE_XS + 2)
 	goal_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -298,11 +314,12 @@ func _build_row2() -> void:
 	goal_art = UiKit.art(DUMPLING_VISUAL.TEXTURES[3], 28)
 	goal_portrait.add_child(goal_art)
 	goal_label = UiKit.label("Hedef", &"LabelSection")
-	goal_label.add_theme_font_size_override("font_size", 20)
+	goal_label.add_theme_font_size_override("font_size", GOAL_NAME_FONT_SIZE)
 	goal_label.add_theme_color_override("font_color", UiTokens.LAVENDER_DEEP.darkened(0.35))
 	goal_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	goal_label.clip_text = true
 	goal_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	goal_label.resized.connect(_fit_goal_name)
 	goal_row.add_child(goal_label)
 	# Kalın nane çubuk + sağında kendi koyu-mor yüzde pili (çubuğun içine
 	# sıkışmış beyaz yazı yok).
@@ -320,12 +337,6 @@ func _build_row2() -> void:
 	goal_percent = UiKit.label("0%", &"LabelBadgeOnDark", HORIZONTAL_ALIGNMENT_CENTER)
 	percent_pill.add_child(goal_percent)
 	UiKit.hud_gloss(goal_bar, 9.0, 0.32, 6.0, _deco_front)
-	# Skor hedefi ("+5 000 skor") çubuğun sağ ucunda küçük yazı — hedef adı
-	# ile yer için yarışmaz.
-	goal_extra = UiKit.label("", &"LabelHudCaptionDark", HORIZONTAL_ALIGNMENT_RIGHT)
-	goal_extra.add_theme_font_size_override("font_size", 12)
-	goal_extra.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	goal_row.add_child(goal_extra)
 
 
 func _build_strip() -> void:
@@ -476,7 +487,7 @@ func set_level(level: LevelData, record: int = 0) -> void:
 		level_label.add_theme_font_size_override("font_size", 15)
 		goal_portrait.visible = false
 		goal_caption.text = "REKOR"
-		goal_label.text = _thousands(record)
+		set_goal_name(_thousands(record))
 		goal_extra.text = ""
 		strip.set_target(0)
 	else:
@@ -485,10 +496,38 @@ func set_level(level: LevelData, record: int = 0) -> void:
 		goal_caption.text = "HEDEF"
 		goal_portrait.visible = true
 		goal_art.texture = DUMPLING_VISUAL.TEXTURES[clampi(level.target_tier, 1, TierConfig.MAX_TIER) - 1]
-		goal_label.text = TierConfig.tier_name(level.target_tier)
+		set_goal_name(TierConfig.tier_name(level.target_tier))
 		goal_extra.text = "+%s skor" % _thousands(level.target_score) \
 			if level.has_score_target() else ""
 		strip.set_target(level.target_tier)
+
+
+## Hedef kartının ad satırı (tier adı ya da sonsuzda rekor): metni yazar ve sığdırır.
+func set_goal_name(text: String) -> void:
+	goal_label.text = text
+	_fit_goal_name()
+
+
+## Ad puntosu her seferinde GOAL_NAME_FONT_SIZE'dan başlar ve ölçülen genişlik + pay etiketin
+## kapsayıcıdan aldığı genişliğe sığana kadar düşer (GOAL_NAME_MIN_FONT_SIZE'ın altına inmez).
+## Genişlik kapsayıcı sıralamasından gelir: etiket henüz yerleşmediyse dokunmaz, `resized`
+## gelince (ilk yerleşim, rozet / tuval genişliği değişimi) yeniden sığdırır. Satır yüksekliği
+## taban puntoda sabit: küçülen ad kartın dikey düzenini oynatmaz.
+func _fit_goal_name() -> void:
+	var available: float = goal_label.size.x - goal_label.get_theme_stylebox("normal").get_minimum_size().x
+	if available <= 0.0:
+		return
+	var font: Font = goal_label.get_theme_font("font")
+	goal_label.custom_minimum_size.y = font.get_height(GOAL_NAME_FONT_SIZE)
+	var font_size: int = GOAL_NAME_FONT_SIZE
+	while font_size > GOAL_NAME_MIN_FONT_SIZE and _goal_name_width(font, font_size) + GOAL_NAME_FIT_SLACK > available:
+		font_size -= 1
+	if goal_label.get_theme_font_size("font_size") != font_size:
+		goal_label.add_theme_font_size_override("font_size", font_size)
+
+
+func _goal_name_width(font: Font, font_size: int) -> float:
+	return font.get_string_size(goal_label.text, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size).x
 
 
 func set_goal_progress(ratio: float) -> void:
