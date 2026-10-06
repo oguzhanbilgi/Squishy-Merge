@@ -6,7 +6,7 @@
 **Asset kaynağı:** `tools/make_ui_core.py` → `assets/visual/ui/core/**` +
 `scripts/ui/ui_core_assets.gd` (üretilir, elle düzenlenmez).
 **Galeri:** `tools/ui_system_gallery.tscn` (dev-only, 5 sayfa).
-**Test:** `tools/ui_foundation_test.tscn` (164 kontrol), `tools/gameplay_shell_test.tscn` (147, §13), `tools/home_ui_test.tscn` (207, §14), `tools/map_ui_test.tscn` (127, §15), `tools/shop_ui_test.tscn` (212, §16), `tools/collection_ui_test.tscn` (164, §17), `tools/secondary_modal_ui_test.tscn` (102, §19), `tools/result_ui_test.tscn` (226, §20), `tools/revive_refill_ui_test.tscn` (266, §21).
+**Test:** `tools/ui_foundation_test.tscn` (164 kontrol), `tools/gameplay_shell_test.tscn` (147, §13), `tools/home_ui_test.tscn` (207, §14), `tools/map_ui_test.tscn` (127, §15), `tools/shop_ui_test.tscn` (212, §16), `tools/collection_ui_test.tscn` (164, §17), `tools/secondary_modal_ui_test.tscn` (102, §19), `tools/result_ui_test.tscn` (226, §20), `tools/revive_refill_ui_test.tscn` (266, §21), `tools/ui_system_v3_test.tscn` + `tools/global_nav_shell_test.tscn` (§27, TASK/057 — dalda).
 
 Çakışma kuralı: owner'ın son talimatı > GAME_DESIGN.md > bu doküman > kod.
 Bir sayı burada ve `ui_tokens.gd`'de farklıysa **doküman güncellenir, token
@@ -629,6 +629,8 @@ kendi `ScreenTopBar`'ıyla döner (geri → Home). M8.5-10 alt sekme çubuğu
 `_tabs` tamamen SİLİNDİ: hiçbir ekranda gizli çubuk yok, dokunma almaz
 (`collection_ui_test` main'de `TabBar` düğümü olmadığını ve kaynakta `_tabs`
 kalmadığını doğrular). `main._show_tab` adı tarihsel (ekran indeksi).
+*(Sonra — TASK/057, dalda: owner'ın son talimatıyla (Product Vision V3) Ana Sayfa dahil beş hub
+ekranında YENİ küresel gezinme kabuğu `GlobalNav` — eski çubuk geri gelmedi; §27.)*
 
 ---
 
@@ -2061,3 +2063,170 @@ Ana Sayfa dışına geçiş / round başlangıcı kapatır. 320×568, 360×640, 
 Seri, kaçırılan gün cezası, takvim, yedi günlük zincir, günde birden çok meydan okuma, skor
 tablosu / arkadaş / dünya sıralaması, meydan okuma tutorial'ı, bildirim isteği, ödül talep ekranı,
 tekrar / pratik modu. Hepsi owner kararı ister.
+
+
+---
+
+## 27. Squishy UI System V3 + küresel gezinme kabuğu (TASK/057) — DALDA, OWNER GÖRSEL İNCELEMESİ BEKLİYOR
+
+**Durum:** `task/057-ui-system-v3-global-nav` (kanonik main `d5237bf`'ten). Product Vision V3'ün
+(GitHub Issue #1) ilk uygulama görevi. **Owner görsel incelemesi SERT KAPI:** main'e alınmadı,
+TASK/058 başlamadı. Bu bölüm bir sonraki görevlerin (TASK/058–064) üzerine kuracağı temeli anlatır.
+
+**Kural — ikinci sistem YOK:** V3, M8.6 katmanının EVRİMİDİR. Sayılar `UiTokens`'ın V3 bölümünde,
+tipografi rolleri `UiType.V3_ROLES`'ta (mevcut tema variation'ları + token boyutu; tema yeniden
+üretilmedi, yeni font yok), çizim `UiKit.draw_candy` / `draw_candy_circle`'da, bileşenler ayrı
+sınıflarda. M8.6 bileşenleri (`candy_button`, `home_pill`, `section_header`, `modal_shell` …) ve
+onaylı ekranlar DEĞİŞMEDİ; V3 bileşenleri yeni / yeniden tasarlanan yüzeylerde (TASK/058+) kullanılır.
+
+**Owner kararının güncellenmesi:** 2026-09-16 "Ana Sayfa'da sekme çubuğu yok" (§14, §14.4) kararı,
+owner'ın son açık talimatıyla (Issue #1 §7–§8, TASK/057) değişti: küresel gezinme Ana Sayfa dahil beş
+hub ekranında. Eski M8.5 sekme çubuğu geri GELMEDİ — kabuk yeni bir bileşendir (§27.5).
+
+### 27.1 Ölçüm temeli ve dokunma kuralı
+
+Mantıksal tuval her telefonda 720 px genişlik (`canvas_items` + `expand`; yükseklik serbest). Samsung
+A36: 1080 px fiziksel, yoğunluk 2.625 → **1 tuval px = 1.5 fiziksel px = 0.571 dp**; 360 dp telefonda
+0.5 dp. Ölçülen kök neden: eski `TOUCH_MIN` 48 px = A36'da 27 dp, 56 px köşe butonları 32 dp, Mağaza
+SATIN AL 60 px = 34 dp (Android önerisi 48 dp). **V3 kuralı:** birincil kontroller (CTA, gezinme öğesi,
+kart) en az **`TOUCH_TARGET` = 84 px** (A36'da 48 dp; 360 dp telefonda 42 dp); kart içi kompakt
+eylemler (ödül / reklam / fiyat) en az **`TOUCH_COMPACT` = 64 px** yükseklik + komşusuyla ≥ 12 px
+boşluk (A36'da 37 dp). Mevcut 56 px köşe butonları TASK/060 (HUD) / TASK/064'te ele alınır.
+
+### 27.2 Tokenlar (`scripts/ui/ui_tokens.gd`, V3 bölümü)
+
+| Aile | Tokenlar |
+|---|---|
+| Tipografi (px) | kahraman 44 · ekran başlığı 30 · bölüm 24 · kart başlığı 23 · gövde 19 · ikincil 16 · buton 36 / 26 / 21 (HERO / NORMAL / COMPACT) · rozet 16 · gezinme 18 · **meta 14 = en küçük** |
+| Font | Baloo 2 = başlık / CTA / rozet / gezinme; Nunito = gövde / ikincil / meta (UiType kuralı aynen) |
+| Boşluk | micro 2 · xs 4 · sm 8 · md 12 · lg 20 · xl 32 · 2xl 48 |
+| Yarıçap | kompakt 14 · kontrol 22 · özellik / teklif kartı 30 · pencere / gezinme tepsisi 36 |
+| Derinlik | candy dudağı: dinlenme 7 · basılı 2 · düz (pasif / alınmış) 2 · kart 6; gölge kademeleri RESTING (6 / α .28) · ELEVATED (12 / α .36) · FLOATING (20 / α .50); gloss α .26, yüzün üst %38'i |
+| Kenar | standart 3 px açık halka · seçili 4 px beyaz-altın · premium 4 px altın · pasif α .25. **Kenar hiyerarşi taşımaz** (boyut / ikon / derinlik taşır); V3 kartının içinde ikinci kenarlı panel açılmaz |
+| Renk rolleri | birincil cyan · ikincil koyu lavanta · ödül nane · ödüllü reklam pembe · fiyat nane (Hamur yetmiyor = krem yüz + mercan-koyu fiyat, pasif griden ayrık) · premium altın · yıkıcı mercan · yüzey krem / yükseltilmiş krem / hub lavanta `#6c55c4` · gezinme tepsisi `#7259c9` + krem seçili karo + koyu dock · pasif lavanta-gri · dikkat mercan-kırmızı · para birimi altın |
+| Boy | CTA `BUTTON_HEIGHT_HERO` 108 · `BUTTON_HEIGHT` 84 · `BUTTON_HEIGHT_COMPACT` 64. Eski ↔ V3 eşleşmesi `UiTokens`'ta yazılı (eski tokenlar onaylı M8.6 ekranlarında aynen) |
+
+Kontrastlar testle kilitli: seçili gezinme ikonu krem karoda ≥ 4.5:1, etiketi ≥ 7:1; seçili OLMAYAN gezinme
+etiketi tepside ≥ 4.5:1 (5.0); merkez Harita ikonu (lacivert) cyan dairede ≥ 4.5:1; özellik kartının beyaz
+başlık / alt yazısı hub yüzeyinde ≥ 4.5:1; Hamur yetmiyor fiyatı krem yüzde ≥ 4.5:1; cyan / nane yüzde lacivert
+≥ 4.5:1; pasif yüzde `TEXT_DISABLED` ≥ 4.5:1.
+
+### 27.3 Bileşen aileleri
+
+| Aile | Dosya / API | Durumlar |
+|---|---|---|
+| Birincil CTA (OYNA / BAŞLA) | `SquishyButton` `Kind.PRIMARY`, `SizeClass.HERO` 108 / `NORMAL` 84; `set_state(state, reason)` = `disabled`'ın TEK kaynağı, `set_enabled` kısayol | normal · basılı (yüz dudağa iner + squash + `ui_tap`) · pasif (basılıyken pasifleşirse basış görseli + ölçek bırakılır) |
+| İkincil CTA (MEYDAN OKUMA) | `Kind.SECONDARY` | normal · basılı · pasif |
+| Ödül CTA (ÖDÜLÜ AL) | `Kind.REWARD` | alınabilir · alındı (`CLAIMED`: düz krem + nane tik + ALINDI) · pasif |
+| Ödüllü reklam CTA (REKLAM İZLE n/2) | `Kind.REWARDED_AD`, `set_ad_progress(done, total)` — yalnız NORMAL ↔ EXHAUSTED türetir, çağıranın pasif / yok durumunu ezmez; tükenmiş ilerleme NORMAL istense de EXHAUSTED kalır | 0/2 · 1/2 · 2/2 `EXHAUSTED` · `UNAVAILABLE` (yaş / rıza / dolgu; `set_state(UNAVAILABLE, "REKLAM YOK")` geçici sebep başlığı, NORMAL'de asıl başlık döner) |
+| Para birimi CTA | `Kind.CURRENCY`, `set_price(n)` | yeterli · `INSUFFICIENT` (dokunulabilir, soluk) · pasif |
+| Özellik kartı | `FeatureCard` — sanat kuyusu, başlık, tek satır alt yazı, ilerleme, rozet, › ya da kompakt CTA; kartın tamamı tek hedef (124 px); en küçük genişlik içerikten (yan yana kartta CTA taşmaz); `set_cta(text, kind, state)` CTA'nın düz durumunu karta yansıtır | normal · basılı · seçili · pasif (`set_enabled`) |
+| Teklif kartı | `OfferCard` — altın premium bant + başlık, çerçevesiz ödül karoları (sanat + adet cipi), fiyat CTA, süre cipi, değer etiketi (cip boyu metni izler); `set_scrollable` (Mağaza kaydırması) | premium / normal; fiyat ve süre ÇAĞIRANIN metni |
+| Bölüm başlığı | `UiKit.section_header_v3(title, accessory)` — M8.6 plakasının kendisi + plakada isteğe bağlı aksesuar (rozet) | — |
+| Dikkat rozeti | `AttentionBadge` — `show_dot` / `show_count` (0 → yok, 99+) / `show_new` (YENİ) / `show_claim` (!) / `clear`; `place_at(köşe)` ebeveyni büyütmez | — |
+| Güç kartı primitifi | `PowerCard(type, stock, with_ad)` — büyük owner güç sanatı (candy kuyu), Türkçe büyük harf ad, stok YALNIZ rakam, isteğe bağlı REKLAM İZLE yuvası; **kota VARSAYILMAZ** (sayaç çağırandan: bugün GAME_DESIGN §5.7.3 dört güç toplamı 1/gün kilitli; Issue #1'in güç başına 2/gün kararı TASK/060'ta owner onayı + GAME_DESIGN güncellemesi ister); `set_scrollable` | seçili · stok 0 soluk rakam |
+| Onay penceresi | `UiKit.confirm_shell(title, message, primary, secondary)` — `modal_shell` v2 + iki SquishyButton; karartma = `attach_dim_close` (bırakışta kapatır, iptal kapatmaz) | — |
+| Gezinme öğesi | `NavItem` — ikon (picto ya da avatar), etiket, rozet; merkez kipi | seçili · seçili değil · basılı · pasif · rozet |
+
+Odak: oyun dokunmatik (`FOCUS_NONE`, uygulamada klavye odağı yok); kodla `pressed` / erişilebilirlik
+tıklaması çalışır. Eylem bağlama her zaman `GestureGuard.on_pressed` (TASK/055); bileşenler basış
+sahipliğine dokunmaz, yalnız görseli çizer. Kaydırılan içerikte `set_scrollable(true)` (PASS +
+`NOTIFICATION_SCROLL_BEGIN`'de basış görseli bırakılır — M8.6-06.3 kuralı). Ekonomi / reklam / görev
+mantığı YOK: durum ve sayaç çağırandan gelir.
+
+### 27.4 Küresel gezinme kabuğu (`GlobalNav` + `NavItem`)
+
+Hedefler Main'in GERÇEK beş ekranı (yeni rota yok):
+**ANA SAYFA (0) · MAĞAZA (3) · [ HARİTA (1) ] · KOLEKSİYON (2) · PROFİL (4)**. Merkez HARİTA büyük cyan
+daire (92 px, tepsinin 40 px üstüne taşar, LACİVERT ikon; Ana Sayfa'nın OYNA'sıyla aynı hedef — oyunun ana
+yolu); seçili merkez altın halka + altın hale. Yan öğeler lavanta candy tepside (92 px, kenar payı 12,
+yarıçap 36; ikon 54 + yumuşak gölge, etiket Baloo 18 beyaz); seçili yan öğe tepsiden 14 px yükselen krem
+karo + mor ikon + koyu etiket; basılı (seçili değil) öğe yarı saydam, dudağı çökmüş krem karo; Profil öğesi
+oyuncunun avatarı (vitrin değişince hemen tazelenir). Tepsinin arkasında opak koyu DOCK: tepsi üst kenarının
+30 px üstünden ekran altına (banner yuvası dahil) solar — kaydırılan içerik tepsinin altında / yanında görünmez
+ve dokunuş almaz; gerçek banner yuvada dock'un üstüne çizilir. **Dokunma alanı:** seçili olmayan yan öğe yalnız
+tepsi (92 px), seçili yan öğe tepsi + yükselen karo payı (106 px), merkez yalnız daire + tepsi — tepsi üstündeki görünür
+içeriğe dokunuş çalınmaz. Basılı (seçili olmayan) öğenin önizleme karosunda etiket koyu (beyaz ~2.4:1 kalırdı).
+Konum sekmeler arasında SABİT (banner'sız sekmede de zıplamaz): tepsi alt kenarı = ekran altı −
+`UiKit.bottom_inset` (gesture bar + banner yuvası) − 8 (yuva varsa **28**: tepsinin dokunulan öğeleri reklamın
+hemen üstüne oturmaz — kazara reklam tıklaması riski; AdMob yerleşim kuralı birebir metinle doğrulanmadı,
+uyum değerlendirmesi owner'da AÇIK). Katman 6 (hub ekranları 5 · tutorial 8 · sonuç 10 · pencereler 11–14).
+
+**Sahiplik (`Main._sync_nav`, tek karar noktası, sinyalle):** kabuk yalnız bir hub ekranı öndeyken ve
+engelleyici yüzey yokken görünür; seçili öğe = `_active_tab`. Kabuk yalnız
+`destination_requested(tab)` yayar; Main görünmeyen kabuktan gelen / bayat isteği ve zaten açık hedefi
+yok sayar (yinelenen rota, ikinci giriş animasyonu yok). Hızlı çift dokunuşun ikincisi TASK/044 300 ms
+parmak yatışmasında yutulur. Ekranlar kalıcı düğümlerdir (yeniden kurulmaz), ama her sekme girişi mevcut
+`refresh()` davranışını korur: Mağaza / Koleksiyon / Profil başa kayar, Harita giriş animasyonunu oynatır,
+ekran içi pencereler sekmeden çıkınca kapanır — kabuk bunu DEĞİŞTİRMEDİ (kaydırma konumunu koruma bir ürün
+kararıdır). Sekme geçişi tek senkronla biter (kabuk ara durumda yanıp sönmez).
+
+### 27.5 Görünürlük matrisi
+
+| Yüzey | Kabuk |
+|---|---|
+| Ana Sayfa · Harita · Mağaza · Koleksiyon · Profil (pencere kapalı) | GÖRÜNÜR, seçili = ekran |
+| Oyun (board; tutorial round'u dahil) · mola · sonuç · devam teklifi · refill | gizli |
+| Ayarlar · günlük ödüller · bonus sandık bilgisi · GÖREVLER · MEYDAN OKUMA · yaş ekranı · tutorial katmanı | gizli |
+| Ekran içi pencere: Mağaza onayı · Koleksiyon parça detayı · Profil başarımlar / unvan seçici | gizli (`overlay_changed` sinyali) |
+| İlk açılış (onboarding bitmemiş) | gizli (Ana Sayfa hiç görünmez) |
+
+Gizlenen kabukta basılı öğenin basışı GestureGuard ile eylemsiz biter.
+
+### 27.6 Paylar — içerik kabuğun altına girmez
+
+Hub ekranları `set_nav_inset(nav.reserve())` alır (Main verir, banner yuvası kesinleşince yeniden; kabuksuz tek başına
+test 0 — eski yerleşim birebir). `reserve()` = alt boşluk + tepsi 92 + merkez taşması 40 = yuvasız **140 px**
+(720×1280'in %10.9'u), yuvalı **160 px** (`UiKit.bottom_inset`'in ÜSTÜNE). Ana Sayfa: OYNA + level pill'i payın üstünde,
+maskot kalan hero bölgesine sığar. Mağaza / Koleksiyon / Profil: kaydırılan içeriğin alt payı + pay — son kart / satır
+kabuğun üstüne kaydırılır; Mağaza geri bildirim plakası da payın üstünde. **Harita:** zemin tepsinin ÜST kenarına kadar
+uzanır (merkez daire dünyaya biner), düğümler payın TAMAMININ üstünde kalır (`set_nav_inset(reserve,
+NavItem.CENTER_RISE)`); zemin dikeyde sıkışırsa düğümler aynı oranda küçülür (gövdeler birbirine değmez). Ölçülen
+sıkıştırma: 720×1600 ve A36 benzeri (yuvalı) 1.000 · 720×1280 yuvasız 0.937 · **16:9 + 112 px banner yuvası 0.819** —
+üst satır + kabuk + yuva tüm yolculuğu `MIN_SQUASH` (0.94) ile sığdıramadığından yalnız bu durumda `MIN_SQUASH_NAV`
+(0.78) tabanına kadar (Sonsuz kalesi üst satırın altında, level 1 kabuğun üstünde kalır). Kalıcı çözüm TASK/059
+(kaydırılabilir yolculuk) — owner kararı. Gelecek MEYDAN OKUMA rotası (TASK/059) için ayrılan bölge: dünyanın sol / sağ
+yan bantları ve kabuğun üstündeki alt dünya şeridi — kabuk ayak izi (alt 140 px + banner yuvası) hiçbir harita ögesine
+verilmez.
+
+### 27.7 Android GERİ ve TASK/055
+
+GERİ zinciri DEĞİŞMEDİ (pencere → ekran penceresi → hub dışı ekrandan Ana Sayfa → Ana Sayfa'da çıkış).
+Kabuk öğeleri GestureGuard'a aittir: ACTION_CANCEL, basılıyken GERİ, basılıyken pencere açılışı ve
+pencere odağı kaybı → 0 gezinme; sonraki taze dokunuş tam bir kez. Tepsi boşlukları `MOUSE_FILTER_STOP`
+(alttaki kaydırılan içeriğe dokunuş sızmaz).
+
+### 27.8 Bilinçli olarak YAPILMAYAN (sonraki görevlerin kapsamı)
+
+Ana Sayfa V3 hiyerarşisi (büyük OYNA + Günlük / Meydan Okuma özellik kartları + Başlangıç Paketi +
+rozetler) → **TASK/058**; Harita MEYDAN OKUMA rotası / portalı → **TASK/059**; Gameplay HUD V3 + günlük
+2 reklamlı güç kotası → **TASK/060**; Günlük / Görevler V3 (ÖDÜLÜ AL, devir otomatik talebi, görev
+rozetleri; Ana Sayfa Günlük hatası) → **TASK/061**; Mağaza V3 + Başlangıç Paketi (fiyat, 72 saat, gerçek
+hak akışı) → **TASK/062**; Meydan Okuma merkezi → **TASK/063**; Koleksiyon / Profil / Ayarlar tutarlılığı
+→ **TASK/064**. Kabuğun rozetleri bu görevde HİÇBİR veriye bağlanmadı (yalnız API).
+
+### 27.9 Bilinen görsel uzlaşmalar (owner incelemesi)
+
+- Ana Sayfa'da büyük OYNA ile kabuğun merkez HARİTA dairesi aynı hedefe gider ve üst üste durur —
+  Ana Sayfa V3 (TASK/058) OYNA'nın davranışını / yerini belirler.
+- Ana Sayfa'daki Koleksiyon / Mağaza madalyonları ve sol üst avatar artık kabukla yinelenir — TASK/058.
+- Harita / Mağaza / Koleksiyon / Profil üst satırındaki geri oku (→ Ana Sayfa) kaldı (GERİ zinciri ve
+  TASK/055 testleri ona dayanıyor) — kaldırılması owner kararı.
+- A36'da banner yuvası 112 px: Harita ve Profil (banner yüzeyi değil) kabuğun altında boş bant gösterir —
+  kabuğun konumu sekmeler arasında sabit kalsın diye bilinçli.
+- Harita: 720×1280 yuvasız %6.3, **16:9 + banner yuvasında %18** dikey sıkıştırma (düğümler küçülür) — TASK/059.
+- Ana Sayfa maskotu kabukla küçülür (A36 benzeri + banner: ~391 px, önce ~597; 720×1280: 538) — Ana Sayfa V3
+  (TASK/058) hiyerarşiyi yeniden kurar.
+- Kabuk ile banner arası 28 px dokunulmayan aralık: AdMob yerleşim politikasına uygunluğu birebir resmî metinle
+  doğrulanmadı — uyum AÇIK (owner / A36 test banner'ıyla doğrulama).
+
+### 27.10 Test ve araçlar
+
+`tools/ui_system_v3_test.tscn` (token / kontrast / tipografi / bileşen / durum / rozet çağrı sırası / kaynak
+sözleşmesi), `tools/global_nav_shell_test.tscn` (gerçek Main: kurulum + dokunma alanı + dock, seçili durum, her hedefe
+tek gezinme, yineleme / hızlı dokunuş + yatışma ön koşulu, iptal / GERİ / pencere / odak kaybı + gizlen-görün-bırak
+(pozitif kontrollerle), işaretçisiz, GERİ zinciri, görünürlük matrisi (tutorial katmanı tek başına dahil), dört
+görünümde paylar + doğrudan alt pay, geç gelen banner yuvası, kabuk görünürken Harita düğümü / geri, Mağaza son satır
+SATIN AL ve Koleksiyon son kart GERÇEK dokunuşla). Kabukla uyarlanan koruma suite'leri (niyet aynı): `home_ui_test`,
+`map_ui_test`, `monetization_test`, `profile_test`. Görsel inceleme: `tools/hub_nav_shots.tscn` (taban ve aday aynı
+araçla; masaüstü / 720×1600 / A36 benzeri), `tools/ui_v3_showcase.tscn` (üretim bileşenleriyle vitrin, 5 sayfa).

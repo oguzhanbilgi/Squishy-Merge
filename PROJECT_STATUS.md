@@ -132,10 +132,20 @@ px pay); kopya ve kart geometrisi aynı; taban farkı 141 → 0 FAIL, mutasyon 1
 masaüstü kapısı 53 / 53 temiz (`0c0dc09`: 6800 kontrol, 0 FAIL, 0 SCRIPT ERROR), Samsung A36: GEÇTİ (L03 ve meydan
 okuma T5 `Büyük Dumpling` tam; ürün dili Türkçe, EN / RTL yalnız-test vekilleri) (§4.36); T5 hedef kartı kırpması
 KAPANDI (eski açık madde (6) — FIXED + MAIN). Bilinen, izlenen açık ürün maddesi: 0 (ürünün hatasız olduğu iddia
-edilmez). Sonraki ürün / stabilizasyon görevi owner seçimi (TASK/057 oluşturulmadı).
+edilmez). Sonraki ürün / stabilizasyon görevi owner seçimi (TASK/057 oluşturulmadı). *(Sonra (2026-10-06): owner
+Product Vision V3'ü başlattı — aşağıda TASK/057.)*
+**Product Vision V3 — AKTİF (2026-10-06; [GitHub Issue #1](https://github.com/oguzhanbilgi/Squishy-Merge/issues/1)):**
+UI/UX yenileme + ödüllü güçler + görevler + başlangıç paketi + harita / meydan okuma yol haritası (TASK/057–065);
+Release Readiness PAUSED / YELLOW. **TASK/057 (Squishy UI System V3 + küresel gezinme kabuğu) — dalda, READY FOR OWNER
+VISUAL REVIEW, main'e ALINMADI** (`task/057-ui-system-v3-global-nav`, main `d5237bf`'ten; main DEĞİŞMEDİ): V3 token /
+bileşen temeli + beş hub ekranında küresel alt gezinme; masaüstü odak + koruma + negatif kontroller geçti, Samsung A36
+KOŞULMADI (owner görsel onayından sonra) (§4.37). TASK/058 BAŞLAMADI.
 Release izi ayrı. Sırada: içerik derecesi + yargı bölgesi kararları + 13+ seçici uyum riski (owner) → gizlilik
 politikası → upload anahtarı → gerçek AdMob kimlikleri → mağaza varlıkları / Play Console,
 sonra ilk imzalı üretim AAB'si ve M10 (Play kapalı test) ·
+**Dal (2026-10-06):** `task/057-ui-system-v3-global-nav` (main `d5237bf`'ten; `86bde6c` · `d571555` · `3592889` ·
+`c614e02` + doküman;
+owner görsel incelemesi bekliyor, main'e ALINMADI — main == origin/main == `d5237bf` DEĞİŞMEDİ) ·
 **Branch / main:** `main` == origin/main == `ee2778a` — TASK/056 `task/056-t5-target-card-truncation` (main
 `a8bf454`'ten — `a8bf454` = TASK/055 doküman eşitlemesi; 4 commit: `721b97a` düzeltme · `c17fa4c` test · `0c0dc09`
 inceleme sertleştirmesi (masaüstü kapısından ve Samsung A36'dan geçen son üretim / test adayı) · `ee2778a` doküman /
@@ -3466,6 +3476,54 @@ formatına yalnız `haptics_enabled` (varsayılan true) eklendi. Ayrıntı ve
   QA dışa aktarımının bayt-aynı geri koyması yalnız değişiklik zamanlarını tazeledi; hiçbiri stage / revert / restore /
   stash edilmedi); `_visual_source/` ve `OWNER_WORKING_PROFILE.md` değişmedi; sahibin kaydının değişiklik zamanını tam
   masaüstü kapısındaki aynı baytların yeniden yazılması tazeledi (içerik aynı).
+
+### 4.37 Squishy UI System V3 + küresel gezinme kabuğu (TASK/057) — DALDA, OWNER GÖRSEL İNCELEMESİ BEKLİYOR
+
+> **READY FOR OWNER VISUAL REVIEW — main'e ALINMADI.** Dal `task/057-ui-system-v3-global-nav` (kanonik main
+> `d5237bf`'ten; `main == origin/main == d5237bf` DEĞİŞMEDİ; merge / PR yok). Product Vision V3'ün ([GitHub Issue
+> #1](https://github.com/oguzhanbilgi/Squishy-Merge/issues/1)) ilk uygulama görevi; owner görsel incelemesi SERT KAPI —
+> onay ya da istenen değişiklikler gelmeden tamam sayılmaz, tam kontrollü kapı (A36 dahil) koşulmaz, TASK/058 başlamaz.
+> Release Readiness PAUSED / YELLOW. Zincir: `86bde6c` UI System V3 temeli · `d571555` küresel gezinme kabuğu ·
+> `3592889` testler + inceleme araçları · `c614e02` doğrulama inceleyicisi kalıntıları (cila — son üretim / test adayı)
+> · bu doküman commit'i. İnceleme paketi: `build/qa_057_visual_review/REVIEW_INDEX.md` (git dışı).
+
+- **Faz A denetimi (özet):** mevcut katman `UiTokens` (sayılar) → `make_ui_theme.gd` → `ui_theme.tres` → `UiKit`
+  (fabrika) + bileşen sınıfları (`HomeFeatureButton`, `ShopPowerCard`, `MapLevelNode`, `AvatarButton` …) + `UiType`
+  rolleri + `UiMotion` + `GestureGuard`; V3 bunun EVRİMİ (ikinci sistem / tema / font yok). Hub ekranları: Ana Sayfa
+  (0), Harita (1), Koleksiyon (2), Mağaza (3), Profil (4) — `Main._show_tab`; pencereler ayrı CanvasLayer (10–14); ekran
+  içi pencereler: Mağaza onayı, Koleksiyon detayı, Profil başarımlar / unvan. Tuval her telefonda 720 genişlik
+  (`canvas_items` + `expand`); en dar pratik görünüm 20:9 (720×1600), en kısa 16:9 (720×1280). Ölçüm: A36'da 1 tuval px
+  = 0.571 dp → eski 48 px TOUCH_MIN = 27 dp, 56 px köşe butonu = 32 dp (küçük buton hissinin kaynağı).
+- **UI System V3:** tipografi / boşluk / yarıçap / derinlik / kenar / renk rolleri, ölçülmüş dokunma kuralı (84 px =
+  A36'da 48 dp; kompakt 64 px), `SquishyButton` (5 tür × 3 boy, açık durum makinesi), `AttentionBadge`, `FeatureCard`,
+  `OfferCard`, `PowerCard`, bölüm başlığı V3, onay penceresi — ayrıntı UI_VISUAL_SYSTEM §27. Hiçbiri ekonomi / reklam /
+  görev / kayıt çağırmaz; bu görevde üretim ekranına bağlanmadı.
+- **Küresel gezinme kabuğu:** `GlobalNav` (katman 6) ANA SAYFA · MAĞAZA · [HARİTA] · KOLEKSİYON · PROFİL; görünürlük ve
+  seçili hedef yalnız `Main._sync_nav` (sinyalle); hub dışı / engelleyici yüzeylerde gizli (matris §27.5); aynı hedef /
+  gizli kabuk isteği yok sayılır; öğeler GestureGuard'a ait; Android GERİ zinciri değişmedi; opak dock; banner yuvası
+  varken 28 px dokunulmayan aralık (uyum AÇIK); hub ekranları `set_nav_inset` ile içeriği kabuğun üstünde bitirir.
+- **Owner kararı güncellemesi:** 2026-09-16 "Ana Sayfa'da sekme çubuğu yok" kararı owner'ın son talimatıyla (Issue #1
+  §7–§8, TASK/057) değişti — kabuk Ana Sayfa dahil beş hub ekranında.
+- **Doğrulama (masaüstü):** odak `ui_system_v3_test` 96 / 96 · `global_nav_shell_test` 175 / 175 (0 SCRIPT ERROR);
+  negatif kontroller 15 / 15 varyant açık FAIL ile öldü (seçili durum güncellemesi, Mağaza / Ana Sayfa / Harita alt
+  payı, GestureGuard atlatma, aynı sekmeye ikinci gezinme, her yerde görünen kabuk, ekran içi pencere sinyali, gizli
+  kabuğun isteği, rozet 0 sayısı, basış çökmesi, ALINDI etkinliği, dokunma bandı, dock, banner aralığı), her geri koyma
+  bayt-aynı; çekişmeli inceleme 4 salt-okunur inceleyici / 11 mercek — 0 BLOCKER; 7 HIGH (görünmez dokunma bandı, tepsi
+  altında görünen içerik, banner'a 8 px yakınlık, etiket / merkez ikon kontrastı, rozet ölçüm sırası, Harita 16:9 +
+  banner sığmazlığı, görsel A36 kanıtı eksik) ve MEDIUM'lar (PowerCard sabit 0/2 kotası, çekim aracının kayıt yolu, geç
+  banner yolu / dokunuş düzeyi test kapsamı, FeatureCard min genişlik, REWARDED_AD durum makinesi, CTA durumunun karta
+  yansıması …) giderildi; banner aralığı uyumu AÇIK (owner); doğrulama inceleyicisi ayrıca koştu; tam masaüstü
+  regresyonu (aday `c614e02`) 55 / 55 temiz, 7071 kontrol, 0 FAIL, 0 SCRIPT ERROR, bot 2 / 2; sahibin kayıt ailesi
+  bayt-aynı. **Samsung A36 cihaz kapısı KOŞULMADI** (owner görsel onayından sonra, tam kontrollü kapıyla).
+- **Bilinen görsel uzlaşmalar (owner incelemesi):** Ana Sayfa'da OYNA + merkez HARİTA aynı hedef ve üst üste; Ana Sayfa
+  madalyonları / avatar kabukla yineleniyor; hub ekranlarında üst satır geri oku kaldı; Harita 16:9 + banner yuvasında
+  %18 dikey sıkıştırma (düğümler küçülür); Ana Sayfa maskotu A36 + banner'da ~391 px; banner aralığı uyumu AÇIK — §27.9.
+- **Kapsam dışı / sonraki görevler (BAŞLAMADI):** TASK/058 Ana Sayfa V3 · 059 Harita V3 (meydan okuma rotası,
+  kaydırılabilir yolculuk) · 060 Gameplay HUD V3 + ödüllü güçler (güç başına kota GAME_DESIGN §5.7.3 değişikliği + owner
+  onayı ister) · 061 Günlük & Görevler V3 · 062 Mağaza V3 + Başlangıç Paketi · 063 Meydan Okuma merkezi · 064 Koleksiyon
+  / Profil / Ayarlar cilası.
+- **İnceleme notu (önceden var olan, düzeltilmedi):** uygulamaya dönüşte otomatik günlük pencere kapısı Mağaza onayını
+  kontrol etmez (pencere onayın üstüne açılabilir; TASK/055 notlarında da kayıtlı) — owner kararı.
 
 ## 5. Dosya/klasör yapısı ve script envanteri
 

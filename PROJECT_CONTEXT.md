@@ -80,6 +80,19 @@ alınacak — şimdi tahmin/vaat yok.
 [Current release blockers](#current-release-blockers) +
 [Next action](#next-action); aşağıdaki "Milestone tarihçesi" değil.
 
+- **Dal (2026-10-06) — Product Vision V3 AKTİF; TASK/057 OWNER GÖRSEL İNCELEMESİ BEKLİYOR (main'e ALINMADI):**
+  [GitHub Issue #1](https://github.com/oguzhanbilgi/Squishy-Merge/issues/1) (Product Vision V3 — UI/UX yenileme,
+  ödüllü güçler, görevler, başlangıç paketi, harita ve meydan okuma yol haritası) ürün planının kalıcı kaydı.
+  `task/057-ui-system-v3-global-nav` kanonik main `d5237bf`'ten açıldı; **main DEĞİŞMEDİ** (`main == origin/main ==
+  d5237bf`). Kapsam yalnız **Squishy UI System V3 temeli** (mevcut `UiTokens` / `UiType` / `UiKit` katmanının evrimi:
+  tipografi / boşluk / yarıçap / derinlik / kenar / renk rolleri, ölçülmüş dokunma kuralı 84 px = A36'da 48 dp;
+  `SquishyButton`, `FeatureCard`, `OfferCard`, `PowerCard`, `AttentionBadge`, bölüm başlığı V3, onay penceresi) +
+  **küresel gezinme kabuğu** (`GlobalNav`: Ana Sayfa · Mağaza · [Harita] · Koleksiyon · Profil — beş gerçek hub
+  ekranı; oyun / pencere / yaş / tutorial yüzeylerinde gizli; Android GERİ ve TASK/055 dokunuş sahipliği aynen; içerik
+  kabuğun altına girmez). Ekran içerikleri yeniden tasarlanmadı; ekonomi / kayıt / reklam / görev / meydan okuma /
+  güç davranışı değişmedi. **Owner görsel incelemesi SERT KAPI** — inceleme paketi `build/qa_057_visual_review/`
+  (önce / sonra, duyarlı görünümler, bileşen vitrini). **TASK/058 BAŞLAMADI.** Release Readiness **PAUSED / YELLOW**
+  (Product Vision V3 turu bitmeden release'e dönülmez). Ayrıntı: PROJECT_STATUS §4.37, UI_VISUAL_SYSTEM §27.
 - **Repo (2026-10-06):** `main == origin/main == ee2778ad8750754f234942de2a31e3882802d341` — **TASK/056 owner onayıyla
   ff-only main'e alındı** (`a8bf454 → ee2778a`; merge commit / rebase / squash / cherry-pick / force push YOK).
   Doğrulanmış doğrusal zincir, 4 commit: `721b97a` düzeltme · `c17fa4c` test · `0c0dc09` inceleme sertleştirmesi
@@ -1164,8 +1177,19 @@ mutasyon 19 / 19 uygulanabilir ve 1 eşdeğer, inceleme 0 BLOCKER / 0 HIGH, son 
 entegrasyon ve bu doküman eşitlemesi sırasında hiçbir kapı yeniden koşulmadı. Eski açık madde (6) **FIXED + MAIN by
 TASK/056** — T5 hedef kartı kırpması `Büyük Dumpl…` KAPANDI.
 
+**Product Vision V3 — AKTİF (owner, 2026-10-06; [GitHub Issue #1](https://github.com/oguzhanbilgi/Squishy-Merge/issues/1)).**
+Release Readiness **PAUSED / YELLOW**: aşağıdaki release adımları Product Vision V3 turu (TASK/057–065) bitene kadar
+bekler. Yol haritası: TASK/057 UI System V3 + küresel gezinme → 058 Ana Sayfa V3 → 059 Harita V3 → 060 Gameplay
+HUD V3 + ödüllü güçler → 061 Günlük & Görevler V3 → 062 Mağaza V3 + Başlangıç Paketi → 063 Meydan Okuma merkezi → 064
+Koleksiyon / Profil / Ayarlar cilası → 065 tam UX tutarlılığı + Samsung A36 kabulü → release yeniden. Her büyük UI
+görevi üretim ekran görüntüsü + owner görsel onayı olmadan main'e alınmaz.
+**Şimdiki adım: OWNER GÖRSEL İNCELEMESİ — TASK/057** (`task/057-ui-system-v3-global-nav`, dalda; main'e ALINMADI,
+merge / PR yok). İnceleme paketi `build/qa_057_visual_review/REVIEW_INDEX.md`. Owner onayı (ya da istenen görsel
+değişiklikler) gelmeden TASK/057 tamam sayılmaz, tam kontrollü kapı (A36 dahil) koşulmaz, TASK/058 başlamaz.
+
 **Sıradaki ürün / stabilizasyon görevi owner seçimi** — bilinen, izlenen açık ürün maddesi kalmadı (0; ürünün hatasız
-olduğu iddia edilmez); otomatik bir sonraki ürün düzeltme görevi tanımlı değil, TASK/057 OLUŞTURULMADI. TASK/052 takip
+olduğu iddia edilmez); otomatik bir sonraki ürün düzeltme görevi tanımlı değil, TASK/057 OLUŞTURULMADI. *(Sonra
+(2026-10-06): owner Product Vision V3'ü başlattı — TASK/057 dalda, yukarıda.)* TASK/052 takip
 gözlemleri yalnız NOT (görev değil): trafik sonrası canlı elde tutma / ARPDAU
 incelemesi; isteğe bağlı daha güçlü ilk gün koruması A/B testi; native yetim yeniden yükleme temizliği; native banner iş
 parçacığı yarışı incelemesi; yayından önce üretim TEEN / uyum yeniden incelemesi; mediation / bidding / hesap tarafı
