@@ -153,14 +153,19 @@ func _setup_contract() -> void:
 			var c := Vector2(item.size.x * 0.5, t - NavItem.CENTER_RISE + NavItem.CENTER_DIAMETER * 0.5)
 			band_ok = band_ok and item._has_point(c) and not item._has_point(Vector2(3.0, t - 12.0)) \
 				and item._has_point(Vector2(3.0, t + 10.0))
-		else:
+		elif item.is_selected():
 			band_ok = band_ok and not item._has_point(Vector2(item.size.x * 0.5, t - 20.0)) \
 				and item._has_point(Vector2(item.size.x * 0.5, t - NavItem.TILE_RISE + 2.0)) \
 				and item._has_point(Vector2(item.size.x * 0.5, t + 40.0))
-	_c("dokunma alanı: tepsi üstündeki 40 px şeritte yan öğe yalnız seçili karo payı (14 px), merkez yalnız daire",
-		band_ok)
-	_c("yan öğe dokunma alanı yine ≥ TOUCH_TARGET yükseklik (%.0f px)" % (GlobalNav.TRAY_HEIGHT + NavItem.TILE_RISE),
-		GlobalNav.TRAY_HEIGHT + NavItem.TILE_RISE >= UiTokens.TOUCH_TARGET)
+		else:
+			# Seçili olmayan yan öğe tepsi üstünde hiçbir şey çizmez: dokunma alanı tepsiden başlar.
+			band_ok = band_ok and not item._has_point(Vector2(item.size.x * 0.5, t - 7.0)) \
+				and item._has_point(Vector2(item.size.x * 0.5, t + 2.0)) \
+				and item._has_point(Vector2(item.size.x * 0.5, t + 40.0))
+	_c("dokunma alanı: tepsi üstündeki 40 px şeritte seçili yan öğe yalnız karo payı (14 px), seçili olmayan hiç, merkez "
+		+ "yalnız daire", band_ok)
+	_c("yan öğe dokunma alanı yine ≥ TOUCH_TARGET yükseklik (seçili olmayan = tepsi %.0f px)" % GlobalNav.TRAY_HEIGHT,
+		GlobalNav.TRAY_HEIGHT >= UiTokens.TOUCH_TARGET)
 	var view_a: Vector2 = nav.get_viewport().get_visible_rect().size
 	var dock: Rect2 = nav.dock_block_rect()
 	_c("dock: tepsi üst kenarından ekran altına tam genişlik dokunuş tutar (tepsinin altı / yanı içeriğe sızmaz)",
@@ -598,17 +603,18 @@ func _touch_reach() -> void:
 	await _tab(3)
 	var before: int = _main.nav_navigations
 	for tab: int in [0, 2, 4]:
-		var item: NavItem = nav.item_button(tab)
-		var band := Vector2(item.get_global_rect().get_center().x, nav.tray_rect().position.y - 20.0)
-		await _finger(_screen(band), true)
-		await _finger(_screen(band), false)
-		await _settle(3)
-		if _main._screens[3].has_open_overlay():
-			_main._screens[3].handle_back()
-			await _settle(2)
-	await _wait_settled()
-	_c("Mağaza: tepsinin 20 px üstündeki dokunuşlar (yan öğe hizası) 0 gezinme, Mağaza'da", _main.nav_navigations == before
-		and _visible_screens() == [3])
+		for rise: float in [20.0, 6.0]:
+			var item: NavItem = nav.item_button(tab)
+			var band := Vector2(item.get_global_rect().get_center().x, nav.tray_rect().position.y - rise)
+			await _finger(_screen(band), true)
+			await _finger(_screen(band), false)
+			await _settle(3)
+			if _main._screens[3].has_open_overlay():
+				_main._screens[3].handle_back()
+				await _settle(2)
+			await _wait_settled()
+	_c("Mağaza: tepsinin 20 px ve 6 px üstündeki dokunuşlar (seçili olmayan yan öğe hizası) 0 gezinme, Mağaza'da",
+		_main.nav_navigations == before and _visible_screens() == [3])
 	# Harita: kabuk görünürken odak düğümü (Level 5) gerçek dokunuşla round başlatır.
 	await _tab(1)
 	var map: CanvasLayer = _main._screens[1]

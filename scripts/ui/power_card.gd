@@ -7,7 +7,7 @@ extends Control
 ##   ┌──────────────┐
 ##   │   (güç)   ③  │  büyük owner güç sanatı, vurgu renginde candy kuyu; stok SADECE rakam
 ##   │    BOMBA     │  ("x3" / "stok x3" YOK — Product Vision V3 §3)
-##   │ [▶ REKLAM 0/2]│  isteğe bağlı ödüllü reklam CTA yuvası (SquishyButton REWARDED_AD COMPACT)
+##   │ [▶ REKLAM n/t]│  isteğe bağlı ödüllü reklam CTA yuvası (SquishyButton REWARDED_AD COMPACT; sayaç çağırandan)
 ##   └──────────────┘
 ##
 ## Krem V3 yüzey (yükseltilmiş kart derinliği); seçili = kalın beyaz-altın halka; stok 0 = rakam

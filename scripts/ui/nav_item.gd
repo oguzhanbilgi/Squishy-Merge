@@ -8,8 +8,8 @@ extends Button
 ##   merkez    büyük yuvarlak cyan candy düğme tepsinin üstüne taşar (Harita = oyunun ana yolu); ikon
 ##             lacivert (cyan üstünde ≥ 4.5:1, OYNA yazısıyla aynı kural); seçili: altın halka + altın hale.
 ##
-## Dokunma alanı (`_has_point`): yan öğe yalnız seçili karonun üst kenarından aşağısı (tepsi + karo
-## taşması); merkez yalnız daire + tepsi içindeki etiket şeridi — tepsi üstündeki görünür içeriğe (kaydırılan
+## Dokunma alanı (`_has_point`): yan öğe yalnız GÖRÜNEN gövdesi — tepsi (seçiliyse + tepsiden yükselen karo payı);
+## merkez yalnız daire + tepsi içindeki etiket şeridi — tepsi üstündeki görünür içeriğe (kaydırılan
 ## kartlar) dokunuş ÇALINMAZ. Basış: yüz dudağa iner (karo / daire; seçili olmayan öğede yarı saydam
 ## krem karo önizlemesi) + `UiMotion` squash + `ui_tap`. Pasif: %45 soluk, `disabled`. Rozet: `badge()`
 ## (AttentionBadge) ikonun sağ üst köşesine oturur. Eylem bağlama GlobalNav'da (`GestureGuard.on_pressed` —
@@ -188,7 +188,7 @@ func _has_point(point: Vector2) -> bool:
 		var circle: Rect2 = highlight_rect()
 		var center := Vector2(size.x * 0.5, circle.position.y + CENTER_DIAMETER * 0.5)
 		return point.y >= _tray_top or point.distance_to(center) <= CENTER_DIAMETER * 0.5 + 4.0
-	return point.y >= _tray_top - TILE_RISE
+	return point.y >= _tray_top - (TILE_RISE if _selected else 0.0)
 
 
 func _apply() -> void:
@@ -196,7 +196,8 @@ func _apply() -> void:
 	if _center:
 		if _icon != null:
 			_icon.self_modulate = UiTokens.TEXT_ON_ACCENT
-	elif _selected:
+	elif _selected or _pressed_visual:
+		# Seçili karo ve basılı önizleme karosu açık: etiket koyu (beyaz, yarı saydam kremde ~2.4:1 kalırdı).
 		label_color = UiTokens.TEXT_PRIMARY
 		if _icon != null:
 			_icon.self_modulate = UiTokens.NAV_ICON_SELECTED
@@ -205,9 +206,9 @@ func _apply() -> void:
 	if _icon_shadow != null:
 		_icon_shadow.visible = not _center and not _selected
 	_label.add_theme_color_override("font_color", label_color)
-	# Seçili yan öğede etiket koyu (krem karo üstü): gölgesiz okunur.
+	# Seçili / basılı yan öğede etiket koyu (krem karo üstü): gölgesiz okunur.
 	_label.add_theme_color_override("font_shadow_color",
-		Color(0, 0, 0, 0) if (_selected and not _center) else UiTokens.TEXT_SHADOW)
+		Color(0, 0, 0, 0) if ((_selected or _pressed_visual) and not _center) else UiTokens.TEXT_SHADOW)
 	modulate.a = 0.45 if disabled else 1.0
 	_place()
 	queue_redraw()
@@ -268,8 +269,7 @@ func _draw() -> void:
 
 func _set_pressed_visual(value: bool) -> void:
 	_pressed_visual = value and not disabled
-	_place()
-	queue_redraw()
+	_apply()
 
 
 func _notification(what: int) -> void:

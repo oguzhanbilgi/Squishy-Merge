@@ -567,8 +567,11 @@ func _test_main_legacy_unknown() -> void:
 	var slot: float = m.banner_slot_px()
 	var play_bottom_after: float = home._play_pulse.position.y + home._play_pulse.size.y
 	var view_h: float = home._root.size.y
-	_c("yaş girilince yuva açıldı ve görünür Ana Sayfa HEMEN yeniden yerleşti: OYNA yuva kadar yukarı, banner'ın üstünde (%.0f px)" % slot,
-		slot > 0.0 and is_equal_approx(play_bottom_before - play_bottom_after, slot)
+	# TASK/057: gezinme kabuğu yuva varken reklamla arasına dokunulmayan BANNER_GAP bırakır (yuvasız BOTTOM_GAP) — OYNA
+	# yuva + bu fark kadar yukarı.
+	var gap_delta: float = (GlobalNav.BANNER_GAP - GlobalNav.BOTTOM_GAP) if _main.has_method("global_nav") else 0.0
+	_c("yaş girilince yuva açıldı ve görünür Ana Sayfa HEMEN yeniden yerleşti: OYNA yuva kadar yukarı, banner'ın üstünde (%.0f px + kabuk aralığı %.0f px)" % [slot, gap_delta],
+		slot > 0.0 and is_equal_approx(play_bottom_before - play_bottom_after, slot + gap_delta)
 		and play_bottom_after <= view_h - UiKit.bottom_inset(home._root.size) + 0.5)
 	_c("yetişkin tarihi -> panel kapandı, kayıt ADULT (tarih YOK), yönetici ADULT", not _panel().visible
 		and SaveManager.age_ad_band_raw() == "ADULT" and SaveManager.next_age_transition_raw() == ""

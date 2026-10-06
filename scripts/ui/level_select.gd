@@ -135,10 +135,12 @@ const FIT_MARGIN: float = 12.0
 ## Dikey sıkıştırma tabanı (sy / sx); altına inilmez (bantlı düzen yerine
 ## küçük bir taşma kabul edilir — hedef oranlarda gerekmiyor).
 const MIN_SQUASH: float = 0.94
-## TASK/057: gezinme kabuğu varken kısa ekran + banner yuvası (16:9 + yuva) tüm yolculuğu MIN_SQUASH'ta
-## sığdıramaz (üst satır + kabuk + yuva ≈ 300 px). Sonsuz kalesi üst satırın altına, level 1 kabuğun altına
-## girmesin diye zemin YALNIZ o durumda bu tabana kadar dikeyde sıkıştırılır (düğümler sıkışmaz). Görsel uzlaşma
-## owner incelemesinde; kalıcı çözüm TASK/059 (kaydırılabilir yolculuk).
+## TASK/057: gezinme kabuğu varken taban MIN_SQUASH yerine bu değer olur — sıkıştırma yine yalnız GEREKTİĞİ kadar
+## (yolculuk sığmıyorsa) uygulanır: uzun ekranlarda 0, 720×1280 yuvasız ~%6.3, 16:9 + banner yuvası ~%18 (üst
+## satır + kabuk + yuva ≈ 300 px; Sonsuz kalesi üst satırın, level 1 kabuğun üstünde kalsın diye). Düğümler aynı
+## oranda küçülür (16:9 + yuvada odak düğümü ~73 px — TOUCH_TARGET altında, TOUCH_MIN üstünde). Dünya ~1000 px'ten
+## kısaysa (16:9 + yuva + büyük alt güvenli pay) bu taban da yetmeyebilir. Görsel uzlaşma owner incelemesinde;
+## kalıcı çözüm TASK/059 (kaydırılabilir yolculuk).
 const MIN_SQUASH_NAV: float = 0.78
 
 @onready var _root: Control = $Root
