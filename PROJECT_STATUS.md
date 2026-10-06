@@ -1,6 +1,6 @@
 # PROJECT_STATUS.md — Squishy Merge, tam proje raporu
 
-**Son güncelleme:** 2026-10-05 · **Durum:** M0–M8 tamamlandı; M8.5–M8.10
+**Son güncelleme:** 2026-10-06 · **Durum:** M0–M8 tamamlandı; M8.5–M8.10
 (release/product stabilization: UI yeniden inşası, gameplay cilası, ses,
 AdMob TEST-reklam monetizasyonu + günlük ödüller, ilk açılış tutorial'ı)
 tamamlandı ve main'de; M9-01 production release hazırlığı (kod) tamamlandı,
@@ -117,12 +117,20 @@ sahipliği — Koleksiyon düğmesinin eylemi yalnız düğme ekrandayken ve bas
 → 0 FAIL, mutasyon 25 / 25, tam masaüstü kapısı 51 / 51 temiz (son aday `db5542f`, üretim kodu `158022e` ile bayt-aynı:
 6324 kontrol, 0 FAIL, 0 SCRIPT ERROR; ilk koşunun açığa çıkardığı, main'de de aynı olan `age_gate_test` tarih fikstürü
 hatası yalnız-test düzeltmesiyle giderildi), Samsung A36: GEÇTİ (§4.34); Koleksiyon basılı dokunuş + Android GERİ bayat
-bırakış sorunu KAPANDI (eski açık madde (4) — FIXED + MAIN). Sonraki ürün / stabilizasyon görevi owner seçimi (TASK/055
-tanımlanmadı, başlamadı).
+bırakış sorunu KAPANDI (eski açık madde (4) — FIXED + MAIN).
+**TASK/055 (2026-10-06; genel GUI ACTION_CANCEL; masaüstü + Samsung A36 kapıları GEÇTİ — dalda, READY FOR OWNER REVIEW;
+main'e ALINMADI):** `GestureGuard` sahiplik modeli — sonuç doğuran GUI kontrolleri (ekonomi, ödül / reklam, seviye /
+round, kalıcı yazma, gezinme / pencere, HUD / güç, karartma / kapatma) iptal edilen, bayat ya da geçersiz kılınan
+dokunuşta eylem üretmez; taban farkı 100 → 0 FAIL, mutasyon 45 / 45, tam masaüstü kapısı 52 / 52 temiz, Samsung A36:
+GEÇTİ (Mağaza onay SATIN AL iptalinde Hamur değişimi 0, taze geçerli alım tam −180) (§4.35); açık madde (5) FIXED ON
+TASK/055 BRANCH. Sonraki ürün / stabilizasyon görevi owner seçimi (TASK/056 tanımlanmadı, başlamadı).
 Release izi ayrı. Sırada: içerik derecesi + yargı bölgesi kararları + 13+ seçici uyum riski (owner) → gizlilik
 politikası → upload anahtarı → gerçek AdMob kimlikleri → mağaza varlıkları / Play Console,
 sonra ilk imzalı üretim AAB'si ve M10 (Play kapalı test) ·
-**Branch / main:** `main` == origin/main == `88c8570` — TASK/054 `task/054-collection-hold-android-back` (main
+**Branch / main:** TASK/055 dalı `task/055-gui-action-cancel` (main `60f8b71`'den: `1db02b6` · `855d49a` · `287781f` ·
+`7671882` + doküman; masaüstü + Samsung A36 GEÇTİ 2026-10-06; READY FOR OWNER REVIEW, main'e ALINMADI) · `main` ==
+origin/main == `60f8b71` (TASK/054 doküman eşitlemesi; TASK/054 kodu `88c8570`) — TASK/054
+`task/054-collection-hold-android-back` (main
 `6a4a2b2`'den — `6a4a2b2` = TASK/053 doküman eşitlemesi; 9 commit: `e49293e` düzeltme · `ef08df1` + `6322101` test ·
 `84770b3` inceleme sertleştirmesi · `3d4cb4a` + `158022e` test (A36 ve mutasyondan geçen üretim adayı) · `a5b3e35`
 doküman / A36 kaydı · `db5542f` yalnız test (`age_gate_test` tarih fikstürü; son tam masaüstü kapısından geçen test
@@ -3194,6 +3202,114 @@ formatına yalnız `haptics_enabled` (varsayılan true) eklendi. Ayrıntı ve
   yeniden koşulmadı: son sertleştirme (`db5542f`) yalnız test / belge değiştirdi, üretim ağacı `158022e` ile bayt-aynı —
   üretim mutasyonu 25 / 25 de bu yüzden geçerli, yeniden koşulmadı.
 
+### 4.35 Genel GUI ACTION_CANCEL sertleştirmesi (TASK/055)
+
+> **FIXED ON TASK/055 BRANCH — READY FOR OWNER REVIEW; main'e ALINMADI, main DEĞİŞMEDİ** (`main == origin/main ==
+> 60f8b71`). Dal `task/055-gui-action-cancel` (main `60f8b71`'den): `1db02b6` düzeltme · `855d49a` test · `287781f`
+> inceleme sertleştirmesi · `7671882` gereksiz dal temizliği (masaüstü kapılarından ve Samsung A36'dan geçen üretim /
+> test adayı) · doküman / A36 kaydı (yalnız doküman). Açık madde (5) genel GUI ACTION_CANCEL → **FIXED ON TASK/055
+> BRANCH**; AÇIK kalan tek ürün maddesi (6) T5 hedef kartı kırpması `Büyük Dumpl…`. TASK/056 tanımlanmadı, başlamadı.
+
+- **Kök neden (Faz A motor sondası, Godot 4.6.3):** BaseButton Android ACTION_CANCEL bırakışını tıklama sayar
+  (`canceled`'a bakmaz); basılı bir düğme gizlenince ya da pencere odağı gidince Viewport ona iç aygıtlı bir bırakış
+  yollar — son girdi işlenmemişse (cihazda GERİ tuşunun kendi olayı, bir ses tuşu) bu da tıklama olur, işlenmişse basış
+  asılı kalır (sonraki basış button_down yaymaz). Paylaşılan `UiKit.attach_dim_close` iptal edilen bırakışta da
+  kapatıyordu, Mağaza onay karartması öykünülen fare BASIŞINDA kapatıyordu. Uygulamanın `pressed` işleyicilerinde
+  pozitif dokunuş sahipliği yoktu. Denetimin vardığı gerçek: Godot 4.6.3'ün yerel BaseButton iptal anlamı denetlenen
+  dokunma yolları için YETERLİ DEĞİL — hiçbir hazır Button iptale karşı güvenli değil; "güvenli" yalnız sonuçsuz
+  kontroller için geçerli. Bu yüzden kontroller körlemesine değil EYLEM SONUCUNA göre sınıflandırıldı.
+- **Taban yeniden üretimi (değiştirilmemiş `60f8b71`; gerçek Main, yönlendirilmiş kayıt, gerçek parmak olayları):** 32
+  vakanın 29'unda geçersiz dokunuş eylem üretti: **Mağaza onay SATIN AL iptali Hamur 900 → 720, Büyütücü 2 → 3 (bellek +
+  disk)**; refill "Hamur ile" 900 → 800; güç yuvası (Sarsıntı) stok 1 → 0; günlük AÇ ücretsiz sandığı talep etti (iptal
+  ve basılı + GERİ); günlük REKLAM İZLE ve devam DEVAM ET ödüllü reklam istedi; yaş ONAYLA bandı ADULT → TEEN yazdı;
+  MEYDAN OKUMA BAŞLA ve Harita düğümü round başlattı (düğüm basılı + GERİ'de başlatma `_show_tab(0)`'ın görünürlük
+  yayılımı içinde yeniden girdi); Mola Yeniden Başlat round'u yeniden başlattı; tutorial ATLA onboarding'i tamamladı;
+  Ayarlar ses tercihi ve unvan satırı kayda yazdı; Profil vitrin yuvası / KOLEKSİYONA GİT / dişli ve Ana Sayfa OYNA /
+  madalyonları gezindi ya da pencere açtı; Görevler karartması iptal + aynı jestin GERİ'si (kenar geri kaydırması)
+  uygulamadan çıkardı. Güvenli çıkan iki vaka (onay SATIN AL basılı + GERİ, unvan satırı basılı + GERİ) yalnız GERİ
+  yolunu işleyici sırası koruyordu.
+- **Denetim matrisi ve korunan kapsam (3 salt-okunur denetim ajanı + okuma + sondalar):** ekonomi (Mağaza onay SATIN AL,
+  refill Hamur), ödül / reklam isteği (günlük AÇ, günlük REKLAM İZLE ×2, refill reklam, devam DEVAM ET), seviye / round
+  (Harita düğümleri, Sonsuz, MEYDAN OKUMA BAŞLA, sonuç birincil / ikincil, tutorial ATLA / CTA, mola Yeniden Başlat /
+  Ana Menü), kalıcı yazma (Ayarlar ses / titreşim, unvan satırı, yaş ONAYLA), gezinme / pencere (Ana Sayfa avatar, Hamur
+  +, 4 madalyon, GÖREVLER, MEYDAN OKUMA, OYNA, seviye hapı; Profil vitrin ×3, unvan, TÜM BAŞARIMLAR, KOLEKSİYONA GİT;
+  Mağaza kart SATIN AL ×24, günlük AÇ; Ayarlar gizlilik / politika / yaş Güncelle; sandık OYNA), HUD / güç kontrolleri
+  (geri / dişli / çıkış, güç yuvaları ×4), karartma ve kapatma kontrolleri (12 karartma; X / Vazgeç / KAPAT / TAMAM /
+  mola DEVAM) ve paylaşılan üst çubuğun Profil / Harita / Mağaza tüketici röleleri — 21 UI dosyası, çalışma anında 115
+  düğme örneği, hepsi tek tek açık bağlamayla (fabrika / global sarmalayıcı YOK). **Bilinçli dokunulmayan:** TASK/054
+  Koleksiyon kendi korumasını taşır (taşınmadı); `ScreenTopBar` / Main gezinmesi + 300 ms yatışma / GameBoard DEĞİŞMEDİ;
+  gerçekten sonuçsuz kontroller doğal kaldı (Ayarlar Göster/Gizle, yaş ekranı sihirbaz adımları — kayıt yalnız korunan
+  ONAYLA'da —, günlük DEVAM, kozmetik iç bağlantılar). Fiyat / ödül / reklam politikası değişmedi.
+- **Düzeltme — `GestureGuard` sahiplik modeli** (`scripts/ui/gesture_guard.gd`; açık API: `on_pressed(button, action)`,
+  `own(button)`, `allows(button)`, `invalidate(button)`; düğmeye iç çocuk düğüm, düğme başına durum): geçersiz basış
+  eylemden ÖNCE biter — iptal edilen sol bırakışta basış `gui_input` sinyalinde, BaseButton'ın kendi işleyişinden önce
+  bitirilir, `pressed` / `toggled` hiç doğmaz; gizleme, pencere odağı kaybı ve Android GERİ isteği sahipliği
+  geçersizleştirir (basış genel API'yle, `disabled` true → false); eylem yalnız düğme ekrandayken ve (işaretçi basışı
+  yoksa ya da basışın gerçek, iptal edilmemiş bırakışı görüldüyse) çalışır — klavye / erişilebilirlik / kodla
+  etkinleştirme serbest kalır (yalnız işaretçi basışı sahiplenilir); karartmalar iptal edilen bırakışı yok sayar (Mağaza
+  onayı da paylaşılan bırakış kapanışına geçti); Ayarlar anahtarları reddedilen dokunuştan sonra kayıttaki değere döner
+  (UiToggle topuzu anahtarın şu anki durumuna kayar, `set_on` süren topuz animasyonunu durdurur). Global girdi yutma,
+  Input değişikliği, zaman aşımı yok.
+- **Bilinçli davranış değişiklikleri — OWNER KABUL ETTİ (2026-10-06; açık madde değil):** (1) GERİ / eşdeğer gezinme
+  geçersizleştirmesi, GERİ o ekranı kapatmasa bile süren korunan bir basışı iptal eder (sonuç ekranı, devam teklifi,
+  zorunlu yaş ekranı, tutorial GERİ onayı, mola açılırken HUD / güç yuvası) — gezinme sınırını aşan bir basış sonradan
+  eyleme dönüşmez; eski bayat basış davranışı geri getirilmez. (2) Mağaza satın alma onayı karartması dokunuş başında
+  değil geçerli BIRAKIŞTA kapanır — ACTION_CANCEL'ın jesti iptal edebilmesi için gerekli; bırakışta kapanma korunur.
+- **Bilinçli sınırlar / ön koşullar:** Android 13+'ta birden çok parmaklı bir jestte tek işaretçinin iptali (POINTER_UP
+  + FLAG_CANCELED — avuç / kavrama reddi) Godot 4.6.3'e düz bırakış olarak gelir; o işaretçi fare öykünen ilk parmaksa
+  ayırt edilemez (motor sınırı; tek parmak ACTION_CANCEL'ı — kenar geri kaydırması, sistem jesti — her zaman `canceled`
+  taşır). Android uzun basış = sağ tık ve pan / ölçek jestleri KAPALI kalmalı; `own` + `allows` rölesi `allows`'u
+  `pressed` yayımı içinde okumalı. Sonuçsuz doğal düğmeler iptalde yine çalışabilir (yaş seçimi "Geri" kenar geri
+  kaydırmasında yeniden girişte iki adım atabilir — kayıt yok). Motor gerçeği (sonda): ağaçtan çıkan basılı düğmeye
+  motor button_up yayar — yardımcıya ayrıca bir dal gerekmez (inceleme kaynaklı gereksiz dal `7671882`'de kaldırıldı).
+- **Kapsam dışı gözlemler (önceden var olan; düzeltilmedi, görev açılmadı — owner kararı):** refill ödüllü istek
+  bekliyorken "Hamur ile" alım iki kez sonuçlanabilir (dar zaman aralığı); öne dönüşte otomatik günlük pencere açık
+  Mağaza onayının üstüne açılabilir (yalnız bakiye metni bayatlar); bitiş anında basılı tutulan HUD dişlisi devam
+  teklifi açıldıktan sonra kalkarsa Ayarlar teklifin üstüne açılır (iptal değil, gerçek bırakış); Koleksiyon'un yerel
+  sahiplik modeli ile `GestureGuard` ayrı (ileride birleştirme owner kararı).
+- **Doğrulama (masaüstü):** yeni `tools/gui_action_cancel_test` **148 / 148** (A Profil vitrini · B dişli / üst çubuk /
+  unvan · C Harita · D Mağaza SATIN AL — kesin Hamur, iptal / odak kaybı / GERİ 0 harcama, kayıt dosyası bayt-aynı,
+  geçerli dokunuş tam bir harcama, yinelenen fare + dokunuş bırakışı ikinci harcama yok · E iptal + bayat UP matrisi · F
+  gizleme / GERİ / sekme · G odak kaybı · H asılı basış · I doğal düğme · J klavye / kod / erişilebilirlik · K çok
+  parmak · L ekonomi kaydı · M gezinme · R çalışma anı sahiplik taraması · P kaynak sözleşmesi · N sahibin kaydı); taban
+  farkı (aynı suite, `287781f`): **taban `60f8b71` 100 FAIL** (48 OK, 0 SCRIPT ERROR) · karartma süzgeci yok 5 · iptalde
+  basış bitirme yok 56 · gizlemede basış bitirme yok 12 · odak / GERİ geçersizleştirmesi yok 3 · `allows` kapısı yok 21
+  · **tam aday 0**; mutasyon **45 / 45 uygulanabilir** mutant açık FAIL ile öldü (sha doğrulamalı bayt-aynı geri koyma;
+  M39 "ağaçtan çıkışta sahiplik sıfırlaması" EŞDEĞER çıktı — motor button_up yayıyor — ve hedeflediği gereksiz kod final
+  adaydan önce kaldırıldı; `7671882`'de M13 / M18 / M19 yeniden koşuldu); inceleme 5 salt-okunur inceleyici / 10 mercek
+  — 0 BLOCKER / 0 HIGH, tek MEDIUM (tabanda boşa geçen üç test) giderildi; koruma: TASK/053 suite'inin pozitif kontrolü
+  yeni anlama güncellendi (basış gizlemede sentetik bırakıştan önce biter — davranış kontrolleri aynen), TASK/054
+  suite'i yalnız ifade; **kontrollü tam masaüstü kapısı (`7671882`): 52 / 52 temiz, 6472 kontrol, 0 FAIL, 0 SCRIPT
+  ERROR, bot 2 / 2 kazandı, sahibin kaydı bayt-aynı.**
+- **Samsung A36: GEÇTİ** (2026-10-06; QA APK `7671882`'den, sha256 `77bf53b9…`, `verify_apk` PASS — yalnız
+  `com.obappstudio.squishymerge.qa`, Google örnek kimlikleri, TASK/055 belirteçleri paketli). Ön kontrol: aygıt yetkili,
+  uyanık, kilitsiz, arama / perde / üst afiş yok, ön plan başlatıcı; kurulu yalnız `com.example.squishymerge`; gezinme
+  kipi 0, otomatik saat / saat dilimi 1, cihaz saati masaüstüyle eş. **1 Mağaza SATIN AL (zorunlu):** onay gerçek kart
+  dokunuşuyla açıldı; onay SATIN AL'a gerçek DOWN + `input motionevent CANCEL` → basış iptal edilen bırakışın içinde
+  bitti, PRESSED 0, onay açık, Hamur 335 / disk 335, Büyütücü 1 / disk 1 (değişim 0); iptal + bayat UP → bayat UP hiçbir
+  kontrole ulaşmadı, değişim 0; basılı + gerçek GERİ + bırak → onay GERİ ile kapandı, PRESSED 0, Mağaza'da kalındı,
+  değişim 0; karartmada gerçek iptal → onay açık kaldı; **taze geçerli SATIN AL → PRESSED tam 1, Hamur 335 → 155 (−180,
+  disk 155), Büyütücü 1 → 2 (disk 2), onay kapandı — tek harcama, çift harcama yok.** **2 Profil:** vitrin yuvası basılı
+  + gerçek GERİ + bırak → Ana Sayfa, basış gizlemede bitti, PRESSED / Koleksiyon gezinmesi / detay 0, vitrin aynı; yuva
+  ve dişlide gerçek iptal → eylem 0; dişli basılı + GERİ → Ana Sayfa, Ayarlar açılmadı; taze yuva dokunuşu → tam 1
+  Koleksiyon gezinmesi + rare_02 detayı. **3 Harita:** düğümde gerçek iptal → seviye 0; düğüm basılı + GERİ → Ana Sayfa,
+  seviye 0; "+" basılı + GERİ → Ana Sayfa görünür (boş ekran yok), Mağaza'ya gidilmedi; taze düğüm dokunuşu → tam 1
+  Seviye 1 başlangıcı. **4 Normal kontroller:** Profil dişlisi → Ayarlar tam 1; Göster/Gizle (doğal) açtı / kapattı;
+  Kapat → Ayarlar tam 1 kapandı; Ana Sayfa OYNA → Harita tam 1; fiziksel klavye / erişilebilirlik etkinleştirmesi N/A —
+  masaüstü J. **5 TASK/054 koruması:** Koleksiyon kartı basılı + GERİ → Ana Sayfa, PRESSED / detay 0; madalyonla yeniden
+  açılış bayat detaysız; taze kart dokunuşu → tam 1 detay. **6 TASK/053 dumanı:** dişliyle açılan Ayarlar gerçek GERİ
+  ile kapandı, Profil'de kalındı (Android'in çift GERİ teslimi ikinci gezinme yapmadı). Fiziksel odak kaybı: **N/A —
+  COVERED BY DESKTOP DETERMINISTIC TEST** (sahibin telefonunda HOME / güç / arama kullanılmadı). Kapı boyunca gerçek
+  dokunuş 25 / 25 (yabancı girdi yok); logcat: 1 QA süreci, 0 SCRIPT ERROR / çökme / ANR / Godot hatası, yalnız Google
+  örnek yayıncısı; QA kaldırıldı, üretim paketi hiç kurulmadı, `com.example` meta verisi aynı (0.8.5), gezinme kipi /
+  otomatik saat / saat değişmedi; yalnız bu oturumun başlattığı adb daemon'u durduruldu.
+- **Bütünlük:** sahibin kayıt ailesi bayt-aynı (`deb7ff6f…`); `default_bus_layout.tres`, `project.godot`,
+  `export_presets.cfg` içerikleri bayt-aynı (yeni sınıfın kaydı için gereken headless import ve QA dışa aktarımının
+  bayt-aynı geri koyması yalnız değişiklik zamanlarını tazeledi; hiçbiri stage / revert / restore / stash edilmedi);
+  `_visual_source/` ve `OWNER_WORKING_PROFILE.md` değişmedi. Bir arka plan koşucusu durdurulduğunda alt süreçleri öksüz
+  kalıp ikinci koşuyla çakıştı — tüm süreçler kapatıldı, ağaç HEAD'e döndürüldü, o koşuların sonuçları atılıp temiz koşu
+  tekrarlandı.
+
 ## 5. Dosya/klasör yapısı ve script envanteri
 
 ```
@@ -3981,9 +4097,14 @@ Owner'ın yapacağı / onaylayacağı:)*
   FAIL; ilk koşunun açığa çıkardığı önceden var olan `age_gate_test` tarih fikstürü hatası yalnız-test düzeltmesiyle
   giderildi; owner onayıyla ff-only `6a4a2b2 → 88c8570`, 2026-10-05; dal `task/054-collection-hold-android-back`
   duruyor).
-- **Sıradaki görev:** owner seçer (TASK/055 tanımlanmadı, başlamadı). Açık, ayrı maddeler (tam 2) — genel GUI
-  ACTION_CANCEL · T5 hedef kartı kırpması `Büyük Dumpl…` — §4.26 / §4.27 — kendiliğinden sıradaki görev seçilmez
-  (Koleksiyon kartı + GERİ → TASK/054 ile kapatıldı — main'de `88c8570`, §4.34). TASK/052 takip gözlemleri yalnız not
+- **TASK/055** — genel GUI ACTION_CANCEL (`GestureGuard`: sonuç doğuran GUI kontrolleri iptal edilen / bayat / geçersiz
+  kılınan dokunuşta eylem üretmez; karartmalar iptalde kapatmaz) → **dalda, READY FOR OWNER REVIEW** (§4.35; masaüstü +
+  Samsung A36 kapıları GEÇTİ — tam masaüstü kapısı 52 / 52 temiz, 0 FAIL; main'e alınmadı, merge owner kararı; dal
+  `task/055-gui-action-cancel`).
+- **Sıradaki görev:** owner seçer (TASK/056 tanımlanmadı, başlamadı). Açık, ayrı madde (tam 1) — T5 hedef kartı kırpması
+  `Büyük Dumpl…` — §4.27 — kendiliğinden sıradaki görev seçilmez (Koleksiyon kartı + GERİ → TASK/054 ile kapatıldı —
+  main'de `88c8570`, §4.34; genel GUI ACTION_CANCEL → TASK/055 dalında düzeltildi — READY FOR OWNER REVIEW, main'e
+  alınmadı, §4.35). TASK/052 takip gözlemleri yalnız not
   (görev DEĞİL): trafik sonrası elde tutma / ARPDAU incelemesi, isteğe bağlı daha güçlü ilk gün koruması A/B testi,
   native yetim yeniden yükleme temizliği ve banner iş parçacığı yarışı incelemesi, yayından önce TEEN / uyum yeniden
   incelemesi, mediation / bidding / hesap tarafı iyileştirme, App Open yalnız gerçek bir yükleme / bekleme yüzeyi olursa
