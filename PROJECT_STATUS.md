@@ -138,10 +138,11 @@ Product Vision V3'ü başlattı — aşağıda TASK/057.)*
 UI/UX yenileme + ödüllü güçler + görevler + başlangıç paketi + harita / meydan okuma yol haritası (TASK/057–065);
 Release Readiness PAUSED / YELLOW. **TASK/057 (Squishy UI System V3 + küresel gezinme kabuğu) — dalda, READY FOR OWNER
 VISUAL REVIEW, main'e ALINMADI** (`task/057-ui-system-v3-global-nav`, main `d5237bf`'ten; main DEĞİŞMEDİ): V3 token /
-bileşen temeli + beş hub ekranında küresel alt gezinme; **Görsel Cila Tur 2 (owner incelemesi) uygulandı — yeniden
-READY FOR OWNER REVIEW**: hub geri okları kaldırıldı, tek seçili durum ailesi, kısa ekran + banner'da kompakt kabuk,
-Harita 16:9 + banner sıkıştırması %18 → %7.4; masaüstü odak + koruma + tam regresyon + negatif kontroller geçti, Samsung
-A36 KOŞULMADI (owner görsel onayından sonra) (§4.37). TASK/058 BAŞLAMADI.
+bileşen temeli + beş hub ekranında küresel alt gezinme; Görsel Cila Tur 2 (hub geri okları kaldırıldı, kompakt
+kabuk, Harita 16:9 + banner %18 → %7.4) + **son görsel cila (tek gezinme simge ailesi, oyun benzeri seçili durum, tek
+parça tepsi) — SON GÖRSEL ADAY, READY FOR OWNER REVIEW**: masaüstü odak + koruma + tam regresyon + hafif negatif
+kontroller geçti; **gerçek Samsung A36 görsel kapısı + gerçek Google TEST banner yerleşimi GEÇTİ** (QA paketi; §4.37).
+TASK/058 BAŞLAMADI.
 Release izi ayrı. Sırada: içerik derecesi + yargı bölgesi kararları + 13+ seçici uyum riski (owner) → gizlilik
 politikası → upload anahtarı → gerçek AdMob kimlikleri → mağaza varlıkları / Play Console,
 sonra ilk imzalı üretim AAB'si ve M10 (Play kapalı test) ·
@@ -3535,12 +3536,39 @@ formatına yalnız `haptics_enabled` (varsayılan true) eklendi. Ayrıntı ve
   merkez yalnız +1 altın halka); **Harita 16:9 + banner %18 REDDEDİLDİ → %7.4** (kompakt kabuk: kullanılabilir yükseklik
   < 1200 px'te merkez taşması 0, pay 160 → 120, her öğe ≥ 84 px; `MIN_SQUASH_NAV` 0.78 → 0.92; kurdele gerekirse satırını
   bırakır; sıradaki düğüm ≥ 84 px; 6 haneli Hamur bilinçli sınır); banner aralığı kaide + dikiş (dokunuş almaz, uyum
-  AÇIK); Ana Sayfa OYNA ↔ kabuk +18 px; vitrin bileşen cilası. Doğrulama: odak + koruma {FOCUS}; tam masaüstü regresyonu
-  {FULL}; negatif kontroller {MUT} varyant açık FAIL ile öldü (Tur 2 için: geri oku geri, kompakt öğe < 84, Tur 1
-  sıkıştırması, kompakt kip kapalı, merkezin ayrı seçili malzemesi; owner talimatıyla hafif tutuldu — ek varyant
-  koşulmadı, durdurulan koşunun dosyası bayt-aynı geri konduğu hash ile kanıtlandı); {REV}; sahibin kayıt ailesi
-  bayt-aynı. Zincir: `4f53332` üretim · `f6ece0f` testler · bu doküman commit'i. Ayrıntı UI_VISUAL_SYSTEM §27.11; inceleme paketi `build/qa_057_visual_review/REVIEW_INDEX.md`
-  (Owner Review Round 2) + `build/qa_057_owner_review/TASK057_OWNER_REVIEW.zip` (git dışı).
+  AÇIK); Ana Sayfa OYNA ↔ kabuk +18 px; vitrin bileşen cilası. Doğrulama: odak + koruma 15 suite temiz (odak
+  `global_nav_shell_test` 207 + `ui_system_v3_test` 98; geri okuna dayanan koruma suite'leri kabuk ANA SAYFA / Android
+  GERİ'ye taşındı, niyet aynı); tam masaüstü regresyonu 55 / 55 temiz, 7 116 kontrol, 0 FAIL, 0 SCRIPT ERROR, bot 2 / 2
+  (negatif kontroller durdurulduktan sonra yeniden koşuldu); negatif kontroller 20 / 20 varyant açık FAIL ile öldü (Tur 2
+  için: geri oku geri, kompakt öğe < 84, Tur 1 sıkıştırması, kompakt kip kapalı, merkezin ayrı seçili malzemesi; owner
+  talimatıyla hafif tutuldu — ek varyant koşulmadı, durdurulan koşunun dosyası bayt-aynı geri konduğu hash ile
+  kanıtlandı); salt-okunur inceleme 2 inceleyici / 9 mercek — 0 BLOCKER / 0 HIGH, MEDIUM'lar (kompakt merkez zayıflığı,
+  seçili merkezin halka ağırlığı, kurdele uç durumu, A36 yan dumpling'in level pill'ine binmesi, FeatureCard alt yazı
+  kontrastı) giderildi; sahibin kayıt ailesi bayt-aynı. Zincir: `4f53332` üretim · `f6ece0f` testler · `05978c5` doküman
+  (bu paragrafın yer tutucuları son cila doküman commit'inde dolduruldu). Ayrıntı UI_VISUAL_SYSTEM §27.11; inceleme
+  paketi `build/qa_057_visual_review/REVIEW_INDEX.md` (Owner Review Round 2) +
+  `build/qa_057_owner_review/TASK057_OWNER_REVIEW.zip` (git dışı).
+- **Son görsel cila + gerçek A36 kapısı (2026-10-07) — SON GÖRSEL ADAY, READY FOR OWNER REVIEW, main'e ALINMADI.**
+  Owner / ChatGPT: Tur 2 yön onaylı ama kabuk kısmen genel uygulama araç çubuğu gibi. Uygulanan: **tek gezinme simge
+  ailesi** (her hedef aynı candy madalyonu: beyaz kenar + vurgu yüz + koyu dudak + lacivert picto; Profil yüzü avatar;
+  merkez Harita aynı ailenin büyük üyesi), **oyun benzeri seçili durum** (madalyon büyür + tepsiden yükselir + krem kaide
+  + altın hale + krem etiket hapı; hücre boyu krem karo yok; merkez +1 altın halka), güçlendirilmiş basılı önizleme,
+  **tek parça tepsi** (iç gloss / parlaklık bandı yok). Dokunma alanları / kompakt kip / GestureGuard / GERİ aynen.
+  Doğrulama (aday `a126ace`): `ui_system_v3_test` 100 · `global_nav_shell_test` 211; tam masaüstü regresyonu 55 / 55
+  temiz, 7 122 kontrol, 0 FAIL, 0 SCRIPT ERROR, bot 2 / 2; yeni mekanizma için 2 hafif negatif kontrol (seçili yan öğe
+  hücre karosu, simge ailesi kırılması) açık FAIL ile öldü, geri koyma bayt-aynı; sahibin kayıt ailesi bayt-aynı.
+  **Gerçek Samsung A36** (QA paketi `com.obappstudio.squishymerge.qa`, APK sha256 `c9b595fd…`, Google TEST reklamları):
+  beş hub + seçili yan / merkez + basılı + oyun ve pencerede kabuk yok yakalandı; gerçek TEST banner Ana Sayfa / Harita /
+  Mağaza / Koleksiyon'da 168 fiziksel px = 112 tuval px (masaüstü varsayımı geçerli), banner üstü y 2172 ↔ tepsi altı
+  2128 (28 tuval px kaide aralığı), çakışma yok; dokunuş duman testi: beş gerçek kabuk dokunuşu her biri tam bir
+  gezinme, aynı sekme 0, ACTION_CANCEL 0, sürükleyip bırakma 0, Android GERİ Mağaza → Ana Sayfa, pencere / oyun kabuğu
+  gizler, Mağaza'nın son SATIN AL'ı kabuğun üstünde ve onayı açar (0 gezinme, satın alma yok); logcat 0 SCRIPT ERROR /
+  0 çökme / 0 ANR, yalnız Google örnek yayıncı; yabancı dokunuş 0. QA paketi owner incelemesi için cihazda KURULU
+  bırakıldı; üretim paketi hiç kurulmadı, `com.example.squishymerge` dokunulmadı; gezinme kipi / saat değişmedi.
+  Gözlem: ~2 s'yi aşan basılı tutuşta basış önizlemesi düşüyor (Android uzun basış; araştırılmadı). Harita 16:9 +
+  banner hafifletmesi GEÇİCİ temel; kaydırılabilir yolculuk + Meydan Okuma rotası TASK/059. Ayrıntı UI_VISUAL_SYSTEM
+  §27.12; paket `build/qa_057_visual_review/REVIEW_INDEX.md` (Final) + `build/qa_057_owner_review/TASK057_OWNER_REVIEW.zip`
+  (git dışı). Zincir: `26e0323` ui · `a8bb297` test · `a126ace` ui (basılı önizleme) · bu doküman commit'i.
 
 ## 5. Dosya/klasör yapısı ve script envanteri
 

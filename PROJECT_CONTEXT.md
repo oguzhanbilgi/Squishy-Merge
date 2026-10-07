@@ -92,8 +92,10 @@ alınacak — şimdi tahmin/vaat yok.
   kabuğun altına girmez). Ekran içerikleri yeniden tasarlanmadı; ekonomi / kayıt / reklam / görev / meydan okuma /
   güç davranışı değişmedi. **Görsel Cila Tur 2 (owner incelemesi, 2026-10-06) uygulandı:** hub geri okları
   KALDIRILDI (Ana Sayfa'ya dönüş kabuk + Android GERİ), tek seçili durum ailesi, kısa ekran + banner'da kompakt kabuk,
-  Harita 16:9 + banner sıkıştırması %18 → %7.4. **Owner görsel incelemesi SERT KAPI** — inceleme paketi
-  `build/qa_057_visual_review/` (Owner Review Round 2) + `build/qa_057_owner_review/TASK057_OWNER_REVIEW.zip`.
+  Harita 16:9 + banner sıkıştırması %18 → %7.4. **Son görsel cila (2026-10-07):** tek gezinme simge ailesi, oyun
+  benzeri seçili durum, tek parça tepsi; **gerçek Samsung A36 görsel kapısı + gerçek Google TEST banner yerleşimi
+  GEÇTİ** (QA paketi cihazda kurulu bırakıldı). **Owner görsel incelemesi SERT KAPI** — SON GÖRSEL ADAY; inceleme paketi
+  `build/qa_057_visual_review/` + `build/qa_057_owner_review/TASK057_OWNER_REVIEW.zip`.
   **TASK/058 BAŞLAMADI.** Release Readiness **PAUSED / YELLOW** (Product Vision V3 turu bitmeden release'e dönülmez).
   Ayrıntı: PROJECT_STATUS §4.37, UI_VISUAL_SYSTEM §27 (§27.11).
 - **Repo (2026-10-06):** `main == origin/main == ee2778ad8750754f234942de2a31e3882802d341` — **TASK/056 owner onayıyla
@@ -1186,8 +1188,8 @@ bekler. Yol haritası: TASK/057 UI System V3 + küresel gezinme → 058 Ana Sayf
 HUD V3 + ödüllü güçler → 061 Günlük & Görevler V3 → 062 Mağaza V3 + Başlangıç Paketi → 063 Meydan Okuma merkezi → 064
 Koleksiyon / Profil / Ayarlar cilası → 065 tam UX tutarlılığı + Samsung A36 kabulü → release yeniden. Her büyük UI
 görevi üretim ekran görüntüsü + owner görsel onayı olmadan main'e alınmaz.
-**Şimdiki adım: OWNER GÖRSEL İNCELEMESİ (Tur 2) — TASK/057** (`task/057-ui-system-v3-global-nav`, dalda; main'e
-ALINMADI, merge / PR yok). İnceleme paketi `build/qa_057_visual_review/REVIEW_INDEX.md` (Owner Review Round 2) ve
+**Şimdiki adım: OWNER GÖRSEL İNCELEMESİ (SON GÖRSEL ADAY) — TASK/057** (`task/057-ui-system-v3-global-nav`,
+dalda; main'e ALINMADI, merge / PR yok; gerçek A36 kapısı geçti, QA paketi cihazda). İnceleme paketi `build/qa_057_visual_review/REVIEW_INDEX.md` (Owner Review Round 2) ve
 `build/qa_057_owner_review/TASK057_OWNER_REVIEW.zip`. Owner onayı (ya da istenen görsel değişiklikler) gelmeden TASK/057
 tamam sayılmaz, tam kontrollü kapı (A36 dahil) koşulmaz, TASK/058 başlamaz.
 

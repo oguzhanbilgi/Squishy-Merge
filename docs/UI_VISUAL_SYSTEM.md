@@ -2072,7 +2072,8 @@ tekrar / pratik modu. Hepsi owner kararı ister.
 **Durum:** `task/057-ui-system-v3-global-nav` (kanonik main `d5237bf`'ten). Product Vision V3'ün
 (GitHub Issue #1) ilk uygulama görevi. **Owner görsel incelemesi SERT KAPI:** main'e alınmadı,
 TASK/058 başlamadı. Bu bölüm bir sonraki görevlerin (TASK/058–064) üzerine kuracağı temeli anlatır.
-**Görsel Cila Tur 2 (owner incelemesi, 2026-10-06) uygulandı — §27.11;** yeniden owner incelemesi bekliyor.
+**Görsel Cila Tur 2 (owner incelemesi, 2026-10-06) uygulandı — §27.11; son görsel cila + gerçek A36 kapısı
+(2026-10-07) — §27.12;** SON GÖRSEL ADAY owner incelemesi bekliyor.
 
 **Kural — ikinci sistem YOK:** V3, M8.6 katmanının EVRİMİDİR. Sayılar `UiTokens`'ın V3 bölümünde,
 tipografi rolleri `UiType.V3_ROLES`'ta (mevcut tema variation'ları + token boyutu; tema yeniden
@@ -2141,11 +2142,11 @@ Hedefler Main'in GERÇEK beş ekranı (yeni rota yok):
 **ANA SAYFA (0) · MAĞAZA (3) · [ HARİTA (1) ] · KOLEKSİYON (2) · PROFİL (4)**. Merkez HARİTA büyük cyan
 daire (92 px, tepsinin 40 px üstüne taşar — kısa ekran + banner'da KOMPAKT kipte taşmaz, §27.11; LACİVERT ikon;
 Ana Sayfa'nın OYNA'sıyla aynı hedef — oyunun ana yolu). Yan öğeler lavanta candy tepside (92 px, kenar payı 12,
-yarıçap 36, 10 px ön dudak; ikon 58 + yumuşak gölge, etiket Baloo 19 beyaz). **Seçili durum TEK aile**
-(`NavItem.selected_family()`, Tur 2): krem candy + sıcak altın hale; yan öğe tepsiden 14 px yükselen krem karo + mor
-ikon + koyu etiket, merkez aynı krem kaide halkası + aynı hale + etiketi aynı krem hapta koyu, merkeze özgü tek ek
-katman ince altın dış halka. Basılı (seçili değil) öğe yarı saydam, dudağı çökmüş krem karo; Profil öğesi
-oyuncunun avatarı (vitrin değişince hemen tazelenir). Tepsinin arkasında opak koyu DOCK: tepsi üst kenarının
+yarıçap 36, 10 px ön dudak; etiket Baloo 19 beyaz). **Tek simge ailesi (son cila, §27.12):** her hedef aynı candy
+madalyonu (beyaz kenar + vurgu yüz + koyu dudak + lacivert picto; Profil'de yüz = avatar). **Seçili durum TEK aile**
+(`NavItem.selected_family()`): madalyon büyür ve tepsiden yükselir + krem kaide halkası + sıcak altın hale + etiket
+krem hapta koyu; merkeze özgü tek ek katman ince altın dış halka. Basılı (seçili değil) öğe: kalın krem kaide
+önizlemesi + açılan yüz + dudağa inme; Profil avatarı vitrin değişince hemen tazelenir. Tepsinin arkasında opak koyu DOCK: tepsi üst kenarının
 30 px üstünden ekran altına (banner yuvası dahil) solar — kaydırılan içerik tepsinin altında / yanında görünmez
 ve dokunuş almaz; gerçek banner yuvada dock'un üstüne çizilir. **Dokunma alanı:** seçili olmayan yan öğe yalnız
 tepsi (92 px), seçili yan öğe tepsi + yükselen karo payı (106 px), merkez yalnız daire + tepsi — tepsi üstündeki görünür
@@ -2273,3 +2274,30 @@ Ana Sayfa'da da var, oyun / pencerelerde gizli, 84 / 64 px dokunma kuralı, Gest
   dokunma alanı / etiket hizası / kaide / dock, Harita ≤ %8 + düğümler + kale ↔ pill, Hamur 5–6 hane, üst güvenli pay 40)
   + B bölümünde her sekmede aile + I bölümünde yan dumpling ↔ level pill; `ui_system_v3_test` seçili ailenin çizim yolu
   kaynak sözleşmesi; geri okuna dayanan koruma testleri kabuk ANA SAYFA / Android GERİ'ye taşındı (niyet aynı).
+
+### 27.12 Son görsel cila + gerçek Samsung A36 kapısı (2026-10-07) — SON GÖRSEL ADAY
+
+Owner / ChatGPT incelemesi: Tur 2 teknik olarak güçlü ve yön onaylı; ancak kabuk kısmen genel bir mobil uygulama
+araç çubuğu gibi okunuyordu. Tutulanlar aynen (sıra, merkez HARİTA, Ana Sayfa'da kabuk, geri okları yok, Android GERİ,
+V3, 84 / 64 px, GestureGuard, görünürlük matrisi, kompakt kip, TASK/058 / 059 ertelemeleri).
+
+- **Tek simge ailesi:** her hedef aynı candy MADALYONU — beyaz kenar (3 px) + vurgu yüz + koyu dudak (5 px) + yumuşak
+  gölge + lacivert picto (32 px; seçili 40). Vurgular `UiTokens.NAV_ACCENT_*`: Ana Sayfa pembe, Mağaza altın, Harita
+  cyan, Koleksiyon nane, Profil lavanta (yüz = `AvatarButton`, madalyon çapına ölçekli). Kimlik = picto + vurgu.
+  Lacivert picto her yüzde ≥ 4.5:1 (en düşük pembe 4.8; basılı açık yüz dahil). Merkez Harita aynı reçetenin büyük üyesi
+  (92 px; kompakt 62). Ana Sayfa'nın madalyon diliyle (GÜNLÜK / MAĞAZA / KOLEKSİYON / SANDIK) aynı aile.
+- **Oyun benzeri seçili durum:** yan madalyon 52 → 62 px büyür, tepsinin 12 px üstüne yükselir, krem kaide halkası
+  (5 px) + sıcak altın hale + etiket krem hapta koyu. Hücre boyu krem karo KALDIRILDI. Merkez: krem kaide 10 px (kompakt
+  7) + ek tek katman ince altın halka. Dokunma alanı değişmedi (seçili yan öğe normal kipte +14 px; kompaktta tepsi).
+- **Basılı:** kalın (7 px), neredeyse opak (α 0.95) krem kaide önizlemesi + yüz %24 açılır + dudağa iner + UiMotion
+  küçülmesi. (İlk A36 ön koşusunda α 0.7 / 5 px önizleme parmak altında zor okunuyordu → güçlendirildi.)
+- **Tek parça tepsi:** tek dış halka (açık lavanta) + 10 px ön dudak + ince üst ışık; iç parlaklık bandı ve gloss
+  kaldırıldı (çerçeve içinde çerçeve yok).
+- **Gerçek A36 (SM-A366B, QA paketi `com.obappstudio.squishymerge.qa`, aday `a126ace`, Google TEST reklamları):** gerçek
+  uyarlanabilir TEST banner 168 fiziksel px = 64 dp = **112 tuval px** (yuva hesabı 113; masaüstü 112 varsayımı geçerli);
+  banner üstü ekran y 2172, hesaplanan yuva 2170; tepsi altı 2128 → 42 px (28 tuval px) koyu lavanta kaide aralığı;
+  dock 1990 → ekran altı dokunuş tutar. Banner kabukla çakışmaz, kabuk banner'la çakışmaz. Banner yüzeyleri Ana Sayfa /
+  Harita / Mağaza / Koleksiyon; Profil banner yüzeyi değil (yuva boş, kabuk aynı yerde). A36'da Harita sıkışmasız
+  (sy/sx 1.000, kurdele görünür). AdMob politika uyumu AÇIK (yalnız fiziksel yerleşim / etkileşim kontrolü).
+- **Bilinen gözlem:** cihazda basılı tutuş ~2 s'yi aşınca basış önizlemesi düşüyor (Android uzun basış penceresi;
+  araştırılmadı) — normal dokunuşu etkilemez, uzun tutup bırakmak gezinme kanıtı değildir.
