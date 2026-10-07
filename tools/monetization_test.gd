@@ -1227,8 +1227,15 @@ func _test_main_integration() -> void:
 	# OYNA yuva + bu fark kadar yukarıda.
 	var gap_delta: float = (_main.global_nav().reserve() - (GlobalNav.BOTTOM_GAP + GlobalNav.TRAY_HEIGHT
 		+ NavItem.CENTER_RISE)) if _main.has_method("global_nav") else 0.0
-	_c("banner yuvası ekranlardan önce hesaplandı: Ana Sayfa OYNA yuva kadar yukarıda (%d px + kabuk aralığı %d px)" % [
-		int(slot), int(gap_delta)], slot > 0.0 and is_equal_approx(base_play_y - play_y, slot + gap_delta))
+	# TASK/058 Ana Sayfa V3: kompakt kabukta kartlar tepsiden ek pay alır, OYNA ile kartlar arası daralır (sabitler Home'da).
+	var home_v3: CanvasLayer = _main._screens[0]
+	var compact_delta: float = 0.0
+	if _main.has_method("global_nav") and _main.global_nav().is_compact() and "NAV_CARD_CLEARANCE_COMPACT" in home_v3:
+		compact_delta = (home_v3.NAV_CARD_CLEARANCE_COMPACT - home_v3.NAV_CARD_CLEARANCE) \
+			- (home_v3.PLAY_CARDS_GAP - home_v3.PLAY_CARDS_GAP_COMPACT)
+	_c("banner yuvası ekranlardan önce hesaplandı: Ana Sayfa OYNA yuva kadar yukarıda (%d px + kabuk aralığı %d px + Ana Sayfa kompakt payı %d px)" % [
+		int(slot), int(gap_delta), int(compact_delta)], slot > 0.0
+		and is_equal_approx(base_play_y - play_y, slot + gap_delta + compact_delta))
 	_c("Ana Sayfa yüzeyi seçildi", m.surface() == MonetizationManager.Surface.HOME)
 	fake.complete_consent_update(true)
 	fake.complete_init()

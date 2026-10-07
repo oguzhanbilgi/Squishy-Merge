@@ -317,14 +317,25 @@ func _test_settings() -> void:
 	_main.open_settings()
 	await _settle(4)
 	var home: CanvasLayer = _main._screens[0]
-	var play: Button = home.play_button()
-	var at: Vector2 = play.get_global_rect().get_center()
+	# TASK/058: Ana Sayfa V3'te OYNA pencere gövdesinin altında kalabiliyor — sınama, KARARTMANIN altındaki (pencere
+	# gövdesinin dışında) ilk Ana Sayfa kontrolüyle yapılır (niyet aynı: karartma arka plana dokunuş geçirmez).
+	var frame_rect: Rect2 = settings.frame().get_global_rect()
+	var target: Button = null
+	for candidate: Button in [home.play_button(), home.daily_card(), home.challenge_card(), home.missions_button(),
+			home.chest_button()]:
+		if target == null and not frame_rect.has_point(candidate.get_global_rect().get_center()):
+			target = candidate
+	_c("ön koşul: karartmanın altında bir Ana Sayfa kontrolü var (%s)" % (String(target.name) if target != null else "-"),
+		target != null)
+	var at: Vector2 = target.get_global_rect().get_center() if target != null else Vector2.ZERO
 	_pointer(at, true)
 	await get_tree().process_frame
 	_pointer(at, false)
 	await _settle(3)
-	_c("karartma: OYNA'nın üstüne tık Harita'ya GİTMEDİ, karartma dokunuşu pencereyi kapattı",
-		_main._active_tab == 0 and not settings.visible)
+	_c("karartma: altındaki Ana Sayfa kontrolüne (%s) tık geçmedi (Harita / pencere yok), karartma dokunuşu pencereyi kapattı"
+		% (String(target.name) if target != null else "-"), _main._active_tab == 0 and not settings.visible
+		and not _main._daily_rewards.visible and not _main._challenge_sheet.visible and not _main._missions.visible
+		and not _main._chest_info.visible)
 	_c("açıp kapamak (anahtar dokunuşu yok) kaydı yazmadı", FileAccess.get_file_as_bytes(SaveManager.SAVE_PATH) == file_mid)
 
 
@@ -444,10 +455,10 @@ func _test_daily() -> void:
 	var file_after_claim: PackedByteArray = FileAccess.get_file_as_bytes(SaveManager.SAVE_PATH)
 	daily.close_button().pressed.emit()
 	await _settle(1)
-	_c("KAPAT → kapandı, closed 1 kez, Ana Sayfa yenilendi (Hamur pill'i güncel, bildirim noktası yok)",
+	_c("KAPAT → kapandı, closed 1 kez, Ana Sayfa yenilendi (Hamur pill'i güncel, giriş ödülü artık bekleniyor değil)",
 		not daily.visible and closed_count.size() == 1
 		and _pill_text(home.dough_pill()) == str(dough_before + DailyReward.DAILY_DOUGH)
-		and not home.feature_button(&"daily").has_notification())
+		and not home.is_daily_claimable() and home.daily_state() != &"login")
 	_main._on_daily_requested()
 	await _settle(2)
 	_c("madalyondan yeniden açılış: ikinci +15 YOK, dosya aynı, ALINDI + bugün yıldızlı, seri 3", daily.visible

@@ -530,12 +530,13 @@ func _ready() -> void:
 	_main.global_nav().item_button(0).pressed.emit()
 	_c("kabuk ANA SAYFA → Ana Sayfa (tam 1 gezinme)", _main._active_tab == 0 and _main._screens[0].visible and not shop.visible
 		and _main.nav_navigations == nav_before + 1)
-	_main._screens[0].feature_button(&"shop").pressed.emit()
-	_c("Home MAĞAZA madalyonu → Mağaza (tek örnek, çubuk yok)", _main._active_tab == 3 and shop.visible
+	# TASK/058: Ana Sayfa MAĞAZA madalyonu ve Hamur "+" kaldırıldı — giriş kabuğun MAĞAZA öğesi (niyet aynı).
+	_main.global_nav().item_button(3).pressed.emit()
+	_c("kabuk MAĞAZA → Mağaza (tek örnek, çubuk yok)", _main._active_tab == 3 and shop.visible
 		and _main.get_node_or_null("TabBar") == null and _count_class(_main, "ShopPowerCard") == 4)
 	_main._show_tab(0)
-	(_main._screens[0]._dough_pill.get_meta(&"add_button") as Button).pressed.emit()
-	_c("Home Hamur '+' → Mağaza", _main._active_tab == 3 and shop.visible)
+	_c("TASK/058: Ana Sayfa'da Mağaza kısayolu yok (madalyon / Hamur '+')", _main._screens[0].feature_button(&"shop") == null
+		and not (_main._screens[0].dough_pill() as Control).has_meta(&"add_button"))
 	_main._show_tab(1)
 	_main._screens[1].top_bar().add_button().pressed.emit()
 	_c("Harita Hamur '+' → Mağaza", _main._active_tab == 3 and shop.visible)

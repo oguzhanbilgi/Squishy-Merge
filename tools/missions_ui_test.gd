@@ -6,7 +6,8 @@ extends Node
 ##   godot --headless --audio-driver Dummy --path . res://tools/missions_ui_test.tscn
 ##
 ## Kontroller:
-##   giriş       Ana Sayfa'da TEK GÖREVLER girişi (ButtonHomePill, alt sekme / yeni ekran yok),
+##   giriş       Ana Sayfa'da TEK GÖREVLER girişi (TASK/058: hero'nun sol üstünde ikincil HomeFeatureButton madalyonu;
+##               alt sekme / yeni ekran yok),
 ##               N/6: 0 · kısmi · bir görev · günlükler tamam · altısı (nane rozet)
 ##   pencere     kurdele "GÖREVLER", GÜNLÜK / HAFTALIK başlıkları + sabit yenilenme ipuçları,
 ##               bölüm başına tam 3 kart (katalog sırası), metin / "x / y" / ray / "+10" / "+40",
@@ -18,7 +19,7 @@ extends Node
 ##   kapılar     sandık / ayarlar / günlük / yaş / kısıt ekranı açıkken açılmaz; açıkken sandık /
 ##               günlük kod yolu altına açmaz; Mağaza'ya geçiş / pencereleri kapat / round kapatır
 ##   yerleşim    320×568 / 360×640 / 390×844 / 360×800 / 1080×2340 (+ A36 üst payı 61): giriş
-##               güvenli alanda, ≥ 48, ortalı, hiçbir Ana Sayfa kontrolüyle / maskotun opak
+##               güvenli alanda, ≥ 84, sol üst köşe, hiçbir Ana Sayfa kontrolüyle / maskotun opak
 ##               pikselleriyle / logoyla çakışmıyor; pencere ekranda, üst pay altında, kartlar
 ##               erişilebilir, kırpma / çakışma yok; uzun metin kartı taşırmaz
 ##   dil         tek üretim dili Türkçe, çeviri / RTL katmanı yok (RTL uygulanamaz), "x / y" LTR
@@ -130,13 +131,14 @@ func _entry_states() -> void:
 	print("-- Ana Sayfa GÖREVLER girişi")
 	var home: CanvasLayer = _home()
 	var entry: Button = home.missions_button()
-	_c("tek GÖREVLER girişi: ButtonHomePill (level pill'iyle aynı candy malzeme), dokunma alır", entry != null
-		and entry.theme_type_variation == &"ButtonHomePill" and entry.mouse_filter == Control.MOUSE_FILTER_STOP
-		and _count_named(home, "Missions") == 1)
-	_c("etiket 'GÖREVLER' (Türkçe büyük harf, noktalı Ö)", _entry_title(entry) == "GÖREVLER")
+	_c("tek GÖREVLER girişi: HomeFeatureButton madalyonu (TASK/058 ikincil giriş, kabuk madalyon ailesi), dokunma alır",
+		entry != null and entry is HomeFeatureButton and entry.theme_type_variation == &"ButtonFeature"
+		and entry.mouse_filter == Control.MOUSE_FILTER_STOP and _count_named(home, "Missions") == 1)
+	_c("etiket 'GÖREVLER' (Türkçe büyük harf, noktalı Ö)", (entry as HomeFeatureButton).label_text() == "GÖREVLER")
 	_c("alt gezinme / yeni ekran yok: beş ekran aynen, sekme çubuğu yok", _main._screens.size() == 5
 		and _main.get_node_or_null("TabBar") == null)
-	_c("Ana Sayfa madalyonları aynen dört (2+2)", _count_class(home, "HomeFeatureButton") == 4)
+	_c("Ana Sayfa madalyonları iki (TASK/058: GÖREVLER + SANDIK; Mağaza / Koleksiyon kabukta)",
+		_count_class(home, "HomeFeatureButton") == 2)
 	var states: Array = [
 		["0 ilerleme", _raw({}, [], {}, []), "0/6"],
 		["kısmi (tamam yok)", _raw({"daily_merges": 7, "daily_rounds": 1}, [], {"weekly_merges": 46}, []), "0/6"],
@@ -308,16 +310,17 @@ func _input_contract() -> void:
 	await _finger_tap(entry_pos)
 	_c("yatışmadan sonra giriş yine açar", overlay.visible)
 	await _wait_settled()
-	# X → hemen ardından Ana Sayfa'nın eylem yapan bir kontrolüne (Hamur '+' → Mağaza) dokunuş.
+	# X → hemen ardından Ana Sayfa'da eylem yapan bir kontrole (TASK/058: Hamur '+' kaldırıldı — kabuğun MAĞAZA öğesi)
+	# dokunuş.
 	var close_pos: Vector2 = _screen_center(overlay.close_button())
 	await _finger_tap(close_pos)
 	_c("parmak: X → kapandı", not overlay.visible)
-	var add: Button = home.dough_pill().get_meta(&"add_button")
+	var add: Button = _main.global_nav().item_button(3)
 	await _finger_tap(_screen_center(add))
-	_c("X'in hemen ardından Hamur '+' dokunuşu yutuldu: Mağaza açılmadı", _main._active_tab == 0 and home.visible)
+	_c("X'in hemen ardından kabuk MAĞAZA dokunuşu yutuldu: Mağaza açılmadı", _main._active_tab == 0 and home.visible)
 	await _wait_settled()
 	await _finger_tap(_screen_center(add))
-	_c("yatışmadan sonra Hamur '+' Mağaza'yı açar (kontrol gerçekten eylemli)", _main._active_tab == 3)
+	_c("yatışmadan sonra kabuk MAĞAZA Mağaza'yı açar (kontrol gerçekten eylemli)", _main._active_tab == 3)
 	_main._show_tab(0)
 	await _wait_settled()
 	# Kod yolu yatışmadan etkilenmez.
@@ -469,8 +472,9 @@ func _layout_view(view_size: Vector2i, safe_top: float) -> void:
 	var entry: Button = home.missions_button()
 	var rect: Rect2 = entry.get_global_rect()
 	var screen := Rect2(Vector2(0, top), Vector2(view.x, view.y - top))
-	_c("%s giriş ekranda, üst payın altında, ≥ 48 dokunma, yatayda ortalı (±2)" % tag, screen.encloses(rect)
-		and rect.size.x >= 48.0 and rect.size.y >= 48.0 and absf(rect.get_center().x - view.x * 0.5) <= 2.0)
+	_c("%s giriş ekranda, üst payın altında, ≥ 84 dokunma (TASK/058: hero'nun sol üst köşesi)" % tag,
+		screen.encloses((entry as HomeFeatureButton).visual_rect()) and rect.size.x >= 84.0 and rect.size.y >= 84.0
+		and rect.get_center().x < view.x * 0.5)
 	var overlap: Array[String] = []
 	for node in _all_nodes(home):
 		if node == entry or not (node is BaseButton) or not (node as BaseButton).is_visible_in_tree():
@@ -481,26 +485,29 @@ func _layout_view(view_size: Vector2i, safe_top: float) -> void:
 		var inter: Rect2 = rect.intersection(other)
 		if inter.size.x > 1.0 and inter.size.y > 1.0:
 			overlap.append(String(node.name))
-	_c("%s giriş hiçbir Ana Sayfa kontrolüyle çakışmıyor (madalyon plakaları, avatar, pill'ler, level, OYNA) %s" % [tag, str(overlap)],
+	_c("%s giriş hiçbir Ana Sayfa kontrolüyle çakışmıyor (SANDIK + plakası, kartlar, OYNA) %s" % [tag, str(overlap)],
 		overlap.is_empty())
 	var logo: Rect2 = home.logo().get_global_rect()
 	var mascot: Rect2 = home.mascot_rect()
 	_c("%s giriş logonun altında, maskotun opak piksellerine değmiyor" % tag, rect.position.y >= logo.end.y
 		and not _mascot_hits(mascot, rect))
-	var daily: Rect2 = home.feature_button(&"daily").get_global_rect()
-	var shop: Rect2 = home.feature_button(&"shop").get_global_rect()
-	_c("%s giriş Günlük ile Mağaza arasında, aynı üst madalyon sırasında" % tag, rect.position.x > daily.end.x
-		and rect.end.x < shop.position.x and rect.get_center().y > daily.position.y and rect.get_center().y < daily.end.y)
-	_c("%s OYNA / level pill / banner bölgesi serbest (giriş üst yarıda)" % tag, rect.end.y < home.level_button().get_global_rect().position.y
+	var chest: Rect2 = home.chest_button().get_global_rect()
+	_c("%s giriş SANDIK ile aynı madalyon satırında, karşı köşede (TASK/058)" % tag, rect.end.x < chest.position.x
+		and absf(rect.get_center().y - chest.get_center().y) <= 4.0)
+	_c("%s OYNA / level bilgisi / banner bölgesi serbest (giriş üst yarıda)" % tag,
+		(entry as HomeFeatureButton).visual_rect().end.y < home.level_info().get_global_rect().position.y
 		and rect.end.y < view.y * 0.5)
+	# Madalyonun görsel bütünü: gövde + etiket plakası + köşe rozeti (TASK/058).
+	var entry_frame: Rect2 = (entry as HomeFeatureButton).visual_rect().merge(
+		(entry as HomeFeatureButton).badge_panel().get_global_rect())
 	var entry_clip: Array[String] = []
 	for node in _all_nodes(entry):
 		if node is Label and (node as Label).is_visible_in_tree():
 			var entry_label: Label = node
 			if _text_width(entry_label, entry_label.text) > entry_label.size.x + 0.5 \
-					or not rect.grow(0.5).encloses(entry_label.get_global_rect()):
+					or not entry_frame.grow(0.5).encloses(entry_label.get_global_rect()):
 				entry_clip.append(entry_label.text)
-	_c("%s giriş yazıları ('GÖREVLER', 'N/6') kırpılmıyor, pill içinde %s" % [tag, str(entry_clip)], entry_clip.is_empty())
+	_c("%s giriş yazıları ('GÖREVLER', 'N/6') kırpılmıyor, madalyon içinde %s" % [tag, str(entry_clip)], entry_clip.is_empty())
 	# Pencere.
 	var overlay: MissionsOverlay = _main._missions
 	await _open()

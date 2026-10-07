@@ -536,12 +536,9 @@ func _cancel_matrix() -> void:
 	await _boot()
 	await _tab(0)
 	var home: CanvasLayer = _main._screens[0]
-	for spec: Array in [["OYNA", home.play_button(), 1, "home.play_pressed"],
-			["Mağaza madalyonu", home.feature_button(&"shop"), 3, "home.shop_requested"],
-			["avatar", home.profile_button(), 4, "home.profile_requested"],
-			["Hamur +", home.dough_pill().get_meta(&"add_button"), 3, "home.shop_requested"],
-			["Koleksiyon madalyonu", home.feature_button(&"collection"), 2, "home.collection_requested"],
-			["seviye hapı", home.level_button(), 1, "home.map_requested"]]:
+	# TASK/058: Ana Sayfa V3 — sekme değiştiren tek giriş OYNA (Mağaza / Koleksiyon madalyonu, avatar, Hamur "+", seviye
+	# hapı kabukla yinelendiği için kaldırıldı; kabuk öğeleri B / E'de ayrıca sınanıyor). Pencere açan girişler aşağıda.
+	for spec: Array in [["OYNA", home.play_button(), 1, "home.play_pressed"]]:
 		var button: Button = spec[1]
 		var tag: String = "home_%s" % String(spec[0])
 		_watch(button, tag)
@@ -562,6 +559,26 @@ func _cancel_matrix() -> void:
 	await _wait_settled()
 	await _tap(missions)
 	_c("E Ana Sayfa GÖREVLER: iptal → pencere açılmadı; taze → açıldı", closed and _main._missions.visible)
+	# TASK/058: pencere açan diğer Ana Sayfa girişleri (GÜNLÜK ÖDÜLLER / MEYDAN OKUMA kartı, SANDIK madalyonu).
+	for spec: Array in [["GÜNLÜK ÖDÜLLER kartı", home.daily_card(), "home.daily_requested", _main._daily_rewards],
+			["MEYDAN OKUMA kartı", home.challenge_card(), "home.challenge_requested", _main._challenge_sheet],
+			["SANDIK madalyonu", home.chest_button(), "home.chest_requested", _main._chest_info]]:
+		_main._close_secondary_windows()
+		await _wait_settled()
+		var entry: Button = spec[1]
+		var window: CanvasLayer = spec[3]
+		var tag: String = "home_%s" % String(spec[0])
+		_watch(entry, tag)
+		_mark()
+		await _gesture(entry, "cancel")
+		var shut: bool = not window.visible and _count(String(spec[2])) == 0 and _count(tag + ".pressed") == 0
+		await _wait_settled()
+		_mark()
+		await _tap(entry)
+		_c("E Ana Sayfa %s: iptal → pencere açılmadı; taze dokunuş tam bir kez → açıldı" % spec[0],
+			shut and window.visible and _count(String(spec[2])) == 1)
+	_main._close_secondary_windows()
+	await _wait_settled()
 
 	await _boot(_daily_fixture())
 	await _tab(0)
@@ -1354,11 +1371,10 @@ func _ownership_sweep() -> void:
 	var challenge: CanvasLayer = _main._challenge_sheet
 	var refill: CanvasLayer = _main._refill
 	var fixed: Dictionary = {
-		"Ana Sayfa avatar": home.profile_button(), "Ana Sayfa Hamur +": home.dough_pill().get_meta(&"add_button"),
-		"Ana Sayfa GÜNLÜK": home.feature_button(&"daily"), "Ana Sayfa KOLEKSİYON": home.feature_button(&"collection"),
-		"Ana Sayfa MAĞAZA": home.feature_button(&"shop"), "Ana Sayfa SANDIK": home.feature_button(&"chest"),
+		# TASK/058: Ana Sayfa V3'ün beş girişi (avatar / Hamur + / KOLEKSİYON / MAĞAZA / seviye hapı kaldırıldı — kabukta).
+		"Ana Sayfa GÜNLÜK": home.daily_card(), "Ana Sayfa SANDIK": home.chest_button(),
 		"Ana Sayfa GÖREVLER": home.missions_button(), "Ana Sayfa MEYDAN OKUMA": home.challenge_button(),
-		"Ana Sayfa OYNA": home.play_button(), "Ana Sayfa seviye hapı": home.level_button(),
+		"Ana Sayfa OYNA": home.play_button(),
 		# TASK/057 Tur 2: hub üst çubuğunda geri oku yok (Harita / Mağaza / Profil) — Ana Sayfa rotası kabuğun ANA SAYFA öğesi.
 		"kabuk ANA SAYFA": _main.global_nav().item_button(0),
 		"Harita Sonsuz": map.endless_node(), "Harita üst çubuk +": map.top_bar().add_button(),
@@ -1549,11 +1565,10 @@ func _source_contract() -> void:
 ## (dosya, beklenen sahipli bağlama) — Faz A matrisinin FIX satırları.
 func _fixed_sites() -> Array:
 	return [
-		["home_screen.gd", "GestureGuard.on_pressed(_avatar_button,"], ["home_screen.gd", "GestureGuard.on_pressed(_dough_pill.get_meta("],
-		["home_screen.gd", "GestureGuard.on_pressed(daily,"], ["home_screen.gd", "GestureGuard.on_pressed(collection,"],
-		["home_screen.gd", "GestureGuard.on_pressed(shop,"], ["home_screen.gd", "GestureGuard.on_pressed(chest,"],
+		# TASK/058: Ana Sayfa V3 girişleri (kaldırılan avatar / Hamur + / Koleksiyon / Mağaza / seviye hapı satırları yok).
+		["home_screen.gd", "GestureGuard.on_pressed(_daily,"], ["home_screen.gd", "GestureGuard.on_pressed(_chest,"],
 		["home_screen.gd", "GestureGuard.on_pressed(_missions,"], ["home_screen.gd", "GestureGuard.on_pressed(_challenge,"],
-		["home_screen.gd", "GestureGuard.on_pressed(_play,"], ["home_screen.gd", "GestureGuard.on_pressed(_level,"],
+		["home_screen.gd", "GestureGuard.on_pressed(_play,"],
 		# TASK/057 Tur 2: hub üst çubuğunda geri oku yok — geri satırları kalktı (yokluk `_source_contract`ta ayrıca sınanır).
 		["profile_screen.gd", "GestureGuard.own(_bar.action_button())"],
 		["profile_screen.gd", "GestureGuard.allows(_bar.action_button())"],
@@ -1649,8 +1664,8 @@ func _boot(extra: Dictionary = {}) -> void:
 	_n = {}
 	_events = []
 	var home: CanvasLayer = _main._screens[0]
-	for sig: String in ["play_pressed", "shop_requested", "profile_requested", "map_requested", "missions_requested",
-			"collection_requested"]:
+	# TASK/058: Ana Sayfa V3 sinyalleri (shop / profile / map / collection istekleri kaldırıldı — kabukta).
+	for sig: String in ["play_pressed", "daily_requested", "chest_requested", "missions_requested", "challenge_requested"]:
 		home.connect(sig, func() -> void: _bump("home.%s" % sig))
 	var map: CanvasLayer = _main._screens[1]
 	map.connect("level_chosen", func(_level: Variant) -> void: _bump("map.level_chosen"))

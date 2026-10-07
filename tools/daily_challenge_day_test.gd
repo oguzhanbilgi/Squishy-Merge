@@ -125,7 +125,7 @@ func _open_session_rollback() -> void:
 	DailyRewards.clock_override = FRI
 	await _home_transition()
 	_c("saat D+1: Ana Sayfa D+1'i gösteriyor (cuma T6 portresi, '+20') — meydan okuma D+1'i kabul etti",
-		home.challenge_portrait_texture() == DUMPLING_VISUAL.TEXTURES[5] and home.challenge_badge_text() == "+20"
+		home.challenge_portrait_texture() == DUMPLING_VISUAL.TEXTURES[5] and home.challenge_badge_text() == "+20 HAMUR"
 		and DailyChallenge.current_day() == FRI)
 	print("    ölçüm (geri almadan önce): last_seen_day_key='%s'" % SaveManager.daily_last_seen_day_key())
 	DailyRewards.clock_override = THU
@@ -140,7 +140,7 @@ func _open_session_rollback() -> void:
 		String(view.get("day_key", "")) == FRI and int(view.get("drop_budget", 0)) == 36)
 	await _home_transition()
 	_c("Ana Sayfa yeniden tazelendi: giriş D+1'de kalır (T6 portresi, '+20') — D'yi yeniden göstermez",
-		home.challenge_portrait_texture() == DUMPLING_VISUAL.TEXTURES[5] and home.challenge_badge_text() == "+20")
+		home.challenge_portrait_texture() == DUMPLING_VISUAL.TEXTURES[5] and home.challenge_badge_text() == "+20 HAMUR")
 	_sections_done += 1
 
 

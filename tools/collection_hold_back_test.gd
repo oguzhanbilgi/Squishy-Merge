@@ -778,10 +778,10 @@ func _navigation() -> void:
 	_c("  … M: detay kapalıyken GERİ → Ana Sayfa (çıkış isteği yok)", _main._active_tab == 0 and not album.visible
 		and int(_main.get("quit_requests")) == 0)
 	await _wait_settled()
-	var home: CanvasLayer = _main._screens[0]
-	await _tap(home.feature_button(&"collection"))
+	# TASK/058: Ana Sayfa'nın KOLEKSİYON madalyonu kaldırıldı — aynı giriş kabuğun KOLEKSİYON öğesi (niyet aynı).
+	await _tap(_main.global_nav().item_button(2))
 	await _wait_settled()
-	_c("  … M: Ana Sayfa KOLEKSİYON madalyonuna gerçek dokunuş → Koleksiyon (detay kapalı)", _main._active_tab == 2
+	_c("  … M: Ana Sayfa'dan kabuk KOLEKSİYON'a gerçek dokunuş → Koleksiyon (detay kapalı)", _main._active_tab == 2
 		and album.visible and not album.is_detail_open())
 	_sections_done += 1
 

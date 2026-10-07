@@ -580,8 +580,9 @@ func _ready() -> void:
 	_main.global_nav().item_button(0).pressed.emit()
 	_c("kabuk ANA SAYFA → Ana Sayfa (tam 1 gezinme)", _main._active_tab == 0 and home.visible and not screen.visible
 		and _main.nav_navigations == nav_before + 1)
-	home.feature_button(&"collection").pressed.emit()
-	_c("Home KOLEKSİYON madalyonu → Koleksiyon (tek örnek)", _main._active_tab == 2 and screen.visible
+	# TASK/058: Ana Sayfa KOLEKSİYON madalyonu kaldırıldı — giriş kabuğun KOLEKSİYON öğesi (niyet aynı).
+	_main.global_nav().item_button(2).pressed.emit()
+	_c("kabuk KOLEKSİYON → Koleksiyon (tek örnek)", _main._active_tab == 2 and screen.visible
 		and _count_class(_main, "CollectionSkinCard") == 20)
 	_main._last_back_msec = -1000
 	_main._notification(NOTIFICATION_WM_GO_BACK_REQUEST)
@@ -610,7 +611,8 @@ func _ready() -> void:
 	_c("sekmeden çıkınca detay kapanır", not screen.is_detail_open())
 	_main._show_tab(2)
 	await get_tree().process_frame
-	_c("Home Koleksiyon madalyonu aynı sayıyı gösteriyor (4/20)", home.feature_button(&"collection").badge_text() == "4/20")
+	_c("TASK/058: Ana Sayfa'da Koleksiyon madalyonu YOK (sayaç Koleksiyon ekranında; kabuk KOLEKSİYON)",
+		home.feature_button(&"collection") == null and home.find_child("Collection", true, false) == null)
 	# A36 cihaz kapısı (06.2): basış + bırakış AYNI karede (çok kısa dokunuş /
 	# adb tap) → üst çubuk butonu ekran gizlenirken 0.94'te asılı kalıyordu. TASK/057 Tur 2: geri oku
 	# yok — aynı sınama üst çubuğun kalan butonu "+" (→ Mağaza, Koleksiyon gizlenir) ile.

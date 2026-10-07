@@ -768,7 +768,8 @@ func _ads_no_banner() -> void:
 	await _settle(2)
 	_c("ön koşul: Ana Sayfa'da banner gösterildi", ads != null and ads.banner_state() == MonetizationManager.BannerState.SHOWN)
 	var profile: CanvasLayer = _main._screens[4]
-	_main._screens[0].profile_button().pressed.emit()
+	# TASK/058: Ana Sayfa avatarı kaldırıldı — Profil girişi kabuğun PROFİL öğesi.
+	_main.global_nav().item_button(4).pressed.emit()
 	await _settle(2)
 	var shows: int = fake.banner_shows.size()
 	profile.open_achievements()

@@ -6,8 +6,9 @@ extends Node
 ##   godot --headless --audio-driver Dummy --path . res://tools/daily_challenge_ui_test.tscn
 ##
 ## Kontroller:
-##   giriş       Ana Sayfa'da TEK MEYDAN OKUMA girişi (ButtonHomePill, GÖREVLER'in hemen altında), bugünün
-##               hedef portresi, "+20" (tamamlanmadan) / tik (tamamlanınca); GÖREVLER N/6 aynen; Harita'da
+##   giriş       Ana Sayfa'da TEK MEYDAN OKUMA girişi (TASK/058: V3 FeatureCard, GÜNLÜK ÖDÜLLER kartının hemen altında,
+##               OYNA'nın altında), bugünün hedef portresi, "+20" (tamamlanmadan) / TAMAM (tamamlanınca); GÖREVLER N/6
+##               aynen; Harita'da
 ##               yok; onboarding bitmeden gizli; tutorial günü (ilk gün kuralı YOK) görünür; gün gerçeği yoksa gizli
 ##   pencere     kurdele "MEYDAN OKUMA", "Büyük Dumpling yap · 15 hamlede" (T5) / "Dev Dumpling yap · 36
 ##               hamlede" (T6), "+20 HAMUR · İlk tamamlayışta", ipucu, yalıtım notu, BAŞLA; tamamlandı:
@@ -23,7 +24,7 @@ extends Node
 ##               değişti kopyaları + butonlar; ardından normal sonuç kendi düzenine döner
 ##   yerleşim    320×568 / 360×640 / 390×844 / 360×800 / 1080×2340 (+ A36 üst payı 61) + banner yuvası:
 ##               giriş güvenli alanda, ≥ 48, ortalı, hiçbir kontrolle / maskotun opak pikselleriyle /
-##               logoyla çakışmıyor, OYNA / level / banner serbest; pencere ekranda, kırpma yok
+##               logoyla çakışmıyor, OYNA'nın altında, kabuğun / banner yuvasının üstünde; pencere ekranda, kırpma yok
 ##   kaynak      giriş / pencere kayda yazmaz, reklam çağırmaz
 
 const MAIN_SCENE: PackedScene = preload("res://scenes/main.tscn")
@@ -133,20 +134,20 @@ func _entry() -> void:
 	var home: CanvasLayer = _home()
 	await _show_home()
 	var entry: Button = home.challenge_button()
-	_c("tek MEYDAN OKUMA girişi: ButtonHomePill (GÖREVLER ile aynı aile), dokunma alır, görünür", entry != null
-		and entry.theme_type_variation == &"ButtonHomePill" and entry.mouse_filter == Control.MOUSE_FILTER_STOP
+	_c("tek MEYDAN OKUMA girişi: V3 FeatureCard (TASK/058 özellik kartı), dokunma alır, görünür", entry != null
+		and entry is FeatureCard and entry.mouse_filter == Control.MOUSE_FILTER_STOP
 		and entry.is_visible_in_tree() and _count_named(home, "Challenge") == 1)
 	_c("etiket 'MEYDAN OKUMA'", home.challenge_title_text() == "MEYDAN OKUMA")
 	_c("bugünün hedef portresi (perşembe T5 sanatı), '+20' rozeti (tamamlanmadı)",
-		home.challenge_portrait_texture() == DUMPLING_VISUAL.TEXTURES[4] and home.challenge_badge_text() == "+20"
+		home.challenge_portrait_texture() == DUMPLING_VISUAL.TEXTURES[4] and home.challenge_badge_text() == "+20 HAMUR"
 		and not home.is_challenge_done_shown())
-	_c("GÖREVLER girişi ve N/6 anlamı aynen (tek giriş, '0/6'), madalyonlar 4, beş ekran",
+	_c("GÖREVLER girişi ve N/6 anlamı aynen (tek giriş, '0/6'), madalyonlar 2 (TASK/058: GÖREVLER + SANDIK), beş ekran",
 		_count_named(home, "Missions") == 1 and home.missions_count_text() == "0/6"
-		and _count_class(home, "HomeFeatureButton") == 4 and _main._screens.size() == 5)
-	var missions: Rect2 = home.missions_button().get_global_rect()
+		and _count_class(home, "HomeFeatureButton") == 2 and _main._screens.size() == 5)
+	var daily: Rect2 = home.daily_card().get_global_rect()
 	var rect: Rect2 = entry.get_global_rect()
-	_c("giriş GÖREVLER'in HEMEN altında (4–16 px), ortalı", rect.position.y >= missions.end.y + 4.0
-		and rect.position.y <= missions.end.y + 16.0 and absf(rect.get_center().x - missions.get_center().x) <= 2.0)
+	_c("giriş GÜNLÜK ÖDÜLLER kartının HEMEN altında (4–20 px), ortalı (TASK/058)", rect.position.y >= daily.end.y + 4.0
+		and rect.position.y <= daily.end.y + 20.0 and absf(rect.get_center().x - daily.get_center().x) <= 2.0)
 	_c("Harita'da meydan okuma yok (giriş yalnız Ana Sayfa'da)", _count_named(_main._screens[1], "Challenge") == 0)
 	SaveManager.data["daily_challenge"] = {"version": 1, "completed_day_key": THU}
 	await _show_home()
@@ -155,7 +156,7 @@ func _entry() -> void:
 	DailyRewards.clock_override = FRI
 	await _show_home()
 	_c("cuma: T6 hedef portresi, '+20'", home.challenge_portrait_texture() == DUMPLING_VISUAL.TEXTURES[5]
-		and home.challenge_badge_text() == "+20")
+		and home.challenge_badge_text() == "+20 HAMUR")
 	_back_to_thursday()
 	SaveManager.data["onboarding_completed_day"] = THU
 	await _show_home()
@@ -671,23 +672,25 @@ func _layout_view(view_size: Vector2i, safe_top: float, variant: String = "") ->
 		var inter: Rect2 = rect.intersection(other)
 		if inter.size.x > 1.0 and inter.size.y > 1.0:
 			overlap.append(String(node.name))
-	_c("%s giriş hiçbir kontrolle çakışmıyor (GÖREVLER, madalyon plakaları, avatar, pill'ler, level, OYNA) %s"
+	_c("%s giriş hiçbir kontrolle çakışmıyor (GÜNLÜK kartı, madalyonlar + plakaları, OYNA) %s"
 		% [tag, str(overlap)], overlap.is_empty())
-	var missions: Rect2 = home.missions_button().get_global_rect()
-	_c("%s GÖREVLER'in hemen altında (4–16 px)" % tag, rect.position.y >= missions.end.y + 4.0
-		and rect.position.y <= missions.end.y + 16.0)
+	var daily: Rect2 = home.daily_card().get_global_rect()
+	_c("%s GÜNLÜK ÖDÜLLER kartının hemen altında (4–20 px)" % tag, rect.position.y >= daily.end.y + 4.0
+		and rect.position.y <= daily.end.y + 20.0)
 	var logo: Rect2 = home.logo().get_global_rect()
 	_c("%s logonun altında, maskotun opak piksellerine değmiyor" % tag, rect.position.y >= logo.end.y
 		and not _mascot_hits(home.mascot_rect(), rect))
-	_c("%s OYNA / level pill / banner bölgesi serbest" % tag, rect.end.y < home.level_button().get_global_rect().position.y
-		and rect.end.y < view.y * 0.5)
+	_c("%s OYNA'nın altında; kabuğun ayak izinin ve banner yuvasının üstünde (TASK/058)" % tag,
+		rect.position.y > home.play_button().get_global_rect().end.y
+		and rect.end.y <= _main.global_nav().footprint().position.y + 0.5
+		and rect.end.y <= view.y - UiKit.bottom_inset(view) + 0.5)
 	var clip: Array[String] = []
 	for node in _all_nodes(entry):
 		if node is Label and (node as Label).is_visible_in_tree():
 			var label: Label = node
 			if _text_width(label, label.text) > label.size.x + 0.5 or not rect.grow(0.5).encloses(label.get_global_rect()):
 				clip.append(label.text)
-	_c("%s giriş yazıları kırpılmıyor, pill içinde %s" % [tag, str(clip)], clip.is_empty())
+	_c("%s giriş yazıları kırpılmıyor, kart içinde %s" % [tag, str(clip)], clip.is_empty())
 	var sheet: DailyChallengeOverlay = _sheet()
 	await _open()
 	var frame: Rect2 = sheet.frame().get_global_rect()
@@ -754,7 +757,10 @@ func _ads_banner() -> void:
 	_c("pencere banner yuvasının ÜSTÜNDE (yuva %.0f px)" % UiKit.banner_slot(), UiKit.banner_slot() > 0.0
 		and _sheet().frame().get_global_rect().end.y <= view.y - UiKit.bottom_inset(view) + 0.5)
 	var rect: Rect2 = _home().challenge_button().get_global_rect()
-	_c("banner'lı düzende giriş OYNA / level pill'in üstünde", rect.end.y < _home().level_button().get_global_rect().position.y)
+	_c("banner'lı düzende giriş OYNA'nın altında, banner yuvasının ve kabuğun üstünde (TASK/058)",
+		rect.position.y > _home().play_button().get_global_rect().end.y
+		and rect.end.y <= view.y - UiKit.bottom_inset(view) + 0.5
+		and rect.end.y <= _main.global_nav().footprint().position.y + 0.5)
 	_sheet().close_sheet()
 	await _settle(2)
 	_c("pencere kapandı: arka uca çağrı yok", fake.calls.size() == calls)

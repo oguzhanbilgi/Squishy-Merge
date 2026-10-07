@@ -1,5 +1,6 @@
 extends Node
-## Ana Sayfa hub QA çekimleri (M8.6-03B). Dev aracı — oyun çalışırken
+## Ana Sayfa hub QA çekimleri (M8.6-03B; TASK/058'den beri V3 ekranı — inceleme çekimleri tools/home_v3_shots).
+## Dev aracı — oyun çalışırken
 ## kullanılmaz. `--headless` İLE ÇALIŞTIRILAMAZ (ekran görüntüsü).
 ##
 ## Gerçek `main.tscn` (ayarlar, günlük ödül, sandık bilgisi dahil)
@@ -7,9 +8,9 @@ extends Node
 ##   01_home_mid         orta oyuncu (level 4 sırada, 335 Hamur, 2 seri, 6/20, 49/75)
 ##   02_home_fresh       yeni oyuncu (level 1, 0 Hamur, 0 seri, 0/20, 0/75)
 ##   03_home_endless     her şey bitmiş (Sonsuz açık, rekor 12 480, 20/20, 74/75)
-##   04_daily_claimable  Günlük madalyonunda bildirim noktası (dün giriş yapılmış)
-##   05_daily_claimed    Günlük madalyonundan alındıktan sonra (nokta yok)
-##   06_feature_pressed  Koleksiyon madalyonu basılı (button_down)
+##   04_daily_claimable  GÜNLÜK ÖDÜLLER kartında "!" rozeti (dün giriş yapılmış)
+##   05_daily_claimed    GÜNLÜK ÖDÜLLER kartından alındıktan sonra
+##   06_feature_pressed  GÖREVLER madalyonu basılı (button_down) — TASK/058: Koleksiyon madalyonu kabukta
 ##   07_play_pressed     OYNA basılı
 ##   08_settings         Ayarlar penceresi Profil üstünde (TASK/044: dişli çark Profil'de)
 ##   09_daily_modal      GÜNLÜK ÖDÜLLER penceresi (madalyondan; giriş ödülü ALINDI üstte)
@@ -90,7 +91,7 @@ func _ready() -> void:
 
 	_apply_showcase()
 	await _show_home()
-	await _shot_pressed(_home().feature_button(&"collection"), "06_feature_pressed")
+	await _shot_pressed(_home().feature_button(&"missions"), "06_feature_pressed")
 	await _shot_pressed(_home().play_button(), "07_play_pressed")
 	await _shot_settings()
 	await _shot_daily_modal()
@@ -229,7 +230,7 @@ func _mouse(at: Vector2, down: bool) -> void:
 
 
 func _shot_settings() -> void:
-	_home().profile_button().pressed.emit()
+	_main.global_nav().item_button(4).pressed.emit()
 	await _settle()
 	_main._screens[4].settings_button().pressed.emit()
 	await _settle()

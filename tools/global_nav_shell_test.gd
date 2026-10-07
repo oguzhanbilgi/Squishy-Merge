@@ -561,9 +561,11 @@ func _check_insets(tag: String, safe_top: float) -> void:
 	await _tab(0)
 	var home: CanvasLayer = _main._screens[0]
 	var play: Rect2 = home.play_button().get_global_rect()
-	var level: Rect2 = home.level_button().get_global_rect()
-	_c("%s: Ana Sayfa OYNA (alt %.0f) ve level pill'i kabuğun üstünde (%.0f)" % [tag, play.end.y, floor_y],
-		play.end.y <= floor_y - 4.0 and level.end.y <= play.position.y)
+	# TASK/058: level düğmesi yerine dokunma almayan level bilgisi; OYNA ile kabuk arasında GÜNLÜK / MEYDAN OKUMA kartları.
+	var level: Rect2 = home.level_info().get_global_rect()
+	_c("%s: Ana Sayfa OYNA (alt %.0f), level bilgisi ve kartlar kabuğun üstünde (%.0f)" % [tag, play.end.y, floor_y],
+		play.end.y <= floor_y - 4.0 and level.end.y <= play.position.y
+		and home.challenge_card().get_global_rect().end.y <= floor_y + 0.5)
 	_c("%s: Ana Sayfa maskotu level pill'ine değmez ve en az %d px (%.0f)" % [tag, int(home.MASCOT_MIN),
 		home.mascot_rect().size.y], home.mascot_rect().end.y <= level.position.y + 1.0
 		and home.mascot_rect().size.y >= home.MASCOT_MIN - 1.0)

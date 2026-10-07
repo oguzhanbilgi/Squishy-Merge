@@ -284,9 +284,10 @@ func _routes(home: CanvasLayer, profile: CanvasLayer) -> void:
 	_apply_mid()
 	_main._show_tab(0)
 	await _settle(1)
-	home.profile_button().pressed.emit()
+	# TASK/058: Ana Sayfa avatarı kaldırıldı — Profil girişi kabuğun PROFİL öğesi (niyet aynı).
+	_main.global_nav().item_button(4).pressed.emit()
 	await _settle(1)
-	_c("Ana Sayfa avatarı → Profil (yalnız Profil görünür)", _main._active_tab == 4 and profile.visible and not home.visible)
+	_c("kabuk PROFİL → Profil (yalnız Profil görünür)", _main._active_tab == 4 and profile.visible and not home.visible)
 	profile.settings_button().pressed.emit()
 	await _settle(1)
 	_c("dişli çark → Ayarlar (Main'in tek paneli), Profil altta açık", _main._settings.visible and _main._active_tab == 4
@@ -329,7 +330,8 @@ func _routes(home: CanvasLayer, profile: CanvasLayer) -> void:
 	await _settle(1)
 	_c("Profil'e dönünce 2. yuva Acı Sos (vitrin değişikliği yansıdı)", profile.showcase_slots()[1].is_filled()
 		and profile.showcase_slots()[1].name_text() == "Acı Sos")
-	_c("Ana Sayfa avatarı da güncel (vitrin başı rare_02)", home.profile_button().entry().id == &"rare_02")
+	_c("kabuk PROFİL avatarı da güncel (vitrin başı rare_02)",
+		_main.global_nav().item_button(4).avatar().entry().id == &"rare_02")
 	profile.collection_cta().pressed.emit()
 	await _settle(1)
 	_c("KOLEKSİYONA GİT → Koleksiyon", _main._active_tab == 2 and album.visible)
@@ -395,16 +397,19 @@ func _touch_settle(home: CanvasLayer, profile: CanvasLayer) -> void:
 	_c("yatışma süresi 300 ms (Android çift dokunuş penceresi)", settle_msec == 300)
 	_main._show_tab(0)
 	await _wait_settled()
-	var avatar_pos: Vector2 = _screen_center(home.profile_button())
+	# TASK/058: Ana Sayfa avatarı kaldırıldı — aynı senaryo kabuğun PROFİL öğesiyle (Ana Sayfa → Profil girişi).
+	var avatar_pos: Vector2 = _screen_center(_main.global_nav().item_button(4))
 	# TASK/057 Tur 2: Profil üst çubuğunda geri oku yok — avatarın noktasında artık Profil geri'si yok; Ana Sayfa'ya
 	# dönüş kabuğun ANA SAYFA öğesi (parmakla).
 	_c("ön koşul (TASK/057 Tur 2): Profil üst çubuğunda geri oku yok (back_button() null)",
 		profile.top_bar().back_button() == null)
 	var home_item: Button = _main.global_nav().item_button(0)
 	await _finger_tap(avatar_pos)
-	_c("parmak dokunuşu: Ana Sayfa avatarı → Profil", _main._active_tab == 4 and profile.visible)
-	await _finger_tap(avatar_pos)
-	_c("hemen ikinci dokunuş (aynı nokta) yutuldu: Profil'de kalındı", _main._active_tab == 4
+	_c("parmak dokunuşu: kabuk PROFİL → Profil", _main._active_tab == 4 and profile.visible)
+	# TASK/058: aynı noktaya ikinci dokunuş (zaten seçili PROFİL) her durumda 0 gezinmedir — yatışma, FARKLI bir hedefe
+	# (kabuk ANA SAYFA) hemen ikinci dokunuşla sınanır.
+	await _finger_tap(_screen_center(home_item))
+	_c("hemen ikinci dokunuş (kabuk ANA SAYFA) yutuldu: Profil'de kalındı", _main._active_tab == 4
 		and profile.visible)
 	await _wait_settled()
 	var nav_before: int = _main.nav_navigations
@@ -412,10 +417,10 @@ func _touch_settle(home: CanvasLayer, profile: CanvasLayer) -> void:
 	_c("yatışmadan sonra kabuk ANA SAYFA parmakla çalışır → Ana Sayfa (tam 1 gezinme)", _main._active_tab == 0
 		and home.visible and _main.nav_navigations == nav_before + 1)
 	await _finger_tap(avatar_pos)
-	_c("geri dönüşün hemen ardından avatar dokunuşu yutuldu (Profil açılmadı)", _main._active_tab == 0)
+	_c("geri dönüşün hemen ardından PROFİL dokunuşu yutuldu (Profil açılmadı)", _main._active_tab == 0)
 	await _wait_settled()
 	await _finger_tap(avatar_pos)
-	_c("yatışmadan sonra avatar yine Profil'i açar", _main._active_tab == 4)
+	_c("yatışmadan sonra PROFİL yine Profil'i açar", _main._active_tab == 4)
 
 	var scroll: ScrollContainer = profile.scroll()
 	scroll.scroll_vertical = int(scroll.get_v_scroll_bar().max_value)
@@ -464,7 +469,7 @@ func _touch_settle(home: CanvasLayer, profile: CanvasLayer) -> void:
 
 	print("-- yatışma kod yolunu / masaüstü fareyi etkilemez")
 	_main._show_tab(0)
-	home.profile_button().pressed.emit()
+	_main.global_nav().item_button(4).pressed.emit()
 	_c("kod yolu: geçişin hemen ardından pressed.emit() → Profil", _main._active_tab == 4)
 	home_item.pressed.emit()
 	_c("kod yolu: geçişin hemen ardından kabuk ANA SAYFA → Ana Sayfa", _main._active_tab == 0)
@@ -677,7 +682,7 @@ func _ads_surface() -> void:
 	_c("ön koşul: Ana Sayfa'da banner gösterildi (yüzey HOME)", ads != null and ads.surface() == MonetizationManager.Surface.HOME
 		and ads.banner_state() == MonetizationManager.BannerState.SHOWN)
 	var hides_before: int = fake.banner_hides.size()
-	_main._screens[0].profile_button().pressed.emit()
+	_main.global_nav().item_button(4).pressed.emit()
 	await _settle(2)
 	_c("Profil açılınca yüzey NONE, banner GİZLENDİ (yeni reklam yüzeyi yok)", _main._active_tab == 4
 		and ads.surface() == MonetizationManager.Surface.NONE and ads.banner_state() != MonetizationManager.BannerState.SHOWN
@@ -696,7 +701,7 @@ func _ads_surface() -> void:
 		and ads.banner_state() == MonetizationManager.BannerState.SHOWN)
 	# TASK/043 yolu artık Profil'den (inceleme merceği 7): dişli → Yaş bilgisi →
 	# SDK sonrası farklı bant → oturum reklamsız; Ana Sayfa'da banner geri GELMEZ.
-	_main._screens[0].profile_button().pressed.emit()
+	_main.global_nav().item_button(4).pressed.emit()
 	await _settle(2)
 	_main._screens[4].settings_button().pressed.emit()
 	await _settle(2)
