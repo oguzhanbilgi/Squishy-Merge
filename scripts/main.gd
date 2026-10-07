@@ -4,10 +4,9 @@ extends Node2D
 ## SaveManager'da, ödül kurası ChestSystem'de, fiyatlar Shop'ta; burada
 ## sadece bunlar birbirine bağlanıyor.
 ##
-## Gezinme (M8.6): Ana Sayfa hub (madalyonlar + OYNA); Harita / Koleksiyon /
-## Mağaza kendi `ScreenTopBar`'ıyla (geri -> Ana Sayfa). Eski M8.5-10 alt
-## sekme çubuğu M8.6-06 ile tamamen kalktı (UI_VISUAL_SYSTEM §14.4).
-## Profil (TASK/044): Ana Sayfa'nın sol üst avatarından; Ayarlar'a Profil'in
+## Gezinme (M8.6): Ana Sayfa hub (TASK/058 V3: OYNA + GÜNLÜK ÖDÜLLER / MEYDAN OKUMA kartları); Harita / Koleksiyon /
+## Mağaza kendi `ScreenTopBar`'ıyla. Eski M8.5-10 alt sekme çubuğu M8.6-06 ile tamamen kalktı (UI_VISUAL_SYSTEM §14.4).
+## Profil (TASK/044): kabuğun PROFİL öğesinden (TASK/058'den beri Ana Sayfa avatarı yok); Ayarlar'a Profil'in
 ## dişli çarkından (aynı tek `SettingsPanel`), oyun içi HUD yolu değişmedi.
 ## Küresel gezinme kabuğu (TASK/057, `GlobalNav`): beş hub ekranı arasında Ana Sayfa'ya dönmeden
 ## geçiş; görünürlük ve seçili hedef YALNIZ burada (`_sync_nav`), hub dışı yüzeylerde gizli.
@@ -235,13 +234,10 @@ func _ready() -> void:
 	Haptics.set_enabled(SaveManager.haptics_enabled())
 
 	var home: CanvasLayer = HOME_SCENE.instantiate()
+	# Ana Sayfa V3 (TASK/058): OYNA → Harita; GÜNLÜK ÖDÜLLER / MEYDAN OKUMA kartları; GÖREVLER / SANDIK madalyonları.
+	# Kabukla yinelenen Ana Sayfa kısayolları (Mağaza / Koleksiyon madalyonu, Hamur "+", Profil avatarı, Harita'ya giden
+	# level düğmesi) KALDIRILDI — o hedefler küresel gezinme kabuğunda (TASK/057).
 	home.play_pressed.connect(_on_play_pressed)
-	# TASK/044: sol üst avatar -> Profil (Ayarlar artık Profil'in dişli çarkında).
-	home.profile_requested.connect(_on_profile_requested)
-	# Home hub (M8.6-03B): yuzen ozellik madalyonlari ve level plakasi.
-	home.map_requested.connect(_on_play_pressed)
-	home.shop_requested.connect(_on_shop_requested)
-	home.collection_requested.connect(_on_collection_requested)
 	home.daily_requested.connect(_on_daily_requested)
 	home.chest_requested.connect(_on_chest_requested)
 	# TASK/046: GÖREVLER girişi → Main'in GÖREVLER penceresi.
@@ -811,6 +807,10 @@ func _notification(what: int) -> void:
 		_refresh_missions_views()
 		# TASK/047: meydan okuma günü de — giriş / açık pencere yalnız okuyarak tazelenir.
 		_refresh_daily_challenge_views()
+		# TASK/058: Ana Sayfa'nın GÜNLÜK ÖDÜLLER kartı da (ertesi gün kilit açılmış / giriş ödülü beklenir olabilir) —
+		# yalnız okur. Otomatik pencere aşağıda açılırsa kapanışı Ana Sayfa'yı ayrıca tazeler.
+		if not _screens.is_empty() and _screens[0].visible:
+			_screens[0].refresh_daily()
 		_maybe_auto_open_daily_rewards()
 		return
 	if what != NOTIFICATION_WM_GO_BACK_REQUEST:
@@ -925,7 +925,9 @@ func _apply_nav_insets() -> void:
 	for screen in _screens:
 		if not screen.has_method("set_nav_inset"):
 			continue
-		if screen == _screens[1]:
+		# Harita: düğümler payın tamamının üstünde; Ana Sayfa (TASK/058): kompakt kipte (merkez taşması yok) kartlar tepsiden
+		# daha uzak durur — ikisi de merkez taşmasını bilir.
+		if screen == _screens[1] or screen == _screens[0]:
 			screen.set_nav_inset(_nav.reserve(), _nav.center_rise())
 		else:
 			screen.set_nav_inset(_nav.reserve())
@@ -977,8 +979,8 @@ func _on_play_pressed() -> void:
 	_show_tab(1)
 
 
-## Koleksiyon vitrinindeki kilitli skin'in "MAĞAZAYA GİT" kısayolu, Ana
-## Sayfa / Harita / Koleksiyon Hamur pill'inin "+" butonu ve Mağaza madalyonu.
+## Koleksiyon vitrinindeki kilitli skin'in "MAĞAZAYA GİT" kısayolu ve Harita / Koleksiyon Hamur pill'inin "+"
+## butonu (Ana Sayfa'nın Mağaza girişleri TASK/058'de kaldırıldı — kabuğun MAĞAZA öğesi).
 func _on_shop_requested() -> void:
 	_show_tab(3)
 
@@ -993,13 +995,12 @@ func _on_shop_skin_requested(skin_id: StringName) -> void:
 	_screens[3].focus_skin(skin_id)
 
 
-## Ana Sayfa'daki Koleksiyon madalyonu; Profil'in boş vitrin yuvası ve
-## KOLEKSİYONA GİT'i.
+## Profil'in boş vitrin yuvası ve KOLEKSİYONA GİT'i.
 func _on_collection_requested() -> void:
 	_show_tab(2)
 
 
-## Ana Sayfa'nın sol üst avatarı (TASK/044): Profil.
+## Profil (kod yolu / QA; kullanıcı yolu kabuğun PROFİL öğesi — TASK/058'de Ana Sayfa avatarı kaldırıldı).
 func _on_profile_requested() -> void:
 	_show_tab(4)
 
@@ -1014,10 +1015,10 @@ func _on_collectible_requested(skin_id: StringName) -> void:
 	_maybe_auto_open_daily_rewards()
 
 
-## Ana Sayfa'daki Günlük madalyonu (M8.9-02.1): GÜNLÜK ÖDÜLLER penceresini
-## açar (Mağaza kartıyla AYNI pencere/durum). Bugünkü giriş ödülü henüz
-## alınmadıysa (nadir — açılışta zaten alınır; cihaz tarihi ilerlemişse) aynı
-## claim yolu pencereden önce çalışır. Onboarding bitmeden hiçbir şey olmaz.
+## Ana Sayfa'nın GÜNLÜK ÖDÜLLER kartı (TASK/058; önce madalyon — M8.9-02.1): GÜNLÜK ÖDÜLLER penceresini
+## açar (Mağaza kartıyla AYNI pencere/durum). Bugünkü giriş ödülü henüz alınmadıysa (nadir — açılışta zaten alınır;
+## cihaz tarihi ilerlemişse) aynı claim yolu pencereden önce çalışır. İlk gün kuralında (GAME_DESIGN §12.3) pencere
+## açılmaz — kart o gün PASİF ve "Yarın açılır" der (sessiz ölü giriş değil; owner bulgusu, TASK/058).
 func _on_daily_requested() -> void:
 	open_daily_rewards()
 

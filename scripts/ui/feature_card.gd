@@ -1,9 +1,9 @@
 class_name FeatureCard
 extends Button
-## Squishy UI System V3 (TASK/057) — özellik kartı (ileride Günlük / Meydan Okuma / Koleksiyon benzeri
-## girişler — TASK/058 / 061 / 063 bağlar; bu görev yalnız bileşeni kurar).
+## Squishy UI System V3 (TASK/057) — özellik kartı. İlk üretim tüketicisi: Ana Sayfa V3'ün GÜNLÜK ÖDÜLLER ve
+## MEYDAN OKUMA kartları (TASK/058); TASK/061 / 063 başka girişler bağlar.
 ##
-##   [büyük sanat kuyusu]  BAŞLIK (kart başlığı, Baloo)        [rozet]
+##   [büyük sanat kuyusu]  BAŞLIK (kart başlığı, Baloo)  [cip]   [rozet]
 ##                         tek satır alt yazı (isteğe bağlı)    [ › / CTA ]
 ##                         ▬▬▬▬▬▬ ilerleme (isteğe bağlı) 3/5
 ##
@@ -19,6 +19,8 @@ const ART: float = 82.0
 const TITLE_SIZE: int = 27
 const CHEVRON: float = 44.0
 const PAD: float = 18.0
+## Başlık satırı cipi (TASK/058 `set_tag`): ödül (altın) / tamam (nane) — rozet değil, bilgi.
+const TAG_ICON: float = 22.0
 
 var _on_light: bool = false
 var _accent: Color = UiTokens.PINK
@@ -28,7 +30,12 @@ var _selected: bool = false
 var _row: HBoxContainer
 var _well: Control
 var _art: TextureRect
+var _title_row: HBoxContainer
 var _title: Label
+var _tag: PanelContainer
+var _tag_icon: TextureRect
+var _tag_label: Label
+var _tag_done: bool = false
 var _subtitle: Label
 var _progress_row: HBoxContainer
 var _progress_bar: Control
@@ -75,10 +82,41 @@ func _init(title: String = "", subtitle: String = "", accent: Color = UiTokens.P
 	column.add_theme_constant_override("separation", 2)
 	column.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_row.add_child(column)
+	# Başlık satırı (TASK/058): başlık + isteğe bağlı ödül / durum cipi (`set_tag`) satırın sağ ucunda.
+	_title_row = HBoxContainer.new()
+	_title_row.name = "TitleRow"
+	_title_row.add_theme_constant_override("separation", UiTokens.SPACE_SM)
+	_title_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	column.add_child(_title_row)
 	_title = UiType.v3_label(title, UiType.V3_CARD_TITLE, not _on_light, HORIZONTAL_ALIGNMENT_LEFT, TITLE_SIZE)
 	_title.name = "Title"
 	_title.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
-	column.add_child(_title)
+	_title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_title_row.add_child(_title)
+	_tag = PanelContainer.new()
+	_tag.name = "Tag"
+	_tag.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_tag.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	_tag.visible = false
+	_title_row.add_child(_tag)
+	var tag_row := HBoxContainer.new()
+	tag_row.add_theme_constant_override("separation", UiTokens.SPACE_XS)
+	tag_row.alignment = BoxContainer.ALIGNMENT_CENTER
+	tag_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_tag.add_child(tag_row)
+	_tag_icon = TextureRect.new()
+	_tag_icon.name = "Icon"
+	_tag_icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	_tag_icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	_tag_icon.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
+	_tag_icon.custom_minimum_size = Vector2(TAG_ICON, TAG_ICON)
+	_tag_icon.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	_tag_icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	tag_row.add_child(_tag_icon)
+	_tag_label = UiType.v3_label("", UiType.V3_BADGE, false, HORIZONTAL_ALIGNMENT_CENTER)
+	_tag_label.name = "Text"
+	_tag_label.add_theme_color_override("font_color", UiTokens.TEXT_ON_ACCENT)
+	tag_row.add_child(_tag_label)
 	_subtitle = UiType.v3_label(subtitle, UiType.V3_SECONDARY, not _on_light)
 	_subtitle.name = "Subtitle"
 	_subtitle.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
@@ -146,9 +184,36 @@ func title_text() -> String:
 	return _title.text
 
 
+## Başlık satırının sağ ucunda küçük bilgi cipi (TASK/058): ödül (altın yüz, ör. Hamur ikonu + "+20") ya da `done`
+## (nane yüz + tik, ör. "TAMAM"). Boş metin gizler. Metin / ikon ÇAĞIRANDAN — bileşen ekonomi bilmez. Dikkat
+## rozetinden (AttentionBadge) ayrık: dikkat çekmez, kartın içeriğidir; fare almaz (kart tek hedef).
+func set_tag(value: String, icon: Texture2D = null, done: bool = false) -> void:
+	_tag_done = done and not value.is_empty()
+	_tag.visible = not value.is_empty()
+	_tag_label.text = value
+	_tag_icon.texture = UiKit.icon_texture("check") if _tag_done and icon == null else icon
+	_tag_icon.self_modulate = UiTokens.TEXT_ON_ACCENT if _tag_done and icon == null else Color.WHITE
+	_tag_icon.visible = _tag_icon.texture != null
+	_tag.add_theme_stylebox_override("panel", UiKit.v3_chip(UiTokens.MINT if _tag_done else UiTokens.GOLD, 2))
+
+
+func tag_text() -> String:
+	return _tag_label.text if _tag.visible else ""
+
+
+func is_tag_done() -> bool:
+	return _tag_done
+
+
 func set_subtitle(value: String) -> void:
 	_subtitle.text = value
 	_subtitle.visible = not value.is_empty()
+
+
+## Alt yazı puntosu (V3 token'ı; varsayılan TYPE_SECONDARY 16). TASK/058: Ana Sayfa kartları gerçek özeti TYPE_BODY
+## (19) ile taşır — A36'da 16 px ≈ 9 dp küçük kalıyordu.
+func set_subtitle_size(px: int) -> void:
+	_subtitle.add_theme_font_size_override("font_size", maxi(px, UiTokens.TYPE_META))
 
 
 func subtitle_text() -> String:
@@ -164,6 +229,10 @@ func set_art(art: Texture2D, icon_role: String = "") -> void:
 	var box: float = ART if art != null else ART * 0.62
 	_art.position = (Vector2(WELL, WELL) - Vector2(box, box)) * 0.5 - Vector2(0.0, 3.0)
 	_art.size = Vector2(box, box)
+
+
+func art_texture() -> Texture2D:
+	return _art.texture
 
 
 ## İlerleme: 0..1 oran + metin ("3/5"); `ratio < 0` gizler.
@@ -206,10 +275,23 @@ func set_cta(value: String, kind: int = SquishyButton.Kind.PRIMARY,
 	set_enabled(_cta.is_enabled() or _cta.state() == SquishyButton.State.INSUFFICIENT)
 
 
-## Etkin ↔ pasif (tek API; `disabled`'ı doğrudan yazmayın): pasifte yüz griye, içerik %55.
+## Etkin ↔ pasif (tek API; `disabled`'ı doğrudan yazmayın): pasifte yüz griye, yazılar TEXT_DISABLED, kuyu soluk, ›
+## gizli (pasif kart gezinme vaat etmez).
 func set_enabled(value: bool) -> void:
 	disabled = not value
-	_row.modulate.a = 1.0 if value else 0.55
+	# TASK/058 (ilk üretim tüketicisi — Ana Sayfa kilitli GÜNLÜK kartı): pasif kartın YAZISI okunur kalır — gri yüzde
+	# beyaz yazı %55 opaklıkta ~2:1 idi ("Yarın açılır" okunmuyordu). Pasifte yazılar TEXT_DISABLED (gri yüzde 4.8:1),
+	# sanat kuyusu ve › soluk; tüm satırın opaklığı düşürülmez.
+	_row.modulate.a = 1.0
+	_well.modulate.a = 1.0 if value else 0.55
+	_chevron.visible = value and _cta == null
+	for label: Label in [_title, _subtitle, _progress_label]:
+		if value:
+			label.remove_theme_color_override("font_color")
+			if not _on_light and label != _title:
+				label.add_theme_color_override("font_color", UiTokens.TEXT_ON_DARK)
+		else:
+			label.add_theme_color_override("font_color", UiTokens.TEXT_DISABLED)
 	if not value and _pressed_visual:
 		_set_pressed_visual(false)
 		UiMotion.release(self)

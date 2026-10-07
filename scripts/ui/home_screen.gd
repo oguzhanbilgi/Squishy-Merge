@@ -1,41 +1,33 @@
 extends CanvasLayer
-## Ana Sayfa — oyun hub'ı (M8.6-03B). Casual mobil oyun lobisi: kart/sekme
-## yığını DEĞİL, bölgeler (zone) ve yüzen özellik madalyonları.
+## Ana Sayfa V3 (TASK/058) — premium casual oyun hub'ı. Okuma sırası: kimlik / maskot → OYNA → GÜNLÜK ÖDÜLLER +
+## MEYDAN OKUMA → küresel gezinme (TASK/057 kabuğu). Eşdeğer ağırlıkta küçük düğmeler YOK: tek baskın CTA, iki özellik
+## kartı, iki ikincil madalyon.
 ##
-##   ÜST      PROFİL avatarı (`AvatarButton`, TASK/044 — eski ayarlar butonunun
-##            yeri; Ayarlar artık Profil'in dişli çarkında) + seri pill'i (sol) ·
-##            Hamur pill'i + nane "+" → Mağaza (sağ) — HUD v5 dili lavanta
-##            glossy pill'ler (UiKit.home_pill), 56 px tek satır; cihaz üst
-##            güvenli payı satırı aşağı iter
+##   ÜST      oyuncu durumu (sol: seviye rozeti + seçili unvan + XP rayı) · Hamur bakiyesi (sağ). İkisi de DURUM —
+##            dokunma almaz (Profil / Mağaza rotaları kabukta; ikinci bir gezinme sistemi yok). Cihaz üst güvenli payı
+##            satırı aşağı iter
 ##   LOGO     SQUISHY MERGE lockup, üst satırın altında ortada
-##   YAN      sol sütun: Günlük (bildirim noktası) · Koleksiyon (en son
-##            keşfedilen Squishy, N/20 rozeti + nane halka); sağ sütun: Mağaza · Bonus sandık
-##            (owner sandığı, N/75 rozeti + altın halka) — HomeFeatureButton
-##   GÖREVLER (TASK/046) üst madalyon sırasının ortasında, Günlük ile Mağaza ARASINDA tek
-##            kompakt candy pill: nane hedef kuyusu + "GÖREVLER" + altın "N/6" rozeti (içinde
-##            bulunulan dönemlerde tamamlanan görev; 6/6 nane) → GÖREVLER penceresi (Main).
-##            2+2 madalyon düzeni, maskot, OYNA ve alt gezinme DEĞİŞMEDİ
-##   HERO     owner maskotu (yeni yüksek çözünürlüklü türev) + lavanta hale +
-##            yer gölgesi + tier 3 / tier 6 dumpling + pırıltılar; nefes
-##   OYNA     tek kahraman CTA ALTTA ORTADA, büyük (480×96, cyan candy);
-##            hemen üstünde ortalanmış kompakt level pill'i (altın taç
-##            madalyonu + "SIRADAKİ / Level 4 ★ 8/30"; sonsuzda "SONSUZ MOD /
-##            Rekor 12 480 ★ 30/30") → ikisi de Harita (03B.2)
+##   HERO     owner maskotu + lavanta hale + yer gölgesi + tier 3 / tier 6 dumpling + pırıltılar; nefes. Hero'nun üst
+##            köşelerinde iki İKİNCİL madalyon (`HomeFeatureButton`, kabuk madalyonlarıyla aynı aile): sol GÖREVLER
+##            (N/6 — TASK/046 penceresi), sağ SANDIK (N/75 + altın halka — bonus sandık bilgisi). Maskotun dar tepesi
+##            madalyonların arasına sokulur, geniş gövdesi altlarında kalır (çakışma testle kilitli)
+##   OYNA     V3 birincil CTA (`SquishyButton` PRIMARY HERO, ▶ OYNA) + cyan hale + %1.5 nefes; hemen üstünde DOKUNMA
+##            ALMAYAN level bilgisi ("SIRADAKİ Level 5 ★ 11/30"; sonsuzda "SONSUZ MOD Rekor …") → Harita
+##   KARTLAR  iki V3 `FeatureCard`, tam genişlik, alt yazı TYPE_BODY: GÜNLÜK ÖDÜLLER (seri + bugünün durumu; alınacak
+##            varsa "!" rozeti; tutorial gününde PASİF + kilit pictosu + "Yarın açılır") → GÜNLÜK ÖDÜLLER penceresi ·
+##            MEYDAN OKUMA (bugünün hedef portresi, "Dev Dumpling yap · 38 hamlede", "+20 HAMUR" cipi / tamamlanınca nane
+##            "TAMAM") → MEYDAN OKUMA penceresi
+##   TEKLİF   gizli `OfferSlot` (TASK/062 Başlangıç Paketi sözleşmesi — bugün BOŞ, yer kaplamaz; sahte teklif yok)
+##   KABUK    TASK/057 GlobalNav (Main'e ait) — kartlar kabuğun payının üstünde biter; OYNA ile merkez HARİTA arasında
+##            iki kart: aynı hedefe giden iki düğme üst üste okunmaz
 ##
-## Harita/harita düğümü Ana Sayfa'da YOK. Alt sekme çubuğu Ana Sayfa'da
-## gizli (main.gd). Kayıt YALNIZCA okunur. Zemin candy-night (ShellBackdrop).
-##
-## Yerleşim `_layout()` ile elle: tuval 720 px genişlik, yükseklik serbest;
-## fazla yükseklik hero'ya (maskot büyür, üst/alt nefes payı artar), yan
-## madalyonlar ve OYNA ölçeklenmez. Madalyonlar ile maskot/OYNA çakışmaz
-## (testle kilitli).
+## TASK/057 kabuğuyla yinelenen eski girişler KALDIRILDI: MAĞAZA / KOLEKSİYON madalyonları, Hamur "+" kısayolu, Profil
+## avatarı, Harita'ya giden level düğmesi (rotalar kabukta + diğer ekranlarda aynen). Ana Sayfa kayda YAZMAZ (tek dolaylı
+## yazma TASK/047'nin mevcut ileri-yalnız gün gözlemi: `DailyChallenge.current_view` → `observe_day`). Zemin
+## candy-night (ShellBackdrop). Yerleşim `_layout()` ile elle: tuval ≥ 720 px genişlik (içerik ortalı 720 sütun),
+## yükseklik serbest; kartlar / OYNA alttan sabit, fazla yükseklik hero'ya (maskot büyür).
 
 signal play_pressed
-## Üst satır avatarı (TASK/044) → Profil (Ayarlar Profil'in dişli çarkında).
-signal profile_requested
-signal shop_requested
-signal collection_requested
-signal map_requested
 signal daily_requested
 signal chest_requested
 ## GÖREVLER girişi (TASK/046) → Main'in GÖREVLER penceresi.
@@ -50,11 +42,11 @@ const CROWN_ART: Texture2D = preload("res://assets/visual/ui/icon_crown.png")
 const STAR_ART: Texture2D = preload("res://assets/visual/ui/icon_star_filled.png")
 const DUMPLING_VISUAL: GDScript = preload("res://scripts/game/dumpling_visual.gd")
 
-## Yan dumpling'ler: (tier, maskot merkezine göre oran (x: maskot genişliği,
-## y: maskot yüksekliği), kutu (maskot 540 iken), açı).
+## Yan dumpling'ler: (tier, maskot merkezine göre oran (x: maskot genişliği, y: maskot yüksekliği), kutu (maskot 600
+## iken — maskotla ölçeklenir), açı). T6 maskotun kalkık elinin altından uzak (iki sarı tek leke okunmasın).
 const SIDE_DUMPLINGS: Array = [
 	[3, Vector2(-0.42, 0.40), 112.0, -8.0],
-	[6, Vector2(0.42, 0.30), 140.0, 7.0],
+	[6, Vector2(0.47, 0.37), 140.0, 7.0],
 ]
 ## Pırıltılar: maskot merkezine göre oran, kutu, faz.
 const SPARKLES: Array = [
@@ -65,73 +57,61 @@ const SPARKLES: Array = [
 	[Vector2(0.50, 0.58), 16.0, 2.6],
 	[Vector2(-0.20, 0.66), 12.0, 4.4],
 ]
-## Alt bant pırıltıları (uzun ekranda maskot ile OYNA arasındaki dünya
-## bandı): x tuval oranı, y = maskot altı ile OYNA üstü arasındaki oran, kutu, faz.
-const BAND_SPARKLES: Array = [
-	[0.22, 0.30, 16.0, 0.8],
-	[0.66, 0.42, 12.0, 2.9],
-	[0.82, 0.18, 18.0, 4.6],
-	[0.40, 0.72, 10.0, 1.4],
-]
 
-## Ölçüler (tuval px).
+## Ölçüler (tuval px). İçerik sütunu 720 px (geniş tuvalde ortalı).
+const COLUMN_WIDTH: float = 720.0
 const TOP_MARGIN: float = 14.0
 const SIDE_MARGIN: float = 24.0
 const BAR_HEIGHT: float = 56.0
-const LOGO_WIDTH: float = 560.0
+## Logo: geniş ekranda 540, kısa ekranda hero'ya yer açmak için 420'ye kadar küçülür.
+const LOGO_WIDTH: float = 540.0
+const LOGO_WIDTH_MIN: float = 420.0
 const LOGO_GAP: float = 12.0
-const FEATURE_MARGIN: float = 28.0
-const FEATURE_GAP: float = 14.0
-const FEATURE_STEP: float = HomeFeatureButton.SIZE.y + HomeFeatureButton.PLAQUE_HEIGHT \
-	- HomeFeatureButton.PLAQUE_OVERLAP + 26.0
-## OYNA (03B.2): altta ortada, ekranın en büyük kontrolü — btn_cta 88 px
-## gövdesi 96'ya gerilir (orta bant düz), 480 geniş (tuvalin 2/3'ü).
-const PLAY_WIDTH: float = 480.0
-const PLAY_HEIGHT: float = 96.0
-const PLAY_GAP: float = 14.0
-## Level pill'i: OYNA'nın ÜSTÜNDE ortalanmış, ikincil (236×60 + sola taşan
-## 56 px altın rozet); OYNA ile arası LEVEL_PLAY_GAP.
-const LEVEL_WIDTH: float = 236.0
-const LEVEL_WIDTH_MAX: float = 284.0
-const LEVEL_HEIGHT: float = 60.0
-const LEVEL_BADGE: float = 56.0
-const LEVEL_BADGE_OVERHANG: float = 10.0
-const LEVEL_PLAY_GAP: float = 12.0
-## GÖREVLER pill'i (TASK/046): üst madalyonların dikey ortasında, genişlik içeriğe göre.
-const MISSIONS_HEIGHT: float = 56.0
-const MISSIONS_WIDTH_MIN: float = 206.0
-const MISSIONS_WIDTH_MAX: float = 260.0
-const MISSIONS_WELL: float = 40.0
-const MISSIONS_TEXT: String = "GÖREVLER"
-## MEYDAN OKUMA pill'i (TASK/047): GÖREVLER'in HEMEN altında (aynı yükseklik / kuyu / candy aile),
-## ortalı; genişlik içeriğe göre.
-const CHALLENGE_GAP: float = 10.0
-const CHALLENGE_WIDTH_MIN: float = 236.0
-const CHALLENGE_WIDTH_MAX: float = 320.0
-const BOTTOM_MARGIN: float = 28.0
-## TASK/057 Tur 2: kabuk varken OYNA ile kabuğun en üst noktası (merkez daire / kompakt tepsi) arasına ek nefes payı
-## — iki büyük dokunma hedefi birbirine yapışık okunmasın (owner incelemesi).
-const NAV_PLAY_CLEARANCE: float = 18.0
-## Yan dumpling'lerin alt kenarı ile level pill'i (hero bölgesinin altı) arası en az boşluk (±4 px salınım dahil).
+## İkincil madalyonlar (GÖREVLER / SANDIK): hero'nun üst köşeleri.
+const MEDALLION_GAP: float = 6.0
+const MEDALLION_HEIGHT: float = HomeFeatureButton.SIZE.y + HomeFeatureButton.PLAQUE_HEIGHT \
+	- HomeFeatureButton.PLAQUE_OVERLAP
+## OYNA: V3 kahraman CTA (108 px), tuvalin ~3/4'ü.
+const PLAY_WIDTH: float = 520.0
+const PLAY_HEIGHT: float = float(UiTokens.BUTTON_HEIGHT_HERO)
+## Level bilgisi (dokunma ALMAZ): OYNA'nın üstünde, ortalı.
+const LEVEL_HEIGHT: float = 44.0
+const LEVEL_PLAY_GAP: float = 10.0
+## OYNA ile ilk kart arası (birincil CTA nefes alsın; kartlar ayrı bir bölge okunsun).
+const PLAY_CARDS_GAP: float = 26.0
+## Kompakt kabukta (16:9 + banner) daha sıkı: kartların ek tepsi payı maskottan yemesin.
+const PLAY_CARDS_GAP_COMPACT: float = 16.0
+const CARD_GAP: float = 14.0
+## Kartların alt kenarı ile kabuk payının üstü (kabuk yokken ekran altı) arası. Kompakt kabukta (merkez taşması yok —
+## 16:9 + banner) pay tepsinin tam üstünde biter: seçili yan madalyon 14 px yükselir ve dock'un solması tepsinin 30 px
+## üstünde başlar → kart en az NAV_CARD_CLEARANCE_COMPACT uzakta.
+const NAV_CARD_CLEARANCE: float = 14.0
+const NAV_CARD_CLEARANCE_COMPACT: float = 32.0
+## Merkez taşması bundan küçükse kabuk kompakt sayılır.
+const NAV_RISE_COMPACT: float = 30.0
+const BOTTOM_MARGIN: float = 24.0
+const OFFER_GAP: float = 14.0
+## Yan dumpling'lerin alt kenarı ile level bilgisi (hero bölgesinin altı) arası en az boşluk (±4 px salınım dahil).
 const SIDE_PILL_CLEARANCE: float = 8.0
-const MASCOT_MIN: float = 320.0
+const MASCOT_MIN: float = 300.0
+## Yer yoksa (ör. ileride teklif kartı + en dar ekran) maskot MASCOT_MIN'in altına inebilir, bundan aşağı değil — level
+## bilgisiyle / OYNA ile çakışmaktansa küçülür.
+const MASCOT_HARD_MIN: float = 200.0
 const MASCOT_MAX: float = 600.0
 const MASCOT_REF: float = 600.0
 const MASCOT_SIDE_MARGIN: float = 44.0
-## Maskotun üst %22'si dar (tepe): yan sütunların altına bu kadar sokulabilir.
+## Maskotun üst %22'si dar (tepe): madalyonların arasına bu kadar sokulabilir.
 const MASCOT_NARROW_TOP: float = 0.22
+## Maskot madalyonların YANINDA da durabilir (kısa ekran): iki madalyon sütunu arasındaki boşluk payı.
+const MASCOT_MEDALLION_GAP: float = 8.0
+## Oyuncu durum rozeti çapı: "LV." yazısı çapın %19'u — 74 px'te 14 px (V3 en küçük yazı).
+const STATUS_BADGE: float = 74.0
 ## Maskotun altında yer gölgesi + yan dumpling payı.
-const GROUND_ROOM: float = 64.0
-## Uzun ekranda (tuval > 1280) fazla yükseklik: gök payı (logo ile sütunlar
-## arası), sütun aralığı, alt nefes payı (OYNA altı) ve yan dumpling'lerin
-## aşağı inişi paylaşır; kalan alt "sahne" bandında dünya görünür.
-## 03B.1: sütunlar hero'nun yanında daha aşağı yayılır (maskot onlarla
-## birlikte iner), OYNA satırı ölçülü yukarı çıkar, alt bantta pırıltılar.
-const EXTRA_SKY_SHARE: float = 0.22
-const EXTRA_STEP_SHARE: float = 0.36
-const EXTRA_BOTTOM_SHARE: float = 0.14
-const EXTRA_SIDE_DROP: float = 0.26
-const EXTRA_MASCOT_GROWTH: float = 0.12
+const GROUND_ROOM: float = 56.0
+## Uzun ekranda (hero gerekenden yüksek): fazlanın bu payı logonun üstüne / madalyonların üstüne gök olur, maskot
+## kalan bölgede dikeyde ortalanır.
+const EXTRA_SKY_SHARE: float = 0.16
+const EXTRA_SKY_MAX: float = 56.0
 ## Hareket.
 const BOB_PERIOD: float = 2.6
 const BOB_AMPLITUDE: float = 5.0
@@ -139,9 +119,24 @@ const BREATH_SCALE: float = 0.015
 const CTA_PULSE: float = 0.015
 const CTA_PERIOD: float = 1.9
 const CHEST_FLOAT: float = 3.0
+## Kart metinleri (Türkçe, ürün dili).
+const DAILY_TITLE: String = "GÜNLÜK ÖDÜLLER"
+const DAILY_LOCKED: String = "Yarın açılır"
+const DAILY_LOGIN_READY: String = "Giriş ödülü hazır"
+## Durum metinleri: tek başına (büyük harfle) · seri önekinden sonra ("·" sonrası küçük harf — tek kural).
+const DAILY_FREE_READY: Array[String] = ["Ücretsiz sandık hazır", "ücretsiz sandık hazır"]
+const DAILY_FREE_TAKEN: Array[String] = ["Bugünün sandığı alındı", "bugünün sandığı alındı"]
+const DAILY_ALL_DONE: Array[String] = ["Bugünlük tamam", "bugünlük tamam"]
+const DAILY_STREAK: String = "%d günlük seri · %s"
+const CHALLENGE_DONE_SUBTITLE: String = "Bugün tamamlandı · yarın yenisi"
+const CHALLENGE_DONE_TAG: String = "TAMAM"
+const CHALLENGE_REWARD_TAG: String = "+%d HAMUR"
 
-var _avatar_button: AvatarButton
-var _streak_pill: Control
+var _status: Control
+var _status_badge: PlayerLevelBadge
+var _status_title: Label
+var _status_rail: Control
+var _status_ratio: float = 0.0
 var _dough_pill: Control
 var _logo: TextureRect
 var _hero: Control
@@ -151,39 +146,32 @@ var _ground: NinePatchRect
 var _mascot: TextureRect
 var _sides: Array[TextureRect] = []
 var _sparkles: Array[TextureRect] = []
-var _band_sparkles: Array[TextureRect] = []
-var _features: Dictionary = {}
-var _feature_homes: Dictionary = {}
+var _missions: HomeFeatureButton
+var _chest: HomeFeatureButton
 var _play_pulse: Control
-var _play: Button
-var _level: Button
-var _level_column: VBoxContainer
-var _level_badge: Control
+var _play_halo: NinePatchRect
+var _play: SquishyButton
+var _level: PanelContainer
 var _level_crown: TextureRect
-var _level_badge_label: Label
 var _level_caption: Label
 var _level_title: Label
 var _level_stars: Label
-var _missions: Button
-var _missions_row: HBoxContainer
-var _missions_badge: PanelContainer
-var _missions_count: Label
-var _challenge: Button
-var _challenge_row: HBoxContainer
-var _challenge_title: Label
-var _challenge_art: TextureRect
-var _challenge_badge: PanelContainer
-var _challenge_reward: Label
-var _challenge_check: TextureRect
-## ui_smoke_test uyumluluğu: "nereye gidiyorum" ipucu = level plakası başlığı.
+var _daily: FeatureCard
+var _challenge: FeatureCard
+var _offer_slot: Control
+## ui_smoke_test uyumluluğu: "nereye gidiyorum" ipucu = level bilgisinin başlığı.
 var _play_hint: Label
 var _mascot_home: Rect2 = Rect2()
 var _ground_home: Rect2 = Rect2()
 var _side_homes: Array[Vector2] = []
+var _chest_home: Vector2 = Vector2.ZERO
 var _time: float = 0.0
 var _daily_claimable: bool = false
-## Test kancası: cihaz üst güvenli payı (A36 punch-hole) masaüstünde
-## okunamaz; negatif = gerçek değeri kullan.
+## Günlük kartının durumu (test / inceleme): locked · login · free_chest · free_taken · all_done.
+var _daily_state: StringName = &""
+## Kabuğun merkez taşması (Main `set_nav_inset`); < 0 bilinmiyor (kabuksuz test).
+var _nav_rise: float = -1.0
+## Test kancası: cihaz üst güvenli payı (A36 punch-hole) masaüstünde okunamaz; negatif = gerçek değeri kullan.
 var _safe_top_override: float = -1.0
 ## TASK/057: küresel gezinme kabuğunun alt payı (Main `set_nav_inset`); kabuksuz (tek başına test) 0.
 var _nav_inset: float = 0.0
@@ -196,10 +184,9 @@ func _ready() -> void:
 	_tune_backdrop()
 	_build_top()
 	_build_hero()
-	_build_features()
-	_build_missions_entry()
-	_build_challenge_entry()
-	_build_play_row()
+	_build_medallions()
+	_build_play()
+	_build_cards()
 	_root.resized.connect(_layout)
 	visibility_changed.connect(func() -> void:
 		set_process(visible)
@@ -212,10 +199,8 @@ func _ready() -> void:
 
 # --- Kurulum ------------------------------------------------------------------
 
-## Hub'da dünya nefes alsın: kabuk zemini (ShellBackdrop) sekmelerde koyu
-## karartılıyor (liste/kart okunurluğu); Ana Sayfa'da gece kasabası daha
-## görünür — karartma azalır, alt solma OYNA satırı için kalır. Yalnız bu
-## sahnenin örneği değişir, diğer ekranlar aynı kalır.
+## Hub'da dünya nefes alsın: kabuk zemini (ShellBackdrop) sekmelerde koyu karartılıyor (liste/kart okunurluğu); Ana
+## Sayfa'da gece kasabası daha görünür — karartma azalır, alt solma kartlar için kalır. Yalnız bu sahnenin örneği değişir.
 func _tune_backdrop() -> void:
 	var night: CanvasItem = _backdrop.get_node_or_null("Night")
 	if night != null:
@@ -225,26 +210,68 @@ func _tune_backdrop() -> void:
 		scrim.color = Color(0.07, 0.05, 0.18, 0.22)
 	var fade: CanvasItem = _backdrop.get_node_or_null("BottomFade")
 	if fade != null:
-		fade.modulate = Color(1, 1, 1, 0.75)
+		fade.modulate = Color(1, 1, 1, 0.85)
 
 
+## Üst satır: iki DURUM pill'i (HUD v5 lavanta glossy pill ailesi, `UiKit.home_pill` reçetesi). Dokunma almaz.
 func _build_top() -> void:
-	# Profil girişi (TASK/044): geleneksel üst-sol avatar; aynı 56 px satır.
-	# Eski ayarlar butonu burada DEĞİL — Ayarlar Profil'in dişli çarkında (tek
-	# SettingsPanel, mantık kopyalanmadı); oyun içi ayarlar HUD'da kaldı.
-	_avatar_button = AvatarButton.new(BAR_HEIGHT)
-	_avatar_button.name = "Profile"
-	GestureGuard.on_pressed(_avatar_button, func() -> void: profile_requested.emit())
-	_root.add_child(_avatar_button)
-	_streak_pill = UiKit.home_pill(UiIcons.FLAME, "", false, BAR_HEIGHT)
-	_streak_pill.name = "StreakPill"
-	_streak_pill.minimum_size_changed.connect(_layout)
-	_root.add_child(_streak_pill)
-	_dough_pill = UiKit.home_pill(UiIcons.DOUGH, "", true, BAR_HEIGHT)
+	_status = Control.new()
+	_status.name = "PlayerStatus"
+	_status.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_root.add_child(_status)
+	var shadow := UiKit.patch("popup_glow", Color(0.22, 0.09, 0.36, 0.26))
+	shadow.set_anchors_preset(Control.PRESET_FULL_RECT)
+	shadow.offset_left = -14.0
+	shadow.offset_top = -9.0
+	shadow.offset_right = 14.0
+	shadow.offset_bottom = 19.0
+	_status.add_child(shadow)
+	var rim := UiKit.flat_plate("label_round", UiTokens.LAVENDER_LIGHT)
+	rim.offset_left = -3.0
+	rim.offset_top = -3.0
+	rim.offset_right = 3.0
+	rim.offset_bottom = 3.0
+	_status.add_child(rim)
+	var pill := UiKit.panel(&"PanelHomePill")
+	pill.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	pill.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_status.add_child(pill)
+	var gloss := UiKit.patch("btn_bevel_light", Color(1, 1, 1, 0.30))
+	gloss.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE)
+	gloss.offset_left = 8.0
+	gloss.offset_right = -8.0
+	gloss.offset_top = 3.0
+	gloss.offset_bottom = BAR_HEIGHT * 0.40
+	_status.add_child(gloss)
+	# Seviye rozeti pill'in sol ucundan taşar (level rozeti dili); metin + XP rayı pill içinde.
+	_status_badge = PlayerLevelBadge.new(STATUS_BADGE)
+	_status_badge.name = "LevelBadge"
+	_status.add_child(_status_badge)
+	var column := VBoxContainer.new()
+	column.name = "Column"
+	column.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	column.alignment = BoxContainer.ALIGNMENT_CENTER
+	column.add_theme_constant_override("separation", 3)
+	column.set_anchors_preset(Control.PRESET_FULL_RECT)
+	column.offset_left = STATUS_BADGE - 22.0 + 8.0
+	column.offset_right = -14.0
+	column.offset_top = 4.0
+	column.offset_bottom = -8.0
+	_status.add_child(column)
+	_status_title = UiKit.label("", &"LabelSectionOnDark")
+	_status_title.name = "Title"
+	_status_title.add_theme_font_size_override("font_size", 18)
+	_status_title.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	column.add_child(_status_title)
+	_status_rail = Control.new()
+	_status_rail.name = "XpRail"
+	_status_rail.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_status_rail.custom_minimum_size = Vector2(0.0, 10.0)
+	_status_rail.draw.connect(_draw_status_rail)
+	column.add_child(_status_rail)
+	_dough_pill = UiKit.home_pill(UiIcons.DOUGH, "", false, BAR_HEIGHT)
 	_dough_pill.name = "DoughPill"
 	_dough_pill.minimum_size_changed.connect(_layout)
-	GestureGuard.on_pressed(_dough_pill.get_meta(&"add_button") as Button,
-		func() -> void: shop_requested.emit())
 	_root.add_child(_dough_pill)
 
 
@@ -257,8 +284,7 @@ func _build_hero() -> void:
 	_glow = UiKit.patch("popup_glow", Color(UiTokens.LAVENDER_DEEP, 0.70))
 	_glow.set_anchors_preset(Control.PRESET_TOP_LEFT)
 	_hero.add_child(_glow)
-	# Sıcak sahne ışığı: maskotun ayaklarının altında geniş, çok düşük alfa
-	# krem havuz — karakter dünyanın "sahnesinde" durur, alt bant boş okunmaz.
+	# Sıcak sahne ışığı: maskotun ayaklarının altında geniş, çok düşük alfa krem havuz.
 	_stage = UiKit.patch("popup_glow", Color(1.0, 0.92, 0.72, 0.16))
 	_stage.set_anchors_preset(Control.PRESET_TOP_LEFT)
 	_hero.add_child(_stage)
@@ -268,6 +294,8 @@ func _build_hero() -> void:
 	_hero.add_child(_ground)
 	for spec in SIDE_DUMPLINGS:
 		var side := UiKit.art(DUMPLING_VISUAL.TEXTURES[int(spec[0]) - 1], float(spec[2]))
+		# Boy maskotla ölçeklenir (_layout): en küçük boy tam kutu kalsaydı kısa ekranda ~1.6 kat büyük çizilirdi.
+		side.custom_minimum_size = Vector2.ZERO
 		side.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
 		side.set_anchors_preset(Control.PRESET_TOP_LEFT)
 		side.rotation_degrees = float(spec[3])
@@ -282,14 +310,10 @@ func _build_hero() -> void:
 	_hero.add_child(_mascot)
 	for spec in SPARKLES:
 		var spark := UiKit.art(STAR_ART, float(spec[1]))
+		spark.custom_minimum_size = Vector2.ZERO
 		spark.set_anchors_preset(Control.PRESET_TOP_LEFT)
 		_hero.add_child(spark)
 		_sparkles.append(spark)
-	for spec in BAND_SPARKLES:
-		var spark := UiKit.art(STAR_ART, float(spec[2]))
-		spark.set_anchors_preset(Control.PRESET_TOP_LEFT)
-		_hero.add_child(spark)
-		_band_sparkles.append(spark)
 	# Logo maskotun üstünde (hero'nun önünde) — üst satırın altında ortada.
 	_logo = UiKit.art(LOGO_ART, 0)
 	_logo.name = "Logo"
@@ -298,477 +322,230 @@ func _build_hero() -> void:
 	_root.add_child(_logo)
 
 
-## Dört madalyon TEK bileşenden. Sol: Günlük, Koleksiyon; sağ: Mağaza, Bonus
-## sandık. Her biri gerçek bir rotaya bağlı — sahte buton yok.
-func _build_features() -> void:
-	var daily := HomeFeatureButton.new()
-	daily.name = "Daily"
-	daily.set_icon("gift", UiTokens.PINK)
-	daily.set_label("GÜNLÜK")
-	GestureGuard.on_pressed(daily, func() -> void: daily_requested.emit())
-	_add_feature(&"daily", daily)
-
-	var collection := HomeFeatureButton.new()
-	collection.name = "Collection"
-	collection.set_art(DUMPLING_VISUAL.TEXTURES[0])
-	collection.set_label("KOLEKSİYON")
-	GestureGuard.on_pressed(collection, func() -> void: collection_requested.emit())
-	_add_feature(&"collection", collection)
-
-	var shop := HomeFeatureButton.new()
-	shop.name = "Shop"
-	shop.set_icon("shop", UiTokens.CYAN)
-	shop.set_label("MAĞAZA")
-	GestureGuard.on_pressed(shop, func() -> void: shop_requested.emit())
-	_add_feature(&"shop", shop)
-
-	var chest := HomeFeatureButton.new()
-	chest.name = "Chest"
-	chest.set_art(CHEST_ART)
-	chest.set_label("SANDIK")
-	GestureGuard.on_pressed(chest, func() -> void: chest_requested.emit())
-	_add_feature(&"chest", chest)
-
-
-func _add_feature(key: StringName, button: HomeFeatureButton) -> void:
-	button.set_anchors_preset(Control.PRESET_TOP_LEFT)
-	_root.add_child(button)
-	_features[key] = button
-	_feature_homes[key] = Vector2.ZERO
-
-
-## GÖREVLER girişi (TASK/046): level pill'iyle AYNI candy malzeme (ButtonHomePill + erik
-## gölge + açık halka + gloss) — dashboard kartı değil. Solda nane candy kuyuda beyaz hedef
-## pictosu, ortada "GÖREVLER" (Baloo, beyaz), sağda altın "N/6" rozeti (6/6'da nane). Kayda
-## YAZMAZ; basınca `missions_requested`.
-func _build_missions_entry() -> void:
-	_missions = Button.new()
+## İki ikincil madalyon — TEK bileşen (`HomeFeatureButton`); her biri gerçek bir pencereye bağlı.
+func _build_medallions() -> void:
+	_missions = HomeFeatureButton.new()
 	_missions.name = "Missions"
-	_missions.theme_type_variation = &"ButtonHomePill"
-	_missions.focus_mode = Control.FOCUS_NONE
+	_missions.set_icon("goal", UiTokens.MINT)
+	_missions.set_label("GÖREVLER")
 	_missions.set_anchors_preset(Control.PRESET_TOP_LEFT)
 	GestureGuard.on_pressed(_missions, func() -> void: missions_requested.emit())
-	UiKit.hud_shadow(_missions, 6.0, 0.28, null, 16.0)
-	var rim := UiKit.flat_plate("label_round", UiTokens.LAVENDER_LIGHT)
-	rim.show_behind_parent = true
-	rim.offset_left = -3.0
-	rim.offset_top = -3.0
-	rim.offset_right = 3.0
-	rim.offset_bottom = 3.0
-	_missions.add_child(rim)
 	_root.add_child(_missions)
-	_missions_row = HBoxContainer.new()
-	_missions_row.name = "Row"
-	_missions_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_missions_row.alignment = BoxContainer.ALIGNMENT_CENTER
-	_missions_row.add_theme_constant_override("separation", 8)
-	_missions_row.set_anchors_preset(Control.PRESET_FULL_RECT)
-	_missions_row.offset_left = 8.0
-	_missions_row.offset_right = -10.0
-	_missions_row.offset_top = 1.0
-	_missions_row.offset_bottom = -6.0
-	_missions.add_child(_missions_row)
-	_missions_row.minimum_size_changed.connect(_layout)
-	# Nane candy kuyu (Home madalyon kuyusuyla aynı reçete: koyu taban + kenar + gövde + gloss).
-	var well := Control.new()
-	well.name = "Well"
-	well.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	well.custom_minimum_size = Vector2(MISSIONS_WELL, MISSIONS_WELL)
-	well.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	_missions_row.add_child(well)
-	var base := UiKit.patch("btn_circle_flat", UiTokens.MINT_DEEP)
-	base.offset_top = 3.0
-	base.offset_bottom = 3.0
-	well.add_child(base)
-	var edge := UiKit.patch("btn_circle_flat", Color(1, 1, 1, 0.55))
-	edge.offset_left = -2.0
-	edge.offset_top = -2.0
-	edge.offset_right = 2.0
-	edge.offset_bottom = 1.0
-	well.add_child(edge)
-	well.add_child(UiKit.patch("btn_circle_flat", UiTokens.MINT))
-	var light := UiKit.patch("item_circle_inner", Color(1, 1, 1, 0.36))
-	light.offset_left = MISSIONS_WELL * 0.14
-	light.offset_right = -MISSIONS_WELL * 0.14
-	light.offset_top = MISSIONS_WELL * 0.07
-	light.offset_bottom = -MISSIONS_WELL * 0.50
-	well.add_child(light)
-	var goal := UiKit.icon("goal", MISSIONS_WELL * 0.62, UiTokens.TEXT_ON_DARK)
-	goal.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
-	goal.offset_left = -MISSIONS_WELL * 0.31
-	goal.offset_right = MISSIONS_WELL * 0.31
-	goal.offset_top = -MISSIONS_WELL * 0.31
-	goal.offset_bottom = MISSIONS_WELL * 0.31
-	well.add_child(goal)
-	var title := UiKit.label(MISSIONS_TEXT, &"LabelSectionOnDark")
-	title.name = "Title"
-	title.add_theme_font_size_override("font_size", 19)
-	_missions_row.add_child(title)
-	_missions_badge = UiKit.panel(&"Badge")
-	_missions_badge.name = "CountBadge"
-	_missions_badge.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_missions_badge.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	_missions_count = UiKit.label("0/%d" % Missions.CATALOG.size(), &"LabelBadge", HORIZONTAL_ALIGNMENT_CENTER)
-	_missions_count.name = "Count"
-	_missions_count.add_theme_font_size_override("font_size", 15)
-	_missions_badge.add_child(_missions_count)
-	_missions_row.add_child(_missions_badge)
-	var gloss := UiKit.patch("btn_bevel_light", Color(1, 1, 1, 0.28))
-	gloss.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE)
-	gloss.offset_left = 8.0
-	gloss.offset_right = -8.0
-	gloss.offset_top = 3.0
-	gloss.offset_bottom = MISSIONS_HEIGHT * 0.40
-	_missions.add_child(gloss)
-	# Yazı satırı en üstte: gloss yazıyı soldurmasın (level pill'i / hero_cta ile aynı çözüm).
-	_missions.move_child(_missions_row, _missions.get_child_count() - 1)
-	UiMotion.attach_press(_missions)
+	_chest = HomeFeatureButton.new()
+	_chest.name = "Chest"
+	_chest.set_art(CHEST_ART)
+	# Penceresinin adıyla aynı ("Bonus Sandık"): GÜNLÜK kartının "ücretsiz sandık"ıyla karışmasın.
+	_chest.set_label("BONUS SANDIK")
+	_chest.set_anchors_preset(Control.PRESET_TOP_LEFT)
+	GestureGuard.on_pressed(_chest, func() -> void: chest_requested.emit())
+	_root.add_child(_chest)
 
 
-## MEYDAN OKUMA girişi (TASK/047): GÖREVLER ile AYNI candy malzeme (ButtonHomePill + erik gölge +
-## açık halka + gloss) — ayırt edici: pembe candy kuyuda bugünün HEDEF portresi (tier sanatı),
-## "MEYDAN OKUMA", altın "+20" rozeti (tamamlanınca nane tik). Kayda YAZMAZ; basınca
-## `challenge_requested`.
-func _build_challenge_entry() -> void:
-	_challenge = Button.new()
-	_challenge.name = "Challenge"
-	_challenge.theme_type_variation = &"ButtonHomePill"
-	_challenge.focus_mode = Control.FOCUS_NONE
-	_challenge.set_anchors_preset(Control.PRESET_TOP_LEFT)
-	GestureGuard.on_pressed(_challenge, func() -> void: challenge_requested.emit())
-	UiKit.hud_shadow(_challenge, 6.0, 0.28, null, 16.0)
-	var rim := UiKit.flat_plate("label_round", UiTokens.LAVENDER_LIGHT)
-	rim.show_behind_parent = true
-	rim.offset_left = -3.0
-	rim.offset_top = -3.0
-	rim.offset_right = 3.0
-	rim.offset_bottom = 3.0
-	_challenge.add_child(rim)
-	_root.add_child(_challenge)
-	_challenge_row = HBoxContainer.new()
-	_challenge_row.name = "Row"
-	_challenge_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_challenge_row.alignment = BoxContainer.ALIGNMENT_CENTER
-	_challenge_row.add_theme_constant_override("separation", 8)
-	_challenge_row.set_anchors_preset(Control.PRESET_FULL_RECT)
-	_challenge_row.offset_left = 8.0
-	_challenge_row.offset_right = -10.0
-	_challenge_row.offset_top = 1.0
-	_challenge_row.offset_bottom = -6.0
-	_challenge.add_child(_challenge_row)
-	_challenge_row.minimum_size_changed.connect(_layout)
-	# Pembe candy kuyu (GÖREVLER'in nane kuyusuyla aynı reçete) + hedef portresi.
-	var well := Control.new()
-	well.name = "Well"
-	well.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	well.custom_minimum_size = Vector2(MISSIONS_WELL, MISSIONS_WELL)
-	well.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	_challenge_row.add_child(well)
-	var base := UiKit.patch("btn_circle_flat", UiTokens.PINK_DEEP)
-	base.offset_top = 3.0
-	base.offset_bottom = 3.0
-	well.add_child(base)
-	var edge := UiKit.patch("btn_circle_flat", Color(1, 1, 1, 0.55))
-	edge.offset_left = -2.0
-	edge.offset_top = -2.0
-	edge.offset_right = 2.0
-	edge.offset_bottom = 1.0
-	well.add_child(edge)
-	well.add_child(UiKit.patch("btn_circle_flat", UiTokens.PINK))
-	var light := UiKit.patch("item_circle_inner", Color(1, 1, 1, 0.30))
-	light.offset_left = MISSIONS_WELL * 0.14
-	light.offset_right = -MISSIONS_WELL * 0.14
-	light.offset_top = MISSIONS_WELL * 0.07
-	light.offset_bottom = -MISSIONS_WELL * 0.50
-	well.add_child(light)
-	_challenge_art = UiKit.art(DUMPLING_VISUAL.TEXTURES[4], MISSIONS_WELL * 0.84)
-	_challenge_art.name = "Portrait"
-	_challenge_art.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
-	_challenge_art.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
-	_challenge_art.offset_left = -MISSIONS_WELL * 0.42
-	_challenge_art.offset_right = MISSIONS_WELL * 0.42
-	_challenge_art.offset_top = -MISSIONS_WELL * 0.42
-	_challenge_art.offset_bottom = MISSIONS_WELL * 0.42
-	well.add_child(_challenge_art)
-	_challenge_title = UiKit.label(DailyChallenge.TITLE, &"LabelSectionOnDark")
-	_challenge_title.name = "Title"
-	_challenge_title.add_theme_font_size_override("font_size", 19)
-	_challenge_row.add_child(_challenge_title)
-	_challenge_badge = UiKit.panel(&"Badge")
-	_challenge_badge.name = "RewardBadge"
-	_challenge_badge.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_challenge_badge.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	var badge_row := HBoxContainer.new()
-	badge_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	badge_row.alignment = BoxContainer.ALIGNMENT_CENTER
-	_challenge_badge.add_child(badge_row)
-	_challenge_reward = UiKit.label("+%d" % DailyChallenge.REWARD_DOUGH, &"LabelBadge", HORIZONTAL_ALIGNMENT_CENTER)
-	_challenge_reward.name = "Reward"
-	_challenge_reward.add_theme_font_size_override("font_size", 15)
-	badge_row.add_child(_challenge_reward)
-	# Tamamlandı: glif değil tik ikonu (M8.5-09 — "✓" fontlarda yok).
-	_challenge_check = UiKit.icon("check", 18, UiTokens.TEXT_ON_ACCENT)
-	_challenge_check.name = "Done"
-	_challenge_check.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	_challenge_check.visible = false
-	badge_row.add_child(_challenge_check)
-	_challenge_row.add_child(_challenge_badge)
-	var gloss := UiKit.patch("btn_bevel_light", Color(1, 1, 1, 0.28))
-	gloss.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE)
-	gloss.offset_left = 8.0
-	gloss.offset_right = -8.0
-	gloss.offset_top = 3.0
-	gloss.offset_bottom = MISSIONS_HEIGHT * 0.40
-	_challenge.add_child(gloss)
-	_challenge.move_child(_challenge_row, _challenge.get_child_count() - 1)
-	UiMotion.attach_press(_challenge)
-
-
-func _challenge_width() -> float:
-	var text_w: float = _challenge_row.get_combined_minimum_size().x + _challenge_row.offset_left \
-		- _challenge_row.offset_right + 12.0
-	return clampf(text_w, CHALLENGE_WIDTH_MIN, CHALLENGE_WIDTH_MAX)
-
-
-## GÖREVLER pill'inin genişliği: içerik + paylar, MISSIONS_WIDTH_MIN..MAX.
-func _missions_width() -> float:
-	var text_w: float = _missions_row.get_combined_minimum_size().x + _missions_row.offset_left \
-		- _missions_row.offset_right + 12.0
-	return clampf(text_w, MISSIONS_WIDTH_MIN, MISSIONS_WIDTH_MAX)
-
-
-func _build_play_row() -> void:
-	_build_level_pill()
-	# OYNA: nefes wrapper'ı (butonun kendi scale'i basışa kalır).
+func _build_play() -> void:
+	_build_level_info()
+	# OYNA: nefes wrapper'ı (butonun kendi ölçeği basışa kalır) + arkasında cyan hale.
 	_play_pulse = Control.new()
 	_play_pulse.name = "CtaPulse"
 	_play_pulse.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_root.add_child(_play_pulse)
-	_play = UiKit.hero_cta("OYNA")
+	_play_halo = UiKit.patch("popup_glow", Color(UiTokens.CYAN, 0.40))
+	_play_halo.name = "Halo"
+	_play_halo.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_play_halo.offset_left = -40.0
+	_play_halo.offset_right = 40.0
+	_play_halo.offset_top = -30.0
+	_play_halo.offset_bottom = 34.0
+	_play_pulse.add_child(_play_halo)
+	_play = SquishyButton.new("OYNA", SquishyButton.Kind.PRIMARY, SquishyButton.SizeClass.HERO, "play")
 	_play.name = "Play"
 	_play.set_anchors_preset(Control.PRESET_FULL_RECT)
 	GestureGuard.on_pressed(_play, func() -> void: play_pressed.emit())
 	_play_pulse.add_child(_play)
 
 
-## Level pill'i (03B.1): OYNA bölgesine bağlı ikincil candy ilerleme nesnesi —
-## dashboard kartı değil. Basılabilir koyu lavanta pill (ButtonHomePill) +
-## erik gölge + açık halka + gloss; sol ucundan taşan altın taç madalyonu
-## (btn_circle altın gövde + krem halka + taç + level numarası); pill içinde
-## "SIRADAKİ" (küçük, beyaz %62) / "Level 4" (Baloo 22 beyaz) / "★ 8/30"
-## (altın). Sonsuz: rozet "SONSUZ", "SONSUZ MOD" / "Rekor 12 480" / "★ 30/30".
-## Rota: Harita (değişmedi).
-func _build_level_pill() -> void:
-	_level = Button.new()
-	_level.name = "Level"
-	_level.theme_type_variation = &"ButtonHomePill"
-	_level.focus_mode = Control.FOCUS_NONE
-	GestureGuard.on_pressed(_level, func() -> void: map_requested.emit())
-	UiKit.hud_shadow(_level, 6.0, 0.28, null, 16.0)
-	var rim := UiKit.flat_plate("label_round", UiTokens.LAVENDER_LIGHT)
-	rim.show_behind_parent = true
-	rim.offset_left = -3.0
-	rim.offset_top = -3.0
-	rim.offset_right = 3.0
-	rim.offset_bottom = 3.0
-	_level.add_child(rim)
+## Level bilgisi: OYNA'nın hedefini söyleyen DURUM satırı — düğme değil (çerçeve / dudak / basış yok, fare almaz).
+## Koyu yarı saydam hap + altın taç + "SIRADAKİ" + "Level 5" + ★ "11/30". Sonsuz: "SONSUZ MOD" / "Rekor 12 480".
+func _build_level_info() -> void:
+	_level = PanelContainer.new()
+	_level.name = "LevelInfo"
+	_level.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var box := UiKit.v3_box(Color(UiTokens.NAVY_PURPLE_DEEP, 0.62), LEVEL_HEIGHT * 0.5)
+	box.content_margin_left = 16.0
+	box.content_margin_right = 18.0
+	box.content_margin_top = 2.0
+	box.content_margin_bottom = 4.0
+	_level.add_theme_stylebox_override("panel", box)
 	_root.add_child(_level)
-	# İki satır: "SIRADAKİ" başlığı · "Level 4" + sağında altın "★ 8/30".
-	var column := VBoxContainer.new()
-	column.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	column.alignment = BoxContainer.ALIGNMENT_CENTER
-	column.add_theme_constant_override("separation", -4)
-	column.set_anchors_preset(Control.PRESET_FULL_RECT)
-	column.offset_left = LEVEL_BADGE - LEVEL_BADGE_OVERHANG + 10.0
-	column.offset_right = -10.0
-	column.offset_top = 1.0
-	column.offset_bottom = -6.0
-	_level.add_child(column)
-	_level_column = column
-	column.minimum_size_changed.connect(_layout)
+	var row := HBoxContainer.new()
+	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	row.alignment = BoxContainer.ALIGNMENT_CENTER
+	row.add_theme_constant_override("separation", UiTokens.SPACE_SM)
+	_level.add_child(row)
+	_level_crown = UiKit.art(CROWN_ART, 26)
+	_level_crown.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	row.add_child(_level_crown)
 	_level_caption = UiKit.label("SIRADAKİ", &"LabelHudCaption")
-	_level_caption.add_theme_font_size_override("font_size", 12)
-	column.add_child(_level_caption)
-	var title_row := HBoxContainer.new()
-	title_row.add_theme_constant_override("separation", 8)
-	title_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	column.add_child(title_row)
+	_level_caption.add_theme_font_size_override("font_size", UiTokens.TYPE_SECONDARY)
+	_level_caption.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	row.add_child(_level_caption)
 	_level_title = UiKit.label("Level 1", &"LabelSectionOnDark")
-	_level_title.add_theme_font_size_override("font_size", 21)
-	title_row.add_child(_level_title)
+	_level_title.add_theme_font_size_override("font_size", 22)
+	_level_title.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	row.add_child(_level_title)
 	_play_hint = _level_title
-	var star_row := HBoxContainer.new()
-	star_row.add_theme_constant_override("separation", 3)
-	star_row.alignment = BoxContainer.ALIGNMENT_CENTER
-	star_row.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	star_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	title_row.add_child(star_row)
-	var star := UiKit.art(STAR_ART, 14)
+	var star := UiKit.art(STAR_ART, 18)
 	star.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	star_row.add_child(star)
+	row.add_child(star)
 	_level_stars = UiKit.label("0/30", &"LabelBadgeOnDark")
-	_level_stars.add_theme_font_size_override("font_size", 14)
+	_level_stars.add_theme_font_size_override("font_size", UiTokens.TYPE_SECONDARY)
 	_level_stars.add_theme_color_override("font_color", UiTokens.GOLD)
-	star_row.add_child(_level_stars)
-	var gloss := UiKit.patch("btn_bevel_light", Color(1, 1, 1, 0.28))
-	gloss.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE)
-	gloss.offset_left = LEVEL_BADGE - LEVEL_BADGE_OVERHANG + 6.0
-	gloss.offset_right = -8.0
-	gloss.offset_top = 3.0
-	gloss.offset_bottom = LEVEL_HEIGHT * 0.40
-	_level.add_child(gloss)
-	# Altın taç madalyonu: sol uçtan taşar, pill'in önünde.
-	_level_badge = Control.new()
-	_level_badge.name = "LevelBadge"
-	_level_badge.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_level_badge.set_anchors_preset(Control.PRESET_CENTER_LEFT)
-	_level_badge.offset_left = -LEVEL_BADGE_OVERHANG
-	_level_badge.offset_right = -LEVEL_BADGE_OVERHANG + LEVEL_BADGE
-	_level_badge.offset_top = -LEVEL_BADGE * 0.5 - 2.0
-	_level_badge.offset_bottom = LEVEL_BADGE * 0.5 - 2.0
-	_level.add_child(_level_badge)
-	var badge_shadow := UiKit.patch("popup_glow", Color(0.22, 0.09, 0.36, 0.30))
-	badge_shadow.offset_left = -12.0
-	badge_shadow.offset_top = -8.0
-	badge_shadow.offset_right = 12.0
-	badge_shadow.offset_bottom = 16.0
-	_level_badge.add_child(badge_shadow)
-	# btn_circle'in boyali govdesi 70/74 (alt 4 satir golge): halkalar govdeye
-	# oturur, altta tasmaz.
-	var badge_rim := UiKit.patch("btn_circle_flat", UiTokens.CREAM)
-	badge_rim.offset_left = -4.0
-	badge_rim.offset_top = -4.0
-	badge_rim.offset_right = 4.0
-	badge_rim.offset_bottom = 0.0
-	_level_badge.add_child(badge_rim)
-	var badge_ring := UiKit.patch("btn_circle_flat", UiTokens.GOLD_DEEP)
-	badge_ring.offset_left = -1.0
-	badge_ring.offset_top = -1.0
-	badge_ring.offset_right = 1.0
-	badge_ring.offset_bottom = -3.0
-	_level_badge.add_child(badge_ring)
-	var badge_body := UiKit.patch("btn_circle", UiTokens.GOLD)
-	badge_body.offset_bottom = 4.0
-	_level_badge.add_child(badge_body)
-	var badge_gloss := UiKit.patch("item_circle_inner", Color(1, 1, 1, 0.34))
-	badge_gloss.offset_left = 8.0
-	badge_gloss.offset_top = 3.0
-	badge_gloss.offset_right = -8.0
-	badge_gloss.offset_bottom = -29.0
-	_level_badge.add_child(badge_gloss)
-	var badge_col := VBoxContainer.new()
-	badge_col.add_theme_constant_override("separation", -8)
-	badge_col.alignment = BoxContainer.ALIGNMENT_CENTER
-	badge_col.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	badge_col.set_anchors_preset(Control.PRESET_FULL_RECT)
-	badge_col.offset_top = -2.0
-	badge_col.offset_bottom = -6.0
-	_level_badge.add_child(badge_col)
-	_level_crown = UiKit.art(CROWN_ART, 20)
-	_level_crown.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-	badge_col.add_child(_level_crown)
-	_level_badge_label = UiKit.label("1", &"LabelSectionOnAccent", HORIZONTAL_ALIGNMENT_CENTER)
-	_level_badge_label.add_theme_font_size_override("font_size", 20)
-	badge_col.add_child(_level_badge_label)
-	UiMotion.attach_press(_level)
+	_level_stars.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	row.add_child(_level_stars)
+	_level.minimum_size_changed.connect(_layout)
+
+
+## İki V3 özellik kartı (kartın TAMAMI tek dokunma hedefi; GestureGuard) + gizli teklif yuvası.
+func _build_cards() -> void:
+	_daily = FeatureCard.new(DAILY_TITLE, "", UiTokens.PINK, null, "gift")
+	_daily.name = "Daily"
+	_daily.set_subtitle_size(UiTokens.TYPE_BODY)
+	_daily.set_anchors_preset(Control.PRESET_TOP_LEFT)
+	GestureGuard.on_pressed(_daily, func() -> void: daily_requested.emit())
+	_root.add_child(_daily)
+	_challenge = FeatureCard.new(DailyChallenge.TITLE, "", UiTokens.LAVENDER, DUMPLING_VISUAL.TEXTURES[4])
+	_challenge.name = "Challenge"
+	_challenge.set_subtitle_size(UiTokens.TYPE_BODY)
+	_challenge.set_anchors_preset(Control.PRESET_TOP_LEFT)
+	GestureGuard.on_pressed(_challenge, func() -> void: challenge_requested.emit())
+	_root.add_child(_challenge)
+	# TASK/062 sözleşmesi: Başlangıç Paketi kartı (OfferCard) bu yuvaya çocuk olarak eklenir ve yuva görünür yapılır;
+	# `_layout` onu kartlarla kabuk arasına yerleştirir, hero küçülür. Bugün yuva BOŞ ve gizli — yer kaplamaz, sahte
+	# teklif / süre / fiyat YOK.
+	_offer_slot = Control.new()
+	_offer_slot.name = "OfferSlot"
+	_offer_slot.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_offer_slot.visible = false
+	_root.add_child(_offer_slot)
+	# Yuva kendini korur: görünürlük / içerik değişince yerleşim yeniden kurulur (TASK/062 ayrıca refresh çağırmak zorunda değil).
+	_offer_slot.visibility_changed.connect(_layout.call_deferred)
+	_offer_slot.child_entered_tree.connect(func(_child: Node) -> void: _layout.call_deferred())
+	_offer_slot.child_exiting_tree.connect(func(_child: Node) -> void: _layout.call_deferred())
 
 
 # --- Yerleşim -----------------------------------------------------------------
 
 func _layout() -> void:
-	if _root == null or _play == null:
+	if _root == null or _play == null or _daily == null:
 		return
 	var view: Vector2 = _root.size
 	if view.x <= 0.0 or view.y <= 0.0:
 		return
 	var safe_top: float = _safe_top_override if _safe_top_override >= 0.0 else UiKit.safe_top(view)
-	# Alt butce: gesture bar + banner yuvasi (M8.9-01; eklentisiz 0) + kuresel gezinme
-	# kabugu (TASK/057): OYNA kabugun merkez dairesinin USTUNDE biter.
-	var safe_bottom: float = UiKit.bottom_inset(view) + _nav_inset + (NAV_PLAY_CLEARANCE if _nav_inset > 0.0 else 0.0)
-	var extra: float = maxf(view.y - 1280.0, 0.0)
+	var column_w: float = minf(view.x, COLUMN_WIDTH)
+	var left: float = (view.x - column_w) * 0.5
+	var center_x: float = view.x * 0.5
+	# Alt bütçe: gesture bar + banner yuvası (M8.9-01; eklentisiz 0) + küresel gezinme kabuğu (TASK/057).
+	var compact: bool = _nav_inset > 0.0 and _nav_rise >= 0.0 and _nav_rise < NAV_RISE_COMPACT
+	var clearance: float = BOTTOM_MARGIN
+	if _nav_inset > 0.0:
+		clearance = NAV_CARD_CLEARANCE_COMPACT if compact else NAV_CARD_CLEARANCE
+	var bottom: float = view.y - UiKit.bottom_inset(view) - _nav_inset - clearance
 
-	# ÜST satır.
+	# ÜST satır: oyuncu durumu (sol) · Hamur (sağ), ortak optik merkez.
 	var top_y: float = safe_top + TOP_MARGIN
-	_avatar_button.position = Vector2(SIDE_MARGIN, top_y)
-	_avatar_button.size = Vector2(BAR_HEIGHT, BAR_HEIGHT)
-	# Pill'ler ayarlarla aynı yükseklikte (56) tek satır: optik merkezler aynı.
-	var streak_size: Vector2 = _streak_pill.custom_minimum_size
-	_streak_pill.size = streak_size
-	_streak_pill.position = Vector2(SIDE_MARGIN + BAR_HEIGHT + 12.0, top_y + (BAR_HEIGHT - streak_size.y) * 0.5)
+	# Seviye rozeti pill'in sol ucundan 22 px taşar (rozet dahil sol pay = SIDE_MARGIN).
+	# Unvanın GERÇEK genişliği (kırpan Label'ın en küçük boyu 1 px'tir — ölçü yazı tipinden).
+	var title_w: float = _status_title.get_theme_font("font").get_string_size(_status_title.text,
+		HORIZONTAL_ALIGNMENT_LEFT, -1.0, _status_title.get_theme_font_size("font_size")).x
+	var status_w: float = clampf(title_w + STATUS_BADGE - 22.0 + 8.0 + 14.0 + 8.0, 210.0, 300.0)
+	_status.position = Vector2(left + SIDE_MARGIN + 22.0, top_y)
+	_status.size = Vector2(status_w, BAR_HEIGHT)
+	_status_badge.position = Vector2(-22.0, (BAR_HEIGHT - _status_badge.custom_minimum_size.y) * 0.5 + 3.0)
+	_status_badge.size = _status_badge.custom_minimum_size
 	var dough_size: Vector2 = _dough_pill.custom_minimum_size
 	_dough_pill.size = dough_size
-	_dough_pill.position = Vector2(view.x - SIDE_MARGIN - dough_size.x, top_y + (BAR_HEIGHT - dough_size.y) * 0.5)
+	_dough_pill.position = Vector2(left + column_w - SIDE_MARGIN - dough_size.x, top_y + (BAR_HEIGHT - dough_size.y) * 0.5)
 
-	# LOGO.
-	var logo_h: float = LOGO_WIDTH * float(LOGO_ART.get_height()) / float(LOGO_ART.get_width())
-	var logo_top: float = top_y + BAR_HEIGHT + LOGO_GAP
-	_logo.position = Vector2((view.x - LOGO_WIDTH) * 0.5, logo_top)
-	_logo.size = Vector2(LOGO_WIDTH, logo_h)
+	# Alttan yukarı: teklif yuvası (boşsa yok) → MEYDAN OKUMA → GÜNLÜK → OYNA → level bilgisi.
+	var card_w: float = column_w - SIDE_MARGIN * 2.0
+	var card_x: float = left + SIDE_MARGIN
+	var cursor: float = bottom
+	if _offer_slot.visible and _offer_slot.get_child_count() > 0:
+		var offer_h: float = 0.0
+		for child in _offer_slot.get_children():
+			if child is Control:
+				offer_h = maxf(offer_h, (child as Control).get_combined_minimum_size().y)
+		_offer_slot.position = Vector2(card_x, cursor - offer_h)
+		_offer_slot.size = Vector2(card_w, offer_h)
+		for child in _offer_slot.get_children():
+			if child is Control:
+				(child as Control).position = Vector2.ZERO
+				(child as Control).size = _offer_slot.size
+		cursor -= offer_h + OFFER_GAP
+	if _challenge.visible:
+		_challenge.position = Vector2(card_x, cursor - FeatureCard.HEIGHT)
+		_challenge.size = Vector2(card_w, FeatureCard.HEIGHT)
+		cursor -= FeatureCard.HEIGHT + CARD_GAP
+	_daily.position = Vector2(card_x, cursor - FeatureCard.HEIGHT)
+	_daily.size = Vector2(card_w, FeatureCard.HEIGHT)
+	cursor = _daily.position.y - (PLAY_CARDS_GAP_COMPACT if compact else PLAY_CARDS_GAP)
+	var play_w: float = minf(PLAY_WIDTH, column_w - 2.0 * 64.0)
+	var play_top: float = cursor - PLAY_HEIGHT
+	_play_pulse.position = Vector2(center_x - play_w * 0.5, play_top)
+	_play_pulse.size = Vector2(play_w, PLAY_HEIGHT)
+	_play_pulse.pivot_offset = _play_pulse.size * 0.5
+	var level_size: Vector2 = Vector2(maxf(_level.get_combined_minimum_size().x, 200.0), LEVEL_HEIGHT)
+	var level_top: float = play_top - LEVEL_PLAY_GAP - LEVEL_HEIGHT
+	_level.position = Vector2(center_x - level_size.x * 0.5, level_top)
+	_level.size = level_size
+
+	# LOGO: kısa ekranda küçülür (hero'ya yer).
+	var logo_aspect: float = float(LOGO_ART.get_height()) / float(LOGO_ART.get_width())
+	var hero_room: float = level_top - (top_y + BAR_HEIGHT)
+	var logo_w: float = clampf(LOGO_WIDTH - maxf(640.0 - hero_room, 0.0) * 0.8, LOGO_WIDTH_MIN, LOGO_WIDTH)
+	var logo_h: float = logo_w * logo_aspect
+	# Uzun ekranda fazla yükseklik: payın bir kısmı logonun üstüne gök olur.
+	var needed: float = LOGO_GAP + logo_h + MEDALLION_GAP + MEDALLION_HEIGHT + MASCOT_MAX * (1.0 - MASCOT_NARROW_TOP) \
+		+ GROUND_ROOM
+	var sky: float = clampf((hero_room - needed) * EXTRA_SKY_SHARE, 0.0, EXTRA_SKY_MAX)
+	var logo_top: float = top_y + BAR_HEIGHT + LOGO_GAP + sky
+	_logo.position = Vector2(center_x - logo_w * 0.5, logo_top)
+	_logo.size = Vector2(logo_w, logo_h)
 	var logo_bottom: float = logo_top + logo_h
 
-	# OYNA grubu (alt, 03B.2): büyük OYNA ortada, hemen üstünde ortalanmış
-	# kompakt level pill'i (rozet dahil optik merkez tuval ortasında).
-	var play_top: float = view.y - safe_bottom - BOTTOM_MARGIN - extra * EXTRA_BOTTOM_SHARE - PLAY_HEIGHT
-	_play_pulse.position = Vector2((view.x - PLAY_WIDTH) * 0.5, play_top)
-	_play_pulse.size = Vector2(PLAY_WIDTH, PLAY_HEIGHT)
-	_play_pulse.pivot_offset = _play_pulse.size * 0.5
-	var level_top: float = play_top - LEVEL_PLAY_GAP - LEVEL_HEIGHT
-	# Pill genişliği içeriğe göre (sonsuzda "Rekor 12 480 ★ 30/30" daha
-	# uzun), 236..284 arasında; görsel genişlik = pill + sola taşan rozet,
-	# bu bütün ortalanır.
-	var text_w: float = _level_column.get_combined_minimum_size().x + _level_column.offset_left - _level_column.offset_right + 4.0
-	var level_w: float = clampf(text_w, LEVEL_WIDTH, LEVEL_WIDTH_MAX)
-	var level_visual_w: float = level_w + LEVEL_BADGE_OVERHANG
-	_level.position = Vector2((view.x - level_visual_w) * 0.5 + LEVEL_BADGE_OVERHANG, level_top)
-	_level.size = Vector2(level_w, LEVEL_HEIGHT)
+	# İkincil madalyonlar: hero'nun üst köşeleri.
+	var medal_top: float = logo_bottom + MEDALLION_GAP + sky
+	_missions.position = Vector2(left + SIDE_MARGIN, medal_top)
+	_missions.size = HomeFeatureButton.SIZE
+	_chest_home = Vector2(left + column_w - SIDE_MARGIN - HomeFeatureButton.SIZE.x, medal_top)
+	_chest.position = _chest_home
+	_chest.size = HomeFeatureButton.SIZE
+	var medal_bottom: float = medal_top + MEDALLION_HEIGHT
 
-	# YAN sütunlar: logonun altından başlar; uzun ekranda gök payı ve sütun
-	# aralığı büyür.
-	var col_top: float = logo_bottom + FEATURE_GAP + extra * EXTRA_SKY_SHARE
-	var step: float = FEATURE_STEP + extra * EXTRA_STEP_SHARE
-	var col_x_left: float = FEATURE_MARGIN
-	var col_x_right: float = view.x - FEATURE_MARGIN - HomeFeatureButton.SIZE.x
-	var order: Array = [[&"daily", col_x_left, 0], [&"collection", col_x_left, 1],
-		[&"shop", col_x_right, 0], [&"chest", col_x_right, 1]]
-	for entry in order:
-		var at := Vector2(float(entry[1]), col_top + float(entry[2]) * step)
-		_feature_homes[entry[0]] = at
-		var button: HomeFeatureButton = _features[entry[0]]
-		button.position = at
-		button.size = HomeFeatureButton.SIZE
-	var col_bottom: float = col_top + step + HomeFeatureButton.SIZE.y \
-		+ HomeFeatureButton.PLAQUE_HEIGHT - HomeFeatureButton.PLAQUE_OVERLAP
-
-	# GÖREVLER (TASK/046): üst madalyon sırasının dikey ortasında, Günlük ile Mağaza arasında
-	# ortalı — logonun altında, maskotun dar tepesinin üstünde (madalyon düzeni aynen).
-	var missions_w: float = _missions_width()
-	_missions.position = Vector2((view.x - missions_w) * 0.5,
-		col_top + (HomeFeatureButton.SIZE.y - MISSIONS_HEIGHT) * 0.5)
-	_missions.size = Vector2(missions_w, MISSIONS_HEIGHT)
-	# MEYDAN OKUMA (TASK/047): GÖREVLER'in hemen altında, ortalı — madalyon sütunlarının arasında,
-	# maskotun dar tepesinin üstünde (madalyon / maskot / OYNA düzeni aynen).
-	var challenge_w: float = _challenge_width()
-	_challenge.position = Vector2((view.x - challenge_w) * 0.5, _missions.position.y + MISSIONS_HEIGHT + CHALLENGE_GAP)
-	_challenge.size = Vector2(challenge_w, MISSIONS_HEIGHT)
-
-	# HERO: hero bölgesi logo altı → OYNA üstü; maskot sütunların arasına
-	# yalnız dar tepesiyle sokulur, genişliği tuvale sığar.
-	var hero_top: float = logo_bottom + 4.0
-	var hero_bottom: float = play_top - LEVEL_PLAY_GAP - LEVEL_HEIGHT - PLAY_GAP
+	# HERO: logo altı → level bilgisi üstü. İki yerleşimden büyüğü: (a) maskot madalyon sütunlarının ARASINA sığar
+	# (genişliği sütunlar arası boşluk kadar — kısa ekran), (b) yalnız dar tepesi madalyonların arasına sokulur, geniş
+	# gövdesi madalyon satırının ALTINDA kalır (uzun ekran — maskot daha büyük).
+	var hero_top: float = logo_bottom + 2.0
+	var hero_bottom: float = level_top - 6.0
 	_hero.position = Vector2(0.0, hero_top)
 	_hero.size = Vector2(view.x, maxf(hero_bottom - hero_top, 1.0))
 	var art_aspect: float = float(HERO_ART.get_width()) / float(HERO_ART.get_height())
-	var h_by_width: float = (view.x - 2.0 * MASCOT_SIDE_MARGIN) / art_aspect
-	var h_by_height: float = (hero_bottom - GROUND_ROOM - col_bottom) / (1.0 - MASCOT_NARROW_TOP)
-	# Uzun ekranda maskot biraz daha büyür (tuval genişliği yine sınır).
-	var mascot_cap: float = MASCOT_MAX + minf(extra, 320.0) * EXTRA_MASCOT_GROWTH
-	var mascot_h: float = clampf(minf(minf(h_by_width, h_by_height), mascot_cap), MASCOT_MIN, mascot_cap)
+	var h_by_width: float = (column_w - 2.0 * MASCOT_SIDE_MARGIN) / art_aspect
+	var between_w: float = column_w - 2.0 * (SIDE_MARGIN + HomeFeatureButton.SIZE.x + MASCOT_MEDALLION_GAP)
+	var h_beside: float = minf(hero_bottom - GROUND_ROOM - (hero_top + 4.0), between_w / art_aspect)
+	var h_below: float = minf((hero_bottom - GROUND_ROOM - medal_bottom) / (1.0 - MASCOT_NARROW_TOP), h_by_width)
+	var beside: bool = h_beside >= h_below
+	# En küçük boy yer varsa MASCOT_MIN; yer yoksa MASCOT_HARD_MIN'e kadar iner (level bilgisi / OYNA ile çakışmaz).
+	var room: float = hero_bottom - GROUND_ROOM - (hero_top + 4.0)
+	var floor_h: float = clampf(room, MASCOT_HARD_MIN, MASCOT_MIN)
+	var mascot_h: float = clampf(minf(maxf(h_beside, h_below), MASCOT_MAX), floor_h, MASCOT_MAX)
 	var mascot_w: float = mascot_h * art_aspect
-	var mascot_top: float = maxf(col_bottom - mascot_h * MASCOT_NARROW_TOP, hero_top + 8.0)
-	# Kısa ekranda maskot OYNA'ya değmesin: yer payını koruyarak yukarı çek.
-	mascot_top = minf(mascot_top, hero_bottom - GROUND_ROOM - mascot_h)
-	mascot_top = maxf(mascot_top, hero_top)
-	var center := Vector2(view.x * 0.5, mascot_top + mascot_h * 0.5) - Vector2(0.0, hero_top)
+	# (b)'de en yukarı: dar tepe madalyon satırının altına sokulur. Fazla yer varsa maskot kalan bölgede dikeyde ortalanır.
+	var top_min: float = hero_top + 4.0 if beside else maxf(medal_bottom - mascot_h * MASCOT_NARROW_TOP, hero_top + 4.0)
+	var top_max: float = hero_bottom - GROUND_ROOM - mascot_h
+	var mascot_top: float = top_min + maxf(top_max - top_min, 0.0) * 0.5
+	mascot_top = maxf(minf(mascot_top, top_max), hero_top)
+	var center := Vector2(center_x, mascot_top + mascot_h * 0.5) - Vector2(0.0, hero_top)
 	_mascot_home = Rect2(center - Vector2(mascot_w, mascot_h) * 0.5, Vector2(mascot_w, mascot_h))
 	_mascot.position = _mascot_home.position
 	_mascot.size = _mascot_home.size
@@ -776,8 +553,7 @@ func _layout() -> void:
 	var glow_size: float = mascot_h * 2.0
 	_glow.position = center - Vector2(glow_size, glow_size * 0.9) * 0.5
 	_glow.size = Vector2(glow_size, glow_size * 0.9)
-	_ground_home = Rect2(center.x - mascot_w * 0.40, center.y + mascot_h * 0.32,
-		mascot_w * 0.80, mascot_h * 0.34)
+	_ground_home = Rect2(center.x - mascot_w * 0.40, center.y + mascot_h * 0.32, mascot_w * 0.80, mascot_h * 0.34)
 	_ground.position = _ground_home.position
 	_ground.size = _ground_home.size
 	var stage_w: float = view.x * 1.3
@@ -785,15 +561,12 @@ func _layout() -> void:
 	_stage.position = Vector2(center.x - stage_w * 0.5, center.y + mascot_h * 0.30 - 40.0)
 	_stage.size = Vector2(stage_w, maxf(stage_h, 120.0))
 	var scale_k: float = mascot_h / MASCOT_REF
-	# Yan dumpling'ler maskotun ayak hizasında; uzun ekranda alt sahneye iner.
-	var side_drop: float = extra * EXTRA_SIDE_DROP
+	# Yan dumpling'ler maskotun ayak hizasında; level bilgisinin arkasına inmez (sınır gerçek çizim boyuyla).
 	for i in _sides.size():
 		var spec: Array = SIDE_DUMPLINGS[i]
 		var box: float = float(spec[2]) * scale_k
-		var at: Vector2 = center + (spec[1] as Vector2) * Vector2(mascot_w, mascot_h) + Vector2(0.0, side_drop)
+		var at: Vector2 = center + (spec[1] as Vector2) * Vector2(mascot_w, mascot_h)
 		var home_at: Vector2 = at - Vector2(box, box) * 0.5
-		# TASK/057 Tur 2: kabuk payıyla hero bölgesi kısalınca yan dumpling level pill'inin arkasına inmesin (A36).
-		# Çizilen boy `box`tan büyük olabilir (sanatın en küçük boyu): sınır gerçek boyla.
 		var drawn: float = maxf(box, _sides[i].get_combined_minimum_size().y)
 		home_at.y = minf(home_at.y, hero_bottom - hero_top - drawn - SIDE_PILL_CLEARANCE)
 		_side_homes[i] = home_at
@@ -806,23 +579,10 @@ func _layout() -> void:
 		var at: Vector2 = center + (spec[0] as Vector2) * Vector2(mascot_w * 1.15, mascot_h)
 		_sparkles[i].position = at - Vector2(box, box) * 0.5
 		_sparkles[i].size = Vector2(box, box)
-	# Alt bant: maskot altı → hero altı arasında (hero koordinatı).
-	var band_top: float = center.y + mascot_h * 0.5
-	var band_h: float = maxf((hero_bottom - hero_top) - band_top, 40.0)
-	for i in _band_sparkles.size():
-		var spec: Array = BAND_SPARKLES[i]
-		var box: float = float(spec[2])
-		var at := Vector2(view.x * float(spec[0]), band_top + band_h * float(spec[1]))
-		_band_sparkles[i].position = at - Vector2(box, box) * 0.5
-		_band_sparkles[i].size = Vector2(box, box)
-		# Kısa ekranda bant dar: pırıltılar maskotun ayaklarına girmesin.
-		_band_sparkles[i].visible = band_h >= 120.0
 
 
-## Boşta hareket: maskot nefes (ölçek %1.5 + ±5 px), yer gölgesi ters fazda,
-## yan dumpling'ler farklı fazda salınım, pırıltı sönümü, OYNA %1.5 nefes,
-## sandık madalyonu ±3 px, Günlük alınabilirse yalnız nokta nabız. Sinüs —
-## RNG yok, gameplay'e dokunmuyor.
+## Boşta hareket: maskot nefes (ölçek %1.5 + ±5 px), yer gölgesi ters fazda, yan dumpling'ler farklı fazda salınım,
+## pırıltı sönümü, OYNA %1.5 nefes, sandık madalyonu ±3 px. Sinüs — RNG yok, gameplay'e dokunmuyor.
 func _process(delta: float) -> void:
 	_time += delta
 	var phase: float = TAU * _time / BOB_PERIOD
@@ -843,27 +603,28 @@ func _process(delta: float) -> void:
 		_sparkles[i].modulate.a = twinkle
 		_sparkles[i].scale = Vector2.ONE * (0.8 + 0.3 * twinkle)
 		_sparkles[i].pivot_offset = _sparkles[i].size * 0.5
-	for i in _band_sparkles.size():
-		var spec: Array = BAND_SPARKLES[i]
-		var twinkle: float = 0.45 + 0.45 * sin(phase * 1.3 + float(spec[3]))
-		_band_sparkles[i].modulate.a = twinkle
-		_band_sparkles[i].scale = Vector2.ONE * (0.8 + 0.3 * twinkle)
-		_band_sparkles[i].pivot_offset = _band_sparkles[i].size * 0.5
 	var pulse: float = 1.0 + CTA_PULSE * (0.5 + 0.5 * sin(TAU * _time / CTA_PERIOD))
 	_play_pulse.scale = Vector2.ONE * pulse
-	var chest: HomeFeatureButton = _features[&"chest"]
-	chest.position = (_feature_homes[&"chest"] as Vector2) + Vector2(0.0, sin(phase * 0.7 + 1.3) * CHEST_FLOAT)
-	if _daily_claimable:
-		var dot: Control = (_features[&"daily"] as HomeFeatureButton).notification_dot()
-		dot.scale = Vector2.ONE * (1.0 + 0.16 * (0.5 + 0.5 * sin(TAU * _time / 1.4)))
+	_chest.position = _chest_home + Vector2(0.0, sin(phase * 0.7 + 1.3) * CHEST_FLOAT)
+
+
+func _draw_status_rail() -> void:
+	var rect := Rect2(Vector2.ZERO, _status_rail.size)
+	_status_rail.draw_style_box(UiKit.v3_box(Color(UiTokens.NAVY_PURPLE_DEEP, 0.60), rect.size.y * 0.5), rect)
+	if _status_ratio > 0.0:
+		var fill := Rect2(rect.position, Vector2(maxf(rect.size.x * _status_ratio, rect.size.y), rect.size.y))
+		_status_rail.draw_style_box(UiKit.v3_box(UiTokens.CYAN, rect.size.y * 0.5), fill)
 
 
 # --- Veri ---------------------------------------------------------------------
 
 func refresh() -> void:
-	# Seri: yeni oyuncuda çıplak "0" yok — "Seri başlasın"; sonra "N günlük seri".
-	var streak: int = SaveManager.daily_streak()
-	UiKit.set_pill_value(_streak_pill, "%d günlük seri" % streak if streak > 0 else "Seri başlasın", false)
+	# Üst satır: oyuncu seviyesi + seçili unvan + seviye içi XP oranı; Hamur bakiyesi.
+	var progress: Dictionary = PlayerProfile.level_progress()
+	_status_badge.set_level(int(progress["level"]))
+	_status_title.text = PlayerProfile.selected_title_name()
+	_status_ratio = float(progress["ratio"])
+	_status_rail.queue_redraw()
 	UiKit.set_pill_value(_dough_pill, str(SaveManager.dough()), false)
 
 	var levels: Array[LevelData] = LevelLibrary.load_levels()
@@ -872,84 +633,96 @@ func refresh() -> void:
 	var stars: int = 0
 	for i in total:
 		stars += SaveManager.stars_for_level(i + 1)
-	var max_stars: int = maxi(total * 3, 1)
-	_level_stars.text = "%d/%d" % [stars, max_stars]
+	_level_stars.text = "%d/%d" % [stars, maxi(total * 3, 1)]
 	if next_level > total:
-		# Sonsuz: rozette yalnız büyük taç (66 px dairede "SONSUZ" yazısı
-		# okunmuyordu); metin pill'de.
-		_level_badge_label.text = "SONSUZ"
-		_level_badge_label.visible = false
-		_level_crown.custom_minimum_size = Vector2(32, 32)
 		_level_caption.text = "SONSUZ MOD"
 		var record: int = SaveManager.endless_high_score()
 		_level_title.text = "Rekor %s" % GameplayHud._thousands(record) if record > 0 else "Rekor bekliyor"
 	else:
-		_level_badge_label.text = str(next_level)
-		_level_badge_label.visible = true
-		_level_crown.custom_minimum_size = Vector2(20, 20)
 		_level_caption.text = "SIRADAKİ"
 		_level_title.text = "Level %d" % next_level
 
-	_avatar_button.refresh()
-
-	var collection: HomeFeatureButton = _features[&"collection"]
-	var owned: int = SkinEntry.owned_count()
-	var catalog: int = SkinLibrary.total_count()
-	collection.set_badge("%d/%d" % [owned, catalog])
-	collection.set_progress(float(owned) / float(maxi(catalog, 1)), UiTokens.MINT)
-	# En son keşfedilen Squishy (TASK/044: "takılı" yok); hiç yoksa kanonik parça.
-	var newest: SkinEntry = SkinEntry.newest_owned()
-	collection.set_art(newest.art_texture() if newest != null else DUMPLING_VISUAL.TEXTURES[0])
-
-	var chest: HomeFeatureButton = _features[&"chest"]
 	var merges: int = int(SaveManager.data.get("merges_since_bonus_chest", 0))
 	var per_chest: int = ChestSystem.MERGES_PER_BONUS_CHEST
-	chest.set_badge("%d/%d" % [merges, per_chest])
-	chest.set_progress(float(merges) / float(per_chest), UiTokens.GOLD)
+	_chest.set_badge("%d/%d" % [merges, per_chest])
+	_chest.set_progress(float(merges) / float(per_chest), UiTokens.GOLD)
 
-	var daily: HomeFeatureButton = _features[&"daily"]
-	_daily_claimable = DailyReward.is_claimable()
-	daily.set_notification(_daily_claimable)
-	if not _daily_claimable:
-		daily.notification_dot().scale = Vector2.ONE
+	refresh_daily()
 	refresh_missions()
 	refresh_daily_challenge()
 	_layout()
 
 
-## GÖREVLER rozeti: içinde bulunulan dönemlerde tamamlanan görev "N/6" (kabul edilen günün
-## dönemi — Missions.current, YAZMAZ). 6/6'da rozet nane. Main öne dönüşte de çağırır (gün
-## değişmiş olabilir).
+## GÜNLÜK ÖDÜLLER kartı — yalnız gerçek durum (YAZMAZ): ilk gün kuralında PASİF + "Yarın açılır" (pencere açılmaz,
+## GAME_DESIGN §12.3); giriş ödülü / ücretsiz sandık hazırsa "!" rozeti; seri bugün alındıysa alt yazının başında.
+func refresh_daily() -> void:
+	var subtitle: String = ""
+	var phrases: Array[String] = []
+	_daily_claimable = DailyReward.is_claimable()
+	var state: Dictionary = DailyRewards.state()
+	if not Onboarding.daily_rewards_unlocked():
+		_daily_state = &"locked"
+		# "Yarın açılır" YALNIZ ilk gün kuralında doğru; onboarding bitmemişse (Ana Sayfa o durumda görünmez) metin yok.
+		subtitle = DAILY_LOCKED if Onboarding.is_first_day_suppressed() else ""
+	elif _daily_claimable:
+		_daily_state = &"login"
+		subtitle = DAILY_LOGIN_READY
+	elif bool(state["free_chest_available"]):
+		_daily_state = &"free_chest"
+		phrases = DAILY_FREE_READY
+	elif bool(state["all_done"]):
+		_daily_state = &"all_done"
+		phrases = DAILY_ALL_DONE
+	else:
+		_daily_state = &"free_taken"
+		phrases = DAILY_FREE_TAKEN
+	if not phrases.is_empty():
+		var streak: int = SaveManager.daily_streak()
+		subtitle = DAILY_STREAK % [streak, phrases[1]] if streak > 0 and DailyReward.claimed_today() else phrases[0]
+	_daily.set_subtitle(subtitle)
+	# Kilitli: kilit pictosu + pasif kart (› gizli) — sessiz ölü giriş değil, durumu söyleyen kart.
+	_daily.set_art(null, "lock" if _daily_state == &"locked" else "gift")
+	_daily.set_enabled(_daily_state != &"locked")
+	if _daily_state == &"login" or _daily_state == &"free_chest":
+		_daily.badge().show_claim()
+	else:
+		_daily.badge().clear()
+
+
+## GÖREVLER rozeti: içinde bulunulan dönemlerde tamamlanan görev "N/6" (kabul edilen günün dönemi — Missions.current,
+## YAZMAZ). 6/6'da rozet nane. Main öne dönüşte de çağırır (gün değişmiş olabilir).
 func refresh_missions() -> void:
 	var total: int = Missions.CATALOG.size()
 	var done: int = Missions.completed_count(Missions.current())
-	_missions_count.text = "%d/%d" % [done, total]
-	var all_done: bool = done >= total
-	if all_done:
-		_missions_badge.add_theme_stylebox_override("panel",
-			UiKit.style("badge_round", UiTokens.MINT, _badge_margin()))
+	_missions.set_badge("%d/%d" % [done, total])
+	var panel: PanelContainer = _missions.badge_panel()
+	if done >= total:
+		panel.add_theme_stylebox_override("panel", UiKit.style("badge_round", UiTokens.MINT, _badge_margin()))
 	else:
-		_missions_badge.remove_theme_stylebox_override("panel")
+		panel.remove_theme_stylebox_override("panel")
 
 
-## MEYDAN OKUMA girişi: bugünün meydan okuması (DailyChallenge.current_view — YAZMAZ). Onboarding
-## bitmeden / gün gerçeği yokken gizli; tamamlanınca "+20" yerine nane rozette tik. Main öne dönüşte
-## ve pencerenin gün tazelemesinde de çağırır.
+## MEYDAN OKUMA kartı: bugünün meydan okuması (DailyChallenge.current_view — YAZMAZ). Onboarding bitmeden / gün
+## gerçeği yokken gizli (kartlar yeniden yerleşir); hedef portresi + "Dev Dumpling yap · 38 hamlede" + "+20" Hamur
+## cipi; tamamlanınca nane "TAMAM" cipi + "Bugün tamamlandı" (pencere yine açılır, tamamlandı durumunu gösterir).
+## Main öne dönüşte ve pencerenin gün tazelemesinde de çağırır.
 func refresh_daily_challenge() -> void:
 	var view: Dictionary = DailyChallenge.current_view() if Onboarding.is_completed() else {}
+	var was_visible: bool = _challenge.visible
 	_challenge.visible = not view.is_empty()
+	if was_visible != _challenge.visible:
+		_layout()
 	if view.is_empty():
 		return
 	var target: int = clampi(int(view["target_tier"]), 1, TierConfig.MAX_TIER)
-	_challenge_art.texture = DUMPLING_VISUAL.TEXTURES[target - 1]
+	_challenge.set_art(DUMPLING_VISUAL.TEXTURES[target - 1])
 	var done: bool = bool(view["completed"])
-	_challenge_reward.visible = not done
-	_challenge_check.visible = done
 	if done:
-		_challenge_badge.add_theme_stylebox_override("panel",
-			UiKit.style("badge_round", UiTokens.MINT, _badge_margin()))
+		_challenge.set_subtitle(CHALLENGE_DONE_SUBTITLE)
+		_challenge.set_tag(CHALLENGE_DONE_TAG, null, true)
 	else:
-		_challenge_badge.remove_theme_stylebox_override("panel")
+		_challenge.set_subtitle(DailyChallenge.goal_text(view))
+		_challenge.set_tag(CHALLENGE_REWARD_TAG % DailyChallenge.REWARD_DOUGH)
 
 
 ## Rozet içerik payı (tema Badge'inin kendi payı; nane boyamada aynı ölçü kalsın).
@@ -966,9 +739,11 @@ func _layout_with_safe_top(safe_top: float) -> void:
 	_layout()
 
 
-## TASK/057: küresel gezinme kabuğunun alt payı (tuval px). Main kabuğu kurunca verir.
-func set_nav_inset(px: float) -> void:
+## TASK/057: küresel gezinme kabuğunun alt payı (tuval px). Main kabuğu kurunca verir; `rise` = merkez taşması (TASK/058:
+## kompakt kabukta kartlar tepsiden daha uzak).
+func set_nav_inset(px: float, rise: float = -1.0) -> void:
 	_nav_inset = maxf(px, 0.0)
+	_nav_rise = rise
 	_layout()
 
 
@@ -976,72 +751,120 @@ func nav_inset() -> float:
 	return _nav_inset
 
 
-func play_button() -> Button:
+func play_button() -> SquishyButton:
 	return _play
 
 
-## Profil girişi (üst-sol avatar).
-func profile_button() -> AvatarButton:
-	return _avatar_button
-
-
-func level_button() -> Button:
+## Level bilgisi (dokunma almaz — durum).
+func level_info() -> PanelContainer:
 	return _level
 
 
-## GÖREVLER girişi (TASK/046).
-func missions_button() -> Button:
-	return _missions
+func level_title_text() -> String:
+	return _level_title.text
 
 
-func missions_count_text() -> String:
-	return _missions_count.text
+func level_caption_text() -> String:
+	return _level_caption.text
 
 
-func missions_badge() -> PanelContainer:
-	return _missions_badge
+func level_stars_text() -> String:
+	return _level_stars.text
 
 
-## MEYDAN OKUMA girişi (TASK/047).
+func daily_card() -> FeatureCard:
+	return _daily
+
+
+## locked · login · free_chest · free_taken · all_done
+func daily_state() -> StringName:
+	return _daily_state
+
+
+func challenge_card() -> FeatureCard:
+	return _challenge
+
+
+## MEYDAN OKUMA girişi (TASK/047; V3'te özellik kartı).
 func challenge_button() -> Button:
 	return _challenge
 
 
 func challenge_title_text() -> String:
-	return _challenge_title.text
+	return _challenge.title_text()
 
 
-## "+20" (tamamlanmadan) ya da boş (tik gösteriliyor).
+## "+20 HAMUR" (tamamlanmadan) ya da boş (tamamlandı cipi gösteriliyor).
 func challenge_badge_text() -> String:
-	return _challenge_reward.text if _challenge_reward.visible else ""
+	return "" if _challenge.is_tag_done() else _challenge.tag_text()
 
 
 func is_challenge_done_shown() -> bool:
-	return _challenge_check.visible
+	return _challenge.is_tag_done()
 
 
 func challenge_portrait_texture() -> Texture2D:
-	return _challenge_art.texture
+	return _challenge.art_texture()
 
 
-func feature_button(key: StringName) -> HomeFeatureButton:
-	return _features.get(key, null)
+## GÖREVLER girişi (TASK/046; V3'te ikincil madalyon).
+func missions_button() -> HomeFeatureButton:
+	return _missions
+
+
+func missions_count_text() -> String:
+	return _missions.badge_text()
+
+
+func missions_badge() -> PanelContainer:
+	return _missions.badge_panel()
+
+
+func chest_button() -> HomeFeatureButton:
+	return _chest
+
+
+## Ana Sayfa girişleri anahtarla (eski API): daily → GÜNLÜK kartı, missions / chest → madalyonlar. TASK/058'de
+## KALDIRILAN `shop` / `collection` → null (kabuk sahibi).
+func feature_button(key: StringName) -> Control:
+	match key:
+		&"daily":
+			return _daily
+		&"missions":
+			return _missions
+		&"chest":
+			return _chest
+	return null
 
 
 func feature_keys() -> Array:
-	return _features.keys()
+	return [&"daily", &"missions", &"chest"]
+
+
+## TASK/062 Başlangıç Paketi yuvası (bugün boş + gizli).
+func offer_slot() -> Control:
+	return _offer_slot
+
+
+func player_status() -> Control:
+	return _status
+
+
+func status_title_text() -> String:
+	return _status_title.text
+
+
+func status_level() -> int:
+	return _status_badge.level()
+
+
+## Seviye içi XP oranı (0..1) — XP rayının dolgusu.
+func status_ratio() -> float:
+	return _status_ratio
 
 
 func dough_pill() -> Control:
 	return _dough_pill
-
-
-func streak_pill() -> Control:
-	return _streak_pill
-
-
-func level_badge() -> Control:
-	return _level_badge
 
 
 func hero() -> Control:
