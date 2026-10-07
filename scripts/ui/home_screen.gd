@@ -1,7 +1,8 @@
 extends CanvasLayer
-## Ana Sayfa V3 (TASK/058) — premium casual oyun hub'ı. Okuma sırası: kimlik / maskot → OYNA → GÜNLÜK ÖDÜLLER +
-## MEYDAN OKUMA → küresel gezinme (TASK/057 kabuğu). Eşdeğer ağırlıkta küçük düğmeler YOK: tek baskın CTA, iki özellik
-## kartı, iki ikincil madalyon.
+## Ana Sayfa V3 (TASK/058) — premium casual oyun hub'ı. Okuma sırası: kimlik / maskot → OYNA → GÜNLÜK | MEYDAN →
+## küresel gezinme (TASK/057 kabuğu). Eşdeğer ağırlıkta küçük düğmeler YOK: tek baskın CTA, iki kompakt özellik karosu,
+## iki ikincil madalyon. K10 (owner): TEXT-LIGHT / ICON-FIRST — ikon + tek kelime + sayı / rozet / durum; açıklayıcı alt
+## yazı yok (UI_VISUAL_SYSTEM §29).
 ##
 ##   ÜST      oyuncu durumu (sol: "SV. N" seviye rozeti + seçili unvan + XP rayı) · Hamur bakiyesi (sağ). İkisi de DURUM —
 ##            dokunma almaz (Profil / Mağaza rotaları kabukta; ikinci bir gezinme sistemi yok). Cihaz üst güvenli payı
@@ -9,24 +10,24 @@ extends CanvasLayer
 ##   LOGO     SQUISHY MERGE lockup, üst satırın altında ortada
 ##   HERO     owner maskotu + lavanta hale + yer gölgesi + tier 3 / tier 6 dumpling + pırıltılar; nefes. Hero'nun üst
 ##            köşelerinde iki İKİNCİL madalyon (`HomeFeatureButton`, kabuk madalyonlarıyla aynı aile): sol GÖREVLER
-##            (N/6 — TASK/046 penceresi), sağ SANDIK (N/75 + altın halka — bonus sandık bilgisi). Maskotun dar tepesi
+##            (N/6 — TASK/046 penceresi), sağ SANDIK (N/75 + altın halka — bonus sandık penceresi). Maskotun dar tepesi
 ##            madalyonların arasına sokulur, geniş gövdesi altlarında kalır (çakışma testle kilitli)
 ##   OYNA     V3 birincil CTA (`SquishyButton` PRIMARY HERO, ▶ OYNA) + cyan hale + %1.5 nefes; hemen üstünde DOKUNMA
 ##            ALMAYAN ilerleme bilgisi ("SIRADAKİ BÖLÜM 5 ★ 11/30"; sonsuzda "SONSUZ MOD Rekor …") → Harita. K9 (owner):
 ##            oyuncu seviyesi "SV.", harita ilerlemesi "BÖLÜM" — Ana Sayfa'da İngilizce "LV." / "Level" yok
-##   KARTLAR  iki V3 `FeatureCard`, tam genişlik, alt yazı TYPE_BODY: GÜNLÜK ÖDÜLLER (seri + bugünün durumu; alınacak
-##            varsa "!" rozeti; tutorial gününde PASİF + kilit pictosu + "Yarın açılır") → GÜNLÜK ÖDÜLLER penceresi ·
-##            MEYDAN OKUMA (bugünün hedef portresi, "Dev Dumpling yap · 38 hamlede", "+20 HAMUR" cipi / tamamlanınca nane
-##            "TAMAM") → MEYDAN OKUMA penceresi
+##   KAROLAR  iki kompakt V3 `FeatureTile`, OYNA'nın altında YAN YANA: GÜNLÜK (hediye kuyusu; seri 🔥N, "HAZIR" + "!"
+##            rozeti + hale yalnız alınacak varsa, "TAMAM"; tutorial gününde PASİF + kilit + "YARIN") → GÜNLÜK ÖDÜLLER
+##            penceresi · MEYDAN (bugünün hedef portresi, "38 HAMLE" — oyun HUD'unun kelimesi —, Hamur ikonu + "+20";
+##            tamamlanınca nane "TAMAM") → MEYDAN OKUMA penceresi. Pencerelerin içi DEĞİŞMEDİ
 ##   TEKLİF   gizli `OfferSlot` (TASK/062 Başlangıç Paketi sözleşmesi — bugün BOŞ, yer kaplamaz; sahte teklif yok)
-##   KABUK    TASK/057 GlobalNav (Main'e ait) — kartlar kabuğun payının üstünde biter; OYNA ile merkez HARİTA arasında
-##            iki kart: aynı hedefe giden iki düğme üst üste okunmaz
+##   KABUK    TASK/057 GlobalNav (Main'e ait) — karolar kabuğun payının üstünde biter; OYNA ile merkez HARİTA arasında
+##            karo sırası: aynı hedefe giden iki düğme üst üste okunmaz
 ##
 ## TASK/057 kabuğuyla yinelenen eski girişler KALDIRILDI: MAĞAZA / KOLEKSİYON madalyonları, Hamur "+" kısayolu, Profil
 ## avatarı, Harita'ya giden level düğmesi (rotalar kabukta + diğer ekranlarda aynen). Ana Sayfa kayda YAZMAZ (tek dolaylı
 ## yazma TASK/047'nin mevcut ileri-yalnız gün gözlemi: `DailyChallenge.current_view` → `observe_day`). Zemin
 ## candy-night (ShellBackdrop). Yerleşim `_layout()` ile elle: tuval ≥ 720 px genişlik (içerik ortalı 720 sütun),
-## yükseklik serbest; kartlar / OYNA alttan sabit, fazla yükseklik hero'ya (maskot büyür).
+## yükseklik serbest; karolar / OYNA alttan sabit, fazla yükseklik hero'ya (maskot büyür).
 
 signal play_pressed
 signal daily_requested
@@ -78,11 +79,12 @@ const PLAY_HEIGHT: float = float(UiTokens.BUTTON_HEIGHT_HERO)
 ## Level bilgisi (dokunma ALMAZ): OYNA'nın üstünde, ortalı.
 const LEVEL_HEIGHT: float = 44.0
 const LEVEL_PLAY_GAP: float = 10.0
-## OYNA ile ilk kart arası (birincil CTA nefes alsın; kartlar ayrı bir bölge okunsun).
+## OYNA ile karo sırası arası (birincil CTA nefes alsın; karolar ayrı bir bölge okunsun).
 const PLAY_CARDS_GAP: float = 26.0
-## Kompakt kabukta (16:9 + banner) daha sıkı: kartların ek tepsi payı maskottan yemesin.
+## Kompakt kabukta (16:9 + banner) daha sıkı: karoların ek tepsi payı maskottan yemesin.
 const PLAY_CARDS_GAP_COMPACT: float = 16.0
-const CARD_GAP: float = 14.0
+## İki karo arası (yan yana).
+const TILE_GAP: float = 16.0
 ## Kartların alt kenarı ile kabuk payının üstü (kabuk yokken ekran altı) arası. Kompakt kabukta (merkez taşması yok —
 ## 16:9 + banner) pay tepsinin tam üstünde biter: seçili yan madalyon 14 px yükselir ve dock'un solması tepsinin 30 px
 ## üstünde başlar → kart en az NAV_CARD_CLEARANCE_COMPACT uzakta.
@@ -123,18 +125,19 @@ const BREATH_SCALE: float = 0.015
 const CTA_PULSE: float = 0.015
 const CTA_PERIOD: float = 1.9
 const CHEST_FLOAT: float = 3.0
-## Kart metinleri (Türkçe, ürün dili).
-const DAILY_TITLE: String = "GÜNLÜK ÖDÜLLER"
-const DAILY_LOCKED: String = "Yarın açılır"
-const DAILY_LOGIN_READY: String = "Giriş ödülü hazır"
-## Durum metinleri: tek başına (büyük harfle) · seri önekinden sonra ("·" sonrası küçük harf — tek kural).
-const DAILY_FREE_READY: Array[String] = ["Ücretsiz sandık hazır", "ücretsiz sandık hazır"]
-const DAILY_FREE_TAKEN: Array[String] = ["Bugünün sandığı alındı", "bugünün sandığı alındı"]
-const DAILY_ALL_DONE: Array[String] = ["Bugünlük tamam", "bugünlük tamam"]
-const DAILY_STREAK: String = "%d günlük seri · %s"
-const CHALLENGE_DONE_SUBTITLE: String = "Bugün tamamlandı · yarın yenisi"
-const CHALLENGE_DONE_TAG: String = "TAMAM"
-const CHALLENGE_REWARD_TAG: String = "+%d HAMUR"
+## K10 (owner, TASK/058): TEXT-LIGHT / ICON-FIRST — Ana Sayfa'da tek kelime + sayı / rozet. Cümleler YOK (pencerelerin
+## içi değişmedi; ayrıntı orada).
+const DAILY_TITLE: String = "GÜNLÜK"
+## İlk gün kuralı (GAME_DESIGN §12.3): kilit kuyusu + tek kelime.
+const DAILY_LOCKED: String = "YARIN"
+## Alınacak bir şey var (giriş ödülü / ücretsiz sandık): GÜNLÜK penceresindeki "HAZIR" ciplerinin kelimesi.
+const DAILY_READY: String = "HAZIR"
+const DONE_TAG: String = "TAMAM"
+const CHALLENGE_TITLE: String = "MEYDAN"
+## Bırakış bütçesi: meydan okuma HUD'unun "HAMLE" plakasıyla aynı kelime.
+const CHALLENGE_MOVES: String = "%d HAMLE"
+const CHALLENGE_REWARD: String = "+%d"
+const CHEST_LABEL: String = "SANDIK"
 
 var _status: Control
 var _status_badge: PlayerLevelBadge
@@ -160,8 +163,8 @@ var _level_crown: TextureRect
 var _level_caption: Label
 var _level_title: Label
 var _level_stars: Label
-var _daily: FeatureCard
-var _challenge: FeatureCard
+var _daily: FeatureTile
+var _challenge: FeatureTile
 var _offer_slot: Control
 ## ui_smoke_test uyumluluğu: "nereye gidiyorum" ipucu = level bilgisinin başlığı.
 var _play_hint: Label
@@ -190,7 +193,7 @@ func _ready() -> void:
 	_build_hero()
 	_build_medallions()
 	_build_play()
-	_build_cards()
+	_build_tiles()
 	_root.resized.connect(_layout)
 	visibility_changed.connect(func() -> void:
 		set_process(visible)
@@ -339,8 +342,9 @@ func _build_medallions() -> void:
 	_chest = HomeFeatureButton.new()
 	_chest.name = "Chest"
 	_chest.set_art(CHEST_ART)
-	# Penceresinin adıyla aynı ("Bonus Sandık"): GÜNLÜK kartının "ücretsiz sandık"ıyla karışmasın.
-	_chest.set_label("BONUS SANDIK")
+	# K10: tek kelime (sandık sanatı + N/75 halkası anlamı taşır; Ana Sayfa'da başka "sandık" yazısı yok — GÜNLÜK karosu
+	# cümle göstermez). Pencere başlığı (BONUS SANDIK) aynen.
+	_chest.set_label(CHEST_LABEL)
 	_chest.set_anchors_preset(Control.PRESET_TOP_LEFT)
 	GestureGuard.on_pressed(_chest, func() -> void: chest_requested.emit())
 	_root.add_child(_chest)
@@ -409,22 +413,20 @@ func _build_level_info() -> void:
 	_level.minimum_size_changed.connect(_layout)
 
 
-## İki V3 özellik kartı (kartın TAMAMI tek dokunma hedefi; GestureGuard) + gizli teklif yuvası.
-func _build_cards() -> void:
-	_daily = FeatureCard.new(DAILY_TITLE, "", UiTokens.PINK, null, "gift")
+## İki kompakt V3 özellik karosu (karonun TAMAMI tek dokunma hedefi; GestureGuard) + gizli teklif yuvası.
+func _build_tiles() -> void:
+	_daily = FeatureTile.new(DAILY_TITLE, UiTokens.PINK, null, "gift")
 	_daily.name = "Daily"
-	_daily.set_subtitle_size(UiTokens.TYPE_BODY)
 	_daily.set_anchors_preset(Control.PRESET_TOP_LEFT)
 	GestureGuard.on_pressed(_daily, func() -> void: daily_requested.emit())
 	_root.add_child(_daily)
-	_challenge = FeatureCard.new(DailyChallenge.TITLE, "", UiTokens.LAVENDER, DUMPLING_VISUAL.TEXTURES[4])
+	_challenge = FeatureTile.new(CHALLENGE_TITLE, UiTokens.LAVENDER, DUMPLING_VISUAL.TEXTURES[4])
 	_challenge.name = "Challenge"
-	_challenge.set_subtitle_size(UiTokens.TYPE_BODY)
 	_challenge.set_anchors_preset(Control.PRESET_TOP_LEFT)
 	GestureGuard.on_pressed(_challenge, func() -> void: challenge_requested.emit())
 	_root.add_child(_challenge)
 	# TASK/062 sözleşmesi: Başlangıç Paketi kartı (OfferCard) bu yuvaya çocuk olarak eklenir ve yuva görünür yapılır;
-	# `_layout` onu kartlarla kabuk arasına yerleştirir, hero küçülür. Bugün yuva BOŞ ve gizli — yer kaplamaz, sahte
+	# `_layout` onu karolarla kabuk arasına yerleştirir, hero küçülür. Bugün yuva BOŞ ve gizli — yer kaplamaz, sahte
 	# teklif / süre / fiyat YOK.
 	_offer_slot = Control.new()
 	_offer_slot.name = "OfferSlot"
@@ -471,7 +473,7 @@ func _layout() -> void:
 	_dough_pill.size = dough_size
 	_dough_pill.position = Vector2(left + column_w - SIDE_MARGIN - dough_size.x, top_y + (BAR_HEIGHT - dough_size.y) * 0.5)
 
-	# Alttan yukarı: teklif yuvası (boşsa yok) → MEYDAN OKUMA → GÜNLÜK → OYNA → level bilgisi.
+	# Alttan yukarı: teklif yuvası (boşsa yok) → GÜNLÜK | MEYDAN karo sırası → OYNA → level bilgisi.
 	var card_w: float = column_w - SIDE_MARGIN * 2.0
 	var card_x: float = left + SIDE_MARGIN
 	var cursor: float = bottom
@@ -487,13 +489,17 @@ func _layout() -> void:
 				(child as Control).position = Vector2.ZERO
 				(child as Control).size = _offer_slot.size
 		cursor -= offer_h + OFFER_GAP
+	# Karolar yan yana (eşit genişlik); MEYDAN gizliyse (gün gerçeği yok) GÜNLÜK tek başına ortada.
+	var tile_w: float = (card_w - TILE_GAP) * 0.5
+	var tile_top: float = cursor - FeatureTile.HEIGHT
 	if _challenge.visible:
-		_challenge.position = Vector2(card_x, cursor - FeatureCard.HEIGHT)
-		_challenge.size = Vector2(card_w, FeatureCard.HEIGHT)
-		cursor -= FeatureCard.HEIGHT + CARD_GAP
-	_daily.position = Vector2(card_x, cursor - FeatureCard.HEIGHT)
-	_daily.size = Vector2(card_w, FeatureCard.HEIGHT)
-	cursor = _daily.position.y - (PLAY_CARDS_GAP_COMPACT if compact else PLAY_CARDS_GAP)
+		_daily.position = Vector2(card_x, tile_top)
+		_challenge.position = Vector2(card_x + tile_w + TILE_GAP, tile_top)
+		_challenge.size = Vector2(tile_w, FeatureTile.HEIGHT)
+	else:
+		_daily.position = Vector2(center_x - tile_w * 0.5, tile_top)
+	_daily.size = Vector2(tile_w, FeatureTile.HEIGHT)
+	cursor = tile_top - (PLAY_CARDS_GAP_COMPACT if compact else PLAY_CARDS_GAP)
 	var play_w: float = minf(PLAY_WIDTH, column_w - 2.0 * 64.0)
 	var play_top: float = cursor - PLAY_HEIGHT
 	_play_pulse.position = Vector2(center_x - play_w * 0.5, play_top)
@@ -658,37 +664,41 @@ func refresh() -> void:
 	_layout()
 
 
-## GÜNLÜK ÖDÜLLER kartı — yalnız gerçek durum (YAZMAZ): ilk gün kuralında PASİF + "Yarın açılır" (pencere açılmaz,
-## GAME_DESIGN §12.3); giriş ödülü / ücretsiz sandık hazırsa "!" rozeti; seri bugün alındıysa alt yazının başında.
+## GÜNLÜK karosu — yalnız gerçek durum (YAZMAZ), K10 görsel dil: ilk gün kuralında PASİF + kilit + "YARIN" (pencere
+## açılmaz, GAME_DESIGN §12.3); giriş ödülü / ücretsiz sandık hazırsa "HAZIR" cipi + "!" rozeti + hale; bugünlük her şey
+## alındıysa nane "TAMAM"; seri (bugünün giriş ödülü alındıysa) alev ikonu + sayı.
 func refresh_daily() -> void:
-	var subtitle: String = ""
-	var phrases: Array[String] = []
+	var chips: Array = []
 	_daily_claimable = DailyReward.is_claimable()
 	var state: Dictionary = DailyRewards.state()
 	if not Onboarding.daily_rewards_unlocked():
 		_daily_state = &"locked"
-		# "Yarın açılır" YALNIZ ilk gün kuralında doğru; onboarding bitmemişse (Ana Sayfa o durumda görünmez) metin yok.
-		subtitle = DAILY_LOCKED if Onboarding.is_first_day_suppressed() else ""
-	elif _daily_claimable:
-		_daily_state = &"login"
-		subtitle = DAILY_LOGIN_READY
-	elif bool(state["free_chest_available"]):
-		_daily_state = &"free_chest"
-		phrases = DAILY_FREE_READY
-	elif bool(state["all_done"]):
-		_daily_state = &"all_done"
-		phrases = DAILY_ALL_DONE
+		# "YARIN" YALNIZ ilk gün kuralında doğru; onboarding bitmemişse (Ana Sayfa o durumda görünmez) cip yok.
+		if Onboarding.is_first_day_suppressed():
+			chips.append({"text": DAILY_LOCKED, "kind": FeatureTile.KIND_MUTED})
 	else:
-		_daily_state = &"free_taken"
-		phrases = DAILY_FREE_TAKEN
-	if not phrases.is_empty():
+		if _daily_claimable:
+			_daily_state = &"login"
+		elif bool(state["free_chest_available"]):
+			_daily_state = &"free_chest"
+		elif bool(state["all_done"]):
+			_daily_state = &"all_done"
+		else:
+			_daily_state = &"free_taken"
 		var streak: int = SaveManager.daily_streak()
-		subtitle = DAILY_STREAK % [streak, phrases[1]] if streak > 0 and DailyReward.claimed_today() else phrases[0]
-	_daily.set_subtitle(subtitle)
-	# Kilitli: kilit pictosu + pasif kart (› gizli) — sessiz ölü giriş değil, durumu söyleyen kart.
+		if streak > 0 and DailyReward.claimed_today():
+			chips.append({"text": str(streak), "icon": UiIcons.FLAME, "kind": FeatureTile.KIND_INFO})
+		if _daily_state == &"login" or _daily_state == &"free_chest":
+			chips.append({"text": DAILY_READY, "kind": FeatureTile.KIND_GOLD})
+		elif _daily_state == &"all_done":
+			chips.append({"text": DONE_TAG, "kind": FeatureTile.KIND_MINT})
+	_daily.set_chips(chips)
+	# Kilitli: kilit pictosu + pasif karo — sessiz ölü giriş değil, durumu söyleyen karo.
 	_daily.set_art(null, "lock" if _daily_state == &"locked" else "gift")
 	_daily.set_enabled(_daily_state != &"locked")
-	if _daily_state == &"login" or _daily_state == &"free_chest":
+	var ready: bool = _daily_state == &"login" or _daily_state == &"free_chest"
+	_daily.set_glow(ready)
+	if ready:
 		_daily.badge().show_claim()
 	else:
 		_daily.badge().clear()
@@ -707,10 +717,10 @@ func refresh_missions() -> void:
 		panel.remove_theme_stylebox_override("panel")
 
 
-## MEYDAN OKUMA kartı: bugünün meydan okuması (DailyChallenge.current_view — YAZMAZ). Onboarding bitmeden / gün
-## gerçeği yokken gizli (kartlar yeniden yerleşir); hedef portresi + "Dev Dumpling yap · 38 hamlede" + "+20" Hamur
-## cipi; tamamlanınca nane "TAMAM" cipi + "Bugün tamamlandı" (pencere yine açılır, tamamlandı durumunu gösterir).
-## Main öne dönüşte ve pencerenin gün tazelemesinde de çağırır.
+## MEYDAN karosu: bugünün meydan okuması (DailyChallenge.current_view — YAZMAZ). Onboarding bitmeden / gün gerçeği
+## yokken gizli (GÜNLÜK ortaya geçer); hedef portresi + "38 HAMLE" + Hamur ikonu "+20" (gerçek bütçe ve ödül); tamamlanınca
+## nane "TAMAM" (pencere yine açılır, tamamlandı durumunu gösterir). Main öne dönüşte ve pencerenin gün tazelemesinde de
+## çağırır.
 func refresh_daily_challenge() -> void:
 	var view: Dictionary = DailyChallenge.current_view() if Onboarding.is_completed() else {}
 	var was_visible: bool = _challenge.visible
@@ -721,13 +731,13 @@ func refresh_daily_challenge() -> void:
 		return
 	var target: int = clampi(int(view["target_tier"]), 1, TierConfig.MAX_TIER)
 	_challenge.set_art(DUMPLING_VISUAL.TEXTURES[target - 1])
-	var done: bool = bool(view["completed"])
-	if done:
-		_challenge.set_subtitle(CHALLENGE_DONE_SUBTITLE)
-		_challenge.set_tag(CHALLENGE_DONE_TAG, null, true)
+	if bool(view["completed"]):
+		_challenge.set_chips([{"text": DONE_TAG, "kind": FeatureTile.KIND_MINT}])
 	else:
-		_challenge.set_subtitle(DailyChallenge.goal_text(view))
-		_challenge.set_tag(CHALLENGE_REWARD_TAG % DailyChallenge.REWARD_DOUGH)
+		_challenge.set_chips([
+			{"text": CHALLENGE_MOVES % int(view["drop_budget"]), "kind": FeatureTile.KIND_INFO},
+			{"text": CHALLENGE_REWARD % DailyChallenge.REWARD_DOUGH, "icon": UiIcons.DOUGH, "kind": FeatureTile.KIND_GOLD},
+		])
 
 
 ## Rozet içerik payı (tema Badge'inin kendi payı; nane boyamada aynı ölçü kalsın).
@@ -777,7 +787,8 @@ func level_stars_text() -> String:
 	return _level_stars.text
 
 
-func daily_card() -> FeatureCard:
+## GÜNLÜK karosu (K10; eski ad korunur).
+func daily_card() -> FeatureTile:
 	return _daily
 
 
@@ -786,11 +797,12 @@ func daily_state() -> StringName:
 	return _daily_state
 
 
-func challenge_card() -> FeatureCard:
+## MEYDAN karosu (K10; eski ad korunur).
+func challenge_card() -> FeatureTile:
 	return _challenge
 
 
-## MEYDAN OKUMA girişi (TASK/047; V3'te özellik kartı).
+## MEYDAN OKUMA girişi (TASK/047; K10'dan beri kompakt karo).
 func challenge_button() -> Button:
 	return _challenge
 
@@ -799,13 +811,28 @@ func challenge_title_text() -> String:
 	return _challenge.title_text()
 
 
-## "+20 HAMUR" (tamamlanmadan) ya da boş (tamamlandı cipi gösteriliyor).
+## Ödül cipi "+20" (tamamlanmadan) ya da boş (tamamlandı cipi gösteriliyor).
 func challenge_badge_text() -> String:
-	return "" if _challenge.is_tag_done() else _challenge.tag_text()
+	var kinds: Array = _challenge.chip_kinds()
+	var texts: PackedStringArray = _challenge.chip_texts()
+	for i in kinds.size():
+		if kinds[i] == FeatureTile.KIND_GOLD:
+			return texts[i]
+	return ""
+
+
+## Bırakış bütçesi cipi "38 HAMLE" (tamamlanmadan) ya da boş.
+func challenge_moves_text() -> String:
+	var kinds: Array = _challenge.chip_kinds()
+	var texts: PackedStringArray = _challenge.chip_texts()
+	for i in kinds.size():
+		if kinds[i] == FeatureTile.KIND_INFO:
+			return texts[i]
+	return ""
 
 
 func is_challenge_done_shown() -> bool:
-	return _challenge.is_tag_done()
+	return _challenge.chip_kinds().has(FeatureTile.KIND_MINT)
 
 
 func challenge_portrait_texture() -> Texture2D:
@@ -829,7 +856,7 @@ func chest_button() -> HomeFeatureButton:
 	return _chest
 
 
-## Ana Sayfa girişleri anahtarla (eski API): daily → GÜNLÜK kartı, missions / chest → madalyonlar. TASK/058'de
+## Ana Sayfa girişleri anahtarla (eski API): daily → GÜNLÜK karosu, missions / chest → madalyonlar. TASK/058'de
 ## KALDIRILAN `shop` / `collection` → null (kabuk sahibi).
 func feature_button(key: StringName) -> Control:
 	match key:
