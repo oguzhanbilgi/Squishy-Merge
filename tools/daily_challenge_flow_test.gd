@@ -383,7 +383,7 @@ func _midnight() -> void:
 		and not bool(view.get("completed", true)) and int(view.get("drop_budget", 0)) == 36)
 	var home: CanvasLayer = _main._screens[0]
 	_c("  … Ana Sayfa girişi de D+1: '+20' rozeti + T6 portresi (tamamlandı işareti yok)",
-		home.visible and home.challenge_badge_text() == "+20 HAMUR" and not home.is_challenge_done_shown()
+		home.visible and home.challenge_badge_text() == "+20" and not home.is_challenge_done_shown()
 		and home.challenge_portrait_texture() == DUMPLING_VISUAL.TEXTURES[5])
 	_c("D+1 başlatılabilir ve kendi bütçesiyle", _main.start_daily_challenge() and _main._challenge_day == FRI
 		and _main._board.drop_budget() == 36)
@@ -642,7 +642,7 @@ func _tutorial() -> void:
 	var home: CanvasLayer = _main._screens[0]
 	_c("tutorial bitti → ilk normal Ana Sayfa: giriş GÖRÜNÜR ('+20'), pencere kendiliğinden AÇILMADI, blok varsayılan",
 		SaveManager.onboarding_completed() and home.visible and home.challenge_button().is_visible_in_tree()
-		and home.challenge_badge_text() == "+20 HAMUR" and not _main._challenge_sheet.visible
+		and home.challenge_badge_text() == "+20" and not _main._challenge_sheet.visible
 		and SaveManager.daily_challenge_completed_day() == "")
 	await _teardown_main()
 	_sections_done += 1

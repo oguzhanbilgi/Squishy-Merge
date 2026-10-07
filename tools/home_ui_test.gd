@@ -3,8 +3,8 @@ extends Node
 ##
 ##   godot --headless --audio-driver Dummy --path . res://tools/home_ui_test.tscn
 ##
-## Kontroller: V3 bileşenleri (tek kahraman OYNA = SquishyButton PRIMARY HERO; GÜNLÜK ÖDÜLLER + MEYDAN OKUMA =
-## FeatureCard; GÖREVLER + SANDIK = HomeFeatureButton; üst satır ve level bilgisi DURUM — buton değil); kabukla
+## Kontroller: V3 bileşenleri (tek kahraman OYNA = SquishyButton PRIMARY HERO; GÜNLÜK | MEYDAN = kompakt FeatureTile
+## (K10 TEXT-LIGHT); GÖREVLER + SANDIK = HomeFeatureButton; üst satır ve level bilgisi DURUM — buton değil); kabukla
 ## yinelenen eski girişler YOK (avatar, Hamur "+", Mağaza / Koleksiyon madalyonu, Harita'ya giden level düğmesi);
 ## veri gösterimleri üç kayıt durumunda (orta / yeni / sonsuz) + günlük alınabilir / alınmış; SIRADAKİ yazımı (Home +
 ## gameplay HUD); sandık bilgisi ödül durumunu değiştirmez; rotalar (OYNA → Harita, GÜNLÜK → günlük penceresi (gerçek
@@ -82,12 +82,12 @@ func _ready() -> void:
 		if node is SquishyButton and (node as SquishyButton).size_class() == SquishyButton.SizeClass.HERO:
 			heroes += 1
 	_c("ekranda tam bir kahraman CTA; eski ButtonCTA yok", heroes == 1 and _count_variation(home, &"ButtonCTA") == 0)
-	_c("GÜNLÜK ÖDÜLLER + MEYDAN OKUMA: V3 FeatureCard (tam genişlik, tek dokunma hedefi)",
-		home.daily_card() is FeatureCard and home.challenge_card() is FeatureCard
-		and home.daily_card().title_text() == "GÜNLÜK ÖDÜLLER" and home.challenge_card().title_text() == "MEYDAN OKUMA"
-		and _count_class(home, "FeatureCard") == 2)
+	_c("GÜNLÜK | MEYDAN: kompakt V3 FeatureTile (K10 tek kelime; tam genişlik FeatureCard YOK)",
+		home.daily_card() is FeatureTile and home.challenge_card() is FeatureTile
+		and home.daily_card().title_text() == "GÜNLÜK" and home.challenge_card().title_text() == "MEYDAN"
+		and _count_class(home, "FeatureTile") == 2 and _count_class(home, "FeatureCard") == 0)
 	_c("GÖREVLER + SANDIK: HomeFeatureButton (ButtonFeature), etiketli; ekranda tam 2 madalyon",
-		home.missions_button().label_text() == "GÖREVLER" and home.chest_button().label_text() == "BONUS SANDIK"
+		home.missions_button().label_text() == "GÖREVLER" and home.chest_button().label_text() == "SANDIK"
 		and home.missions_button().theme_type_variation == &"ButtonFeature"
 		and _count_class(home, "HomeFeatureButton") == 2)
 	_c("feature_button anahtarları: daily / missions / chest; shop / collection → null",
@@ -145,7 +145,7 @@ func _ready() -> void:
 	home.refresh()
 	_c("Hamur 0; level 1, 0/30", _pill_text(home.dough_pill()) == "0" and home.level_title_text() == "BÖLÜM 1"
 		and home.level_stars_text() == "0/30")
-	_c("seri 0 iken Günlük kartı çıplak '0' göstermez", not home.daily_card().subtitle_text().begins_with("0"))
+	_c("seri 0 iken Günlük karosu çıplak '0' göstermez", not Array(home.daily_card().chip_texts()).has("0"))
 	_c("sandık 0/75", chest.badge_text() == "0/75" and chest.progress() == 0.0)
 
 	print("-- veri (sonsuz açık)")
@@ -153,16 +153,17 @@ func _ready() -> void:
 	home.refresh()
 	_c("sonsuz: 'SONSUZ MOD' / 'Rekor 12 480' / 30/30", home.level_caption_text() == "SONSUZ MOD"
 		and home.level_title_text() == "Rekor 12 480" and home.level_stars_text() == "30/30")
-	_c("Hamur 99999; Günlük kartında '365 günlük seri'", _pill_text(home.dough_pill()) == "99999"
-		and home.daily_card().subtitle_text().begins_with("365 günlük seri"))
+	_c("Hamur 99999; Günlük karosunda seri alevi '365'", _pill_text(home.dough_pill()) == "99999"
+		and home.daily_card().chip_texts().size() > 0 and home.daily_card().chip_texts()[0] == "365")
 
 	print("-- günlük ödül durumu")
 	_apply_showcase()
 	SaveManager.data["last_login_date"] = _yesterday()
 	home.refresh()
-	var daily: FeatureCard = home.daily_card()
-	_c("dün giriş → alınabilir: kart 'Giriş ödülü hazır' + '!' rozeti", home.is_daily_claimable()
-		and home.daily_state() == &"login" and daily.badge().visible and daily.subtitle_text() == "Giriş ödülü hazır")
+	var daily: FeatureTile = home.daily_card()
+	_c("dün giriş → alınabilir: karo 'HAZIR' + '!' rozeti + hale", home.is_daily_claimable()
+		and home.daily_state() == &"login" and daily.badge().visible and Array(daily.chip_texts()) == ["HAZIR"]
+		and daily.is_glowing())
 	var dough_before: int = SaveManager.dough()
 	var unified: CanvasLayer = _main._daily_rewards
 	daily.pressed.emit()
@@ -175,8 +176,8 @@ func _ready() -> void:
 		and unified.login_chip_text() == unified.LOGIN_CLAIMED)
 	unified.close_popup()
 	await get_tree().process_frame
-	_c("kapanınca Ana Sayfa yenilendi: giriş bekliyor değil, '3 günlük seri', Hamur pill'i güncel",
-		not home.is_daily_claimable() and daily.subtitle_text().begins_with("3 günlük seri")
+	_c("kapanınca Ana Sayfa yenilendi: giriş bekliyor değil, seri alevi '3', Hamur pill'i güncel",
+		not home.is_daily_claimable() and daily.chip_texts().size() > 0 and daily.chip_texts()[0] == "3"
 		and _pill_text(home.dough_pill()) == str(dough_before + DailyReward.DAILY_DOUGH))
 	daily.pressed.emit()
 	await get_tree().process_frame
@@ -446,17 +447,18 @@ func _check_layout(home: CanvasLayer, view: Vector2, safe_top: float, window_tag
 	var level_rect: Rect2 = home.level_info().get_global_rect()
 	var daily_rect: Rect2 = home.daily_card().get_global_rect()
 	var challenge_rect: Rect2 = home.challenge_card().get_global_rect()
-	_c("%s okuma sırası: maskot → level bilgisi → OYNA → GÜNLÜK → MEYDAN OKUMA" % tag,
+	_c("%s okuma sırası: maskot → level bilgisi → OYNA → GÜNLÜK | MEYDAN (yan yana)" % tag,
 		mascot_rect.end.y <= level_rect.position.y + 1.0 and level_rect.end.y <= play_rect.position.y
-		and play_rect.end.y < daily_rect.position.y and daily_rect.end.y < challenge_rect.position.y)
+		and play_rect.end.y < daily_rect.position.y and absf(daily_rect.position.y - challenge_rect.position.y) <= 0.5
+		and daily_rect.end.x <= challenge_rect.position.x)
 	_c("%s OYNA yatayda ORTALI (|merkez − 360| ≤ 2 px), ≥ 420 × %d" % [tag, UiTokens.BUTTON_HEIGHT_HERO],
 		absf(play_rect.get_center().x - 360.0) <= 2.0 and play_rect.size.x >= 420.0
 		and play_rect.size.y >= float(UiTokens.BUTTON_HEIGHT_HERO) - 2.0)
 	_c("%s level bilgisi OYNA'nın hemen üstünde (≤ 16 px), ortalı (±3 px), OYNA'dan dar" % tag,
 		play_rect.position.y - level_rect.end.y <= 16.0 and absf(level_rect.get_center().x - 360.0) <= 3.0
 		and level_rect.size.x < play_rect.size.x)
-	_c("%s maskot baskın (≥ 340 px yüksek; V3'te kartlar hero'dan yer alır — 16:9 + banner ~368)" % tag,
-		mascot_rect.size.y >= 340.0)
+	_c("%s maskot baskın (≥ 440 px yüksek; K10 kompakt karolar hero'ya yer bırakır — büyük kartlarla 16:9 + banner ~361)"
+		% tag, mascot_rect.size.y >= 440.0)
 	# Uzun ekranda alt boşluk: maskot ile level bilgisi arası ölü bant olmasın (≤ 420 px).
 	_c("%s maskot ile level bilgisi arası ≤ 420 px" % tag, level_rect.position.y - mascot_rect.end.y <= 420.0)
 	var logo_rect: Rect2 = home.logo().get_global_rect()

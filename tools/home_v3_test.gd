@@ -14,29 +14,34 @@ extends Node
 ##
 ## Bölümler:
 ##   A günlük girişi   ilk gün (tutorial bugün bitti): görünen giriş ya pencereyi açar ya da kilidini AÇIKÇA gösterir
-##                     (pasif + "Yarın açılır") — sessiz ölü dokunuş YOK; ekonomi değişmez (Hamur / seri / kota). Açık gün:
-##                     girişin ortasına VE etiket yazısına gerçek dokunuş GÜNLÜK ÖDÜLLER'i tam bir kez açar; açılışın
+##                     (pasif + "YARIN" — K10; önce "Yarın açılır") — sessiz ölü dokunuş YOK; ekonomi değişmez (Hamur /
+##                     seri / kota). Açık gün: girişin ortasına, etiket yazısına VE ikon kuyusuna gerçek dokunuş GÜNLÜK
+##                     ÖDÜLLER'i tam bir kez açar; açılışın
 ##                     hemen ardından karartmaya düşen dokunuş pencereyi KAPATMAZ, kapanışın hemen ardından girişe düşen
 ##                     dokunuş pencereyi YENİDEN AÇMAZ (300 ms yatışma — pozitif kontrollerle); hızlı çift dokunuş yığmaz;
 ##                     ACTION_CANCEL 0 açılış; GERİ kapatır; Ana Sayfa yeniden kullanılır; ekonomi aynen
-##   B günlük durumu   yalnız gerçek veri: kilitli · giriş hazır · ücretsiz sandık hazır · sandık alındı · bugünlük tamam
-##                     (alt yazı, "!" rozeti, etkinlik, kilit pictosu, ›); seri yalnız bugün alındıysa; kart yenilemesi
-##                     kaydı DEĞİŞTİRMEZ; ertesi güne öne dönüşte kilitli kart kendiliğinden açılır
+##   B günlük durumu   K10 kompakt karo, yalnız gerçek veri: kilitli (kilit + "YARIN") · giriş hazır / ücretsiz sandık
+##                     hazır ("HAZIR" + "!" + hale) · sandık alındı · bugünlük tamam (nane "TAMAM"); seri yalnız bugün
+##                     alındıysa alev ikonu + sayı; › yok; karo yenilemesi kaydı DEĞİŞTİRMEZ; ertesi güne öne dönüşte
+##                     kilitli karo kendiliğinden açılır
 ##   C OYNA            tek baskın V3 CTA (SquishyButton PRIMARY HERO, GestureGuard); taze dokunuş Harita'ya tam BİR kez;
 ##                     hızlı çift dokunuş tek gezinme + level başlamaz; ACTION_CANCEL 0; kabuğun HARİTA'sı etkilenmez
-##   D meydan okuma    kart görünür, gerçek özet (hedef portresi + "… yap · N hamlede" + "+20 HAMUR"); dokunuş pencereyi tam
-##                     bir kez; çift dokunuş yığmaz; iptal 0; GERİ kapatır; tamamlanınca nane TAMAM cipi, kart yine açar
-##   E madalyonlar     GÖREVLER / BONUS SANDIK: gövdeye ve ETİKET plakasına dokunuş pencereyi tam bir kez açar; iptal 0;
-##                     GERİ
+##   D meydan okuma    K10 kompakt karo "MEYDAN", gerçek veri kısaltması (hedef portresi + "N HAMLE" + Hamur ikonu "+20");
+##                     karo / ikon / başlık dokunuşu pencereyi tam bir kez; çift dokunuş yığmaz; iptal 0; GERİ kapatır;
+##                     tamamlanınca nane "TAMAM", karo yine açar
+##   E madalyonlar     GÖREVLER / SANDIK (K10: tek kelime): gövdeye ve ETİKET plakasına dokunuş pencereyi tam bir kez
+##                     açar; iptal 0; GERİ
 ##   F yinelenenler    Ana Sayfa'da Mağaza / Koleksiyon / Profil / Harita kısayolu YOK (düğüm, sinyal, buton, kaynak);
 ##                     üst satır ve level bilgisi DURUM (fare almaz); etkileşimli öğe tam 5; kabuğun MAĞAZA / KOLEKSİYON /
 ##                     PROFİL öğeleri gerçek dokunuşla tam bir gezinme; K9 terimleri ("SV. N", "SIRADAKİ BÖLÜM N", sonsuz aynen;
-##                     görünen "LV." / "Level N" yok)
+##                     görünen "LV." / "Level N" yok); K10 TEXT-LIGHT: tam genişlik GÜNLÜK / MEYDAN OKUMA kartı YOK, Ana
+##                     Sayfa'da açıklayıcı cümle / uzun etiket sızmaz (pencerelerin içi ayrı), kaynak sözleşmesi
 ##   G yerleşim        720×1280 · 16:9 + banner 112 / 128 · 720×1600 · A36 benzeri (üst 61) banner'sız / banner'lı ·
 ##                     geniş tuval 960×1280: hiçbir öğe kabuğun ayak izine / banner yuvasına girmez; OYNA ile kabuk
-##                     arasında iki kart (bitişik iki düğme yok); kartlar / OYNA / level bilgisi çakışmaz; madalyonlar
-##                     maskotun opak pikselleriyle çakışmaz; maskot baskın; dokunma hedefleri ≥ 84; yazı ≥ 14 px; kart
-##                     yazıları ve en uzun unvan kırpılmaz; kartlar tepsiden ≥ 28 px (kompakt kabukta da)
+##                     arasında karo sırası (bitişik iki düğme yok); GÜNLÜK | MEYDAN yan yana, kompakt (yarım sütun, kart
+##                     boyunun altında), dokunma hedefi ≥ 84; karolar / OYNA / level bilgisi çakışmaz; madalyonlar
+##                     maskotun opak pikselleriyle çakışmaz; maskot baskın; yazı ≥ 14 px; karo yazıları ve en uzun unvan
+##                     kırpılmaz; karolar tepsiden ≥ 28 px (kompakt kabukta da)
 ##   H teklif yuvası   TASK/062 yuvası boş + gizli, yer kaplamaz; sözleşme: içerik verilince (ayrı yerleşim çağrısı
 ##                     olmadan) kartlar yukarı kayar, çakışma yok (yalnız test içeriği — üründe teklif YOK)
 ##   I kalıcılık       Ana Sayfa'nın dört penceresini açıp kapatmak kayıt dosyasını DEĞİŞTİRMEZ; Ana Sayfa GERİ = çıkış
@@ -147,8 +152,10 @@ func _daily_entry() -> void:
 	var opened: bool = _main._daily_rewards.visible
 	print("    giriş: sınıf=%s etkin=%s yazılar=[%s] dokunuş→pencere=%s" % [_class_of(entry), str(enabled), texts,
 		str(opened)])
+	# K10 (owner): kilit durumu tek kelime "YARIN" + kilit pictosu (önce "Yarın açılır"). Taban `28a5bf1`'de giriş ne açar
+	# ne kilidini gösterir — bu kontrol orada hâlâ açık FAIL (taban farkı korunur).
 	_c("A1 ilk gün: görünen giriş SESSİZ ÖLÜ DEĞİL — dokunuş pencereyi açar YA DA giriş kilidini açıkça gösterir "
-		+ "(pasif + 'Yarın açılır')", opened or (not enabled and texts.contains("Yarın açılır")))
+		+ "(pasif + 'YARIN')", opened or (not enabled and texts.contains("YARIN")))
 	_c("A1 ilk gün: kilitli kural korunur — pencere AÇILMAZ (GAME_DESIGN §12.3), ödül / seri / kota değişmez",
 		not opened and SaveManager.dough() == dough0 and SaveManager.daily_streak() == streak0
 		and (SaveManager.data.get("daily_rewards", {}) as Dictionary) == daily0)
@@ -189,6 +196,17 @@ func _daily_entry() -> void:
 		print("    etiket merkezi %s · giriş dikdörtgeni %s" % [str(label_at), str(entry.get_global_rect())])
 		_c("A3 'GÜNLÜK' yazısına gerçek dokunuş da pencereyi açar (etiket ölü bölge değil)",
 			_main._daily_rewards.visible and opens[0] == 2)
+		if _main._daily_rewards.visible:
+			await _back()
+			await _wait_settled()
+
+	# A3b — K10 kompakt karo: İKON kuyusuna dokunuş da karonun hedefi (ikon / kelime / cipler fare almaz).
+	var well: Control = entry.find_child("Well", true, false) as Control
+	if well != null:
+		var base_w: int = opens[0]
+		await _tap_at(well.get_global_rect().get_center())
+		_c("A3b ikon kuyusuna gerçek dokunuş da pencereyi tam bir kez açar (ikon ölü bölge değil)",
+			_main._daily_rewards.visible and opens[0] == base_w + 1)
 		if _main._daily_rewards.visible:
 			await _back()
 			await _wait_settled()
@@ -246,41 +264,46 @@ func _daily_entry() -> void:
 # --- B: günlük kartının durumları -------------------------------------------------------------------------------------
 
 func _daily_states() -> void:
-	print("-- B: GÜNLÜK ÖDÜLLER kartı — yalnız gerçek durum")
+	print("-- B: GÜNLÜK karosu — yalnız gerçek durum (K10 görsel dil)")
 	var today: String = Time.get_date_string_from_system()
+	# [fikstür, durum, cipler, etkin, "!" + hale, açıklama]
 	var specs: Array = [
-		[{"onboarding_completed_day": THU}, &"locked", "Yarın açılır", false, false, "ilk gün (kural)"],
-		[{"last_login_date": "2026-01-01"}, &"login", "Giriş ödülü hazır", true, true, "giriş ödülü bekliyor"],
-		[{}, &"free_chest", "3 günlük seri · ücretsiz sandık hazır", true, true, "ücretsiz sandık hazır"],
-		[{"daily_rewards": _daily_fixture(true, 1, false)}, &"free_taken", "3 günlük seri · bugünün sandığı alındı", true,
-			false, "sandık alındı, reklamlı haklar duruyor"],
-		[{"daily_rewards": _daily_fixture(true, 2, true)}, &"all_done", "3 günlük seri · bugünlük tamam",
-			true, false, "bugünlük tamam"],
-		[{"daily_streak": 0, "daily_rewards": _daily_fixture(true, 2, true)}, &"all_done",
-			"Bugünlük tamam", true, false, "seri 0 → seri öneki yok (çıplak 0 yok), tek başına büyük harf"],
+		[{"onboarding_completed_day": THU}, &"locked", ["YARIN"], false, false, "ilk gün (kural)"],
+		[{"last_login_date": "2026-01-01"}, &"login", ["HAZIR"], true, true, "giriş ödülü bekliyor (seri bugün alınmadı)"],
+		[{}, &"free_chest", ["3", "HAZIR"], true, true, "ücretsiz sandık hazır"],
+		[{"daily_rewards": _daily_fixture(true, 1, false)}, &"free_taken", ["3"], true, false,
+			"sandık alındı, reklamlı haklar duruyor"],
+		[{"daily_rewards": _daily_fixture(true, 2, true)}, &"all_done", ["3", "TAMAM"], true, false, "bugünlük tamam"],
+		[{"daily_streak": 0, "daily_rewards": _daily_fixture(true, 2, true)}, &"all_done", ["TAMAM"], true, false,
+			"seri 0 → seri cipi yok (çıplak 0 yok)"],
 	]
 	for spec: Array in specs:
 		var extra: Dictionary = spec[0]
 		await _boot(extra)
 		if String(extra.get("last_login_date", today)) != today:
-			# Açılışın giriş talebini geri al: kart "bekliyor" durumunu göstersin (Main açılışta zaten talep eder).
+			# Açılışın giriş talebini geri al: karo "bekliyor" durumunu göstersin (Main açılışta zaten talep eder).
 			SaveManager.data["last_login_date"] = "2026-01-01"
 		var home: CanvasLayer = _main._screens[0]
 		var bytes0: PackedByteArray = FileAccess.get_file_as_bytes(PATH)
 		home.refresh()
-		var card: FeatureCard = home.daily_card()
-		var claim: bool = card.badge().visible and card.badge().text() == "!"
-		_c("B %s: durum %s, alt yazı '%s', etkin=%s, '!' rozeti=%s" % [spec[5], String(home.daily_state()),
-			card.subtitle_text(), str(card.is_enabled()), str(claim)], home.daily_state() == spec[1]
-			and card.subtitle_text() == String(spec[2]) and card.is_enabled() == bool(spec[3]) and claim == bool(spec[4]))
-		_c("B %s: kart yenilemesi kayıt dosyasını değiştirmez" % spec[5], FileAccess.get_file_as_bytes(PATH) == bytes0)
+		var tile: FeatureTile = home.daily_card()
+		var claim: bool = tile.badge().visible and tile.badge().text() == "!"
+		var chips: Array = Array(tile.chip_texts())
+		_c("B %s: durum %s, cipler %s, etkin=%s, '!'=%s, hale=%s" % [spec[5], String(home.daily_state()), str(chips),
+			str(tile.is_enabled()), str(claim), str(tile.is_glowing())], home.daily_state() == spec[1]
+			and chips == (spec[2] as Array) and tile.is_enabled() == bool(spec[3]) and claim == bool(spec[4])
+			and tile.is_glowing() == bool(spec[4]))
+		_c("B %s: karo yenilemesi kayıt dosyasını değiştirmez" % spec[5], FileAccess.get_file_as_bytes(PATH) == bytes0)
 		var locked: bool = home.daily_state() == &"locked"
-		_c("B %s: picto %s, › %s" % [spec[5], "kilit" if locked else "hediye", "gizli" if locked else "görünür"],
-			card.art_texture() == UiKit.icon_texture("lock" if locked else "gift")
-			and card.find_child("Chevron", true, false).visible == (not locked))
-	_c("B kart başlığı GÜNLÜK ÖDÜLLER, gerçek pencere başlığıyla aynı aile (hediye pictosu, pembe kuyu)",
-		(_main._screens[0].daily_card() as FeatureCard).title_text() == "GÜNLÜK ÖDÜLLER")
-	# Ertesi güne öne dönüş: kilitli kart Ana Sayfa'dan ayrılmadan açılır (inceleme bulgusu — bayat kilit ölü düğme olurdu).
+		_c("B %s: picto %s, › yok (karoda chevron düğümü yok)" % [spec[5], "kilit" if locked else "hediye"],
+			tile.art_texture() == UiKit.icon_texture("lock" if locked else "gift")
+			and tile.find_child("Chevron", true, false) == null)
+		if chips.size() > 1 and chips[0] == "3":
+			var flame: TextureRect = tile.chips_row().get_child(0).find_child("Icon", true, false) as TextureRect
+			_c("B %s: seri = alev ikonu + sayı (cümle değil)" % spec[5], flame != null and flame.texture == UiIcons.FLAME)
+	_c("B karo başlığı tek kelime 'GÜNLÜK' (K10; pencere başlığı GÜNLÜK ÖDÜLLER aynen)",
+		(_main._screens[0].daily_card() as FeatureTile).title_text() == "GÜNLÜK")
+	# Ertesi güne öne dönüş: kilitli karo Ana Sayfa'dan ayrılmadan açılır (inceleme bulgusu — bayat kilit ölü düğme olurdu).
 	await _boot({"onboarding_completed_day": THU})
 	var home_r: CanvasLayer = _main._screens[0]
 	var was_locked: bool = home_r.daily_state() == &"locked" and not home_r.daily_card().is_enabled()
@@ -290,7 +313,7 @@ func _daily_states() -> void:
 	_c("B ertesi güne öne dönüş: kilit kendiliğinden açıldı (önce kilitli=%s, şimdi %s, etkin=%s)" % [str(was_locked),
 		String(home_r.daily_state()), str(home_r.daily_card().is_enabled())], was_locked
 		and home_r.daily_state() != &"locked" and home_r.daily_card().is_enabled()
-		and home_r.daily_card().subtitle_text() != "Yarın açılır")
+		and not Array(home_r.daily_card().chip_texts()).has("YARIN"))
 	DailyRewards.clock_override = THU
 	_sections_done += 1
 
@@ -348,17 +371,20 @@ func _play() -> void:
 # --- D: meydan okuma ------------------------------------------------------------------------------------------------
 
 func _challenge() -> void:
-	print("-- D: MEYDAN OKUMA kartı — gerçek özet, tam bir açılış")
+	print("-- D: MEYDAN karosu — gerçek veri kısaltması, tam bir açılış")
 	await _boot()
 	var home: CanvasLayer = _main._screens[0]
-	var card: FeatureCard = home.challenge_card()
+	var card: FeatureTile = home.challenge_card()
 	var view: Dictionary = DailyChallenge.current_view()
-	_c("D kart görünür, GestureGuard'a ait, ≥ %d px" % UiTokens.TOUCH_TARGET, card.is_visible_in_tree()
+	_c("D karo görünür, GestureGuard'a ait, ≥ %d px" % UiTokens.TOUCH_TARGET, card.is_visible_in_tree()
 		and card.has_meta(&"gesture_guard") and card.get_global_rect().size.y >= float(UiTokens.TOUCH_TARGET))
-	_c("D gerçek özet: 'MEYDAN OKUMA' · '%s' · '+%d HAMUR' cipi · hedef portresi T%d" % [card.subtitle_text(),
-		DailyChallenge.REWARD_DOUGH, int(view["target_tier"])], card.title_text() == DailyChallenge.TITLE
-		and card.subtitle_text() == DailyChallenge.goal_text(view)
-		and home.challenge_badge_text() == "+%d HAMUR" % DailyChallenge.REWARD_DOUGH
+	var reward_chip: Control = card.chips_row().get_child(1) if card.chips_row().get_child_count() > 1 else null
+	var reward_icon: TextureRect = reward_chip.find_child("Icon", true, false) as TextureRect if reward_chip != null else null
+	_c("D gerçek veri kısaltması: 'MEYDAN' · '%s' · Hamur ikonu '%s' · hedef portresi T%d" % [home.challenge_moves_text(),
+		home.challenge_badge_text(), int(view["target_tier"])], card.title_text() == "MEYDAN"
+		and home.challenge_moves_text() == "%d HAMLE" % int(view["drop_budget"])
+		and home.challenge_badge_text() == "+%d" % DailyChallenge.REWARD_DOUGH
+		and reward_icon != null and reward_icon.texture == UiIcons.DOUGH
 		and not home.is_challenge_done_shown()
 		and home.challenge_portrait_texture() == home.DUMPLING_VISUAL.TEXTURES[int(view["target_tier"]) - 1])
 	var opens: Array[int] = [0]
@@ -383,13 +409,23 @@ func _challenge() -> void:
 	await _finger(at, true)
 	await _cancel_finger(at)
 	_c("D ACTION_CANCEL → 0 açılış", opens[0] == 2 and not _main._challenge_sheet.visible)
-	# Tamamlanmış gün: nane TAMAM cipi, kart yine açılır (pencere tamamlandı durumunu gösterir).
+	# K10: ikon kuyusu ve tek kelime başlık da karonun hedefi.
+	await _wait_settled()
+	await _tap_at(card.well().get_global_rect().get_center())
+	_c("D ikon kuyusuna (hedef portresi) dokunuş → tam bir açılış", _main._challenge_sheet.visible and opens[0] == 3)
+	await _back()
+	await _wait_settled()
+	await _tap_at(card.title_label().get_global_rect().get_center())
+	_c("D 'MEYDAN' yazısına dokunuş → tam bir açılış", _main._challenge_sheet.visible and opens[0] == 4)
+	await _back()
+	await _wait_settled()
+	# Tamamlanmış gün: nane TAMAM cipi, karo yine açılır (pencere tamamlandı durumunu gösterir).
 	await _boot({"daily_challenge": {"version": 1, "completed_day_key": DailyChallenge.current_day()}})
 	home = _main._screens[0]
 	card = home.challenge_card()
-	_c("D tamamlandı: nane 'TAMAM' cipi, '+20 HAMUR' yok, alt yazı 'Bugün tamamlandı · yarın yenisi', kart etkin",
-		home.is_challenge_done_shown() and home.challenge_badge_text() == "" and card.tag_text() == "TAMAM"
-		and card.subtitle_text() == "Bugün tamamlandı · yarın yenisi" and card.is_enabled())
+	_c("D tamamlandı: yalnız nane 'TAMAM' cipi (hamle / '+20' yok, cümle yok), karo etkin",
+		home.is_challenge_done_shown() and home.challenge_badge_text() == "" and home.challenge_moves_text() == ""
+		and Array(card.chip_texts()) == ["TAMAM"] and card.is_enabled())
 	await _tap(card)
 	_c("D tamamlandı: dokunuş pencereyi yine açar", _main._challenge_sheet.visible)
 	await _back()
@@ -404,9 +440,9 @@ func _medallions() -> void:
 	var home: CanvasLayer = _main._screens[0]
 	var missions: HomeFeatureButton = home.missions_button()
 	var chest: HomeFeatureButton = home.chest_button()
-	_c("E iki madalyon HomeFeatureButton (GÖREVLER 0/6 · BONUS SANDIK 10/75 + altın halka), GestureGuard'a ait",
+	_c("E iki madalyon HomeFeatureButton (GÖREVLER 0/6 · SANDIK 10/75 + altın halka — K10 tek kelime), GestureGuard'a ait",
 		missions.label_text() == "GÖREVLER" and home.missions_count_text() == "0/%d" % Missions.CATALOG.size()
-		and chest.label_text() == "BONUS SANDIK" and chest.badge_text() == "10/%d" % ChestSystem.MERGES_PER_BONUS_CHEST
+		and chest.label_text() == "SANDIK" and chest.badge_text() == "10/%d" % ChestSystem.MERGES_PER_BONUS_CHEST
 		and missions.has_meta(&"gesture_guard") and chest.has_meta(&"gesture_guard"))
 	var opens: Array[int] = [0]
 	_main._missions.opened.connect(func() -> void: opens[0] += 1)
@@ -429,7 +465,7 @@ func _medallions() -> void:
 	_c("E ACTION_CANCEL → 0 açılış", opens[0] == 2 and not _main._missions.visible)
 	await _wait_settled()
 	await _tap(chest)
-	_c("E BONUS SANDIK → bonus sandık bilgisi (10/75), Ana Sayfa'da", _main._chest_info.visible
+	_c("E SANDIK → bonus sandık bilgisi (10/75), Ana Sayfa'da", _main._chest_info.visible
 		and _main._chest_info.count_text() == "10/%d" % ChestSystem.MERGES_PER_BONUS_CHEST and _main._active_tab == 0)
 	await _back()
 	_c("E GERİ sandık bilgisini kapatır", not _main._chest_info.visible and home.visible)
@@ -499,7 +535,56 @@ func _removed_shortcuts() -> void:
 	_c("F K9 sonsuz kip anlamı aynen: 'SONSUZ MOD' · 'Rekor 12 480' · 30/30; rozet yine 'SV.'",
 		home.level_caption_text() == "SONSUZ MOD" and home.level_title_text() == "Rekor 12 480"
 		and home.level_stars_text() == "30/30" and home.status_caption_text() == "SV.")
+	await _text_light_contract()
 	_sections_done += 1
+
+
+## K10 (owner): TEXT-LIGHT / ICON-FIRST — Ana Sayfa'da tam genişlik GÜNLÜK / MEYDAN OKUMA kartı yok; açıklayıcı cümle /
+## uzun etiket sızmaz (her durumda); kaynak eski metinleri kurmaz. Pencerelerin içi bu sözleşmenin DIŞINDA (ayrı yüzey).
+func _text_light_contract() -> void:
+	var forbidden: Array[String] = ["GÜNLÜK ÖDÜLLER", "MEYDAN OKUMA", "günlük seri", "Günlük seri", "bugünün sandığı",
+		"Bugünün sandığı", "bugünlük tamam", "Bugünlük tamam", "Yarın açılır", "hamlede", "Bugün tamamlandı",
+		"HAMUR", "BONUS SANDIK", "Giriş ödülü", "Ücretsiz sandık", "ücretsiz sandık"]
+	var fixtures: Array = [
+		[{}, "sandık hazır"],
+		[{"onboarding_completed_day": THU}, "ilk gün"],
+		[{"last_login_date": "2026-01-01"}, "giriş bekliyor"],
+		[{"daily_rewards": _daily_fixture(true, 1, false)}, "sandık alındı"],
+		[{"daily_rewards": _daily_fixture(true, 2, true)}, "hepsi tamam (meydan okuma da)", true],
+	]
+	for fx: Array in fixtures:
+		await _boot(fx[0])
+		var home: CanvasLayer = _main._screens[0]
+		if fx.size() > 2:
+			SaveManager.data["daily_challenge"] = {"version": 1, "completed_day_key": DailyChallenge.current_day()}
+		home.refresh()
+		await _settle(1)
+		var leaks: Array[String] = []
+		var long_texts: Array[String] = []
+		for node in home.find_children("*", "Label", true, false):
+			var label: Label = node
+			if not label.is_visible_in_tree() or label.text.is_empty():
+				continue
+			for word: String in forbidden:
+				if label.text.contains(word):
+					leaks.append(label.text)
+			# Unvan (oyuncu kimliği, katalogdan) dışında her görünen Ana Sayfa yazısı kısa ve cümlesiz.
+			if label != home._status_title and (label.text.length() > 14 or label.text.contains("·")):
+				long_texts.append(label.text)
+		_c("F K10 %s: Ana Sayfa'da uzun / açıklayıcı metin sızmıyor %s" % [fx[1], str(leaks)], leaks.is_empty())
+		_c("F K10 %s: görünen her Ana Sayfa yazısı kısa (≤ 14 karakter, '·' yok; unvan hariç) %s" % [fx[1],
+			str(long_texts)], long_texts.is_empty())
+	var home2: CanvasLayer = _main._screens[0]
+	_c("F K10 tam genişlik özellik kartı YOK: Ana Sayfa'da FeatureCard düğümü yok; GÜNLÜK / MEYDAN = FeatureTile",
+		home2.find_children("*", "FeatureCard", true, false).is_empty() and home2.daily_card() is FeatureTile
+		and home2.challenge_card() is FeatureTile)
+	var src: String = FileAccess.get_file_as_string("res://scripts/ui/home_screen.gd")
+	_c("F K10 kaynak sözleşmesi: home_screen eski cümleleri / kart API'sini kurmuyor; tek kelime sabitleri var",
+		not src.contains("\"GÜNLÜK ÖDÜLLER\"") and not src.contains("\"Yarın açılır\"") and not src.contains("günlük seri")
+		and not src.contains("goal_text(") and not src.contains("set_subtitle") and not src.contains("FeatureCard.new")
+		and not src.contains("\"+%d HAMUR\"") and not src.contains("\"BONUS SANDIK\"") and not src.contains("Bugün tamamlandı")
+		and src.contains("\"GÜNLÜK\"") and src.contains("\"MEYDAN\"") and src.contains("\"YARIN\"")
+		and src.contains("\"%d HAMLE\"") and src.contains("\"SANDIK\""))
 
 
 # --- G: yerleşim matrisi --------------------------------------------------------------------------------------------
@@ -560,16 +645,25 @@ func _check_layout(tag: String, safe_top: float, mascot_img: Image) -> void:
 			if inter.size.x > 1.0 and inter.size.y > 1.0:
 				overlap = true
 				print("    çakışma: %s %s × %s %s" % [rects[i][0], str(rects[i][1]), rects[j][0], str(rects[j][1])])
-	_c("G %s: OYNA / level / kartlar / madalyonlar / üst satır çakışmıyor" % tag, not overlap)
-	_c("G %s: sıra — level bilgisi → OYNA → GÜNLÜK → MEYDAN OKUMA → kabuk" % tag, level.end.y <= play.position.y
-		and play.end.y < daily.position.y and daily.end.y < challenge.position.y and challenge.end.y <= floor_y)
-	_c("G %s: OYNA ile kabuğun merkez HARİTA'sı bitişik değil — arada iki kart (%.0f px)" % [tag, floor_y - play.end.y],
-		floor_y - play.end.y >= 2.0 * FeatureCard.HEIGHT)
+	_c("G %s: OYNA / level / karolar / madalyonlar / üst satır çakışmıyor" % tag, not overlap)
+	_c("G %s: sıra — level bilgisi → OYNA → GÜNLÜK | MEYDAN (aynı satır, yan yana) → kabuk" % tag,
+		level.end.y <= play.position.y and play.end.y < daily.position.y and absf(daily.position.y - challenge.position.y) <= 0.5
+		and daily.end.x <= challenge.position.x and challenge.end.y <= floor_y)
+	var column: float = minf(view.x, 720.0)
+	_c("G %s: karolar KOMPAKT — her biri yarım sütun (%.0f / %.0f), kart boyunun altında (%.0f < %.0f), eşit boy" % [tag,
+		daily.size.x, column, daily.size.y, FeatureCard.HEIGHT], daily.size.x <= column * 0.5 and challenge.size.x <= column * 0.5
+		and daily.size.y < FeatureCard.HEIGHT and absf(daily.size.x - challenge.size.x) <= 0.5
+		and absf(daily.size.y - challenge.size.y) <= 0.5)
+	_c("G %s: karolar pratik dokunma hedefi (≥ %d × %d) — araç çubuğu düğmesi değil (genişlik ≥ 280)" % [tag,
+		UiTokens.TOUCH_TARGET, UiTokens.TOUCH_TARGET], daily.size.y >= UiTokens.TOUCH_TARGET
+		and challenge.size.y >= UiTokens.TOUCH_TARGET and daily.size.x >= 280.0 and challenge.size.x >= 280.0)
+	_c("G %s: OYNA ile kabuğun merkez HARİTA'sı bitişik değil — arada karo sırası (%.0f px)" % [tag, floor_y - play.end.y],
+		floor_y - play.end.y >= FeatureTile.HEIGHT + 16.0)
 	_c("G %s: OYNA yatayda ortalı, ≥ 420 px geniş" % tag, absf(play.get_center().x - view.x * 0.5) <= 2.0 and play.size.x >= 420.0)
 	var tray_top: float = nav.tray_rect().position.y
-	_c("G %s: kartlar tepsinin üst kenarından ≥ 28 px yukarıda (kompakt=%s, ara %.0f) — seçili madalyon / dock solması karta binmez"
+	_c("G %s: karolar tepsinin üst kenarından ≥ 28 px yukarıda (kompakt=%s, ara %.0f) — seçili madalyon / dock solması karoya binmez"
 		% [tag, str(nav.is_compact()), tray_top - challenge.end.y], tray_top - challenge.end.y >= 28.0)
-	_c("G %s: dokunma hedefleri — OYNA / kartlar ≥ %d yükseklik, madalyonlar ≥ %d" % [tag, UiTokens.TOUCH_TARGET,
+	_c("G %s: dokunma hedefleri — OYNA / karolar ≥ %d yükseklik, madalyonlar ≥ %d" % [tag, UiTokens.TOUCH_TARGET,
 		UiTokens.TOUCH_TARGET], play.size.y >= UiTokens.TOUCH_TARGET and daily.size.y >= UiTokens.TOUCH_TARGET
 		and challenge.size.y >= UiTokens.TOUCH_TARGET and home.missions_button().get_global_rect().size.y >= UiTokens.TOUCH_TARGET
 		and home.chest_button().get_global_rect().size.x >= UiTokens.TOUCH_TARGET)
@@ -577,6 +671,8 @@ func _check_layout(tag: String, safe_top: float, mascot_img: Image) -> void:
 	_c("G %s: madalyonlar (plaka dahil) maskotun opak pikselleriyle çakışmıyor" % tag, not hits)
 	_c("G %s: maskot baskın (%.0f px) ve level bilgisinin üstünde, logonun altında" % [tag, mascot.size.y],
 		mascot.size.y >= 340.0 and mascot.end.y <= level.position.y + 1.0 and mascot.position.y >= logo.position.y)
+	_c("G %s: K10 maskot nefes payı — kompakt karolarla ≥ 440 px (büyük kartlarla 16:9 + banner 347–361 idi) (%.0f px)"
+		% [tag, mascot.size.y], mascot.size.y >= 440.0)
 	_c("G %s: logo üst satırın altında, madalyonların üstünde" % tag, logo.position.y >= maxf(status.end.y, dough.end.y)
 		and logo.end.y <= missions.position.y + 1.0 and logo.end.y <= chest.position.y + 1.0)
 	_c("G %s: üst satır ortak optik merkez (±3 px)" % tag, absf(status.get_center().y - dough.get_center().y) <= 3.0)
@@ -592,7 +688,7 @@ func _check_layout(tag: String, safe_top: float, mascot_img: Image) -> void:
 			small.append("%s=%d" % [label.text, label.get_theme_font_size("font_size")])
 	_c("G %s: görünen yazı ≥ %d px %s" % [tag, UiTokens.TYPE_META, str(small)], small.is_empty())
 	var trimmed: Array[String] = []
-	for card: FeatureCard in [home.daily_card(), home.challenge_card()]:
+	for card: FeatureTile in [home.daily_card(), home.challenge_card()]:
 		for node in card.find_children("*", "Label", true, false):
 			var label: Label = node
 			if not label.is_visible_in_tree() or label.text.is_empty():
@@ -602,7 +698,9 @@ func _check_layout(tag: String, safe_top: float, mascot_img: Image) -> void:
 				label.get_theme_font_size("font_size")).x
 			if width > label.size.x + 0.5:
 				trimmed.append("%s (%.0f > %.0f)" % [label.text, width, label.size.x])
-	_c("G %s: kart yazıları kırpılmadan sığar %s" % [tag, str(trimmed)], trimmed.is_empty())
+	_c("G %s: karo yazıları (kelime + cipler) kırpılmadan sığar %s" % [tag, str(trimmed)], trimmed.is_empty())
+	print("    %s: maskot %.0f px · karo %.0f×%.0f · OYNA→kabuk %.0f px" % [tag, mascot.size.y, daily.size.x, daily.size.y,
+		floor_y - play.end.y])
 	# En uzun unvan (katalog) üst satırda kırpılmaz; ölçü sonrası gerçek unvana dönülür.
 	var longest: String = ""
 	for row: Dictionary in AchievementCatalog.TITLES:

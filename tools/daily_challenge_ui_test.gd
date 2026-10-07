@@ -6,8 +6,8 @@ extends Node
 ##   godot --headless --audio-driver Dummy --path . res://tools/daily_challenge_ui_test.tscn
 ##
 ## Kontroller:
-##   giriş       Ana Sayfa'da TEK MEYDAN OKUMA girişi (TASK/058: V3 FeatureCard, GÜNLÜK ÖDÜLLER kartının hemen altında,
-##               OYNA'nın altında), bugünün hedef portresi, "+20" (tamamlanmadan) / TAMAM (tamamlanınca); GÖREVLER N/6
+##   giriş       Ana Sayfa'da TEK MEYDAN OKUMA girişi (TASK/058 K10: kompakt FeatureTile "MEYDAN", GÜNLÜK karosunun
+##               sağında aynı satırda, OYNA'nın altında), bugünün hedef portresi, "+20" (tamamlanmadan) / TAMAM; GÖREVLER N/6
 ##               aynen; Harita'da
 ##               yok; onboarding bitmeden gizli; tutorial günü (ilk gün kuralı YOK) görünür; gün gerçeği yoksa gizli
 ##   pencere     kurdele "MEYDAN OKUMA", "Büyük Dumpling yap · 15 hamlede" (T5) / "Dev Dumpling yap · 36
@@ -134,20 +134,21 @@ func _entry() -> void:
 	var home: CanvasLayer = _home()
 	await _show_home()
 	var entry: Button = home.challenge_button()
-	_c("tek MEYDAN OKUMA girişi: V3 FeatureCard (TASK/058 özellik kartı), dokunma alır, görünür", entry != null
-		and entry is FeatureCard and entry.mouse_filter == Control.MOUSE_FILTER_STOP
+	_c("tek MEYDAN OKUMA girişi: V3 FeatureTile (TASK/058 K10 kompakt karo), dokunma alır, görünür", entry != null
+		and entry is FeatureTile and entry.mouse_filter == Control.MOUSE_FILTER_STOP
 		and entry.is_visible_in_tree() and _count_named(home, "Challenge") == 1)
-	_c("etiket 'MEYDAN OKUMA'", home.challenge_title_text() == "MEYDAN OKUMA")
+	_c("etiket tek kelime 'MEYDAN' (K10; pencere kurdelesi MEYDAN OKUMA aynen)", home.challenge_title_text() == "MEYDAN")
 	_c("bugünün hedef portresi (perşembe T5 sanatı), '+20' rozeti (tamamlanmadı)",
-		home.challenge_portrait_texture() == DUMPLING_VISUAL.TEXTURES[4] and home.challenge_badge_text() == "+20 HAMUR"
+		home.challenge_portrait_texture() == DUMPLING_VISUAL.TEXTURES[4] and home.challenge_badge_text() == "+20"
 		and not home.is_challenge_done_shown())
 	_c("GÖREVLER girişi ve N/6 anlamı aynen (tek giriş, '0/6'), madalyonlar 2 (TASK/058: GÖREVLER + SANDIK), beş ekran",
 		_count_named(home, "Missions") == 1 and home.missions_count_text() == "0/6"
 		and _count_class(home, "HomeFeatureButton") == 2 and _main._screens.size() == 5)
 	var daily: Rect2 = home.daily_card().get_global_rect()
 	var rect: Rect2 = entry.get_global_rect()
-	_c("giriş GÜNLÜK ÖDÜLLER kartının HEMEN altında (4–20 px), ortalı (TASK/058)", rect.position.y >= daily.end.y + 4.0
-		and rect.position.y <= daily.end.y + 20.0 and absf(rect.get_center().x - daily.get_center().x) <= 2.0)
+	_c("giriş GÜNLÜK karosunun SAĞINDA, aynı satırda (12–20 px ara), eşit boy (TASK/058 K10)",
+		absf(rect.position.y - daily.position.y) <= 0.5 and rect.position.x >= daily.end.x + 12.0
+		and rect.position.x <= daily.end.x + 20.0 and absf(rect.size.y - daily.size.y) <= 0.5)
 	_c("Harita'da meydan okuma yok (giriş yalnız Ana Sayfa'da)", _count_named(_main._screens[1], "Challenge") == 0)
 	SaveManager.data["daily_challenge"] = {"version": 1, "completed_day_key": THU}
 	await _show_home()
@@ -156,7 +157,7 @@ func _entry() -> void:
 	DailyRewards.clock_override = FRI
 	await _show_home()
 	_c("cuma: T6 hedef portresi, '+20'", home.challenge_portrait_texture() == DUMPLING_VISUAL.TEXTURES[5]
-		and home.challenge_badge_text() == "+20 HAMUR")
+		and home.challenge_badge_text() == "+20")
 	_back_to_thursday()
 	SaveManager.data["onboarding_completed_day"] = THU
 	await _show_home()
@@ -659,9 +660,10 @@ func _layout_view(view_size: Vector2i, safe_top: float, variant: String = "") ->
 	var entry: Button = home.challenge_button()
 	var rect: Rect2 = entry.get_global_rect()
 	var screen := Rect2(Vector2(0, top), Vector2(view.x, view.y - top))
-	_c("%s giriş ekranda, üst payın altında, ≥ 48, ortalı (±2)" % tag, entry.is_visible_in_tree()
+	var row_daily: Rect2 = home.daily_card().get_global_rect()
+	_c("%s giriş ekranda, üst payın altında, ≥ 48; GÜNLÜK | MEYDAN satırı ortalı (±2)" % tag, entry.is_visible_in_tree()
 		and screen.encloses(rect) and rect.size.x >= 48.0 and rect.size.y >= 48.0
-		and absf(rect.get_center().x - view.x * 0.5) <= 2.0)
+		and absf((row_daily.position.x + rect.end.x) * 0.5 - view.x * 0.5) <= 2.0)
 	var overlap: Array[String] = []
 	for node in _all_nodes(home):
 		if node == entry or not (node is BaseButton) or not (node as BaseButton).is_visible_in_tree():
@@ -672,11 +674,11 @@ func _layout_view(view_size: Vector2i, safe_top: float, variant: String = "") ->
 		var inter: Rect2 = rect.intersection(other)
 		if inter.size.x > 1.0 and inter.size.y > 1.0:
 			overlap.append(String(node.name))
-	_c("%s giriş hiçbir kontrolle çakışmıyor (GÜNLÜK kartı, madalyonlar + plakaları, OYNA) %s"
+	_c("%s giriş hiçbir kontrolle çakışmıyor (GÜNLÜK karosu, madalyonlar + plakaları, OYNA) %s"
 		% [tag, str(overlap)], overlap.is_empty())
 	var daily: Rect2 = home.daily_card().get_global_rect()
-	_c("%s GÜNLÜK ÖDÜLLER kartının hemen altında (4–20 px)" % tag, rect.position.y >= daily.end.y + 4.0
-		and rect.position.y <= daily.end.y + 20.0)
+	_c("%s GÜNLÜK karosunun sağında, aynı satırda (12–20 px ara)" % tag, absf(rect.position.y - daily.position.y) <= 0.5
+		and rect.position.x >= daily.end.x + 12.0 and rect.position.x <= daily.end.x + 20.0)
 	var logo: Rect2 = home.logo().get_global_rect()
 	_c("%s logonun altında, maskotun opak piksellerine değmiyor" % tag, rect.position.y >= logo.end.y
 		and not _mascot_hits(home.mascot_rect(), rect))
