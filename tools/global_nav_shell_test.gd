@@ -196,6 +196,13 @@ func _selected_state() -> void:
 			nav.visible and selected.size() == 1 and (selected[0] as NavItem).tab() == tab and nav.current() == tab)
 		_c("sekme %d: seçili öğe TEK seçili aile malzemesini uygular, diğerleri hiçbirini (Tur 2)" % tab,
 			_family_ok(nav))
+		# Son cila: seçili yan öğe hücre boyu krem karo değil — madalyon büyür ve tepsiden yükselir.
+		var sel: NavItem = selected[0] if selected.size() == 1 else null
+		if sel != null and not sel.is_center():
+			var r: Rect2 = sel.highlight_rect()
+			_c("sekme %d: seçili yan öğe yükselen madalyon (%.0f px, hücre %.0f px; üstü tepsinin %.0f px üstünde)" % [
+				tab, r.size.x, sel.size.x, sel.tray_top() - r.position.y], r.size.x <= NavItem.MEDALLION_SELECTED + 0.5
+				and r.size.x < sel.size.x * 0.6 and r.position.y < sel.tray_top())
 		if tab == 0:
 			tray = nav.tray_rect()
 		else:

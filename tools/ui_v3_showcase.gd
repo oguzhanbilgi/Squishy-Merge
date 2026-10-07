@@ -242,7 +242,7 @@ func _page_badges_nav(page: Control) -> void:
 		row.add_child(_cell(holder, String(spec[2])))
 	column.add_child(row)
 	column.add_child(_heading("GEZİNME ÖĞESİ"))
-	var notes := _caption("Seçili: Mağaza (krem karo) · basılı: Koleksiyon · rozet: Ana Sayfa nokta, Profil YENİ, Mağaza 2")
+	var notes := _caption("Tek madalyon ailesi · seçili: Mağaza · basılı: Koleksiyon · rozet: Ana Sayfa nokta, Profil YENİ, Mağaza 2")
 	notes.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	column.add_child(notes)
 	# Gerçek GlobalNav: sayfanın ortasında (kendi katmanı; alt payı ezilerek ortaya alınır).
@@ -272,7 +272,7 @@ func _page_badges_nav(page: Control) -> void:
 	var notes_layer := CanvasLayer.new()
 	notes_layer.layer = 7
 	page.add_child(notes_layer)
-	var caption1 := _caption("Tek seçili aile: krem candy + altın hale · basılı önizleme: Koleksiyon")
+	var caption1 := _caption("Seçili: madalyon yükselir + krem kaide + altın hale + krem etiket hapı · basılı: kaide önizlemesi")
 	caption1.position = Vector2(MARGIN, h * 0.53 + 6.0)
 	notes_layer.add_child(caption1)
 	var caption2 := _caption("Seçili merkez: aynı krem kaide + hale, ek tek katman ince altın halka · pasif: Profil")

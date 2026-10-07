@@ -128,9 +128,14 @@ func _tokens() -> void:
 		distinct)
 	_c("birincil rol = paletin cyan'ı, premium = altın (palet kuralı)", UiTokens.ROLE_PRIMARY == UiTokens.CYAN
 		and UiTokens.ROLE_PREMIUM == UiTokens.GOLD)
-	_c("seçili gezinme: krem karo üstünde mor ikon kontrastı ≥ 4.5:1 (%.1f)" % _contrast(UiTokens.NAV_SELECTED,
-		UiTokens.NAV_ICON_SELECTED), _contrast(UiTokens.NAV_SELECTED, UiTokens.NAV_ICON_SELECTED) >= 4.5)
-	_c("seçili gezinme etiketi (TEXT_PRIMARY) krem karoda ≥ 7:1 (%.1f)" % _contrast(UiTokens.NAV_SELECTED,
+	# TASK/057 son cila: tek madalyon ailesi — lacivert picto her vurgu yüzünde (ve basılı, aydınlanmış yüzde) okunur.
+	var worst: float = 99.0
+	for face: Color in [UiTokens.NAV_ACCENT_HOME, UiTokens.NAV_ACCENT_SHOP, UiTokens.NAV_ACCENT_MAP,
+			UiTokens.NAV_ACCENT_COLLECTION]:
+		worst = minf(worst, minf(_contrast(face, UiTokens.NAV_MEDALLION_ICON),
+			_contrast(face.lerp(Color.WHITE, NavItem.PRESS_BRIGHTEN), UiTokens.NAV_MEDALLION_ICON)))
+	_c("gezinme madalyonu: lacivert picto dört vurgu yüzünde (basılı dahil) ≥ 4.5:1 (en düşük %.1f)" % worst, worst >= 4.5)
+	_c("seçili gezinme etiketi (TEXT_PRIMARY) krem hapta ≥ 7:1 (%.1f)" % _contrast(UiTokens.NAV_SELECTED,
 		UiTokens.TEXT_PRIMARY), _contrast(UiTokens.NAV_SELECTED, UiTokens.TEXT_PRIMARY) >= 7.0)
 	_c("cyan / nane yüzde lacivert yazı ≥ 4.5:1", _contrast(UiTokens.ROLE_PRIMARY, UiTokens.TEXT_ON_ACCENT) >= 4.5
 		and _contrast(UiTokens.ROLE_REWARD, UiTokens.TEXT_ON_ACCENT) >= 4.5)
@@ -557,9 +562,31 @@ func _navigation() -> void:
 	nav.set_current(3)
 	var selected: Array = nav.items().filter(func(i: NavItem) -> bool: return i.is_selected())
 	_c("set_current(3): yalnız Mağaza seçili", selected.size() == 1 and (selected[0] as NavItem).tab() == 3)
-	_c("seçili yan öğe: etiket koyu (krem karo üstü), seçili değil: açık", (nav.item_button(3).label_node()
+	_c("seçili yan öğe: etiket koyu (krem hap), seçili değil: açık", (nav.item_button(3).label_node()
 		.get_theme_color("font_color")).is_equal_approx(UiTokens.TEXT_PRIMARY) and (nav.item_button(0).label_node()
 		.get_theme_color("font_color")).is_equal_approx(UiTokens.NAV_LABEL_IDLE))
+	# TASK/057 son cila — tek simge ailesi: her öğe aynı madalyon (lacivert picto ya da avatar), kimlik vurgusu ayrık;
+	# seçili yan öğe tam hücre krem karo DEĞİL: madalyon büyür ve tepsiden yükselir, etiket krem hapta.
+	var accents: Array = []
+	var family: bool = true
+	for it: NavItem in nav.items():
+		accents.append(it.accent())
+		if it.avatar() == null:
+			family = family and (it.icon_node() as CanvasItem).self_modulate.is_equal_approx(UiTokens.NAV_MEDALLION_ICON)
+	var distinct: bool = true
+	for i in accents.size():
+		for j in range(i + 1, accents.size()):
+			distinct = distinct and not (accents[i] as Color).is_equal_approx(accents[j])
+	_c("tek simge ailesi: dört picto lacivert madalyonda, Profil avatarlı madalyon; beş vurgu birbirinden ayrık",
+		family and distinct and nav.item_button(4).avatar() != null)
+	var shop_item: NavItem = nav.item_button(3)
+	var home_item: NavItem = nav.item_button(0)
+	var sel_rect: Rect2 = shop_item.highlight_rect()
+	var idle_rect: Rect2 = home_item.highlight_rect()
+	_c("seçili yan madalyon büyür (%.0f > %.0f) ve tepsiden yükselir; seçili olmayan tepsinin içinde; hücre karosu yok"
+		% [sel_rect.size.x, idle_rect.size.x], sel_rect.size.x > idle_rect.size.x
+		and sel_rect.position.y < shop_item.tray_top() and idle_rect.position.y >= home_item.tray_top()
+		and sel_rect.size.x <= NavItem.MEDALLION_SELECTED + 0.5 and sel_rect.size.x < shop_item.size.x * 0.6)
 	nav.set_current(1)
 	# TASK/057 Tur 2: seçili durum TEK aile — merkez de yan öğeyle aynı krem malzemeyi uygular (etiket aynı krem hapta
 	# koyu); cyan dairede ikon lacivert kalır, merkeze özgü ek katman yalnız ince altın dış halka.
