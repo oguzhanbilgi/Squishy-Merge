@@ -37,12 +37,13 @@ signal layout_changed
 
 const LAYER: int = 6
 ## Görünen sıra: [ekran indeksi, etiket, picto rolü, merkez mi, avatar mı].
+## [ekran, etiket, picto, merkez, avatar, vurgu, vurgu dudağı] — tek madalyon ailesi (NavItem); kimlik = picto + vurgu.
 const DESTINATIONS: Array = [
-	[0, "ANA SAYFA", "home", false, false],
-	[3, "MAĞAZA", "shop", false, false],
-	[1, "HARİTA", "map", true, false],
-	[2, "KOLEKSİYON", "collection", false, false],
-	[4, "PROFİL", "", false, true],
+	[0, "ANA SAYFA", "home", false, false, UiTokens.NAV_ACCENT_HOME, UiTokens.NAV_ACCENT_HOME_DEEP],
+	[3, "MAĞAZA", "shop", false, false, UiTokens.NAV_ACCENT_SHOP, UiTokens.NAV_ACCENT_SHOP_DEEP],
+	[1, "HARİTA", "map", true, false, UiTokens.NAV_ACCENT_MAP, UiTokens.NAV_ACCENT_MAP_DEEP],
+	[2, "KOLEKSİYON", "collection", false, false, UiTokens.NAV_ACCENT_COLLECTION, UiTokens.NAV_ACCENT_COLLECTION_DEEP],
+	[4, "PROFİL", "", false, true, UiTokens.NAV_ACCENT_PROFILE, UiTokens.NAV_ACCENT_PROFILE_DEEP],
 ]
 const TRAY_HEIGHT: float = 92.0
 const SIDE_MARGIN: float = 12.0
@@ -111,7 +112,8 @@ func _init() -> void:
 	_tray.draw.connect(_draw_tray)
 	_root.add_child(_tray)
 	for spec in DESTINATIONS:
-		var item := NavItem.new(int(spec[0]), String(spec[1]), String(spec[2]), bool(spec[3]), bool(spec[4]))
+		var item := NavItem.new(int(spec[0]), String(spec[1]), String(spec[2]), bool(spec[3]), bool(spec[4]),
+			spec[5] as Color, spec[6] as Color)
 		var tab: int = int(spec[0])
 		GestureGuard.on_pressed(item, func() -> void: destination_requested.emit(tab))
 		_root.add_child(item)
@@ -266,19 +268,15 @@ func _banner_slot() -> float:
 	return _banner_override if _banner_override >= 0.0 else UiKit.banner_slot()
 
 
-## Tepsi: kalın ön dudak (yükseltilmiş ön kenar), açık lavanta halka, yumuşak yüzer gölge, alçak gloss + iç yüzde
-## hafif aydınlık bant (candy hacmi; düz araç çubuğu değil).
+## Tepsi TEK candy nesne (TASK/057 son cila): tek güçlü dış halka (açık lavanta) + kalın ön dudak (yükseltilmiş ön kenar)
+## + yumuşak yüzer gölge + yüzün üst kenarında ince ışık çizgisi. İç içe ikinci çerçeve / gloss bandı YOK.
 const TRAY_LIP: float = 10.0
 
 
 func _draw_tray() -> void:
-	var face: Rect2 = UiKit.draw_candy(_tray, Rect2(Vector2.ZERO, _tray.size), UiTokens.NAV_TRAY, UiTokens.NAV_TRAY_DEEP,
+	UiKit.draw_candy(_tray, Rect2(Vector2.ZERO, _tray.size), UiTokens.NAV_TRAY, UiTokens.NAV_TRAY_DEEP,
 		UiTokens.RADIUS_MODAL, TRAY_LIP, TRAY_LIP, UiTokens.DEPTH_FLOATING, UiTokens.LAVENDER_LIGHT,
-		float(UiTokens.BORDER_STANDARD), 0.10, 0.24)
-	# İç aydınlık: yüzün orta bandında çok hafif açık ton (yumuşak, şişkin hacim).
-	var glow := UiKit.v3_box(Color(1, 1, 1, 0.05), UiTokens.RADIUS_MODAL - 8.0)
-	_tray.draw_style_box(glow, Rect2(face.position + Vector2(14.0, face.size.y * 0.30),
-		Vector2(face.size.x - 28.0, face.size.y * 0.42)))
+		float(UiTokens.BORDER_STANDARD), 0.0)
 
 
 ## Banner aralığı kaidesi: tepsinin altında koyu lavanta, yuva üst kenarında ince açık dikiş.

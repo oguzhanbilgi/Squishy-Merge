@@ -255,22 +255,36 @@ const SURFACE_HUB_DEEP: Color = Color("43308a")
 ## parıltı ile (paletin altın kuralı: yalnız teklif / premium anı).
 const SURFACE_PREMIUM: Color = Color("7a4fd2")
 const SURFACE_PREMIUM_DEEP: Color = Color("432591")
-## Gezinme: tepsi + secili kabarcik.
+## Gezinme: tepsi + seçili ailenin krem kaidesi / etiket hapı (NAV_SELECTED*) + madalyon vurguları (NAV_ACCENT_*).
 ## Tepsi: beyaz etiket ≥ 4.5:1 (5.0:1).
 const NAV_TRAY: Color = Color("7259c9")
 ## Tepsinin ön dudağı (yükseltilmiş ön kenar): koyu erik-lavanta.
 const NAV_TRAY_DEEP: Color = Color("33246f")
 const NAV_SELECTED: Color = CREAM
 const NAV_SELECTED_DEEP: Color = Color("d9c7f2")
-## Seçili ailenin sıcak ışıması (yan karo ve merkez kaide AYNI).
+## Seçili ailenin sıcak ışıması (yan madalyon ve merkez kaide AYNI).
 const NAV_SELECTED_GLOW: Color = Color(1.0, 0.86, 0.45, 0.55)
-## Seçili olmayan ikon: saf beyaz + gölge (soluk / pasif görünmez).
-const NAV_ICON_IDLE: Color = Color("ffffff")
 ## Seçili olmayan etiket tam beyaz: tepside 4.7:1 (α .78'de 3.5:1 idi — küçük yazıda yetersiz).
 const NAV_LABEL_IDLE: Color = TEXT_ON_DARK
 ## Tepsinin arkasındaki opak taban (dock) — koyu dünya tonu.
 const NAV_DOCK: Color = Color("140f35")
 const NAV_ICON_SELECTED: Color = Color("5a3fb0")
+## TASK/057 son cila — tek gezinme simge ailesi: her hedef aynı candy madalyonu (beyaz kenar + vurgu yüz + koyu
+## dudak + lacivert picto; Profil'de yüz = oyuncu avatarı). Kimlik = picto + vurgu. Lacivert picto (TEXT_ON_ACCENT) her
+## yüzde ≥ 4.5:1 (pembe 4.8 · altın 9.6 · cyan 8.7 · nane 8.1).
+const NAV_ACCENT_HOME: Color = PINK
+const NAV_ACCENT_HOME_DEEP: Color = PINK_DEEP
+const NAV_ACCENT_SHOP: Color = GOLD
+const NAV_ACCENT_SHOP_DEEP: Color = GOLD_DEEP
+const NAV_ACCENT_MAP: Color = ROLE_PRIMARY
+const NAV_ACCENT_MAP_DEEP: Color = ROLE_PRIMARY_DEEP
+const NAV_ACCENT_COLLECTION: Color = MINT
+const NAV_ACCENT_COLLECTION_DEEP: Color = MINT_DEEP
+const NAV_ACCENT_PROFILE: Color = LAVENDER_DEEP
+const NAV_ACCENT_PROFILE_DEEP: Color = ROLE_SECONDARY_DEEP
+## Madalyon picto rengi (her vurgu yüzünde aynı) ve madalyon kenarı.
+const NAV_MEDALLION_ICON: Color = TEXT_ON_ACCENT
+const NAV_MEDALLION_RIM: Color = Color(1, 1, 1, 0.88)
 ## Pasif: mevcut DISABLED / TEXT_DISABLED (4.8:1 olculdu).
 const ROLE_DISABLED: Color = DISABLED
 const ROLE_DISABLED_DEEP: Color = DISABLED_DEEP
