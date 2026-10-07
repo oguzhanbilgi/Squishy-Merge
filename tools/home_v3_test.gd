@@ -418,7 +418,7 @@ func _medallions() -> void:
 	_c("E etiket plakası madalyon dikdörtgeninin DIŞINA taşar (yazı ortası %.0f > alt %.0f)" % [label_at.y,
 		missions.get_global_rect().end.y], label_at.y > missions.get_global_rect().end.y)
 	await _tap_at(label_at)
-	_c("E 'GÖREVLER' yazısına dokunuş da açar (etiket ölü bölge değil — owner bulgusunun madalyon ailesi)",
+	_c("E 'GÖREVLER' yazısına dokunuş da açar (etiket ölü bölge değil — TASK/058 inceleme bulgusu, madalyon ailesi)",
 		_main._missions.visible and opens[0] == 2)
 	await _back()
 	await _wait_settled()
