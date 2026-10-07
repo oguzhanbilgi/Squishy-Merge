@@ -143,7 +143,7 @@ katmanının evrimi olan V3 temeli + beş hub ekranında küresel alt gezinme (t
 seçili durum, tek parça tepsi, hub geri okları kaldırıldı, Android GERİ aynen); son üretim / test adayı `a126ace`
 masaüstü tam kapısından (55 / 55, 7122 kontrol) ve gerçek Samsung A36 görsel kapısından + gerçek Google TEST banner
 yerleşiminden GEÇTİ — hepsi entegrasyondan önce, entegrasyon ve doküman eşitlemesi sırasında yeniden koşulmadı (§4.37).
-TASK/058 Ana Sayfa V3 **dalda — son aday hazır** (`task/058-home-v3`, son aday `6de0410`; görsel yön owner onaylı, gerçek A36 kapısı GEÇTİ; main değişmedi, merge YOK; §4.38) · TASK/059 BAŞLAMADI · Release PAUSED.
+TASK/058 Ana Sayfa V3 **dalda — text-light adayı hazır** (`task/058-home-v3`, son aday `9b4e2ed`; K10 TEXT-LIGHT / ICON-FIRST, masaüstü + gerçek A36 kapısı GEÇTİ; main değişmedi, merge YOK; §4.38) · TASK/059 BAŞLAMADI · Release PAUSED.
 Release izi ayrı. Sırada: içerik derecesi + yargı bölgesi kararları + 13+ seçici uyum riski (owner) → gizlilik
 politikası → upload anahtarı → gerçek AdMob kimlikleri → mağaza varlıkları / Play Console,
 sonra ilk imzalı üretim AAB'si ve M10 (Play kapalı test) ·
@@ -3592,12 +3592,12 @@ formatına yalnız `haptics_enabled` (varsayılan true) eklendi. Ayrıntı ve
   §27.12; paket `build/qa_057_visual_review/REVIEW_INDEX.md` (Final) + `build/qa_057_owner_review/TASK057_OWNER_REVIEW.zip`
   (git dışı). Zincir: `26e0323` ui · `a8bb297` test · `a126ace` ui (basılı önizleme) · bu doküman commit'i.
 
-### 4.38 Ana Sayfa V3 (TASK/058) — DALDA, SON ADAY HAZIR (görsel yön ONAYLI, gerçek A36 GEÇTİ)
+### 4.38 Ana Sayfa V3 (TASK/058) — DALDA, TEXT-LIGHT ADAYI HAZIR (K10; masaüstü + gerçek A36 GEÇTİ)
 
-> **DAL AŞAMASI — main'e ALINMADI, merge / PR YOK (DO NOT MERGE).** Dal `task/058-home-v3`, son aday `6de0410` (taban
-> kanonik `28a5bf1`; `main == origin/main == 28a5bf1` değişmedi). **Owner görsel yönü ONAYLADI** (2026-10-07); K1–K8 A
-> seçenekleriyle kilitli, K9 terimleri uygulandı; son masaüstü kapısı ve gerçek Samsung A36 kapısı GEÇTİ. Owner son
-> incelemesi / entegrasyon onayı bekleniyor. TASK/059+ BAŞLAMADI; Release PAUSED.
+> **DAL AŞAMASI — main'e ALINMADI, merge / PR YOK (DO NOT MERGE).** Dal `task/058-home-v3`, text-light son aday `9b4e2ed`
+> (taban kanonik `28a5bf1`; `main == origin/main == 28a5bf1` değişmedi). Owner görsel yönü ONAYLADI (2026-10-07); K1–K9
+> kilitli; owner'ın gerçek A36 elle denemesinden sonra **K10 TEXT-LIGHT / ICON-FIRST** uygulandı (aşağıda); masaüstü ve
+> gerçek Samsung A36 kapısı GEÇTİ. Owner text-light incelemesi bekleniyor. TASK/059+ BAŞLAMADI; Release PAUSED.
 
 - **Faz A denetimi (düzenlemeden önce, `build/qa_058/AUDIT_PHASE_A.md`):** taban Ana Sayfa'da 10 eşit ağırlıkta öğe; kabukla
   yinelenen KOLEKSİYON / MAĞAZA madalyonları, Hamur "+", avatar (Profil), level hapı (Harita); OYNA merkez HARİTA'nın hemen
@@ -3662,7 +3662,38 @@ formatına yalnız `haptics_enabled` (varsayılan true) eklendi. Ayrıntı ve
 - **Owner paketi:** `build/qa_058_owner_review/TASK058_OWNER_REVIEW.zip` (git dışı) — `final_real_a36/` (9 kare),
   `contact_sheets/` (taban vs V3, `pre_a36_vs_final.png`, `final_real_a36.png`, son duyarlı matris), doküman 00–06, kanıt,
   `MANIFEST.sha256`; APK / kayıt / seri no / reklam kimliği / anahtar YOK.
-- **Açık:** yalnız owner son incelemesi + entegrasyon onayı (main'e ff-only). DO NOT MERGE onaydan önce.
+- **K10 — TEXT-LIGHT / ICON-FIRST (owner, 2026-10-07; gerçek A36 elle denemesinden sonra):** "Alt bar iyi. Günlük ve
+  Meydan Okuma çok büyük, ortada ağır duruyor; fazla yazı; ürün genelinde neredeyse hiç yazı olmasın; ikon, rozet, sayı,
+  ilerleme; gerekiyorsa tek kelime." Büyük kartlar REDDEDİLDİ; yerine yeni V3 bileşeni `FeatureTile` (candy ikon kuyusu +
+  tek kelime + durum cipleri, köşe rozeti, hazır halesi, › yok, karonun tamamı tek hedef; `FeatureCard` değişmedi) ile OYNA'nın
+  altında yan yana **GÜNLÜK | MEYDAN** (yarım sütun 328 × 108 tuval px). Metin denetimi (Ana Sayfa): GÜNLÜK ÖDÜLLER → GÜNLÜK ·
+  seri cümlesi → alev + sayı · "ücretsiz sandık / giriş ödülü hazır" → HAZIR (+ "!" + hale) · "bugünün sandığı alındı" →
+  kaldırıldı · "bugünlük tamam" / "Bugün tamamlandı · yarın yenisi" → ✓ TAMAM · "Yarın açılır" → kilit + YARIN · › →
+  kaldırıldı · MEYDAN OKUMA → MEYDAN · "Dev Dumpling yap · 38 hamlede" → hedef portresi + "38 HAMLE" (oyun HUD'unun kelimesi)
+  · "+20 HAMUR" → Hamur ikonu + "+20" · BONUS SANDIK → SANDIK; KEEP: SV. N, unvan, Hamur, GÖREVLER + N/6, SIRADAKİ BÖLÜM N,
+  SONSUZ MOD, OYNA, kabuk etiketleri. Maskot: 720×1280 449 → 600 · 16:9 + banner 112 361 → 486 · 128 347 → 465 · A36 +
+  banner 528 → 600 tuval px. Davranış aynen (rotalar, ilk gün kuralı, yatışma, öne dönüş tazelemesi, ekonomi). GAME_DESIGN
+  yalnız ifade (§5.4.1 / §5.10 / §5.11 / §7 / §12.3). İlke UI_VISUAL_SYSTEM §29'da kayıtlı (TASK/059–064 varsayılanı).
+  **Commit'ler:** `0b49b3f` arayüz (kompakt karolar) · `9b4e2ed` test · bu doküman commit'i (+ GAME_DESIGN ifadesi).
+  **Kanıt (`9b4e2ed`):** `home_v3_test` 229 / 229 (yapı, durumlar, ikon / kelime / karo dokunuşu tam bir kez, iptal 0,
+  çift dokunuş tek, beş veri durumunda uzun / açıklayıcı metin sızmaz, kaynak sözleşmesi, maskot ≥ 440); odak + koruma
+  koşusu 16 / 17 (tek kirli koşu eski kart API'sini çağıran `home_ui_test` sürümü — uyarlandı, 153 / 153); K10 hafif negatif
+  kontroller 4 / 4 açık FAIL ile öldü (uzun Günlük metni · uzun Meydan Okuma cümlesi · karo < dokunma hedefi · ikon dokunuşu
+  yutuluyor), bayt-aynı geri kondu; **kontrollü tam masaüstü kapısı gate4: 56 / 56 temiz, 7286 kontrol, 0 FAIL, 0 SCRIPT
+  ERROR, bot 2 / 2, sahibin kaydı bayt-aynı (görev öncesi yedekle de)**. **Gerçek Samsung A36 (K10) — GEÇTİ:** QA APK
+  `9b4e2ed`'den (statik doğrulama 105 kontrol); üretim paketi hiç kurulmadı; `com.example.squishymerge` dokunulmadı; QA
+  paketinin kaydı owner'ın kendi elle denemesinden sonra değişmişti — o güncel durum yedeklendi ve bayt-aynı geri kondu; her
+  girdi güvenlik denetimli + QA-önde koruması, güvensiz dönem olmadı; 9 fiziksel kare (varsayılan, banner, meydan açık,
+  sandık alındı, ilk gün YARIN, günlük tamam, meydan tamam, iki pencere); gerçek dokunuş: GÜNLÜK / MEYDAN gövde / ikon /
+  kelime tam bir kez, çift dokunuş tek, iptal 0, kilitli 0, OYNA tek Harita geçişi, kabuk aynen, SANDIK / GÖREVLER birer;
+  log: 0 SCRIPT ERROR, 0 çökme / ANR, yalnız Google TEST yayıncısı (2 "E godot" satırı = yalnız QA koşum sahnesinin eski UID
+  uyarısı, üretim değil). Gerçek TEST banner (yerleşim kanıtı, politika iddiası DEĞİL): karolar tepsiden 81 fiziksel px
+  yukarıda, tepsi–banner ~42 px, çakışma yok. Fiziksel görsel değerlendirme: karolar oyun özelliği gibi, büyük orta kart
+  yok, OYNA baskın, maskot büyük, tek kelimeler / cipler okunur, kırpma yok — TASK/058'e özgü gerileme yok.
+- **Owner paketi (K10):** `build/qa_058_owner_review/TASK058_OWNER_REVIEW.zip` — `pre_text_light_vs_final.png`,
+  `final_real_a36.png`, `final_real_a36_tiles.png`, son duyarlı matris, `final_real_a36/` (9 kare), doküman 00–06 (02:
+  `K10 — TEXT-LIGHT / ICON-FIRST: APPROVED`), kanıt, `MANIFEST.sha256`; APK / kayıt / seri no / reklam kimliği / anahtar YOK.
+- **Açık:** owner text-light görsel incelemesi (+ sonra entegrasyon onayı, main'e ff-only). DO NOT MERGE onaydan önce.
 
 ## 5. Dosya/klasör yapısı ve script envanteri
 
@@ -4464,11 +4495,11 @@ Owner'ın yapacağı / onaylayacağı:)*
   (§4.37; owner / ChatGPT görsel onayı APPROVED; masaüstü + gerçek Samsung A36 görsel kapıları GEÇTİ — kontrollü tam
   masaüstü kapısı 55 / 55 temiz, 0 FAIL; owner onayıyla ff-only `d5237bf → 84964af`, 2026-10-07; dal
   `task/057-ui-system-v3-global-nav` duruyor).
-- **TASK/058** — Ana Sayfa V3 → **dalda, SON ADAY HAZIR** (`task/058-home-v3`, son aday `6de0410`, taban `28a5bf1`;
-  görsel yön owner onaylı, K1–K9 kilitli; masaüstü gate3 56 / 56 temiz; gerçek A36 kapısı GEÇTİ; main DEĞİŞMEDİ; §4.38).
-  Owner Günlük bulgusunun kök nedeni kanıtlandı ve dalda düzeltildi.
-- **Sıradaki adım (güncel):** owner TASK/058 son incelemesi ve entegrasyon onayı → main'e ff-only. DO NOT MERGE onaydan önce.
-  TASK/059 BAŞLAMADI. Release PAUSED.
+- **TASK/058** — Ana Sayfa V3 → **dalda, TEXT-LIGHT ADAYI HAZIR** (`task/058-home-v3`, son aday `9b4e2ed`, taban `28a5bf1`;
+  görsel yön owner onaylı, K1–K10; masaüstü gate4 56 / 56 temiz; gerçek A36 kapısı GEÇTİ; main DEĞİŞMEDİ; §4.38). Owner
+  Günlük bulgusunun kök nedeni kanıtlandı ve dalda düzeltildi.
+- **Sıradaki adım (güncel):** owner TASK/058 text-light görsel incelemesi → onaylanırsa main'e ff-only. DO NOT MERGE onaydan
+  önce. TASK/059 BAŞLAMADI. Release PAUSED.
 - *(Tarihsel — TASK/056 sonrası, 2026-10-06:)* **Sıradaki görev:** owner seçer — TASK/057 oluşturulmadı; otomatik bir
   sonraki ürün düzeltme görevi tanımlı değil.
   Bilinen, izlenen açık ürün maddesi: 0 (ürünün hatasız olduğu iddia edilmez) — T5 hedef kartı kırpması `Büyük Dumpl…`

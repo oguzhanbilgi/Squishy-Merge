@@ -2309,12 +2309,13 @@ V3, 84 / 64 px, GestureGuard, görünürlük matrisi, kompakt kip, TASK/058 / 05
 - **Bilinen gözlem:** cihazda basılı tutuş ~2 s'yi aşınca basış önizlemesi düşüyor (Android uzun basış penceresi;
   araştırılmadı) — normal dokunuşu etkilemez, uzun tutup bırakmak gezinme kanıtı değildir.
 
-## 28. Ana Sayfa V3 (TASK/058) — DALDA, SON ADAY (görsel yön ONAYLI, gerçek A36 GEÇTİ)
+## 28. Ana Sayfa V3 (TASK/058) — DALDA, TEXT-LIGHT ADAYI (owner incelemesi bekliyor)
 
-**Durum:** `task/058-home-v3` dalında, son aday `6de0410` (taban kanonik `28a5bf1`; main DEĞİŞMEDİ, merge / PR YOK).
-**Owner görsel yönü ONAYLADI** (2026-10-07); K1–K8 A seçenekleriyle kilitli, K9 terimleri uygulandı (§28.8); gerçek
-Samsung A36 kapısı GEÇTİ (§28.9). Owner son incelemesi / entegrasyon onayı olmadan main'e alınmaz. TASK/059+ BAŞLAMADI,
-Release PAUSED. İnceleme paketi `build/qa_058_visual_review/` + owner ZIP `build/qa_058_owner_review/TASK058_OWNER_REVIEW.zip`
+**Durum:** `task/058-home-v3` dalında (taban kanonik `28a5bf1`; main DEĞİŞMEDİ, merge / PR YOK). Owner görsel yönü
+ONAYLADI (2026-10-07); K1–K9 kilitli (§28.8). Owner gerçek A36'da elle denedi: alt gezinme iyi; GÜNLÜK ÖDÜLLER / MEYDAN
+OKUMA kartları fazla büyük ve fazla yazılı → **K10 TEXT-LIGHT / ICON-FIRST** (§29): iki büyük kart REDDEDİLDİ, yerine yan
+yana iki kompakt `FeatureTile` (§28.10). Önceki son aday `6de0410`'ın A36 kapısı tarihsel (§28.9); text-light adayının
+masaüstü + A36 kapısı §28.10. Owner incelemesi olmadan main'e alınmaz. TASK/059+ BAŞLAMADI, Release PAUSED. İnceleme paketi `build/qa_058_visual_review/` + owner ZIP `build/qa_058_owner_review/TASK058_OWNER_REVIEW.zip`
 (git dışı).
 
 **Okuma sırası:** kimlik / maskot → OYNA → GÜNLÜK ÖDÜLLER + MEYDAN OKUMA → küresel gezinme. Eşdeğer ağırlıkta küçük
@@ -2328,29 +2329,29 @@ düğmeler kalktı: etkileşimli öğe 10 → **5** (OYNA, iki özellik kartı, 
 | Logo | SQUISHY MERGE, 540 px (kısa ekranda 420'ye kadar küçülür) | — |
 | Hero | owner maskotu (hale, yer gölgesi, maskotla ölçeklenen tier 3 / 6 dumpling, pırıltılar, nefes); üst köşelerde `HomeFeatureButton` madalyonları: sol **GÖREVLER** (N/6; 6/6 nane), sağ **BONUS SANDIK** (N/75 + altın halka) | madalyon gövdesi + etiket plakası |
 | OYNA | `SquishyButton` PRIMARY HERO (108 px, ▶ OYNA, ≤ 520 px) + cyan hale + %1.5 nefes → Harita (rota aynen); üstünde dokunma almayan harita ilerlemesi ("SIRADAKİ BÖLÜM 5 ★ 11/30" — K9 / "SONSUZ MOD Rekor …") | OYNA |
-| Kartlar | iki tam genişlik `FeatureCard` (124 px, alt yazı TYPE_BODY 19): **GÜNLÜK ÖDÜLLER** (pembe hediye kuyusu; gerçek durum alt yazısı; alınacak varsa "!" `AttentionBadge`) ve **MEYDAN OKUMA** (bugünün hedef portresi, `DailyChallenge.goal_text`, altın "+20 HAMUR" cipi / nane "TAMAM") | kartın tamamı |
+| Karolar (K10) | iki kompakt `FeatureTile` YAN YANA (yarım sütun 328 × 108 px): **GÜNLÜK** (pembe hediye kuyusu; seri alevi + sayı, "HAZIR" + "!" + hale yalnız alınacak varsa, nane "TAMAM"; ilk gün kilit + "YARIN") ve **MEYDAN** (bugünün hedef portresi, "N HAMLE", Hamur ikonu "+20" / nane "TAMAM"). *(Önce: iki tam genişlik `FeatureCard`, alt yazılı — owner K10 ile reddedildi.)* | karonun tamamı (ikon + kelime + cipler dahil) |
 | Teklif yuvası | gizli, boş `OfferSlot` (TASK/062 sözleşmesi; yer kaplamaz, içerik verilince kendini yerleştirir) | — |
 | Kabuk | TASK/057 `GlobalNav` (DEĞİŞMEDİ); kartlar payın üstünde biter | — |
 
-Yerleşim alttan yukarı: kartlar kabuğun payının 14 px üstünde biter (kompakt kabukta — merkez taşması < 30 px, 16:9 +
+Yerleşim alttan yukarı (K10'dan beri tek karo sırası): karolar kabuğun payının 14 px üstünde biter (kompakt kabukta — merkez taşması < 30 px, 16:9 +
 banner — 32 px: seçili yan madalyon 14 px yükselir, dock solması tepsinin 30 px üstünde başlar); OYNA kartların 26 px
 (kompaktta 16) üstünde; kalan yükseklik hero'ya. Maskot iki yerleşimden büyüğünü alır: madalyon sütunlarının ARASINDA
 (kısa ekran) ya da yalnız dar tepesi madalyonların arasına sokulup gövdesi altlarında (uzun ekran); en az 300 px, yer
 yoksa 200'e kadar (çakışmaktansa küçülür). Ölçülen maskot: 720×1280 449 · 16:9 + 112 361 · 16:9 + 128 347 · 720×1600 600
 · A36 benzeri 600 · A36 + 112 528. Geniş tuvalde (≥ 720) içerik 720 sütunda ortalı.
 
-### 28.2 GÜNLÜK ÖDÜLLER kartının durumları (yalnız gerçek veri; kayda yazmaz)
+### 28.2 GÜNLÜK karosunun durumları (K10; yalnız gerçek veri; kayda yazmaz)
 
-| Durum | Alt yazı | "!" | Kart |
+| Durum | Cipler | "!" + hale | Karo |
 |---|---|---|---|
-| ilk gün (tutorial bugün bitti — GAME_DESIGN §12.3) | "Yarın açılır" | yok | PASİF: gri yüz, kilit pictosu, yazı TEXT_DISABLED, › gizli; pencere AÇILMAZ (kural) |
-| giriş ödülü bekliyor | "Giriş ödülü hazır" | var | etkin |
-| ücretsiz sandık hazır | "N günlük seri · ücretsiz sandık hazır" | var | etkin |
-| sandık alındı (reklamlı haklar duruyor) | "N günlük seri · bugünün sandığı alındı" | yok | etkin |
-| bugünlük tamam | "N günlük seri · bugünlük tamam" | yok | etkin |
+| ilk gün (tutorial bugün bitti — GAME_DESIGN §12.3) | "YARIN" (koyu hap) | yok | PASİF: gri yüz, kilit pictosu, kelime TEXT_DISABLED; pencere AÇILMAZ (kural) |
+| giriş ödülü bekliyor | "HAZIR" (altın) | var | etkin |
+| ücretsiz sandık hazır | 🔥 N · "HAZIR" | var | etkin |
+| sandık alındı (reklamlı haklar duruyor) | 🔥 N | yok | etkin |
+| bugünlük tamam | 🔥 N · ✓ "TAMAM" (nane) | yok | etkin |
 
-Seri öneki yalnız bugünün giriş ödülü alındıysa ve seri > 0 iken; "·" sonrası tek kural küçük harf. Uygulama öne dönünce
-(ertesi gün) kart Main'den tazelenir — bayat kilit ölü düğme olmaz.
+Seri cipi (alev ikonu + sayı) yalnız bugünün giriş ödülü alındıysa ve seri > 0 iken. Cümle / › yok. Uygulama öne dönünce
+(ertesi gün) karo Main'den tazelenir — bayat kilit ölü düğme olmaz.
 
 ### 28.3 Owner bulgusu ve düzeltme (Ana Sayfa Günlük)
 
@@ -2360,7 +2361,7 @@ inceleme sırasında iki gizli kusur bulundu ve düzeltildi: madalyon etiketi ö
 artık etiket plakasını kapsar) ve günlük pencerenin 300 ms yatışmasız açılış / kapanışı (`Main` açılış ve kapanışta
 `settle_touch_input`, GÖREVLER / MEYDAN OKUMA ile aynı). Ödül / kota / ilk gün kuralı / pencere içi DEĞİŞMEDİ.
 
-### 28.4 Kaldırılan yinelenen girişler
+### 28.4 Kaldırılan yinelenen girişler (+ K10: madalyon etiketi "BONUS SANDIK" → "SANDIK")
 
 MAĞAZA / KOLEKSİYON madalyonları, Hamur "+", Profil avatarı, Harita'ya giden level hapı — hedefleri kabukta (rotalar ve
 diğer ekranlardaki kısayollar aynen). Ana Sayfa'nın `shop_requested` / `collection_requested` / `profile_requested` /
@@ -2396,7 +2397,7 @@ STATUS_LEVEL_CAPTION` → `PlayerLevelBadge.set_caption`; varsayılan "LV." Prof
 Günlük sözleşmesi (ilk gün kilidi, kart hedefi, etiket isabet alanı, açılış / kapanış yatışması, öne dönüş tazelemesi)
 aynen.
 
-### 28.9 Gerçek Samsung A36 kapısı (son aday) — GEÇTİ
+### 28.9 Gerçek Samsung A36 kapısı (K9 adayı `6de0410` — K10 öncesi, tarihsel) — GEÇTİ
 
 QA paketi `com.obappstudio.squishymerge.qa` (Google TEST reklamları), QA APK `6de0410`'dan. 9 fiziksel kare (1080×2340):
 Ana Sayfa gerçek TEST banner'lı / banner'sız, seçili ANA SAYFA, ilk gün kilitli, hepsi tamam, GÜNLÜK / MEYDAN OKUMA /
@@ -2407,3 +2408,47 @@ kenarı ile banner arasında ~42 fiziksel px (~28 tuval px) koyu aralık, çakı
 hiyerarşi masaüstüyle aynı, "SV." ve "SIRADAKİ BÖLÜM 5" okunur, kırpma / taşma yok — TASK/058'e özgü gerileme yok.
 Engellemeyen not (TASK/058 dışı): banner yuvası hiç yokken kabuk tepsisi ekran altına ~12 fiziksel px yakın oturuyor
 (TASK/057 `GlobalNav`, değişmedi) — TASK/064 cila turunda değerlendirilebilir.
+
+### 28.10 K10 — kompakt özellik karoları (TEXT-LIGHT adayı)
+
+Owner gerçek A36'da elle denedi: "Alt bar iyi. Günlük ve Meydan Okuma çok büyük, ortada ağır duruyor; fazla yazı."
+Yalnız bu bölge yeniden kuruldu; durum satırı, logo, maskot, GÖREVLER / SANDIK, "SIRADAKİ BÖLÜM N", OYNA, kabuk, banner
+entegrasyonu, rotalar ve oyun mantığı aynen.
+
+- **Bileşen:** `FeatureTile` (V3, yeni; `FeatureCard` değişmedi): `[candy ikon kuyusu 80] TEK KELİME (Baloo 28) /
+  [durum cipleri]`, köşede `AttentionBadge`, alınacak varsa vurgu renginde hale; › YOK; karonun tamamı tek hedef (kuyu /
+  kelime / cipler fare almaz); basış dudağı + UiMotion squash; pasifte gri yüz. Cip türleri: altın (ödül / HAZIR) · nane
+  (✓ TAMAM) · bilgi (sayı: seri, hamle) · pasif (koyu hap: YARIN).
+- **Yerleşim:** OYNA'nın altında YAN YANA iki karo (16 px ara, yarım sütun 328 × 108 px — TOUCH_TARGET 84'ün üstünde);
+  MEYDAN gizliyse GÜNLÜK ortada. İki büyük kart (2 × 124 + 14) yerine tek sıra (108): maskot 720×1280 449 → 600 ·
+  16:9 + banner 112 361 → 486 · 16:9 + banner 128 347 → 465 · A36 + banner 528 → 600 (tuval px).
+- **Metin:** "GÜNLÜK ÖDÜLLER" → "GÜNLÜK", "MEYDAN OKUMA" → "MEYDAN", seri cümlesi → 🔥 N, "ücretsiz sandık hazır" /
+  "Giriş ödülü hazır" → "HAZIR", "bugünlük tamam" / "Bugün tamamlandı · yarın yenisi" → "TAMAM", "Yarın açılır" →
+  "YARIN", "Dev Dumpling yap · 38 hamlede" → hedef portresi + "38 HAMLE" (oyun HUD'unun kelimesi), "+20 HAMUR" → Hamur
+  ikonu + "+20", "BONUS SANDIK" → "SANDIK". Pencerelerin içi DEĞİŞMEDİ (ayrıntı orada).
+- **Test:** `home_v3_test` (yapı: FeatureCard yok, iki FeatureTile yan yana / yarım sütun / ≥ 84; durumlar; ikon + kelime +
+  karo dokunuşu tam bir kez, iptal 0, çift dokunuş tek; Ana Sayfa'da uzun / açıklayıcı metin sızmaz; kaynak sözleşmesi;
+  maskot ≥ 440). **Kanıt (son aday `9b4e2ed`):** `home_v3_test` 229 / 229; kontrollü tam masaüstü kapısı 56 / 56 temiz,
+  7286 kontrol, 0 FAIL, 0 SCRIPT ERROR, bot 2 / 2, sahibin kaydı bayt-aynı; 4 / 4 hafif negatif kontrol öldü. **Gerçek
+  Samsung A36 — GEÇTİ:** 9 fiziksel kare; karolar 492 × 162 fiziksel px, tepsiden 81 px yukarıda; GÜNLÜK / MEYDAN gövde /
+  ikon / kelime dokunuşu tam bir kez, çift dokunuş tek, iptal 0, kilitli 0; 0 SCRIPT ERROR / 0 çökme / 0 ANR; gerçek TEST
+  banner karoları sıkıştırmıyor (yerleşim kanıtı, politika iddiası değil). Ayrıntı PROJECT_STATUS §4.38.
+
+## 29. TEXT-LIGHT / ICON-FIRST — Product Vision V3 metin ilkesi (owner, TASK/058 K10)
+
+**Kural:** normal oyun gezinmesi ve özellik girişlerinde `İKON + TEK KELİME + SAYI / ROZET / İLERLEME`, şunun yerine:
+`BAŞLIK + ALT YAZI + AÇIKLAMA + OK`. Hub ekranı bir uygulama listesi değil, bir oyun HUD'u gibi okunur: karakter + OYNA +
+oyun sistemleri. Oyuncu görsel dili anlar; görsel durum anlamı taşıyorsa açıklayıcı metin YAZILMAZ.
+
+- **Tercih:** güçlü ikon / sanat · tek kelime etiket (Türkçe doğal kalır — zorlama kısaltma yok: "GÖREVLER" kalır) ·
+  sayı (seri, kalan, ödül) · rozet ("!", N/6) · ilerleme (halka / ray) · görsel durum (kilit, ✓, hale, soluk).
+- **Kaçın:** paragraf benzeri alt yazı, uzun yatay bilgi satırları, gereksiz › okları, eşit ağırlıklı metin blokları,
+  aynı bilgiyi hem ikonla hem cümleyle söylemek.
+- **Şifreli yapma:** tek başına anlaşılmayan ikon + sayı varsa KISA destek kelimesi eklenir ("38 HAMLE" — oyunun kendi
+  HUD kelimesi). Yeni veri / ikon uydurulmaz; mevcut gerçek veri kısaltılır.
+- **Açık kalır (metin gerekli):** güvenlik, yasal / uyum (yaş, gizlilik, reklam rızası), satın alma onayı, geri alınamaz
+  eylemler, hata durumları; pencerelerin İÇİ ayrıntıyı taşıyabilir (giriş kısa, içerik açıklayıcı).
+- **Kapsam:** TASK/058'de yalnız Ana Sayfa üretim yüzeyi uygulandı (§28.10; metin denetimi PROJECT_STATUS §4.38). Ürün
+  geneli metin yeniden yazımı YAPILMADI. Bu ilke TASK/059–064 yeniden tasarımlarının (Harita, oyun HUD'u, Günlük &
+  Görevler, Mağaza, Meydan Okuma merkezi, Koleksiyon / Profil / Ayarlar) varsayılanıdır; kabuk (TASK/057) etiketleri ayrı
+  onaylı görev olmadan değişmez.
