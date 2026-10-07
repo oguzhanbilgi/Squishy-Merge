@@ -143,7 +143,7 @@ katmanının evrimi olan V3 temeli + beş hub ekranında küresel alt gezinme (t
 seçili durum, tek parça tepsi, hub geri okları kaldırıldı, Android GERİ aynen); son üretim / test adayı `a126ace`
 masaüstü tam kapısından (55 / 55, 7122 kontrol) ve gerçek Samsung A36 görsel kapısından + gerçek Google TEST banner
 yerleşiminden GEÇTİ — hepsi entegrasyondan önce, entegrasyon ve doküman eşitlemesi sırasında yeniden koşulmadı (§4.37).
-TASK/058 Ana Sayfa V3 **dalda — owner görsel incelemesi bekliyor** (`task/058-home-v3`, main değişmedi; §4.38) · TASK/059 BAŞLAMADI · Release PAUSED.
+TASK/058 Ana Sayfa V3 **dalda — son aday hazır** (`task/058-home-v3`, son aday `6de0410`; görsel yön owner onaylı, gerçek A36 kapısı GEÇTİ; main değişmedi, merge YOK; §4.38) · TASK/059 BAŞLAMADI · Release PAUSED.
 Release izi ayrı. Sırada: içerik derecesi + yargı bölgesi kararları + 13+ seçici uyum riski (owner) → gizlilik
 politikası → upload anahtarı → gerçek AdMob kimlikleri → mağaza varlıkları / Play Console,
 sonra ilk imzalı üretim AAB'si ve M10 (Play kapalı test) ·
@@ -3592,11 +3592,12 @@ formatına yalnız `haptics_enabled` (varsayılan true) eklendi. Ayrıntı ve
   §27.12; paket `build/qa_057_visual_review/REVIEW_INDEX.md` (Final) + `build/qa_057_owner_review/TASK057_OWNER_REVIEW.zip`
   (git dışı). Zincir: `26e0323` ui · `a8bb297` test · `a126ace` ui (basılı önizleme) · bu doküman commit'i.
 
-### 4.38 Ana Sayfa V3 (TASK/058) — DALDA, OWNER GÖRSEL İNCELEMESİ BEKLİYOR
+### 4.38 Ana Sayfa V3 (TASK/058) — DALDA, SON ADAY HAZIR (görsel yön ONAYLI, gerçek A36 GEÇTİ)
 
-> **DAL AŞAMASI — main'e ALINMADI, merge YOK, owner onayı YOK.** Dal `task/058-home-v3` (taban kanonik `28a5bf1`;
-> `main == origin/main == 28a5bf1` değişmedi). Owner görsel incelemesi bekleniyor; gerçek A36 fiziksel kapısı onaydan
-> SONRA (görev talimatı §21). TASK/059+ BAŞLAMADI; Release PAUSED.
+> **DAL AŞAMASI — main'e ALINMADI, merge / PR YOK (DO NOT MERGE).** Dal `task/058-home-v3`, son aday `6de0410` (taban
+> kanonik `28a5bf1`; `main == origin/main == 28a5bf1` değişmedi). **Owner görsel yönü ONAYLADI** (2026-10-07); K1–K8 A
+> seçenekleriyle kilitli, K9 terimleri uygulandı; son masaüstü kapısı ve gerçek Samsung A36 kapısı GEÇTİ. Owner son
+> incelemesi / entegrasyon onayı bekleniyor. TASK/059+ BAŞLAMADI; Release PAUSED.
 
 - **Faz A denetimi (düzenlemeden önce, `build/qa_058/AUDIT_PHASE_A.md`):** taban Ana Sayfa'da 10 eşit ağırlıkta öğe; kabukla
   yinelenen KOLEKSİYON / MAĞAZA madalyonları, Hamur "+", avatar (Profil), level hapı (Harita); OYNA merkez HARİTA'nın hemen
@@ -3618,7 +3619,9 @@ formatına yalnız `haptics_enabled` (varsayılan true) eklendi. Ayrıntı ve
   (GÜNLÜK ÖDÜLLER, MEYDAN OKUMA — gerçek veriyle) · gizli boş teklif yuvası (TASK/062) · TASK/057 kabuğu aynen. Etkileşimli
   öğe 10 → 5. Ayrıntı: UI_VISUAL_SYSTEM §28.
 - **Commit'ler (dal):** `c5d3bbc` düzeltme (günlük pencere yatışması + madalyon etiketi) · `029eced` arayüz (Ana Sayfa V3) ·
-  `9080a85` + `fd59d69` + `749080b` + `6e88368` test · bu doküman commit'i.
+  `9080a85` + `fd59d69` + `749080b` + `6e88368` test · `8b070e8` doküman (görsel inceleme adayı) · **son cila:** `e060cd0`
+  arayüz (K9 terimleri) · `91c74b2` test (K9) · `6de0410` GAME_DESIGN ifadesi · `01f167e` test araçlarının `.uid` dosyaları ·
+  bu doküman commit'i.
 - **Kanıt (son üretim / test adayı `6e88368`; üretim kodu `029eced`'ten beri değişmedi):** kontrollü tam masaüstü kapısı 56 / 56 temiz (home_v3_test dahil), 7243 kontrol, 0 FAIL, 0 SCRIPT ERROR, bot 2 / 2, sahibin kaydı bayt-aynı; `home_v3_test` 186 / 186. İlk tam koşu
   (`749080b`) 55 / 56 temizdi — tek FAIL `age_ad_routing_test`in tam OYNA kayma beklentisi (V3 kompakt sabitleri eksikti);
   test uyarlandı (`6e88368`), tam kapı yeniden koşuldu. Hafif negatif kontroller: 10 / 10 varyant açık FAIL ile öldü
@@ -3627,9 +3630,39 @@ formatına yalnız `haptics_enabled` (varsayılan true) eklendi. Ayrıntı ve
   3 inceleyici / 10 mercek — 0 BLOCKER; tek HIGH (OYNA → Harita yinelemesi) owner talimatıyla kabul edilmiş yineleme (iki kart
   arayla); MEDIUM'lar giderildi (bayat kilit, unvan genişliği, kilitli kart görünümü, alt yazı puntosu, test geçerliliği,
   dürüst ifade). Görsel paket: `build/qa_058_visual_review/` (taban + aday 6 görünüm × 8 kare, 8 contact sheet).
-- **Açık / owner kararı:** 02_OWNER_DECISIONS K1–K9 (ilk gün kartı, Profil / Hamur "+" kaldırma, ikincil girişler, level
-  bilgisi, metinler, teklif yuvası, OYNA hedefi bilgisi, LV/Level terimleri); GAME_DESIGN §5.4.1 / §5.8 / §12.3 ifade
-  güncellemesi (kilitli doküman — onay bekliyor).
+- ~~**Açık / owner kararı:** K1–K9; GAME_DESIGN ifade güncellemesi~~ → **owner kararı (2026-10-07): görsel yön ONAYLI;
+  K1–K8 A** (ilk gün kartı pasif + kilit + "Yarın açılır" · Ana Sayfa avatarı yok · Hamur "+" yok · GÖREVLER / BONUS SANDIK
+  köşe madalyonları · sıradaki bölüm satırı yalnız gösterge · kart metinleri aynen · gizli 0 yükseklikli teklif yuvası ·
+  OYNA → Harita ve HARİTA → Harita aynen); **K9** (yalnız Ana Sayfa): oyuncu rozeti "SV." (önce "LV."), "SIRADAKİ BÖLÜM N"
+  (önce "Level N"), sonsuzda "SONSUZ MOD" + yıldızlar aynen — `PlayerLevelBadge.set_caption` eklendi, Profil / sonuç "LV."
+  aynen. GAME_DESIGN §5.4.1 / §5.8 / §5.10 / §5.11 / §7 / §12.3 yalnız ifade (`6de0410`; kural / sayı / ekonomi aynen).
+- **Son kanıt (son aday `6de0410`; üretim / test içeriği `91c74b2` ile aynı):** K9 odak koşusu 6 / 6 temiz, 997 kontrol
+  (ilk denemede `PlayerLevelBadge`'de yinelenen `caption_text` ayrıştırma hatası — koşucu ağacı durduruldu, kayıt bayt-aynı,
+  düzeltildi, yeniden koşuldu); **kontrollü tam masaüstü kapısı gate3: 56 / 56 temiz, 7248 kontrol, 0 FAIL, 0 SCRIPT ERROR,
+  bot 2 / 2, sahibin kaydı bayt-aynı (görev öncesi yedekle de)**; `home_v3_test` 191 / 191; K9 hafif negatif kontroller
+  2 / 2 açık FAIL ile öldü ("Level %d" geri · rozet "LV." geri), bayt-aynı geri kondu.
+- **Gerçek Samsung A36 kapısı — GEÇTİ (2026-10-07):** QA paketi `com.obappstudio.squishymerge.qa`, QA APK `6de0410`'dan
+  (statik doğrulama 102 kontrol: QA kimliği, Google örnek kimlikleri, GMA 25.3.0 / UMP 4.0.0, Ana Sayfa V3 + K9
+  tanımlayıcıları var, kaldırılan kısayollar yok); QA katmanı `qa058_device` yalnız `build/` altında, commit EDİLMEDİ.
+  Üretim paketi hiç kurulmadı; `com.example.squishymerge` dokunulmadı; salt okunur ön kontrol; her girdi / çekim güvenlik
+  denetimli — iki arama sırasında tüm girdi / çekim engellendi, arama sonrası alınan yanlış içerikli bir kare silindi,
+  sürücü ilk güvensiz denetimde durur hâle getirildi ve adımlar 60 sn güvenli süreden sonra yeniden koşuldu; otomatik kilit
+  açma / gezinme kipi / saat / saat dilimi değişikliği yok; QA paketinin kendi kaydı (+ .bak) bayt-aynı geri kondu, paket
+  kurulu bırakıldı; yalnız oturumun adb daemon'u durduruldu. 9 fiziksel kare (Ana Sayfa TEST banner'lı / banner'sız,
+  seçili ANA SAYFA, ilk gün kilitli, hepsi tamam, GÜNLÜK / MEYDAN OKUMA / GÖREVLER pencereleri). Gerçek dokunuş: her giriş
+  (kart gövdesi / başlık / alt yazı, madalyon gövdesi / etiket) tam bir açılış; karartma / KAPAT / X / GERİ kapatır; çift
+  dokunuş tek açılış; 600 ms basılı tut + bırak tek açılış; bas + sürükle + bırak 0; ilk gün kilitli kart 0 açılış;
+  OYNA tek / çift dokunuş tam bir Harita geçişi, 0 level başlatma; kabuk ANA SAYFA Ana Sayfa'da 0 gezinme, diğerleri birer;
+  öne dönüş (HOME + yeniden açma) doğru; yabancı dokunuş sayımı her grupta kendi dokunuşlarına eşit. Log taraması: 0 SCRIPT
+  ERROR, 0 çökme / ANR / yerel sinyal, yalnız Google TEST yayıncısı. **Gerçek Google TEST banner** (yerleşim kanıtı,
+  politika sertifikası DEĞİL): SHOWN, 113 tuval px = 170 fiziksel px, tepsi ile ~42 fiziksel px (~28 tuval px) aralık,
+  çakışma yok. Fiziksel görsel değerlendirme: TASK/058'e özgü gerileme yok → kod değişikliği gerekmedi. Engellemeyen not
+  (TASK/058 dışı): banner yuvası hiç yokken kabuk tepsisi ekran altına ~12 fiziksel px yakın — TASK/057 kabuk kodu,
+  değişmedi (TASK/064 cila).
+- **Owner paketi:** `build/qa_058_owner_review/TASK058_OWNER_REVIEW.zip` (git dışı) — `final_real_a36/` (9 kare),
+  `contact_sheets/` (taban vs V3, `pre_a36_vs_final.png`, `final_real_a36.png`, son duyarlı matris), doküman 00–06, kanıt,
+  `MANIFEST.sha256`; APK / kayıt / seri no / reklam kimliği / anahtar YOK.
+- **Açık:** yalnız owner son incelemesi + entegrasyon onayı (main'e ff-only). DO NOT MERGE onaydan önce.
 
 ## 5. Dosya/klasör yapısı ve script envanteri
 
@@ -4431,10 +4464,11 @@ Owner'ın yapacağı / onaylayacağı:)*
   (§4.37; owner / ChatGPT görsel onayı APPROVED; masaüstü + gerçek Samsung A36 görsel kapıları GEÇTİ — kontrollü tam
   masaüstü kapısı 55 / 55 temiz, 0 FAIL; owner onayıyla ff-only `d5237bf → 84964af`, 2026-10-07; dal
   `task/057-ui-system-v3-global-nav` duruyor).
-- **TASK/058** — Ana Sayfa V3 → **dalda, OWNER GÖRSEL İNCELEMESİ BEKLİYOR** (`task/058-home-v3`, taban `28a5bf1`;
-  main DEĞİŞMEDİ; §4.38). Owner Günlük bulgusunun kök nedeni kanıtlandı ve dalda düzeltildi.
-- **Sıradaki adım (güncel):** owner TASK/058 görsel incelemesi (K1–K9) → onaylanırsa son cila + gerçek A36 kapısı → main
-  entegrasyonu. TASK/059 BAŞLAMADI. Release PAUSED.
+- **TASK/058** — Ana Sayfa V3 → **dalda, SON ADAY HAZIR** (`task/058-home-v3`, son aday `6de0410`, taban `28a5bf1`;
+  görsel yön owner onaylı, K1–K9 kilitli; masaüstü gate3 56 / 56 temiz; gerçek A36 kapısı GEÇTİ; main DEĞİŞMEDİ; §4.38).
+  Owner Günlük bulgusunun kök nedeni kanıtlandı ve dalda düzeltildi.
+- **Sıradaki adım (güncel):** owner TASK/058 son incelemesi ve entegrasyon onayı → main'e ff-only. DO NOT MERGE onaydan önce.
+  TASK/059 BAŞLAMADI. Release PAUSED.
 - *(Tarihsel — TASK/056 sonrası, 2026-10-06:)* **Sıradaki görev:** owner seçer — TASK/057 oluşturulmadı; otomatik bir
   sonraki ürün düzeltme görevi tanımlı değil.
   Bilinen, izlenen açık ürün maddesi: 0 (ürünün hatasız olduğu iddia edilmez) — T5 hedef kartı kırpması `Büyük Dumpl…`

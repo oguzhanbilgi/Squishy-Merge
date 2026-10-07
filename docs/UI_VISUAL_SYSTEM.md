@@ -2309,10 +2309,11 @@ V3, 84 / 64 px, GestureGuard, görünürlük matrisi, kompakt kip, TASK/058 / 05
 - **Bilinen gözlem:** cihazda basılı tutuş ~2 s'yi aşınca basış önizlemesi düşüyor (Android uzun basış penceresi;
   araştırılmadı) — normal dokunuşu etkilemez, uzun tutup bırakmak gezinme kanıtı değildir.
 
-## 28. Ana Sayfa V3 (TASK/058) — DALDA, OWNER GÖRSEL İNCELEMESİ BEKLİYOR
+## 28. Ana Sayfa V3 (TASK/058) — DALDA, SON ADAY (görsel yön ONAYLI, gerçek A36 GEÇTİ)
 
-**Durum:** `task/058-home-v3` dalında (taban kanonik `28a5bf1`; main DEĞİŞMEDİ, merge YOK). Owner görsel incelemesi
-bekleniyor — onaylanmadan main'e alınmaz; gerçek A36 fiziksel kapısı onaydan SONRA (görev talimatı). TASK/059+ BAŞLAMADI,
+**Durum:** `task/058-home-v3` dalında, son aday `6de0410` (taban kanonik `28a5bf1`; main DEĞİŞMEDİ, merge / PR YOK).
+**Owner görsel yönü ONAYLADI** (2026-10-07); K1–K8 A seçenekleriyle kilitli, K9 terimleri uygulandı (§28.8); gerçek
+Samsung A36 kapısı GEÇTİ (§28.9). Owner son incelemesi / entegrasyon onayı olmadan main'e alınmaz. TASK/059+ BAŞLAMADI,
 Release PAUSED. İnceleme paketi `build/qa_058_visual_review/` + owner ZIP `build/qa_058_owner_review/TASK058_OWNER_REVIEW.zip`
 (git dışı).
 
@@ -2323,10 +2324,10 @@ düğmeler kalktı: etkileşimli öğe 10 → **5** (OYNA, iki özellik kartı, 
 
 | Bölge | İçerik | Dokunuş |
 |---|---|---|
-| Üst durum satırı | sol: `PlayerLevelBadge` (74 px, "LV." 14 px) pill'in sol ucundan taşar + seçili unvan + XP rayı (gerçek `player_xp`); sağ: Hamur bakiyesi (`UiKit.home_pill`, "+" YOK) | YOK (durum) |
+| Üst durum satırı | sol: `PlayerLevelBadge` (74 px, "SV." 14 px — K9; Profil / sonuç "LV." aynen) pill'in sol ucundan taşar + seçili unvan + XP rayı (gerçek `player_xp`); sağ: Hamur bakiyesi (`UiKit.home_pill`, "+" YOK) | YOK (durum) |
 | Logo | SQUISHY MERGE, 540 px (kısa ekranda 420'ye kadar küçülür) | — |
 | Hero | owner maskotu (hale, yer gölgesi, maskotla ölçeklenen tier 3 / 6 dumpling, pırıltılar, nefes); üst köşelerde `HomeFeatureButton` madalyonları: sol **GÖREVLER** (N/6; 6/6 nane), sağ **BONUS SANDIK** (N/75 + altın halka) | madalyon gövdesi + etiket plakası |
-| OYNA | `SquishyButton` PRIMARY HERO (108 px, ▶ OYNA, ≤ 520 px) + cyan hale + %1.5 nefes → Harita (rota aynen); üstünde dokunma almayan level bilgisi ("SIRADAKİ Level 5 ★ 11/30" / "SONSUZ MOD Rekor …") | OYNA |
+| OYNA | `SquishyButton` PRIMARY HERO (108 px, ▶ OYNA, ≤ 520 px) + cyan hale + %1.5 nefes → Harita (rota aynen); üstünde dokunma almayan harita ilerlemesi ("SIRADAKİ BÖLÜM 5 ★ 11/30" — K9 / "SONSUZ MOD Rekor …") | OYNA |
 | Kartlar | iki tam genişlik `FeatureCard` (124 px, alt yazı TYPE_BODY 19): **GÜNLÜK ÖDÜLLER** (pembe hediye kuyusu; gerçek durum alt yazısı; alınacak varsa "!" `AttentionBadge`) ve **MEYDAN OKUMA** (bugünün hedef portresi, `DailyChallenge.goal_text`, altın "+20 HAMUR" cipi / nane "TAMAM") | kartın tamamı |
 | Teklif yuvası | gizli, boş `OfferSlot` (TASK/062 sözleşmesi; yer kaplamaz, içerik verilince kendini yerleştirir) | — |
 | Kabuk | TASK/057 `GlobalNav` (DEĞİŞMEDİ); kartlar payın üstünde biter | — |
@@ -2376,11 +2377,33 @@ diğer ekranlardaki kısayollar aynen). Ana Sayfa'nın `shop_requested` / `colle
 `tools/home_v3_test.tscn` (A–I; `-- daily-only` taban farkı — dokunulmamış `28a5bf1` kodunda 22 kontrol / 5 açık FAIL,
 adayda tamamı geçer), `tools/home_ui_test.tscn` (V3 için yeniden yazıldı), `tools/home_v3_shots.tscn` (taban ve aday
 aynı araç; 6 görünüm × 8 kare). Kabuğa / eski pill geometrisine dayanan koruma suite'leri aynı niyetle uyarlandı.
-Kanıt: kontrollü tam masaüstü kapısı 56 / 56 temiz (home_v3_test dahil), 7243 kontrol, 0 FAIL, 0 SCRIPT ERROR, bot 2 / 2, sahibin kaydı bayt-aynı; `home_v3_test` 186 / 186.
+Kanıt (son aday `6de0410`): kontrollü tam masaüstü kapısı (gate3) 56 / 56 temiz (home_v3_test dahil), 7248 kontrol,
+0 FAIL, 0 SCRIPT ERROR, bot 2 / 2, sahibin kaydı bayt-aynı; `home_v3_test` 191 / 191 (K9 dahil). Görsel inceleme adayında
+(`6e88368`) 56 / 56, 7243 kontrol.
 
 ### 28.7 Bilinçli olarak YAPILMAYAN
 
 TASK/059 Harita V3 / Meydan Okuma rotası · TASK/060 ödüllü güçler · TASK/061 görev manuel talebi / devir / görev rozetleri ·
 TASK/062 Başlangıç Paketi (fiyat / 72 saat / gerçek hak akışı) · TASK/063 Meydan Okuma merkezi · TASK/064 kalan cila.
-GAME_DESIGN §5.4.1 / §5.8 / §12.3'teki "Ana Sayfa madalyonu / üst-sol avatar" ifadeleri kilitli dokümanda — önerilen
-ifade owner onayını bekliyor (davranış korunuyor).
+~~GAME_DESIGN ifadeleri owner onayını bekliyor~~ → owner onayıyla yalnız ifade güncellendi (`6de0410`: §5.4.1 / §5.8 /
+§5.10 / §5.11 / §7 / §12.3; kural / sayı / ekonomi aynen).
+
+### 28.8 Son cila — K9 terimleri (owner kararı, yalnız Ana Sayfa)
+
+Oyuncu seviyesi (XP ile) ile harita ilerlemesi aynı ekranda karışmasın: oyuncu rozeti **"SV. N"** (`HomeScreen.
+STATUS_LEVEL_CAPTION` → `PlayerLevelBadge.set_caption`; varsayılan "LV." Profil / sonuç ekranında aynen), OYNA'nın üstü
+**"SIRADAKİ BÖLÜM N"** (`NEXT_LEVEL_FORMAT`); sonsuzda "SONSUZ MOD" + rekor, yıldız toplamı aynen. Yeniden tasarım YOK;
+Günlük sözleşmesi (ilk gün kilidi, kart hedefi, etiket isabet alanı, açılış / kapanış yatışması, öne dönüş tazelemesi)
+aynen.
+
+### 28.9 Gerçek Samsung A36 kapısı (son aday) — GEÇTİ
+
+QA paketi `com.obappstudio.squishymerge.qa` (Google TEST reklamları), QA APK `6de0410`'dan. 9 fiziksel kare (1080×2340):
+Ana Sayfa gerçek TEST banner'lı / banner'sız, seçili ANA SAYFA, ilk gün kilitli, hepsi tamam, GÜNLÜK / MEYDAN OKUMA /
+GÖREVLER pencereleri. Gerçek dokunuşla her giriş tam bir kez; çift dokunuş tek açılış / tek Harita geçişi; basılı tut +
+bırak tek açılış; sürükle-bırak iptali 0; ilk gün kilitli kart 0 açılış; öne dönüş doğru; 0 SCRIPT ERROR / 0 çökme / 0
+ANR. Gerçek Google TEST banner (yerleşim kanıtı, politika sertifikası DEĞİL): 113 tuval px = 170 fiziksel px; tepsinin alt
+kenarı ile banner arasında ~42 fiziksel px (~28 tuval px) koyu aralık, çakışma yok. Fiziksel görsel değerlendirme:
+hiyerarşi masaüstüyle aynı, "SV." ve "SIRADAKİ BÖLÜM 5" okunur, kırpma / taşma yok — TASK/058'e özgü gerileme yok.
+Engellemeyen not (TASK/058 dışı): banner yuvası hiç yokken kabuk tepsisi ekran altına ~12 fiziksel px yakın oturuyor
+(TASK/057 `GlobalNav`, değişmedi) — TASK/064 cila turunda değerlendirilebilir.
