@@ -629,7 +629,7 @@ kendi `ScreenTopBar`'ıyla döner (geri → Home). M8.5-10 alt sekme çubuğu
 `_tabs` tamamen SİLİNDİ: hiçbir ekranda gizli çubuk yok, dokunma almaz
 (`collection_ui_test` main'de `TabBar` düğümü olmadığını ve kaynakta `_tabs`
 kalmadığını doğrular). `main._show_tab` adı tarihsel (ekran indeksi).
-*(Sonra — TASK/057, dalda: owner'ın son talimatıyla (Product Vision V3) Ana Sayfa dahil beş hub
+*(Sonra — TASK/057, main'de `84964af`: owner'ın son talimatıyla (Product Vision V3) Ana Sayfa dahil beş hub
 ekranında YENİ küresel gezinme kabuğu `GlobalNav` — eski çubuk geri gelmedi; §27.)*
 
 ---
@@ -2067,13 +2067,16 @@ tekrar / pratik modu. Hepsi owner kararı ister.
 
 ---
 
-## 27. Squishy UI System V3 + küresel gezinme kabuğu (TASK/057) — DALDA, OWNER GÖRSEL İNCELEMESİ BEKLİYOR
+## 27. Squishy UI System V3 + küresel gezinme kabuğu (TASK/057) — TAMAM + MAIN (`84964af`)
 
-**Durum:** `task/057-ui-system-v3-global-nav` (kanonik main `d5237bf`'ten). Product Vision V3'ün
-(GitHub Issue #1) ilk uygulama görevi. **Owner görsel incelemesi SERT KAPI:** main'e alınmadı,
-TASK/058 başlamadı. Bu bölüm bir sonraki görevlerin (TASK/058–064) üzerine kuracağı temeli anlatır.
-**Görsel Cila Tur 2 (owner incelemesi, 2026-10-06) uygulandı — §27.11; son görsel cila + gerçek A36 kapısı
-(2026-10-07) — §27.12;** SON GÖRSEL ADAY owner incelemesi bekliyor.
+**Durum:** **TAMAM + MAIN** — owner / ChatGPT görsel onayı **APPROVED** (2026-10-07); owner onayıyla ff-only
+`d5237bf → 84964af` (merge commit / rebase / squash / cherry-pick / force push yok); son üretim / test adayı `a126ace`
+masaüstü kapılarından ve gerçek Samsung A36 görsel kapısından entegrasyondan ÖNCE geçti (yeniden koşulmadı). Product
+Vision V3'ün (GitHub Issue #1) ilk uygulama görevi; TASK/058 / 059 BAŞLAMADI, Release PAUSED. Bu bölüm sonraki
+görevlerin (TASK/058–064) üzerine kuracağı temeli anlatır — `FeatureCard` / `OfferCard` / `PowerCard` /
+`SquishyButton` bugün temel / vitrin primitifleri, üretim içeriğine sonraki görevlerde bağlanır. Görsel Cila Tur 2
+(2026-10-06) — §27.11; son görsel cila + gerçek A36 kapısı (2026-10-07) — §27.12. Aşağıdaki "owner incelemesi" geçen
+alt bölümler o turların tarihidir.
 
 **Kural — ikinci sistem YOK:** V3, M8.6 katmanının EVRİMİDİR. Sayılar `UiTokens`'ın V3 bölümünde,
 tipografi rolleri `UiType.V3_ROLES`'ta (mevcut tema variation'ları + token boyutu; tema yeniden
@@ -2210,21 +2213,25 @@ rozetleri; Ana Sayfa Günlük hatası) → **TASK/061**; Mağaza V3 + Başlangı
 hak akışı) → **TASK/062**; Meydan Okuma merkezi → **TASK/063**; Koleksiyon / Profil / Ayarlar tutarlılığı
 → **TASK/064**. Kabuğun rozetleri bu görevde HİÇBİR veriye bağlanmadı (yalnız API).
 
-### 27.9 Bilinen görsel uzlaşmalar (owner incelemesi)
+### 27.9 Bilinen görsel uzlaşmalar → kabul edilen, engellemeyen takip işleri (owner onayıyla)
 
 - Ana Sayfa'da büyük OYNA ile kabuğun merkez HARİTA dairesi aynı hedefe gider ve üst üste durur —
   Ana Sayfa V3 (TASK/058) OYNA'nın davranışını / yerini belirler.
 - Ana Sayfa'daki Koleksiyon / Mağaza madalyonları ve sol üst avatar artık kabukla yinelenir — TASK/058.
 - ~~Harita / Mağaza / Koleksiyon / Profil üst satırındaki geri oku kaldı~~ → **Tur 2: owner kararıyla KALDIRILDI**
   (§27.11); Android GERİ zinciri aynen.
-- A36'da banner yuvası 112 px: Harita ve Profil (banner yüzeyi değil) kabuğun altında boş bant gösterir —
-  kabuğun konumu sekmeler arasında sabit kalsın diye bilinçli.
+- ~~A36'da Harita ve Profil kabuğun altında boş bant gösterir~~ → gerçek A36'da (2026-10-07) Harita banner yüzeyidir
+  (gerçek TEST banner görünür); yalnız **Profil** ürün kararıyla banner göstermez — kabuk sekmeler arasında sabit
+  kaldığı için altında koyu ayrılmış footer alanı: DÜŞÜK, engellemeyen görsel konu (sonraki cila; kabuk zıplamaz).
+- Fiziksel A36'da ~2 s'yi aşan basılı tutuşta basış önizlemesi düşebiliyor — gözlem; normal dokunuş ve iptal
+  anlamı doğru (kullanıcı etkisi kanıtlanırsa yeniden ele alınır).
 - Harita: ~~16:9 + banner yuvasında %18~~ → **Tur 2: %7.4** (kompakt kabuk + kurdele satırı); 720×1280 yuvasız %5.6
   — kalıcı çözüm TASK/059.
 - Ana Sayfa maskotu kabukla küçülür (A36 benzeri + banner: ~391 px, önce ~597; 720×1280: 538) — Ana Sayfa V3
   (TASK/058) hiyerarşiyi yeniden kurar.
-- Kabuk ile banner arası 28 px dokunulmayan aralık: AdMob yerleşim politikasına uygunluğu birebir resmî metinle
-  doğrulanmadı — uyum AÇIK (owner / A36 test banner'ıyla doğrulama).
+- Kabuk ile banner arası 28 px dokunulmayan aralık: gerçek A36 + gerçek Google TEST banner ile FİZİKSEL yerleşim /
+  etkileşim doğrulandı (çakışma yok, dokunuş sızmıyor); AdMob politika / uyumu resmî metinle doğrulanmadı —
+  **HARİCİ RELEASE KONTROLÜ** (bu cihaz kapısı politika sertifikası değildir).
 
 ### 27.10 Test ve araçlar
 
@@ -2275,7 +2282,7 @@ Ana Sayfa'da da var, oyun / pencerelerde gizli, 84 / 64 px dokunma kuralı, Gest
   + B bölümünde her sekmede aile + I bölümünde yan dumpling ↔ level pill; `ui_system_v3_test` seçili ailenin çizim yolu
   kaynak sözleşmesi; geri okuna dayanan koruma testleri kabuk ANA SAYFA / Android GERİ'ye taşındı (niyet aynı).
 
-### 27.12 Son görsel cila + gerçek Samsung A36 kapısı (2026-10-07) — SON GÖRSEL ADAY
+### 27.12 Son görsel cila + gerçek Samsung A36 kapısı (2026-10-07) — owner onaylı, main'de (`84964af`)
 
 Owner / ChatGPT incelemesi: Tur 2 teknik olarak güçlü ve yön onaylı; ancak kabuk kısmen genel bir mobil uygulama
 araç çubuğu gibi okunuyordu. Tutulanlar aynen (sıra, merkez HARİTA, Ana Sayfa'da kabuk, geri okları yok, Android GERİ,

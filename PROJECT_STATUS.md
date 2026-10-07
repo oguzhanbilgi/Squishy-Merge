@@ -133,23 +133,26 @@ masaüstü kapısı 53 / 53 temiz (`0c0dc09`: 6800 kontrol, 0 FAIL, 0 SCRIPT ERR
 okuma T5 `Büyük Dumpling` tam; ürün dili Türkçe, EN / RTL yalnız-test vekilleri) (§4.36); T5 hedef kartı kırpması
 KAPANDI (eski açık madde (6) — FIXED + MAIN). Bilinen, izlenen açık ürün maddesi: 0 (ürünün hatasız olduğu iddia
 edilmez). Sonraki ürün / stabilizasyon görevi owner seçimi (TASK/057 oluşturulmadı). *(Sonra (2026-10-06): owner
-Product Vision V3'ü başlattı — aşağıda TASK/057.)*
+Product Vision V3'ü başlattı — aşağıda TASK/057, tamam + main'de `84964af`.)*
 **Product Vision V3 — AKTİF (2026-10-06; [GitHub Issue #1](https://github.com/oguzhanbilgi/Squishy-Merge/issues/1)):**
 UI/UX yenileme + ödüllü güçler + görevler + başlangıç paketi + harita / meydan okuma yol haritası (TASK/057–065);
-Release Readiness PAUSED / YELLOW. **TASK/057 (Squishy UI System V3 + küresel gezinme kabuğu) — dalda, READY FOR OWNER
-VISUAL REVIEW, main'e ALINMADI** (`task/057-ui-system-v3-global-nav`, main `d5237bf`'ten; main DEĞİŞMEDİ): V3 token /
-bileşen temeli + beş hub ekranında küresel alt gezinme; Görsel Cila Tur 2 (hub geri okları kaldırıldı, kompakt
-kabuk, Harita 16:9 + banner %18 → %7.4) + **son görsel cila (tek gezinme simge ailesi, oyun benzeri seçili durum, tek
-parça tepsi) — SON GÖRSEL ADAY, READY FOR OWNER REVIEW**: masaüstü odak + koruma + tam regresyon + hafif negatif
-kontroller geçti; **gerçek Samsung A36 görsel kapısı + gerçek Google TEST banner yerleşimi GEÇTİ** (QA paketi; §4.37).
-TASK/058 BAŞLAMADI.
+Release Readiness PAUSED / YELLOW. **TASK/057 (Squishy UI System V3 + küresel gezinme kabuğu) — TAMAM + MAIN
+(COMPLETE + MAIN)** — owner / ChatGPT görsel onayı APPROVED (2026-10-07), owner onayıyla ff-only `d5237bf → 84964af`
+(merge commit / rebase / squash / cherry-pick / force push yok; dal duruyor): mevcut `UiTokens` / `UiType` / `UiKit`
+katmanının evrimi olan V3 temeli + beş hub ekranında küresel alt gezinme (tek candy-madalyon simge ailesi, oyun benzeri
+seçili durum, tek parça tepsi, hub geri okları kaldırıldı, Android GERİ aynen); son üretim / test adayı `a126ace`
+masaüstü tam kapısından (55 / 55, 7122 kontrol) ve gerçek Samsung A36 görsel kapısından + gerçek Google TEST banner
+yerleşiminden GEÇTİ — hepsi entegrasyondan önce, entegrasyon ve doküman eşitlemesi sırasında yeniden koşulmadı (§4.37).
+TASK/058 BAŞLAMADI · TASK/059 BAŞLAMADI · Release PAUSED.
 Release izi ayrı. Sırada: içerik derecesi + yargı bölgesi kararları + 13+ seçici uyum riski (owner) → gizlilik
 politikası → upload anahtarı → gerçek AdMob kimlikleri → mağaza varlıkları / Play Console,
 sonra ilk imzalı üretim AAB'si ve M10 (Play kapalı test) ·
-**Dal (2026-10-06):** `task/057-ui-system-v3-global-nav` (main `d5237bf`'ten; `86bde6c` · `d571555` · `3592889` ·
-`c614e02` + doküman;
-owner görsel incelemesi bekliyor, main'e ALINMADI — main == origin/main == `d5237bf` DEĞİŞMEDİ) ·
-**Branch / main:** `main` == origin/main == `ee2778a` — TASK/056 `task/056-t5-target-card-truncation` (main
+**Branch / main:** `main` == origin/main == `84964af` — TASK/057 `task/057-ui-system-v3-global-nav` (main `d5237bf`'ten
+— `d5237bf` = TASK/056 doküman eşitlemesi; 12 commit `86bde6c` … `a126ace` son üretim / test adayı · `84964af` son
+doküman; masaüstü + gerçek Samsung A36 görsel kapıları GEÇTİ 2026-10-07) owner / ChatGPT görsel onayıyla ff-only
+entegre (`d5237bf → 84964af`, 2026-10-07; merge commit / rebase / squash / cherry-pick / force push yok; dal duruyor,
+son incelenen HEAD `84964af`) · önce TASK/056 doküman eşitlemesi `docs/056-main-sync` owner onayıyla ff-only (`ee2778a →
+d5237bf`, 2026-10-06; merge commit yok; dal duruyor) · önce TASK/056 `task/056-t5-target-card-truncation` (main
 `a8bf454`'ten — `a8bf454` = TASK/055 doküman eşitlemesi; 4 commit: `721b97a` düzeltme · `c17fa4c` test · `0c0dc09`
 inceleme sertleştirmesi (masaüstü kapısından ve Samsung A36'dan geçen son üretim / test adayı) · `ee2778a` doküman /
 A36 kaydı (yalnız doküman); masaüstü + Samsung A36 kapıları GEÇTİ 2026-10-06) owner onayıyla ff-only entegre
@@ -3380,7 +3383,7 @@ formatına yalnız `haptics_enabled` (varsayılan true) eklendi. Ayrıntı ve
 > SCRIPT ERROR, bot 2 / 2, sahibin kaydı bayt-aynı; Samsung A36 (`0c0dc09` QA APK'sı) GEÇTİ — Türkçe T5 Level 3'te ve
 > meydan okumada tam (ürün dili Türkçe; EN / RTL yalnız-test vekilleri). Eski açık madde (6) — HUD hedef kartı T5
 > kırpması `Büyük Dumpl…` (§4.27 (d)) — FIXED + MAIN by TASK/056 (KAPANDI); bilinen, izlenen açık ürün maddesi: 0
-> (ürünün hatasız olduğu iddia edilmez). TASK/057 oluşturulmadı.
+> (ürünün hatasız olduğu iddia edilmez). TASK/057 oluşturulmadı *(o günkü durum — sonra TASK/057 §4.37, tamam + main'de)*.
 
 - **Kanonik metin ve dil:** T5 = `Büyük Dumpling` (`TierConfig.TIERS`, GAME_DESIGN §2 — değişmedi). Ürün tek dilli
   Türkçe: projede çeviri kaynağı / yerel ayarı yok (`project.godot`'ta `internationalization` bölümü yok;
@@ -3480,9 +3483,23 @@ formatına yalnız `haptics_enabled` (varsayılan true) eklendi. Ayrıntı ve
   stash edilmedi); `_visual_source/` ve `OWNER_WORKING_PROFILE.md` değişmedi; sahibin kaydının değişiklik zamanını tam
   masaüstü kapısındaki aynı baytların yeniden yazılması tazeledi (içerik aynı).
 
-### 4.37 Squishy UI System V3 + küresel gezinme kabuğu (TASK/057) — DALDA, OWNER GÖRSEL İNCELEMESİ BEKLİYOR
+### 4.37 Squishy UI System V3 + küresel gezinme kabuğu (TASK/057) — TAMAM + MAIN (`84964af`)
 
-> **READY FOR OWNER VISUAL REVIEW — main'e ALINMADI.** Dal `task/057-ui-system-v3-global-nav` (kanonik main
+> **TAMAM + MAIN (COMPLETE + MAIN) — OWNER / ChatGPT GÖRSEL ONAYI: APPROVED (2026-10-07).** Owner onayıyla ff-only
+> `d5237bf → 84964af` (merge commit / rebase / squash / cherry-pick / force push yok); doğrusal 12 commit, son üretim /
+> test adayı `a126ace`, tepe `84964af` yalnız doküman; dal `task/057-ui-system-v3-global-nav` yerelde ve origin'de
+> duruyor. Onaylanan temel: küresel gezinme yönü, sıra `ANA SAYFA / MAĞAZA / HARİTA / KOLEKSİYON / PROFİL`, merkez
+> HARİTA vurgusu, tek candy-madalyon simge ailesi (pembe / altın / cyan / nane / aynı aile içinde Profil avatarı), oyun
+> benzeri seçili durum (madalyon büyür + yükselir, krem kaide, altın hale, krem etiket hapı; merkez + ince premium
+> halka), sadeleştirilmiş tek nesne tepsi, kaldırılan hub geri okları, gerçek A36 görünümü ve gerçek TEST banner
+> fiziksel yerleşimi. Doğrulama ve cihaz kapıları entegrasyondan ÖNCE tamamlandı (aşağıdaki maddeler); entegrasyon ve
+> doküman eşitlemesi sırasında hiçbir odak test / tam masaüstü kapısı / A36 / Godot / derleme / mutasyon yeniden
+> koşulmadı. AdMob politika / uyum HARİCİ RELEASE KONTROLÜ. Product Vision V3 AKTİF; TASK/058 / 059 BAŞLAMADI; Release
+> PAUSED. Aşağıdaki "READY FOR OWNER REVIEW / main'e ALINMADI" ifadeleri yazıldıkları günün dal aşamasını anlatır
+> (TARİHSEL).
+
+> *(Tarihsel — ilk aday, 2026-10-06:)* **READY FOR OWNER VISUAL REVIEW — main'e ALINMADI.** Dal
+> `task/057-ui-system-v3-global-nav` (kanonik main
 > `d5237bf`'ten; `main == origin/main == d5237bf` DEĞİŞMEDİ; merge / PR yok). Product Vision V3'ün ([GitHub Issue
 > #1](https://github.com/oguzhanbilgi/Squishy-Merge/issues/1)) ilk uygulama görevi; owner görsel incelemesi SERT KAPI —
 > onay ya da istenen değişiklikler gelmeden tamam sayılmaz, tam kontrollü kapı (A36 dahil) koşulmaz, TASK/058 başlamaz.
@@ -3518,17 +3535,21 @@ formatına yalnız `haptics_enabled` (varsayılan true) eklendi. Ayrıntı ve
   yansıması …) giderildi; banner aralığı uyumu AÇIK (owner); doğrulama inceleyicisi ayrıca koştu; tam masaüstü
   regresyonu (aday `c614e02`) 55 / 55 temiz, 7071 kontrol, 0 FAIL, 0 SCRIPT ERROR, bot 2 / 2; sahibin kayıt ailesi
   bayt-aynı. **Samsung A36 cihaz kapısı KOŞULMADI** (owner görsel onayından sonra, tam kontrollü kapıyla).
-- **Bilinen görsel uzlaşmalar (owner incelemesi):** Ana Sayfa'da OYNA + merkez HARİTA aynı hedef ve üst üste; Ana Sayfa
-  madalyonları / avatar kabukla yineleniyor; ~~hub ekranlarında üst satır geri oku kaldı~~ (Tur 2: kaldırıldı);
-  ~~Harita 16:9 + banner yuvasında %18~~ (Tur 2: %7.4, kurdele o yerleşimde gizli); Ana Sayfa maskotu A36 + banner'da
-  ~391 px; banner aralığı uyumu AÇIK — §27.9.
+- **Bilinen görsel uzlaşmalar → kabul edilen, engellemeyen takip işleri (owner onayıyla):** Ana Sayfa'da OYNA +
+  merkez HARİTA aynı hedef; Ana Sayfa Mağaza / Koleksiyon kısayolları ve avatar kabukla yineleniyor → TASK/058;
+  ~~hub ekranlarında üst satır geri oku kaldı~~ (Tur 2: kaldırıldı); ~~Harita 16:9 + banner yuvasında %18~~ (Tur 2: %7.4
+  geçici hafifletme; kaydırılabilir yolculuk + Meydan Okuma rotası → TASK/059); Ana Sayfa maskotu A36 + banner'da ~391
+  px (TASK/058); Profil banner göstermez, kabuk sabit konumda — altında koyu ayrılmış footer alanı (DÜŞÜK, sonraki
+  cila); A36'da ~2 s'yi aşan basılı tutuşta basış önizlemesi düşebiliyor (gözlem); banner aralığının AdMob uyumu HARİCİ
+  RELEASE KONTROLÜ — §27.9.
 - **Kapsam dışı / sonraki görevler (BAŞLAMADI):** TASK/058 Ana Sayfa V3 · 059 Harita V3 (meydan okuma rotası,
   kaydırılabilir yolculuk) · 060 Gameplay HUD V3 + ödüllü güçler (güç başına kota GAME_DESIGN §5.7.3 değişikliği + owner
   onayı ister) · 061 Günlük & Görevler V3 · 062 Mağaza V3 + Başlangıç Paketi · 063 Meydan Okuma merkezi · 064 Koleksiyon
   / Profil / Ayarlar cilası.
 - **İnceleme notu (önceden var olan, düzeltilmedi):** uygulamaya dönüşte otomatik günlük pencere kapısı Mağaza onayını
   kontrol etmez (pencere onayın üstüne açılabilir; TASK/055 notlarında da kayıtlı) — owner kararı.
-- **Görsel Cila Tur 2 (owner incelemesi, 2026-10-06) — yeniden READY FOR OWNER REVIEW, main'e ALINMADI.** Owner
+- **Görsel Cila Tur 2 (owner incelemesi, 2026-10-06) — o gün yeniden owner incelemesine sunuldu (TARİHSEL; son aday
+  2026-10-07 owner onayıyla main'de).** Owner
   kararları: küresel gezinme yönü TUTULDU (sıra / merkez HARİTA / Ana Sayfa'da kabuk / gizli yüzeyler / 84-64 px /
   GestureGuard / V3 aynen); **hub geri okları KALDIRILDI** (Harita / Mağaza / Koleksiyon / Profil; `back_button()` null,
   `home_requested` ve `Main._on_home_requested` yok; Ana Sayfa'ya dönüş kabuk ANA SAYFA + Android GERİ — zincir
@@ -3548,7 +3569,8 @@ formatına yalnız `haptics_enabled` (varsayılan true) eklendi. Ayrıntı ve
   (bu paragrafın yer tutucuları son cila doküman commit'inde dolduruldu). Ayrıntı UI_VISUAL_SYSTEM §27.11; inceleme
   paketi `build/qa_057_visual_review/REVIEW_INDEX.md` (Owner Review Round 2) +
   `build/qa_057_owner_review/TASK057_OWNER_REVIEW.zip` (git dışı).
-- **Son görsel cila + gerçek A36 kapısı (2026-10-07) — SON GÖRSEL ADAY, READY FOR OWNER REVIEW, main'e ALINMADI.**
+- **Son görsel cila + gerçek A36 kapısı (2026-10-07) — SON GÖRSEL ADAY; owner / ChatGPT görsel onayı APPROVED, owner
+  onayıyla ff-only main'e alındı (`d5237bf → 84964af`).**
   Owner / ChatGPT: Tur 2 yön onaylı ama kabuk kısmen genel uygulama araç çubuğu gibi. Uygulanan: **tek gezinme simge
   ailesi** (her hedef aynı candy madalyonu: beyaz kenar + vurgu yüz + koyu dudak + lacivert picto; Profil yüzü avatar;
   merkez Harita aynı ailenin büyük üyesi), **oyun benzeri seçili durum** (madalyon büyür + tepsiden yükselir + krem kaide
@@ -4365,7 +4387,15 @@ Owner'ın yapacağı / onaylayacağı:)*
   en az 16 px'e sınırlı sığdırma) → ✅ **main'de** (§4.36; masaüstü + Samsung A36 kapıları GEÇTİ — kontrollü tam
   masaüstü kapısı 53 / 53 temiz, 0 FAIL; owner onayıyla ff-only `a8bf454 → ee2778a`, 2026-10-06; dal
   `task/056-t5-target-card-truncation` duruyor).
-- **Sıradaki görev:** owner seçer — TASK/057 oluşturulmadı; otomatik bir sonraki ürün düzeltme görevi tanımlı değil.
+- **TASK/057** — Squishy UI System V3 + küresel gezinme kabuğu (mevcut `UiTokens` / `UiType` / `UiKit` katmanının
+  evrimi; tek candy-madalyon simge ailesi, oyun benzeri seçili durum, hub geri okları kaldırıldı) → ✅ **main'de**
+  (§4.37; owner / ChatGPT görsel onayı APPROVED; masaüstü + gerçek Samsung A36 görsel kapıları GEÇTİ — kontrollü tam
+  masaüstü kapısı 55 / 55 temiz, 0 FAIL; owner onayıyla ff-only `d5237bf → 84964af`, 2026-10-07; dal
+  `task/057-ui-system-v3-global-nav` duruyor).
+- **Sıradaki görev (güncel):** TASK/058 — Ana Sayfa V3 planlama / uygulama, TASK/057 doküman eşitlemesi main'e
+  alındıktan sonra (BAŞLAMADI). Release PAUSED.
+- *(Tarihsel — TASK/056 sonrası, 2026-10-06:)* **Sıradaki görev:** owner seçer — TASK/057 oluşturulmadı; otomatik bir
+  sonraki ürün düzeltme görevi tanımlı değil.
   Bilinen, izlenen açık ürün maddesi: 0 (ürünün hatasız olduğu iddia edilmez) — T5 hedef kartı kırpması `Büyük Dumpl…`
   (§4.27) → TASK/056 ile kapatıldı — main'de `ee2778a`, §4.36; kendiliğinden sıradaki görev seçilmez (Koleksiyon
   kartı + GERİ → TASK/054 ile kapatıldı —
