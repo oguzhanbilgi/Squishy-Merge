@@ -1218,6 +1218,10 @@ func _open_daily_rewards_window(auto: bool) -> void:
 	_login_view["just_claimed"] = false
 	_login_view["streak_broken"] = false
 	_daily_rewards.open_popup(_daily_provider_ready(), _provider_note(), auto, login)
+	# TASK/058 (Ana Sayfa Günlük girişi incelemesinde bulunan gizli kusur): GÖREVLER / MEYDAN OKUMA pencereleriyle aynı
+	# 300 ms parmak yatışması — girişe hızlı çift dokunuşun ikincisi yeni açılan pencerenin karartmasına düşüp onu anında
+	# KAPATMASIN (pencere "hiç açılmadı" gibi okunurdu).
+	settle_touch_input()
 	_ensure_rewarded()
 	AdEvents.emit(&"daily_popup_shown", {"day_key": DailyRewards.day_key(), "auto": auto,
 		"remaining": DailyRewards.state()["remaining_total"]})
@@ -1321,6 +1325,8 @@ func _on_daily_rewards_closed() -> void:
 		"pending": _daily_pending_kind != ""})
 	_clear_daily_request()
 	_cancel_rewarded_request()
+	# TASK/058: kapanış da yatışır — X'e çift dokunuşun ikincisi alttaki Ana Sayfa kartına düşüp pencereyi yeniden açmasın.
+	settle_touch_input()
 	_show_tab(_active_tab)
 
 

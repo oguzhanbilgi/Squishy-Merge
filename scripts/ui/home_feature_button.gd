@@ -11,8 +11,12 @@ extends Button
 ##   pembe bildirim noktası → çevrede ince ilerleme halkası (isteğe bağlı)
 ##   → altta koyu lavanta etiket plakası (PanelFeaturePlaque).
 ##
-## Buton dikdörtgeni yalnız madalyon (96×100 ≥ 48 dokunma hedefi); etiket
-## plakası gövdeden aşağı taşan dekor (dokunma almaz). Basış squash
+## Buton dikdörtgeni madalyon (96×100); etiket plakası gövdeden aşağı taşar ve
+## TASK/058'den beri dokunma alanına DAHİL (`_has_point`): oyuncunun doğal dokunuşu
+## etiket yazısına gelir — TASK/058 incelemesinde bulunan gizli kusur (owner'ın cihazda
+## yaşadığı ilk gün kapısından AYRI): yazının ortası buton dikdörtgeninin ~5 px altındaydı
+## ve dokunuş hiçbir kontrole ulaşmıyordu. Plakanın kendisi fare almaz (IGNORE); karar
+## butonun isabet testinde. Basış squash
 ## `UiMotion.attach_press` (0.94 + yay). Kilitli: pasif gövde, soluk sanat,
 ## kilit rozeti, `disabled`.
 ##
@@ -218,6 +222,22 @@ func _ring_patch(tint: Color, width: float) -> NinePatchRect:
 	rim.offset_bottom = width - 4.0
 	add_child(rim)
 	return rim
+
+
+## İsabet testi (TASK/058): madalyon dikdörtgeni + aşağı taşan etiket plakası (yerel koordinat).
+func _has_point(point: Vector2) -> bool:
+	return Rect2(Vector2.ZERO, size).has_point(point) or plaque_rect_local().has_point(point)
+
+
+## Etiket plakasının yerel dikdörtgeni (madalyonun altına taşan kısım dahil).
+func plaque_rect_local() -> Rect2:
+	return Rect2(Vector2(size.x * 0.5 + _plaque.offset_left, size.y + _plaque.offset_top),
+		Vector2(_plaque.offset_right - _plaque.offset_left, _plaque.offset_bottom - _plaque.offset_top))
+
+
+## Altın rozet paneli (Ana Sayfa GÖREVLER: 6/6'da nane boyanır).
+func badge_panel() -> PanelContainer:
+	return _badge
 
 
 ## Plaka yatayda ortalanır; genişliği içeriğe göre (min gövde + 8).
