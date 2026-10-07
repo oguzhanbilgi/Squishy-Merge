@@ -823,8 +823,10 @@ func _write_state(label: String) -> void:
 		" ".join(opts)])
 	lines.append("result: visible=%s pause: %s" % [str(_main._result.visible), str(_main._pause.visible)])
 	var home: CanvasLayer = _main._screens[0]
-	lines.append("home: play=%s profile=%s daily_medal=%s daily_dot=%s" % [_rect_px(home._play), _rect_px(home._avatar_button),
-		_rect_px(home.feature_button(&"daily")), str(home.is_daily_claimable())])
+	# TASK/058: Ana Sayfa avatarı kaldırıldı — `profile` = Profil girişi = kabuğun PROFİL öğesi; `daily_medal` = GÜNLÜK
+	# ÖDÜLLER kartı.
+	lines.append("home: play=%s profile=%s daily_medal=%s daily_dot=%s" % [_rect_px(home._play),
+		_rect_px(_main.global_nav().item_button(4)), _rect_px(home.feature_button(&"daily")), str(home.is_daily_claimable())])
 	# TASK/044: Ayarlar'a gerçek dokunuş yolu Ana Sayfa avatarı → Profil dişlisi. TASK/057 Tur 2: Profil üst
 	# satırında geri oku yok — Ana Sayfa'ya dönüş dokunuş hedefi küresel kabuğun ANA SAYFA öğesi (home_nav).
 	var profile: CanvasLayer = _main._screens[4]

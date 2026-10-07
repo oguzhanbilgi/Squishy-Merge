@@ -572,8 +572,13 @@ func _test_main_legacy_unknown() -> void:
 	# yuva + bu fark kadar yukarı.
 	var gap_delta: float = (_main.global_nav().reserve() - (GlobalNav.BOTTOM_GAP + GlobalNav.TRAY_HEIGHT
 		+ NavItem.CENTER_RISE)) if _main.has_method("global_nav") else 0.0
-	_c("yaş girilince yuva açıldı ve görünür Ana Sayfa HEMEN yeniden yerleşti: OYNA yuva kadar yukarı, banner'ın üstünde (%.0f px + kabuk aralığı %.0f px)" % [slot, gap_delta],
-		slot > 0.0 and is_equal_approx(play_bottom_before - play_bottom_after, slot + gap_delta)
+	# TASK/058 Ana Sayfa V3: kompakt kabukta kartlar tepsiden ek pay alır, OYNA ile kartlar arası daralır (sabitler Home'da).
+	var compact_delta: float = 0.0
+	if _main.has_method("global_nav") and _main.global_nav().is_compact() and "NAV_CARD_CLEARANCE_COMPACT" in home:
+		compact_delta = (home.NAV_CARD_CLEARANCE_COMPACT - home.NAV_CARD_CLEARANCE) \
+			- (home.PLAY_CARDS_GAP - home.PLAY_CARDS_GAP_COMPACT)
+	_c("yaş girilince yuva açıldı ve görünür Ana Sayfa HEMEN yeniden yerleşti: OYNA yuva kadar yukarı, banner'ın üstünde (%.0f px + kabuk aralığı %.0f px + Ana Sayfa kompakt payı %.0f px)" % [slot, gap_delta, compact_delta],
+		slot > 0.0 and is_equal_approx(play_bottom_before - play_bottom_after, slot + gap_delta + compact_delta)
 		and play_bottom_after <= view_h - UiKit.bottom_inset(home._root.size) + 0.5)
 	_c("yetişkin tarihi -> panel kapandı, kayıt ADULT (tarih YOK), yönetici ADULT", not _panel().visible
 		and SaveManager.age_ad_band_raw() == "ADULT" and SaveManager.next_age_transition_raw() == ""
