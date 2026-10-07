@@ -82,7 +82,7 @@ alınacak — şimdi tahmin/vaat yok.
 
 - **Product Vision V3 — AKTİF** ([GitHub Issue #1](https://github.com/oguzhanbilgi/Squishy-Merge/issues/1) — UI/UX
   yenileme, ödüllü güçler, görevler, başlangıç paketi, harita ve meydan okuma yol haritası; ürün planının kalıcı
-  kaydı). İlerleme: **TASK/057 TAMAM + MAIN** · TASK/058 Ana Sayfa V3 BAŞLAMADI · TASK/059 Harita V3 BAŞLAMADI · sonraki
+  kaydı). İlerleme: **TASK/057 TAMAM + MAIN** · **TASK/058 Ana Sayfa V3 DALDA — OWNER GÖRSEL İNCELEMESİ BEKLİYOR** · TASK/059 Harita V3 BAŞLAMADI · sonraki
   Product Vision görevleri gelecek iş. **Release Readiness PAUSED / YELLOW** (Product Vision V3 turu bitmeden release'e
   dönülmez; release hazır DEĞİL).
 - **TASK/057 — Squishy UI System V3 + küresel gezinme kabuğu — TAMAM, main'de (COMPLETE + MAIN)** (owner / ChatGPT
@@ -125,7 +125,18 @@ alınacak — şimdi tahmin/vaat yok.
   banner göstermez, kabuk sabit konumda kaldığı için altında koyu ayrılmış footer alanı — DÜŞÜK, engellemeyen görsel
   konu (sonraki cila); fiziksel A36'da ~2 s'yi aşan basılı tutuşta basış önizlemesi düşebiliyor — gözlem, normal
   etkileşim ve iptal doğru. Ayrıntı: PROJECT_STATUS §4.37, UI_VISUAL_SYSTEM §27.
-- **Repo (2026-10-07):** `main == origin/main == 84964af6fee3a030d85b777e3ad6ee3076c8b978` — **TASK/057 owner onayıyla
+- **TASK/058 — Ana Sayfa V3 — DALDA, OWNER GÖRSEL İNCELEMESİ BEKLİYOR (READY FOR OWNER VISUAL REVIEW)** (`task/058-home-v3`,
+  taban kanonik `28a5bf1`; main DEĞİŞMEDİ, merge YOK, owner onayı YOK; A36 fiziksel kapısı onaydan sonra). Hiyerarşi:
+  dokunma almayan üst durum (seviye + unvan + XP · Hamur) → logo + büyük maskot (köşelerde GÖREVLER / BONUS SANDIK
+  madalyonları) → tek baskın V3 OYNA (→ Harita) → GÜNLÜK ÖDÜLLER + MEYDAN OKUMA özellik kartları (gerçek veri) → TASK/057
+  kabuğu. Kabukla yinelenen Ana Sayfa kısayolları (Mağaza / Koleksiyon madalyonu, Hamur "+", avatar, level hapı) kaldırıldı.
+  **Owner bulgusu "Günlük'e basınca bir şey gelmiyor":** kök neden ilk gün kapısı (tutorial'ın bitirildiği gün pencere
+  açılmaz — GAME_DESIGN §12.3 — ama madalyon sıradan görünüyordu; owner'ın QA kaydında `onboarding_completed_day =
+  2026-10-06`); kart artık o gün pasif + "Yarın açılır"; iki gizli kusur (etiket ölü bölgesi, yatışmasız pencere) de
+  giderildi; ekonomi / kural aynen. Kanıt: taban farkı 22 kontrol / 5 açık FAIL → aday geçer; kontrollü tam masaüstü kapısı 56 / 56 temiz (home_v3_test dahil), 7243 kontrol, 0 FAIL, 0 SCRIPT ERROR, bot 2 / 2, sahibin kaydı bayt-aynı; `home_v3_test` 186 / 186.
+  10 / 10 hafif negatif kontrol öldü. Ayrıntı: PROJECT_STATUS §4.38, UI_VISUAL_SYSTEM §28; owner kararları `build/qa_058/owner_review/02_OWNER_DECISIONS.md`.
+- **Repo (2026-10-07):** `main == origin/main == 28a5bf1` (TASK/057 doküman eşitlemesi, ff-only `84964af → 28a5bf1`);
+  TASK/058 dalı `task/058-home-v3` push'landı, main'e ALINMADI. Önce: `main == origin/main == 84964af6fee3a030d85b777e3ad6ee3076c8b978` — **TASK/057 owner onayıyla
   ff-only main'e alındı** (`d5237bf → 84964af`; merge commit / rebase / squash / cherry-pick / force push YOK).
   Doğrulanmış doğrusal zincir, 12 commit: `86bde6c` UI System V3 temeli · `d571555` küresel gezinme kabuğu · `3592889`
   testler · `c614e02` görsel inceleme cilası · `5033707` doküman · `4f53332` Tur 2 üretim · `f6ece0f` Tur 2 test ·
@@ -1227,9 +1238,10 @@ HUD V3 + ödüllü güçler → 061 Günlük & Görevler V3 → 062 Mağaza V3 +
 Koleksiyon / Profil / Ayarlar cilası → 065 tam UX tutarlılığı + Samsung A36 kabulü → release yeniden. Her büyük UI
 görevi üretim ekran görüntüsü + owner görsel onayı olmadan main'e alınmaz.
 **TASK/057 — TAMAM + MAIN** (`84964af`; owner / ChatGPT görsel onayı APPROVED; ff-only `d5237bf → 84964af`) — §4.37.
-**Şimdiki adım:** bu doküman eşitlemesinin (`docs/057-main-sync`) owner onayıyla main'e alınması. **SONRA (NEXT):**
-TASK/058 — Ana Sayfa V3 planlama / uygulama, TASK/057 doküman eşitlemesi main'e alındıktan sonra (TASK/058 BAŞLAMADI;
-dal açılmadı). Release PAUSED.
+~~**Şimdiki adım:** bu doküman eşitlemesinin (`docs/057-main-sync`) owner onayıyla main'e alınması~~ → main'de `28a5bf1`.
+**Şimdiki adım:** owner **TASK/058 Ana Sayfa V3 görsel incelemesi** (`task/058-home-v3`; paket
+`build/qa_058_owner_review/TASK058_OWNER_REVIEW.zip`; kararlar K1–K9). Onaydan sonra: istenen cila + son QA adayı + gerçek A36
+kapısı → main entegrasyonu (ff-only, owner onayıyla). **DO NOT MERGE** onaydan önce. TASK/059 BAŞLAMADI. Release PAUSED.
 
 **Sıradaki ürün / stabilizasyon görevi owner seçimi** — bilinen, izlenen açık ürün maddesi kalmadı (0; ürünün hatasız
 olduğu iddia edilmez); otomatik bir sonraki ürün düzeltme görevi tanımlı değil, TASK/057 OLUŞTURULMADI. *(Sonra

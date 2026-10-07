@@ -143,7 +143,7 @@ katmanının evrimi olan V3 temeli + beş hub ekranında küresel alt gezinme (t
 seçili durum, tek parça tepsi, hub geri okları kaldırıldı, Android GERİ aynen); son üretim / test adayı `a126ace`
 masaüstü tam kapısından (55 / 55, 7122 kontrol) ve gerçek Samsung A36 görsel kapısından + gerçek Google TEST banner
 yerleşiminden GEÇTİ — hepsi entegrasyondan önce, entegrasyon ve doküman eşitlemesi sırasında yeniden koşulmadı (§4.37).
-TASK/058 BAŞLAMADI · TASK/059 BAŞLAMADI · Release PAUSED.
+TASK/058 Ana Sayfa V3 **dalda — owner görsel incelemesi bekliyor** (`task/058-home-v3`, main değişmedi; §4.38) · TASK/059 BAŞLAMADI · Release PAUSED.
 Release izi ayrı. Sırada: içerik derecesi + yargı bölgesi kararları + 13+ seçici uyum riski (owner) → gizlilik
 politikası → upload anahtarı → gerçek AdMob kimlikleri → mağaza varlıkları / Play Console,
 sonra ilk imzalı üretim AAB'si ve M10 (Play kapalı test) ·
@@ -3592,6 +3592,45 @@ formatına yalnız `haptics_enabled` (varsayılan true) eklendi. Ayrıntı ve
   §27.12; paket `build/qa_057_visual_review/REVIEW_INDEX.md` (Final) + `build/qa_057_owner_review/TASK057_OWNER_REVIEW.zip`
   (git dışı). Zincir: `26e0323` ui · `a8bb297` test · `a126ace` ui (basılı önizleme) · bu doküman commit'i.
 
+### 4.38 Ana Sayfa V3 (TASK/058) — DALDA, OWNER GÖRSEL İNCELEMESİ BEKLİYOR
+
+> **DAL AŞAMASI — main'e ALINMADI, merge YOK, owner onayı YOK.** Dal `task/058-home-v3` (taban kanonik `28a5bf1`;
+> `main == origin/main == 28a5bf1` değişmedi). Owner görsel incelemesi bekleniyor; gerçek A36 fiziksel kapısı onaydan
+> SONRA (görev talimatı §21). TASK/059+ BAŞLAMADI; Release PAUSED.
+
+- **Faz A denetimi (düzenlemeden önce, `build/qa_058/AUDIT_PHASE_A.md`):** taban Ana Sayfa'da 10 eşit ağırlıkta öğe; kabukla
+  yinelenen KOLEKSİYON / MAĞAZA madalyonları, Hamur "+", avatar (Profil), level hapı (Harita); OYNA merkez HARİTA'nın hemen
+  üstünde; Günlük / Meydan Okuma özellik olarak keşfedilmiyordu.
+- **Owner bulgusu "Ana Sayfa'daki Günlük'e basınca bir şey gelmiyor" — KÖK NEDEN (kanıtlı):** ilk gün kapısı.
+  `Main.open_daily_rewards()` tutorial'ın bitirildiği gün sessizce döner (GAME_DESIGN §12.3, kilitli), eski madalyon ise
+  etkin ve sıradan görünüyordu. Salt okunur cihaz kanıtı: QA paketi 2026-10-06 14:06'da kuruldu, kendi kaydında
+  `onboarding_completed_day = "2026-10-06"` (owner'ın test günü) — girdi / ekran görüntüsü yok, oturumun adb süreci
+  durduruldu. Sınıf: kayıt / durum ön koşulu + Ana Sayfa'nın durumu göstermemesi; rota / gizli pencere / TASK/061 DEĞİL.
+  İnceleme sırasında ayrıca iki GİZLİ kusur (owner'ın o gün gördüğü olduğuna dair kanıt yok): madalyon etiketi ölü bölgesi
+  ve günlük pencerenin yatışmasız açılış / kapanışı (hızlı ikinci dokunuş pencereyi aynı anda kapatıyordu).
+  Taban farkı (`tools/home_v3_test.tscn -- daily-only`, dokunulmamış `28a5bf1` üretim kodu, son test): 22 kontrol, **5 açık
+  FAIL**; aday 186 / 186.
+- **Düzeltme:** GÜNLÜK ÖDÜLLER kartı ilk gün pasif + kilit + "Yarın açılır" (kural / ekonomi aynen; öne dönüşte tazelenir);
+  `HomeFeatureButton._has_point` etiket plakasını kapsar; günlük pencere açılış / kapanışta 300 ms yatışma (GÖREVLER / MEYDAN
+  OKUMA gibi). Ödül miktarı / kota / otomatik pencere / Mağaza kartı / görev mantığı DEĞİŞMEDİ (TASK/061'e dokunulmadı).
+- **Ana Sayfa V3:** üst durum satırı (seviye + unvan + XP · Hamur — dokunma almaz) · logo + büyük maskot + köşelerde GÖREVLER /
+  BONUS SANDIK madalyonları · V3 kahraman OYNA (→ Harita, rota aynen) + dokunma almayan level bilgisi · iki V3 özellik kartı
+  (GÜNLÜK ÖDÜLLER, MEYDAN OKUMA — gerçek veriyle) · gizli boş teklif yuvası (TASK/062) · TASK/057 kabuğu aynen. Etkileşimli
+  öğe 10 → 5. Ayrıntı: UI_VISUAL_SYSTEM §28.
+- **Commit'ler (dal):** `c5d3bbc` düzeltme (günlük pencere yatışması + madalyon etiketi) · `029eced` arayüz (Ana Sayfa V3) ·
+  `9080a85` + `fd59d69` + `749080b` + `6e88368` test · bu doküman commit'i.
+- **Kanıt (son üretim / test adayı `6e88368`; üretim kodu `029eced`'ten beri değişmedi):** kontrollü tam masaüstü kapısı 56 / 56 temiz (home_v3_test dahil), 7243 kontrol, 0 FAIL, 0 SCRIPT ERROR, bot 2 / 2, sahibin kaydı bayt-aynı; `home_v3_test` 186 / 186. İlk tam koşu
+  (`749080b`) 55 / 56 temizdi — tek FAIL `age_ad_routing_test`in tam OYNA kayma beklentisi (V3 kompakt sabitleri eksikti);
+  test uyarlandı (`6e88368`), tam kapı yeniden koşuldu. Hafif negatif kontroller: 10 / 10 varyant açık FAIL ile öldü
+  (rota kopuk · Hamur "+" geri · kabuk payı yok · OYNA çift gezinme · GestureGuard'sız Günlük · açılış / kapanış yatışması yok ·
+  öne dönüş tazelemesi yok · etiket isabeti yok · ilk gün kartı etkin), her geri koyma bayt-aynı. Çekişmeli salt-okunur inceleme
+  3 inceleyici / 10 mercek — 0 BLOCKER; tek HIGH (OYNA → Harita yinelemesi) owner talimatıyla kabul edilmiş yineleme (iki kart
+  arayla); MEDIUM'lar giderildi (bayat kilit, unvan genişliği, kilitli kart görünümü, alt yazı puntosu, test geçerliliği,
+  dürüst ifade). Görsel paket: `build/qa_058_visual_review/` (taban + aday 6 görünüm × 8 kare, 8 contact sheet).
+- **Açık / owner kararı:** 02_OWNER_DECISIONS K1–K9 (ilk gün kartı, Profil / Hamur "+" kaldırma, ikincil girişler, level
+  bilgisi, metinler, teklif yuvası, OYNA hedefi bilgisi, LV/Level terimleri); GAME_DESIGN §5.4.1 / §5.8 / §12.3 ifade
+  güncellemesi (kilitli doküman — onay bekliyor).
+
 ## 5. Dosya/klasör yapısı ve script envanteri
 
 ```
@@ -4392,8 +4431,10 @@ Owner'ın yapacağı / onaylayacağı:)*
   (§4.37; owner / ChatGPT görsel onayı APPROVED; masaüstü + gerçek Samsung A36 görsel kapıları GEÇTİ — kontrollü tam
   masaüstü kapısı 55 / 55 temiz, 0 FAIL; owner onayıyla ff-only `d5237bf → 84964af`, 2026-10-07; dal
   `task/057-ui-system-v3-global-nav` duruyor).
-- **Sıradaki görev (güncel):** TASK/058 — Ana Sayfa V3 planlama / uygulama, TASK/057 doküman eşitlemesi main'e
-  alındıktan sonra (BAŞLAMADI). Release PAUSED.
+- **TASK/058** — Ana Sayfa V3 → **dalda, OWNER GÖRSEL İNCELEMESİ BEKLİYOR** (`task/058-home-v3`, taban `28a5bf1`;
+  main DEĞİŞMEDİ; §4.38). Owner Günlük bulgusunun kök nedeni kanıtlandı ve dalda düzeltildi.
+- **Sıradaki adım (güncel):** owner TASK/058 görsel incelemesi (K1–K9) → onaylanırsa son cila + gerçek A36 kapısı → main
+  entegrasyonu. TASK/059 BAŞLAMADI. Release PAUSED.
 - *(Tarihsel — TASK/056 sonrası, 2026-10-06:)* **Sıradaki görev:** owner seçer — TASK/057 oluşturulmadı; otomatik bir
   sonraki ürün düzeltme görevi tanımlı değil.
   Bilinen, izlenen açık ürün maddesi: 0 (ürünün hatasız olduğu iddia edilmez) — T5 hedef kartı kırpması `Büyük Dumpl…`
