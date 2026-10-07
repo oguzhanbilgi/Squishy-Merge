@@ -215,25 +215,27 @@ func _daily_entry() -> void:
 	await _tap(entry)
 	_c("A4 kapanışın HEMEN ardından girişe dokunuş yutuldu: pencere yeniden AÇILMADI", not popup.visible
 		and opens[0] == base + 1)
-	await _wait_settled()
+	# Her alt adım temiz durumdan başlar ve sayaçlar o adıma göreli (önceki adımın sonucu taşınmaz).
+	await _close_daily_clean()
+	var before: int = opens[0]
 	await _finger(_screen(at), true)
 	await _finger(_screen(at), false)
 	await _finger(_screen(at), true)
 	await _finger(_screen(at), false)
 	await _settle(3)
-	_c("A4 hızlı çift dokunuş (aynı nokta): pencere TEK ve açık", popup.visible and opens[0] == base + 2)
+	_c("A4 hızlı çift dokunuş (aynı nokta): pencere TEK ve açık", popup.visible and opens[0] == before + 1)
 	_c("A4 ekonomi aynen (Hamur, günlük kota / talep durumu)", SaveManager.dough() == dough_a4
 		and (SaveManager.data.get("daily_rewards", {}) as Dictionary) == daily_a4)
-	if popup.visible:
-		await _back()
-	await _wait_settled()
+	await _close_daily_clean()
+	before = opens[0]
 	await _finger(_screen(at), true)
 	await _cancel_finger(_screen(at))
-	_c("A4 ACTION_CANCEL (bırakış canceled) → 0 açılış", not _main._daily_rewards.visible and opens[0] == base + 2)
-	await _wait_settled()
+	_c("A4 ACTION_CANCEL (bırakış canceled) → 0 açılış", not popup.visible and opens[0] == before)
+	await _close_daily_clean()
+	before = opens[0]
 	await _tap(entry)
 	_c("A4 iptalden sonra taze dokunuş tam bir kez açar (Ana Sayfa yeniden kullanılabilir)",
-		_main._daily_rewards.visible and opens[0] == base + 3)
+		popup.visible and opens[0] == before + 1)
 	if _main._daily_rewards.visible:
 		await _back()
 	AdEvents.unsubscribe(counter)
@@ -688,6 +690,13 @@ func _tab(index: int) -> void:
 
 
 # --- Yardımcılar --------------------------------------------------------------------------------------------------
+
+## Günlük pencere açıksa kod yolundan kapatır, yatışma penceresini bekler (sonraki dokunuş temiz başlar).
+func _close_daily_clean() -> void:
+	if _main._daily_rewards.visible:
+		_main._daily_rewards.close_popup()
+	await _wait_settled()
+
 
 ## Ana Sayfa'nın Günlük girişi — sürümden bağımsız: adıyla ("Daily").
 func _daily_node(home: Node) -> Control:
