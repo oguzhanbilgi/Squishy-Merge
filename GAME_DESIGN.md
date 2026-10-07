@@ -518,8 +518,9 @@ veri odaklı tek yer.
 ödülü (§5.4: "N. GÜN · +15 HAMUR · ALINDI" + seri şeridi; ödül pencereden
 önce yazılmış gelir), altında üç kart. Günde bir kez otomatik açılır
 (onboarding tamamsa, kabuk ekranında; kapatmak hiçbir ödülü tüketmez, yalnız
-"bugün görüldü") ve Ana Sayfa Günlük madalyonu ile Mağaza'nın en üstündeki
-GÜNLÜK ÖDÜLLER kartından gün boyu yeniden açılır (ikisi AYNI pencere/durum).
+"bugün görüldü") ve Ana Sayfa'nın GÜNLÜK ÖDÜLLER kartı (TASK/058 Ana Sayfa V3; önce
+Günlük madalyonu) ile Mağaza'nın en üstündeki GÜNLÜK ÖDÜLLER kartından gün boyu yeniden
+açılır (ikisi AYNI pencere/durum).
 Durumlar: HAZIR / ALINDI / REKLAM HAZIRLANIYOR / 2 / 2 · 1 / 2 / BUGÜNLÜK
 BİTTİ. Ayrıntı: docs/monetization/DAILY_REWARDS.md.
 
@@ -843,8 +844,9 @@ almaz; reklam yüzeyi değil (§12.1). *(TASK/045: tek istisna unvan seçimi —
 farklı bir unvan seçilince TEK kayıt yazması, §5.9. Açılış başarımları yalnız
 bellekte uzlaştırır, pencereler yazmaz.)*
 
-- **Giriş:** Ana Sayfa üst-sol avatar. **Avatar = vitrinin İLK parçası**,
-  vitrin boşsa kanonik Squishy. Kamera / galeri / yükleme / sunucu YOK.
+- **Giriş:** ~~Ana Sayfa üst-sol avatar~~ → küresel gezinme kabuğunun **PROFİL** öğesi
+  (TASK/057 / 058 — Ana Sayfa'da avatar kısayolu yok; öğenin yüzü aynı avatar). **Avatar =
+  vitrinin İLK parçası**, vitrin boşsa kanonik Squishy. Kamera / galeri / yükleme / sunucu YOK.
 - **KİMLİK:** ad **"Oyuncu"** (nötr, yerel; hesap / kimlik iddiası yok).
   ~~Oyuncu Seviyesi, XP, başarımlar, unvanlar YOK — TASK/045'e bırakıldı~~ →
   **TASK/045 ile geldi (§5.9):** adın altında seçili **unvan** (dokununca unvan
@@ -1065,8 +1067,9 @@ fail-closed) DEĞİŞMEDİ: görev durumu normal yükün parçası, kanonik / `.
 kurtarmasıyla birlikte gelir.
 
 **Arayüz:** Ana Sayfa'da TEK kompakt giriş **GÖREVLER** + "N/6" (içinde bulunulan dönemlerde
-tamamlanan görev; 6/6'da nane rozet) — üst madalyon sırasında Günlük ile Mağaza ARASINDA;
-2+2 madalyon düzeni, maskot, OYNA, alt gezinme / beş ekran DEĞİŞMEDİ. **GÖREVLER penceresi**
+tamamlanan görev; 6/6'da nane rozet) — ~~üst madalyon sırasında Günlük ile Mağaza ARASINDA;
+2+2 madalyon düzeni, maskot, OYNA, alt gezinme / beş ekran DEĞİŞMEDİ~~ → **TASK/058 Ana Sayfa V3:**
+hero'nun sol üst köşesinde ikincil madalyon (karşısında BONUS SANDIK); N/6 anlamı aynen. **GÖREVLER penceresi**
 (Main'e ait, GÜNLÜK ÖDÜLLER ile aynı iskelet): GÜNLÜK + HAFTALIK bölümleri, bölüm başına 3 kart
 (görev metni, "x / y", ilerleme rayı, Hamur ödülü, tamamlanınca TAMAMLANDI), sabit ipuçları
 "Yarın yenilenir" / "Pazartesi yenilenir" (canlı sayaç yok). Android geri / X / karartma
@@ -1208,8 +1211,10 @@ açık kayıttaydı; owner kararıyla kapatıldı.)
 tutorial'ı, kayıt mutasyonu YOK. İlk normal Ana Sayfa'dan itibaren açık — GÜNLÜK ÖDÜLLER'in
 "tutorial gününde kapalı" kuralı UYGULANMAZ.
 
-**Arayüz:** Ana Sayfa'da GÖREVLER pill'inin HEMEN altında kompakt pill (bugünün hedef portresi +
-"MEYDAN OKUMA" + "+20" rozeti / tamamlanınca tik) → GÖREVLER ailesinden MEYDAN OKUMA penceresi
+**Arayüz:** Ana Sayfa'da ~~GÖREVLER pill'inin HEMEN altında kompakt pill (bugünün hedef portresi +
+"MEYDAN OKUMA" + "+20" rozeti / tamamlanınca tik)~~ → **TASK/058:** MEYDAN OKUMA özellik kartı (bugünün
+hedef portresi + "MEYDAN OKUMA" + "… yap · N hamlede" + "+20 HAMUR" cipi / tamamlanınca "TAMAM") → GÖREVLER
+ailesinden MEYDAN OKUMA penceresi
 ("Büyük Dumpling yap · 18 hamlede", "+20 HAMUR · İlk tamamlayışta", ipucu, **"Görev, XP ve sandık
 ilerlemesine sayılmaz."**, BAŞLA). Oyunda level rozeti "BUGÜN", skor plakası "HAMLE" (kalan
 bırakış), güç tepsileri gizli, hedef kartı aynen. Sonuç: "MEYDAN OKUMA TAMAM!" · "+20 HAMUR" ·
@@ -1271,6 +1276,12 @@ ekonomisinin (§5.10) parçası DEĞİL, ayrı kaynak. Fiyatlar, sandık oranlar
 > çubuğu YOK. *(TASK/046: Ana Sayfa'ya tek kompakt GÖREVLER girişi — Günlük ile Mağaza
 > arasında, GÖREVLER penceresini açar; yeni ekran / alt gezinme YOK, §5.10.)* Aşağıdaki M8
 > notu tarihseldir.
+> *(Sonra — TASK/057 / 058: küresel alt gezinme kabuğu ANA SAYFA / MAĞAZA / HARİTA / KOLEKSİYON /
+> PROFİL beş hub ekranında. **Ana Sayfa V3:** durum satırı ("SV. N" oyuncu seviyesi + unvan + XP ·
+> Hamur — dokunma almaz) · logo + maskot (köşelerde GÖREVLER / BONUS SANDIK madalyonları) · dokunma
+> almayan "SIRADAKİ BÖLÜM N" · tek OYNA (→ Harita) · GÜNLÜK ÖDÜLLER + MEYDAN OKUMA özellik kartları.
+> Ana Sayfa'daki Mağaza / Koleksiyon madalyonları, Hamur "+", profil avatarı ve Harita'ya giden level
+> hapı kısayolları kaldırıldı — o hedefler kabukta. Ayrıntı UI_VISUAL_SYSTEM §27–§28.)*
 
 > **Navigasyon: alt sekme çubuğu (M8).** Ana Sayfa / Harita / Koleksiyon /
 > Mağaza. Oyun sırasında ve round sonucu ekranında gizleniyor.
@@ -1606,7 +1617,7 @@ kalır = yerleşik oyuncu, bastırma yok).
 yok (saat durur), **UMP/rıza akışı hiç başlamaz** (tutorial'ın üstüne form
 gelmesin; rıza şartı kaldırılmadı, yalnız ertelendi — ilk reklam talebinden
 ÖNCE mutlaka çalışır), otomatik günlük pencere ve Mağaza günlük kartı yok,
-Ana Sayfa Günlük madalyonu pencere açmaz, **günlük giriş ödülü işlemi
+Ana Sayfa GÜNLÜK ÖDÜLLER kartı (TASK/058; önce madalyon) pencere açmaz, **günlük giriş ödülü işlemi
 çalışmaz (kayıt mutasyonu yok)**, ödüllü devam/refill sunumu yok.
 
 Tutorial bitince (ya da ATLA ile) **tek transaction**:
@@ -1621,7 +1632,8 @@ yazılmaz.
 **İlk gün kuralı (owner kararı, KİLİTLİ):** tutorial'ın bitirildiği takvim
 gününde GÜNLÜK ÖDÜL SİSTEMİNİN TAMAMI kapalıdır — +15 giriş ödülü yok, seri
 ilerlemez, otomatik pencere açılmaz, ücretsiz/reklamlı sandık ve reklamlı
-+150 yok, Mağaza bölümü gizli, Ana Sayfa madalyonu nokta göstermez ve açmaz.
++150 yok, Mağaza bölümü gizli, Ana Sayfa GÜNLÜK ÖDÜLLER kartı (TASK/058; önce madalyon) görünür ama
+PASİF — kilit pictosu + "Yarın açılır", rozet göstermez ve açmaz (sessiz ölü giriş değil).
 Kaçırılan ödül SONRADAN telafi edilmez. Ertesi yerel günde sistem sıfırdan
 başlar: seri 1. gün, +15, tek otomatik pencere, tam kotalar. Tek yetkili
 kapı `Onboarding.daily_rewards_unlocked()`; kontrol modeldedir, UI'da değil.
