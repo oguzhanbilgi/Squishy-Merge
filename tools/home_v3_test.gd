@@ -30,7 +30,8 @@ extends Node
 ##                     GERİ
 ##   F yinelenenler    Ana Sayfa'da Mağaza / Koleksiyon / Profil / Harita kısayolu YOK (düğüm, sinyal, buton, kaynak);
 ##                     üst satır ve level bilgisi DURUM (fare almaz); etkileşimli öğe tam 5; kabuğun MAĞAZA / KOLEKSİYON /
-##                     PROFİL öğeleri gerçek dokunuşla tam bir gezinme
+##                     PROFİL öğeleri gerçek dokunuşla tam bir gezinme; K9 terimleri ("SV. N", "SIRADAKİ BÖLÜM N", sonsuz aynen;
+##                     görünen "LV." / "Level N" yok)
 ##   G yerleşim        720×1280 · 16:9 + banner 112 / 128 · 720×1600 · A36 benzeri (üst 61) banner'sız / banner'lı ·
 ##                     geniş tuval 960×1280: hiçbir öğe kabuğun ayak izine / banner yuvasına girmez; OYNA ile kabuk
 ##                     arasında iki kart (bitişik iki düğme yok); kartlar / OYNA / level bilgisi çakışmaz; madalyonlar
@@ -477,6 +478,27 @@ func _removed_shortcuts() -> void:
 		await _wait_settled()
 		_c("F kabuk %s gerçek dokunuşla tam bir gezinme (rota korunuyor)" % spec[1],
 			int(_main.nav_navigations) == navs + 1 and _main._active_tab == int(spec[0]) and _main._screens[int(spec[0])].visible)
+	# K9 (owner, TASK/058 son tur): Ana Sayfa terimleri — oyuncu seviyesi "SV. N", sıradaki harita bölümü "SIRADAKİ BÖLÜM N";
+	# Ana Sayfa'da İngilizce "LV." / "Level N" görünmez; sonsuz kip anlamı aynen.
+	await _tab(0)
+	_c("F K9 oyuncu seviyesi rozeti 'SV.' + seviye sayısı (PlayerProfile) — 'LV.' değil", home.status_caption_text() == "SV."
+		and home.status_level() == PlayerProfile.player_level())
+	_c("F K9 harita ilerlemesi 'SIRADAKİ' + 'BÖLÜM 5' (fikstür: sıradaki bölüm 5)", home.level_caption_text() == "SIRADAKİ"
+		and home.level_title_text() == "BÖLÜM 5")
+	var leaks: Array[String] = []
+	for node in home.find_children("*", "Label", true, false):
+		var label: Label = node
+		if label.is_visible_in_tree() and (label.text == "LV." or label.text.begins_with("Level ")):
+			leaks.append(label.text)
+	_c("F K9 Ana Sayfa'da görünen 'LV.' / 'Level N' yok %s" % str(leaks), leaks.is_empty())
+	_c("F K9 kaynak: home_screen 'Level %d' biçimi kullanmıyor, 'BÖLÜM %d' + 'SV.' sabitleri var",
+		not src.contains("\"Level %d\"") and src.contains("\"BÖLÜM %d\"") and src.contains("\"SV.\""))
+	await _boot({"highest_level_unlocked": 11, "level_stars": {"1": 3, "2": 3, "3": 3, "4": 3, "5": 3, "6": 3, "7": 3,
+		"8": 3, "9": 3, "10": 3}, "endless_high_score": 12480})
+	home = _main._screens[0]
+	_c("F K9 sonsuz kip anlamı aynen: 'SONSUZ MOD' · 'Rekor 12 480' · 30/30; rozet yine 'SV.'",
+		home.level_caption_text() == "SONSUZ MOD" and home.level_title_text() == "Rekor 12 480"
+		and home.level_stars_text() == "30/30" and home.status_caption_text() == "SV.")
 	_sections_done += 1
 
 

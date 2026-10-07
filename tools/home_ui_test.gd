@@ -130,8 +130,8 @@ func _ready() -> void:
 	_c("oyuncu durumu: seviye = PlayerProfile seviyesi, unvan = seçili unvan, XP oranı 0..1",
 		home.status_level() == PlayerProfile.player_level() and home.status_title_text() == PlayerProfile.selected_title_name()
 		and home.status_ratio() >= 0.0 and home.status_ratio() <= 1.0)
-	_c("level bilgisi: SIRADAKİ (noktalı İ), 'Level 4', 8/30", home.level_caption_text() == "SIRADAKİ"
-		and home.level_title_text() == "Level 4" and home.level_stars_text() == "8/30")
+	_c("ilerleme bilgisi (K9): SIRADAKİ (noktalı İ), 'BÖLÜM 4', 8/30; oyuncu rozeti 'SV.'", home.level_caption_text() == "SIRADAKİ"
+		and home.level_title_text() == "BÖLÜM 4" and home.level_stars_text() == "8/30" and home.status_caption_text() == "SV.")
 	var chest: HomeFeatureButton = home.chest_button()
 	_c("sandık rozeti 49/75, altın halka 49/75", chest.badge_text() == "49/75" and absf(chest.progress() - 49.0 / 75.0) < 0.011
 		and chest._ring.tint == UiTokens.GOLD)
@@ -143,7 +143,7 @@ func _ready() -> void:
 	print("-- veri (yeni oyuncu)")
 	_apply_fresh()
 	home.refresh()
-	_c("Hamur 0; level 1, 0/30", _pill_text(home.dough_pill()) == "0" and home.level_title_text() == "Level 1"
+	_c("Hamur 0; level 1, 0/30", _pill_text(home.dough_pill()) == "0" and home.level_title_text() == "BÖLÜM 1"
 		and home.level_stars_text() == "0/30")
 	_c("seri 0 iken Günlük kartı çıplak '0' göstermez", not home.daily_card().subtitle_text().begins_with("0"))
 	_c("sandık 0/75", chest.badge_text() == "0/75" and chest.progress() == 0.0)
