@@ -50,9 +50,11 @@ const PLINTH_RING_SIDE: float = 5.0
 const PLINTH_RING: float = 10.0
 const PLINTH_RING_COMPACT: float = 7.0
 const PREMIUM_RING: float = 3.0
-## Basılı madalyonun yüzü bu oranda aydınlanır; seçili ailenin krem kaidesi yarı saydam önizleme olarak görünür.
-const PRESS_BRIGHTEN: float = 0.18
-const PRESS_PREVIEW_ALPHA: float = 0.7
+## Basılı madalyonun yüzü bu oranda aydınlanır; seçili ailenin krem kaidesi kalın, neredeyse opak önizleme olarak
+## görünür (telefonda parmağın altında da seçilsin — A36'da ince önizleme zor okunuyordu).
+const PRESS_BRIGHTEN: float = 0.24
+const PRESS_PREVIEW_ALPHA: float = 0.95
+const PRESS_RING: float = 7.0
 
 var _tab: int = 0
 var _center: bool = false
@@ -333,7 +335,7 @@ func _draw() -> void:
 	elif _pressed_visual and not _center:
 		# Basılı (seçili değil): seçili ailenin krem kaidesinin yarı saydam önizlemesi (dudağı çökmüş).
 		var fam: Dictionary = selected_family()
-		UiKit.draw_candy_circle(self, c, d + PLINTH_RING_SIDE * 2.0, Color(fam["fill"], PRESS_PREVIEW_ALPHA),
+		UiKit.draw_candy_circle(self, c, d + PRESS_RING * 2.0, Color(fam["fill"], PRESS_PREVIEW_ALPHA),
 			Color(fam["deep"], PRESS_PREVIEW_ALPHA), lip_now, rest, {}, Color(0, 0, 0, 0), 0.0, 0.0)
 	# Madalyon: vurgu yüz + koyu dudak + beyaz kenar (seçiliyken / basılıyken kenarı kaide üstlenir).
 	var face: Color = _accent.lerp(Color.WHITE, PRESS_BRIGHTEN) if _pressed_visual else _accent
