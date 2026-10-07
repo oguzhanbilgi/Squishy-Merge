@@ -64,6 +64,12 @@ func level() -> int:
 	return _level
 
 
+## Üst yazı (varsayılan "LV." — Profil / sonuç). TASK/058 K9: Ana Sayfa Türkçe "SV." kullanır (harita "BÖLÜM"üyle
+## karışmasın); punto aynı (çapın %19'u).
+func set_caption(text: String) -> void:
+	_caption.text = text
+
+
 ## Seviye atlama: disk kısa bir altın parıltıyla pop eder (kutlama, bloklamaz).
 func celebrate() -> void:
 	if _tween != null and _tween.is_valid():

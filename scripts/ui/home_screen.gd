@@ -3,7 +3,7 @@ extends CanvasLayer
 ## MEYDAN OKUMA → küresel gezinme (TASK/057 kabuğu). Eşdeğer ağırlıkta küçük düğmeler YOK: tek baskın CTA, iki özellik
 ## kartı, iki ikincil madalyon.
 ##
-##   ÜST      oyuncu durumu (sol: seviye rozeti + seçili unvan + XP rayı) · Hamur bakiyesi (sağ). İkisi de DURUM —
+##   ÜST      oyuncu durumu (sol: "SV. N" seviye rozeti + seçili unvan + XP rayı) · Hamur bakiyesi (sağ). İkisi de DURUM —
 ##            dokunma almaz (Profil / Mağaza rotaları kabukta; ikinci bir gezinme sistemi yok). Cihaz üst güvenli payı
 ##            satırı aşağı iter
 ##   LOGO     SQUISHY MERGE lockup, üst satırın altında ortada
@@ -12,7 +12,8 @@ extends CanvasLayer
 ##            (N/6 — TASK/046 penceresi), sağ SANDIK (N/75 + altın halka — bonus sandık bilgisi). Maskotun dar tepesi
 ##            madalyonların arasına sokulur, geniş gövdesi altlarında kalır (çakışma testle kilitli)
 ##   OYNA     V3 birincil CTA (`SquishyButton` PRIMARY HERO, ▶ OYNA) + cyan hale + %1.5 nefes; hemen üstünde DOKUNMA
-##            ALMAYAN level bilgisi ("SIRADAKİ Level 5 ★ 11/30"; sonsuzda "SONSUZ MOD Rekor …") → Harita
+##            ALMAYAN ilerleme bilgisi ("SIRADAKİ BÖLÜM 5 ★ 11/30"; sonsuzda "SONSUZ MOD Rekor …") → Harita. K9 (owner):
+##            oyuncu seviyesi "SV.", harita ilerlemesi "BÖLÜM" — Ana Sayfa'da İngilizce "LV." / "Level" yok
 ##   KARTLAR  iki V3 `FeatureCard`, tam genişlik, alt yazı TYPE_BODY: GÜNLÜK ÖDÜLLER (seri + bugünün durumu; alınacak
 ##            varsa "!" rozeti; tutorial gününde PASİF + kilit pictosu + "Yarın açılır") → GÜNLÜK ÖDÜLLER penceresi ·
 ##            MEYDAN OKUMA (bugünün hedef portresi, "Dev Dumpling yap · 38 hamlede", "+20 HAMUR" cipi / tamamlanınca nane
@@ -104,8 +105,11 @@ const MASCOT_SIDE_MARGIN: float = 44.0
 const MASCOT_NARROW_TOP: float = 0.22
 ## Maskot madalyonların YANINDA da durabilir (kısa ekran): iki madalyon sütunu arasındaki boşluk payı.
 const MASCOT_MEDALLION_GAP: float = 8.0
-## Oyuncu durum rozeti çapı: "LV." yazısı çapın %19'u — 74 px'te 14 px (V3 en küçük yazı).
+## Oyuncu durum rozeti çapı: üst yazı çapın %19'u — 74 px'te 14 px (V3 en küçük yazı).
 const STATUS_BADGE: float = 74.0
+## K9 (owner, TASK/058): Ana Sayfa terimleri — oyuncu seviyesi "SV. N", sıradaki harita bölümü "BÖLÜM N".
+const STATUS_LEVEL_CAPTION: String = "SV."
+const NEXT_LEVEL_FORMAT: String = "BÖLÜM %d"
 ## Maskotun altında yer gölgesi + yan dumpling payı.
 const GROUND_ROOM: float = 56.0
 ## Uzun ekranda (hero gerekenden yüksek): fazlanın bu payı logonun üstüne / madalyonların üstüne gök olur, maskot
@@ -246,6 +250,7 @@ func _build_top() -> void:
 	# Seviye rozeti pill'in sol ucundan taşar (level rozeti dili); metin + XP rayı pill içinde.
 	_status_badge = PlayerLevelBadge.new(STATUS_BADGE)
 	_status_badge.name = "LevelBadge"
+	_status_badge.set_caption(STATUS_LEVEL_CAPTION)
 	_status.add_child(_status_badge)
 	var column := VBoxContainer.new()
 	column.name = "Column"
@@ -364,7 +369,7 @@ func _build_play() -> void:
 
 
 ## Level bilgisi: OYNA'nın hedefini söyleyen DURUM satırı — düğme değil (çerçeve / dudak / basış yok, fare almaz).
-## Koyu yarı saydam hap + altın taç + "SIRADAKİ" + "Level 5" + ★ "11/30". Sonsuz: "SONSUZ MOD" / "Rekor 12 480".
+## Koyu yarı saydam hap + altın taç + "SIRADAKİ" + "BÖLÜM 5" + ★ "11/30". Sonsuz: "SONSUZ MOD" / "Rekor 12 480".
 func _build_level_info() -> void:
 	_level = PanelContainer.new()
 	_level.name = "LevelInfo"
@@ -388,7 +393,7 @@ func _build_level_info() -> void:
 	_level_caption.add_theme_font_size_override("font_size", UiTokens.TYPE_SECONDARY)
 	_level_caption.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	row.add_child(_level_caption)
-	_level_title = UiKit.label("Level 1", &"LabelSectionOnDark")
+	_level_title = UiKit.label(NEXT_LEVEL_FORMAT % 1, &"LabelSectionOnDark")
 	_level_title.add_theme_font_size_override("font_size", 22)
 	_level_title.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	row.add_child(_level_title)
@@ -640,7 +645,7 @@ func refresh() -> void:
 		_level_title.text = "Rekor %s" % GameplayHud._thousands(record) if record > 0 else "Rekor bekliyor"
 	else:
 		_level_caption.text = "SIRADAKİ"
-		_level_title.text = "Level %d" % next_level
+		_level_title.text = NEXT_LEVEL_FORMAT % next_level
 
 	var merges: int = int(SaveManager.data.get("merges_since_bonus_chest", 0))
 	var per_chest: int = ChestSystem.MERGES_PER_BONUS_CHEST
@@ -856,6 +861,11 @@ func status_title_text() -> String:
 
 func status_level() -> int:
 	return _status_badge.level()
+
+
+## K9: oyuncu seviyesi rozetinin üst yazısı ("SV.").
+func status_caption_text() -> String:
+	return _status_badge.caption_text()
 
 
 ## Seviye içi XP oranı (0..1) — XP rayının dolgusu.
