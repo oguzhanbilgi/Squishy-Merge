@@ -54,7 +54,11 @@ var _chest_info: CanvasLayer
 var _missions: MissionsOverlay
 ## MEYDAN OKUMA penceresi (TASK/047): Ana Sayfa'nın MEYDAN OKUMA girişi açar; GÖREVLER ile aynı aile
 ## (Main'e ait ikincil pencere, reklam yüzeyi değil, kayda yazmaz — BAŞLA yalnız talep yayar).
+## TASK/059: Harita'nın MEYDAN portalı da AYNI pencereyi açar.
 var _challenge_sheet: DailyChallengeOverlay
+## TASK/059: pencereyi açan hub ekranı (0 Ana Sayfa / 1 Harita) — pencere o ekranındır: başka ekrana geçişte kapanır,
+## kapanınca oyuncu açtığı ekranda kalır. (Meydan okuma ROUND'undan çıkış değişmedi: sonuç / mola → Ana Sayfa.)
+var _challenge_origin_tab: int = 0
 ## Android geri tusu debounce (bkz. _notification).
 const BACK_DEBOUNCE_MSEC: int = 250
 var _last_back_msec: int = -1000
@@ -249,6 +253,8 @@ func _ready() -> void:
 	# Harita (M8.6-04): kendi ust satiri — Hamur "+" -> Magaza. TASK/057 Tur 2: hub ekranlarinda geri oku yok;
 	# Ana Sayfa'ya donus kuresel gezinme kabugunda + Android geri.
 	select.shop_requested.connect(_on_shop_requested)
+	# TASK/059: Harita'nın MEYDAN portalı → mevcut MEYDAN OKUMA penceresi (Ana Sayfa'nın MEYDAN karosuyla aynı yol).
+	select.challenge_requested.connect(open_daily_challenge)
 	var album: CanvasLayer = COLLECTION_SCENE.instantiate()
 	# Koleksiyon (M8.6-06): kendi ust satiri — Hamur "+" ve kilitli skin'in MAGAZAYA GIT'i -> Magaza.
 	album.shop_requested.connect(_on_shop_requested)
@@ -590,8 +596,8 @@ func _show_tab(tab: int, auto_daily: bool = true) -> void:
 	# TASK/046: GÖREVLER penceresi Ana Sayfa'nındır — başka ekrana geçişte sessizce kapanır.
 	if tab != 0 and _missions != null and _missions.visible:
 		_missions.close_missions(false)
-	# TASK/047: MEYDAN OKUMA penceresi de Ana Sayfa'nın.
-	if tab != 0 and _challenge_sheet != null and _challenge_sheet.visible:
+	# TASK/047: MEYDAN OKUMA penceresi de onu açan ekranın (TASK/059: Ana Sayfa ya da Harita).
+	if tab != _challenge_origin_tab and _challenge_sheet != null and _challenge_sheet.visible:
 		_challenge_sheet.close_sheet(false)
 	_active_tab = tab
 	_set_ad_surface(TAB_SURFACES[tab])
@@ -940,6 +946,11 @@ func _sync_nav() -> void:
 	var hub: bool = _active_tab >= 0 and _active_tab < _screens.size() and _screens[_active_tab].visible
 	_nav.set_current(_active_tab)
 	_nav.visible = hub and not _nav_blocked()
+	# TASK/059: Harita önde ve engelsiz değilse (pencere açıldı, başka sekme, oyun / sonuç) süren harita jesti
+	# (sürükleme / savurma / basılı düğüm) eylemsiz biter — gizli bir yüzeyde kamera kaymaz, level başlamaz.
+	if _screens.size() > 1 and _screens[1].has_method("cancel_gesture") \
+			and not (_active_tab == 1 and _screens[1].visible and not _nav_blocked()):
+		_screens[1].cancel_gesture()
 
 
 ## Kabuğun görünmemesi gereken bir yüzey açık mı (bkz. sözleşme).
@@ -1063,9 +1074,10 @@ func _refresh_missions_views() -> void:
 		_screens[0].refresh_missions()
 
 
-## Ana Sayfa'nın MEYDAN OKUMA girişi (TASK/047): bugünün meydan okuma penceresi — yalnız okur, kayda
-## yazmaz, reklam çağırmaz. Onboarding / tutorial / round / yaş ekranı / başka pencere açıkken ya da
-## gün gerçeği yokken açılmaz (dokunma yolu zaten karartmalı; bu, kod yollarını da kapatır).
+## Ana Sayfa'nın MEYDAN OKUMA girişi (TASK/047) ve Harita'nın MEYDAN portalı (TASK/059): bugünün meydan okuma
+## penceresi — yalnız okur, kayda yazmaz, reklam çağırmaz. Onboarding / tutorial / round / yaş ekranı / başka pencere
+## açıkken, Ana Sayfa ya da Harita önde değilken veya gün gerçeği yokken açılmaz (dokunma yolu zaten karartmalı; bu,
+## kod yollarını da kapatır).
 func open_daily_challenge() -> void:
 	if _challenge_sheet == null or _challenge_sheet.visible or is_tutorial_active():
 		return
@@ -1073,7 +1085,7 @@ func open_daily_challenge() -> void:
 		return
 	if _board != null and is_instance_valid(_board):
 		return
-	if _active_tab != 0 or not _screens[0].visible:
+	if (_active_tab != 0 and _active_tab != 1) or not _screens[_active_tab].visible:
 		return
 	if _age_panel != null and _age_panel.visible:
 		return
@@ -1083,8 +1095,9 @@ func open_daily_challenge() -> void:
 	var view: Dictionary = DailyChallenge.current_view()
 	if view.is_empty():
 		return
-	# Pencere ve Ana Sayfa girişi AYNI günü göstersin.
-	_screens[0].refresh_daily_challenge()
+	# Pencere ve girişler (Ana Sayfa karosu / Harita portalı) AYNI günü göstersin.
+	_refresh_challenge_entries()
+	_challenge_origin_tab = _active_tab
 	_challenge_sheet.open_sheet(view)
 
 
@@ -1096,11 +1109,11 @@ func _on_challenge_start_requested(shown_day: String) -> void:
 	var view: Dictionary = DailyChallenge.current_view()
 	if view.is_empty():
 		_challenge_sheet.close_sheet()
-		_screens[0].refresh_daily_challenge()
+		_refresh_challenge_entries()
 		return
 	if String(view["day_key"]) != shown_day or bool(view["completed"]):
 		_challenge_sheet.show_view(view)
-		_screens[0].refresh_daily_challenge()
+		_refresh_challenge_entries()
 		settle_touch_input()
 		return
 	_challenge_sheet.close_sheet(false)
@@ -1117,8 +1130,19 @@ func _refresh_daily_challenge_views() -> void:
 			_challenge_sheet.show_view(view)
 	if _round_kind == RoundKind.DAILY_CHALLENGE and _result.challenge_fail_day_stale(DailyChallenge.current_day()):
 		_result.refresh_challenge_day_changed()
-	if not _screens.is_empty() and _screens[0].visible:
+	_refresh_challenge_entries(true)
+
+
+## Meydan okuma girişlerini (Ana Sayfa MEYDAN karosu, TASK/059 Harita MEYDAN portalı) yalnız okuyarak tazeler.
+## `visible_only`: yalnız önde olan ekran (öne dönüş yolu — eskisi gibi).
+func _refresh_challenge_entries(visible_only: bool = false) -> void:
+	if _screens.is_empty():
+		return
+	if not visible_only or _screens[0].visible:
 		_screens[0].refresh_daily_challenge()
+	if _screens.size() > 1 and _screens[1].has_method("refresh_challenge") \
+			and (not visible_only or _screens[1].visible):
+		_screens[1].refresh_challenge()
 
 
 ## Günlük giriş ödülü (GAME_DESIGN.md §5.4): yetkili tek işlem

@@ -13,17 +13,18 @@ extends Button
 ##                   owner pembe kilit; tam alfa (gri blob DEĞİL). Dokunuş
 ##                   = kilit sallanır + `ui_invalid`; ASLA level başlatmaz
 ##   ENDLESS_OPEN    116 px altın gövde, krem halka, owner tacı + "SONSUZ",
-##                   plaka "Rekor N" / "Rekor bekliyor", 3 pırıltı
-##   ENDLESS_LOCKED  lavanta gövde, soluk taç, kilit, plaka "Level 10'u bitir"
+##                   plaka "Rekor N" (rekor yoksa plaka YOK — TASK/059 text-light), 3 pırıltı
+##   ENDLESS_LOCKED  lavanta gövde, soluk taç, kilit, plaka kilit + şart (TASK/059: "BÖLÜM 10")
 ##
 ## Anatomi (arkadan öne): erik temas gölgesi (yassı blob — düğüm dünyaya
 ## OTURUR) → hale (yalnız odak) → krem dış halka → durum halkası → `btn_circle`
 ## gövde (butonun stylebox'ı) → cam yuva → alt gölge + üst gloss → içerik
 ## (numara / taç + yazı) → yıldız sırası → kilit rozeti → altta plaka.
 ##
-## Çap dışarıdan (`set_diameter`): harita perspektif verir — altta 84 px,
-## kalede 72 px; sıradaki ×1.14. Buton dikdörtgeni = gövde (≥ 48 dokunma);
-## plaka gövdeden aşağı taşan dekor, dokunma almaz.
+## Çap dışarıdan (`set_diameter`): harita perspektif + dünya ölçeği verir (TASK/059: en küçük düğüm ≥ 84 =
+## TOUCH_TARGET); sıradaki ×1.14. Dokunma alanı = gövde + plaka (TASK/059: "OYNA" kelimesine dokunuş da düğümündür —
+## TASK/058 Günlük plakası dersi; `_has_point`). `MOUSE_FILTER_PASS`: harita kaydırması düğümün üstünden de başlar;
+## kaydırma başlayınca BaseButton basışı iptal eder (NOTIFICATION_SCROLL_BEGIN) — sürükleme level BAŞLATMAZ.
 ##
 ## Kural: on bir düğüm bu bileşenden; ekran kodu halka/gloss kurmaz.
 ## Level verisi, unlock kuralı, yıldız kuralı BURADA DEĞİL — yalnız sunum.
@@ -89,6 +90,8 @@ var _wiggle: Tween
 func _init() -> void:
 	theme_type_variation = &"ButtonMapNode"
 	focus_mode = Control.FOCUS_NONE
+	# TASK/059: basış düğüme işlenir VE olay kaydırılan dünyaya da ulaşır (Koleksiyon kartı deseni).
+	mouse_filter = Control.MOUSE_FILTER_PASS
 	mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
 	# Temas gölgesi: yassı erik blob, gövdenin altına doğru (dünyaya oturma).
 	_shadow = UiKit.patch("popup_glow", Color(0.22, 0.09, 0.36, 0.26))
@@ -197,8 +200,8 @@ func setup_level(level_number: int, state: State, stars: int) -> void:
 	_apply_state()
 
 
-## Sonsuz Mod madalyonu. `record` 0 = henüz rekor yok. Şart metni
-## çağırandan gelir (kanonik: "Level 10'u bitir").
+## Sonsuz Mod madalyonu. `record` 0 = henüz rekor yok. Şart metni çağırandan gelir (TASK/059 text-light: kilit ikonu +
+## "BÖLÜM 10"; kural aynı — Level 10 tamamlanınca açılır). Açık + rekor yok: plaka yok (taç + SONSUZ + pırıltı yeter).
 func setup_endless(open: bool, record: int, requirement: String) -> void:
 	_level_number = 0
 	_state = State.ENDLESS_OPEN if open else State.ENDLESS_LOCKED
@@ -206,7 +209,7 @@ func setup_endless(open: bool, record: int, requirement: String) -> void:
 	_diameter = ENDLESS_DIAMETER
 	_apply_state()
 	if open:
-		_set_plaque(("Rekor %s" % GameplayHud._thousands(record)) if record > 0 else "Rekor bekliyor", false)
+		_set_plaque(("Rekor %s" % GameplayHud._thousands(record)) if record > 0 else "", false)
 	else:
 		_set_plaque(requirement, true)
 
@@ -274,6 +277,33 @@ func visual_rect() -> Rect2:
 	if _plaque.visible:
 		rect = rect.merge(_plaque.get_global_rect())
 	return rect
+
+
+## TASK/059: dokunma alanı (global) = gövde + görünür plaka (`_has_point` ile aynı).
+func hit_rect() -> Rect2:
+	return visual_rect()
+
+
+## TASK/059: dokunma alanı EBEVEYN uzayında, ölçeksiz (nefes / basış / giriş pop'u hariç) — harita kamerası bununla
+## hizalanır (animasyon anındaki ölçek kamera konumunu oynatmaz).
+func layout_rect() -> Rect2:
+	var rect := Rect2(position, size)
+	if _plaque.visible:
+		rect = rect.merge(Rect2(position + _plaque.position, _plaque.size))
+	return rect
+
+
+## Plaka dikdörtgeni (global; plaka yoksa boş).
+func plaque_rect() -> Rect2:
+	return _plaque.get_global_rect() if _plaque.visible else Rect2()
+
+
+## TASK/059: dokunuş gövdeye YA DA görünür plakaya ("OYNA" / "Rekor" kelimesi) düşerse düğümündür. Plaka gövdeye
+## 8 px biner; komşu düğümle çakışmaz (map_v3_test).
+func _has_point(point: Vector2) -> bool:
+	if Rect2(Vector2.ZERO, size).has_point(point):
+		return true
+	return _plaque.visible and Rect2(_plaque.position, _plaque.size).has_point(point)
 
 
 ## Kilitli düğüme dokunuş: kilit sallanır, `ui_invalid`. Level başlatmaz.
@@ -420,6 +450,12 @@ static func _place(node: Control, left: float, top: float, right: float, bottom:
 
 
 # --- Hareket ----------------------------------------------------------------
+
+## TASK/059: harita kaydırması başladı — BaseButton basışı iptal etti (eylem yok); basış ölçeği (0.94) de bırakılır.
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_SCROLL_BEGIN:
+		UiMotion.release(self)
+
 
 ## Odak halesi nefes alır (alfa + %6 ölçek), gövde en fazla %1.5 — yalnız
 ## basış tween'i çalışmıyorken (UiMotion ölçeği devralır). Sonsuz

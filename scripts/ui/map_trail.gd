@@ -12,6 +12,9 @@ extends Control
 ## M8.6-04: çizgi 10 px + altında 16 px erik gölge (patika dünyaya oturur,
 ## neon değil), noktalar 11 px + beyaz tepe ışığı (candy). Düğümlerin altında
 ## kalan uçlar `_node_radius` kadar atlanır (düğüm çapı perspektifle değişir).
+##
+## TASK/059: aynı bileşen MEYDAN yan yolunu da çizer (`set_branch_palette`): tüm segmentler kendi renginde (ilerleme
+## rengi DEĞİL — portal level ilerlemesine bağlı değil), noktalar aynı candy dilinde.
 
 const LINE_WIDTH: float = 10.0
 const SHADOW_WIDTH: float = 16.0
@@ -32,6 +35,10 @@ var _points: PackedVector2Array = PackedVector2Array()
 var _radii: PackedFloat32Array = PackedFloat32Array()
 ## Tamamlanmış segment sayısı (0..n-1): i < done ise segment i sıcak.
 var _done: int = 0
+## TASK/059 yan yol paleti: ayarlanınca tamamlanmış segmentler bu renkleri kullanır (ana patika: sabitler).
+var _branch_line: Color = DONE_COLOR
+var _branch_dot: Color = DONE_DOT
+var _branch: bool = false
 ## `done` indeksli segmentin ne kadarı yanmış (0..1). Açılış animasyonu.
 var lit: float = 0.0:
 	set(value):
@@ -51,6 +58,18 @@ func set_trail(points: PackedVector2Array, done_segments: int, lit_amount: float
 func set_done(done_segments: int) -> void:
 	_done = done_segments
 	queue_redraw()
+
+
+## Yan yol (MEYDAN): her segment `line` / `dot` renginde çizilir.
+func set_branch_palette(line: Color, dot: Color) -> void:
+	_branch = true
+	_branch_line = line
+	_branch_dot = dot
+	queue_redraw()
+
+
+func is_branch() -> bool:
+	return _branch
 
 
 func done_segments() -> int:
@@ -79,7 +98,7 @@ func _draw() -> void:
 		var done: bool = i < _done
 		var partial: float = lit if i == _done else 0.0
 		if done:
-			draw_polyline(poly, DONE_COLOR, LINE_WIDTH, true)
+			draw_polyline(poly, _branch_line if _branch else DONE_COLOR, LINE_WIDTH, true)
 		else:
 			draw_polyline(poly, FUTURE_COLOR, LINE_WIDTH, true)
 			if partial > 0.0:
@@ -105,7 +124,7 @@ func _draw_dots(poly: PackedVector2Array, done: bool, partial: float,
 		var at: Vector2 = _point_at(poly, lengths, d)
 		var warm: bool = done or d <= lit_len
 		draw_circle(at + Vector2(0, 2.0), DOT_RADIUS + 1.4, SHADOW_COLOR)
-		draw_circle(at, DOT_RADIUS, DONE_DOT if warm else FUTURE_DOT)
+		draw_circle(at, DOT_RADIUS, (_branch_dot if _branch else DONE_DOT) if warm else FUTURE_DOT)
 		# Tepe ışığı: küçük beyaz nokta (candy).
 		draw_circle(at + Vector2(-1.2, -1.4), DOT_RADIUS * 0.36,
 			DOT_LIGHT if warm else Color(1, 1, 1, 0.5))

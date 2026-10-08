@@ -24,16 +24,64 @@ anchor_bottom = 1.0
 mouse_filter = 2
 color = Color(0.05, 0.04, 0.16, 1)
 
-[node name="Sky" type="TextureRect" parent="Root"]
+[node name="WorldClip" type="Control" parent="Root"]
+clip_contents = true
+mouse_filter = 2
+
+[node name="World" type="Control" parent="Root/WorldClip"]
+
+[node name="Sky" type="TextureRect" parent="Root/WorldClip/World"]
 mouse_filter = 2
 expand_mode = 1
 flip_v = true
 
-[node name="MapBackground" type="TextureRect" parent="Root"]
+[node name="Ground" type="TextureRect" parent="Root/WorldClip/World"]
+mouse_filter = 2
+expand_mode = 1
+flip_v = true
+
+[node name="MapBackground" type="TextureRect" parent="Root/WorldClip/World"]
 mouse_filter = 2
 texture = ExtResource("3_map")
 expand_mode = 1
-stretch_mode = 6
+
+[node name="Map" type="Control" parent="Root/WorldClip/World"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 2
+
+[node name="Branch" type="Control" parent="Root/WorldClip/World/Map"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 2
+script = ExtResource("4_trail")
+
+[node name="Trail" type="Control" parent="Root/WorldClip/World/Map"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 2
+script = ExtResource("4_trail")
+
+[node name="Fx" type="Control" parent="Root/WorldClip/World/Map"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 2
+
+[node name="Portal" type="Control" parent="Root/WorldClip/World/Map"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 2
+
+[node name="Nodes" type="Control" parent="Root/WorldClip/World/Map"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 2
 
 [node name="Vignette" type="TextureRect" parent="Root"]
 mouse_filter = 2
@@ -42,31 +90,6 @@ expand_mode = 1
 [node name="Haze" type="TextureRect" parent="Root"]
 mouse_filter = 2
 expand_mode = 1
-
-[node name="Map" type="Control" parent="Root"]
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-mouse_filter = 2
-
-[node name="Trail" type="Control" parent="Root/Map"]
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-mouse_filter = 2
-script = ExtResource("4_trail")
-
-[node name="Fx" type="Control" parent="Root/Map"]
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-mouse_filter = 2
-
-[node name="Nodes" type="Control" parent="Root/Map"]
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-mouse_filter = 2
 
 [node name="TopBar" type="Control" parent="Root"]
 mouse_filter = 2
