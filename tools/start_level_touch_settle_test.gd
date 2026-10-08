@@ -509,7 +509,7 @@ func _f_map_home() -> void:
 	# F1: Harita düğümü (level 3) — çift dokunuş.
 	for gap: int in SECOND_TAP_GAPS:
 		await _to_map()
-		var node: MapLevelNode = _main._screens[1].nodes()[2]
+		var node: MapLevelNode = await _map_node(2)
 		_reset_actions()
 		var tl: Dictionary = await _button_tap(node)
 		var nb: Node2D = _main._board
@@ -527,7 +527,7 @@ func _f_map_home() -> void:
 	# F2: iki parmak — parmak 0 düğümde, parmak 1 Harita arka planında (kontrol yakalamaz) basılı; level başlar; parmak 1
 	# pencere bittikten sonra yeni board'da kalkar.
 	await _to_map()
-	var node2: MapLevelNode = _main._screens[1].nodes()[2]
+	var node2: MapLevelNode = await _map_node(2)
 	var np: Vector2 = _center(node2)
 	var background: Vector2 = _screen(Vector2(40.0, 700.0))
 	_reset_actions()
@@ -597,7 +597,7 @@ func _h_single_arm() -> void:
 				tl = await _button_tap(_main._result.primary_button())
 			"Harita düğümü":
 				await _to_map()
-				tl = await _button_tap(_main._screens[1].nodes()[2])
+				tl = await _button_tap(await _map_node(2))
 			_:
 				await _to_map()
 				tl = await _button_tap(_main._screens[1].endless_node())
@@ -898,8 +898,9 @@ func _p_navigation() -> void:
 	_c("P sonuç TEKRAR (+ yutulan ikinci dokunuş): yalnız tekrar; gezinme / pencere / sonuç çıkışı yok", _actions["result_retry"] == 1
 		and _actions_except(["result_retry"]) == 0 and _quiet_round(_main._board))
 	await _to_map()
+	var level3: MapLevelNode = await _map_node(2)
 	_reset_actions()
-	tl = await _button_tap(_main._screens[1].nodes()[2])
+	tl = await _button_tap(level3)
 	await _second_tap(tl, 80)
 	_c("P Harita düğümü (+ yutulan ikinci dokunuş): yalnız level_chosen; Ana Sayfa'ya dönülmedi, pencere yok", _actions["level_chosen"] == 1
 		and _actions_except(["level_chosen"]) == 0 and _quiet_round(_main._board))
@@ -1196,6 +1197,18 @@ func _new_round(number: int) -> Node2D:
 
 
 ## Harita (board varsa terk: `abandon_run` → Harita) + yatışmanın bitmesi.
+## TASK/059: Harita kaydırılabilir — bitmiş oyuncuda (fikstür) kamera girişte Sonsuz kalesine odaklanır, level 3 aşağıda
+## kabuğun arkasında kalır (dock dokunuşu tutar). Oyuncunun yapacağı gibi düğüm önce açık banda getirilir (yalnız kamera
+## konumu; girdi yok), ardından GERÇEK dokunuş — TASK/051 sözleşmesi aynen ölçülür.
+func _map_node(index: int) -> MapLevelNode:
+	var map: CanvasLayer = _main._screens[1]
+	var node: MapLevelNode = map.nodes()[index]
+	if map.has_method("scroll_for"):
+		map.set_scroll(map.scroll_for(node))
+		await _settle(2)
+	return node
+
+
 func _to_map() -> void:
 	if _main._result.visible or (_main._board != null and is_instance_valid(_main._board)):
 		_main.abandon_run()
