@@ -710,7 +710,7 @@ func _refill() -> void:
 	var piece: Dumpling = await _piece(board)
 	var dough: int = SaveManager.dough()
 	var bomb: int = SaveManager.powerup_count(PowerUp.Type.BOMB)
-	var quota: int = RewardedPolicy.remaining_today()
+	var quota: int = RewardedPolicy.remaining_today(PowerUp.Type.BOMB)
 	var rewarded_shows: int = fake.rewarded_shows.size()
 	_reset_marks()
 	await _fire_upgrade(board, piece, true)
@@ -736,7 +736,7 @@ func _refill() -> void:
 	_c("  … Hamur yalnız kesinleşmenin ödülleriyle değişti (%d + görev %d + sandık %d = %d), satın alma düşümü yok; sonra sabit"
 		% [dough, mission_dough, chest_dough, int(_af("dough"))],
 		int(_af("dough")) == dough + mission_dough + chest_dough and SaveManager.dough() == int(_af("dough"))
-		and SaveManager.powerup_count(PowerUp.Type.BOMB) == bomb and RewardedPolicy.remaining_today() == quota)
+		and SaveManager.powerup_count(PowerUp.Type.BOMB) == bomb and RewardedPolicy.remaining_today(PowerUp.Type.BOMB) == quota)
 	_c("J1: gecikmeden sonra sonuç tam bir kez; refill penceresi sonucun üstünde DEĞİL", _main._result.visible
 		and _shows == 1 and not _main._refill.visible and not _main.is_pause_open())
 	await _back()
@@ -765,7 +765,7 @@ func _refill_pending(earned: bool) -> void:
 	await _wait_settled()
 	var piece: Dumpling = await _piece(board)
 	var bomb: int = SaveManager.powerup_count(PowerUp.Type.BOMB)
-	var quota: int = RewardedPolicy.remaining_today()
+	var quota: int = RewardedPolicy.remaining_today(PowerUp.Type.BOMB)
 	var rewarded_shows: int = fake.rewarded_shows.size()
 	_reset_marks()
 	await _fire_upgrade(board, piece)
@@ -782,7 +782,7 @@ func _refill_pending(earned: bool) -> void:
 		requested and board.is_finished() and not _at_finish.is_empty())
 	_c("  … bitişte refill penceresi kapandı; açık ödüllü talep İPTAL EDİLMEDİ ve ödül VERİLMEDİ (stok / kota aynı)",
 		not _af("refill") and int(_main._refill_pending_token) != 0 and not bool(ads._request.get("cancelled", true))
-		and SaveManager.powerup_count(PowerUp.Type.BOMB) == bomb and RewardedPolicy.remaining_today() == quota)
+		and SaveManager.powerup_count(PowerUp.Type.BOMB) == bomb and RewardedPolicy.remaining_today(PowerUp.Type.BOMB) == quota)
 	var shown: String = fake.rewarded_shows[-1] if fake.rewarded_shows.size() > rewarded_shows else ""
 	if shown != "":
 		fake.emit_rewarded_showed(shown)
@@ -793,11 +793,11 @@ func _refill_pending(earned: bool) -> void:
 	if earned:
 		_c("  … oyuncu ödülü kazandı → kendi token yolu stoğu verdi (+1 Bomba, kota - 1), token kapandı; pencere yeniden "
 			+ "AÇILMADI; bellek = disk", SaveManager.powerup_count(PowerUp.Type.BOMB) == bomb + 1
-			and RewardedPolicy.remaining_today() == quota - 1 and int(_main._refill_pending_token) == 0
+			and RewardedPolicy.remaining_today(PowerUp.Type.BOMB) == quota - 1 and int(_main._refill_pending_token) == 0
 			and not _main._refill.visible and _disk_equals_memory())
 	else:
 		_c("  … ödülsüz kapanış → hiçbir şey verilmedi (stok / kota aynı), token kapandı, pencere yeniden AÇILMADI; bellek = disk",
-			shown != "" and SaveManager.powerup_count(PowerUp.Type.BOMB) == bomb and RewardedPolicy.remaining_today() == quota
+			shown != "" and SaveManager.powerup_count(PowerUp.Type.BOMB) == bomb and RewardedPolicy.remaining_today(PowerUp.Type.BOMB) == quota
 			and int(_main._refill_pending_token) == 0 and not _main._refill.visible and _disk_equals_memory())
 	await _after(timer)
 	await _settle(2)
@@ -1239,7 +1239,7 @@ func _snapshot(board: Node2D) -> Dictionary:
 		"refill_pending": board.is_refill_pending(), "result": _main._result.visible, "gen": _gen(),
 		"board": _main._board == board, "actions": _actions.duplicate(), "dough": SaveManager.dough(),
 		"bomb": SaveManager.powerup_count(PowerUp.Type.BOMB), "upgrade": SaveManager.powerup_count(PowerUp.Type.UPGRADE),
-		"quota": RewardedPolicy.remaining_today()}
+		"quota": RewardedPolicy.remaining_today(PowerUp.Type.BOMB)}
 
 
 ## Bu bitişin gecikmesi doldu (Main'in gecikmeli kodu bu karede çalıştı) + birkaç kare.

@@ -34,6 +34,7 @@ Kullanim:
   python tools/shop_economy.py sweep      # fiyat taramasi + rewarded modelleri
   python tools/shop_economy.py packs      # gercek para pack taslagi olcumu
   python tools/shop_economy.py caps       # gunluk rewarded cap karsilastirmasi
+  python tools/shop_economy.py quota      # TASK/060: eski 1/gun toplam vs yeni 2/gun GUC BASINA (deterministik)
 """
 import random
 import sys
@@ -141,13 +142,18 @@ class Rewarded:
     per_round : round basina toplam refill hakki (Model A)
     per_type  : True ise hak HER GUC TIPI icin ayri (Model B)
     per_day   : gunluk ust sinir (None = sinirsiz)
+    per_type_per_day : TASK/060 — HER GUC icin gunluk ayri sinir (None = yok)
+    accept    : TASK/060 — hak varken oyuncunun reklami SECME olasiligi (1.0 = en kotu durum: hep izler)
     """
 
-    def __init__(self, label, per_round=0, per_type=False, per_day=None):
+    def __init__(self, label, per_round=0, per_type=False, per_day=None,
+                 per_type_per_day=None, accept=1.0):
         self.label = label
         self.per_round = per_round
         self.per_type = per_type
         self.per_day = per_day
+        self.per_type_per_day = per_type_per_day
+        self.accept = accept
 
 
 REWARDED_OFF = Rewarded("rewarded yok")
@@ -221,6 +227,7 @@ class Player:
         self.ads_watched = 0
 
         self._day_ads = 0
+        self._day_type_ads = [0, 0, 0, 0]
 
     # --- Sandik ---
 
@@ -245,6 +252,8 @@ class Player:
         if rw.per_round <= 0:
             return False
         if rw.per_day is not None and self._day_ads >= rw.per_day:
+            return False
+        if rw.per_type_per_day is not None and self._day_type_ads[kind] >= rw.per_type_per_day:
             return False
         if rw.per_type:
             return round_type_ads[kind] < rw.per_round
@@ -279,10 +288,12 @@ class Player:
             self.powers_used[kind] += 1
             return
 
-        if self._rewarded_budget(round_ads, round_type_ads, kind):
+        if self._rewarded_budget(round_ads, round_type_ads, kind) and \
+                (self.rewarded.accept >= 1.0 or random.random() < self.rewarded.accept):
             round_ads[0] += 1
             round_type_ads[kind] += 1
             self._day_ads += 1
+            self._day_type_ads[kind] += 1
             self.ads_watched += 1
             self.powers_rewarded[kind] += 1
             self.powers_used[kind] += 1
@@ -355,6 +366,7 @@ class Player:
 
     def day(self):
         self._day_ads = 0
+        self._day_type_ads = [0, 0, 0, 0]
         self.dough += DAILY
         for _ in range(self.rounds):
             self.play_round()
@@ -768,8 +780,66 @@ def header():
     print("     yok). Gercek veri gelince yeniden kalibre edilmeli.")
 
 
+# =====================================================================
+# 5) TASK/060 — eski 1/gun TOPLAM vs yeni 2/gun GUC BASINA (owner, Issue #1 §3)
+# =====================================================================
+#
+# Yeni kural owner karari; bu calisma kurali SECMEZ, etkisini OLCER. Ayni
+# deterministik tohum her aday icin yeniden kurulur (aday farki = kural farki).
+# Odul YALNIZ stok 0 iken istenen guc icin (urun kurali: refill penceresi stok
+# 0'da acilir; dolu stokta bedava biriktirme YOK). `accept` < 1: hak varken
+# oyuncunun reklami secme olasiligi — VARSAYIM (telemetry yok); 1.0 en kotu
+# durum (her firsatta izler). Revive / gunluk sandik / +150 Hamur reklamlari
+# bu tabloya DAHIL DEGIL (ayri sistemler, degismedi).
+
+QUOTA_TRIALS = 1000
+QUOTA_SEED = 60060
+QUOTA_CANDIDATES = [
+    Rewarded("rewarded YOK (referans)"),
+    Rewarded("ESKI: 1/gun toplam (hep izler)", per_round=1, per_day=1),
+    Rewarded("YENI: 2/gun guc basina (hep izler)", per_round=99, per_type_per_day=2),
+    Rewarded("YENI: 2/gun guc basina (%50 izler)", per_round=99, per_type_per_day=2, accept=0.5),
+    Rewarded("YENI: 2/gun guc basina (%25 izler)", per_round=99, per_type_per_day=2, accept=0.25),
+]
+
+
+def quota_study():
+    print("=" * 118)
+    print("TASK/060 — ODULLU GUC KOTASI: eski 1/gun TOPLAM vs yeni 2/gun GUC BASINA "
+          "(trials=%d, seed=%d, %d gun)" % (QUOTA_TRIALS, QUOTA_SEED, DAYS))
+    print("=" * 118)
+    print("Odul yalniz STOK 0 iken istenen guc icin. accept<1 = oyuncunun reklami secme olasiligi (VARSAYIM).")
+    print("Guc kullanim sikliklari VARSAYIM (M8.5-05 profilleri) — gercek telemetry yok.")
+    print("")
+    for rounds, prof_name, label in ((3, "dusuk", "KASUAL"), (5, "orta", "ORTA"), (10, "yuksek", "YOGUN")):
+        want = CONSUMPTION_PROFILES[prof_name]
+        print("# %s: %d round/gun | guc istegi: %s (%.2f/round)" % (label, rounds, prof_name, want))
+        print("%-38s | %-8s %-7s %-7s %-7s %-6s | %-7s %-7s | %-7s %-7s %-7s | %s"
+              % ("kural", "rekl/gun", "bedava", "Hamurla", "bedava%", "unmet",
+                 "H.->guc", "H.->skin", "gun30", "gun60", "gun90", "koleksiyon"))
+        for rw in QUOTA_CANDIDATES:
+            random.seed(QUOTA_SEED)
+            snaps, cd = simulate(rounds, want, POWER_PRICES, rw, QUOTA_TRIALS)
+            s = summarize(snaps, cd)
+            r90 = s[90]
+            free = r90["p_rewarded"]
+            paid = r90["p_bought"]
+            total = free + paid
+            free_pct = (100.0 * free / total) if total else 0.0
+            print("%-38s | %-8.2f %-7d %-7d %-7.1f %-6d | %-7d %-7d | %-7d %-7d %-7d | %s"
+                  % (rw.label, r90["ads"] / 90.0, free, paid, free_pct, r90["p_unmet"],
+                     r90["d_powers"], r90["d_skins"], s[30]["dough_p50"], s[60]["dough_p50"],
+                     s[90]["dough_p50"], fmt_day(s["complete"]["p50"])))
+        print("")
+    print("Teorik tavan: 4 guc x 2 = 8 odullu guc reklami/gun — YALNIZ hak VE stok-0 kosulu her guc icin")
+    print("gunde iki kez olusursa; yukaridaki 'rekl/gun' gercekci (modellenmis) talep.")
+
+
 def main():
     mode = sys.argv[1] if len(sys.argv) > 1 else "report"
+    if mode == "quota":
+        quota_study()
+        return
     if mode == "sweep":
         sweep()
         return

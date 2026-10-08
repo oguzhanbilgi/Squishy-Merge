@@ -500,7 +500,7 @@ func _rewarded_reward_then_lost_close() -> void:
 	m = _main._ads
 	board = await _start(3)
 	var stock: int = SaveManager.powerup_count(PowerUp.Type.SHAKE)
-	var quota: int = RewardedPolicy.grants_today()
+	var quota: int = RewardedPolicy.grants_today(PowerUp.Type.SHAKE)
 	board._power_bar.power_pressed.emit(int(PowerUp.Type.SHAKE))
 	await _settle(2)
 	_c("H2 ön koşul: stok 0 Sarsıntı → refill penceresi, kota boş", _main._refill.visible and stock == 0 and quota == 0)
@@ -512,7 +512,7 @@ func _rewarded_reward_then_lost_close() -> void:
 	_fake.emit_rewarded_earned(rid)
 	await _settle(2)
 	_c("H2: 'ödül kazanıldı' (+ yinelenen) → stok TAM +1, kota TAM 1", rid != ""
-		and SaveManager.powerup_count(PowerUp.Type.SHAKE) == 1 and RewardedPolicy.grants_today() == 1)
+		and SaveManager.powerup_count(PowerUp.Type.SHAKE) == 1 and RewardedPolicy.grants_today(PowerUp.Type.SHAKE) == 1)
 	await _wait(_lease_sec() + 0.05)
 	_evidence(m)
 	await _wait(_lease_sec() + 0.1)
@@ -520,7 +520,7 @@ func _rewarded_reward_then_lost_close() -> void:
 	_fake.emit_rewarded_dismissed(rid)
 	await _settle(1)
 	_c("H2: kapanış kayıp → kurtarma; geç kapanış: stok hâlâ 1, kota hâlâ 1, talep yok",
-		SaveManager.powerup_count(PowerUp.Type.SHAKE) == 1 and RewardedPolicy.grants_today() == 1
+		SaveManager.powerup_count(PowerUp.Type.SHAKE) == 1 and RewardedPolicy.grants_today(PowerUp.Type.SHAKE) == 1
 		and not m.has_active_request() and _recoveries(m) == 1)
 	# H3: yöneticinin KENDİ tek-ödül kapısı (Main'in jetonundan bağımsız): ödülü sayan saplama Main.
 	var fake := FakeAdBackend.new()

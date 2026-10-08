@@ -234,8 +234,7 @@ func _apply_showcase() -> void:
 	SaveManager.data["unlocked_skins"] = ["common_01", "common_02", "rare_02"]
 	SaveManager.data["powerups"] = {"bomb": 2, "upgrade": 1, "shake": 0, "clear_small": 1}
 	SaveManager.data["powerup_starter_granted"] = true
-	SaveManager.data["rewarded_power_date"] = ""
-	SaveManager.data["rewarded_power_grants"] = 0
+	SaveManager.data["rewarded_power_quota"] = RewardedPolicy.empty_block()
 	# M8.9-02: mevcut (migrate edilmiş) oyuncu; günlük kotalar taze.
 	SaveManager.data["onboarding_completed"] = true
 	SaveManager.data["daily_rewards"] = SaveManager.DAILY_REWARDS_DEFAULT.duplicate()
@@ -325,8 +324,8 @@ func _handle(line: String) -> void:
 			SaveManager.save_game()
 		"quota":
 			var used: bool = parts.size() > 1 and parts[1] == "1"
-			SaveManager.data["rewarded_power_date"] = Time.get_date_string_from_system() if used else ""
-			SaveManager.data["rewarded_power_grants"] = 1 if used else 0
+			# TASK/060: güç başına kota — "kullanılmış" = dört güç de bugün 2/2.
+			SaveManager.data["rewarded_power_quota"] = {"version": 1, "day_key": RewardedPolicy.today(), "grants": {"bomb": 2 if used else 0, "upgrade": 2 if used else 0, "shake": 2 if used else 0, "clear_small": 2 if used else 0}}
 			SaveManager.save_game()
 		"unlock":
 			SaveManager.data["highest_level_unlocked"] = int(parts[1])
@@ -736,10 +735,14 @@ func _write_state(label: String) -> void:
 		str(b != null), str(b != null and b.is_fail_pending()), b.revives_used() if b != null else -1,
 		b.revives_remaining() if b != null else -1, str(b != null and b.is_refill_pending()),
 		str(b != null and b.is_finished()), _finished_count, _main._active_tab])
-	lines.append("save: dough=%d stock=%s quota_remaining=%d grants_today=%d date=%s refill_token=%d pending_type=%d onboarding=%s" % [
-		SaveManager.dough(), str(SaveManager.data.get("powerups", {})), RewardedPolicy.remaining_today(),
-		RewardedPolicy.grants_today(), str(SaveManager.data.get("rewarded_power_date", "")),
-		_main._refill_pending_token, _main._refill_pending_type, str(SaveManager.onboarding_completed())])
+	# TASK/060: güç başına kota (bomb/upgrade/shake/clear_small BAŞARILI kullanım n/2) + kabul edilen gün.
+	var grants: PackedStringArray = PackedStringArray()
+	for type in PowerUp.all():
+		grants.append("%s=%d" % [PowerUp.save_key(type), RewardedPolicy.grants_today(type)])
+	lines.append("save: dough=%d stock=%s grants_today={%s}/%d day=%s refill_token=%d pending_type=%d onboarding=%s" % [
+		SaveManager.dough(), str(SaveManager.data.get("powerups", {})), " ".join(grants), RewardedPolicy.daily_cap(),
+		RewardedPolicy.today(), _main._refill_pending_token, _main._refill_pending_type,
+		str(SaveManager.onboarding_completed())])
 	var ds: Dictionary = DailyRewards.state()
 	lines.append("daily: day=%s clock_override='%s' last_seen=%s free_claimed=%s ad_chests=%d dough_ad=%s remaining=%d popup_seen=%s popup_due=%s clock_behind=%s login: date=%s streak=%d claimed_today=%s claimable=%s pending={kind=%s token=%d day=%s}" % [
 		ds["day_key"], DailyRewards.clock_override, ds["last_seen_day_key"], str(ds["free_chest_claimed"]),

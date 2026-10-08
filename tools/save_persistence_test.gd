@@ -40,13 +40,15 @@ const SECTIONS: int = 5
 ## Baseline (017f2dc, TASK/045) yeni kayıt şeması — sabit liste: canlı DEFAULT_DATA ile değil,
 ## bununla karşılaştırılır (şema değişikliği bu görevin kapsamı dışında). TASK/046: bilinçli
 ## tek ekleme "missions" (sürümlü görev durumu — GAME_DESIGN §5.10); TASK/047: bilinçli tek ekleme
-## "daily_challenge" (sürümlü meydan okuma bloğu — GAME_DESIGN §5.11); kayıt işlemi aynen.
+## "daily_challenge" (sürümlü meydan okuma bloğu — GAME_DESIGN §5.11); TASK/060: eski ortak ödüllü güç sayacı
+## ("rewarded_power_date" / "rewarded_power_grants") güç başına sürümlü "rewarded_power_quota" bloğuyla değişti (owner,
+## Issue #1 §3; eski anahtarlar yüklemede bellekte göç eder); kayıt işlemi aynen.
 const SCHEMA_KEYS: Array[String] = ["age_ad_band", "daily_challenge", "daily_rewards", "daily_streak", "dough",
 	"endless_high_score", "haptics_enabled", "highest_level_unlocked", "highest_tier_created",
 	"last_login_date", "level_stars", "merges_since_bonus_chest", "missions", "next_age_transition_date",
 	"onboarding_completed", "onboarding_completed_day", "player_meta_version", "player_xp",
 	"powerup_starter_granted", "powerups", "profile_counters_partial", "profile_showcase",
-	"rewarded_power_date", "rewarded_power_grants", "selected_title_id", "sfx_enabled",
+	"rewarded_power_quota", "selected_title_id", "sfx_enabled",
 	"total_merges", "total_rounds_played", "unlocked_achievements", "unlocked_skins"]
 
 var _fails: int = 0

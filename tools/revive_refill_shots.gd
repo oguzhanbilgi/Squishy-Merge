@@ -215,15 +215,14 @@ func _apply_showcase() -> void:
 	SaveManager.data["endless_high_score"] = 0
 	SaveManager.data["powerups"] = {"bomb": 0, "upgrade": 0, "shake": 0, "clear_small": 0}
 	SaveManager.data["powerup_starter_granted"] = true
-	SaveManager.data["rewarded_power_date"] = ""
-	SaveManager.data["rewarded_power_grants"] = 0
+	SaveManager.data["rewarded_power_quota"] = RewardedPolicy.empty_block()
 	SaveManager.data["sfx_enabled"] = true
 	SaveManager.data["haptics_enabled"] = true
 
 
 func _set_quota_used(used: bool) -> void:
-	SaveManager.data["rewarded_power_date"] = Time.get_date_string_from_system() if used else ""
-	SaveManager.data["rewarded_power_grants"] = 1 if used else 0
+	# TASK/060: güç başına kota — "kullanılmış" = dört güç de bugün 2/2.
+	SaveManager.data["rewarded_power_quota"] = {"version": 1, "day_key": RewardedPolicy.today(), "grants": {"bomb": 2 if used else 0, "upgrade": 2 if used else 0, "shake": 2 if used else 0, "clear_small": 2 if used else 0}}
 
 
 # --- Board yardımcıları (secondary_ui_shots ile aynı desen) -------------------

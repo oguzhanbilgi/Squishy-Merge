@@ -65,8 +65,11 @@ func _ready() -> void:
 		and hud.exit_button.theme_type_variation == &"ButtonHudExit")
 	_c("hedef çubuğu ProgressBarHud + yüzde", hud.goal_bar.theme_type_variation == &"ProgressBarHud"
 		and hud.goal_percent != null)
-	_c("güç tepsileri PanelTray", hud.tray_left.theme_type_variation == &"PanelTray"
-		and hud.tray_right.theme_type_variation == &"PanelTray")
+	# TASK/060 HUD V3: görünür tepsi / yuva çerçevesi kalktı — ikili kutusu boş stil, dokunma almaz.
+	_c("güç ikilileri görünür tepsi çizmez (boş stil, IGNORE)", hud.tray_left.get_theme_stylebox("panel") is StyleBoxEmpty
+		and hud.tray_right.get_theme_stylebox("panel") is StyleBoxEmpty
+		and hud.tray_left.mouse_filter == Control.MOUSE_FILTER_IGNORE
+		and hud.tray_right.mouse_filter == Control.MOUSE_FILTER_IGNORE)
 	_c("level rozeti PanelHudBadge (altın bevel)", hud.level_badge.theme_type_variation == &"PanelHudBadge" and hud.level_label.text == "4")
 	_c("hedef tier dokusu gerçek", hud.goal_art.texture == DUMPLING_VISUAL.TEXTURES[5])
 	_c("hedef adı", hud.goal_label.text == TierConfig.tier_name(6) and hud.goal_caption.text == "HEDEF")
@@ -85,17 +88,19 @@ func _ready() -> void:
 		var slot: Button = bar.slot(int(type))
 		slot_ok = slot_ok and slot != null and slot.has_meta(&"power_slot") \
 			and String(slot.theme_type_variation).begins_with("PowerSlot")
-	_c("dört slot UiKit.power_slot", slot_ok)
+	_c("dört slot UiKit.power_slot (TASK/060: PowerMedallion)", slot_ok and bar.slot(int(PowerUp.Type.BOMB)) is PowerMedallion)
 	_c("slot owner güç sanatı", (bar.slot(int(PowerUp.Type.BOMB)).get_meta(&"art") as TextureRect).texture == PowerUp.icon(PowerUp.Type.BOMB))
-	_c("stok rozeti ×2", bar.displayed_count(int(PowerUp.Type.BOMB)) == 2)
-	_c("slot madalyon govdesi btn_circle",
-		(UiKit.theme().get_stylebox("normal", &"PowerSlot") as StyleBoxTexture).texture
-			== UiKit.texture("btn_circle"))
+	var bomb_slot: PowerMedallion = bar.slot(int(PowerUp.Type.BOMB))
+	_c("stok kabarcığı YALNIZ rakam '2' ('×' yok)", bar.displayed_count(int(PowerUp.Type.BOMB)) == 2
+		and bomb_slot.count_text() == "2" and not bomb_slot.count_text().contains("×"))
+	_c("madalyon kendi candy gövdesini çizer (tema stil kutusu boş: tek çerçeve)",
+		bomb_slot.get_theme_stylebox("normal") is StyleBoxEmpty and bomb_slot.get_theme_stylebox("pressed") is StyleBoxEmpty)
 	_c("stok 0 sanat rengini koruyor (tam gri degil)",
 		(bar.slot(int(PowerUp.Type.UPGRADE)).get_meta(&"art") as TextureRect).self_modulate.a > 0.5)
-	_c("stok 0 slotu PowerSlotEmpty + refill '+' rozeti",
+	_c("stok 0 slotu PowerSlotEmpty + kabarcık '0' (rakam; eski '+' rozeti yok)",
 		bar.slot(int(PowerUp.Type.UPGRADE)).theme_type_variation == &"PowerSlotEmpty"
-		and (bar.slot(int(PowerUp.Type.UPGRADE)).get_meta(&"badge_plus") as Control).visible)
+		and (bar.slot(int(PowerUp.Type.UPGRADE)) as PowerMedallion).count_text() == "0"
+		and not bar.slot(int(PowerUp.Type.UPGRADE)).has_meta(&"badge_plus"))
 	bar.set_armed(int(PowerUp.Type.BOMB))
 	_c("silahlı slot PowerSlotArmed + parıltı", bar.slot(int(PowerUp.Type.BOMB)).theme_type_variation == &"PowerSlotArmed"
 		and (bar.slot(int(PowerUp.Type.BOMB)).get_meta(&"glow") as Control).visible)
@@ -321,6 +326,12 @@ func _check_composition(board: Node2D, hud: GameplayHud, view: Vector2, banner: 
 		touch_ok = touch_ok and r.size.x >= UiTokens.TOUCH_MIN and r.size.y >= UiTokens.TOUCH_MIN
 	touch_ok = touch_ok and controls["ayarlar"].size.x >= UiTokens.TOUCH_MIN 		and controls["geri"].size.x >= UiTokens.TOUCH_MIN and controls["cikis"].size.x >= UiTokens.TOUCH_MIN
 	_c("%s: dokunma hedefleri >= 48" % tag, touch_ok)
+	# TASK/060: güç madalyonlarının GERÇEK dokunma alanı (düğme dikdörtgeni) her iki boyutta >= TOUCH_TARGET (84).
+	var power_touch: bool = true
+	for type in PowerUp.all():
+		var pr: Rect2 = controls["slot_" + PowerUp.SAVE_KEYS[type]]
+		power_touch = power_touch and pr.size.x >= UiTokens.TOUCH_TARGET and pr.size.y >= UiTokens.TOUCH_TARGET
+	_c("%s: güç dokunma alanları >= %d (TASK/060)" % [tag, UiTokens.TOUCH_TARGET], power_touch)
 	var seam: Rect2 = _rect(hud.banner_seam)
 	_c("%s: banner seam var (y %d, h %d)" % [tag, int(seam.position.y), int(seam.size.y)],
 		absf(seam.size.y - banner) < 0.5 and absf(seam.end.y - view.y) < 0.5)

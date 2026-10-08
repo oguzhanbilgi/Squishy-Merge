@@ -135,7 +135,8 @@ func _setup_and_hud() -> void:
 	_c("güç tepsileri + madalyonlar gizli, çubuk kilitli ve kapalı", not hud.tray_left.visible
 		and not hud.tray_right.visible and not hud.power_bar.visible and _all_slots_hidden()
 		and hud.power_bar.is_locked() and not hud.power_bar.is_enabled())
-	_c("  … madalyon yuvaları / tepsi gloss'u (orta dekor katmanı) da gizli", _deco_mid_hidden())
+	_c("  … orta dekor katmanında görünür güç dekoru yok (TASK/060: tepsi / yuva dekoru kalktı, madalyonlar kendini çizer)",
+		_deco_mid_hidden())
 	_c("devam hakkı 0 (teklif hiç açılmaz), güç kapalı", _board.max_revives() == 0 and _board.revives_remaining() == 0
 		and not _board.powers_enabled())
 	_c("önizleme + SIRADAKİ görünür (kalan > 1), sonuç sebebi yok, yatışma yok", _board._preview.visible
@@ -698,7 +699,8 @@ func _all_slots_visible() -> bool:
 	return true
 
 
-## Orta dekor katmanı (tepsi gloss'u + madalyon yuvaları) tamamen gizli mi.
+## Orta dekor katmanında görünür güç dekoru yok mu. TASK/060 HUD V3: tepsi gloss'u / madalyon yuvaları KALDIRILDI
+## (katman boş olabilir); kalan her çocuk gizli olmalı.
 func _deco_mid_hidden() -> bool:
 	var mid: Node = _board._hud.get_node_or_null("DecoMid")
 	if mid == null:
@@ -706,7 +708,7 @@ func _deco_mid_hidden() -> bool:
 	for child in mid.get_children():
 		if (child as CanvasItem).visible:
 			return false
-	return mid.get_child_count() > 0
+	return true
 
 
 func _same(a: Array, b: Array) -> bool:

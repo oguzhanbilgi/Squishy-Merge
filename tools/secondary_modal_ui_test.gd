@@ -764,7 +764,6 @@ func _apply_showcase() -> void:
 	SaveManager.data["merges_since_bonus_chest"] = 49
 	SaveManager.data["endless_high_score"] = 0
 	SaveManager.data["powerups"] = {"bomb": 4, "upgrade": 1, "shake": 0, "clear_small": 0}
-	SaveManager.data["rewarded_power_date"] = ""
-	SaveManager.data["rewarded_power_grants"] = 0
+	SaveManager.data["rewarded_power_quota"] = RewardedPolicy.empty_block()
 	SaveManager.data["sfx_enabled"] = true
 	SaveManager.data["haptics_enabled"] = true

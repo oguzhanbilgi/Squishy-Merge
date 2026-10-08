@@ -253,15 +253,16 @@ func _test_quotas_and_transactions() -> void:
 
 	# Bağımsızlık: refill kotası ve devam hakları.
 	DailyRewards.clock_override = DAY_B
-	_c("ön koşul: ödüllü güç refill kotası 1/1", RewardedPolicy.remaining_today() == 1)
+	_c("ön koşul: ödüllü güç refill kotası Bomba 0/2 (TASK/060: güç başına)", RewardedPolicy.remaining_today(PowerUp.Type.BOMB) == 2)
 	DailyRewards.grant_ad_chest(DAY_B)
 	DailyRewards.grant_ad_dough(DAY_B)
 	DailyRewards.claim_free_chest()
-	_c("günlük ödüller refill kotasını TÜKETMEDİ", RewardedPolicy.remaining_today() == 1)
-	_c("refill grant günlük kotaları TÜKETMEDİ", RewardedPolicy.grant(PowerUp.Type.BOMB) and RewardedPolicy.remaining_today() == 0
+	_c("günlük ödüller refill kotasını TÜKETMEDİ", RewardedPolicy.remaining_today(PowerUp.Type.BOMB) == 2)
+	_c("refill grant günlük kotaları TÜKETMEDİ", RewardedPolicy.grant(PowerUp.Type.BOMB)
+		and RewardedPolicy.remaining_today(PowerUp.Type.BOMB) == 1
 		and DailyRewards.ad_chests_remaining() == 1 and not DailyRewards.ad_dough_available() and not DailyRewards.free_chest_available())
 	_c("günlük kota anahtarları kayıtta bağımsız alanlar", _disk()["daily_rewards"]["ad_chests_claimed"] == 1
-		and _disk()["rewarded_power_grants"] == 1)
+		and _disk()["rewarded_power_quota"]["grants"]["bomb"] == 1)
 	# Popup işareti ödül tüketmez.
 	var st_before: Dictionary = DailyRewards.state()
 	DailyRewards.mark_popup_seen()
@@ -761,8 +762,8 @@ func _test_unified_login() -> void:
 	SaveManager.save_game()
 	DailyRewards.auto_popup_enabled = false
 	main = await _boot_main(fake)
-	_c("giriş +15 sonrası: ücretsiz 1 / sandık 2 / Hamur 1 kotası dolu, refill 1/1", SaveManager.dough() == 15
-		and DailyRewards.state()["remaining_total"] == 4 and RewardedPolicy.remaining_today() == 1)
+	_c("giriş +15 sonrası: ücretsiz 1 / sandık 2 / Hamur 1 kotası dolu, refill Sarsıntı 0/2", SaveManager.dough() == 15
+		and DailyRewards.state()["remaining_total"] == 4 and RewardedPolicy.remaining_today(PowerUp.Type.SHAKE) == 2)
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 21
 	DailyRewards.set_rng(rng)

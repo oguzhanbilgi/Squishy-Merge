@@ -1359,8 +1359,7 @@ func _test_main_integration() -> void:
 	# Refill akışı: kota + doğru güç + token; KAPAT iptali.
 	SaveManager.data["dough"] = 500
 	SaveManager.data["powerups"] = {"bomb": 0, "upgrade": 0, "shake": 0, "clear_small": 0}
-	SaveManager.data["rewarded_power_date"] = ""
-	SaveManager.data["rewarded_power_grants"] = 0
+	SaveManager.data["rewarded_power_quota"] = RewardedPolicy.empty_block()
 	_main._start_level(load(LEVEL_10))
 	await _settle(2)
 	board = _main._board
@@ -1368,7 +1367,8 @@ func _test_main_integration() -> void:
 	_c("ön koşul: ödüllü hazır", m.is_rewarded_ready())
 	board._on_power_refill_requested(int(PowerUp.Type.BOMB))
 	await _settle(3)
-	_c("refill açık: REKLAM İZLE aktif, kota 1/1", refill.visible and not refill._ad.disabled and refill._quota.text.contains("1/1"))
+	_c("refill açık: İZLE aktif, Bomba kotası 0/2 (TASK/060: güç başına)", refill.visible and not refill._ad.disabled
+		and refill.quota_text() == "0/2")
 	refill._ad.pressed.emit()
 	await _settle(2)
 	var req: Dictionary = m.request_info()
@@ -1377,9 +1377,9 @@ func _test_main_integration() -> void:
 	var ad_r: String = req["ad_id"]
 	fake.emit_rewarded_earned(ad_r)
 	await _settle(2)
-	_c("ödül -> Bomba stoğu 1, kota tüketildi (1 grant), pencere kapandı, oyun sürüyor",
-		SaveManager.powerup_count(PowerUp.Type.BOMB) == 1 and RewardedPolicy.remaining_today() == 0
-		and not refill.visible and not board.is_refill_pending())
+	_c("ödül -> Bomba stoğu 1, YALNIZ Bomba sayacı 1 (1/2), pencere kapandı, oyun sürüyor",
+		SaveManager.powerup_count(PowerUp.Type.BOMB) == 1 and RewardedPolicy.grants_today(PowerUp.Type.BOMB) == 1
+		and RewardedPolicy.grants_today(PowerUp.Type.SHAKE) == 0 and not refill.visible and not board.is_refill_pending())
 	_c("diğer üç güç stoğu 0 (yanlış güce stok yok)", SaveManager.powerup_count(PowerUp.Type.UPGRADE) == 0
 		and SaveManager.powerup_count(PowerUp.Type.SHAKE) == 0 and SaveManager.powerup_count(PowerUp.Type.CLEAR_SMALL) == 0)
 	fake.emit_rewarded_earned(ad_r)
@@ -1389,19 +1389,28 @@ func _test_main_integration() -> void:
 	fake.complete_rewarded_load(true)
 	_c("olay bağlamı: rewarded_earned placement=refill power=bomb", _events_named(&"rewarded_earned").size() > 0
 		and _events_named(&"rewarded_earned")[-2 if _events_named(&"rewarded_earned").size() > 1 else -1]["placement"] == "refill")
-	# Kota dolu: başka güç için CTA pasif, SDK'ya gösterim gitmez.
-	board._on_power_refill_requested(int(PowerUp.Type.SHAKE))
+	# TASK/060: Bomba'nın kotası doldu (2/2) — Bomba'da CTA pasif, SDK'ya gösterim gitmez; Sarsıntı kendi 0/2'sinde AÇIK.
+	board._powerups.cancel()
+	SaveManager.data["rewarded_power_quota"] = {"version": 1, "day_key": RewardedPolicy.today(),
+		"grants": {"bomb": 2, "upgrade": 0, "shake": 0, "clear_small": 0}}
+	SaveManager.data["powerups"]["bomb"] = 0
+	board._on_power_refill_requested(int(PowerUp.Type.BOMB))
 	await _settle(3)
-	_c("kota dolu (dört gücün toplamı) -> Sarsıntı'da REKLAM İZLE pasif + kota notu, reklam hazır olsa da",
+	_c("Bomba 2/2 -> Bomba'da İZLE pasif + 'Bugünlük bitti' notu, reklam hazır olsa da",
 		refill.visible and refill._ad.disabled and refill.ad_note_text() == refill.NOTE_QUOTA_USED and m.is_rewarded_ready())
 	refill._on_ad_pressed()
 	await _settle(1)
-	_c("kota doluyken talep SDK'ya gitmez", fake.rewarded_shows.size() == 4)
+	_c("Bomba 2/2 iken talep SDK'ya gitmez", fake.rewarded_shows.size() == 4)
+	_main._on_refill_closed()
+	await _settle(1)
+	board._on_power_refill_requested(int(PowerUp.Type.SHAKE))
+	await _settle(3)
+	_c("Bomba 2/2 iken Sarsıntı (kendi 0/2): İZLE AKTİF — dört bağımsız sayaç", refill.visible
+		and not refill._ad.disabled and refill.quota_text() == "0/2")
 	_main._on_refill_closed()
 	await _settle(1)
 	# Yarın: kota yenilenir; KAPAT ile iptal -> geç ödül stok vermez.
-	SaveManager.data["rewarded_power_date"] = ""
-	SaveManager.data["rewarded_power_grants"] = 0
+	SaveManager.data["rewarded_power_quota"] = RewardedPolicy.empty_block()
 	board._on_power_refill_requested(int(PowerUp.Type.UPGRADE))
 	await _settle(3)
 	refill._ad.pressed.emit()
@@ -1415,7 +1424,7 @@ func _test_main_integration() -> void:
 	fake.emit_rewarded_dismissed(ad_c)
 	await _settle(1)
 	_c("iptalden sonra gelen ödül stok VERMEZ, kota tüketmez", SaveManager.powerup_count(PowerUp.Type.UPGRADE) == 0
-		and RewardedPolicy.remaining_today() == 1)
+		and RewardedPolicy.grants_today(PowerUp.Type.UPGRADE) == 0)
 	# Round terk edilirken açık talep: board silinir, ödül yok.
 	fake.complete_rewarded_load(true)
 	board._on_power_refill_requested(int(PowerUp.Type.CLEAR_SMALL))

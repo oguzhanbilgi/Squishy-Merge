@@ -350,10 +350,9 @@ func _write_state(label: String) -> void:
 	lines.append("result: visible=%s mode=%s  pause: %s  settings: %s  tab: %d" % [str(_main._result.visible),
 		str(int(_main._result.mode())) if _main._result.visible else "-", str(_main._pause.visible),
 		str(_main._settings.visible), _main._active_tab])
-	lines.append("save: dough=%d powerups=%s rewarded_date='%s' grants=%d quota_left=%d sha256=%s" % [
+	lines.append("save: dough=%d powerups=%s rewarded_quota=%s bomb_left=%d sha256=%s" % [
 		SaveManager.dough(), JSON.stringify(SaveManager.data.get("powerups", {})),
-		String(SaveManager.data.get("rewarded_power_date", "")), int(SaveManager.data.get("rewarded_power_grants", 0)),
-		RewardedPolicy.remaining_today(), _save_sha()])
+		JSON.stringify(SaveManager.rewarded_power_quota()), RewardedPolicy.remaining_today(PowerUp.Type.BOMB), _save_sha()])
 	lines.append("perf: nodes=%d orphans=%d static_mb=%.1f fps=%d tweens_running=%d" % [
 		int(Performance.get_monitor(Performance.OBJECT_NODE_COUNT)),
 		int(Performance.get_monitor(Performance.OBJECT_ORPHAN_NODE_COUNT)),

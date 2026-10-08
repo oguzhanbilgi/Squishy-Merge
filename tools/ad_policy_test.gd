@@ -444,12 +444,13 @@ func _scripts_under(root: String) -> Array[String]:
 # --- P9) Ödüllü kotalar -----------------------------------------------------------------------------------------
 
 func _rewarded_caps() -> void:
-	print("-- P9: ödüllü kotalar TASK/052'de DEĞİŞMEDİ (tek kaynaklarından okunur)")
+	print("-- P9: ödüllü kotalar (tek kaynaklarından okunur; TASK/060: güç refill'i owner kararıyla GÜÇ BAŞINA 2 / gün)")
 	var caps: Dictionary = AdPolicy.rewarded_caps()
-	_c("P9: devam 2 / round, güç refill'i 1 / gün (dört gücün toplamı), reklamlı sandık 2 / gün, reklamlı +150 Hamur 1 / gün",
-		caps == {"revive_per_round": 2, "power_refill_per_day": 1, "ad_chest_per_day": 2, "ad_dough_per_day": 1,
-		"ad_dough_amount": 150})
-	_c("P9: kotalar tek kaynaklarıyla aynı (kopya sayı yok)", caps["power_refill_per_day"] == RewardedPolicy.DAILY_POWER_REFILLS
+	_c("P9: devam 2 / round, güç refill'i güç başına 2 / gün × 4 güç (TASK/060), reklamlı sandık 2 / gün, reklamlı +150 Hamur 1 / gün",
+		caps == {"revive_per_round": 2, "power_refill_per_power_per_day": 2, "power_kinds": 4, "ad_chest_per_day": 2,
+		"ad_dough_per_day": 1, "ad_dough_amount": 150})
+	_c("P9: kotalar tek kaynaklarıyla aynı (kopya sayı yok)",
+		caps["power_refill_per_power_per_day"] == RewardedPolicy.DAILY_GRANTS_PER_POWER
 		and caps["ad_chest_per_day"] == DailyRewards.AD_CHESTS_PER_DAY and caps["ad_dough_per_day"] == DailyRewards.AD_DOUGH_PER_DAY
 		and not FileAccess.get_file_as_string("res://scripts/ads/ad_policy.gd").contains("revive_per_round\": 2"))
 	_sections_done += 1

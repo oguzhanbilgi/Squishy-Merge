@@ -21,11 +21,11 @@ extends Node
 ##             yok, sonuç yok); BİTİR → teklif kapanır, sonuç RESULT_DELAY
 ##             sonra ve TEK round_finished, teselli tam bir kez; sonuç teklifin
 ##             altında hiç görünmez; 3. devam yok (hak bitince teklif açılmaz).
-##   REFILL    dört güç: stok 0 doğru kahraman (gerçek sanat + ad), kanonik
-##             fiyat (100/120/160/180 = PowerUpEconomy), yeterli / yetersiz
-##             Hamur (pasif + sebep); ödüllü: sağlayıcı yok (pasif + sebep),
-##             bağlı (aktif, 1/1), kota dolu (pasif, 0/1); kota DÖRT GÜCÜN
-##             TOPLAMI (Bomba'ya ödül → diğer üçünde kullanılmış); satın alma:
+##   REFILL    (TASK/060 V3) dört güç: stok 0 doğru kahraman (gerçek sanat + kurdele = güç adı + stok kabarcığı
+##             YALNIZ "0"), kanonik fiyat (100/120/160/180 = PowerUpEconomy, düğmede rakam), yeterli / yetersiz
+##             Hamur (INSUFFICIENT + sebep); ödüllü: sağlayıcı yok (pasif + sebep), bağlı (aktif, 0/2),
+##             BU güç 2/2 (pasif + "Bugünlük bitti"); kota GÜÇ BAŞINA (Bomba 2/2 iken diğer üçü 0/2 ve
+##             açık — owner, Issue #1 §3); satın alma:
 ##             Hamur tam bir kez düşer, stok tam +1, hızlı çift basış tek
 ##             satın alma, güç başına fiyat; talep sağlayıcı hatasında kota
 ##             tüketilmez; açıp kapamak / geri / karartma / vazgeçme kayda
@@ -156,8 +156,8 @@ func _test_sources() -> void:
 		_c("pencereler kayda / ekonomiye dokunmaz (%s yok)" % word, not all_src.contains(word))
 	_c("_process yok", not all_src.contains("func _process"))
 	_c("fiyat tek kaynaktan (PowerUpEconomy.price)", all_src.contains("PowerUpEconomy.price("))
-	_c("kota tek kaynaktan (RewardedPolicy.remaining_today / daily_cap)",
-		all_src.contains("RewardedPolicy.remaining_today(") and all_src.contains("RewardedPolicy.daily_cap("))
+	_c("kota tek kaynaktan, GÜÇ BAŞINA (RewardedPolicy.grants_today(type) / daily_cap)",
+		all_src.contains("RewardedPolicy.grants_today(type)") and all_src.contains("RewardedPolicy.daily_cap("))
 	_c("candy_button.gd runtime'da yok", not FileAccess.file_exists("res://scripts/ui/candy_button.gd"))
 	_c("ui_palette.gd runtime'da yok", not FileAccess.file_exists("res://scripts/ui/ui_palette.gd"))
 	_c("panel_candy.png runtime'da yok", not FileAccess.file_exists("res://assets/visual/ui/panel_candy.png"))
@@ -431,9 +431,12 @@ func _set_stock(bomb: int, upgrade: int, shake: int, clear: int) -> void:
 		_main._board._refresh_power_bar()
 
 
-func _set_quota_used(used: bool) -> void:
-	SaveManager.data["rewarded_power_date"] = Time.get_date_string_from_system() if used else ""
-	SaveManager.data["rewarded_power_grants"] = 1 if used else 0
+## TASK/060: güç başına kota bloğu — `used` true ise verilen güç(ler) bugün 2/2 (tükenmiş).
+func _set_quota_used(used: bool, types: Array = [PowerUp.Type.BOMB]) -> void:
+	var grants: Dictionary = {}
+	for type in PowerUp.all():
+		grants[PowerUp.save_key(type)] = 2 if (used and types.has(type)) else 0
+	SaveManager.data["rewarded_power_quota"] = {"version": 1, "day_key": RewardedPolicy.today(), "grants": grants}
 
 
 func _open_refill(type: PowerUp.Type) -> void:
@@ -454,15 +457,17 @@ func _test_refill_structure() -> void:
 	_c("production iskelet: modal_shell meta (hero / body / footer / ribbon), oturmuş X",
 		frame.has_meta(&"hero") and frame.has_meta(&"footer") and frame.get_meta(&"ribbon") != null
 		and frame.get_meta(&"close_button") != null)
-	_c("kurdele 'STOK BİTTİ'", refill.ribbon_text() == "STOK BİTTİ")
+	_c("kurdele var (metni açılışta gücün adı — TEXT-LIGHT)", refill.ribbon_text() != "")
 	_c("gövde PanelModal (krem)", (frame.get_meta(&"panel") as PanelContainer).theme_type_variation == &"PanelModal")
-	_c("iki seçenek kartı gövdede, ayrı kimlik: REKLAM İZLE cyan ButtonPrimary + film, SATIN AL nane ButtonPurchase",
-		refill._ad.theme_type_variation == &"ButtonPrimary" and refill._ad.text == "REKLAM İZLE" and refill._ad.icon != null
-		and refill._dough.theme_type_variation == &"ButtonPurchase" and refill._dough.text == "SATIN AL"
+	_c("iki seçenek karosu gövdede, ayrı V3 kimlik: İZLE SquishyButton REWARDED_AD (film + n/2 cipi), Hamur CURRENCY",
+		refill._ad is SquishyButton and (refill._ad as SquishyButton).kind() == SquishyButton.Kind.REWARDED_AD
+		and (refill._ad as SquishyButton).title() == "İZLE" and refill._dough is SquishyButton
+		and (refill._dough as SquishyButton).kind() == SquishyButton.Kind.CURRENCY
 		and (frame.get_meta(&"body") as Control).is_ancestor_of(refill.ad_card())
 		and (frame.get_meta(&"body") as Control).is_ancestor_of(refill.dough_card()))
-	_c("üç aynı CTA yok (üç ayrı variation)", refill._ad.theme_type_variation != refill._dough.theme_type_variation
-		and refill._close.theme_type_variation == &"ButtonSecondary" and refill._close.text == "KAPAT")
+	_c("üç aynı CTA yok (üç ayrı V3 tür)", (refill._ad as SquishyButton).kind() != (refill._dough as SquishyButton).kind()
+		and refill._close is SquishyButton and (refill._close as SquishyButton).kind() == SquishyButton.Kind.SECONDARY
+		and (refill._close as SquishyButton).title() == "KAPAT")
 	_c("KAPAT sabit altlıkta, kahraman sanatı sabit hero'da", (frame.get_meta(&"footer") as Control).is_ancestor_of(refill._close)
 		and (frame.get_meta(&"hero") as Control).is_ancestor_of(refill.hero_art()))
 	var dim: ColorRect = refill.dim()
@@ -487,14 +492,17 @@ func _test_refill_powers() -> void:
 		SaveManager.data["dough"] = 500
 		await _open_refill(type)
 		_c("%s: stok 0 → refill açık, doğru güç" % PowerUp.display_name(type), refill.visible and refill.current_type() == int(type))
-		_c("%s: kahraman GERÇEK güç sanatı + ad + 'STOK ×0'" % PowerUp.display_name(type),
-			refill.hero_art().texture == PowerUp.icon(type) and refill.power_name_text() == PowerUp.display_name(type)
-			and refill.stock_text() == "STOK ×0")
-		_c("%s: fiyat satırı '%d Hamur'" % [PowerUp.display_name(type), canonical], refill.price_text() == "%d Hamur" % canonical)
-		_c("%s: '+1 %s' ödül satırları" % [PowerUp.display_name(type), PowerUp.display_name(type)],
-			refill._ad_sub.text == "+1 %s" % PowerUp.display_name(type) and refill._dough_sub.text == "+1 %s" % PowerUp.display_name(type))
-		_c("%s: 500 Hamur → SATIN AL aktif, bakiye satırı" % PowerUp.display_name(type), not refill._dough.disabled
-			and refill.balance_text() == "Bakiyen: 500" and refill.dough_note_text() == "")
+		_c("%s: kahraman GERÇEK güç sanatı + kurdele '%s' + stok YALNIZ '0'" % [PowerUp.display_name(type),
+			UiType.upper_tr(PowerUp.display_name(type))], refill.hero_art().texture == PowerUp.icon(type)
+			and refill.power_name_text() == PowerUp.display_name(type)
+			and refill.ribbon_text() == UiType.upper_tr(PowerUp.display_name(type)) and refill.stock_text() == "0")
+		_c("%s: fiyat düğmesi '%d' (rakam, tek kaynak)" % [PowerUp.display_name(type), canonical], refill.price_text() == str(canonical))
+		_c("%s: iki karoda da '+1' ödül" % PowerUp.display_name(type),
+			(refill.ad_card().find_child("Reward", true, false) as Label).text == "+1"
+			and (refill.dough_card().find_child("Reward", true, false) as Label).text == "+1")
+		_c("%s: 500 Hamur → Hamur düğmesi NORMAL, bakiye '500'" % PowerUp.display_name(type),
+			(refill._dough as SquishyButton).state() == SquishyButton.State.NORMAL
+			and refill.balance_text() == "500" and refill.dough_note_text() == "")
 		_c("%s: sağlayıcı yok → REKLAM İZLE pasif + sebep" % PowerUp.display_name(type), refill._ad.disabled
 			and refill.ad_note_text() == refill.NOTE_NO_PROVIDER)
 		_c("%s: hiçbir güç aktive olmadı, board donuk, güç çubuğu kapalı" % PowerUp.display_name(type),
@@ -502,12 +510,14 @@ func _test_refill_powers() -> void:
 		# Yetersiz Hamur: fiyatın 1 altı.
 		SaveManager.data["dough"] = canonical - 1
 		refill.refresh(false)
-		_c("%s: %d Hamur → SATIN AL PASİF + 'Hamur yetersiz'" % [PowerUp.display_name(type), canonical - 1],
-			refill._dough.disabled and refill.dough_note_text().begins_with("Hamur yetersiz")
-			and refill.balance_text() == "Bakiyen: %d" % (canonical - 1))
+		_c("%s: %d Hamur → Hamur düğmesi INSUFFICIENT (V3: soluk, dokunulabilir) + 'Hamur yetersiz'" % [
+			PowerUp.display_name(type), canonical - 1],
+			(refill._dough as SquishyButton).state() == SquishyButton.State.INSUFFICIENT
+			and refill.dough_note_text().begins_with("Hamur yetersiz") and refill.balance_text() == str(canonical - 1))
 		SaveManager.data["dough"] = canonical
 		refill.refresh(false)
-		_c("%s: tam %d Hamur → SATIN AL aktif" % [PowerUp.display_name(type), canonical], not refill._dough.disabled)
+		_c("%s: tam %d Hamur → Hamur düğmesi NORMAL" % [PowerUp.display_name(type), canonical],
+			(refill._dough as SquishyButton).state() == SquishyButton.State.NORMAL)
 		await _close_refill()
 		_c("%s: Kapat → pencere kapalı, oyun sürüyor, stok/Hamur aynı" % PowerUp.display_name(type),
 			not refill.visible and not board.is_refill_pending() and board._power_bar._enabled
@@ -529,10 +539,10 @@ func _test_refill_rewarded() -> void:
 	_set_quota_used(false)
 	_main.set_rewarded_provider(stub)
 	await _open_refill(PowerUp.Type.BOMB)
-	_c("sağlayıcı bağlı + kota 1/1 → REKLAM İZLE aktif, 'Bugünkü hakkın: 1/1', sebep yok",
-		not refill._ad.disabled and refill._quota.text.contains("1/1") and refill.ad_note_text() == "")
+	_c("sağlayıcı bağlı + Bomba 0/2 → İZLE aktif, cip '0/2' (BAŞARILI kullanım), sebep yok",
+		not refill._ad.disabled and refill.quota_text() == "0/2" and refill.ad_note_text() == "")
 	# Talep: tam bir kez, kota tüketilmez.
-	var grants_before: int = RewardedPolicy.grants_today()
+	var grants_before: int = RewardedPolicy.grants_today(PowerUp.Type.BOMB)
 	var bytes_before: PackedByteArray = FileAccess.get_file_as_bytes(SaveManager.SAVE_PATH)
 	refill._ad.pressed.emit()
 	await _settle(1)
@@ -544,7 +554,7 @@ func _test_refill_rewarded() -> void:
 	refill._on_ad_pressed()
 	await _settle(1)
 	_c("ikinci dokunuş ikinci talep üretmedi", stub.power_requests == 1 and requested[0] == 1)
-	_c("talep kota TÜKETMEDİ, stok vermedi, kayda yazmadı", RewardedPolicy.grants_today() == grants_before
+	_c("talep kota TÜKETMEDİ, stok vermedi, kayda yazmadı", RewardedPolicy.grants_today(PowerUp.Type.BOMB) == grants_before
 		and SaveManager.powerup_count(PowerUp.Type.BOMB) == 0
 		and FileAccess.get_file_as_bytes(SaveManager.SAVE_PATH) == bytes_before)
 	# Sağlayıcı hatası: kota tüketilmez, tekrar denenebilir.
@@ -552,7 +562,7 @@ func _test_refill_rewarded() -> void:
 	await _settle(1)
 	_c("sağlayıcı hatası → pencere açık, not, REKLAM İZLE yeniden aktif, kota aynı", refill.visible
 		and refill.note_text() == "Reklam yüklenemedi." and not refill._ad.disabled
-		and RewardedPolicy.grants_today() == grants_before)
+		and RewardedPolicy.grants_today(PowerUp.Type.BOMB) == grants_before)
 	# Hata sonrası eski token'lı callback stok VERMEZ.
 	_c("iptal edilmiş talebin callback'i stok vermez", not _main.grant_rewarded_power(int(PowerUp.Type.BOMB), stub.last_token)
 		and SaveManager.powerup_count(PowerUp.Type.BOMB) == 0)
@@ -561,8 +571,9 @@ func _test_refill_rewarded() -> void:
 	# Kota dolu.
 	_set_quota_used(true)
 	await _open_refill(PowerUp.Type.BOMB)
-	_c("kota dolu → REKLAM İZLE pasif, '0/1', 'yarın yenilenir'; SATIN AL aktif", refill._ad.disabled
-		and refill._quota.text.contains("0/1") and refill.ad_note_text() == refill.NOTE_QUOTA_USED and not refill._dough.disabled)
+	_c("Bomba 2/2 → İZLE pasif (EXHAUSTED), '2/2', 'Bugünlük bitti — yarın yenilenir'; Hamur açık", refill._ad.disabled
+		and (refill._ad as SquishyButton).state() == SquishyButton.State.EXHAUSTED and refill.quota_text() == "2/2"
+		and refill.ad_note_text() == refill.NOTE_QUOTA_USED and not refill._dough.disabled)
 	refill._on_ad_pressed()
 	_c("kota doluyken talep üretilmez", requested[0] == 1)
 	await _close_refill()
@@ -571,8 +582,8 @@ func _test_refill_rewarded() -> void:
 	_set_quota_used(false)
 	_main.set_rewarded_provider(null)
 	await _open_refill(PowerUp.Type.BOMB)
-	_c("sağlayıcı yok → pasif + sebep; kota 1/1 görünür ama buton kapalı", refill._ad.disabled
-		and refill.ad_note_text() == refill.NOTE_NO_PROVIDER and refill._quota.text.contains("1/1"))
+	_c("sağlayıcı yok → pasif + sebep; kota 0/2 görünür ama buton kapalı", refill._ad.disabled
+		and refill.ad_note_text() == refill.NOTE_NO_PROVIDER and refill.quota_text() == "0/2")
 	refill._on_ad_pressed()
 	_c("sağlayıcı yokken talep üretilmez", requested[0] == 1)
 	await _close_refill()
@@ -580,7 +591,7 @@ func _test_refill_rewarded() -> void:
 
 
 func _test_refill_quota_shared() -> void:
-	print("-- refill: günlük kota DÖRT gücün toplamı")
+	print("-- refill: günlük kota GÜÇ BAŞINA (TASK/060 — owner, Issue #1 §3; eski 'dört gücün toplamı' kuralı tarihsel)")
 	var refill: CanvasLayer = _refill()
 	var stub := _StubProvider.new()
 	await _start(LEVEL_04, true)
@@ -594,22 +605,30 @@ func _test_refill_quota_shared() -> void:
 	# Test sağlayıcısının "ödül kazanıldı" callback'i: kanonik tek yol.
 	_c("Bomba: ödül callback'i → grant true", _main.grant_rewarded_power(stub.last_type, stub.last_token))
 	await _settle(2)
-	_c("Bomba: stok +1 tam bir kez, kota 1 kullanıldı, Hamur aynı", SaveManager.powerup_count(PowerUp.Type.BOMB) == 1
-		and RewardedPolicy.grants_today() == 1 and SaveManager.dough() == dough_before)
+	_c("Bomba: stok +1 tam bir kez, Bomba sayacı 1, Hamur aynı", SaveManager.powerup_count(PowerUp.Type.BOMB) == 1
+		and RewardedPolicy.grants_today(PowerUp.Type.BOMB) == 1 and SaveManager.dough() == dough_before)
 	_c("Bomba: pencere kapandı, oyun sürüyor", not refill.visible and not _board().is_refill_pending())
 	_c("aynı callback ikinci kez → false, stok 1 kalır", not _main.grant_rewarded_power(stub.last_type, stub.last_token)
 		and SaveManager.powerup_count(PowerUp.Type.BOMB) == 1)
+	_board()._powerups.cancel()
+	_set_quota_used(true, [PowerUp.Type.BOMB])
+	var requests_before: int = stub.power_requests
 	for type in [PowerUp.Type.UPGRADE, PowerUp.Type.SHAKE, PowerUp.Type.CLEAR_SMALL]:
 		await _open_refill(type)
-		_c("%s: kota Bomba'da kullanıldı → REKLAM İZLE pasif, '0/1', sebep 'doldu'" % PowerUp.display_name(type),
-			refill.visible and refill.current_type() == int(type) and refill._ad.disabled
-			and refill._quota.text.contains("0/1") and refill.ad_note_text() == refill.NOTE_QUOTA_USED)
-		_c("%s: Hamur yolu hâlâ açık (kota Hamur'u kapatmaz)" % PowerUp.display_name(type), not refill._dough.disabled)
-		refill._on_ad_pressed()
-		_c("%s: kota doluyken talep gitmez" % PowerUp.display_name(type), stub.power_requests == 1)
+		_c("%s: Bomba 2/2 iken bu güç kendi 0/2'sinde → İZLE AKTİF, sebep yok" % PowerUp.display_name(type),
+			refill.visible and refill.current_type() == int(type) and not refill._ad.disabled
+			and refill.quota_text() == "0/2" and refill.ad_note_text() == "")
+		_c("%s: Hamur yolu açık" % PowerUp.display_name(type), not refill._dough.disabled)
+		refill._ad.pressed.emit()
+		await _settle(1)
+		_c("%s: talep sağlayıcıya gitti (tip doğru)" % PowerUp.display_name(type), stub.power_requests == requests_before + 1
+			and stub.last_type == int(type))
+		requests_before = stub.power_requests
+		_main.notify_power_rewarded_unavailable("")
 		await _close_refill()
-	_c("üç güçte de stok 0 kaldı (güç başına ayrı kota YOK)", SaveManager.powerup_count(PowerUp.Type.UPGRADE) == 0
-		and SaveManager.powerup_count(PowerUp.Type.SHAKE) == 0 and SaveManager.powerup_count(PowerUp.Type.CLEAR_SMALL) == 0)
+	_c("talepler stok / kota vermedi: üç güçte stok 0, sayaç 0 (ödül callback'i yok)",
+		SaveManager.powerup_count(PowerUp.Type.UPGRADE) == 0 and SaveManager.powerup_count(PowerUp.Type.SHAKE) == 0
+		and SaveManager.powerup_count(PowerUp.Type.CLEAR_SMALL) == 0 and RewardedPolicy.grants_today(PowerUp.Type.SHAKE) == 0)
 	_main.set_rewarded_provider(null)
 	_set_quota_used(false)
 	await _leave()
@@ -667,14 +686,22 @@ func _test_refill_purchase() -> void:
 	# Yeniden açılış güncel bakiyeyi gösterir (40 Hamur, stok 0 olan güç: Temizleyici).
 	_set_stock(1, 1, 1, 0)
 	await _open_refill(PowerUp.Type.CLEAR_SMALL)
-	_c("yeniden açılış: güncel bakiye 40, 160 Hamur pasif + sebep", refill.balance_text() == "Bakiyen: 40"
-		and refill._dough.disabled and refill.dough_note_text().begins_with("Hamur yetersiz"))
+	_c("yeniden açılış: güncel bakiye 40, 160 Hamur INSUFFICIENT + sebep", refill.balance_text() == "40"
+		and (refill._dough as SquishyButton).state() == SquishyButton.State.INSUFFICIENT
+		and refill.dough_note_text().begins_with("Hamur yetersiz"))
 	var bytes_before: PackedByteArray = FileAccess.get_file_as_bytes(SaveManager.SAVE_PATH)
 	refill._dough.pressed.emit()
+	await _settle(1)
+	# TASK/060 V3: INSUFFICIENT dokunulabilir — basış TEK istek gönderir, Main satın almayı reddeder ve kısa geri
+	# bildirim verir; hiçbir şey değişmez, yazma yok. Main cevapladıktan sonraki yeni basış yine reddedilir.
+	_c("yetersiz Hamur: basış tek istek → Main reddetti ('Hamur yetmiyor'), hiçbir şey değişmez",
+		requests[0] == 5 and SaveManager.dough() == 40 and SaveManager.powerup_count(PowerUp.Type.CLEAR_SMALL) == 0
+		and refill.visible and refill.note_text().begins_with("Hamur yetmiyor")
+		and FileAccess.get_file_as_bytes(SaveManager.SAVE_PATH) == bytes_before)
 	refill._on_dough_pressed()
 	await _settle(1)
-	_c("yetersiz Hamur: basış sinyal üretmez, hiçbir şey değişmez", requests[0] == 4 and SaveManager.dough() == 40
-		and SaveManager.powerup_count(PowerUp.Type.CLEAR_SMALL) == 0 and refill.visible)
+	_c("yetersiz Hamur: ikinci basış da reddedildi, hiçbir şey değişmez", requests[0] == 6 and SaveManager.dough() == 40
+		and SaveManager.powerup_count(PowerUp.Type.CLEAR_SMALL) == 0 and FileAccess.get_file_as_bytes(SaveManager.SAVE_PATH) == bytes_before)
 	# Yarış: buton aktifken Hamur düşmüş olsun → Main reddeder, pencere açık, yazma yok.
 	SaveManager.data["dough"] = 200
 	refill.refresh(false)
@@ -683,7 +710,8 @@ func _test_refill_purchase() -> void:
 	await _settle(1)
 	_c("yarış: Main satın almayı reddetti, pencere açık, uyarı, stok 0, yazma yok", refill.visible
 		and refill.note_text().begins_with("Hamur yetmiyor") and SaveManager.powerup_count(PowerUp.Type.CLEAR_SMALL) == 0
-		and FileAccess.get_file_as_bytes(SaveManager.SAVE_PATH) == bytes_before and refill._dough.disabled)
+		and FileAccess.get_file_as_bytes(SaveManager.SAVE_PATH) == bytes_before
+		and (refill._dough as SquishyButton).state() == SquishyButton.State.INSUFFICIENT)
 	await _close_refill()
 	SaveManager.data["dough"] = 335
 	await _leave()
@@ -728,7 +756,7 @@ func _test_refill_close_paths() -> void:
 		not refill.visible and not board.is_refill_pending() and not _main.is_pause_open()
 		and is_instance_valid(_main._board) and board._power_bar._enabled)
 	_c("Android geri: hiçbir şey alınmadı / harcanmadı", SaveManager.powerup_count(PowerUp.Type.BOMB) == 0
-		and SaveManager.dough() == 335 and RewardedPolicy.grants_today() == 0)
+		and SaveManager.dough() == 335 and RewardedPolicy.grants_today(PowerUp.Type.BOMB) == 0)
 	# Geri sonrası ikinci geri: mola (normal oyun içi davranış).
 	_main._last_back_msec = -1000
 	_main._notification(NOTIFICATION_WM_GO_BACK_REQUEST)
@@ -827,7 +855,7 @@ func _check_both(label: String, safe_top: float, stub: _StubProvider) -> void:
 		or (rrect.encloses(refill.ad_card().get_global_rect()) and rrect.encloses(refill.dough_card().get_global_rect())))
 	_c("%s refill: butonlar ekranda" % label, view.encloses(refill._ad.get_global_rect()) and view.encloses(refill._dough.get_global_rect()))
 	_c("%s refill: durum yazıları kırpılmadı" % label, _label_fits_wrapped(refill._ad_note) and _label_fits_wrapped(refill._dough_note)
-		and _label_fits(refill._quota) and _label_fits(refill._price))
+		and _label_fits((refill._ad as SquishyButton).title_label()) and _label_fits(refill._balance))
 	await _close_refill()
 	SaveManager.data["dough"] = 335
 	await _leave()
@@ -899,8 +927,7 @@ func _apply_showcase() -> void:
 	SaveManager.data["endless_high_score"] = 0
 	SaveManager.data["powerups"] = {"bomb": 0, "upgrade": 0, "shake": 0, "clear_small": 0}
 	SaveManager.data["powerup_starter_granted"] = true
-	SaveManager.data["rewarded_power_date"] = ""
-	SaveManager.data["rewarded_power_grants"] = 0
+	SaveManager.data["rewarded_power_quota"] = RewardedPolicy.empty_block()
 	SaveManager.data["sfx_enabled"] = true
 	SaveManager.data["haptics_enabled"] = true
 

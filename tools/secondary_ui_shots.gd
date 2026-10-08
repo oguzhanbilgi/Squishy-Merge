@@ -226,8 +226,7 @@ func _apply_showcase() -> void:
 	SaveManager.data["merges_since_bonus_chest"] = 49
 	SaveManager.data["endless_high_score"] = 0
 	SaveManager.data["powerups"] = {"bomb": 4, "upgrade": 1, "shake": 0, "clear_small": 0}
-	SaveManager.data["rewarded_power_date"] = ""
-	SaveManager.data["rewarded_power_grants"] = 0
+	SaveManager.data["rewarded_power_quota"] = RewardedPolicy.empty_block()
 	SaveManager.data["sfx_enabled"] = true
 	SaveManager.data["haptics_enabled"] = true
 
@@ -503,13 +502,11 @@ func _group_refill() -> void:
 	await _close_refill()
 
 	# 03 günlük hak tüketilmiş: reklam pasif, sebep yazılı.
-	SaveManager.data["rewarded_power_date"] = Time.get_date_string_from_system()
-	SaveManager.data["rewarded_power_grants"] = 1
+	SaveManager.data["rewarded_power_quota"] = {"version": 1, "day_key": RewardedPolicy.today(), "grants": {"bomb": 2, "upgrade": 2, "shake": 2, "clear_small": 2}}
 	await _open_refill(PowerUp.Type.BOMB)
 	await _capture("refill_03_quota_used")
 	await _close_refill()
-	SaveManager.data["rewarded_power_date"] = ""
-	SaveManager.data["rewarded_power_grants"] = 0
+	SaveManager.data["rewarded_power_quota"] = RewardedPolicy.empty_block()
 
 	# 04 Hamur yetmiyor: Hamur butonu pasif.
 	SaveManager.data["dough"] = 10
