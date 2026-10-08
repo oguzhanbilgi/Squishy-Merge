@@ -49,17 +49,20 @@ const CANVAS_WIDTH: float = 720.0
 ## Ust guvenli pay ve yan kenar payi.
 const SAFE_TOP: float = 10.0
 const SIDE: float = 18.0
-## HUD satirlari: 1) geri+ayarlar | skor | siradaki+cikis  2) tepsi(2 guc) | hedef | tepsi(2 guc)
+## HUD satirlari: 1) geri+ayarlar | skor | siradaki+cikis  2) ikili(2 guc madalyonu) | hedef | ikili(2 guc)
 const ROW1_HEIGHT: float = 64.0
 const ROW2_HEIGHT: float = 104.0
 const ROW_GAP: float = 8.0
 ## HUD ile board arasi nefes payi.
 const HUD_BOARD_GAP: float = 8.0
-## Guc slotu olcusu ve ikili aralik (dokunma hedefi >= 48 — 80 px); iki
-## slot bir TEPSI (PanelTray) icinde durur, tepsi ic payi TRAY_PAD.
-const SLOT_SIZE: Vector2 = Vector2(78.0, 82.0)
-const SLOT_GAP: float = 8.0
-const TRAY_PAD: float = 7.0
+## Guc slotu olcusu ve ikili aralik. TASK/060 HUD V3: slot = madalyonun DOKUNMA alani, her iki boyutta
+## >= UiTokens.TOUCH_TARGET (84; A36'da 48 dp) — 86 x 92, ikili arasi 6 px (dokunma alanlari cakismaz).
+## Ikilinin disi eski tepsiyle (178 px) AYNI genislik: hedef karti (300 px), satir yukseklikleri, HUD sonu
+## ve kamera / board olculeri DEGISMEZ. Gorunur tepsi / yuva cercevesi kalkti (TRAY_PAD 0: tepsi dikdortgeni
+## yalniz ikilinin yerlesim kutusu).
+const SLOT_SIZE: Vector2 = Vector2(86.0, 92.0)
+const SLOT_GAP: float = 6.0
+const TRAY_PAD: float = 0.0
 ## Ikili slot grubu ile ortadaki hedef plakasi arasi.
 const GOAL_GAP: float = 14.0
 ## Kose butonlari (geri, ayarlar, cikis) ve Sıradaki plakasi.
@@ -147,7 +150,7 @@ static func compute(view: Vector2, banner_height: float = 0.0,
 
 	# Satir 2: tepsi(2 slot) | hedef karti | tepsi(2 slot).
 	var tray_size := Vector2(SLOT_SIZE.x * 2.0 + SLOT_GAP + TRAY_PAD * 2.0,
-		SLOT_SIZE.y + TRAY_PAD * 2.0 + 4.0)
+		SLOT_SIZE.y + TRAY_PAD * 2.0)
 	var tray_y: float = row2.position.y + (row2_h - tray_size.y) * 0.5
 	var tray_left := Rect2(Vector2(row2.position.x, tray_y), tray_size)
 	var tray_right := Rect2(Vector2(row2.end.x - tray_size.x, tray_y), tray_size)

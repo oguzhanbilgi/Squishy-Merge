@@ -457,161 +457,23 @@ static func _rarity_variation(prefix: String, rarity: int) -> StringName:
 
 # --- Gameplay shell (M8.6-02) ------------------------------------------------
 
-## Guc slotu (madalyon): `btn_circle` govde (PowerSlot krem / PowerSlotArmed
-## cyan / PowerSlotEmpty pasif) + ic parlama + OWNER guc sanati (asla picto
-## degil) + sag ustte stok rozeti + silahliyken arkada yumusak krem halka
-## (neon degil). Durum `set_power_slot_state` ile guncellenir; buton stok
-## 0'da da basilabilir (refill akisi), o zaman rozet nane "+" olur ve sanat
-## rengini kaybetmeden solar.
-static func power_slot(art_tex: Texture2D, count: int,
-		size: Vector2 = Vector2(84.0, 88.0)) -> Button:
-	var node := Button.new()
-	node.theme_type_variation = &"PowerSlot"
-	node.focus_mode = Control.FOCUS_NONE
-	node.custom_minimum_size = size
-	node.set_meta(&"power_slot", true)
-	# Silahli halka: govdenin ARKASINDA (show_behind_parent), yumusak krem
-	# daire, slot kenarindan 9 px tasar — neon cerceve degil, "kaldirilmis
-	# madalyon" hissi.
-	var glow := patch("popup_glow", Color(UiTokens.CYAN, 0.75))
-	glow.show_behind_parent = true
-	glow.offset_left = -22.0
-	glow.offset_top = -22.0
-	glow.offset_right = 22.0
-	glow.offset_bottom = 14.0
-	glow.visible = false
-	node.add_child(glow)
-	# Cerceve halkasi: govdenin arkasinda 3 px tasan koyu erik daire —
-	# madalyon kenari zeminden ayrilir (candy coin). Silahli: cyan-derin,
-	# stok 0: pasif koyu.
-	# Kalin krem/altin halka: en diste krem (7 px), icinde altin (4 px).
-	var outer_ring := patch("btn_circle_flat", UiTokens.CREAM)
-	outer_ring.show_behind_parent = true
-	outer_ring.offset_left = -7.0
-	outer_ring.offset_top = -7.0
-	outer_ring.offset_right = 7.0
-	outer_ring.offset_bottom = -5.0
-	node.add_child(outer_ring)
-	var rim := patch("btn_circle_flat", UiTokens.GOLD)
-	rim.show_behind_parent = true
-	rim.offset_left = -4.0
-	rim.offset_top = -4.0
-	rim.offset_right = 4.0
-	rim.offset_bottom = -8.0
-	node.add_child(rim)
-	node.set_meta(&"outer_ring", outer_ring)
-	# Cam ic disk (hud_target: acik gok mavisi), sanatin arkasinda.
-	var glass := patch("item_circle_inner", UiTokens.GLASS_BLUE)
-	glass.offset_left = size.x * 0.11
-	glass.offset_right = -size.x * 0.11
-	glass.offset_top = size.y * 0.09
-	glass.offset_bottom = -size.y * 0.21
-	node.add_child(glass)
-	# Ic parlama: ust yarida beyaz ic daire (candy gloss), altta hafif
-	# golge dairesi (yumusak derinlik).
-	var shade := patch("item_circle_inner", Color(0.35, 0.25, 0.5, 0.16))
-	shade.offset_left = size.x * 0.10
-	shade.offset_right = -size.x * 0.10
-	shade.offset_top = size.y * 0.30
-	shade.offset_bottom = -size.y * 0.10
-	node.add_child(shade)
-	var light := patch("item_circle_inner", Color(1, 1, 1, 0.42))
-	light.offset_left = size.x * 0.14
-	light.offset_right = -size.x * 0.14
-	light.offset_top = size.y * 0.05
-	light.offset_bottom = -size.y * 0.42
-	node.add_child(light)
-	var art_size: float = size.x * 0.72
-	var picture := art(art_tex, art_size)
-	picture.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
-	picture.offset_left = -art_size * 0.5
-	picture.offset_right = art_size * 0.5
-	# Alt bevel golgesi ~10 px: sanat gorsel merkeze (hafif yukari) oturur.
-	picture.offset_top = -art_size * 0.5 - 6.0
-	picture.offset_bottom = art_size * 0.5 - 6.0
-	node.add_child(picture)
-	# Stok rozeti: sag ust kose, altin; sola dogru buyur.
-	var count_badge := panel(&"Badge")
-	count_badge.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	count_badge.custom_minimum_size = Vector2(34.0, 26.0)
-	count_badge.set_anchors_preset(Control.PRESET_TOP_RIGHT)
-	count_badge.grow_horizontal = Control.GROW_DIRECTION_BEGIN
-	count_badge.grow_vertical = Control.GROW_DIRECTION_END
-	count_badge.offset_right = 6.0
-	count_badge.offset_top = -6.0
-	count_badge.offset_left = 6.0
-	count_badge.offset_bottom = -6.0
-	var badge_row := HBoxContainer.new()
-	badge_row.alignment = BoxContainer.ALIGNMENT_CENTER
-	badge_row.add_theme_constant_override("separation", 0)
-	badge_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	count_badge.add_child(badge_row)
-	var plus := icon("plus", 16, UiTokens.TEXT_ON_ACCENT)
-	plus.visible = false
-	badge_row.add_child(plus)
-	var count_label := label("×%d" % count, &"LabelBadge")
-	badge_row.add_child(count_label)
-	node.add_child(count_badge)
-	node.set_meta(&"glow", glow)
-	node.set_meta(&"rim", rim)
-	node.set_meta(&"glass", glass)
-	node.set_meta(&"art", picture)
-	node.set_meta(&"badge", count_badge)
-	node.set_meta(&"badge_label", count_label)
-	node.set_meta(&"badge_plus", plus)
-	node.set_meta(&"count", count)
-	UiMotion.attach_press(node)
-	set_power_slot_state(node, count, false, true)
-	return node
+## Guc slotu — TASK/060 Gameplay HUD V3: tek candy madalyon (`PowerMedallion`): gucun vurgu renginde govde,
+## buyuk OWNER guc sanati, sag altta YALNIZ rakam stok kabarcigi ("×N" yok). Eski M8.6-02 slotu (krem/altin halka +
+## cam disk + "×N" rozeti + stok 0'da nane "+") ve tepsi / yuva cercevesi KALKTI. Dokunma alani = dugme dikdortgeni.
+## Durum `set_power_slot_state` ile guncellenir; buton stok 0'da da basilabilir (refill akisi).
+static func power_slot(type: int, count: int, size: Vector2 = Vector2(86.0, 92.0)) -> Button:
+	return PowerMedallion.new(type, count, size)
 
 
-## Slot durumu: stok, silahli, etkin. Stok 0 -> pasif govde + soluk sanat +
-## nane "+" rozeti (dokununca refill). Etkin degil -> `disabled` + %55.
-static func set_power_slot_state(slot: Button, count: int, armed: bool,
-		enabled: bool) -> void:
-	if slot == null or not slot.has_meta(&"power_slot"):
-		return
-	var empty: bool = count <= 0
-	slot.set_meta(&"count", count)
-	slot.theme_type_variation = &"PowerSlotArmed" if armed 		else (&"PowerSlotEmpty" if empty else &"PowerSlot")
-	slot.disabled = not enabled
-	slot.modulate.a = 1.0 if enabled else 0.55
-	(slot.get_meta(&"glow") as Control).visible = armed and enabled
-	(slot.get_meta(&"rim") as Control).self_modulate = UiTokens.CYAN_DEEP if armed \
-		else (UiTokens.LAVENDER if empty else UiTokens.GOLD)
-	(slot.get_meta(&"outer_ring") as Control).self_modulate = Color(UiTokens.CYAN, 0.9) if armed \
-		else (UiTokens.LAVENDER_SURFACE if empty else UiTokens.CREAM)
-	(slot.get_meta(&"glass") as Control).self_modulate = UiTokens.CYAN if armed \
-		else (UiTokens.GLASS_MUTED if empty else UiTokens.GLASS_BLUE)
-	# Stok 0: sanat kimligini korur (renk kalir), yalnizca soluk ve hafif
-	# gri-mavi ortu — tamamen gri generic buton olmaz.
-	(slot.get_meta(&"art") as Control).self_modulate = \
-		Color(0.86, 0.84, 0.94, 0.72) if empty else Color.WHITE
-	var count_badge: PanelContainer = slot.get_meta(&"badge")
-	var count_label: Label = slot.get_meta(&"badge_label")
-	var plus: Control = slot.get_meta(&"badge_plus")
-	count_label.text = "" if empty else "×%d" % count
-	count_label.visible = not empty
-	plus.visible = empty
-	if empty:
-		# Nane "+" rozeti sag ALT kosede (hud_target), stok rozeti sag ustte.
-		count_badge.add_theme_stylebox_override("panel",
-			style("badge_round", UiTokens.MINT, Vector4(9, 3, 9, 6)))
-		count_badge.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
-		count_badge.grow_vertical = Control.GROW_DIRECTION_BEGIN
-		count_badge.offset_top = -4.0
-		count_badge.offset_bottom = -4.0
-	else:
-		count_badge.remove_theme_stylebox_override("panel")
-		count_badge.set_anchors_preset(Control.PRESET_TOP_RIGHT)
-		count_badge.grow_vertical = Control.GROW_DIRECTION_END
-		count_badge.offset_top = -6.0
-		count_badge.offset_bottom = -6.0
-	count_badge.offset_right = 6.0
-	count_badge.offset_left = 6.0
+## Slot durumu: stok (yalniz rakam), silahli, etkin. Stok 0 -> soluk govde + soluk sanat + gri "0" kabarcigi
+## (dokununca refill). Etkin degil -> `disabled` + %55.
+static func set_power_slot_state(slot: Button, count: int, armed: bool, enabled: bool) -> void:
+	var medallion := slot as PowerMedallion
+	if medallion != null:
+		medallion.set_state(count, armed, enabled)
 
 
-## Slotun gosterdigi stok (testler icin; rozet metninden degil meta'dan).
+## Slotun gosterdigi stok (testler icin; meta'dan).
 static func power_slot_count(slot: Button) -> int:
 	return int(slot.get_meta(&"count", 0)) if slot != null else 0
 

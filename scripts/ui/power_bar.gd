@@ -1,11 +1,12 @@
 class_name PowerBar
 extends Control
 ## Oyun içi güç kontrolleri (GAME_DESIGN.md §10): dört güç, stok, seçili
-## durumu. M8.6-02: eski dört dev yatay pill KALKTI; her güç artık
-## `UiKit.power_slot` — bevel gövde + owner güç sanatı + stok rozeti +
-## silahlı parıltı. Slotlar HUD'da iki sol + iki sağ (üst oyun alanının
-## çevresinde) durur; konumlar `GameplayLayout.compute()["slots"]` ile
-## `apply_layout` üzerinden verilir, burada sabit koordinat yok.
+## durumu. TASK/060 HUD V3: her güç bir `PowerMedallion` (`UiKit.power_slot`) —
+## vurgu renginde candy gövde + büyük owner güç sanatı + YALNIZ rakam stok
+## kabarcığı + silahlı hale; dokunma alanı slot dikdörtgeni (≥ 84 px her iki
+## boyutta). Slotlar HUD'da iki sol + iki sağ (hedef kartının iki yanında)
+## durur; konumlar `GameplayLayout.compute()["slots"]` ile `apply_layout`
+## üzerinden verilir, burada sabit koordinat yok.
 ##
 ## DAVRANIŞ DEĞİŞMEDİ: buton stok 0'da da basılabilir (refill akışı),
 ## `set_enabled(false)` tümünü `disabled` yapar, `set_armed` seçili slotu
@@ -31,7 +32,7 @@ var _locked: bool = false
 func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	for type in SLOT_ORDER:
-		var slot: Button = UiKit.power_slot(PowerUp.icon(type),
+		var slot: Button = UiKit.power_slot(int(type),
 			SaveManager.powerup_count(type), GameplayLayout.SLOT_SIZE)
 		slot.name = "Slot_%s" % PowerUp.SAVE_KEYS[type]
 		slot.tooltip_text = PowerUp.display_name(type)

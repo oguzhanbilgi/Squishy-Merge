@@ -3,7 +3,7 @@ extends CanvasLayer
 ## Production oyun HUD'u (M8.6-02). Tek tasarlanmış üst bölge:
 ##
 ##   Satır 1:  [Geri][Ayarlar]    [★ SKOR 1 240]     [SIRADAKİ ●][Çıkış]
-##   Satır 2:  [tepsi: Bomba Büyüt.] [4 | HEDEF ad ▮▮▮▯▯] [tepsi: Sarsıntı Temiz.]
+##   Satır 2:  [(Bomba) (Büyüt.)] [4 | HEDEF ad ▮▮▮▯▯] [(Sarsıntı) (Temiz.)]   — TASK/060: tepsisiz V3 madalyonlar
 ##   ...  BOARD (kamera ile sığdırılmış fizik penceresi)  ...
 ##   Alt:      [ T1 T2 T3 T4 T5 T6 T7 T8 ]   evrim şeridi
 ##   Alt seam: gelecek banner (v1'de 0 px)
@@ -95,8 +95,6 @@ func _ready() -> void:
 	_build_row2()
 	# On dekor katmani plakalarin USTUNE (siralama: sonra eklenen ustte).
 	move_child(_deco_front, get_child_count() - 1)
-	for type in PowerBar.SLOT_ORDER:
-		UiKit.hud_socket(power_bar.slot(int(type)), _deco_mid)
 	_build_strip()
 	_build_overlays()
 	_build_banner_seam()
@@ -219,35 +217,23 @@ func _build_row1() -> void:
 
 
 func _build_row2() -> void:
-	# Güç tepsileri: erik bevel, içinde ikişer madalyon (PowerBar slotları
-	# tepsinin üstüne yerleşir; tepsi yalnız görsel).
-	# hud_target: iki madalyonu birleştiren sığ krem tepsi, koyu lavanta dış
-	# halka, dış gölge, üst gloss.
-	# HUD v5: tepsi = krem `title_oval` pill (kose/cizgi yok); altinda ayni
-	# pill'in lavanta-mor surumu asagi kaydirilmis (tek parca candy taban:
-	# ust yuzey krem, alt derinlik mor) + erik yumusak golge.
-	tray_left = UiKit.panel(&"PanelTray")
+	# TASK/060 HUD V3: güç ikilileri GÖRÜNÜR tepsi / yuva çerçevesi olmadan — her güç kendi candy madalyonu
+	# (`PowerMedallion`; çerçeve-içinde-çerçeve azaldı). `tray_left` / `tray_right` yalnız ikilinin yerleşim kutusu
+	# (boş stil, dokunma almaz) — görünürlüğü güçlerle birlikte izlenir (meydan okumada gizli).
+	tray_left = PanelContainer.new()
 	tray_left.name = "TrayLeft"
+	tray_left.add_theme_stylebox_override("panel", StyleBoxEmpty.new())
 	tray_left.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(tray_left)
-	tray_right = UiKit.panel(&"PanelTray")
+	tray_right = PanelContainer.new()
 	tray_right.name = "TrayRight"
+	tray_right.add_theme_stylebox_override("panel", StyleBoxEmpty.new())
 	tray_right.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(tray_right)
-	for tray in [tray_left, tray_right]:
-		UiKit.hud_shadow(tray, 7.0, 0.26, _deco_back)
-		var base := UiKit.patch("title_oval", UiTokens.LAVENDER_DEEP)
-		UiKit.hud_attach(tray, base, _deco_back, Vector4(4.0, 2.0, 4.0, 9.0))
-		var base_light := UiKit.patch("title_oval", UiTokens.LAVENDER_LIGHT)
-		UiKit.hud_attach(tray, base_light, _deco_back, Vector4(4.0, 3.0, 4.0, 3.0))
-	# Orta dekor katmani: tepsilerin USTUNDE, madalyonlarin ALTINDA (tepsi
-	# gloss'u + madalyon yuvalari).
 	_deco_mid = Control.new()
 	_deco_mid.name = "DecoMid"
 	_deco_mid.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(_deco_mid)
-	UiKit.hud_gloss(tray_left, 18.0, 0.45, 12.0, _deco_mid)
-	UiKit.hud_gloss(tray_right, 18.0, 0.45, 12.0, _deco_mid)
 	power_bar = POWER_BAR_SCENE.instantiate()
 	power_bar.name = "PowerBar"
 	add_child(power_bar)
@@ -569,11 +555,10 @@ func set_moves(remaining: int) -> void:
 	score_label.text = str(maxi(remaining, 0))
 
 
-## Güç tepsileri + madalyonlar (dekorları — gölge / taban / gloss / yuva — görünürlüğü izler).
+## Güç ikilileri + madalyonlar (TASK/060: görünür tepsi yok; yerleşim kutuları madalyonlarla birlikte gizlenir).
 func set_powers_visible(shown: bool) -> void:
 	tray_left.visible = shown
 	tray_right.visible = shown
-	# Madalyon yuvaları (`hud_socket`) slotun KENDİ görünürlüğünü izler: slotlar da açıkça.
 	for type in PowerBar.SLOT_ORDER:
 		power_bar.slot(int(type)).visible = shown
 	power_bar.visible = shown
