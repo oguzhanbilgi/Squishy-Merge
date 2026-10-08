@@ -86,7 +86,7 @@
 | ürün | durum | kural |
 |---|---|---|
 | Ödüllü devam (revive) | ✅ bağlı, test reklamı, A36'da doğrulandı | round başına en fazla 2 başarılı devam (board sayar) |
-| Ödüllü güç refill'i | ✅ bağlı, test reklamı, A36'da doğrulandı | günde 1, DÖRT gücün toplamı; yalnız seçilen güce +1 |
+| Ödüllü güç refill'i | ✅ bağlı, test reklamı, A36'da doğrulandı (eski ortak kota) | **TASK/060 (dalda): güç BAŞINA günde 2 başarılı ödül, dört bağımsız sayaç**; yalnız seçilen güce +1 (§20) — ~~günde 1, DÖRT gücün toplamı~~ |
 | Ödüllü günlük sandık (M8.9-02) | ✅ bağlı, test reklamı, cihazda henüz değil | günde 2 BAŞARILI ödül; ayrı kota (DAILY_REWARDS §1) |
 | Ödüllü günlük +150 Hamur (M8.9-02) | ✅ bağlı, test reklamı, cihazda henüz değil | günde 1 BAŞARILI ödül; ayrı kota |
 | Ücretsiz günlük sandık (M8.9-02) | ✅ reklam yok | günde 1; loot reçetesi DAILY_REWARDS §4 |
@@ -254,7 +254,7 @@ uyguluyordu — §15.)*
 
 Kota/hak kontrolleri **yöneticide DEĞİL**, kilitli yerlerde: board (2/round),
 `Main.grant_rewarded_power` (token + tip) ve `RewardedPolicy.grant` /
-`SaveManager.grant_rewarded_powerup` (1/gün, tek transaction); günlük
+`SaveManager.grant_rewarded_powerup` (TASK/060: güç başına 2/gün, tek transaction); günlük
 `Main.grant_daily_chest / grant_daily_dough` (token + tür + gün) →
 `DailyRewards.grant_*` → `SaveManager.grant_daily_*` (tek transaction).
 Yönetici kayda hiç yazmaz. Tek tam ekran reklam kuralı geçiş reklamını da
@@ -926,7 +926,7 @@ Kanonik ayrıntı: [AGE_BAND_ROUTING.md](AGE_BAND_ROUTING.md). Özet (kod gerçe
   kabuk ekranı hemen yeniden yerleşir (`Main._on_banner_slot_changed`).
 - **Değişmeyenler (TEEN / ADULT):** banner yüzeyleri (Ana Sayfa / Harita / Mağaza /
   Koleksiyon / oyun; Sonuç bannersız), ödüllü kotalar (+150 Hamur 1/gün, reklamlı sandık 2/gün,
-  refill 1/gün toplam, devam 2/round), geçiş (900 sn aktif süre, yalnız doğal mola, Sonuç hemen,
+  refill 1/gün toplam — *o tarihte; TASK/060'tan beri güç başına 2/gün, §20* —, devam 2/round), geçiş (900 sn aktif süre, yalnız doğal mola, Sonuç hemen,
   uygunluk korunur, 60 sn bekleme), tutorial + tutorial kaynaklı Level 1 reklamsız, ilk gün
   kuralı, ekonomi.
 - **Testler:** `age_ad_routing_test` 112 (yönetici + UMP matrisi + bant değişimi + yoldaki
@@ -1061,7 +1061,7 @@ Yerleşim matrisi (biçim, uygunluk, kota, doğal mola, opt-in, kaldıraç, elde
 - **Telemetri:** `AdEvents` sabit olay adları + bellek içi halka (200), sağlayıcı YOK; TASK/052 yeni olay adı eklemedi,
   mevcut olaylara alan ekledi (`rounds`, `recovered`, `late`, `reason`). Firebase / üçüncü taraf analitik eklenmedi;
   kullanıcı kimliği / rıza dizesi loglanmaz.
-- **Ödüllü kotalar DEĞİŞMEDİ** (devam 2 / round, güç refill'i 1 / gün dört gücün toplamı, reklamlı sandık 2 / gün,
+- **Ödüllü kotalar DEĞİŞMEDİ** (TASK/052 anında; devam 2 / round, güç refill'i 1 / gün dört gücün toplamı — *sonra TASK/060: güç başına 2 / gün, §20* —, reklamlı sandık 2 / gün,
   +150 Hamur 1 / gün) — `AdPolicy.rewarded_caps()` yalnız tek kaynaklarından okur. GAME_DESIGN §5.7.3 refill kotası
   simülasyonla kilitli; ekonomi kanıtı olmadan değiştirilmez. Owner için kaba değer (günlük, reklamlı yol): +150 Hamur +
   sandıklar ≈ 115 Hamur-eşdeğeri (erken) / ≈ 39 (geç) + refill ≈ 140 Hamur-eşdeğeri.
@@ -1207,3 +1207,36 @@ aşağıdakiler uygulanmış DEĞİL, önerilen işlerdir (yalnız doküman).
    ödüllü reklam açık seçimle, eylem ve ödül önceden yazılı, ödül tamamlanınca teslim (answer/7313578) — kodda CTA'lar
    açık seçim, ödül yalnız SDK "ödül kazanıldı" geri çağrısıyla. Hesapta içerik / engelleme ayarları ve 13–17 uyum
    incelemesi owner'da AÇIK (AGE_BAND_ROUTING, AUDIENCE_DECISION).
+
+## 20. TASK/060 — güç BAŞINA ödüllü refill kotası + Gameplay HUD V3 (2026-10-08, DALDA — owner görsel onayı bekleniyor)
+
+**Durum:** dal `task/060-gameplay-hud-v3-rewarded-powers` (taban `75fe3f3`), main'de DEĞİL. Owner kararı (Product Vision
+V3, GitHub Issue #1 §3): her gücün kendi günlük ödüllü kotası **2 başarılı ödül**; dört bağımsız sayaç (GAME_DESIGN §5.7.3).
+Diğer reklam sayıları DEĞİŞMEDİ: devam 2 / round, reklamlı sandık 2 / gün, +150 Hamur 1 / gün, zorunlu geçiş ≥ 2 normal
+round + ≥ 300 aktif sn (+ 60 sn tam ekran bekleme), banner yüzeyleri, yaş / rıza yönlendirmesi.
+
+- **Tek kaynak:** `RewardedPolicy.DAILY_GRANTS_PER_POWER = 2`; API tip-bazlı (`grants_today(type)` / `remaining_today(type)` /
+  `can_grant(type)` / `grant(type)`); eski argümansız ortak kota API'si KALDIRILDI. `AdPolicy.rewarded_caps()` artık
+  `power_refill_per_power_per_day = 2`, `power_kinds = 4` okur.
+- **Kayıt:** sürümlü blok `rewarded_power_quota` {version 1, day_key, grants {bomb, upgrade, shake, clear_small}}; gün = kabul
+  edilen yerel gün (`Missions.accepted_day()` — Günlük / Görevler ile aynı, saat geri alınırsa geri gitmez). Grant: tip +
+  gün + o gücün kotası → YALNIZ o gücün stoğu +1 + YALNIZ o gücün sayacı +1 → TEK `save_game()`. Red / yinelenen / yanlış tip:
+  değişim ve disk yazması YOK. Okuma yazmaz (yeni gün okumada 0). Bozuk blok / sayaç / gün / sürüm → o gün KAPALI.
+- **Göç (yüklemede, bellekte):** eski `rewarded_power_date` + tek sayı `rewarded_power_grants` → eski tarih bugünse dört sayaç
+  eski kullanımın 0..1'e normalleşmiş değeriyle başlar (geçiş gününde fazladan hak yok), değilse 0/2; V3 bloğu varsa öncelik
+  onun; eski anahtarlar düşer; stok / Hamur / level / yıldız aynen; açılışta disk yazması yok.
+- **Ödül zinciri DEĞİŞMEDİ:** pencere İZLE → `Main._on_rewarded_power_requested(type)` (BU gücün kotası) → token + tip →
+  `MonetizationManager.show_rewarded_power` → SDK **"ödül kazanıldı"** (açık talep + aynı reklam kimliği + ilk ödül + iptal
+  değil) → `Main.grant_rewarded_power(type, token)` (token grant'ten ÖNCE temizlenir) → `RewardedPolicy.grant(type)`. İstek /
+  yükleme / gösterim / tıklama / ödülsüz kapanış / gösterim hatası / iptal / round değişimi = 0 grant, 0 kota. Gerçek SDK sırası
+  (ödül kapanıştan önce, A36 §14) aynen; kapanış ödül vermez.
+- **Fail-closed:** sağlayıcı yok / SDK hazır değil / yaş UNKNOWN–13 altı / rıza yok / reklam yok → İZLE pasif + kısa sebep;
+  TEEN / ADULT mevcut yaş yönlendirmesinden geçer. QA'da yalnız Google TEST reklamları; gerçek üretim kimlikleri ayrı release işi.
+- **Ekonomi (ölçüm, `python tools/shop_economy.py quota`, deterministik):** yoğun oyuncu (10 round/gün) her fırsatta izlerse
+  güç reklamı ~1,0 → ~4,3 / gün, gün-90 Hamur medyanı 3.730 → 43.070 (sink'siz referans ~50.000); %50 izleme varsayımında
+  ~2,4 / gün ve 19.445; orta oyuncu 17.275 → 24.145 (hep izler). Fiyat / sandık / revive / zorluk DEĞİŞTİRİLMEDİ — dengeleme
+  owner kararıdır.
+- **Testler:** `rewarded_powers_test` (saf kurallar, tek yazma, göç, gerçek Main + yönetici + `FakeAdBackend` geri çağrı
+  sıraları, yaş / rıza, meydan okuma, kaynak sözleşmesi), `hud_v3_test`, uyarlanan `refill_test`, `revive_refill_ui_test`,
+  `monetization_test`, `ad_policy_test`, `save_persistence_test`, `daily_rewards_test`, `fullscreen_break_recovery_test`,
+  `round_finish_modal_test` (kanıt: PROJECT_STATUS §4.40). Gerçek Samsung A36 TEST-reklam kapısı owner görsel onayından SONRA.

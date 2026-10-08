@@ -31,7 +31,7 @@
 | **Reklamlı günlük sandık** | günde **2 BAŞARILI** ödül | `DailyRewards.grant_ad_chest(day_key)` — yalnız "ödül kazanıldı" | `daily_rewards.ad_chests_claimed` (0..2) |
 | **Reklamlı +150 Hamur** | günde **1 BAŞARILI** ödül | `DailyRewards.grant_ad_dough(day_key)` — yalnız "ödül kazanıldı" | `daily_rewards.dough_ad_claimed` |
 | **Günlük giriş ödülü** (M5 / GAME_DESIGN §5.4, ekonomi değişmedi) | günde **1** (+15, seri) | `DailyReward.claim_if_new_day` — Main, pencereden ÖNCE; onboarding false iken no-op | `last_login_date` / `daily_streak` |
-| Ödüllü güç refill'i (M8.5-06, değişmedi) | günde 1, DÖRT gücün toplamı | `RewardedPolicy.grant` | `rewarded_power_date/grants` |
+| Ödüllü güç refill'i (TASK/060: güç başına) | ~~günde 1, DÖRT gücün toplamı~~ → **güç başına günde 2** (dört bağımsız sayaç) | `RewardedPolicy.grant(type)` | `rewarded_power_quota` (eski `rewarded_power_date/grants` yüklemede göç eder) |
 | Devam hakkı (M8.5-04, değişmedi) | round başına 2 | `GameBoard.grant_revive` | board sayacı |
 
 Hiçbiri diğerinin kotasını tüketmez (`daily_rewards_test` "bağımsızlık").

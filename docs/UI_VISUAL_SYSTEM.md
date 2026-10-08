@@ -330,6 +330,10 @@ doğrulandı" denmez.
 
 ## 13. Gameplay Shell (M8.6-02)
 
+> *TASK/060 dalında (`task/060-gameplay-hud-v3-rewarded-powers`, owner görsel incelemesi bekliyor — main'de DEĞİL): güç
+> tepsileri / yuvaları / "×N" rozeti ve 80×84 slot anatomisi (§13 madde 5, §13.4) §31'deki V3 güç madalyonuyla değişir;
+> HUD satırları, hedef kartı, board / kamera / şerit / banner yerleşimi AYNEN.*
+
 **Kod:** `scripts/ui/gameplay_layout.gd` (bölge sözleşmesi + kamera sığdırma),
 `scripts/ui/gameplay_hud.gd` (HUD katmanı), `scripts/ui/power_bar.gd`
 (`UiKit.power_slot` x4), `scripts/ui/evolution_strip.gd`, `game_board.gd`
@@ -1481,6 +1485,9 @@ oyun süresi yenmesin). Pencere kayda/ekonomiye dokunmaz (kaynak taraması).
 
 ### 21.2 Refill — kompozisyon
 
+> *TASK/060 dalında: bu kompozisyon (kurdele "STOK BİTTİ", "STOK ×0", iki metin kartı, ortak "Bugünkü hakkın: 1/1") §31.3'teki
+> V3 penceresiyle değişir; bu alt bölüm M8.6-10 kaydıdır.*
+
 `modal_shell("STOK BİTTİ", 560, ribbon, topper=false, closable=true)`: oturmuş
 X, karartma bırakışı KAPATIR (diğer terminal olmayan pencereler gibi), KAPAT
 altlıkta, **Android geri = Kapat** (M8.6-07'nin tek boşluğu; kanıt: bütün
@@ -2562,3 +2569,68 @@ koruma suite'leri (niyet aynı): `map_ui_test`, `global_nav_shell_test`, `moneti
 `start_level_touch_settle_test` (bitmiş oyuncuda level 3 önce kamerayla görünür yapılır). Çekim:
 `godot --path . res://tools/map_v3_shots.tscn -- <dir> [GxY] [banner|a36|a36nb] [slot=N] [zoom=Z]` (taban ve aday AYNI araç;
 kayıt yönlendirilir). Tasarım dışı bırakılanlar (owner kararı): `02_OWNER_DECISIONS.md` (ZIP).
+
+
+---
+
+## 31. Gameplay HUD V3 + ödüllü güçler (TASK/060) — DAL AŞAMASI, owner görsel incelemesi bekliyor
+
+**Durum:** dal `task/060-gameplay-hud-v3-rewarded-powers` (taban `75fe3f3` = TASK/059 sonrası kanonik main), **main'de
+DEĞİL, owner onaylı DEĞİL**. Yalnız oyun HUD'unun güç bölgesi ve bağlı stok 0 refill penceresi yenilendi; Ana Sayfa V3,
+Harita V3, küresel gezinme, oyun fiziği ve diğer pencereler DEĞİŞMEDİ. Kural tarafı: GAME_DESIGN §5.7.3 (güç başına günde
+2 ödüllü refill). Gerçek Samsung A36 TEST-reklam kapısı owner görsel onayından SONRA.
+
+### 31.1 Güç madalyonu (`PowerMedallion`, `UiKit.power_slot`)
+
+- Tek candy madalyon (V3 `UiKit.draw_candy_circle`): gövde gücün vurgu rengi (`PowerUp.ACCENTS` — Bomba pembe, Büyütücü
+  altın, Sarsıntı cyan, Temizleyici yeşil), krem halka 3 px, dudak 6 px + erik dinlenme derinliği + gloss; owner güç ikonu
+  gövdenin %84'ü (~65 px). Eski tepsi (`PanelTray` + gölge + taban + gloss) ve madalyon yuvası (`hud_socket`) KALKTI —
+  çerçeve-içinde-çerçeve azaldı.
+- **Stok kabarcığı YALNIZ rakam** ("0", "1", "3", "12" — "x1" / "×1" / "STOK" yok): sağ alt, 36 px lacivert-mor candy daire,
+  beyaz rakam 22 px; stok 0'da gri kabarcık + KOYU rakam (kontrast) + gövde lavantaya solar, ikon rengini koruyarak soluk
+  (dokunuş → refill); çok haneli stok (10+) kabarcığı sola doğru hap biçiminde genişletir.
+- Durumlar: **silahlı** (Bomba / Büyütücü hedeflemede) kalın CYAN halka 6 px + parlak cyan hale — board'daki hedef
+  vurgusuyla aynı renk; **kapalı** (mola / pencere dondurması) `disabled` + %55; **basılı** yüz dudağa iner + `UiMotion`
+  squash. HUD'da metin etiketi yok (TEXT-LIGHT: ikon + rakam).
+- **Dokunma alanı = düğme dikdörtgeni 86 × 92** (her iki boyutta ≥ `TOUCH_TARGET` 84; A36'da ~48 dp), ikili arası 6 px —
+  dokunma alanları çakışmaz; görsel gövde dokunma alanının içinde ortalı, kabarcık ≤ 4 px taşar (dokunma haritası =
+  görsel). İkilinin dışı eski tepsiyle aynı 178 px → hedef kartı 300 px, HUD satırları (64 + 8 + 104), board / kamera
+  zoom / şerit TABANLA birebir (6 görünüm ölçüldü — `hud_v3_test` C).
+- Girdi: `GestureGuard` (TASK/055) aynen — iptal edilen dokunuş / madalyondan sürükleyip çıkma eylem üretmez; stok 0
+  basışı tek refill penceresi.
+
+### 31.2 Yerleşim (değişmeyen sözleşme)
+
+`GameplayLayout`: `SLOT_SIZE` 78×82 → **86×92**, `SLOT_GAP` 8 → **6**, `TRAY_PAD` 7 → **0** (tepsi dikdörtgeni yalnız
+yerleşim kutusu, 178 × 92). Satır 2'nin yüksekliği (104), `GOAL_GAP`, hedef kartı, board bölgesi, kamera sığdırma, kompakt
+kip ve banner yuvası DEĞİŞMEDİ; fizik / kap / FLOOR_Y / taşma / nişan koordinatları DEĞİŞMEDİ. TASK/056 uzun hedef adları
+(T2 / T5 / T7) aynı 300 px kartta sığar (`target_card_text_fit_test` 328 / 328). Günlük meydan okumada dört madalyon ve
+ikili kutuları gizli, çubuk kilitli (TASK/047).
+
+### 31.3 Refill penceresi V3 (`scripts/ui/power_refill.gd`)
+
+- `modal_shell`, **kurdele = gücün adı** ("BOMBA"), oturmuş X; hero: güç vurgusunda candy kuyu + gerçek güç sanatı +
+  stok kabarcığı YALNIZ rakam ("0").
+- Gövde: yan yana iki **"+1" karosu** (düz yumuşak yüzey, üstten hizalı): film kuyusu + "+1" + `SquishyButton`
+  REWARDED_AD "İZLE" + **BAŞARILI kullanım cipi `0/2 → 1/2 → 2/2`** (kalan hak değil) · Hamur kuyusu + "+1" +
+  `SquishyButton` CURRENCY gerçek fiyat (`PowerUpEconomy.price`) + bakiye (ikon + rakam).
+- Durumlar: 2/2 → EXHAUSTED + "Bugünlük bitti — yarın yenilenir."; sağlayıcı / SDK / yaş / rıza yok → UNAVAILABLE + kısa
+  sebep ("Ödüllü reklam henüz bağlı değil." / "Reklam hazırlanıyor…" / nötr not); talep açık → pasif + "Reklam isteniyor…";
+  Hamur yetmiyor → INSUFFICIENT (V3: soluk, dokunulabilir; basış hiçbir şey almaz, `ui_invalid`) + "Hamur yetersiz".
+  Her durumda sebep TEK yerde (ilgili karo; altlıkta ikinci kopya yok — altlık yalnız sağlayıcının "tamamını izle" /
+  gösterim hatası gibi ek bilgisi için). Ödüllü talep açıkken Hamur düğmesi kilitli; Hamur satın alması açık talebin
+  token'ını ve sağlayıcı talebini kapatır (geç ödül kapanmış pencereye düşmez). Bir gücün 2/2'si diğer güçlerin penceresini
+  etkilemez. Gizli ücretsiz güç / ödül CTA'sı YOK.
+- KAPAT (`SquishyButton` SECONDARY) / X / karartma / Android geri → hiçbir şey alınmaz, oyun sürer. Açılış / satın alma /
+  kapanış mevcut 300 ms parmak yatışmasını kurar: hızlı çift dokunuş yeni pencereyi kapatmaz, alttaki board'a bırakış ya da
+  yeniden açılan hedeflemeyle gücün istemeden kullanımı olmaz.
+
+### 31.4 Kanıt ve araçlar
+
+`tools/hud_v3_shots.tscn` (taban ve aday AYNI araç; yönlendirilmiş test kaydı): 6 görünüm (720×1280, +112 / +128 banner,
+720×1600, A36 benzeri 1080×2340 güvenli pay 61 ± banner 112) × 14 kare — HUD stok 3 / 1 / 0 / 2, silahlı Bomba / Büyütücü,
+kapalı çubuk, L8 / L3 hedef adları, meydan okuma, refill 0/2 · 1/2 · 2/2 · başka güç 0/2 · sağlayıcı yok · Hamur yetersiz ·
+talep bekliyor. Testler: `hud_v3_test`, `rewarded_powers_test` (+ uyarlanan suite'ler; PROJECT_STATUS §4.40). Not: A36
+benzeri çekimlerde TABAN karelerinde skor kartının üstünde soluk plaka = çekim aracının güvenli payı board kurulduktan
+SONRA vermesinin yan etkisi (cihazda pay ilk yerleşimde bilinir; aday çekimlerinde araç dekoru eşitler) — ürün değişikliği
+değil.
