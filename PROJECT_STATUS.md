@@ -3710,6 +3710,64 @@ formatına yalnız `haptics_enabled` (varsayılan true) eklendi. Ayrıntı ve
   yok. Engellemeyen notlar: QA koşum sahnesinin eski UID uyarısı (yalnız QA paketi, üretim değil); banner'sız kabuk payı
   (TASK/057 kodu → TASK/064); AdMob politika / uyum harici release kontrolü.
 
+### 4.39 Harita V3 — kaydırılabilir candy yolculuk + MEYDAN portalı (TASK/059) — DAL AŞAMASI, owner görsel incelemesi bekliyor
+
+> **DAL AŞAMASI (2026-10-08).** Dal `task/059-map-v3` (taban `f6dcf29` = main = origin/main, `git ls-remote` ile doğrulandı);
+> main DEĞİŞMEDİ, PR / merge YOK. Owner görsel incelemesi: `build/qa_059_owner_review/TASK059_OWNER_REVIEW.zip` (git dışı).
+> Gerçek Samsung A36 kapısı owner görsel onayından SONRA (bu turda koşulmadı; 1080×2340 masaüstü çekimleri A36 kanıtı DEĞİLDİR).
+> Owner onaylı DEĞİL. TASK/060 BAŞLAMADI; Release PAUSED.
+
+**Faz A denetimi (`f6dcf29`, düzenlemeden önce — `build/qa_059/AUDIT_PHASE_A.md`):** owner zemini TEK 720×1280 perspektif
+resim (yakın patika → kale kapısı). f6dcf29 yolculuğu tek ekrana sığdırmak için zemini dikeyde sıkıştırıyordu (`sy/sx`
+720×1280 0.944, 16:9 + 112 0.926, 16:9 + 128 0.909; kurdele satırını bırakıyordu); 16:9 + 128 taban çekiminde düğüm 5'in OYNA
+plakası düğüm 4'e biniyordu. Düğüm plakası (OYNA) buton dikdörtgeninin DIŞINDA ve `MOUSE_FILTER_IGNORE` — kelimeye dokunuş
+hiçbir kontrole ulaşmıyordu (TASK/058 Günlük plakasıyla aynı kusur sınıfı); kabukla en küçük düğüm ≈ 68 px (< V3 84).
+MEYDAN OKUMA penceresi yalnız Ana Sayfa'nındı (`open_daily_challenge` `_active_tab == 0` dışında dönüyordu).
+
+**Fizibilite (Seçenek A seçildi, ölçüldü — `build/qa_059/shots/FEAS_*`):** tek tip dünya ölçeği + sınırlı dikey kaydırma.
+1.45 A36'da 1:1 belirgin yumuşak (2.18× fiziksel), 1.15 A36'da neredeyse kaymıyor (205 px); **1.3**: kaydırma 16:9 484, 16:9 +
+112 616, 16:9 + 128 632, 720×1600 164, A36 benzeri 265 / + banner 397 px; A36'da 1.95× fiziksel (bugünkü onaylı A36 haritası
+1.83×). Yeni sanat yok; Seçenek B / C gerekmedi. Bilinen bedel: zeminin iki alt maskotu 1.3'ün yatay kırpmasında yarıya
+yakın görünür (owner kararı — ZIP 02).
+
+**Uygulama (commit'ler):** `1308b44` ui — kaydırılabilir dünya (`WorldClip` / `World` / gök + toprak bandı), kendi jest sahibi
+(14 px eşik, `NOTIFICATION_SCROLL_BEGIN`, savurma, iptal), giriş odağı politikası, açılışta kamera süzülmesi, düğüm dokunma
+alanı gövde + plaka + en küçük ≥ 84, text-light Sonsuz plakaları, yeni `MapChallengePortal` + `MapTrail` yan yol paleti, ⭐
+toplam yıldız pill'i, kurdele gizli, Main: Harita portalı → mevcut `open_daily_challenge` (Ana Sayfa ya da Harita; pencere
+açan ekranın — `_challenge_origin_tab`), `_refresh_challenge_entries`, `_sync_nav` harita jestini iptal eder · `d11d820` test
+— yeni `map_v3_test`, `map_v3_shots`, niyet korunarak uyarlanan `map_ui_test` / `global_nav_shell_test` /
+`monetization_test` / `daily_challenge_ui_test` · `5af4aa2` ui — inceleme sonrası sertleştirme (savurma / süzülme yakalaması
+düğüm başlatmaz, üst satır pill'leri dokunuşu tutar ama sürükleme kaydırır, sınırda ölü parmak yolu yok, gizlenince açılış
+animasyonu durur, dinlenme konumu pill'lerden ≤ 160 px kaçar, portal durumu gerçek "+20" çipi / ✓ — "!" yok, yan yol 5→6
+kesiminin ortasından ve kalın) · `b609054` test — inceleme sonrası güçlendirme (çizilen zeminden türetilen patika kontrolü,
+pozitif kontroller, yakalama, gün dönümü, en-boy oranı) · `8c77985` test — TASK/051 suite'i (`start_level_touch_settle_test`)
+bitmiş-oyuncu fikstüründe level 3'ü dokunmadan önce kamerayla açık banda getirir (yeni harita girişte Sonsuz kalesine
+odaklanır; level 3 kabuğun arkasında kalıyordu — ilk tam kapıda bu suite 9 FAIL verdi, ürün hatası DEĞİL; sözleşme aynen
+ölçülür, 126 / 126) · + bu dal-aşaması doküman commit'i. Üretim kodu `b609054`'ten beri DEĞİŞMEDİ.
+
+**Değişmeyenler:** level verisi / sırası, unlock (`highest_level_unlocked`), yıldızlar, Sonsuz şartı, level başlatma yolu,
+fizik, XP, ekonomi, kayıt şeması, reklam / rıza / yaş, Ana Sayfa V3 (TASK/058, kod diff'i yok), küresel gezinme kabuğu
+(TASK/057, kod diff'i yok; görünürlük / GERİ zinciri aynen), meydan okuma kuralları / ödülü / round çıkışı (Ana Sayfa).
+Harita ilerleme / ekonomi kaydına yazmaz; tek olası yazma portalın gün okumasının (TASK/047 monoton gün gözlemi) yeni günü
+ilk kez görmesidir — Ana Sayfa MEYDAN karosuyla aynı okuma.
+
+**Kanıt (son üretim kodu `b609054`, son test adayı `8c77985`):** `map_v3_test` 165 / 165; uyarlanan `map_ui_test` 122,
+`global_nav_shell_test` 211, `monetization_test` 258, `daily_challenge_ui_test` 151, `start_level_touch_settle_test` 126 — hepsi
+0 FAIL. Kontrollü tam masaüstü kapısı (57 koşum): 57 / 57 temiz, 7445 kontrol, 0 FAIL, 0 SCRIPT ERROR, bot 2/2, sahibin kaydı bayt-aynı (ilk kapıdaki 9 FAIL yalnız TASK/051 suite'inin harita ön koşuluydu — uyarlandı, `8c77985`).
+4 hafif negatif kontrol (N1 sürükleme basışı iptal etmez · N2 portal normal level'a gider · N3 düğüm tabanı kabuğu yok sayar ·
+N4 odak yanlış düğüm) — dördü de öldü (`map_v3_test` açık FAIL, rc 1), her biri bayt-aynı geri kondu
+(`build/qa_059/mutations/summary.txt`). Salt-okur inceleme 4 gözden geçirici × 10 mercek (sanat sürekliliği, düğüm okunurluğu,
+keşfedilebilirlik, küçük ekran / banner, kaydırma / girdi güvenliği, GlobalNav entegrasyonu, Meydan Okuma sahipliği, text-light,
+Türkçe etiketler, kapsam + test yeterliliği): BLOCKER 0; HIGH yalnız "kanonik dokümanlar güncel değil" (bu commit); MEDIUM'lar
+giderildi (yukarıdaki `5af4aa2` / `b609054`) ya da owner kararına bırakıldı (ZIP 02). Sahibin kayıt ailesi (`deb7ff6f…`, `.tmp`
+/ `.bak` yok) baştan sona bayt-aynı; `default_bus_layout.tres`, `project.godot`, `export_presets.cfg`,
+`OWNER_WORKING_PROFILE.md`, `_visual_source` (13 738 dosya, `914c63e8…`) dokunulmadı.
+
+**Bilinçli olarak yapılmayan / owner kararı:** GAME_DESIGN §5.11 "Arayüz" paragrafındaki "Harita'da yok" ifadesi bu görevin
+owner talimatıyla eskidi — GAME_DESIGN kilitli olduğu için bu dalda DEĞİŞTİRİLMEDİ; owner onayıyla yalnız ifade güncellemesi
+önerildi (ZIP 02). Meydan Okuma merkezi / pencere metinleri TASK/063; HUD / güçler TASK/060; Mağaza TASK/062; Koleksiyon /
+Profil / Ayarlar TASK/064.
+
 ## 5. Dosya/klasör yapısı ve script envanteri
 
 ```

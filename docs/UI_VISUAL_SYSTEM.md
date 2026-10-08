@@ -119,7 +119,7 @@ için önceden ölçeklendi (§8).
 | `PanelHud` | `panel_bevel` (+ `UiKit.plate` üst ışığı) | erik, dar dikey pay (4/10) | gameplay skor / hedef plakası (M8.6-02) |
 | `PanelStrip` | `panel_bevel` (+ üst ışık) | erik α .94 | evrim şeridi rafı (M8.6-02) |
 | `PanelHudScore` / `PanelTray` / `PanelHudFrame` / `PanelHudCard` | `label_round` ×4 | `LAVENDER_DEEP` / `TRAY_CREAM` / `LAVENDER_DEEP` / krem | HUD v3: skor kapsülü, güç tepsisi, kart çerçevesi, kart gövdesi (§13.3) |
-| `PanelMapPlaque` | `badge_round` | krem | Harita düğüm plakası (OYNA / Rekor N / Level 10'u bitir) — §15.2 |
+| `PanelMapPlaque` | `badge_round` | krem | Harita düğüm plakası (OYNA / Rekor N / Level 10'u bitir) — §15.2 *(TASK/059 dalı: kilit + "BÖLÜM 10", "Rekor bekliyor" yok — §30.2)* |
 | `PanelShopCard` / `PanelShopCardPower` / `PanelShopCardOwned` | `card_bevel_soft` | krem / `TRAY_CREAM` / `CREAM_DEEP` | Mağaza ürün kartı gövdesi (satılık skin / güç — gameplay güç tepsisinin tonu / sahip olunan skin, bir ton geri) — §16.2, §16.3 |
 | `PanelShopSection` | `title_oval` | `LAVENDER_DEEP` | Mağaza bölüm plakası (GÜÇLER / SKİNLER) — `UiKit.section_header`, §16.1 |
 | `PanelShopToast` | `title_oval` | pembe (başarıda `MINT` + lacivert yazı override) | Mağaza geri bildirim plakası — §16.4 |
@@ -635,6 +635,10 @@ ekranında YENİ küresel gezinme kabuğu `GlobalNav` — eski çubuk geri gelme
 ---
 
 ## 15. Production journey map — Harita (M8.6-04)
+
+> *TASK/059 dalında (`task/059-map-v3`, owner görsel incelemesi bekliyor — main'de DEĞİL) bu bölüm `f6dcf29` haritasını anlatan
+> TARİHSEL kayıttır: dünya artık sıkıştırılmaz, sabit kabuğun arkasında kayar; "Kaydırma yok", geri oku, `HeaderRibbon` "HARİTA",
+> dokunma ≥ 72, "Rekor bekliyor" / "Level 10'u bitir" ifadeleri ve rota tablosu §30 ile değişir (MEYDAN portalı §30.3).*
 
 **Karar:** Home'daki büyük OYNA'nın ilk durağı; owner'ın candy dünyası
 (`map_background.png`) KAHRAMAN, üstünde aşağıdan yukarı on level düğümü +
@@ -2055,7 +2059,8 @@ dokunuşun ikincisi pencereyi kapatmaz, X'in ardından Ana Sayfa'ya düşmez, BA
 dokunuşunun bırakışı / ikinci dokunuşu yeni tahtaya bırakış olarak düşmez, "Hamle bitti"
 yatışmasında süren dokunuşlar açılan sonucun düğmesine görünmeden basmaz. Android geri / X / karartma / KAPAT kapatır. Sandık / ayarlar / günlük / GÖREVLER /
 yaş ekranı açıkken açılmaz; açıkken onlar altına açılmaz, otomatik günlük pencere "due" kalır;
-Ana Sayfa dışına geçiş / round başlangıcı kapatır. 320×568, 360×640, 390×844, 360×800, 1080×2340
+Ana Sayfa dışına geçiş / round başlangıcı kapatır *(TASK/059 dalı: pencere onu açan ekranındır — Ana Sayfa ya da Harita
+MEYDAN portalı; o ekrandan başka ekrana geçiş kapatır, §30.3)*. 320×568, 360×640, 390×844, 360×800, 1080×2340
 (+ A36 üst payı 61) ve banner yuvası ile kırpma / çakışma yok (`daily_challenge_ui_test`).
 
 ### 26.6 Şimdilik yapılmayan (bilerek)
@@ -2194,7 +2199,8 @@ NavItem.CENTER_RISE)` — kompakt kipte taşma 0); zemin dikeyde sıkışırsa d
 birbirine değmez; sıradaki düğüm ≥ `TOUCH_TARGET`). Ölçülen sıkıştırma (Tur 2): 720×1600 ve A36 benzeri (yuvalı) 1.000 ·
 720×1280 yuvasız 0.944 · **16:9 + 112 px banner yuvası 0.926 (%7.4; ilk aday 0.819 / %18 owner tarafından
 reddedildi)** — `MIN_SQUASH_NAV` 0.92 (en çok %8) tavan; bu yerleşimde kabuk kompakt ve başlık kurdelesi satırını
-bırakır (§27.11); 16:9 + 128 px yuva 0.909, yalnız uç durumlarda son çare `MIN_SQUASH_NAV_HARD` 0.88. Kalıcı çözüm TASK/059 (kaydırılabilir yolculuk) — owner kararı. Gelecek MEYDAN OKUMA rotası (TASK/059) için ayrılan bölge: dünyanın sol / sağ
+bırakır (§27.11); 16:9 + 128 px yuva 0.909, yalnız uç durumlarda son çare `MIN_SQUASH_NAV_HARD` 0.88. Kalıcı çözüm TASK/059 (kaydırılabilir yolculuk) — owner kararı *(TASK/059 dalı: sıkıştırma KALKTI, tek tip ölçek + kaydırma,
+§30; bu cümledeki oranlar tarihsel)*. Gelecek MEYDAN OKUMA rotası (TASK/059) için ayrılan bölge: dünyanın sol / sağ
 yan bantları ve kabuğun üstündeki alt dünya şeridi — kabuk ayak izi (alt 140 px + banner yuvası) hiçbir harita ögesine
 verilmez.
 
@@ -2453,6 +2459,95 @@ oyun sistemleri. Oyuncu görsel dili anlar; görsel durum anlamı taşıyorsa a�
   eylemler, hata durumları; pencerelerin İÇİ ayrıntıyı taşıyabilir (giriş kısa, içerik açıklayıcı).
 - **Kapsam:** TASK/058'de yalnız Ana Sayfa üretim yüzeyi uygulandı (§28.10; metin denetimi PROJECT_STATUS §4.38). Ürün
   geneli metin yeniden yazımı YAPILMADI. Bu ilke TASK/059–064 yeniden tasarımlarının (Harita, oyun HUD'u, Günlük &
-  Görevler, Mağaza, Meydan Okuma merkezi, Koleksiyon / Profil / Ayarlar) varsayılanıdır — o ekranlar henüz bu ilkeyle
+  Görevler, Mağaza, Meydan Okuma merkezi, Koleksiyon / Profil / Ayarlar) varsayılanıdır *(TASK/059 dalında Harita'ya
+  uygulandı — §30.4; owner onayı bekliyor)* — o ekranlar henüz bu ilkeyle
   uygulanmadı ve owner onaylı DEĞİL (her biri kendi görsel onayını ister); kabuk (TASK/057) etiketleri ayrı onaylı görev
   olmadan değişmez.
+
+
+---
+
+## 30. Harita V3 — kaydırılabilir candy yolculuk + MEYDAN portalı (TASK/059) — DAL AŞAMASI, owner görsel incelemesi bekliyor
+
+**Durum:** dal `task/059-map-v3` (taban `f6dcf29`), **main'de DEĞİL, owner onaylı DEĞİL** — owner görsel incelemesi
+(`build/qa_059_owner_review/TASK059_OWNER_REVIEW.zip`) bekleniyor; gerçek Samsung A36 kapısı görsel onaydan SONRA (koşulmadı).
+§15 bu dalda TARİHSEL (f6dcf29 haritası). Kural / sayı / kayıt / ekonomi DEĞİŞMEDİ (GAME_DESIGN §5.5 aynen).
+
+**Karar (Seçenek A, ölçülerek):** ikinci bir harita sistemi YOK — aynı owner zemini, aynı on düğüm konumu, aynı Catmull-Rom
+`MapTrail`, aynı `MapLevelNode` durumları, aynı giriş / açılış animasyonları ve aynı `level_chosen` yolu; değişen dünyanın
+ölçeği ve kamerası. Zemin TEK TİP ölçekle (`WORLD_ZOOM` 1.3, ya da ekranı kaplayan cover — hangisi büyükse) büyür ve sabit
+kabuğun (üst satır + gezinme kabuğu + banner yuvası) ARKASINDA dikeyde kayar. Eski sığdırma yolundaki dikey sıkıştırma
+(`sy/sx` 0.82–0.94, `MIN_SQUASH*`, kurdele bırakma) KALKTI. Fizibilite ölçümü (`build/qa_059/shots/FEAS_*`): 1.45 A36'da 1:1
+yumuşak (2.18× fiziksel), 1.15 A36'da neredeyse kaymıyor (205 px); 1.3 A36'da 1.95× (bugünkü onaylı A36 haritası 1.83×).
+Yeni sanat / sprite / gerilmiş bitmap YOK; tek uzatmalar mevcut 6 satırlık aynalı gök şeridi (üst) ve kabuğun arkasında
+kalan aynalı toprak bandı (alt — MEYDAN OKUMA penceresi açıkken kabuk gizlenince alt kenarda koyu şerit kalmaz).
+
+| Görünüm | Kaydırma aralığı (px) | Giriş odağı L5 |
+|---|---|---|
+| 720×1280 | 0–484 | 289 |
+| 720×1280 + banner 112 | 0–616 | 342 |
+| 720×1280 + banner 128 (en dar) | 0–632 | 352 |
+| 720×1600 | 0–164 | 41 (pill düzeltmesi) |
+| A36 benzeri 720×1560 + üst 61 | 0–265 | 42 (pill düzeltmesi) |
+| A36 benzeri + üst 61 + banner 112 | 0–397 | 279 (pill düzeltmesi) |
+
+### 30.1 Kamera ve girdi
+
+- **Kamera:** `_scroll` ∈ [0, sınır]; 0'da gök bandı ekranın tepesinde (kale + son level'lar), sınırda zeminin alt kenarı
+  kabuk tepsisinin üst kenarında (level 1 + OYNA plakası tepsinin / merkez dairenin üstünde). Her GİRİŞTE (sekme geçişi,
+  oyundan dönüş) odak düğümüne (sıradaki level; her şey bitmişse Sonsuz) döner; ziyaret içinde oyuncunun kaydırması korunur
+  (aynı sekmenin yeniden istenmesi — pencere kapanışı — kamerayı oynatmaz). Odak düğümünün görsel merkezi düğümlere açık
+  bandın %58'inde; dinlenme konumunda bir düğüm / plaka / kilit rozeti / portal üst satır pill'lerinin altında yarım kalacaksa
+  kamera en çok 160 px kayar (mümkünse). Geç gelen banner yuvasında oyuncu kaydırmadıysa odak korunur. Yeni açılan level'da
+  kamera bir önceki düğümden yenisine 0.45 s süzülür (açılış animasyonu aynen).
+- **Jest sahibi:** kayan `World` kontrolü (MOUSE_FILTER_STOP); düğümler ve portal `MOUSE_FILTER_PASS` (basış düğüme işlenir
+  VE dünyaya ulaşır). Dikey 14 px eşik → sürükleme; `NOTIFICATION_SCROLL_BEGIN` BaseButton basışını iptal eder (sürükleme level
+  / pencere BAŞLATMAZ). Bırakışta sönümlü savurma (≤ 3200 px/s, sınırda durur, taşma yok); iptal edilen bırakış
+  (ACTION_CANCEL) ya da duran parmak savurmaz. Savurma / süzülme sürerken gelen dokunuş yalnız kamerayı durdurur
+  ("yakalama"; altındaki düğüm başlamaz). Sınırın ötesine sürüklenip dönülünce kamera hemen izler. Masaüstünde fare tekerleği.
+- **İptal:** ekran gizlenince, tazelemede, Android GERİ'de, pencere odağı kaybında ve Main `_sync_nav`'da (pencere açık /
+  başka sekme / oyun / sonuç) jest eylemsiz biter (basılı düğüm / portal: GestureGuard `invalidate`); gizlenen haritanın açılış
+  animasyonu (sesi dahil) durur. Düğüm basışlarının sahibi TASK/055 GestureGuard (değişmedi); 300 ms parmak yatışması aynen.
+- **Sabit üst satır:** pill'ler (⭐ toplam yıldız, Hamur) dokunuşu TUTAR — altlarına kayan düğüme dokunuş geçmez; pill'in
+  üstünden başlayan sürükleme dünyayı yine kaydırır. Hamur "+" → Mağaza aynen.
+
+### 30.2 Düğümler ve Sonsuz
+
+- Perspektif çapı 84 → 72 × düğüm ölçeği (dünya ölçeğinin yarısı kadar büyür; taban: en uzak düğüm ≥ `TOUCH_TARGET` 84) —
+  1.3'te 97.7 → 84 px, sıradaki ×1.14 (111 / 96), Sonsuz 135 px. Dokunma alanı = gövde + plaka (`_has_point`): "OYNA"
+  kelimesine dokunuş da düğümündür (TASK/058 Günlük plakası dersi); komşularla çakışmaz (testli).
+- Sonsuz: kilitliyken soluk taç + kilit rozeti + plaka **kilit ikonu + "BÖLÜM 10"** (Ana Sayfa'nın "BÖLÜM" terimi; kural aynı —
+  Level 10 tamamlanınca); açıkken altın + taç + SONSUZ + pırıltı, rekor varsa "Rekor 12 480", yoksa plaka YOK.
+
+### 30.3 MEYDAN portalı (`MapChallengePortal`) + yan yol
+
+- **Yer:** sol pembe köprünün sol ucu (doku (176, 692)) — zeminin kendi yan yolu, 1.3'ün yatay kırpmasında (görünen doku x ≈
+  83..637) ekranda; ölçülen tüm görünümlerde HER kamera konumunda düğümlere açık bantta (keşif için kaydırma gerekmez).
+- **Kimlik (level düğümü DEĞİL):** owner `badge_starburst` yıldız halkası (yavaş döner) → pembe candy kuyu (`UiKit.candy_well`)
+  içinde bugünün GERÇEK hedef dumpling'i (T5 / T6) → pembe "MEYDAN" plakası → durum çipi: bekliyor = altın Hamur ikonu + "+20"
+  (Ana Sayfa MEYDAN karosuyla aynı gerçek ilk başarı ödülü), bugün tamamlandı = nane ✓ (portal sakinleşir: halka durur, hale /
+  pırıltı söner). Sahte süre / ödül / deneme sayısı YOK; "!" (alınacak ödül) kullanılmaz.
+- **Yan yol:** ana patikanın 5→6 kesiminin ortasından (level düğümüne değil — portal ilerlemeye bağlı değil) köprü boyunca
+  portala; `MapTrail` yan yol paleti (krem çizgi + sıcak pembe boncuk, ×1.35 kalınlık), her zaman "yanık".
+- **Rota:** `challenge_requested` → Main'in MEVCUT `open_daily_challenge()` (artık Ana Sayfa YA DA Harita öndeyken açılır;
+  pencere onu açan ekranındır — başka ekrana geçişte kapanır, GERİ / X / karartma kapatınca oyuncu açtığı ekranda kalır).
+  Pencere içeriği, BAŞLA'nın gün yeniden okuması, ödül ve meydan okuma round'undan çıkış (sonuç "ANA SAYFA" → Ana Sayfa)
+  DEĞİŞMEDİ. Gün gerçeği yoksa / onboarding bitmemişse portal + yan yol gizli. Ana Sayfa MEYDAN karosu aynen geçerli.
+  Meydan Okuma merkezi / landing **TASK/063**'ün.
+
+### 30.4 Üst satır ve text-light (§29)
+
+"HARİTA" kurdelesi gizli (ekran kimliği kabuğun seçili HARİTA'sında); solda yalnız-gösterim ⭐ toplam yıldız pill'i ("11/30",
+gerçek `stars_for_level` toplamı), sağda Hamur pill'i. Haritanın görünen metinleri: düğüm numaraları · OYNA · SONSUZ ·
+"Rekor N" · kilit + "BÖLÜM 10" · MEYDAN · "+20" / ✓ · "N/30". "Level 10'u bitir" ve "Rekor bekliyor" kalktı. Kabuk (TASK/057)
+ve Ana Sayfa (TASK/058) DEĞİŞMEDİ.
+
+### 30.5 Test ve araçlar
+
+`tools/map_v3_test.tscn` (165 kontrol; gerçek Main, `user://qa_map_v3/` kaydı, gerçek parmak olayları): 6 görünüm geometrisi,
+odak / kırpma / giriş politikası, dokunuş / sürükleme / iptal / bayat bırakış / GERİ / sekme / savurma / yakalama / tekerlek,
+MEYDAN portalı + Ana Sayfa MEYDAN + pencere sahipliği + gün dönümü, kayıt yazılmaz, animasyon, sahiplik + text-light. Uyarlanan
+koruma suite'leri (niyet aynı): `map_ui_test`, `global_nav_shell_test`, `monetization_test`, `daily_challenge_ui_test`,
+`start_level_touch_settle_test` (bitmiş oyuncuda level 3 önce kamerayla görünür yapılır). Çekim:
+`godot --path . res://tools/map_v3_shots.tscn -- <dir> [GxY] [banner|a36|a36nb] [slot=N] [zoom=Z]` (taban ve aday AYNI araç;
+kayıt yönlendirilir). Tasarım dışı bırakılanlar (owner kararı): `02_OWNER_DECISIONS.md` (ZIP).

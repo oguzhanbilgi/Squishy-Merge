@@ -82,7 +82,7 @@ alınacak — şimdi tahmin/vaat yok.
 
 - **Product Vision V3 — AKTİF** ([GitHub Issue #1](https://github.com/oguzhanbilgi/Squishy-Merge/issues/1) — UI/UX
   yenileme, ödüllü güçler, görevler, başlangıç paketi, harita ve meydan okuma yol haritası; ürün planının kalıcı
-  kaydı). İlerleme: **TASK/057 TAMAM + MAIN** · **TASK/058 Ana Sayfa V3 TAMAM + MAIN** (owner görsel onayı APPROVED — yalnız Ana Sayfa V3) · TASK/059 Harita V3 BAŞLAMADI · sonraki
+  kaydı). İlerleme: **TASK/057 TAMAM + MAIN** · **TASK/058 Ana Sayfa V3 TAMAM + MAIN** (owner görsel onayı APPROVED — yalnız Ana Sayfa V3) · **TASK/059 Harita V3 DAL AŞAMASI — owner görsel incelemesine HAZIR** (main'de DEĞİL, owner onaylı DEĞİL; gerçek A36 kapısı görsel onaydan sonra) · sonraki
   Product Vision görevleri gelecek iş. **Release Readiness PAUSED / YELLOW** (Product Vision V3 turu bitmeden release'e
   dönülmez; release hazır DEĞİL). **Metin ilkesi (owner, 2026-10-07): TEXT-LIGHT / ICON-FIRST** — normal gezinme /
   özellik girişlerinde ikon + tek kelime + sayı / rozet / ilerleme, açıklayıcı alt yazı yok; güvenlik / yasal / satın alma /
@@ -151,6 +151,20 @@ alınacak — şimdi tahmin/vaat yok.
   KONTROLÜ.** Engellemeyen not: banner yuvası hiç yokken kabuk tepsisi ekran altına ~12 fiziksel px yakın (TASK/057 kabuk kodu
   — TASK/064). Dal-aşaması inceleme turları (görsel aday `6e88368`, K9 adayı `6de0410` — gate3 + A36 GEÇTİ, K10 text-light)
   TARİHSEL: PROJECT_STATUS §4.38, UI_VISUAL_SYSTEM §28 / §29.
+- **TASK/059 — Harita V3 — DAL AŞAMASI (READY FOR OWNER VISUAL REVIEW, main'de DEĞİL)** (dal `task/059-map-v3`, taban
+  `f6dcf29`; main / origin/main DEĞİŞMEDİ, PR / merge YOK). Mevcut production haritası (aynı owner zemini, on düğüm konumu,
+  Catmull-Rom patika, `MapLevelNode` durumları, animasyonlar, `level_chosen` yolu) **kaydırılabilir candy yolculuğa** evrildi:
+  zemin TEK TİP ölçekle (1.3; eski dikey sıkıştırma YOK) sabit kabuğun arkasında dikeyde kayar (16:9 484 px … A36 benzeri +
+  banner 397 px), her girişte kamera sıradaki level'a (her şey bitmişse Sonsuz'a) odaklanır, sürükleme level başlatmaz,
+  savurma / yakalama / iptal / GERİ / sekme güvenli; düğüm dokunma alanı gövde + plaka (OYNA kelimesi dahil), en küçük ≥ 84 px.
+  **MEYDAN portalı** sol pembe köprüde (owner yıldız halkası + bugünün gerçek hedef dumpling'i + "MEYDAN" + gerçek "+20" / ✓,
+  ayrı pembe yan yol) → Main'in MEVCUT MEYDAN OKUMA penceresi (pencere açan ekranın; round çıkışı aynen Ana Sayfa; Meydan Okuma
+  merkezi TASK/063). TEXT-LIGHT: "HARİTA" kurdelesi gizli, ⭐ toplam yıldız pill'i, kilitli Sonsuz kilit + "BÖLÜM 10".
+  Kural / level / ekonomi / kayıt / reklam / Ana Sayfa V3 / küresel kabuk DEĞİŞMEDİ. **Kanıt (üretim `b609054`, test `8c77985`):** `map_v3_test`
+  165 / 165; kontrollü tam masaüstü kapısı 57 / 57 temiz, 7445 kontrol, 0 FAIL, 0 SCRIPT ERROR, bot 2/2, sahibin kaydı bayt-aynı (ilk kapıdaki 9 FAIL yalnız TASK/051 suite'inin harita ön koşuluydu — uyarlandı, `8c77985`); 4 / 4 hafif negatif kontrol öldü (bayt-aynı geri kondu); salt-okur
+  inceleme 10 mercek, BLOCKER 0. **Owner kararları** (ZIP `02_OWNER_DECISIONS.md`): GAME_DESIGN §5.11 "Harita'da yok" ifadesinin
+  güncellenmesi (bu dalda DEĞİŞTİRİLMEDİ), dünya ölçeği 1.3 ↔ maskot kırpması, kilitli Sonsuz metni, kurdele / ⭐ pill'i.
+  Ayrıntı: PROJECT_STATUS §4.39, UI_VISUAL_SYSTEM §30.
 - **Repo (2026-10-08):** main TASK/058'i `7025bd4`'te içerir — owner onayıyla ff-only `28a5bf1 → 7025bd4` (2026-10-08; merge commit / rebase / squash / cherry-pick / force push YOK; dal `task/058-home-v3` = `7025bd4` duruyor); doğrulanmış
   doğrusal zincir, 15 commit: `c5d3bbc` düzeltme (günlük pencere yatışması + madalyon etiketi) · `029eced` Ana Sayfa V3 ·
   `9080a85` / `fd59d69` / `749080b` / `6e88368` test · `8b070e8` doküman · `e060cd0` K9 terimleri · `91c74b2` test · `6de0410`
@@ -1263,7 +1277,10 @@ görevi üretim ekran görüntüsü + owner görsel onayı olmadan main'e alınm
 GEÇTİ; owner A36 elle denemesi → **K10 TEXT-LIGHT / ICON-FIRST** uygulandı, masaüstü + gerçek A36 kapısı GEÇTİ.
 ~~**Şimdiki adım:** owner TASK/058 text-light görsel incelemesi~~ → **APPROVED** (yalnız Ana Sayfa V3); **TASK/058 — TAMAM +
 MAIN** (`7025bd4` + bu doküman eşitlemesi) — §4.38.
-**Şimdiki adım:** **TASK/059 Harita V3** — YENİ bir Claude oturumunda, owner başlatınca (BAŞLAMADI). Sonraki sahiplik:
+~~**Şimdiki adım:** **TASK/059 Harita V3** — YENİ bir Claude oturumunda, owner başlatınca (BAŞLAMADI).~~ → başladı.
+**Şimdiki adım:** owner **TASK/059 Harita V3 görsel incelemesi** (`build/qa_059_owner_review/TASK059_OWNER_REVIEW.zip`; dal
+`task/059-map-v3`, main'de DEĞİL, DO NOT MERGE). Onaydan sonra: TASK/059 son cila + gerçek Samsung A36 kapısı, ardından owner
+onayıyla main entegrasyonu. Sonraki sahiplik:
 TASK/059 Harita · TASK/060 ödüllü güçler (+ oyun HUD V3) · TASK/061 Görevler ödül alma / devir · TASK/062 Mağaza / Başlangıç
 Paketi · TASK/063 Meydan Okuma · TASK/064 kalan cila (Koleksiyon / Profil / Ayarlar; banner'sız kabuk payı notu dahil).
 TEXT-LIGHT / ICON-FIRST bu görevlerin varsayılan yönüdür; her ekran yine kendi owner görsel onayını ister. Release PAUSED.
