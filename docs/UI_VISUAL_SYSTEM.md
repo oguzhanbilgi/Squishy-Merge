@@ -2330,7 +2330,7 @@ V3, 84 / 64 px, GestureGuard, görünürlük matrisi, kompakt kip, TASK/058 / 05
 YALNIZ Ana Sayfa V3 içindir); owner onayıyla ff-only `28a5bf1 → 7025bd4` (2026-10-08; merge commit / rebase / squash / cherry-pick / force push YOK; dal `task/058-home-v3` = `7025bd4` duruyor). Kabul edilen tasarım: kompakt
 GÜNLÜK | MEYDAN `FeatureTile` karoları (§28.10), TEXT-LIGHT / ICON-FIRST Ana Sayfa (§29), ilk gün GÜNLÜK kilidi "YARIN"
 (§28.2). Son üretim / test adayı `9b4e2ed`'in masaüstü + gerçek A36 kanıtı entegrasyondan ÖNCE alındı, yeniden koşulmadı.
-*(Sonra — 2026-10-08: TASK/059 Harita V3 TAMAM + MAIN, §30.)* TASK/060+ BAŞLAMADI, Release PAUSED. *(Tarihsel — dal aşaması, 2026-10-07: K1–K9 kilitlendi (§28.8); owner gerçek A36'da elle
+*(Sonra — 2026-10-08: TASK/059 Harita V3 TAMAM + MAIN, §30; TASK/060 Gameplay HUD V3 DALDA, §31.)* Release PAUSED. *(Tarihsel — dal aşaması, 2026-10-07: K1–K9 kilitlendi (§28.8); owner gerçek A36'da elle
 denedi — alt gezinme iyi; GÜNLÜK ÖDÜLLER / MEYDAN OKUMA kartları fazla büyük ve fazla yazılı → K10: iki büyük kart
 reddedildi, yerine iki kompakt karo; K9 adayı `6de0410`'ın A36 kapısı §28.9.)* İnceleme paketi `build/qa_058_visual_review/` + owner ZIP `build/qa_058_owner_review/TASK058_OWNER_REVIEW.zip`
 (git dışı).
@@ -2484,7 +2484,7 @@ Samsung A36 Harita kanıtı ve ayrı masaüstü kilit teşhisi (40 / 40) entegra
 (PROJECT_STATUS §4.39). QA uygulamasında 4–10'un açık görünmesi QA sürücüsünün eski vitrin ön ayarıdır (`highest_level_unlocked
 = 11`, yalnız ilk 3 level'a yıldız) — üretim kilidi ihlali DEĞİL; telefonda normal ilerleme yeniden test edilmedi. Engellemeyen:
 `map_level_node.gd` doküman yorumunda eski "BÖLÜM 10" (kod değişmedi); açık doküman takibi GAME_DESIGN §12.1 eski sıkıştırma
-ifadesi (kilitli belge, owner izni). TASK/060+ BAŞLAMADI, Release PAUSED. *(Tarihsel — dal aşaması, 2026-10-08: görsel yön
+ifadesi (kilitli belge, owner izni). TASK/060 dalda (§31), TASK/061+ BAŞLAMADI, Release PAUSED. *(Tarihsel — dal aşaması, 2026-10-08: görsel yön
 ChatGPT incelemesiyle güçlü bulundu; owner D1–D7 yanıtı uygulandı (D3 kale "10'U BİTİR", D1 GAME_DESIGN §5.11 yalnız ifade);
 son tam masaüstü kapısı 57 / 57; gerçek A36 kapısı GEÇTİ (QA paketi, `c1c58a9`).)* Paket:
 `build/qa_059_owner_review/TASK059_OWNER_REVIEW.zip` (git dışı).

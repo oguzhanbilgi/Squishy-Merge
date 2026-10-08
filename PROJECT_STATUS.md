@@ -150,7 +150,8 @@ eşitlemesi sırasında yeniden koşulmadı (§4.38) · **TASK/059 Harita V3 —
 (2026-10-08; yalnız Harita V3: ~1.3× tek tip büyütme + kaydırma, 10 düğüm + Sonsuz, odak kamerası, MEYDAN yan portalı,
 "10'U BİTİR", TEXT-LIGHT), owner onayıyla ff-only `f6dcf29 → f13fa9c` (2026-10-08; merge commit / rebase / squash / cherry-pick / force push YOK; dal `task/059-map-v3` = `f13fa9c` duruyor); son üretim / test adayı `c1c58a9` masaüstü tam kapısından (57 / 57, 7451 kontrol,
 0 FAIL, bot 2 / 2) ve gerçek Samsung A36 Harita kapısından entegrasyondan ÖNCE geçti; ayrı kilit teşhisi 40 / 40; entegrasyon
-ve doküman eşitlemesi sırasında yeniden koşulmadı (§4.39) · TASK/060 BAŞLAMADI · Release PAUSED.
+ve doküman eşitlemesi sırasında yeniden koşulmadı (§4.39) · **TASK/060 Gameplay HUD V3 + Ödüllü Güçler — DAL AŞAMASI**
+(owner görsel incelemesi + ekonomi kararı bekliyor, main'de DEĞİL; §4.40) · Release PAUSED.
 Release izi ayrı. Sırada: içerik derecesi + yargı bölgesi kararları + 13+ seçici uyum riski (owner) → gizlilik
 politikası → upload anahtarı → gerçek AdMob kimlikleri → mağaza varlıkları / Play Console,
 sonra ilk imzalı üretim AAB'si ve M10 (Play kapalı test) ·
@@ -3793,6 +3794,40 @@ owner talimatıyla eskidi — GAME_DESIGN kilitli olduğu için bu dalda DEĞİ�
 önerildi (ZIP 02). Meydan Okuma merkezi / pencere metinleri TASK/063; HUD / güçler TASK/060; Mağaza TASK/062; Koleksiyon /
 Profil / Ayarlar TASK/064.
 
+### 4.40 Gameplay HUD V3 + Ödüllü Güçler (TASK/060) — DAL AŞAMASI, owner görsel incelemesi bekliyor
+
+> **DAL AŞAMASI (2026-10-08).** Dal `task/060-gameplay-hud-v3-rewarded-powers` (taban `75fe3f3` = main = origin/main);
+> main DEĞİŞMEDİ, PR / merge YOK. Owner görsel incelemesi: `build/qa_060_owner_review/TASK060_OWNER_REVIEW.zip` (git dışı).
+> Gerçek Samsung A36 TEST-reklam kapısı görsel onaydan SONRA (bu turda koşulmadı). TASK/061–065 BAŞLAMADI; Release PAUSED.
+
+- **Faz A denetimi** (`build/qa_060/AUDIT_PHASE_A.md`): ortak `RewardedPolicy.DAILY_POWER_REFILLS = 1` + tek sayı kayıt alanı;
+  Main token + tip + yönetici "earned" zinciri sağlam; HUD slotu 78×82 (< 84), "×N" rozeti, stok 0'da "+" (rakam yok), tepsi +
+  yuva + halka + cam (çerçeve-içinde-çerçeve); refill "STOK ×0" + ortak "Bugünkü hakkın: 1/1". Taban çekimleri 6 görünüm × 14.
+- **Kural (owner, Issue #1 §3):** güç başına günde 2 başarılı ödül, dört bağımsız sayaç; GAME_DESIGN §5.7.3 (eski kural +
+  simülasyonu TARİHSEL olarak korundu; §5.4.1 / §5.7 / §5.7.3.1 / §10.6 / §10.7 bağımlı ifadeler; §11.6 durum notu tarihsel).
+- **Kayıt / göç:** `rewarded_power_quota` {version, day_key, grants×4}; gün = kabul edilen yerel gün; okuma yazmaz; grant TEK
+  yazma (`.bak` = önceki kanonik kanıtı); red / yinelenen / yanlış tip = değişim ve yazma yok; bozuk blok / sayaç / null →
+  o gün kapalı; eski `rewarded_power_date/grants` bugünse dört sayaç eski 0..1 kullanımla başlar, değilse 0/2 (bellekte,
+  idempotent, yedekten kurtarmada da). Rapor: owner paketi `07_SAVE_MIGRATION_AND_ECONOMY.md`.
+- **Ödül güvenliği:** zincir DEĞİŞMEDİ; talep açıkken Hamur düğmesi kilitli, Hamur satın alması açık talebi kapatır; sağlayıcı
+  yok / SDK hazır değil / yaş UNKNOWN–13 altı / rıza yok → kapalı + kısa sebep; meydan okumada güç / refill / reklam yok.
+- **HUD V3 / refill V3:** UI_VISUAL_SYSTEM §31 (madalyon, 86×92 dokunma alanı, ikili dışı 178 px → hedef kartı / board / kamera
+  aynı; refill: kurdele = güç adı, iki "+1" karosu, n/2 BAŞARILI kullanım, tek sebep, 300 ms çift dokunuş yatışması).
+- **Ekonomi** (`python tools/shop_economy.py quota`, deterministik): yoğun 10 round/gün her fırsatta izlerse güç reklamı 1,00 →
+  4,34 / gün, gün-90 Hamur 3.730 → 43.070 (%50 izleme varsayımı: 2,38 / 19.445); orta 0,80 → 1,37 / 17.275 → 24.145; kasual
+  0,41 → 0,50 (güçlerin tamamı bedava). Fiyat / sandık / revive / zorluk DEĞİŞTİRİLMEDİ — owner kararı (paket `02` E1).
+- **Commit'ler:** `5a4bca2` oyun / kota · `334f199` UI · `4baf209` test · `99af2d8` inceleme düzeltmesi · `20f1b27` doküman.
+- **Kanıt:** `rewarded_powers_test` 97 / 97 · `hud_v3_test` 38 / 38 · `refill_test` 121 · `revive_refill_ui_test` 267 · `monetization_test` 259 · `target_card_text_fit_test` 328; TEK kontrollü tam masaüstü kapısı (`20f1b27`) **58 / 59 temiz, 7695 kontrol, 1 FAIL**, 0 SCRIPT ERROR, bot 2/2, sahibin kaydı bayt-aynı — tek FAIL `revive_test` senaryo 1 "tam döngü 4 denemede tamamlanamadı" (dört denemede de devamdan sonra ikinci taşma yakalanmadı — testin 'bot devam sonrası kazandı' dalı; ilk taşma durumu bile önceki kapılardan farklıydı: testin kendi başlığında belgelenmiş zamanlamaya bağlı RNG kararsızlığı, M8.5-03 teknik borcu — kamera sarsıntısı global RNG'yi `_process`'te tüketir; devam / board / fizik kodu bu görevde DEĞİŞMEDİ); aynı HEAD'de ayrı 3 yeniden koşu `revive_test` 120 / 120 PASS (2'si TASK/059 kapılarıyla birebir aynı tohum durumu, 1'i bir yeniden denemeyle) — kapı tam yeşil SAYILMAZ, kararsızlık açık takip; 4 / 4 hafif negatif kontrol öldü (paylaşılan tavan, yinelenen grant, göç kapalı, küçük dokunma alanı —
+  hepsi bayt-aynı geri kondu); salt-okur adversarial inceleme 10 mercek: BLOCKER 0, HIGH 0, MEDIUM 1 (kilitli doküman
+  commit'lenmemişti) + LOW 6 düzeltildi, NIT'ler işlendi (`build/qa_060/review/REVIEW.md`). *Tarihsel (gizlenmedi):* ilk odak
+  turunda eski argümansız API'yi çağıran 4 suite ayrıştırma hatası verdi ve `gameplay_shell_test` eski "+" rozetini okurken
+  durdu (bilinçli API değişikliği → testler yeni kurala uyarlandı); bir tam kapı denemesi (13 suite temiz) inceleme
+  düzeltmeleri için durduruldu.
+- **Engellemeyen notlar:** Mağaza / Profil güç kartları hâlâ "×N" (TASK/062 / TASK/064); A36 benzeri TABAN çekimlerindeki
+  skor üstü soluk plaka çekim aracı yan etkisi (cihazda yok); GAME_DESIGN §12.1 eski sıkıştırma ifadesi ve `map_level_node.gd`
+  "BÖLÜM 10" yorumu (TASK/059 takipleri) açık; `revive_test` senaryo 1 zamanlama kararsızlığı (M8.5-03 teknik borcu —
+  TASK/060 kapısında görüldü, yukarıda) — testi deterministik yapmak ayrı iş, owner seçimi.
+
 ## 5. Dosya/klasör yapısı ve script envanteri
 
 ```
@@ -4599,7 +4634,10 @@ Owner'ın yapacağı / onaylayacağı:)*
 - **TASK/059** — Harita V3 (~1.3× tek tip büyütme + kaydırma, odak kamerası, MEYDAN yan portalı, "10'U BİTİR", TEXT-LIGHT)
   → ✅ **main'de** (§4.39; owner görsel onayı APPROVED — yalnız Harita; masaüstü tam kapısı 57 / 57 temiz, 0 FAIL + gerçek
   Samsung A36 Harita kapısı GEÇTİ + kilit teşhisi 40 / 40, entegrasyondan önce; owner onayıyla ff-only `f6dcf29 → f13fa9c` (2026-10-08; merge commit / rebase / squash / cherry-pick / force push YOK; dal `task/059-map-v3` = `f13fa9c` duruyor)).
-- **Sıradaki adım (güncel):** **TASK/060** ödüllü güçler (+ oyun HUD V3) — owner başlatınca (BAŞLAMADI). Sonraki
+- **TASK/060** — Gameplay HUD V3 + ödüllü güçler (güç başına 2/gün) → 🔶 **DALDA** (§4.40; owner görsel incelemesi +
+  ekonomi kararı bekliyor; A36 kapısı onaydan sonra).
+- ~~**Sıradaki adım (güncel):** **TASK/060** — owner başlatınca~~ → başladı. **Sıradaki adım (güncel):** owner TASK/060
+  incelemesi (`build/qa_060_owner_review/TASK060_OWNER_REVIEW.zip`). Sonraki
   sahiplik: 060 ödüllü güçler · 061 Görevler ödül alma / devir · 062 Mağaza / Başlangıç Paketi · 063 Meydan Okuma · 064
   kalan cila. Açık doküman takibi: GAME_DESIGN §12.1 eski sıkıştırma ifadesi (owner izni). Release PAUSED.
 - *(Tarihsel — TASK/058 sonrası, 2026-10-08:)* Sıradaki adım TASK/059 Harita V3 idi (yeni oturumda) — tamamlandı, yukarıda.
