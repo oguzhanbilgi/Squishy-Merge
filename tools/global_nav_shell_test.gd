@@ -579,30 +579,32 @@ func _check_insets(tag: String, safe_top: float) -> void:
 	# Harita.
 	await _tab(1)
 	var map: CanvasLayer = _main._screens[1]
+	# TASK/059: Harita kaydırılabilir — düğümler en alt kamera konumunda (en yukarıda oldukları yer) kabuğun üstünde; girişte
+	# odak düğümü de kabuğun üstünde. Kabuğun altına kayan düğüm dock'un arkasındadır (dokunuşu dock tutar).
+	var focus_scroll: float = map.scroll_offset()
+	var focus_bottom: float = _node_bottom(map.focus_node())
+	map.set_scroll(map.scroll_limits().y)
+	await _settle(1)
 	var lowest: float = 0.0
 	for node: MapLevelNode in map.nodes():
 		lowest = maxf(lowest, _node_bottom(node))
+	_c("%s: Harita en alt konumda düğümler + OYNA plakası kabuğun üstünde (en alt %.0f ≤ %.0f); girişte odak %.0f" % [tag,
+		lowest, floor_y, focus_bottom], lowest <= floor_y and focus_bottom <= floor_y)
+	map.set_scroll(0.0)
+	await _settle(1)
 	var endless: MapLevelNode = map.endless_node()
-	_c("%s: Harita düğümleri + OYNA plakası kabuğun üstünde (en alt %.0f ≤ %.0f)" % [tag, lowest, floor_y],
-		lowest <= floor_y)
 	var bar: ScreenTopBar = map.top_bar()
-	if map.title_yielded():
-		# Tur 2: kısıtlı yerleşimde kurdele satırını bıraktı — kale güvenli alanın içinde, sağ pill'le çakışmaz.
-		_c("%s: başlık kurdelesi satırı bıraktı; Sonsuz kalesi güvenli alanda (%.0f ≥ %.0f) ve Hamur pill'iyle çakışmaz" % [
-			tag, endless.get_global_rect().position.y, safe_top], not bar.is_title_visible()
-			and endless.get_global_rect().position.y >= safe_top + 2.0
-			and not endless.get_global_rect().intersects(bar.pill().get_global_rect()))
-	else:
-		_c("%s: Sonsuz kalesi üst satırın altında (%.0f ≥ %.0f); kurdele görünür" % [tag, endless.get_global_rect().position.y,
-			bar.height()], endless.get_global_rect().position.y >= bar.height() - 2.0 and bar.is_title_visible())
+	_c("%s: TASK/059 text-light kurdele gizli; en üstte Sonsuz kalesi üst satırın altında (%.0f ≥ %.0f), Hamur pill'iyle çakışmaz"
+		% [tag, endless.get_global_rect().position.y, bar.height()], not bar.is_title_visible()
+		and endless.get_global_rect().position.y >= bar.height() - 0.5
+		and not endless.get_global_rect().intersects(bar.pill().get_global_rect()))
+	map.set_scroll(focus_scroll)
 	_c("%s: Harita zemini tepsinin üst kenarına kadar (normal kipte merkez daire dünyaya biner)" % tag,
 		absf(map.world_rect().end.y - nav.tray_rect().position.y) <= 1.0)
 	var squash: float = map.world_scale().y / map.world_scale().x
-	# Banner yokken 720×1280'de kabukla ~%6.3 (0.937), uzun ekranlarda 0; Tur 2: kısa ekran + banner yuvasında da
-	# MIN_SQUASH_NAV (0.92 = en çok %8) — ilk adayın ~%18'i (0.819) owner tarafından reddedildi.
-	var squash_floor: float = 0.93 if UiKit.banner_slot() <= 0.0 else map.MIN_SQUASH_NAV
-	_c("%s: Harita dikey sıkıştırma ≤ %%8 (sy/sx = %.3f ≥ %.2f; taban MIN_SQUASH_NAV %.2f)" % [
-		tag, squash, squash_floor, map.MIN_SQUASH_NAV], squash >= squash_floor - 0.001 and map.MIN_SQUASH_NAV >= 0.92)
+	# TASK/059: dikey sıkıştırma YOK (eski Tur 2 tabanı 0.92 / ilk aday 0.819 tarihsel) — dünya tek tip ölçekli kayar.
+	_c("%s: Harita dikey sıkıştırma yok (sy/sx = %.3f = 1; TASK/059 kaydırılabilir yolculuk)" % [tag, squash],
+		is_equal_approx(squash, 1.0))
 	var focus: MapLevelNode = map.focus_node()
 	if focus != null:
 		print("    %s: Harita odak düğümü çapı %.1f px, sy/sx %.3f, kurdele %s, kabuk %s" % [tag, focus.diameter(), squash,
@@ -789,22 +791,27 @@ func _round2() -> void:
 	await _tab(1)
 	var map: CanvasLayer = _main._screens[1]
 	var squash: float = map.world_scale().y / map.world_scale().x
-	_c("16:9 + banner: Harita sıkıştırması ≤ %%8 (sy/sx %.3f ≥ 0.92; ilk aday 0.819 reddedildi)" % squash,
-		squash >= 0.92 - 0.001)
+	_c("16:9 + banner: Harita sıkıştırması yok (sy/sx %.3f = 1; Tur 2'nin 0.926'sı ve ilk adayın 0.819'u tarihsel)" % squash,
+		is_equal_approx(squash, 1.0))
 	var floor_y: float = nav.footprint().position.y
 	var bar2: ScreenTopBar = map.top_bar()
 	var inside: bool = true
 	var smallest: float = 9999.0
-	for node: MapLevelNode in map.nodes():
+	var targets: Array[MapLevelNode] = []
+	targets.append_array(map.nodes())
+	targets.append(map.endless_node())
+	# TASK/059: her düğüm kendi kamera konumunda ekranda, üst satırın altında, kabuğun üstünde, Hamur pill'iyle çakışmaz.
+	for node: MapLevelNode in targets:
+		map.set_scroll(map.scroll_for(node))
+		await _settle(1)
 		var r: Rect2 = node.get_global_rect()
 		smallest = minf(smallest, node.diameter())
-		inside = inside and r.position.y >= 0.0 and _node_bottom(node) <= floor_y and r.position.x >= 0.0 \
+		inside = inside and r.position.y >= bar2.height() and _node_bottom(node) <= floor_y and r.position.x >= 0.0 \
 			and r.end.x <= view.x and not r.intersects(bar2.pill().get_global_rect())
-	var endless: MapLevelNode = map.endless_node()
-	inside = inside and endless.get_global_rect().position.y >= 0.0 \
-		and not endless.get_global_rect().intersects(bar2.pill().get_global_rect())
-	_c("16:9 + banner: tüm düğümler + Sonsuz kalesi ekranda, kabuğun üstünde, Hamur pill'iyle çakışmaz (en küçük %.0f px ≥ %d)"
-		% [smallest, UiTokens.TOUCH_MIN], inside and smallest >= UiTokens.TOUCH_MIN)
+	map.set_scroll(map.focus_scroll())
+	await _settle(1)
+	_c("16:9 + banner: her düğüm + Sonsuz kalesi kendi kamera konumunda ekranda, kabuğun üstünde, Hamur pill'iyle çakışmaz (en küçük %.0f px ≥ %d)"
+		% [smallest, UiTokens.TOUCH_TARGET], inside and smallest >= UiTokens.TOUCH_TARGET - 0.5)
 	var focus: MapLevelNode = map.focus_node()
 	_c("16:9 + banner: odak (sıradaki) düğüm ≥ TOUCH_TARGET (%.1f px)" % focus.diameter(), focus.diameter()
 		>= UiTokens.TOUCH_TARGET - 0.5)
@@ -825,22 +832,19 @@ func _round2() -> void:
 		await _settle(3)
 		var m: CanvasLayer = _main._screens[1]
 		var b: ScreenTopBar = m.top_bar()
+		m.set_scroll(0.0)
+		await _settle(1)
 		var e: Rect2 = m.endless_node().get_global_rect()
 		var p: Rect2 = b.pill().get_global_rect()
 		var s: float = m.world_scale().y / m.world_scale().x
-		var overlap: bool = e.intersects(p) or (b.is_title_visible() and e.intersects(b.title_plate().get_global_rect()))
-		print("    Hamur %d: pill x %.0f..%.0f, kale x %.0f..%.0f y %.0f, kurdele %s, sy/sx %.3f, çakışma %s" % [dough,
-			p.position.x, p.end.x, e.position.x, e.end.x, e.position.y, "bıraktı" if m.title_yielded() else "görünür", s,
+		var overlap: bool = e.intersects(p) or e.intersects(m.stars_pill().get_global_rect()) \
+			or (b.is_title_visible() and e.intersects(b.title_plate().get_global_rect()))
+		print("    Hamur %d: pill x %.0f..%.0f, kale x %.0f..%.0f y %.0f (en üst), kurdele %s, sy/sx %.3f, çakışma %s" % [dough,
+			p.position.x, p.end.x, e.position.x, e.end.x, e.position.y, "gizli" if m.title_yielded() else "görünür", s,
 			str(overlap)])
-		if dough <= 99999:
-			_c("16:9 + banner, Hamur %d: kurdele bıraktı, kale pill / kurdeleyle çakışmaz, sy/sx %.3f ≥ 0.92" % [dough, s],
-				m.title_yielded() and not overlap and s >= 0.92 - 0.001)
-		else:
-			# 6 hane: pill kaleyle yatayda çakışır → kale pill'in altına iner; sığmazsa son çare MIN_SQUASH_NAV_HARD.
-			# Kurdele HİÇ geri gelmez (kale kurdeleye binmez).
-			_c("16:9 + banner, Hamur %d (uç durum): kurdele bırakılmış kalır, kale kurdeleye binmez, sy/sx %.3f ≥ %.2f" % [
-				dough, s, m.MIN_SQUASH_NAV_HARD], m.title_yielded() and not b.is_title_visible()
-				and s >= m.MIN_SQUASH_NAV_HARD - 0.001 and e.position.y >= 0.0)
+		# TASK/059: kurdele her zaman gizli (text-light); geniş Hamur pill'i kaleye binmez — kale en üstte üst satırın altında.
+		_c("16:9 + banner, Hamur %d: kurdele gizli, en üstte kale pill'lerle çakışmaz, üst satırın altında, sy/sx %.3f = 1" % [
+			dough, s], m.title_yielded() and not overlap and e.position.y >= b.height() - 0.5 and is_equal_approx(s, 1.0))
 	# Büyük üst güvenli pay (40) + 16:9 + yuva: kurdele bırakılsa da %8'e sığmaz → son çare taban; kale güvenli alanda.
 	await _boot()
 	_main._on_banner_slot_changed(A36_SLOT)
@@ -849,14 +853,19 @@ func _round2() -> void:
 	tall._layout_with_safe_top(40.0)
 	await _settle(2)
 	var ts: float = tall.world_scale().y / tall.world_scale().x
+	tall.set_scroll(0.0)
+	await _settle(1)
+	var castle_y: float = tall.endless_node().get_global_rect().position.y
+	tall.set_scroll(tall.scroll_limits().y)
+	await _settle(1)
 	var lowest: float = 0.0
 	for node: MapLevelNode in tall.nodes():
 		lowest = maxf(lowest, _node_bottom(node))
-	print("    16:9 + banner + üst 40: sy/sx %.3f, kale y %.0f, en alt %.0f, kabuk %.0f" % [ts,
-		tall.endless_node().get_global_rect().position.y, lowest, _nav().footprint().position.y])
-	_c("16:9 + banner + üst güvenli pay 40 (uç durum): kale güvenli alanda (≥ 40), düğümler kabuğun üstünde, sy/sx %.3f ≥ %.2f"
-		% [ts, tall.MIN_SQUASH_NAV_HARD], tall.endless_node().get_global_rect().position.y >= 40.0 - 0.5
-		and lowest <= _nav().footprint().position.y and ts >= tall.MIN_SQUASH_NAV_HARD - 0.001)
+	print("    16:9 + banner + üst 40: sy/sx %.3f, kale y %.0f (en üst), en alt %.0f (en alt), kabuk %.0f" % [ts,
+		castle_y, lowest, _nav().footprint().position.y])
+	_c("16:9 + banner + üst güvenli pay 40 (uç durum): en üstte kale güvenli alanda ve üst satırın altında, en altta düğümler kabuğun üstünde, sy/sx %.3f = 1"
+		% ts, castle_y >= tall.top_bar().height() - 0.5 and castle_y >= 40.0
+		and lowest <= _nav().footprint().position.y and is_equal_approx(ts, 1.0))
 	tall._layout_with_safe_top(0.0)
 	get_window().size = Vector2i(720, 1280)
 	UiKit.set_banner_slot(0.0)

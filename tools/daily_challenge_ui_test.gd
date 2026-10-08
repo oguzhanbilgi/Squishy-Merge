@@ -8,8 +8,8 @@ extends Node
 ## Kontroller:
 ##   giriş       Ana Sayfa'da TEK MEYDAN OKUMA girişi (TASK/058 K10: kompakt FeatureTile "MEYDAN", GÜNLÜK karosunun
 ##               sağında aynı satırda, OYNA'nın altında), bugünün hedef portresi, "+20" (tamamlanmadan) / TAMAM; GÖREVLER N/6
-##               aynen; Harita'da
-##               yok; onboarding bitmeden gizli; tutorial günü (ilk gün kuralı YOK) görünür; gün gerçeği yoksa gizli
+##               aynen; Harita'da Ana Sayfa karosu yok (TASK/059: tek MEYDAN portalı — aynı pencere,
+##               map_v3_test); onboarding bitmeden gizli; tutorial günü (ilk gün kuralı YOK) görünür; gün gerçeği yoksa gizli
 ##   pencere     kurdele "MEYDAN OKUMA", "Büyük Dumpling yap · 15 hamlede" (T5) / "Dev Dumpling yap · 36
 ##               hamlede" (T6), "+20 HAMUR · İlk tamamlayışta", ipucu, yalıtım notu, BAŞLA; tamamlandı:
 ##               TAMAMLANDI çipi + "Yarın yenilenir" + KAPAT (BAŞLA / ödül yok, yalıtım notu durur)
@@ -149,7 +149,8 @@ func _entry() -> void:
 	_c("giriş GÜNLÜK karosunun SAĞINDA, aynı satırda (12–20 px ara), eşit boy (TASK/058 K10)",
 		absf(rect.position.y - daily.position.y) <= 0.5 and rect.position.x >= daily.end.x + 12.0
 		and rect.position.x <= daily.end.x + 20.0 and absf(rect.size.y - daily.size.y) <= 0.5)
-	_c("Harita'da meydan okuma yok (giriş yalnız Ana Sayfa'da)", _count_named(_main._screens[1], "Challenge") == 0)
+	_c("Harita'da Ana Sayfa karosu yok; TASK/059: tek MEYDAN portalı (aynı pencereyi açar — map_v3_test)",
+		_count_named(_main._screens[1], "Challenge") == 0 and _count_named(_main._screens[1], "ChallengePortal") == 1)
 	SaveManager.data["daily_challenge"] = {"version": 1, "completed_day_key": THU}
 	await _show_home()
 	_c("tamamlanınca: tik rozeti (+20 yok)", home.is_challenge_done_shown() and home.challenge_badge_text() == "")

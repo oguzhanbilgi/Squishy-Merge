@@ -1254,26 +1254,27 @@ func _test_main_integration() -> void:
 	var slot_top: float = 1280.0 - slot
 	if nav != null:
 		slot_top = minf(slot_top, nav.footprint().position.y)
+	# TASK/059: Harita kaydırılabilir — dünya kabuğun / yuvanın arkasında kayar; düğümler en alt kamera konumunda (en
+	# yukarıda oldukları yer) yuvanın ve kabuğun üstünde, Sonsuz kalesi en üst konumda üst satırın altında.
+	map_screen.set_scroll(map_screen.scroll_limits().y)
+	await _settle(1)
 	var nodes_clear: bool = true
 	for node in map_screen.nodes():
 		nodes_clear = nodes_clear and node.get_global_rect().end.y <= slot_top
 		if node._plaque.visible:
 			nodes_clear = nodes_clear and node._plaque.get_global_rect().end.y <= slot_top
-	# TASK/057 Tur 2: kısıtlı yerleşimde başlık kurdelesi satırını bırakabilir — kale o zaman güvenli alanda ve Hamur
-	# pill'iyle çakışmaz; kurdele görünürken kale üst satırın altında.
+	map_screen.set_scroll(0.0)
+	await _settle(1)
 	var castle: Rect2 = map_screen.endless_node().get_global_rect()
-	var castle_top_ok: bool = castle.position.y >= map_screen.top_bar().get_global_rect().end.y
-	if map_screen.has_method("title_yielded") and map_screen.title_yielded():
-		castle_top_ok = castle.position.y >= 0.0 and not castle.intersects(map_screen.top_bar().pill().get_global_rect())
-	_c("Harita: 10 düğüm (+ plaka) ve Sonsuz kalesi yuvaya girmiyor, kale üst satırın altında (ya da kurdele bırakıldıysa"
-		+ " güvenli alanda, pill'le çakışmadan)", nodes_clear and castle_top_ok and castle.end.y <= slot_top)
-	# TASK/057 Tur 2: kabuk + yuva varken taban MIN_SQUASH_NAV (0.92); bu test en büyük gerçekçi yuvayı (128 px) 16:9'da
-	# kurar — kurdele bırakılsa da sığmazsa son çare MIN_SQUASH_NAV_HARD (0.88). Oran sy / sx.
-	var squash_floor: float = map_screen.MIN_SQUASH_NAV_HARD if nav != null else 0.94
+	var castle_top_ok: bool = castle.position.y >= map_screen.top_bar().get_global_rect().end.y \
+		and not castle.intersects(map_screen.top_bar().pill().get_global_rect())
+	_c("Harita (TASK/059 kaydırma): en alt kamera konumunda 10 düğüm (+ plaka) yuvaya / kabuğa girmiyor; en üstte Sonsuz"
+		+ " kalesi üst satırın altında, pill'le çakışmadan", nodes_clear and castle_top_ok and castle.end.y <= slot_top)
+	map_screen.set_scroll(map_screen.focus_scroll())
+	# TASK/059: dikey sıkıştırma YOK — dünya tek tip ölçekli (sy == sx), 16:9 + en büyük gerçekçi yuva (128 px) dahil.
 	var squash_ratio: float = map_screen.world_scale().y / map_screen.world_scale().x
-	_c("Harita dünya dikey sıkıştırması sınırlı (sy/sx %.3f >= %.2f) ve yatay ölçek cover" % [squash_ratio, squash_floor],
-		squash_ratio >= squash_floor - 0.001
-		and map_screen.world_scale().y <= map_screen.world_scale().x + 0.001)
+	_c("Harita dünyası tek tip ölçek (sy/sx %.3f = 1; TASK/059 — eski sıkıştırma tabanı yok)" % squash_ratio,
+		is_equal_approx(squash_ratio, 1.0))
 	_main._show_tab(3)
 	_c("Mağaza -> gösterili kalır", fake.banner_shows.size() == 1 and fake.banner_hides.is_empty())
 	_main._show_tab(2)

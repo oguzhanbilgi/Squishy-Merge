@@ -10,9 +10,12 @@ extends Node
 ## yok —, Android geri → Ana Sayfa, Hamur "+" → Mağaza,
 ## sıradaki düğüm → kanonik level başlangıcı, kilitli başlamaz, Sonsuz
 ## yalnız açıkken); görsel yapı (tek dünya zemini, dashboard kartı / sekme
-## çubuğu yok, sıradaki düğüm daha güçlü, dokunma ≥ 48, üst satırla ve
-## birbirleriyle çakışma yok, güvenli alanda); dört pencere + A36 payı;
-## açılış animasyonu; kayıt dosyası değişmez; kaynak hijyeni.
+## çubuğu yok, sıradaki düğüm daha güçlü, dokunma ≥ 84, birbirleriyle çakışma
+## yok); TASK/059 kaydırılabilir yolculuk: her düğüm kendi kamera konumunda
+## üst satırın altında ve güvenli alanda, kale en üstte pill'lerle çakışmaz,
+## zemin her uçta bandı kaplar; dört pencere + A36 payı; açılış animasyonu;
+## kayıt dosyası değişmez; kaynak hijyeni. Ayrıntılı kaydırma / girdi / portal
+## sözleşmesi `map_v3_test`'te.
 
 const MAIN_SCENE: PackedScene = preload("res://scenes/main.tscn")
 const VIEWS: Array[Vector2i] = [Vector2i(720, 1280), Vector2i(720, 1560),
@@ -83,17 +86,14 @@ func _ready() -> void:
 	_c("11 düğüm de MapLevelNode (tek bileşen)", _count_class(map, "MapLevelNode") == 11)
 	_c("düğümler grid değil (x farklı, y aşağıdan yukarı azalır)", map.nodes()[0].position.x != map.nodes()[1].position.x
 		and map.nodes()[0].position.y > map.nodes()[9].position.y and map.nodes()[9].position.y > map.endless_node().position.y)
-	# TASK/057: Main'de gezinme kabuğu var — 720×1280'de zemin kabuğun üstüne sığmak için sınırlı sıkıştırmayla
-	# (atlas, map_background'ın kendisi) çizilir; kabuksuz yol eskisi gibi KEEP_ASPECT_COVERED.
-	var art_tex: Texture2D = map.map_art().texture
-	var on_atlas: bool = art_tex is AtlasTexture and (art_tex as AtlasTexture).atlas != null \
-		and (art_tex as AtlasTexture).atlas.resource_path.contains("map_background")
-	var shell: bool = map.has_method("node_floor") and float(map.get("_nav_inset")) > 0.0
-	_c("tek dünya zemini (map_background) — KEEP_ASPECT_COVERED (kabuk varken sınırlı sıkıştırma atlası)",
-		(_count_texture(map, "map_background") == 1 and map.map_art().stretch_mode == TextureRect.STRETCH_KEEP_ASPECT_COVERED)
-		or (shell and on_atlas and _count_texture(map, "map_background") == 0
-			and map.map_art().stretch_mode == TextureRect.STRETCH_SCALE))
-	_c("MapTrail var ve 11 nokta bağlıyor", _count_class(map, "MapTrail") == 1 and map.trail().point_count() == 11)
+	# TASK/059: zemin map_background'ın KENDİSİ, bütün ve TEK TİP ölçekli (eski dikey sıkıştırma atlası yok); dünya
+	# kabuğun arkasında kayar.
+	_c("tek dünya zemini (map_background) — bütün doku, tek tip ölçek (sx == sy), oran korunmuş",
+		_count_texture(map, "map_background") == 1 and map.map_art().stretch_mode == TextureRect.STRETCH_SCALE
+		and is_equal_approx(map.world_scale().x, map.world_scale().y)
+		and absf(map.map_art().size.x / map.map_art().size.y - 720.0 / 1280.0) < 0.001)
+	_c("MapTrail: ana patika 11 nokta bağlıyor + ayrı MEYDAN yan yolu (TASK/059)", _count_class(map, "MapTrail") == 2
+		and map.trail().point_count() == 11 and map.branch_trail().is_branch() and not map.trail().is_branch())
 	_c("Home dashboard parçası yok (kart / HomeFeatureButton / ButtonCard / PanelCard)", _count_class(map, "HomeFeatureButton") == 0
 		and _count_variation(map, &"ButtonCard") == 0 and _count_variation(map, &"PanelCard") == 0
 		and _count_variation(map, &"PanelModuleCard") == 0)
@@ -110,8 +110,8 @@ func _ready() -> void:
 		not FileAccess.get_file_as_string("res://scripts/ui/level_select.gd").contains("home_requested")
 		and not FileAccess.get_file_as_string("res://scripts/ui/level_select.gd").contains("back_button()")
 		and not FileAccess.get_file_as_string("res://scripts/ui/screen_top_bar.gd").contains("back_pressed"))
-	_c("başlık 'HARİTA' (noktalı İ) pembe HeaderRibbon", bar.title_text() == "HARİTA"
-		and bar.title_plate().theme_type_variation == &"HeaderRibbon")
+	_c("TASK/059 text-light: 'HARİTA' kurdelesi gizli (kimlik kabuğun seçili HARİTA'sında), ⭐ toplam yıldız pill'i görünür",
+		bar.title_text() == "HARİTA" and not bar.is_title_visible() and map.stars_pill().is_visible_in_tree())
 	_c("Harita'da sekme çubuğu YOK (M8.6-06: TabBar düğümü main'de yok)", _main.get_node_or_null("TabBar") == null and not ("_tabs" in _main))
 	_main._show_tab(2)
 	_c("Koleksiyon'da da çubuk yok (kendi ScreenTopBar'ı, M8.6-06)", _main.get_node_or_null("TabBar") == null and _main._screens[2].visible)
@@ -122,9 +122,9 @@ func _ready() -> void:
 	_refresh(map)
 	await get_tree().process_frame
 	_check_states(map, 4, {"1": 2, "2": 3, "3": 3})
-	_c("Sonsuz kilitli, plaka 'Level 10'u bitir' (kanonik)", map.endless_node().is_locked()
+	_c("Sonsuz kilitli, plaka kilit + 'BÖLÜM 10' (TASK/059 text-light; kural aynı)", map.endless_node().is_locked()
 		and map.endless_node().state() == MapLevelNode.State.ENDLESS_LOCKED
-		and map.endless_node().plaque_text() == "Level 10'u bitir")
+		and map.endless_node().plaque_text() == "BÖLÜM 10" and map.endless_node()._plaque_lock.visible)
 	_c("odak = level 4, hale görünür, plaka 'OYNA'", map.focus_node() == map.nodes()[3]
 		and map.nodes()[3].is_focused() and map.nodes()[3]._halo.visible and map.nodes()[3].plaque_text() == "OYNA")
 	_c("yıldızlar kayıttan: 2/3/3", map.nodes()[0].stars() == 2 and map.nodes()[1].stars() == 3 and map.nodes()[2].stars() == 3)
@@ -155,7 +155,7 @@ func _ready() -> void:
 	_apply_endless(0)
 	_refresh(map)
 	await get_tree().process_frame
-	_c("rekor yokken plaka 'Rekor bekliyor'", map.endless_node().plaque_text() == "Rekor bekliyor")
+	_c("rekor yokken plaka yok (TASK/059 text-light: taç + SONSUZ yeter)", map.endless_node().plaque_text().is_empty())
 
 	print("-- Sonsuz kuralı kayıttan (highest 10 → kilitli, 11 → açık)")
 	SaveManager.data["highest_level_unlocked"] = 10
@@ -287,20 +287,23 @@ func _ready() -> void:
 		_refresh(map)
 		await get_tree().process_frame
 		await get_tree().process_frame
-		_check_layout(map, get_viewport().get_visible_rect().size, 0.0, "%dx%d" % [view.x, view.y])
+		await _check_layout(map, get_viewport().get_visible_rect().size, 0.0, "%dx%d" % [view.x, view.y])
 	await _resize(VIEWS[1])
 	map._layout_with_safe_top(A36_SAFE_TOP)
 	await get_tree().process_frame
 	await get_tree().process_frame
-	_check_layout(map, Vector2(VIEWS[1]), A36_SAFE_TOP, "720x1560")
-	_c("A36: dünya punch-hole altından başlar (world.y = 61)", is_equal_approx(map.world_rect().position.y, A36_SAFE_TOP))
+	await _check_layout(map, Vector2(VIEWS[1]), A36_SAFE_TOP, "720x1560")
+	map.set_scroll(0.0)
+	await get_tree().process_frame
+	_c("A36: en üstte zemin punch-hole altından başlar (gök bandı 61)", is_equal_approx(map.sky_band(), A36_SAFE_TOP)
+		and is_equal_approx(map.map_art().get_global_rect().position.y, A36_SAFE_TOP))
 	map._layout_with_safe_top(-1.0)
 	await _resize(VIEWS[0])
 	_apply_endless(12480)
 	_refresh(map)
 	await get_tree().process_frame
 	await get_tree().process_frame
-	_check_layout(map, Vector2(VIEWS[0]), 0.0, "720x1280 sonsuz açık")
+	await _check_layout(map, Vector2(VIEWS[0]), 0.0, "720x1280 sonsuz açık")
 
 	print("-- kayıt")
 	_restore_save_file()
@@ -464,10 +467,10 @@ func _all_controls(root: Node) -> Array[Control]:
 	return out
 
 
-## Yerleşim: bütün düğümler güvenli alanda ve ekranda, dokunma ≥ 48, düğüm
-## gövdeleri birbiriyle kesişmiyor, plaka dahil görsel dikdörtgenler
-## okunurluğu bozacak kadar (> 6 px) binmiyor, üst satır kontrolleri hiçbir
-## düğümle kesişmiyor, sıradaki düğüm en güçlü (çap), Sonsuz görünür.
+## Yerleşim (TASK/059 kaydırılabilir yolculuk): dokunma ≥ 84, düğüm gövdeleri birbiriyle kesişmiyor, plaka dahil
+## görsel dikdörtgenler okunurluğu bozacak kadar (> 6 px) binmiyor; HER düğüm kendi kamera konumunda güvenli alanda,
+## ekranda ve üst satırın altında; en üstte Sonsuz kalesi üst satır kontrolleriyle (Hamur / ⭐ pill'i) kesişmiyor;
+## sıradaki düğüm en güçlü (çap); zemin her uçta (en üst / en alt) görünen bandı kaplıyor.
 func _check_layout(map: CanvasLayer, view: Vector2, safe_top: float, window_tag: String) -> void:
 	var tag: String = "%s (tuval %dx%d)%s" % [window_tag, int(view.x), int(view.y), " +A36" if safe_top > 0.0 else ""]
 	var visible: Rect2 = get_viewport().get_visible_rect()
@@ -478,24 +481,24 @@ func _check_layout(map: CanvasLayer, view: Vector2, safe_top: float, window_tag:
 	var screen: Rect2 = Rect2(Vector2(0, safe_top), Vector2(720.0, view.y - safe_top))
 	var bar: ScreenTopBar = map.top_bar()
 	var bar_bottom: float = bar.height()
-	var inside: bool = true
 	var touch: bool = true
-	var below_bar: bool = true
 	for node in all_nodes:
-		var rect: Rect2 = node.visual_rect()
-		if not screen.encloses(rect):
-			inside = false
-			print("    ekran dışı: ", node.name, " ", rect)
-		if node.size.x < 48.0 or node.size.y < 48.0:
+		if node.size.x < float(UiTokens.TOUCH_TARGET) - 0.5 or node.size.y < float(UiTokens.TOUCH_TARGET) - 0.5:
 			touch = false
-		if rect.position.y < bar_bottom:
-			below_bar = false
-			print("    üst satıra giriyor: ", node.name, " ", rect, " bar ", bar_bottom)
-	_c("%s 11 düğüm (plaka dahil) güvenli alanda" % tag, inside)
-	_c("%s dokunma hedefleri ≥ 48×48" % tag, touch)
-	_c("%s hiçbir düğüm üst satırın altına girmiyor" % tag, below_bar)
-	# TASK/057 Tur 2: üst satırda geri oku yok — satır = başlık kurdelesi + Hamur pill'i ("+").
-	var bar_controls: Array[Control] = [bar.pill(), bar.title_plate()]
+	_c("%s dokunma hedefleri ≥ %d×%d (TASK/059 V3 kuralı)" % [tag, UiTokens.TOUCH_TARGET, UiTokens.TOUCH_TARGET], touch)
+	var reach: bool = true
+	for node in all_nodes:
+		map.set_scroll(map.scroll_for(node))
+		await get_tree().process_frame
+		var rect: Rect2 = node.visual_rect()
+		if not screen.encloses(rect) or rect.position.y < bar_bottom or rect.end.y > map.world_rect().end.y:
+			reach = false
+			print("    kamera konumunda erişilemiyor: ", node.name, " ", rect, " bar ", bar_bottom)
+	_c("%s 11 düğüm (plaka dahil) kendi kamera konumunda güvenli alanda, üst satırın altında, dünya bandında" % tag, reach)
+	# En üst: kale + üst satır kontrolleri.
+	map.set_scroll(0.0)
+	await get_tree().process_frame
+	var bar_controls: Array[Control] = [bar.pill(), map.stars_pill()]
 	var bar_clear: bool = true
 	for control in bar_controls:
 		var rect: Rect2 = control.get_global_rect()
@@ -506,8 +509,21 @@ func _check_layout(map: CanvasLayer, view: Vector2, safe_top: float, window_tag:
 			if rect.intersects(node.visual_rect()):
 				bar_clear = false
 				print("    üst satır düğümle kesişiyor: ", control.name, " ", node.name)
-	_c("%s üst satır güvenli payın altında, düğümlerle kesişmiyor" % tag, bar_clear)
+	_c("%s en üstte üst satır (Hamur + ⭐ pill'i) güvenli payın altında, düğümlerle kesişmiyor" % tag, bar_clear)
 	_c("%s geri oku yok (TASK/057 Tur 2), '+' ≥ 48 px" % tag, bar.back_button() == null and bar.add_button().size.x >= 48.0)
+	_c("%s en üstte Sonsuz görünür ve erişilebilir (üst satırın altında)" % tag, map.endless_node().is_visible_in_tree()
+		and screen.encloses(map.endless_node().get_global_rect())
+		and map.endless_node().get_global_rect().position.y >= bar_bottom)
+	var art_top: Rect2 = map.map_art().get_global_rect()
+	map.set_scroll(map.scroll_limits().y)
+	await get_tree().process_frame
+	var art_bottom: Rect2 = map.map_art().get_global_rect()
+	var band_end: float = map.world_rect().end.y
+	_c("%s zemin her uçta görünen bandı kaplıyor (en üst: güvenli paydan; en alt: tepsi üstüne kadar)" % tag,
+		art_top.position.y <= safe_top + 0.5 and art_top.end.y >= band_end and art_top.position.x <= 0.0
+		and art_top.end.x >= 720.0 and art_bottom.position.y <= 0.0 and art_bottom.end.y >= band_end - 0.5)
+	map.set_scroll(map.focus_scroll())
+	await get_tree().process_frame
 	var overlap: bool = false
 	var visual_overlap: bool = false
 	for i in all_nodes.size():
@@ -528,11 +544,3 @@ func _check_layout(map: CanvasLayer, view: Vector2, safe_top: float, window_tag:
 			if node != focus and node.diameter() >= focus.diameter():
 				strongest = false
 	_c("%s odak düğümü var, hale açık ve en büyük level düğümü" % tag, strongest)
-	_c("%s Sonsuz görünür ve erişilebilir" % tag, map.endless_node().is_visible_in_tree()
-		and screen.encloses(map.endless_node().get_global_rect()))
-	# TASK/057: kabuk varken zemin tepsinin üst kenarına kadar (altı kabuğun opak dock'u).
-	var world_bottom: float = view.y
-	if map.has_method("node_floor") and float(map.get("_nav_inset")) > 0.0 and _main.has_method("global_nav"):
-		world_bottom = (_main.call("global_nav") as GlobalNav).tray_rect().position.y
-	_c("%s dünya zemini ekranı (kabuk varsa tepsiye kadar) kaplıyor" % tag, map.map_art().get_global_rect().encloses(
-		Rect2(Vector2(0, safe_top), Vector2(720.0, world_bottom - safe_top))))
