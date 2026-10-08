@@ -1219,7 +1219,10 @@ karosu, GÜNLÜK karosunun yanında (bugünün hedef portresi + "MEYDAN" + "N HA
 ilerlemesine sayılmaz."**, BAŞLA). Oyunda level rozeti "BUGÜN", skor plakası "HAMLE" (kalan
 bırakış), güç tepsileri gizli, hedef kartı aynen. Sonuç: "MEYDAN OKUMA TAMAM!" · "+20 HAMUR" ·
 "HAMLE 17 / 18" · "Yarın yenilenir" · ANA SAYFA; "OLMADI" + taşma / hamle bitti kopyası + TEKRAR
-DENE + ANA SAYFA. Harita'da yok; GÖREVLER "N/6" anlamı aynen. Ayrıntı: docs/UI_VISUAL_SYSTEM.md §26.
+DENE + ANA SAYFA. ~~Harita'da yok~~ → **TASK/059 (owner D1, yalnız ifade):** Harita'da sol pembe köprüde tek **MEYDAN**
+portalı (bugünün hedef portresi + "+20" / ✓) AYNI pencereyi açar; pencere onu açan ekranındır (kapanınca Harita'da kalınır).
+Kural, günlük sınır, ödül, tamamlanma ve round çıkışı (ANA SAYFA) aynen. GÖREVLER "N/6" anlamı aynen. Ayrıntı:
+docs/UI_VISUAL_SYSTEM.md §26, §30.
 
 **Reklam (owner kararı, KİLİTLİ):** yeni reklam yerleşimi YOK. Meydan okuma bitişi (başarı / kayıp)
 mevcut round-sonu geçiş reklamı denemesini ÇAĞIRMAZ (`try_show_interstitial("round_finish")` yok) —
