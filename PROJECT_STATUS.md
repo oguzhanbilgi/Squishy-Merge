@@ -3710,9 +3710,11 @@ formatına yalnız `haptics_enabled` (varsayılan true) eklendi. Ayrıntı ve
   yok. Engellemeyen notlar: QA koşum sahnesinin eski UID uyarısı (yalnız QA paketi, üretim değil); banner'sız kabuk payı
   (TASK/057 kodu → TASK/064); AdMob politika / uyum harici release kontrolü.
 
-### 4.39 Harita V3 — kaydırılabilir candy yolculuk + MEYDAN portalı (TASK/059) — DAL AŞAMASI, owner görsel incelemesi bekliyor
+### 4.39 Harita V3 — kaydırılabilir candy yolculuk + MEYDAN portalı (TASK/059) — DAL AŞAMASI, SON ADAY (gerçek A36 GEÇTİ), owner son onayı bekliyor
 
-> **DAL AŞAMASI (2026-10-08).** Dal `task/059-map-v3` (taban `f6dcf29` = main = origin/main, `git ls-remote` ile doğrulandı);
+> **Son mikro-cila + gerçek Samsung A36 kapısı (2026-10-08, owner D1–D7 yanıtından sonra):** D3 — kilitli kale şartı "10'U BİTİR" (`8f7473a` + test `c9feaa8`); D1 — GAME_DESIGN §5.11 yalnız ifade (`c1c58a9`); D2 / D4 / D5 / D6 kabul, D7 kapsam dışı. Son tam masaüstü kapısı (`c1c58a9`): 57 / 57 temiz, 7451 kontrol, 0 FAIL, 0 SCRIPT ERROR, bot 2/2, sahibin kaydı bayt-aynı. **Gerçek Samsung A36: GEÇTİ** (QA paketi `com.obappstudio.squishymerge.qa`, QA APK `c1c58a9`'den, sha256 `9fed0a15…`, yalnız Google TEST reklamları; üretim paketi hiç kurulmadı, `com.example.squishymerge` dokunulmadı): gerçek dokunuşla düğümden / portaldan / ⭐ pill'inden başlayan sürükleme 0 level / 0 pencere, savurmayı yakalayan dokunuş 0, uçlarda tam kırpma, örtülü düğüm dokunuşları 0, düğüm / OYNA plakası / çift dokunuş tam bir level, portal ikon / MEYDAN kelimesi / gövde AYNI pencereyi tam bir kez açar, GERİ / X / karartma Harita'ya (kamera sabit), BAŞLA mevcut meydan okuma round'u (çıkış Ana Sayfa), kabuğun 5 hedefi tam birer gezinme; gerçek TEST banner'ı tepsinin altında (~170 fiziksel px), çakışma / dokunuş sızması yok; 1 QA süreci, SCRIPT ERROR 0, çökme / ANR 0, Godot E-satırı 0 (yalnız QA eklenti uyarıları ayrı kayıtlı). QA kaydı kapı öncesi durumuyla bayt-aynı geri kondu (owner'ın sabah kendi oturumu dahil); QA paketi owner keşfi için kurulu bırakıldı. Gözlem (önceden var, engellemeyen): en üst kamera konumunda punch-hole gök şeridinde soluk dikey çizgiler. Ayrıntı: `build/qa_059-gate/device/A36_GATE_SUMMARY.txt`.
+>
+> **DAL AŞAMASI (2026-10-08, ilk tur — tarihsel).** Dal `task/059-map-v3` (taban `f6dcf29` = main = origin/main, `git ls-remote` ile doğrulandı);
 > main DEĞİŞMEDİ, PR / merge YOK. Owner görsel incelemesi: `build/qa_059_owner_review/TASK059_OWNER_REVIEW.zip` (git dışı).
 > Gerçek Samsung A36 kapısı owner görsel onayından SONRA (bu turda koşulmadı; 1080×2340 masaüstü çekimleri A36 kanıtı DEĞİLDİR).
 > Owner onaylı DEĞİL. TASK/060 BAŞLAMADI; Release PAUSED.

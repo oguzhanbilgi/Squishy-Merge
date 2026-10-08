@@ -119,7 +119,7 @@ için önceden ölçeklendi (§8).
 | `PanelHud` | `panel_bevel` (+ `UiKit.plate` üst ışığı) | erik, dar dikey pay (4/10) | gameplay skor / hedef plakası (M8.6-02) |
 | `PanelStrip` | `panel_bevel` (+ üst ışık) | erik α .94 | evrim şeridi rafı (M8.6-02) |
 | `PanelHudScore` / `PanelTray` / `PanelHudFrame` / `PanelHudCard` | `label_round` ×4 | `LAVENDER_DEEP` / `TRAY_CREAM` / `LAVENDER_DEEP` / krem | HUD v3: skor kapsülü, güç tepsisi, kart çerçevesi, kart gövdesi (§13.3) |
-| `PanelMapPlaque` | `badge_round` | krem | Harita düğüm plakası (OYNA / Rekor N / Level 10'u bitir) — §15.2 *(TASK/059 dalı: kilit + "BÖLÜM 10", "Rekor bekliyor" yok — §30.2)* |
+| `PanelMapPlaque` | `badge_round` | krem | Harita düğüm plakası (OYNA / Rekor N / Level 10'u bitir) — §15.2 *(TASK/059 dalı: kilit + "10'U BİTİR", "Rekor bekliyor" yok — §30.2)* |
 | `PanelShopCard` / `PanelShopCardPower` / `PanelShopCardOwned` | `card_bevel_soft` | krem / `TRAY_CREAM` / `CREAM_DEEP` | Mağaza ürün kartı gövdesi (satılık skin / güç — gameplay güç tepsisinin tonu / sahip olunan skin, bir ton geri) — §16.2, §16.3 |
 | `PanelShopSection` | `title_oval` | `LAVENDER_DEEP` | Mağaza bölüm plakası (GÜÇLER / SKİNLER) — `UiKit.section_header`, §16.1 |
 | `PanelShopToast` | `title_oval` | pembe (başarıda `MINT` + lacivert yazı override) | Mağaza geri bildirim plakası — §16.4 |
@@ -2467,10 +2467,12 @@ oyun sistemleri. Oyuncu görsel dili anlar; görsel durum anlamı taşıyorsa a�
 
 ---
 
-## 30. Harita V3 — kaydırılabilir candy yolculuk + MEYDAN portalı (TASK/059) — DAL AŞAMASI, owner görsel incelemesi bekliyor
+## 30. Harita V3 — kaydırılabilir candy yolculuk + MEYDAN portalı (TASK/059) — DAL AŞAMASI, son aday (gerçek A36 GEÇTİ), owner son onayı bekliyor
 
-**Durum:** dal `task/059-map-v3` (taban `f6dcf29`), **main'de DEĞİL, owner onaylı DEĞİL** — owner görsel incelemesi
-(`build/qa_059_owner_review/TASK059_OWNER_REVIEW.zip`) bekleniyor; gerçek Samsung A36 kapısı görsel onaydan SONRA (koşulmadı).
+**Durum:** dal `task/059-map-v3` (taban `f6dcf29`), **main'de DEĞİL, owner son onayı bekliyor** — görsel yön ChatGPT
+incelemesiyle güçlü bulundu (merge onayı DEĞİL), owner D1–D7 yanıtı uygulandı (D3 kale "10'U BİTİR", D1 GAME_DESIGN §5.11 yalnız
+ifade); son tam masaüstü kapısı 57 / 57 temiz; **gerçek Samsung A36 kapısı GEÇTİ** (QA paketi, `c1c58a9`; PROJECT_STATUS §4.39).
+Paket: `build/qa_059_owner_review/TASK059_OWNER_REVIEW.zip`.
 §15 bu dalda TARİHSEL (f6dcf29 haritası). Kural / sayı / kayıt / ekonomi DEĞİŞMEDİ (GAME_DESIGN §5.5 aynen).
 
 **Karar (Seçenek A, ölçülerek):** ikinci bir harita sistemi YOK — aynı owner zemini, aynı on düğüm konumu, aynı Catmull-Rom
@@ -2516,7 +2518,8 @@ kalan aynalı toprak bandı (alt — MEYDAN OKUMA penceresi açıkken kabuk gizl
 - Perspektif çapı 84 → 72 × düğüm ölçeği (dünya ölçeğinin yarısı kadar büyür; taban: en uzak düğüm ≥ `TOUCH_TARGET` 84) —
   1.3'te 97.7 → 84 px, sıradaki ×1.14 (111 / 96), Sonsuz 135 px. Dokunma alanı = gövde + plaka (`_has_point`): "OYNA"
   kelimesine dokunuş da düğümündür (TASK/058 Günlük plakası dersi); komşularla çakışmaz (testli).
-- Sonsuz: kilitliyken soluk taç + kilit rozeti + plaka **kilit ikonu + "BÖLÜM 10"** (Ana Sayfa'nın "BÖLÜM" terimi; kural aynı —
+- Sonsuz: kilitliyken soluk taç + kilit rozeti + plaka **kilit ikonu + "10'U BİTİR"** (owner D3: tek eylem — level 10'u
+  bitir; ilk adaydaki "BÖLÜM 10" kalenin kendisini "bölüm 10" gibi okutabiliyordu; 15 px, altı görünümde sığar; kural aynı —
   Level 10 tamamlanınca); açıkken altın + taç + SONSUZ + pırıltı, rekor varsa "Rekor 12 480", yoksa plaka YOK.
 
 ### 30.3 MEYDAN portalı (`MapChallengePortal`) + yan yol
@@ -2539,7 +2542,7 @@ kalan aynalı toprak bandı (alt — MEYDAN OKUMA penceresi açıkken kabuk gizl
 
 "HARİTA" kurdelesi gizli (ekran kimliği kabuğun seçili HARİTA'sında); solda yalnız-gösterim ⭐ toplam yıldız pill'i ("11/30",
 gerçek `stars_for_level` toplamı), sağda Hamur pill'i. Haritanın görünen metinleri: düğüm numaraları · OYNA · SONSUZ ·
-"Rekor N" · kilit + "BÖLÜM 10" · MEYDAN · "+20" / ✓ · "N/30". "Level 10'u bitir" ve "Rekor bekliyor" kalktı. Kabuk (TASK/057)
+"Rekor N" · kilit + "10'U BİTİR" · MEYDAN · "+20" / ✓ · "N/30". "Level 10'u bitir" ve "Rekor bekliyor" kalktı. Kabuk (TASK/057)
 ve Ana Sayfa (TASK/058) DEĞİŞMEDİ.
 
 ### 30.5 Test ve araçlar
