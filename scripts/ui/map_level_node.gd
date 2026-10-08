@@ -14,7 +14,7 @@ extends Button
 ##                   = kilit sallanır + `ui_invalid`; ASLA level başlatmaz
 ##   ENDLESS_OPEN    116 px altın gövde, krem halka, owner tacı + "SONSUZ",
 ##                   plaka "Rekor N" (rekor yoksa plaka YOK — TASK/059 text-light), 3 pırıltı
-##   ENDLESS_LOCKED  lavanta gövde, soluk taç, kilit, plaka kilit + şart (TASK/059: "BÖLÜM 10")
+##   ENDLESS_LOCKED  lavanta gövde, soluk taç, kilit, plaka kilit + şart (TASK/059: "10'U BİTİR")
 ##
 ## Anatomi (arkadan öne): erik temas gölgesi (yassı blob — düğüm dünyaya
 ## OTURUR) → hale (yalnız odak) → krem dış halka → durum halkası → `btn_circle`

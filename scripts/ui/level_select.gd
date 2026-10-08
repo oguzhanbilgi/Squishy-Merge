@@ -27,7 +27,7 @@ extends CanvasLayer
 ##           satırın pill'lerinin altında yarım kalmasın (`_focus_target`).
 ##   DÜĞÜM   `MapLevelNode` (tek bileşen, beş durum); perspektif çap 84 → 72 × düğüm ölçeği; en küçük düğüm ≥ 84
 ##           (TOUCH_TARGET). Dokunma alanı gövde + plaka ("OYNA" kelimesi de düğümündür).
-##   SONSUZ  kalede; kilitliyken kilit + "BÖLÜM 10" (kural aynı: Level 10 tamamlanınca), açıkken taç + SONSUZ (+ rekor).
+##   SONSUZ  kalede; kilitliyken kilit + "10'U BİTİR" (kural aynı: Level 10 tamamlanınca), açıkken taç + SONSUZ (+ rekor).
 ##   MEYDAN  sol pembe köprünün ucunda `MapChallengePortal` + pembe yan yol (`MapTrail` yan yol paleti) → `challenge_
 ##           requested` → Main'in MEVCUT MEYDAN OKUMA penceresi. Durum yalnız gerçek veri (`DailyChallenge.current_view`):
 ##           hedef dumpling + hazır "!" / tamam ✓. Gün gerçeği yoksa portal ve yan yol gizli (Ana Sayfa ile aynı).
@@ -81,8 +81,9 @@ const BRANCH_DOT: Color = Color(0.93, 0.30, 0.60, 1.0)
 const BRANCH_SCALE: float = 1.35
 ## Perspektif: düğüm çapı en alttaki düğümde 1.0, en üsttekinde DEPTH_MIN.
 const DEPTH_MIN: float = 0.86
-## Sonsuz şartı — TASK/059 text-light: kilit ikonu + "BÖLÜM 10" (kural aynı; Ana Sayfa'nın "BÖLÜM" terimi).
-const ENDLESS_REQUIREMENT: String = "BÖLÜM %d"
+## Sonsuz şartı — TASK/059 text-light: kilit ikonu + "10'U BİTİR" (tek eylem: level 10'u bitir; owner D3 — "BÖLÜM 10" kalenin
+## kendisini "bölüm 10" gibi okutabiliyordu). Kural aynı. Ek "'U" 10 için ("onu"); level sayısı sabit 10 (LevelLibrary).
+const ENDLESS_REQUIREMENT: String = "%d'U BİTİR"
 ## Punch-hole bandı: zeminin en üst satırları (gök + bulut tepeleri) dikeyde
 ## gerilerek bandı doldurur; sahnede `flip_v` — bandın ALT kenarı doku satırı
 ## 0 olur ve zeminin ilk satırıyla birleşir (A36 cihaz kapısı: mirror'suz
