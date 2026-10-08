@@ -76,18 +76,19 @@ alınacak — şimdi tahmin/vaat yok.
 
 ## Current state
 
-**Kanonik durum — 2026-10-07.** Bugünün gerçeği bu bölüm +
+**Kanonik durum — 2026-10-08.** Bugünün gerçeği bu bölüm +
 [Current release blockers](#current-release-blockers) +
 [Next action](#next-action); aşağıdaki "Milestone tarihçesi" değil.
 
 - **Product Vision V3 — AKTİF** ([GitHub Issue #1](https://github.com/oguzhanbilgi/Squishy-Merge/issues/1) — UI/UX
   yenileme, ödüllü güçler, görevler, başlangıç paketi, harita ve meydan okuma yol haritası; ürün planının kalıcı
-  kaydı). İlerleme: **TASK/057 TAMAM + MAIN** · **TASK/058 Ana Sayfa V3 DALDA — TEXT-LIGHT ADAYI (K10), gerçek A36 GEÇTİ, owner incelemesi bekliyor** · TASK/059 Harita V3 BAŞLAMADI · sonraki
+  kaydı). İlerleme: **TASK/057 TAMAM + MAIN** · **TASK/058 Ana Sayfa V3 TAMAM + MAIN** (owner görsel onayı APPROVED — yalnız Ana Sayfa V3) · TASK/059 Harita V3 BAŞLAMADI · sonraki
   Product Vision görevleri gelecek iş. **Release Readiness PAUSED / YELLOW** (Product Vision V3 turu bitmeden release'e
   dönülmez; release hazır DEĞİL). **Metin ilkesi (owner, 2026-10-07): TEXT-LIGHT / ICON-FIRST** — normal gezinme /
   özellik girişlerinde ikon + tek kelime + sayı / rozet / ilerleme, açıklayıcı alt yazı yok; güvenlik / yasal / satın alma /
-  geri alınamaz eylem metni açık kalır; TASK/059–064 yeniden tasarımlarının varsayılanı (UI_VISUAL_SYSTEM §29). Ürün geneli
-  metin yeniden yazımı YAPILMADI (TASK/058'de yalnız Ana Sayfa).
+  geri alınamaz eylem metni açık kalır; TASK/059–064 yeniden tasarımlarının varsayılan YÖNÜ (UI_VISUAL_SYSTEM §29) — o
+  ekranlar henüz bu ilkeyle uygulanmadı ve owner onaylı DEĞİL. Ürün geneli metin yeniden yazımı YAPILMADI (yalnız Ana Sayfa,
+  TASK/058).
 - **TASK/057 — Squishy UI System V3 + küresel gezinme kabuğu — TAMAM, main'de (COMPLETE + MAIN)** (owner / ChatGPT
   görsel onayı **APPROVED**, 2026-10-07; owner onayıyla ff-only `d5237bf → 84964af`; merge commit / rebase / squash /
   cherry-pick / force push yok; masaüstü kapılarından ve gerçek Samsung A36 görsel kapısından geçen son üretim / test
@@ -99,7 +100,8 @@ alınacak — şimdi tahmin/vaat yok.
   dp, kart içi kompakt 64 px), daha az çerçeve-içinde-çerçeve. Yeniden kullanılabilir V3 aileleri: `SquishyButton`
   (CTA ailesi), `AttentionBadge`, `FeatureCard`, `OfferCard`, `PowerCard`, `GlobalNav`, `NavItem`, onay penceresi
   (`UiKit.confirm_shell`) — `FeatureCard` / `OfferCard` / `PowerCard` / `SquishyButton` bugün TEMEL / vitrin
-  primitifleri (üretim içeriğine TASK/058–064'te bağlanacak; Ana Sayfa OYNA hâlâ `UiKit.hero_cta`). **Küresel gezinme
+  primitifleri (üretim içeriğine TASK/058–064'te bağlanacak; TASK/057 anında Ana Sayfa OYNA `UiKit.hero_cta` idi — TASK/058'den
+  beri `SquishyButton` HERO, Ana Sayfa karoları yeni `FeatureTile`). **Küresel gezinme
   sözleşmesi:** sıra `ANA SAYFA / MAĞAZA / HARİTA / KOLEKSİYON / PROFİL`, vurgulu merkez HARİTA; yalnız uygun hub
   ekranlarında görünür, oyun / engelleyici / pencere / detay yüzeylerinde gizli; gezinme / rota sahibi Main; TASK/055
   `GestureGuard` koruması etkin; Harita / Mağaza / Koleksiyon / Profil sol üst Ana Sayfa'ya dönüş okları KALDIRILDI
@@ -124,32 +126,37 @@ alınacak — şimdi tahmin/vaat yok.
   (masaüstü 112 px varsayımı doğrulandı), kabuk / banner çakışması yok, dokunuş içeriğe sızmıyor, ~28 tuval px koyu
   kaide aralığı dock'un parçası okunuyor. **AdMob politika / uyum: HARİCİ RELEASE KONTROLÜ.** **Engellemeyen takip
   işleri:** Ana Sayfa yinelenen girişleri (OYNA + merkez HARİTA, Ana Sayfa Mağaza / Koleksiyon kısayolları + kabuk,
-  avatar + kabuk Profil) → TASK/058; kaydırılabilir Harita + Meydan Okuma rotası → TASK/059; Profil ürün kararıyla
+  avatar + kabuk Profil) → TASK/058 (KAPANDI — TASK/058 main'de); kaydırılabilir Harita + Meydan Okuma rotası → TASK/059; Profil ürün kararıyla
   banner göstermez, kabuk sabit konumda kaldığı için altında koyu ayrılmış footer alanı — DÜŞÜK, engellemeyen görsel
   konu (sonraki cila); fiziksel A36'da ~2 s'yi aşan basılı tutuşta basış önizlemesi düşebiliyor — gözlem, normal
   etkileşim ve iptal doğru. Ayrıntı: PROJECT_STATUS §4.37, UI_VISUAL_SYSTEM §27.
-- **TASK/058 — Ana Sayfa V3 — DALDA, TEXT-LIGHT ADAYI HAZIR (READY FOR OWNER REVIEW)** (`task/058-home-v3`, text-light son
-  aday `9b4e2ed`; taban kanonik `28a5bf1`; **main DEĞİŞMEDİ, merge / PR YOK — DO NOT MERGE**). Owner görsel yönü ONAYLADI
-  (2026-10-07); K1–K9 kilitli ("SV. N", "SIRADAKİ BÖLÜM N"). **K10 (owner, gerçek A36 elle denemesinden sonra):** alt gezinme
-  iyi; büyük GÜNLÜK ÖDÜLLER / MEYDAN OKUMA kartları fazla büyük ve yazılı → REDDEDİLDİ; yerine OYNA'nın altında yan yana iki
-  kompakt V3 `FeatureTile` **GÜNLÜK | MEYDAN** (ikon + tek kelime + cipler: seri alevi + sayı, HAZIR + "!" + hale, ✓ TAMAM,
-  ilk gün kilit + YARIN; hedef portresi + "N HAMLE" + Hamur ikonu "+20"); "BONUS SANDIK" → "SANDIK"; Ana Sayfa'da cümle yok
-  (pencerelerin içi aynen). Maskot nefes aldı (720×1280 449 → 600, 16:9 + banner 361 → 486 tuval px). Hiyerarşi aynen: üst
-  durum → logo + maskot (GÖREVLER / SANDIK) → "SIRADAKİ BÖLÜM N" → OYNA (→ Harita) → GÜNLÜK | MEYDAN → TASK/057 kabuğu.
-  GAME_DESIGN yalnız ifade (Ana Sayfa giriş adları / "YARIN"; kural / sayı / ekonomi aynen). **Owner bulgusu "Günlük'e
-  basınca bir şey gelmiyor":** kök neden ilk gün kapısı (kanıtlı); giriş o gün pasif + kilit + "YARIN"; iki gizli kusur da
-  giderildi; davranış sözleşmesi K10'da aynen. **Kanıt (`9b4e2ed`):** `home_v3_test` 229 / 229; kontrollü tam masaüstü
-  kapısı (gate4) 56 / 56 temiz, 7286 kontrol, 0 FAIL, 0 SCRIPT ERROR, bot 2 / 2, sahibin kaydı bayt-aynı; K10 hafif negatif
-  kontroller 4 / 4 öldü. **Gerçek Samsung A36 kapısı (K10): GEÇTİ** (QA paketi, QA APK `9b4e2ed`'den; üretim paketi hiç
-  kurulmadı, `com.example.squishymerge` dokunulmadı; QA paketinin güncel kaydı bayt-aynı geri kondu, paket kurulu bırakıldı;
-  gezinme / saat değişmedi; oturumun adb daemon'u durduruldu): 9 fiziksel kare; GÜNLÜK / MEYDAN gövde / ikon / kelime tam bir
-  kez, çift dokunuş tek, iptal 0, kilitli 0; OYNA tek geçiş; kabuk aynen; 0 SCRIPT ERROR / 0 çökme / 0 ANR. Gerçek Google
-  TEST banner (yerleşim kanıtı, politika sertifikası DEĞİL): karolar tepsiden 81 fiziksel px yukarıda, tepsi–banner ~42 px,
-  çakışma yok. TASK/058'e özgü fiziksel gerileme yok. Önceki K9 adayı `6de0410` (gate3 + A36 GEÇTİ) tarihsel. Engellemeyen
-  not: banner yuvası hiç yokken kabuk tepsisi ekran altına ~12 fiziksel px yakın (TASK/057 kabuk kodu — TASK/064). Ayrıntı:
-  PROJECT_STATUS §4.38, UI_VISUAL_SYSTEM §28.10 / §29; owner paketi `build/qa_058_owner_review/TASK058_OWNER_REVIEW.zip`.
-- **Repo (2026-10-07):** `main == origin/main == 28a5bf1` (TASK/057 doküman eşitlemesi, ff-only `84964af → 28a5bf1`);
-  TASK/058 dalı `task/058-home-v3` (text-light son aday `9b4e2ed` + doküman) push'landı, main'e ALINMADI. Önce: `main == origin/main == 84964af6fee3a030d85b777e3ad6ee3076c8b978` — **TASK/057 owner onayıyla
+- **TASK/058 — Ana Sayfa V3 — TAMAM, main'de (COMPLETE + MAIN)** (owner görsel onayı **APPROVED**, 2026-10-08 — owner son
+  fiziksel Samsung A36 Ana Sayfa'sını inceledi; onay YALNIZ Ana Sayfa V3 içindir, Harita / Mağaza / Koleksiyon / Profil /
+  Meydan Okuma V3 için değil; owner onayıyla ff-only `28a5bf1 → 7025bd4` (2026-10-08; merge commit / rebase / squash / cherry-pick / force push YOK; dal `task/058-home-v3` = `7025bd4` duruyor)). Kabul edilen Ana Sayfa: tek baskın
+  OYNA (→ Harita) · logo + büyük maskot · dokunma almayan üst durum ("SV. N" + unvan + XP · Hamur) · GÖREVLER / SANDIK ikincil
+  madalyonları · "SIRADAKİ BÖLÜM N" · OYNA'nın altında yan yana kompakt **GÜNLÜK | MEYDAN** `FeatureTile` karoları (ikon + tek
+  kelime + kısa sayı cipleri: seri alevi + sayı, HAZIR + "!" + hale, ✓ TAMAM; hedef portresi + "N HAMLE" + Hamur ikonu "+20")
+  · ilk gün GÜNLÜK karosu pasif + kilit + **YARIN** (GAME_DESIGN §12.3 aynen) · mevcut Günlük / Meydan Okuma rotaları ·
+  TASK/057 kabuğu. Kabukla yinelenen Ana Sayfa kısayolları kaldırıldı; ekonomi DEĞİŞMEDİ; GAME_DESIGN'da yalnız Ana Sayfa'yı
+  anlatan ifadeler güncellendi (kural / sayı değişmedi). **Owner bulgusu "Günlük'e basınca bir şey gelmiyor":** kök neden ilk
+  gün kapısı (kanıtlı); düzeltildi. **Son kanıt (son üretim / test adayı `9b4e2ed`, entegrasyondan ÖNCE; entegrasyon ve bu
+  doküman eşitlemesi sırasında hiçbir test / Godot / derleme / cihaz kapısı yeniden koşulmadı):** `home_v3_test` 229 / 229;
+  kontrollü tam masaüstü kapısı 56 / 56 temiz, 7286 kontrol, 0 FAIL, 0 SCRIPT ERROR, bot 2 / 2, sahibin kaydı bayt-aynı; 4 / 4
+  hafif negatif kontrol öldü, bayt-aynı geri kondu. **Gerçek Samsung A36: GEÇTİ** (QA paketi `com.obappstudio.squishymerge.qa`,
+  QA APK `9b4e2ed`'den, yalnız Google TEST reklamları; üretim paketi hiç kurulmadı, `com.example.squishymerge` dokunulmadı):
+  giriş dokunuşları tam bir kez, çift dokunuş tek, iptal 0, ilk gün kilidi 0; 0 SCRIPT ERROR / 0 çökme / 0 ANR. Log notu
+  (engellemeyen, araç): 2 Godot hata düzeyi satırı yalnız QA koşum sahnesinin (`tools/qa058_device.tscn`, QA paketine özel)
+  eski UID uyarısıydı — üretim kodu değil; log "tamamen hatasız" sayılmaz. **Gerçek Google TEST banner:** fiziksel yerleşim
+  kanıtı (karolar tepsiden 81 px yukarıda, tepsi–banner ~42 px, çakışma yok) — **AdMob politika / uyum: HARİCİ RELEASE
+  KONTROLÜ.** Engellemeyen not: banner yuvası hiç yokken kabuk tepsisi ekran altına ~12 fiziksel px yakın (TASK/057 kabuk kodu
+  — TASK/064). Dal-aşaması inceleme turları (görsel aday `6e88368`, K9 adayı `6de0410` — gate3 + A36 GEÇTİ, K10 text-light)
+  TARİHSEL: PROJECT_STATUS §4.38, UI_VISUAL_SYSTEM §28 / §29.
+- **Repo (2026-10-08):** main TASK/058'i `7025bd4`'te içerir — owner onayıyla ff-only `28a5bf1 → 7025bd4` (2026-10-08; merge commit / rebase / squash / cherry-pick / force push YOK; dal `task/058-home-v3` = `7025bd4` duruyor); doğrulanmış
+  doğrusal zincir, 15 commit: `c5d3bbc` düzeltme (günlük pencere yatışması + madalyon etiketi) · `029eced` Ana Sayfa V3 ·
+  `9080a85` / `fd59d69` / `749080b` / `6e88368` test · `8b070e8` doküman · `e060cd0` K9 terimleri · `91c74b2` test · `6de0410`
+  GAME_DESIGN ifadesi · `01f167e` araç `.uid` · `14c80b5` doküman · `0b49b3f` K10 kompakt karolar · `9b4e2ed` test (son
+  üretim / test adayı) · `7025bd4` dal-aşaması doküman (yalnız doküman) — + bu doküman eşitlemesi (`docs/058-main-sync`,
+  ff-only). Önce: `main == origin/main == 28a5bf1` (TASK/057 doküman eşitlemesi, ff-only `84964af → 28a5bf1`). Önce: `main == origin/main == 84964af6fee3a030d85b777e3ad6ee3076c8b978` — **TASK/057 owner onayıyla
   ff-only main'e alındı** (`d5237bf → 84964af`; merge commit / rebase / squash / cherry-pick / force push YOK).
   Doğrulanmış doğrusal zincir, 12 commit: `86bde6c` UI System V3 temeli · `d571555` küresel gezinme kabuğu · `3592889`
   testler · `c614e02` görsel inceleme cilası · `5033707` doküman · `4f53332` Tur 2 üretim · `f6ece0f` Tur 2 test ·
@@ -1254,9 +1261,12 @@ görevi üretim ekran görüntüsü + owner görsel onayı olmadan main'e alınm
 ~~**Şimdiki adım:** bu doküman eşitlemesinin (`docs/057-main-sync`) owner onayıyla main'e alınması~~ → main'de `28a5bf1`.
 ~~**Şimdiki adım:** owner TASK/058 görsel incelemesi~~ → görsel yön ONAYLANDI; K1–K9 kilitli; K9 adayı (`6de0410`) A36
 GEÇTİ; owner A36 elle denemesi → **K10 TEXT-LIGHT / ICON-FIRST** uygulandı, masaüstü + gerçek A36 kapısı GEÇTİ.
-**Şimdiki adım:** owner **TASK/058 text-light görsel incelemesi** (`task/058-home-v3`, son aday `9b4e2ed`; paket
-`build/qa_058_owner_review/TASK058_OWNER_REVIEW.zip`) → onaylanırsa main'e ff-only (owner onayıyla). **DO NOT MERGE** onaydan
-önce. TASK/059 BAŞLAMADI. Release PAUSED.
+~~**Şimdiki adım:** owner TASK/058 text-light görsel incelemesi~~ → **APPROVED** (yalnız Ana Sayfa V3); **TASK/058 — TAMAM +
+MAIN** (`7025bd4` + bu doküman eşitlemesi) — §4.38.
+**Şimdiki adım:** **TASK/059 Harita V3** — YENİ bir Claude oturumunda, owner başlatınca (BAŞLAMADI). Sonraki sahiplik:
+TASK/059 Harita · TASK/060 ödüllü güçler (+ oyun HUD V3) · TASK/061 Görevler ödül alma / devir · TASK/062 Mağaza / Başlangıç
+Paketi · TASK/063 Meydan Okuma · TASK/064 kalan cila (Koleksiyon / Profil / Ayarlar; banner'sız kabuk payı notu dahil).
+TEXT-LIGHT / ICON-FIRST bu görevlerin varsayılan yönüdür; her ekran yine kendi owner görsel onayını ister. Release PAUSED.
 
 **Sıradaki ürün / stabilizasyon görevi owner seçimi** — bilinen, izlenen açık ürün maddesi kalmadı (0; ürünün hatasız
 olduğu iddia edilmez); otomatik bir sonraki ürün düzeltme görevi tanımlı değil, TASK/057 OLUŞTURULMADI. *(Sonra

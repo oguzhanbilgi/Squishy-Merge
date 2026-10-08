@@ -2076,7 +2076,8 @@ Vision V3'ün (GitHub Issue #1) ilk uygulama görevi; TASK/058 / 059 BAŞLAMADI,
 görevlerin (TASK/058–064) üzerine kuracağı temeli anlatır — `FeatureCard` / `OfferCard` / `PowerCard` /
 `SquishyButton` bugün temel / vitrin primitifleri, üretim içeriğine sonraki görevlerde bağlanır. Görsel Cila Tur 2
 (2026-10-06) — §27.11; son görsel cila + gerçek A36 kapısı (2026-10-07) — §27.12. Aşağıdaki "owner incelemesi" geçen
-alt bölümler o turların tarihidir.
+alt bölümler o turların tarihidir. *(Sonra — 2026-10-08: TASK/058 Ana Sayfa V3 TAMAM + MAIN, §28; §27.8 / §27.9'daki Ana
+Sayfa maddeleri — OYNA ↔ merkez HARİTA, yinelenen madalyonlar / avatar, maskot boyu — TASK/058'de kapandı.)*
 
 **Kural — ikinci sistem YOK:** V3, M8.6 katmanının EVRİMİDİR. Sayılar `UiTokens`'ın V3 bölümünde,
 tipografi rolleri `UiType.V3_ROLES`'ta (mevcut tema variation'ları + token boyutu; tema yeniden
@@ -2309,13 +2310,15 @@ V3, 84 / 64 px, GestureGuard, görünürlük matrisi, kompakt kip, TASK/058 / 05
 - **Bilinen gözlem:** cihazda basılı tutuş ~2 s'yi aşınca basış önizlemesi düşüyor (Android uzun basış penceresi;
   araştırılmadı) — normal dokunuşu etkilemez, uzun tutup bırakmak gezinme kanıtı değildir.
 
-## 28. Ana Sayfa V3 (TASK/058) — DALDA, TEXT-LIGHT ADAYI (owner incelemesi bekliyor)
+## 28. Ana Sayfa V3 (TASK/058) — TAMAM + MAIN (`7025bd4`)
 
-**Durum:** `task/058-home-v3` dalında (taban kanonik `28a5bf1`; main DEĞİŞMEDİ, merge / PR YOK). Owner görsel yönü
-ONAYLADI (2026-10-07); K1–K9 kilitli (§28.8). Owner gerçek A36'da elle denedi: alt gezinme iyi; GÜNLÜK ÖDÜLLER / MEYDAN
-OKUMA kartları fazla büyük ve fazla yazılı → **K10 TEXT-LIGHT / ICON-FIRST** (§29): iki büyük kart REDDEDİLDİ, yerine yan
-yana iki kompakt `FeatureTile` (§28.10). Önceki son aday `6de0410`'ın A36 kapısı tarihsel (§28.9); text-light adayının
-masaüstü + A36 kapısı §28.10. Owner incelemesi olmadan main'e alınmaz. TASK/059+ BAŞLAMADI, Release PAUSED. İnceleme paketi `build/qa_058_visual_review/` + owner ZIP `build/qa_058_owner_review/TASK058_OWNER_REVIEW.zip`
+**Durum:** **TAMAM + MAIN** — owner görsel onayı **APPROVED** (2026-10-08; son fiziksel Samsung A36 Ana Sayfa'sı; onay
+YALNIZ Ana Sayfa V3 içindir); owner onayıyla ff-only `28a5bf1 → 7025bd4` (2026-10-08; merge commit / rebase / squash / cherry-pick / force push YOK; dal `task/058-home-v3` = `7025bd4` duruyor). Kabul edilen tasarım: kompakt
+GÜNLÜK | MEYDAN `FeatureTile` karoları (§28.10), TEXT-LIGHT / ICON-FIRST Ana Sayfa (§29), ilk gün GÜNLÜK kilidi "YARIN"
+(§28.2). Son üretim / test adayı `9b4e2ed`'in masaüstü + gerçek A36 kanıtı entegrasyondan ÖNCE alındı, yeniden koşulmadı.
+TASK/059+ BAŞLAMADI, Release PAUSED. *(Tarihsel — dal aşaması, 2026-10-07: K1–K9 kilitlendi (§28.8); owner gerçek A36'da elle
+denedi — alt gezinme iyi; GÜNLÜK ÖDÜLLER / MEYDAN OKUMA kartları fazla büyük ve fazla yazılı → K10: iki büyük kart
+reddedildi, yerine iki kompakt karo; K9 adayı `6de0410`'ın A36 kapısı §28.9.)* İnceleme paketi `build/qa_058_visual_review/` + owner ZIP `build/qa_058_owner_review/TASK058_OWNER_REVIEW.zip`
 (git dışı).
 
 **Okuma sırası:** kimlik / maskot → OYNA → GÜNLÜK ÖDÜLLER + MEYDAN OKUMA → küresel gezinme. Eşdeğer ağırlıkta küçük
@@ -2409,7 +2412,7 @@ hiyerarşi masaüstüyle aynı, "SV." ve "SIRADAKİ BÖLÜM 5" okunur, kırpma /
 Engellemeyen not (TASK/058 dışı): banner yuvası hiç yokken kabuk tepsisi ekran altına ~12 fiziksel px yakın oturuyor
 (TASK/057 `GlobalNav`, değişmedi) — TASK/064 cila turunda değerlendirilebilir.
 
-### 28.10 K10 — kompakt özellik karoları (TEXT-LIGHT adayı)
+### 28.10 K10 — kompakt özellik karoları (owner onaylı, main'de)
 
 Owner gerçek A36'da elle denedi: "Alt bar iyi. Günlük ve Meydan Okuma çok büyük, ortada ağır duruyor; fazla yazı."
 Yalnız bu bölge yeniden kuruldu; durum satırı, logo, maskot, GÖREVLER / SANDIK, "SIRADAKİ BÖLÜM N", OYNA, kabuk, banner
@@ -2450,5 +2453,6 @@ oyun sistemleri. Oyuncu görsel dili anlar; görsel durum anlamı taşıyorsa a�
   eylemler, hata durumları; pencerelerin İÇİ ayrıntıyı taşıyabilir (giriş kısa, içerik açıklayıcı).
 - **Kapsam:** TASK/058'de yalnız Ana Sayfa üretim yüzeyi uygulandı (§28.10; metin denetimi PROJECT_STATUS §4.38). Ürün
   geneli metin yeniden yazımı YAPILMADI. Bu ilke TASK/059–064 yeniden tasarımlarının (Harita, oyun HUD'u, Günlük &
-  Görevler, Mağaza, Meydan Okuma merkezi, Koleksiyon / Profil / Ayarlar) varsayılanıdır; kabuk (TASK/057) etiketleri ayrı
-  onaylı görev olmadan değişmez.
+  Görevler, Mağaza, Meydan Okuma merkezi, Koleksiyon / Profil / Ayarlar) varsayılanıdır — o ekranlar henüz bu ilkeyle
+  uygulanmadı ve owner onaylı DEĞİL (her biri kendi görsel onayını ister); kabuk (TASK/057) etiketleri ayrı onaylı görev
+  olmadan değişmez.
