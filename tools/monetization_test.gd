@@ -1272,9 +1272,9 @@ func _test_main_integration() -> void:
 		+ " kalesi üst satırın altında, pill'le çakışmadan", nodes_clear and castle_top_ok and castle.end.y <= slot_top)
 	map_screen.set_scroll(map_screen.focus_scroll())
 	# TASK/059: dikey sıkıştırma YOK — dünya tek tip ölçekli (sy == sx), 16:9 + en büyük gerçekçi yuva (128 px) dahil.
-	var squash_ratio: float = map_screen.world_scale().y / map_screen.world_scale().x
-	_c("Harita dünyası tek tip ölçek (sy/sx %.3f = 1; TASK/059 — eski sıkıştırma tabanı yok)" % squash_ratio,
-		is_equal_approx(squash_ratio, 1.0))
+	var art_ratio: float = map_screen.map_art().size.y / map_screen.map_art().size.x
+	_c("Harita dünyası tek tip ölçek (zemin oranı %.4f = 1280/720; TASK/059 — eski sıkıştırma tabanı yok)" % art_ratio,
+		absf(art_ratio - 1280.0 / 720.0) < 0.001)
 	_main._show_tab(3)
 	_c("Mağaza -> gösterili kalır", fake.banner_shows.size() == 1 and fake.banner_hides.is_empty())
 	_main._show_tab(2)

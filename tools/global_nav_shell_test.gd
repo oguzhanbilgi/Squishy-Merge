@@ -603,8 +603,9 @@ func _check_insets(tag: String, safe_top: float) -> void:
 		absf(map.world_rect().end.y - nav.tray_rect().position.y) <= 1.0)
 	var squash: float = map.world_scale().y / map.world_scale().x
 	# TASK/059: dikey sıkıştırma YOK (eski Tur 2 tabanı 0.92 / ilk aday 0.819 tarihsel) — dünya tek tip ölçekli kayar.
-	_c("%s: Harita dikey sıkıştırma yok (sy/sx = %.3f = 1; TASK/059 kaydırılabilir yolculuk)" % [tag, squash],
-		is_equal_approx(squash, 1.0))
+	var art_ratio: float = map.map_art().size.y / map.map_art().size.x
+	_c("%s: Harita dikey sıkıştırma yok (zemin oranı %.4f = 1280/720; TASK/059 kaydırılabilir yolculuk)" % [tag, art_ratio],
+		is_equal_approx(squash, 1.0) and absf(art_ratio - 1280.0 / 720.0) < 0.001)
 	var focus: MapLevelNode = map.focus_node()
 	if focus != null:
 		print("    %s: Harita odak düğümü çapı %.1f px, sy/sx %.3f, kurdele %s, kabuk %s" % [tag, focus.diameter(), squash,
@@ -791,8 +792,9 @@ func _round2() -> void:
 	await _tab(1)
 	var map: CanvasLayer = _main._screens[1]
 	var squash: float = map.world_scale().y / map.world_scale().x
-	_c("16:9 + banner: Harita sıkıştırması yok (sy/sx %.3f = 1; Tur 2'nin 0.926'sı ve ilk adayın 0.819'u tarihsel)" % squash,
-		is_equal_approx(squash, 1.0))
+	var art_ratio: float = map.map_art().size.y / map.map_art().size.x
+	_c("16:9 + banner: Harita sıkıştırması yok (zemin oranı %.4f = 1280/720; Tur 2'nin 0.926'sı ve ilk adayın 0.819'u tarihsel)"
+		% art_ratio, is_equal_approx(squash, 1.0) and absf(art_ratio - 1280.0 / 720.0) < 0.001)
 	var floor_y: float = nav.footprint().position.y
 	var bar2: ScreenTopBar = map.top_bar()
 	var inside: bool = true

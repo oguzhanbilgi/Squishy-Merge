@@ -151,16 +151,31 @@ func _check_geometry(map: CanvasLayer, tag: String, safe_top: float) -> void:
 			if _hit(all[i]).intersects(_hit(all[j])):
 				overlap += " %s×%s" % [all[i].name, all[j].name]
 	_c("%s: dokunma alanları (plaka dahil) birbirine binmez%s" % [tag, overlap], overlap.is_empty())
-	var path_ok: bool = true
-	for i in map.nodes().size():
-		var node: MapLevelNode = map.nodes()[i]
-		var expected: Vector2 = map._map_to_world(map.NODE_POSITIONS[i])
-		path_ok = path_ok and node.position.distance_to(expected - Vector2(node.diameter(), node.diameter()) * 0.5) < 0.6
-	_c("%s: düğümler owner patikasındaki doku konumlarında (aynı dönüşüm)" % tag, path_ok)
+	# Beklenen merkez ÇİZİLEN zeminden türetilir (zeminin ekran dikdörtgeni + doku konumu × ölçek), düğümün ölçeksiz
+	# yerleşim merkeziyle karşılaştırılır (nefes / pop ölçeği hariç) — yerleştirme koduyla aynı formülü kullanmaz.
+	var art_rect: Rect2 = map.map_art().get_global_rect()
+	var tex_scale: float = art_rect.size.x / 720.0
+	var path_ok: bool = absf(art_rect.size.y / 1280.0 - tex_scale) < 0.001
+	var world_origin: Vector2 = map.world_layer().global_position
+	var all_points: Array = []
+	all_points.append_array(map.NODE_POSITIONS)
+	all_points.append(map.ENDLESS_POSITION)
+	var all_nodes: Array[MapLevelNode] = []
+	all_nodes.append_array(map.nodes())
+	all_nodes.append(map.endless_node())
+	for i in all_nodes.size():
+		var node: MapLevelNode = all_nodes[i]
+		var drawn: Vector2 = art_rect.position + (all_points[i] as Vector2) * tex_scale
+		var center: Vector2 = world_origin + node.position + Vector2(node.diameter(), node.diameter()) * 0.5
+		path_ok = path_ok and center.distance_to(drawn) < 0.75
+	_c("%s: 10 düğüm + Sonsuz ÇİZİLEN zeminin patika noktalarında (zemin dikdörtgeninden türetilmiş)" % tag, path_ok)
 	# Odak: girişte sıradaki level (5) düğüme açık bantta.
 	var focus: MapLevelNode = map.focus_node()
 	_c("%s: girişte kamera odakta (level 5), odak düğümü + OYNA açık bantta" % tag, focus == map.nodes()[4]
 		and _near(map.scroll_offset(), map.focus_scroll()) and _in_band(map, focus.hit_rect()))
+	var pills_clear: bool = _pills_clear(map)
+	_c("%s: giriş dinlenme konumunda hiçbir düğüm / plaka / kilit / portal üst satır pill'lerinin altında yarım kalmaz" % tag,
+		pills_clear and map.rest_clear_at(map.scroll_offset()))
 	# Her düğüm kendi kamera konumunda açık bantta (erişilebilir).
 	var reach: String = ""
 	var targets: Array[Control] = []
@@ -237,7 +252,9 @@ func _portal_clear(map: CanvasLayer) -> bool:
 func _covered(map: CanvasLayer, view: Vector2) -> bool:
 	var art: Rect2 = map.map_art().get_global_rect()
 	var band_bottom: float = map.world_rect().end.y
-	var top_ok: bool = art.position.y <= 0.0 or (map.sky_band() - map.scroll_offset() >= art.position.y - 2.5)
+	var sky: Rect2 = map._sky.get_global_rect()
+	var top_ok: bool = art.position.y <= 0.0 or (sky.position.y <= 0.0 and sky.end.y >= art.position.y
+		and sky.position.x <= 0.0 and sky.end.x >= view.x)
 	return art.position.x <= 0.0 and art.end.x >= view.x and art.end.y >= band_bottom - 0.5 and top_ok
 
 
@@ -310,8 +327,8 @@ func _input_safety() -> void:
 		and _main._board != null and _main._current_level.level_number == 5 and not map.visible)
 	var board: Variant = _main._board
 	await _tap_at(_center_of(l5))
-	_c("hızlı ikinci dokunuş ikinci board / bırakış başlatmaz (aynı board, tek level_chosen)", _chosen == [5]
-		and _main._board == board)
+	_c("hızlı ikinci dokunuş ikinci board başlatmaz (300 ms yatışma + gizli Harita; aynı board, tek level_chosen)",
+		_chosen == [5] and _main._board == board)
 	await _abandon()
 	_c("round terk → Harita (board yok)", _main._board == null and _main._active_tab == 1 and map.visible)
 	# 2) "OYNA" plakasına (gövdenin altı) dokunuş da düğümündür.
@@ -352,30 +369,33 @@ func _input_safety() -> void:
 	l5 = map.nodes()[4]
 	before = map.scroll_offset()
 	await _finger(_center_of(l5), true)
+	var held: bool = l5.is_pressed()
 	await _cancel_finger(_center_of(l5))
-	_c("ACTION_CANCEL (iptal edilen bırakış): level yok, kamera aynı", _chosen == [5, 5, 4] and _main._board == null
-		and is_equal_approx(map.scroll_offset(), before))
+	_c("ACTION_CANCEL (basış ulaştı → iptal edilen bırakış): level yok, kamera aynı", held and _chosen == [5, 5, 4]
+		and _main._board == null and is_equal_approx(map.scroll_offset(), before))
 	# 7) sürükle → iptal: savurma yok.
 	await _finger(_center_of(l5), true)
 	var at: Vector2 = _center_of_canvas(l5)
 	for i in 6:
 		await _move(at, at + Vector2(0.0, -24.0))
 		at += Vector2(0.0, -24.0)
+	var dragged: bool = map.is_dragging() and absf(map.scroll_offset() - before) > 60.0
 	await _cancel_finger(_screen(at))
 	var after_cancel: float = map.scroll_offset()
 	await _settle(20)
-	_c("sürükleme iptal edilince savurma yok, level yok (kamera %.0f'da kaldı)" % after_cancel,
-		not map.is_flinging() and is_equal_approx(map.scroll_offset(), after_cancel) and _main._board == null)
+	_c("hızlı sürükleme (ulaştı, kamera kaydı) iptal edilince savurma yok, level yok (kamera %.0f'da kaldı)" % after_cancel,
+		dragged and not map.is_flinging() and is_equal_approx(map.scroll_offset(), after_cancel) and _main._board == null)
 	# 8) bayat bırakış: basılıyken ekran gizlenir (kod yolu sekme geçişi), sonra bırakılır.
 	await _refocus(map)
 	l5 = map.nodes()[4]
 	await _finger(_center_of(l5), true)
+	var pressed_before_hide: bool = l5.is_pressed()
 	_main._show_tab(0)
 	await _settle(2)
 	await _finger(_center_of(l5), false)
 	await _settle(3)
-	_c("basılıyken Harita gizlendi → bırakış level BAŞLATMAZ (Ana Sayfa'da kalınır)", _chosen == [5, 5, 4]
-		and _main._board == null and _main._active_tab == 0 and not map.visible)
+	_c("basılıyken (ulaştı) Harita gizlendi → bırakış level BAŞLATMAZ (Ana Sayfa'da kalınır)", pressed_before_hide
+		and _chosen == [5, 5, 4] and _main._board == null and _main._active_tab == 0 and not map.visible)
 	await _tab(1)
 	# 9) sürükleme sürerken Android GERİ.
 	await _finger(_screen(Vector2(600.0, 600.0)), true)
@@ -392,13 +412,15 @@ func _input_safety() -> void:
 	# 10) sürükleme sürerken sekme değişimi (kod yolu) ve savurma sürerken gizlenme.
 	await _finger(_screen(Vector2(600.0, 600.0)), true)
 	await _move(Vector2(600.0, 600.0), Vector2(600.0, 520.0))
+	var dragging_before_tab: bool = map.is_dragging()
 	_main._show_tab(2)
 	await _settle(2)
 	await _move(Vector2(600.0, 520.0), Vector2(600.0, 420.0))
 	await _finger(_screen(Vector2(600.0, 420.0)), false)
 	await _settle(3)
-	_c("sürükleme sırasında sekme değişimi: Koleksiyon önde, harita jesti bitti, level yok",
-		_main._active_tab == 2 and not map.is_gesture_active() and not map.is_flinging() and _main._board == null)
+	_c("sürükleme (ulaştı) sırasında sekme değişimi: Koleksiyon önde, harita jesti bitti, level yok",
+		dragging_before_tab and _main._active_tab == 2 and not map.is_gesture_active() and not map.is_flinging()
+		and _main._board == null)
 	await _tab(1)
 	# 11) savurma: hızlı sürükle-bırak → kamera bırakıştan sonra da kayar ve sınırda durur (taşma yok).
 	map.set_scroll(map.scroll_limits().y * 0.5)
@@ -423,14 +445,58 @@ func _input_safety() -> void:
 	await _settle(2)
 	await _finger(_screen(Vector2(600.0, 600.0)), true)
 	await _move(Vector2(600.0, 600.0), Vector2(600.0, 520.0))
+	var hold_dragging: bool = map.is_dragging()
 	await get_tree().create_timer(0.2).timeout
 	await _finger(_screen(Vector2(600.0, 520.0)), false)
 	await _settle(2)
-	_c("parmak durduktan sonra bırakış savurmaz", not map.is_flinging())
+	_c("sürükleyip parmak durduktan sonra bırakış savurmaz", hold_dragging and not map.is_flinging())
+	# Savurmayı yakalama: savurma sürerken bir düğüme dokunuş yalnız kamerayı durdurur, düğüm başlamaz.
+	map.set_scroll(map.scroll_limits().y * 0.5)
+	await _settle(2)
+	await _flick(Vector2(560.0, 700.0), -30.0, 4)
+	var was_flinging: bool = map.is_flinging()
+	var catches: int = map.catch_count
+	var target: MapLevelNode = map.nodes()[3]
+	await _tap_at(_center_of(target))
+	await _settle(3)
+	_c("savurma sürerken düğüme dokunuş (yakalama): kamera durur, level BAŞLAMAZ", was_flinging and not map.is_flinging()
+		and map.catch_count == catches + 1 and _main._board == null and _chosen == [5, 5, 4])
+	await _tap_at(_center_of(target))
+	_c("yakalamadan sonra taze dokunuş düğümü normal başlatır (tam bir level)", _chosen == [5, 5, 4, 4]
+		and _main._board != null)
+	await _abandon()
 	# 13) kilitli düğüm: yalnız geri bildirim.
 	await _refocus(map)
-	await _tap_at(_center_of(map.nodes()[6]))
-	_c("kilitli level 7'ye dokunuş: level yok (kilit sallanır)", _main._board == null and _chosen == [5, 5, 4])
+	var locked: MapLevelNode = map.nodes()[6]
+	await _tap_at(_center_of(locked))
+	_c("kilitli level 7'ye dokunuş: level yok, kilit sallanır (reject çalıştı)", _main._board == null
+		and _chosen == [5, 5, 4, 4] and locked._wiggle != null and locked._wiggle.is_valid())
+	# Sabit üst satır: ⭐ pill'i dokunuşu tutar (altına kayan düğüme geçmez), kamera kaymaz.
+	before = map.scroll_offset()
+	await _tap_at(_screen(map.stars_pill().get_global_rect().get_center()))
+	_c("⭐ / Hamur pill'leri dokunuşu tutar (MOUSE_FILTER_STOP): dokunuş level başlatmaz, kamera kaymaz",
+		map.stars_pill().mouse_filter == Control.MOUSE_FILTER_STOP
+		and map.top_bar().pill().mouse_filter == Control.MOUSE_FILTER_STOP and _main._board == null
+		and is_equal_approx(map.scroll_offset(), before))
+	await _drag(map.stars_pill().get_global_rect().get_center(), Vector2(0.0, 120.0), 6)
+	await _settle(30)
+	_c("⭐ pill'inin üstünden başlayan sürükleme dünyayı yine kaydırır (%.0f → %.0f), level yok" % [before,
+		map.scroll_offset()], absf(map.scroll_offset() - before) > 50.0 and _main._board == null)
+	# Sınırın ötesine sürükleyip geri dönen parmak: kamera hemen izler (ölü parmak yolu yok).
+	map.set_scroll(20.0)
+	await _settle(2)
+	await _finger(_screen(Vector2(600.0, 500.0)), true)
+	await _move(Vector2(600.0, 500.0), Vector2(600.0, 520.0))
+	await _move(Vector2(600.0, 520.0), Vector2(600.0, 720.0))
+	var clamped: float = map.scroll_offset()
+	await _move(Vector2(600.0, 720.0), Vector2(600.0, 660.0))
+	var back: float = map.scroll_offset()
+	await get_tree().create_timer(0.15).timeout
+	await _finger(_screen(Vector2(600.0, 660.0)), false)
+	await _settle(2)
+	_c("sınırın ötesine sürüklenip geri dönülünce kamera hemen izler (0 → %.0f, 60 px parmak)" % back,
+		is_zero_approx(clamped) and absf(back - 60.0) <= 1.0)
+	await _refocus(map)
 	# 14) masaüstü fare tekerleği.
 	before = map.scroll_offset()
 	var wheel := InputEventMouseButton.new()
@@ -458,9 +524,10 @@ func _portal() -> void:
 	map.level_chosen.connect(func(l: LevelData) -> void: _chosen.append(l.level_number))
 	var opened: Array[int] = [0]
 	sheet.opened.connect(func() -> void: opened[0] += 1)
-	_c("portal görünür: 'MEYDAN', bugünün gerçek hedefi (T5), hazır '!' (sahte süre / ödül / deneme yok)",
+	_c("portal görünür: 'MEYDAN', bugünün gerçek hedefi (T5), gerçek ilk başarı ödülü '+20' (sahte süre / deneme yok)",
 		portal.is_visible_in_tree() and portal.label_text() == "MEYDAN" and portal.target_tier() == 5
-		and portal.status_text() == "!" and portal.art_texture() == DUMPLING_VISUAL.TEXTURES[4]
+		and portal.status_text() == "+%d" % DailyChallenge.REWARD_DOUGH
+		and portal.art_texture() == DUMPLING_VISUAL.TEXTURES[4]
 		and map.branch_trail().visible and map.branch_trail().is_branch())
 	var portal_control: Control = portal
 	_c("portal normal level değil: MapLevelNode değil, numara yok, ayrı yan yol", not (portal_control is MapLevelNode)
@@ -471,8 +538,8 @@ func _portal() -> void:
 		sheet.visible and opened[0] == 1 and _chosen.is_empty() and _main._board == null and _main._active_tab == 1
 		and map.visible and not _main.global_nav().visible and int(_main._challenge_origin_tab) == 1)
 	await _tap_at(_screen(portal.global_position + portal.well_center()))
-	_c("açıkken aynı noktaya ikinci dokunuş ikinci pencere / level açmaz", opened[0] == 1 and _chosen.is_empty()
-		and _main._board == null)
+	_c("açıkken aynı noktaya hızlı ikinci dokunuş ikinci pencere / level açmaz (300 ms yatışma + karartma)",
+		opened[0] == 1 and _chosen.is_empty() and _main._board == null)
 	await _back()
 	await _wait_settled()
 	_c("GERİ → pencere kapanır, Harita'da kalınır (Ana Sayfa'ya kayma yok), kabuk görünür", not sheet.visible
@@ -512,7 +579,7 @@ func _portal() -> void:
 	map = _map()
 	portal = map.challenge_portal()
 	sheet = _main._challenge_sheet
-	_c("bugün tamamlandı: portal ✓ (nane), '!' yok", portal.status_text() == "✓" and portal.is_completed())
+	_c("bugün tamamlandı: portal ✓ (nane), '+20' yok", portal.status_text() == "✓" and portal.is_completed())
 	await _tap_at(_screen(portal.global_position + portal.well_center()))
 	_c("tamamlanmış günde portal pencereyi tamamlandı görünümüyle açar, round yok", sheet.visible
 		and bool(sheet.view()["completed"]) and _main._board == null)
@@ -530,9 +597,16 @@ func _portal() -> void:
 	await _wait_settled()
 	_c("Ana Sayfa'dan açılan pencere GERİ ile kapanır, Ana Sayfa'da kalınır", not sheet.visible and _main._active_tab == 0
 		and _main.global_nav().visible)
-	# Gün gerçeği / onboarding yokken portal gizli (Ana Sayfa karosuyla aynı kural).
+	# Harita öndeyken gün döner (öne dönüş): portal yalnız okuyarak yeni günün gerçek hedefine geçer (Cuma → T6).
 	await _tab(1)
 	map = _map()
+	DailyRewards.clock_override = "2026-10-02"
+	_main._notification(NOTIFICATION_APPLICATION_RESUMED)
+	await _settle(2)
+	_c("Harita öndeyken gün dönümü (öne dönüş): portal yeni günün gerçek hedefi T6 + '+20'",
+		map.challenge_portal().target_tier() == 6 and map.challenge_portal().status_text() == "+20")
+	DailyRewards.clock_override = THU
+	# Gün gerçeği / onboarding yokken portal gizli (Ana Sayfa karosuyla aynı kural).
 	SaveManager.data["onboarding_completed"] = false
 	map.refresh_challenge()
 	_c("onboarding bitmemişse portal ve yan yol gizli", not map.challenge_portal().visible
@@ -560,10 +634,11 @@ func _save_untouched() -> void:
 	await _tab(1)
 	await _tap_at(_center_of(map.nodes()[7]))
 	await _tap_at(_screen(map.challenge_portal().global_position + map.challenge_portal().well_center()))
+	var sheet_opened: bool = _main._challenge_sheet.visible
 	await _back()
 	await _wait_settled()
 	_c("test kaydı bayt-aynı (sürükleme, savurma, tazeleme, sekme girişi, kilitli dokunuş, portal aç / kapat)",
-		_test_family() == before)
+		sheet_opened and not _main._challenge_sheet.visible and _test_family() == before)
 	var src: String = FileAccess.get_file_as_string("res://scripts/ui/level_select.gd") \
 		+ FileAccess.get_file_as_string("res://scripts/ui/map_challenge_portal.gd")
 	_c("level_select / portal kayda yazmaz (save_game / complete_ / record_ / add_dough / set_ yok)",
@@ -579,7 +654,15 @@ func _animation() -> void:
 	await _boot({"highest_level_unlocked": 4, "level_stars": {"1": 3, "2": 3, "3": 2}})
 	await _tab(1)
 	var map: CanvasLayer = _map()
-	_c("giriş: düğüm ve portal katmanı solarak geldi (alfa 1)", is_equal_approx(map._node_layer.modulate.a, 1.0)
+	_main._show_tab(0)
+	await _wait_settled()
+	_main._show_tab(1)
+	await _settle(2)
+	var mid_node: float = map._node_layer.modulate.a
+	var mid_portal: float = map._portal_layer.modulate.a
+	await _wait_settled()
+	_c("giriş: düğüm ve portal katmanı solarak gelir (bir kare sonra alfa %.2f / %.2f < 1, sonra 1)" % [mid_node,
+		mid_portal], mid_node < 0.99 and mid_portal < 0.99 and is_equal_approx(map._node_layer.modulate.a, 1.0)
 		and is_equal_approx(map._portal_layer.modulate.a, 1.0))
 	SaveManager.data["highest_level_unlocked"] = 5
 	SaveManager.data["level_stars"] = {"1": 3, "2": 3, "3": 2, "4": 2}
@@ -606,6 +689,16 @@ func _animation() -> void:
 	await _finger(_screen(Vector2(620.0, 600.0)), false)
 	await _settle(2)
 	_c("tazeleme canlı tween'leri öldürür (serbest düğüme bağlı callback yok)", map._unlock_tweens.size() <= 2)
+	# Açılış animasyonu sürerken harita gizlenirse (OYNA'ya hızlı dokunuş / sekme) animasyon ve sesi sürmez.
+	SaveManager.data["highest_level_unlocked"] = 7
+	SaveManager.data["level_stars"] = {"1": 3, "2": 3, "3": 2, "4": 2, "5": 1, "6": 2}
+	map.refresh()
+	await _settle(2)
+	var playing: bool = map._unlock_playing
+	_main._show_tab(0)
+	await _settle(2)
+	_c("açılış animasyonu sürerken gizlenen harita animasyonu durdurur (canlı açılış tween'i kalmaz)", playing
+		and not map._unlock_playing and map._unlock_tweens.is_empty())
 	_sections_done += 1
 
 
@@ -649,6 +742,22 @@ func _contract() -> void:
 
 
 # --- Yardımcılar ----------------------------------------------------------------------------------------------------
+
+## Şu anki kamerada hiçbir düğüm (kilit rozeti dahil) / plaka / portal görsel dikdörtgeni üst satır pill'leriyle kesişmiyor.
+func _pills_clear(map: CanvasLayer) -> bool:
+	var pills: Array[Rect2] = [map.top_bar().pill().get_global_rect(), map.stars_pill().get_global_rect()]
+	for target in _all_targets(map):
+		var rect: Rect2 = _hit(target)
+		if target is MapLevelNode:
+			var rise: float = (target as MapLevelNode).diameter() * map.ENDLESS_LOCK_RISE
+			rect.position.y -= rise
+			rect.size.y += rise
+		for pill in pills:
+			if rect.intersects(pill):
+				print("    pill altında: ", target.name, " ", rect, " ∩ ", pill)
+				return false
+	return true
+
 
 func _near(a: float, b: float) -> bool:
 	return absf(a - b) <= 0.5
