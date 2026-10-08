@@ -694,9 +694,9 @@ func _test_refill_purchase() -> void:
 	await _settle(1)
 	# TASK/060 V3: INSUFFICIENT dokunulabilir — basış TEK istek gönderir, Main satın almayı reddeder ve kısa geri
 	# bildirim verir; hiçbir şey değişmez, yazma yok. Main cevapladıktan sonraki yeni basış yine reddedilir.
-	_c("yetersiz Hamur: basış tek istek → Main reddetti ('Hamur yetmiyor'), hiçbir şey değişmez",
+	_c("yetersiz Hamur: basış tek istek → Main reddetti (sebep tek yerde: karo 'Hamur yetersiz'), hiçbir şey değişmez",
 		requests[0] == 5 and SaveManager.dough() == 40 and SaveManager.powerup_count(PowerUp.Type.CLEAR_SMALL) == 0
-		and refill.visible and refill.note_text().begins_with("Hamur yetmiyor")
+		and refill.visible and refill.dough_note_text().begins_with("Hamur yetersiz") and refill.note_text() == ""
 		and FileAccess.get_file_as_bytes(SaveManager.SAVE_PATH) == bytes_before)
 	refill._on_dough_pressed()
 	await _settle(1)
@@ -709,7 +709,8 @@ func _test_refill_purchase() -> void:
 	refill._dough.pressed.emit()
 	await _settle(1)
 	_c("yarış: Main satın almayı reddetti, pencere açık, uyarı, stok 0, yazma yok", refill.visible
-		and refill.note_text().begins_with("Hamur yetmiyor") and SaveManager.powerup_count(PowerUp.Type.CLEAR_SMALL) == 0
+		and refill.dough_note_text().begins_with("Hamur yetersiz") and refill.note_text() == ""
+		and SaveManager.powerup_count(PowerUp.Type.CLEAR_SMALL) == 0
 		and FileAccess.get_file_as_bytes(SaveManager.SAVE_PATH) == bytes_before
 		and (refill._dough as SquishyButton).state() == SquishyButton.State.INSUFFICIENT)
 	await _close_refill()
@@ -855,7 +856,8 @@ func _check_both(label: String, safe_top: float, stub: _StubProvider) -> void:
 		or (rrect.encloses(refill.ad_card().get_global_rect()) and rrect.encloses(refill.dough_card().get_global_rect())))
 	_c("%s refill: butonlar ekranda" % label, view.encloses(refill._ad.get_global_rect()) and view.encloses(refill._dough.get_global_rect()))
 	_c("%s refill: durum yazıları kırpılmadı" % label, _label_fits_wrapped(refill._ad_note) and _label_fits_wrapped(refill._dough_note)
-		and _label_fits((refill._ad as SquishyButton).title_label()) and _label_fits(refill._balance))
+		and _label_fits((refill._ad as SquishyButton).title_label()) and _label_fits(refill._balance)
+		and _label_fits((refill._ad as SquishyButton)._chip_label) and _label_fits((refill._dough as SquishyButton)._price))
 	await _close_refill()
 	SaveManager.data["dough"] = 335
 	await _leave()

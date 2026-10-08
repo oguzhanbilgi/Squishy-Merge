@@ -97,6 +97,14 @@ func _stock_numbers() -> void:
 		ok = ok and m != null and m.count_text() == expect[type] and not m.count_text().contains("×") \
 			and not m.count_text().to_lower().contains("x") and m.count() == int(expect[type])
 	_c("dört madalyon kabarcığı: 3 / 1 / 0 / 12 (yalnız rakam)", ok)
+	var twelve: PowerMedallion = _medallion(PowerUp.Type.CLEAR_SMALL)
+	var label: Label = twelve.get_meta(&"badge_label")
+	var text_w: float = label.get_theme_font("font").get_string_size(label.text, HORIZONTAL_ALIGNMENT_CENTER, -1,
+		label.get_theme_font_size("font_size")).x
+	_c("çok haneli stok (12): kabarcık rakamı sığdırır (hap biçiminde genişler), dokunma alanından ≤ 4 px taşar",
+		twelve.stock_rect().size.x >= text_w + 8.0 and Rect2(Vector2.ZERO, twelve.size).grow(4.0).encloses(twelve.stock_rect()))
+	_c("stok 0 kabarcığında koyu rakam (gri üstünde okunur)", (_medallion(PowerUp.Type.SHAKE).get_meta(&"badge_label") as Label)
+		.get_theme_color("font_color") == UiTokens.TEXT_DISABLED)
 	_c("stok 0 (Sarsıntı) PowerSlotEmpty, rakam '0' görünür, sanat soluk ama renkli", _medallion(PowerUp.Type.SHAKE)
 		.theme_type_variation == &"PowerSlotEmpty" and _medallion(PowerUp.Type.SHAKE).count_text() == "0"
 		and (_medallion(PowerUp.Type.SHAKE).get_meta(&"art") as TextureRect).self_modulate.a > 0.5)
@@ -289,9 +297,16 @@ func _input_section() -> void:
 	_c("madalyondan sürükleyip dışarıda bırakma → hedefleme açılmaz", not board._powerups.is_armed())
 	# Anında güç (Temizleyici stok 12): refill sonrası OTOMATİK ÇALIŞMAZ (rewarded_powers_test) — burada basış = kullanım.
 	var clear_before: int = SaveManager.powerup_count(PowerUp.Type.CLEAR_SMALL)
+	var smalls: int = 0
+	for child in board._dumpling_layer.get_children():
+		var d := child as Dumpling
+		if d != null and is_instance_valid(d) and d.tier <= PowerUp.CLEAR_SMALL_MAX_TIER:
+			smalls += 1
 	await _tap(_medallion(PowerUp.Type.CLEAR_SMALL))
-	_c("Temizleyici dokunuşu: anında güç kendi kuralıyla (board'da tier 1-2 yoksa stok tüketilmez)",
-		SaveManager.powerup_count(PowerUp.Type.CLEAR_SMALL) <= clear_before and not board._powerups.is_armed())
+	await _settle(4)
+	_c("Temizleyici dokunuşu: anında güç kendi kuralıyla (board'da tier 1-2 %d parça → stok %s)" % [smalls,
+		"tüketildi" if smalls > 0 else "aynı"], SaveManager.powerup_count(PowerUp.Type.CLEAR_SMALL)
+		== (clear_before - 1 if smalls > 0 else clear_before) and not board._powerups.is_armed())
 	board.power_refill_offered.disconnect(counter)
 	# Kapalı çubuk (mola / pencere dondurması): dokunuş eylemsiz.
 	board._power_bar.set_enabled(false)
@@ -352,6 +367,25 @@ func _refill_text() -> void:
 		_main._on_refill_closed()
 		await _settle(2)
 	_c("refill dört durumda: kota cipi BAŞARILI kullanım (0/2 · 1/2 · 2/2), stok '0', fiyat rakamı; '×' / 'STOK' yok", all_ok)
+	# 16:9 + gerçek banner yuvası (112 / 128): pencere ve KAPAT yuvanın ÜSTÜNDE, ekranda.
+	var fits: bool = true
+	for slot_px in [112.0, 128.0]:
+		UiKit.set_banner_slot(slot_px)
+		SaveManager.data["dough"] = 10
+		_main._board._on_power_refill_requested(int(PowerUp.Type.CLEAR_SMALL))
+		await _settle(4)
+		var view: Rect2 = get_viewport().get_visible_rect()
+		var limit: float = view.size.y - slot_px
+		var frame_rect: Rect2 = refill.frame().get_global_rect()
+		var ok_size: bool = frame_rect.position.y >= 0.0 and frame_rect.end.y <= limit \
+			and refill._close.get_global_rect().end.y <= limit and refill._ad.get_global_rect().end.y <= limit
+		print("      banner %d: çerçeve %s, KAPAT alt %d, sınır %d" % [int(slot_px), str(frame_rect),
+			int(refill._close.get_global_rect().end.y), int(limit)])
+		fits = fits and ok_size
+		_main._on_refill_closed()
+		await _settle(2)
+	UiKit.set_banner_slot(0.0)
+	_c("16:9 + banner 112 / 128: refill penceresi + KAPAT + İZLE yuvanın üstünde, ekranda", fits)
 	_sections += 1
 
 

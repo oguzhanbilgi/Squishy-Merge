@@ -138,8 +138,6 @@ var quit_requests: int = 0
 ##   - eski/iptal edilmiş bir talebin callback'i eşleşmez (stale grant yok)
 ##   - başka bir güç için gelen callback tip kontrolüne takılır
 var _refill_token: int = 0
-## TASK/060: bu gücün bugünkü ödüllü hakkı dolu (talep anı / yarış) — pencerenin kısa notu ile aynı metin.
-const POWER_QUOTA_USED_NOTE: String = "Bugünlük bitti — yarın yenilenir."
 var _refill_pending_token: int = 0
 var _refill_pending_type: int = -1
 ## --- Günlük reklamlı ödül talebi (M8.9-02) — refill token deseninin aynısı ---
@@ -1751,7 +1749,8 @@ func _on_rewarded_power_requested(type: int) -> void:
 	# Kota kontrolü talep anında da yapılıyor (yalnız BU gücün kotası — TASK/060): buton zaten pasif olmalı ama
 	# tek savunma hattı UI olmasın.
 	if not RewardedPolicy.can_grant(type as PowerUp.Type):
-		notify_power_rewarded_unavailable(POWER_QUOTA_USED_NOTE)
+		# TASK/060: sebep tek yerde — pencere tazelenince İZLE karosu "Bugünlük bitti" der (altlıkta ikinci kopya yok).
+		notify_power_rewarded_unavailable("")
 		return
 
 	# Yeni talep = yeni token. Önceki talebin callback'i artık geçersiz.
@@ -1786,8 +1785,8 @@ func grant_rewarded_power(type: int, token: int) -> bool:
 	_clear_refill_request()
 
 	if not RewardedPolicy.grant(type as PowerUp.Type):
-		# Bu gücün kotası dolmuş (yarış durumu): stok verilmedi, pencere açık kalıyor.
-		notify_power_rewarded_unavailable(POWER_QUOTA_USED_NOTE)
+		# Bu gücün kotası dolmuş (yarış durumu): stok verilmedi, pencere açık kalıyor; sebebi İZLE karosu söyler.
+		notify_power_rewarded_unavailable("")
 		return false
 
 	_finish_refill(type as PowerUp.Type, "+1 %s kazandın!")
@@ -1801,11 +1800,15 @@ func _on_dough_refill_requested(type: int) -> void:
 	if not PowerUp.is_valid_type(type):
 		return
 	if not PowerUpEconomy.purchase(type as PowerUp.Type):
-		# Yetersiz Hamur: HİÇBİR state değişmez, pencere açık kalır.
+		# Yetersiz Hamur: HİÇBİR state değişmez, pencere açık kalır. TASK/060: sebep tek yerde (Hamur karosu "Hamur
+		# yetersiz" + bakiye; altlıkta ikinci kopya yok) + `ui_invalid`.
 		AudioManager.play(&"ui_invalid")
-		_refill.show_unavailable("Hamur yetmiyor (%d Hamur'un var)."
-			% SaveManager.dough(), _power_provider_ready(), _provider_note())
+		_refill.show_unavailable("", _power_provider_ready(), _provider_note())
 		return
+	# TASK/060 incelemesi: satın alma pencereyi kapatır — açık bir ödüllü talep varsa (savunma: pencere talep açıkken
+	# Hamur düğmesini kilitler) token'ı ve sağlayıcı talebini de kapat; geç ödül kapanmış pencereye stok vermesin.
+	_clear_refill_request()
+	_cancel_rewarded_request()
 	_finish_refill(type as PowerUp.Type, "+1 %s alındı!")
 
 

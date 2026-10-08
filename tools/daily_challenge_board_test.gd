@@ -135,7 +135,7 @@ func _setup_and_hud() -> void:
 	_c("güç tepsileri + madalyonlar gizli, çubuk kilitli ve kapalı", not hud.tray_left.visible
 		and not hud.tray_right.visible and not hud.power_bar.visible and _all_slots_hidden()
 		and hud.power_bar.is_locked() and not hud.power_bar.is_enabled())
-	_c("  … orta dekor katmanında görünür güç dekoru yok (TASK/060: tepsi / yuva dekoru kalktı, madalyonlar kendini çizer)",
+	_c("  … güç bölgesinde görünür dekor yok: orta katman BOŞ (TASK/060: tepsi / yuva dekoru kalktı) + madalyonlar gizli",
 		_deco_mid_hidden())
 	_c("devam hakkı 0 (teklif hiç açılmaz), güç kapalı", _board.max_revives() == 0 and _board.revives_remaining() == 0
 		and not _board.powers_enabled())
@@ -699,16 +699,14 @@ func _all_slots_visible() -> bool:
 	return true
 
 
-## Orta dekor katmanında görünür güç dekoru yok mu. TASK/060 HUD V3: tepsi gloss'u / madalyon yuvaları KALDIRILDI
-## (katman boş olabilir); kalan her çocuk gizli olmalı.
+## Güç bölgesinde görünür dekor yok mu. TASK/060 HUD V3: tepsi gloss'u / madalyon yuvaları KALDIRILDI — orta dekor
+## katmanı BOŞ olmalı (yeniden eklenen dekor bu kontrolü düşürür) ve güç bölgesinin çizdiği tek şey olan madalyonlar gizli.
 func _deco_mid_hidden() -> bool:
 	var mid: Node = _board._hud.get_node_or_null("DecoMid")
 	if mid == null:
 		return false
-	for child in mid.get_children():
-		if (child as CanvasItem).visible:
-			return false
-	return true
+	return mid.get_child_count() == 0 and _all_slots_hidden() and not _board._hud.tray_left.is_visible_in_tree() \
+		and not _board._hud.tray_right.is_visible_in_tree()
 
 
 func _same(a: Array, b: Array) -> bool:

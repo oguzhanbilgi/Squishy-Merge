@@ -308,11 +308,16 @@ func refresh(provider_ready: bool, provider_note: String = "") -> void:
 		_ad.set_state(SquishyButton.State.NORMAL)
 	_set_note(_ad_note, ad_reason, _request_pending)
 
-	# Hamur karosu: fiyat tek kaynaktan; yetmiyorsa INSUFFICIENT + sebep.
+	# Hamur karosu: fiyat tek kaynaktan; yetmiyorsa INSUFFICIENT + sebep. Ödüllü talep açıkken KİLİTLİ (TASK/060
+	# incelemesi): reklam açılırken Hamur'la alıp pencereyi kapatmak açık talebin token'ını yaşatıp geç ödülü kapanmış
+	# pencereye stok olarak düşürmesin.
 	var balance: int = SaveManager.dough()
 	_dough.set_price(PowerUpEconomy.price(type))
 	var affordable: bool = PowerUpEconomy.can_afford(type)
-	_dough.set_state(SquishyButton.State.NORMAL if affordable else SquishyButton.State.INSUFFICIENT)
+	if _request_pending:
+		_dough.set_state(SquishyButton.State.DISABLED)
+	else:
+		_dough.set_state(SquishyButton.State.NORMAL if affordable else SquishyButton.State.INSUFFICIENT)
 	_balance.text = GameplayHud._thousands(balance)
 	_balance.add_theme_color_override("font_color", UiTokens.TEXT_SECONDARY if affordable else UiTokens.TEXT_WARNING)
 	_set_note(_dough_note, "" if affordable else NOTE_NO_DOUGH, false)
@@ -354,7 +359,7 @@ func _on_ad_pressed() -> void:
 
 
 func _on_dough_pressed() -> void:
-	if _type < 0 or _purchase_sent or _dough.disabled:
+	if _type < 0 or _purchase_sent or _dough.disabled or _request_pending:
 		return
 	# Tek sinyal: Main cevaplayana (kapanış ya da uyarı → refresh) kadar ikinci basış yok sayılır — çift satın alma
 	# yok. Hamur yetmiyorsa (INSUFFICIENT) Main satın almayı reddeder ve kısa geri bildirim verir.

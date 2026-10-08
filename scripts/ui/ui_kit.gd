@@ -587,14 +587,6 @@ static func hud_icon_button(role: String, size: float,
 	return node
 
 
-## Tepsi yuvasi: madalyonun oturdugu koyu-krem cukur (tepsi ile madalyon
-## arasindaki `mid` dekor katmanina; madalyon dikdortgenini izler).
-static func hud_socket(slot: Control, mid: Control) -> Control:
-	var socket := patch("item_circle", Color(0.62, 0.52, 0.80, 0.55))
-	hud_attach(slot, socket, mid, Vector4(9.0, 9.0, 9.0, 3.0))
-	return socket
-
-
 ## Kalin koyu-lavanta cerceve + krem kart + dis golge + acik halka (hedef
 ## karti, Siradaki plakasi). Dekorlar `back`/`front` dekor katmanlarina
 ## baglanir. Icerik meta "card" PanelContainer'ina eklenir.

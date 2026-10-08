@@ -94,10 +94,13 @@ func set_state(count: int, armed: bool, enabled: bool) -> void:
 	modulate.a = 1.0 if enabled else 0.55
 	_glow.visible = _armed and enabled
 	_stock_label.text = str(_count)
-	_stock_label.add_theme_color_override("font_color", UiTokens.TEXT_ON_DARK)
+	# Stok 0: gri kabarcıkta koyu rakam (refill penceresiyle aynı kural; açık rakam gri üstünde okunmuyordu).
+	_stock_label.add_theme_color_override("font_color", UiTokens.TEXT_ON_DARK if _count > 0 else UiTokens.TEXT_DISABLED)
 	_art.self_modulate = Color(0.86, 0.84, 0.94, 0.72) if _count <= 0 else Color.WHITE
 	if disabled and _pressed_visual:
+		# Basılıyken kapandı (mola / pencere dondurması): BaseButton bırakış yaymaz — görsel + ölçek burada bırakılır.
 		_set_pressed_visual(false)
+		UiMotion.release(self)
 	_place()
 	queue_redraw()
 	_stock.queue_redraw()
@@ -147,7 +150,11 @@ func _place() -> void:
 	var art_size: float = body.size.x * ART_SHARE
 	_art.size = Vector2(art_size, art_size)
 	_art.position = body.get_center() - Vector2(art_size, art_size) * 0.5 - Vector2(0.0, 2.0)
-	_stock.position = Vector2(size.x - STOCK_SIZE + 2.0, size.y - STOCK_SIZE - 1.0)
+	# Çok haneli stok (Hamur'la biriktirilmiş 10+ / 100+) kabarcığı sola doğru hap biçiminde genişletir.
+	var width: float = maxf(STOCK_SIZE, ceilf(_stock_label.get_combined_minimum_size().x) + 14.0)
+	_stock.size = Vector2(width, STOCK_SIZE)
+	_stock_label.size = Vector2(width, STOCK_SIZE - 2.0)
+	_stock.position = Vector2(size.x - width + 2.0, size.y - STOCK_SIZE - 1.0)
 	pivot_offset = size * 0.5
 
 
@@ -172,8 +179,9 @@ func _draw() -> void:
 
 func _draw_stock() -> void:
 	var color: Color = UiTokens.NAVY_PURPLE if _count > 0 else UiTokens.ROLE_DISABLED
-	UiKit.draw_candy_circle(_stock, Vector2(STOCK_SIZE, STOCK_SIZE) * 0.5 - Vector2(0.0, 1.0), STOCK_SIZE - 4.0,
-		color, color.darkened(0.35), 3.0, 3.0, {}, Color.WHITE, 2.5, 0.22)
+	var d: float = STOCK_SIZE - 4.0
+	UiKit.draw_candy(_stock, Rect2(Vector2(2.0, 0.5), Vector2(_stock.size.x - 4.0, d + 3.0)), color, color.darkened(0.35),
+		d * 0.5, 3.0, 3.0, {}, Color.WHITE, 2.5, 0.22)
 
 
 func _set_pressed_visual(value: bool) -> void:

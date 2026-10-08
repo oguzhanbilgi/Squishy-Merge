@@ -325,7 +325,9 @@ func _scenario_dough_insufficient() -> void:
 	_check("modal ACIK kaldi", _refill().visible)
 	_check("board hala durmus", _board().is_refill_pending())
 	_check_eq("kota tuketilmedi", RewardedPolicy.grants_today(t), 0)
-	_check("basis kisa geri bildirim verdi (not)", _refill().note_text() != "")
+	# TASK/060: sebep tek yerde — Hamur karosunda "Hamur yetersiz" (+ ui_invalid); altlikta ikinci kopya yok.
+	_check("basis geri bildirimi: karo sebebi 'Hamur yetersiz', altlik bos (tek sebep)",
+		_refill().dough_note_text() == _refill().NOTE_NO_DOUGH and _refill().note_text() == "")
 	await _capture("f04_hamur_yetmiyor.png")
 
 

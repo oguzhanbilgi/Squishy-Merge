@@ -21,7 +21,7 @@ extends RefCounted
 ## "gösterilmedi" kurtarması sıfırlamaz. Sayım kapsamı aktif süre saatiyle aynı: rıza reddi / SDK beklemesi sayımı
 ## durdurmaz (gösterimi durdurur).
 ##
-## ÖDÜLLÜ KOTALAR — tek kaynakları DEĞİŞMEDİ, burada yalnız okunur (kopya sayı YOK; `rewarded_caps()`):
+## ÖDÜLLÜ KOTALAR — tek kaynaklarında tanımlı, burada yalnız okunur (kopya sayı YOK; `rewarded_caps()`):
 ##   devam GameBoard.MAX_REVIVES_PER_ROUND · güç refill'i RewardedPolicy.DAILY_GRANTS_PER_POWER (TASK/060: güç BAŞINA,
 ##   dört bağımsız sayaç) ·
 ##   reklamlı sandık DailyRewards.AD_CHESTS_PER_DAY · reklamlı +Hamur DailyRewards.AD_DOUGH_PER_DAY. Hepsi YALNIZ SDK'nın

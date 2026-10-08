@@ -365,7 +365,9 @@ func _migrate_daily_challenge(parsed: Dictionary) -> void:
 func _migrate_rewarded_power_quota(parsed: Dictionary) -> void:
 	var today: String = Missions.accepted_day()
 	if parsed.has(KEY_REWARDED_QUOTA):
-		data[KEY_REWARDED_QUOTA] = RewardedPolicy.sanitize(parsed[KEY_REWARDED_QUOTA], today)
+		# Anahtar var ama değer null (bozulma): "hiç kullanılmadı" sayılmaz — sözlük olmayan blok gibi bugün KAPALI.
+		var raw: Variant = parsed[KEY_REWARDED_QUOTA]
+		data[KEY_REWARDED_QUOTA] = RewardedPolicy.sanitize(raw if raw != null else "null", today)
 	else:
 		data[KEY_REWARDED_QUOTA] = RewardedPolicy.from_legacy(parsed.get(LEGACY_REWARDED_DATE),
 			parsed.get(LEGACY_REWARDED_GRANTS), today)

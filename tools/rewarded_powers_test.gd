@@ -260,6 +260,8 @@ func _migration() -> void:
 			"grants": {"bomb": 1}}}, [1, 2, 2, 2]],
 		["V3 bozuk blok (sürüm 9) → bugün kapalı", {"rewarded_power_quota": {"version": 9, "day_key": DAY, "grants": {}}},
 			[2, 2, 2, 2]],
+		["V3 anahtarı null (bozulma) → bugün kapalı, eski sayaç yok sayılır", {"rewarded_power_quota": null,
+			"rewarded_power_date": DAY, "rewarded_power_grants": 0}, [2, 2, 2, 2]],
 	]
 	for case in cases:
 		var bytes: PackedByteArray = _write_file(_legacy_save(case[1]))
@@ -360,6 +362,12 @@ func _end_to_end() -> void:
 	var req: Dictionary = m.request_info()
 	_c("İZLE → talep: tip Bomba + Main token'ı, SDK gösterimi 1", req["active"] and req["type"] == int(B)
 		and req["token"] == _main._refill_pending_token and fake.rewarded_shows.size() == 1)
+	var dough_before: int = SaveManager.dough()
+	refill._on_dough_pressed()
+	await _settle(1)
+	_c("talep açıkken Hamur düğmesi KİLİTLİ: satın alma yok, pencere ve token açık (geç ödül kapanmış pencereye düşemez)",
+		refill._dough.disabled and SaveManager.dough() == dough_before and SaveManager.powerup_count(B) == 0
+		and refill.visible and _main._refill_pending_token == req["token"])
 	var bytes0: PackedByteArray = FileAccess.get_file_as_bytes(PATH)
 	fake.emit_rewarded_showed(req["ad_id"])
 	fake.emit_rewarded_impression(req["ad_id"])
@@ -424,6 +432,8 @@ func _end_to_end() -> void:
 	_main._on_rewarded_power_requested(int(B))
 	await _settle(1)
 	_c("2/2 iken talep (UI + Main) SDK'ya gitmez", fake.rewarded_shows.size() == shows)
+	_c("kota sebebi TEK yerde: İZLE karosu 'Bugünlük bitti', altlık boş", refill.ad_note_text() == refill.NOTE_QUOTA_USED
+		and refill.note_text() == "")
 	_main._on_refill_closed()
 	await _settle(1)
 	# 5) Bağımsızlık: Bomba 2/2 iken Sarsıntı tam çalışır.
@@ -596,8 +606,10 @@ func _sources() -> void:
 	var medal_src: String = _code_only(FileAccess.get_file_as_string("res://scripts/ui/power_medallion.gd"))
 	_c("refill / HUD madalyonu KODUNDA (yorum hariç) '×' / 'STOK' stok biçimi yok", not refill_src.contains("×")
 		and not refill_src.contains("STOK") and not medal_src.contains("×"))
-	_c("Main'in kota notu pencereninkiyle aynı", _main_script.get_script_constant_map()["POWER_QUOTA_USED_NOTE"]
-		== load("res://scripts/ui/power_refill.gd").get_script_constant_map()["NOTE_QUOTA_USED"])
+	var dough_fn: String = main_src.get_slice("func _on_dough_refill_requested(", 1).get_slice("\nfunc ", 0)
+	_c("Hamur satın alması açık ödüllü talebi kapatır (token + sağlayıcı iptali, kapanıştan ÖNCE)",
+		dough_fn.find("_clear_refill_request()") >= 0 and dough_fn.find("_cancel_rewarded_request()") >= 0
+		and dough_fn.find("_cancel_rewarded_request()") < dough_fn.find("_finish_refill("))
 	_sections += 1
 
 

@@ -86,6 +86,8 @@ func _ready() -> void:
 	SaveManager.save_path = PATH
 	DailyRewards.clock_override = DAY
 	GameplayLayout.set_banner_height(_banner)
+	# Cihazdaki gibi gerçek banner yuvası da (pencereler `UiKit.bottom_inset` ile yuvanın üstüne oturur).
+	UiKit.set_banner_slot(_banner)
 	_showcase()
 	SaveManager.save_game()
 
@@ -103,6 +105,7 @@ func _ready() -> void:
 		_main.queue_free()
 		await get_tree().process_frame
 	GameplayLayout.set_banner_height(0.0)
+	UiKit.set_banner_slot(0.0)
 	DailyRewards.clock_override = ""
 	SaveManager.save_path = SaveManager.SAVE_PATH
 	SaveManager.data = _saved_data.duplicate(true)
