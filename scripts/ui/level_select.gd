@@ -19,9 +19,12 @@ extends CanvasLayer
 ##   GİRDİ   kendi küçük jest sahibi (`World`, MOUSE_FILTER_STOP; düğümler / portal PASS): dikey 14 px eşik geçilince
 ##           sürükleme başlar → `NOTIFICATION_SCROLL_BEGIN` yayılır → BaseButton basışı iptal eder (sürükleme level
 ##           BAŞLATMAZ); bırakışta savurma (sönümlü, sınırda durur, taşma yok). İptal edilen bırakış (ACTION_CANCEL)
-##           savurmaz. Ekran gizlenince / pencere açılınca / sekme değişince / oyun başlayınca / GERİ'de / odak kaybında
-##           jest iptal (`cancel_gesture`; Main `_sync_nav`'dan da çağırır). Düğüm basışlarının sahibi TASK/055
-##           GestureGuard (değişmedi).
+##           savurmaz. Savurma / kamera süzülmesi sürerken gelen dokunuş yalnız kamerayı DURDURUR (altındaki düğüm / portal
+##           başlamaz — "yakalama"). Ekran gizlenince / pencere açılınca / sekme değişince / oyun başlayınca / GERİ'de /
+##           odak kaybında jest iptal (`cancel_gesture`; Main `_sync_nav`'dan da çağırır). Düğüm basışlarının sahibi
+##           TASK/055 GestureGuard (değişmedi). Üst satırın pill'leri dokunuşu TUTAR (altlarına kayan düğüme dokunuş geçmez).
+##           Dinlenme konumunda (giriş odağı) kamera gerekirse birkaç piksel kayar ki hiçbir düğüm / plaka / portal üst
+##           satırın pill'lerinin altında yarım kalmasın (`_focus_target`).
 ##   DÜĞÜM   `MapLevelNode` (tek bileşen, beş durum); perspektif çap 84 → 72 × düğüm ölçeği; en küçük düğüm ≥ 84
 ##           (TOUCH_TARGET). Dokunma alanı gövde + plaka ("OYNA" kelimesi de düğümündür).
 ##   SONSUZ  kalede; kilitliyken kilit + "BÖLÜM 10" (kural aynı: Level 10 tamamlanınca), açıkken taç + SONSUZ (+ rekor).
@@ -34,7 +37,9 @@ extends CanvasLayer
 ## Koordinatlar DOKU uzayında (720×1280 harita zemini); `_map_to_world` dünya-yerel koordinata (dünya = kayan `World`
 ## kontrolü) taşır. Level verisi, unlock kuralı (`SaveManager.highest_level_unlocked`), yıldızlar, Sonsuz şartı
 ## (`is_endless_unlocked`), level başlatma yolu (`level_chosen` → main._start_level) ve kayıt DEĞİŞMEDİ — Harita
-## kaydı yalnız OKUR (kaydırma / gezinme kayda yazmaz).
+## ilerleme / ekonomi kaydına YAZMAZ, kaydırma / gezinme hiçbir şey yazmaz. Tek olası yazma, portalın meydan okuma gün
+## okumasının (`DailyChallenge.current_view` → TASK/047 monoton gün gözlemi, `last_seen_day_key`) yeni bir günü İLK kez
+## görmesidir — Ana Sayfa MEYDAN karosunun okumasıyla birebir aynı (açılış zaten gözlediği için pratikte yazmaz).
 
 signal level_chosen(level: LevelData)
 signal shop_requested
@@ -64,14 +69,16 @@ const ENDLESS_POSITION: Vector2 = Vector2(445.0, 150.0)
 ## TASK/059 MEYDAN portalı: sol pembe köprünün sol ucu (doku uzayı) — zeminin kendi yan yolu; WORLD_ZOOM'un yatay
 ## kırpmasında (görünen doku x ≈ 83..637) ekranda, hiçbir level düğümüne binmez.
 const PORTAL_POSITION: Vector2 = Vector2(176.0, 692.0)
-## Yan yol: ana patikanın 5→6 kesiminden (level düğümüne değil — portal ilerlemeye bağlı değil) köprü boyunca portala.
+## Yan yol: ana patikanın 5→6 kesiminin ORTASINDAN (Catmull-Rom t = 0.5 ≈ (355, 694); level düğümüne değil — portal
+## ilerlemeye bağlı değil) köprü boyunca portala; ana patikadan kalın, sıcak pembe boncuklu.
 const BRANCH_POINTS: Array[Vector2] = [
-	Vector2(352.0, 700.0),
-	Vector2(292.0, 709.0),
-	Vector2(232.0, 712.0),
+	Vector2(355.0, 694.0),
+	Vector2(300.0, 701.0),
+	Vector2(240.0, 708.0),
 ]
 const BRANCH_LINE: Color = Color(1.0, 0.95, 0.98, 1.0)
 const BRANCH_DOT: Color = Color(0.93, 0.30, 0.60, 1.0)
+const BRANCH_SCALE: float = 1.35
 ## Perspektif: düğüm çapı en alttaki düğümde 1.0, en üsttekinde DEPTH_MIN.
 const DEPTH_MIN: float = 0.86
 ## Sonsuz şartı — TASK/059 text-light: kilit ikonu + "BÖLÜM 10" (kural aynı; Ana Sayfa'nın "BÖLÜM" terimi).
@@ -129,6 +136,11 @@ const FLING_STOP_SPEED: float = 16.0
 const VELOCITY_WINDOW_MSEC: int = 90
 ## Masaüstü fare tekerleği adımı.
 const WHEEL_STEP: float = 90.0
+## Bu hızın (px/s) üstündeki savurmayı durduran dokunuş "yakalama"dır: altındaki düğüm / portal başlamaz.
+const FLING_CATCH_SPEED: float = 60.0
+## Dinlenme konumu düzeltmesinin en çok kaydırması (px) ve üst satır pill'lerinin çevresindeki pay.
+const FOCUS_NUDGE_MAX: float = 160.0
+const PILL_CLEARANCE: float = 4.0
 
 var _levels: Array[LevelData] = []
 ## Düğüm butonları, level sırasıyla (index 0 = level 1).
@@ -185,8 +197,9 @@ var _samples: Array[Vector2] = []
 var _user_moved: bool = false
 ## Ekran yeni görünür oldu: sıradaki `refresh` kamerayı odağa alır.
 var _entry_pending: bool = false
-## Test / inceleme sayaçları: başlayan sürükleme sayısı.
+## Test / inceleme sayaçları: başlayan sürükleme sayısı, savurma / süzülme yakalaması sayısı.
 var drag_count: int = 0
+var catch_count: int = 0
 
 @onready var _root: Control = $Root
 @onready var _clip: Control = $Root/WorldClip
@@ -230,9 +243,15 @@ func _ready() -> void:
 	# Toplam yıldız (yalnız gösterim, dokunma almaz — kaydırma üstünden de başlar): ⭐ + "N/30".
 	_stars_pill = UiKit.home_pill(STAR_ART, "0/0", false, ScreenTopBar.ROW_HEIGHT)
 	_stars_pill.name = "StarsPill"
+	# Sabit üst satır: pill'ler dokunuşu tutar — altlarına kayan düğüme / portala dokunuş geçmez (Hamur "+" kendi butonu).
+	_stars_pill.mouse_filter = Control.MOUSE_FILTER_STOP
+	_bar.pill().mouse_filter = Control.MOUSE_FILTER_STOP
+	# ...ama pill'in üstünden başlayan sürükleme dünyayı yine kaydırır (aynı jest sahibi; dokunuş düğüme geçmez).
+	_stars_pill.gui_input.connect(_on_world_input)
+	_bar.pill().gui_input.connect(_on_world_input)
 	_root.add_child(_stars_pill)
 	_stars_pill.minimum_size_changed.connect(_place_stars_pill)
-	_branch.set_branch_palette(BRANCH_LINE, BRANCH_DOT)
+	_branch.set_branch_palette(BRANCH_LINE, BRANCH_DOT, BRANCH_SCALE)
 	_portal = MapChallengePortal.new()
 	GestureGuard.on_pressed(_portal, _on_portal_pressed)
 	_portal_layer.add_child(_portal)
@@ -245,6 +264,9 @@ func _ready() -> void:
 	visibility_changed.connect(func() -> void:
 		set_process(visible)
 		cancel_gesture()
+		if not visible:
+			# Gizlenen haritanın açılış animasyonu (ses dahil) oyunun / pencerenin üstünde sürmez.
+			_kill_animations()
 		if visible:
 			_entry_pending = true
 			_user_moved = false
@@ -419,7 +441,7 @@ func _layout_portal() -> void:
 	var radii := PackedFloat32Array()
 	for p in BRANCH_POINTS:
 		points.append(_map_to_world(p))
-		radii.append(0.0)
+		radii.append(-10.0)
 	points.append(center)
 	radii.append(_portal.well_diameter() * 0.5)
 	_branch.set_trail(points, points.size() - 1, 0.0, radii)
@@ -572,6 +594,9 @@ func _on_world_input(event: InputEvent) -> void:
 
 
 func _begin_press(y: float) -> void:
+	# Savurma / kamera süzülmesi sürerken gelen dokunuş kamerayı yakalar: dünya parmağın altında kayarken başlamış bu basış
+	# bir düğümü / portalı ETKİNLEŞTİRMEZ (basış hemen iptal; parmak hareket ederse eşiksiz sürükleme sürer).
+	var catching: bool = absf(_velocity) > FLING_CATCH_SPEED or _scroll_running()
 	_kill_scroll_tween()
 	_velocity = 0.0
 	_press_active = true
@@ -580,6 +605,11 @@ func _begin_press(y: float) -> void:
 	_press_scroll = _scroll
 	_samples.clear()
 	_samples.append(Vector2(_now(), y))
+	if catching:
+		_dragging = true
+		_user_moved = true
+		catch_count += 1
+		_world.propagate_notification(Control.NOTIFICATION_SCROLL_BEGIN)
 
 
 func _drag_to(y: float) -> void:
@@ -593,7 +623,12 @@ func _drag_to(y: float) -> void:
 		_press_y = y
 		_press_scroll = _scroll
 		_world.propagate_notification(Control.NOTIFICATION_SCROLL_BEGIN)
-	_set_scroll(_press_scroll - (y - _press_y))
+	var desired: float = _press_scroll - (y - _press_y)
+	_set_scroll(desired)
+	if not is_equal_approx(desired, _scroll):
+		# Sınırda: parmak geri dönünce kamera hemen izlesin (sınırın ötesindeki "ölü" parmak yolu birikmez).
+		_press_y = y
+		_press_scroll = _scroll
 	var now: float = _now()
 	_samples.append(Vector2(now, y))
 	while _samples.size() > 2 and now - _samples[0].x > float(VELOCITY_WINDOW_MSEC) / 1000.0:
@@ -675,7 +710,61 @@ func _focus_camera() -> void:
 	if target == null and not _nodes.is_empty():
 		target = _nodes[0]
 	if target != null:
-		_set_scroll(_scroll_for(target))
+		_set_scroll(_focus_target(target))
+
+
+## Dinlenme konumu: odak düğümü bandın FOCUS_ANCHOR noktasında; bu konumda bir düğüm / plaka / kilit rozeti / portal üst
+## satırın pill'leriyle kesişiyorsa kamera en yakın ±FOCUS_NUDGE_MAX içinde kesişmeyen konuma kayar (odak düğümü ve portal
+## açık bantta kalır). Mümkün değilse (dünyanın ucu) anchor konumu kalır — kayan içerik zaten pill'lerin arkasındadır.
+func _focus_target(target: Control) -> float:
+	var base: float = _scroll_for(target)
+	if _rest_clear(base, target):
+		return base
+	var offset: float = 2.0
+	while offset <= FOCUS_NUDGE_MAX:
+		for c: float in [base - offset, base + offset]:
+			if c >= 0.0 and c <= _scroll_max and _rest_clear(c, target):
+				return c
+		offset += 2.0
+	return base
+
+
+func _rest_clear(c: float, focus: Control) -> bool:
+	var focus_rect: Rect2 = _layout_rect(focus)
+	focus_rect.position.y -= c
+	if focus_rect.position.y < _node_ceiling or focus_rect.end.y > _node_floor:
+		return false
+	var pills: Array[Rect2] = [_bar.pill().get_global_rect().grow(PILL_CLEARANCE),
+		_stars_pill.get_global_rect().grow(PILL_CLEARANCE)]
+	var targets: Array[Control] = []
+	targets.append_array(_nodes)
+	if _endless != null:
+		targets.append(_endless)
+	if _portal.visible:
+		targets.append(_portal)
+		var portal_rect: Rect2 = _layout_rect(_portal)
+		portal_rect.position.y -= c
+		if portal_rect.position.y < _bar.height() or portal_rect.end.y > _node_floor + FIT_MARGIN:
+			return false
+	for t in targets:
+		var rect: Rect2 = _layout_rect(t)
+		rect.position.y -= c
+		for pill in pills:
+			if rect.intersects(pill):
+				return false
+	return true
+
+
+## Ölçeksiz yerleşim dikdörtgeni (dünya-yerel): düğümde gövde + plaka + üstte kilit rozeti payı; portalda buton.
+func _layout_rect(target: Control) -> Rect2:
+	if target is MapLevelNode:
+		var node := target as MapLevelNode
+		var rect: Rect2 = node.layout_rect()
+		var rise: float = node.diameter() * ENDLESS_LOCK_RISE
+		rect.position.y -= rise
+		rect.size.y += rise
+		return rect
+	return Rect2(target.position, target.size)
 
 
 func _scroll_running() -> bool:
@@ -763,7 +852,7 @@ func _play_unlock(level_number: int) -> void:
 		return
 	var previous: Control = _nodes[index - 1] if index - 1 >= 0 and index - 1 < _nodes.size() else null
 	if previous != null:
-		var to: float = _scroll_for(target)
+		var to: float = _focus_target(target)
 		_set_scroll(_scroll_for(previous))
 		_kill_scroll_tween()
 		_scroll_tween = create_tween()
@@ -925,9 +1014,16 @@ func set_scroll(value: float) -> void:
 	_set_scroll(value)
 
 
-## Odak düğümünün kamera konumu (sınırlara kırpılmış).
+## Odak düğümünün dinlenme kamera konumu (sınırlara kırpılmış, üst satır pill düzeltmesi dahil).
 func focus_scroll() -> float:
-	return _scroll_for(_focus if _focus != null else (_nodes[0] if not _nodes.is_empty() else null))
+	var target: Control = _focus if _focus != null else (_nodes[0] if not _nodes.is_empty() else null)
+	return _focus_target(target) if target != null else _scroll
+
+
+## Kameranın `value` konumunda düğüm / portal üst satır pill'leriyle kesişmiyor mu (odak açık bantta) — testler.
+func rest_clear_at(value: float) -> bool:
+	var target: Control = _focus if _focus != null else (_nodes[0] if not _nodes.is_empty() else null)
+	return target != null and _rest_clear(value, target)
 
 
 ## Herhangi bir düğümün / portalın kamera konumu.

@@ -7,7 +7,10 @@ extends Button
 ## Anatomi (arkadan öne): erik temas gölgesi → pembe hale (nefes) → owner `badge_starburst` yıldız halkası (yavaş döner —
 ## level dairelerinden ve altın Sonsuz madalyonundan ayrı ŞEKİL) → pembe candy kuyu (`UiKit.candy_well`) içinde bugünün
 ## GERÇEK hedef dumpling'i (T5 / T6, `DailyChallenge.current_view`) → 2 pırıltı → altta pembe "MEYDAN" plakası → sağ üstte
-## durum rozeti: hazır "!" (`AttentionBadge` CLAIM) · bugün tamamlandı nane ✓.
+## durum çipi — Ana Sayfa MEYDAN karosuyla AYNI gerçek veri: bekliyor = altın Hamur ikonu + "+20" (ilk başarı ödülü,
+## `DailyChallenge.REWARD_DOUGH`); bugün tamamlandı = nane ✓ ve portal sakinleşir (yıldız halkası durur, hale / pırıltı
+## söner — pencere yine açılır, tamamlandı görünümünü gösterir). "!" (AttentionBadge CLAIM = alınacak ödül) KULLANILMAZ:
+## meydan okuma ödülü talep edilmez, oynanarak kazanılır.
 ##
 ## Veri YAZMAZ; durum çağırandan (`setup`). Sahte süre / ödül / deneme sayısı GÖSTERMEZ. Dokunma alanı madalyon +
 ## plaka (kelimeye dokunuş da çalışır — TASK/058 Günlük plakası dersi); `MOUSE_FILTER_PASS`: harita kaydırması portalın
@@ -42,7 +45,8 @@ var _burst: TextureRect
 var _well: Control
 var _plaque: Control
 var _plaque_label: Label
-var _claim: AttentionBadge
+var _reward: PanelContainer
+var _reward_label: Label
 var _done: Control
 var _sparkles: Array[TextureRect] = []
 
@@ -71,8 +75,8 @@ func _init() -> void:
 		add_child(spark)
 		_sparkles.append(spark)
 	_build_plaque()
-	_claim = AttentionBadge.new()
-	add_child(_claim)
+	_reward = _build_reward_chip()
+	add_child(_reward)
 	_done = _build_done_badge()
 	add_child(_done)
 	UiMotion.attach_press(self)
@@ -116,6 +120,32 @@ func _build_plaque() -> void:
 	_plaque_label.add_theme_font_size_override("font_size", PLAQUE_FONT)
 	_plaque_label.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	_plaque.add_child(_plaque_label)
+
+
+## Bekleyen ödül çipi: Ana Sayfa MEYDAN karosunun altın "+20" çipiyle aynı dil (V3 çip, Hamur ikonu + Baloo rozet yazısı).
+func _build_reward_chip() -> PanelContainer:
+	var chip := PanelContainer.new()
+	chip.name = "RewardChip"
+	chip.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var box := UiKit.v3_chip(UiTokens.GOLD, 2)
+	box.content_margin_left = 7.0
+	box.content_margin_right = 9.0
+	chip.add_theme_stylebox_override("panel", box)
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", UiTokens.SPACE_XS)
+	row.alignment = BoxContainer.ALIGNMENT_CENTER
+	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	chip.add_child(row)
+	var icon := UiKit.art(UiIcons.DOUGH, 20)
+	icon.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
+	icon.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	row.add_child(icon)
+	_reward_label = UiType.v3_label("+%d" % DailyChallenge.REWARD_DOUGH, UiType.V3_BADGE, true,
+		HORIZONTAL_ALIGNMENT_CENTER, 17)
+	_reward_label.add_theme_color_override("font_color", UiTokens.TEXT_ON_ACCENT)
+	row.add_child(_reward_label)
+	chip.minimum_size_changed.connect(_place_badges)
+	return chip
 
 
 ## Tamamlandı rozeti: nane daire + beyaz tik ikonu (glif değil — §12 font kapsamı).
@@ -171,11 +201,11 @@ func label_text() -> String:
 	return _plaque_label.text
 
 
-## "!" (hazır) ya da "✓" (tamam) — test / inceleme.
+## "+20" (bekliyor — gerçek ilk başarı ödülü) ya da "✓" (tamam) — test / inceleme.
 func status_text() -> String:
 	if _done.visible:
 		return "✓"
-	return _claim.text()
+	return _reward_label.text if _reward.visible else ""
 
 
 func art_texture() -> Texture2D:
@@ -200,11 +230,13 @@ func plaque_rect() -> Rect2:
 func _apply_state() -> void:
 	var picture: TextureRect = _well.get_meta(&"art")
 	picture.texture = DUMPLING_VISUAL.TEXTURES[_target_tier - 1]
-	if _completed:
-		_claim.clear()
-	else:
-		_claim.show_claim()
+	_reward.visible = not _completed
 	_done.visible = _completed
+	# Tamamlanınca sakin: yıldız halkası durur, hale ve pırıltılar söner (dikkat çağıracak bir şey kalmadı).
+	_glow.visible = not _completed
+	for spark in _sparkles:
+		spark.visible = not _completed
+	_burst.self_modulate = Color(1, 1, 1, 0.82) if _completed else Color.WHITE
 	_place_badges()
 
 
@@ -252,7 +284,10 @@ func _place_badges() -> void:
 	var d: float = _well_d
 	var burst: float = d * BURST_SCALE
 	var corner := Vector2(burst * 0.5 + d * 0.38, burst * 0.5 - d * 0.38)
-	_claim.place_at(corner)
+	if _reward != null:
+		var chip: Vector2 = _reward.get_combined_minimum_size()
+		_reward.size = chip
+		_reward.position = corner - Vector2(chip.x * 0.35, chip.y * 0.5)
 	var box: float = 34.0
 	_place(_done, corner.x - box * 0.5, corner.y - box * 0.5, corner.x + box * 0.5, corner.y + box * 0.5)
 	var check: Control = _done.get_meta(&"check")
@@ -281,6 +316,8 @@ func _notification(what: int) -> void:
 ## Yıldız halkası yavaş döner, hale nefes alır, pırıltılar sönümlenir (sinüs; RNG yok).
 func _process(delta: float) -> void:
 	_time += delta
+	if _completed:
+		return
 	_burst.rotation = TAU * fmod(_time, SPIN_PERIOD) / SPIN_PERIOD
 	var breath: float = 0.5 + 0.5 * sin(TAU * _time / BREATH_PERIOD)
 	_glow.self_modulate.a = 0.40 + 0.30 * breath

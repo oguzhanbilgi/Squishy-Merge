@@ -39,6 +39,8 @@ var _done: int = 0
 var _branch_line: Color = DONE_COLOR
 var _branch_dot: Color = DONE_DOT
 var _branch: bool = false
+## Yan yolun çizgi / nokta / gölge ölçeği (ana patika 1.0).
+var _scale: float = 1.0
 ## `done` indeksli segmentin ne kadarı yanmış (0..1). Açılış animasyonu.
 var lit: float = 0.0:
 	set(value):
@@ -60,11 +62,12 @@ func set_done(done_segments: int) -> void:
 	queue_redraw()
 
 
-## Yan yol (MEYDAN): her segment `line` / `dot` renginde çizilir.
-func set_branch_palette(line: Color, dot: Color) -> void:
+## Yan yol (MEYDAN): her segment `line` / `dot` renginde, `scale` kalınlığında çizilir.
+func set_branch_palette(line: Color, dot: Color, scale: float = 1.0) -> void:
 	_branch = true
 	_branch_line = line
 	_branch_dot = dot
+	_scale = maxf(scale, 0.5)
 	queue_redraw()
 
 
@@ -92,13 +95,13 @@ func _draw() -> void:
 		var shifted := PackedVector2Array()
 		for point in poly:
 			shifted.append(point + Vector2(0.0, 2.0))
-		draw_polyline(shifted, SHADOW_COLOR, SHADOW_WIDTH, true)
+		draw_polyline(shifted, SHADOW_COLOR, SHADOW_WIDTH * _scale, true)
 	for i in polys.size():
 		var poly: PackedVector2Array = polys[i]
 		var done: bool = i < _done
 		var partial: float = lit if i == _done else 0.0
 		if done:
-			draw_polyline(poly, _branch_line if _branch else DONE_COLOR, LINE_WIDTH, true)
+			draw_polyline(poly, _branch_line if _branch else DONE_COLOR, LINE_WIDTH * _scale, true)
 		else:
 			draw_polyline(poly, FUTURE_COLOR, LINE_WIDTH, true)
 			if partial > 0.0:
@@ -123,10 +126,11 @@ func _draw_dots(poly: PackedVector2Array, done: bool, partial: float,
 	while d < total - end_skip:
 		var at: Vector2 = _point_at(poly, lengths, d)
 		var warm: bool = done or d <= lit_len
-		draw_circle(at + Vector2(0, 2.0), DOT_RADIUS + 1.4, SHADOW_COLOR)
-		draw_circle(at, DOT_RADIUS, (_branch_dot if _branch else DONE_DOT) if warm else FUTURE_DOT)
+		var r: float = DOT_RADIUS * _scale
+		draw_circle(at + Vector2(0, 2.0), r + 1.4, SHADOW_COLOR)
+		draw_circle(at, r, (_branch_dot if _branch else DONE_DOT) if warm else FUTURE_DOT)
 		# Tepe ışığı: küçük beyaz nokta (candy).
-		draw_circle(at + Vector2(-1.2, -1.4), DOT_RADIUS * 0.36,
+		draw_circle(at + Vector2(-1.2, -1.4) * _scale, r * 0.36,
 			DOT_LIGHT if warm else Color(1, 1, 1, 0.5))
 		d += DOT_SPACING
 
