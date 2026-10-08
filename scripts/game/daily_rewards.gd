@@ -9,7 +9,7 @@ extends RefCounted
 ##   ÜCRETSİZ SANDIK     günde 1, reklam yok            → claim_free_chest()
 ##   REKLAMLI SANDIK     günde 2 BAŞARILI ödül          → grant_ad_chest()
 ##   REKLAMLI +150 HAMUR günde 1 BAŞARILI ödül          → grant_ad_dough()
-## Mevcut ödüllü güç refill'i (RewardedPolicy, 1/gün dört gücün toplamı) ve
+## Mevcut ödüllü güç refill'i (RewardedPolicy, TASK/060: güç başına 2/gün) ve
 ## devam hakkı (2/round, board) bunlardan TAMAMEN bağımsızdır.
 ##
 ## Reklamlı ödüller YALNIZ SDK'nın "ödül kazanıldı" callback'iyle

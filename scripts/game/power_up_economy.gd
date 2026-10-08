@@ -9,7 +9,7 @@ extends RefCounted
 ## Güç edinme yolları (GAME_DESIGN.md §5.7):
 ##   1. Başlangıç hediyesi — kayıt başına BİR KEZ her güçten ×1 (§10.1)
 ##   2. Hamur ile satın alma — BU DOSYA
-##   3. Ödüllü reklam ile sınırlı refill — HENÜZ YOK, bkz. §5.7.3
+##   3. Ödüllü reklam ile sınırlı refill — RewardedPolicy (stok 0 penceresi; TASK/060: güç başına 2/gün), §5.7.3
 ##   4. Gerçek para Power Pack — HENÜZ YOK, bkz. §5.7.4
 ##
 ## Revive AYRI bir sistemdir (§11): Hamurla satın alınmaz ve güç envanteri

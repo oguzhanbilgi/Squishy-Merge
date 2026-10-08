@@ -46,6 +46,11 @@ const SAFE_INT_LIMIT: float = 9.0e18
 
 var data: Dictionary = {}
 
+## Ödüllü güç kotası bloğu (TASK/060) ve göç eden eski M8.5-06 anahtarları.
+const KEY_REWARDED_QUOTA: String = "rewarded_power_quota"
+const LEGACY_REWARDED_DATE: String = "rewarded_power_date"
+const LEGACY_REWARDED_GRANTS: String = "rewarded_power_grants"
+
 const DEFAULT_DATA: Dictionary = {
 	"highest_level_unlocked": 1,
 	"level_stars": {},
@@ -103,12 +108,11 @@ const DEFAULT_DATA: Dictionary = {
 	"powerups": {},
 	## Başlangıç hediyesi verildi mi? Kayıt başına tek sefer.
 	"powerup_starter_granted": false,
-	## Ödüllü güç refill kotası (M8.5-06). Günlük giriş ödülüyle aynı desen:
-	## tarih + sayaç. Eski kayıtlarda bu anahtarlar yok; load_game
-	## DEFAULT_DATA üzerine yazdığı için otomatik olarak "" / 0 kalıyor
-	## (geriye dönük uyumlu, kimse hak kaybetmiyor).
-	"rewarded_power_date": "",
-	"rewarded_power_grants": 0,
+	## Ödüllü güç refill kotası (TASK/060 — Issue #1 §3): güç BAŞINA günde 2 başarılı ödül, dört bağımsız sayaç.
+	## Sürümlü blok {"version", "day_key", "grants": {PowerUp.SAVE_KEYS → 0..2}} — kurallar RewardedPolicy'de.
+	## Eski M8.5-06 ortak sayacı (`rewarded_power_date` + tek sayı `rewarded_power_grants`) yüklemede BELLEKTE
+	## bu bloğa göç eder ve düşer (`_migrate_rewarded_power_quota`; okumada disk yazması yok).
+	"rewarded_power_quota": {"version": 1, "day_key": "", "grants": {}},
 	## Ayarlar (M8.5-10). Ses efektleri açık mı? Eski kayıtlarda anahtar yok,
 	## load_game DEFAULT_DATA üzerine yazdığı için otomatik true kalıyor.
 	"sfx_enabled": true,
@@ -220,6 +224,7 @@ func load_game() -> void:
 	_migrate_player_meta(parsed)
 	_migrate_missions(parsed)
 	_migrate_daily_challenge(parsed)
+	_migrate_rewarded_power_quota(parsed)
 	_grant_starter_powerups()
 	# A36 kapısı: kanonik ad boşken SaveFile `.bak`'ı kanonik ada KOPYALAR — kopya eski bandı
 	# taşır ve bir sonraki açılış onu geçerli kanonik diye okurdu (yaş sorusunda çıkan oyuncuda
@@ -350,6 +355,22 @@ func _migrate_missions(parsed: Dictionary) -> void:
 ## bellekte (diğer göçlerle aynı ilke: sonraki doğal kayıt kalıcılaştırır).
 func _migrate_daily_challenge(parsed: Dictionary) -> void:
 	data["daily_challenge"] = DailyChallenge.sanitize(parsed.get("daily_challenge"))
+
+
+## Ödüllü güç kotası (TASK/060): güç başına blok varsa doğrulanır (V3 önceliklidir; bozuk blok bugün için kapalı —
+## RewardedPolicy.sanitize). Yoksa eski M8.5-06 ortak sayacı muhafazakâr göçle aktarılır (RewardedPolicy.from_legacy:
+## eski tarih bugünse dört sayaç da eski kullanımla — 0..1 — başlar, değilse 0). Eski iki anahtar bellekten düşer.
+## YALNIZ bellekte (diğer göçlerle aynı ilke: sonraki doğal kayıt kalıcılaştırır; yazılmadan kapanırsa bir sonraki
+## açılışta aynı sonuç). Stok / Hamur / level / yıldız ve diğer alanlara dokunmaz.
+func _migrate_rewarded_power_quota(parsed: Dictionary) -> void:
+	var today: String = Missions.accepted_day()
+	if parsed.has(KEY_REWARDED_QUOTA):
+		data[KEY_REWARDED_QUOTA] = RewardedPolicy.sanitize(parsed[KEY_REWARDED_QUOTA], today)
+	else:
+		data[KEY_REWARDED_QUOTA] = RewardedPolicy.from_legacy(parsed.get(LEGACY_REWARDED_DATE),
+			parsed.get(LEGACY_REWARDED_GRANTS), today)
+	data.erase(LEGACY_REWARDED_DATE)
+	data.erase(LEGACY_REWARDED_GRANTS)
 
 
 ## Kayıtta oynanmışlık kanıtı var mı (onboarding migration kuralı).
@@ -971,39 +992,42 @@ func purchase_powerup_with_dough(type: PowerUp.Type, amount: int = 1) -> bool:
 	return true
 
 
-## Bugün kaç ödüllü güç refill'i verildi.
+## Bugün BU güç için kaç başarılı ödüllü refill verildi (TASK/060: güç başına sayaç).
 ##
-## Tarih değiştiyse 0 döner ve KAYDA YAZMAZ: okuma sırasında beklenmedik
-## disk yazması olmasın (profile_showcase ile aynı yaklaşım). Kalıcı sıfırlama
-## bir sonraki grant'te yapılıyor.
-func rewarded_power_grants_today(today: String) -> int:
-	if String(data.get("rewarded_power_date", "")) != today:
-		return 0
-	return int(data.get("rewarded_power_grants", 0))
+## Gün değiştiyse 0 döner ve KAYDA YAZMAZ: okuma sırasında beklenmedik disk yazması olmasın (profile_showcase ile
+## aynı yaklaşım). Kalıcı sıfırlama bir sonraki başarılı grant'te. Bozuk blok / sayaç → kapalı (RewardedPolicy).
+func rewarded_power_grants_today(type: PowerUp.Type, today: String) -> int:
+	if not PowerUp.is_valid_type(type):
+		return RewardedPolicy.DAILY_GRANTS_PER_POWER
+	return RewardedPolicy.used_today(data.get(KEY_REWARDED_QUOTA), type, today)
 
 
-## Ödüllü reklam ödülü: +1 güç ve kotadan bir düşüş, TEK transaction.
+## Kayıttaki kota bloğunun doğrulanmış kopyası (testler / teşhis; yazmaz).
+func rewarded_power_quota() -> Dictionary:
+	var block: Variant = data.get(KEY_REWARDED_QUOTA)
+	return (block as Dictionary).duplicate(true) if block is Dictionary else {}
+
+
+## Ödüllü reklam ödülü (TASK/060): YALNIZ bu güçten +1 ve YALNIZ bu gücün bugünkü sayacı +1 (+ gün), TEK transaction.
 ##
-## Kota kontrolü BURADA yapılıyor (çağıranın ayrıca kontrol etmesine
-## güvenilmiyor) — böylece stale/duplicate bir callback kota dolmuşken
-## stok veremez.
+## Kota kontrolü BURADA yapılıyor (çağıranın ayrıca kontrol etmesine güvenilmiyor) — stale / duplicate bir callback
+## kota dolmuşken stok veremez; bir gücün dolu kotası diğer güçleri etkilemez.
 ##
-## Dönüş: verildiyse true. Kota dolmuşsa ya da tip geçersizse hiçbir alan
-## değişmez ve diske yazma da olmaz.
+## Dönüş: verildiyse true. O gücün kotası doluysa, gün belirsizse ya da tip geçersizse hiçbir alan değişmez ve diske
+## yazma da olmaz.
 func grant_rewarded_powerup(type: PowerUp.Type, today: String) -> bool:
 	if not PowerUp.is_valid_type(type):
 		return false
-	var used: int = rewarded_power_grants_today(today)
-	if used >= RewardedPolicy.DAILY_POWER_REFILLS:
+	var next: Dictionary = RewardedPolicy.after_grant(data.get(KEY_REWARDED_QUOTA), type, today)
+	if next.is_empty():
 		return false
 
-	# Üç mutasyon, tek yazma.
+	# İki mutasyon (stok + kota bloğu), tek yazma.
 	var stock: Dictionary = _powerup_stock().duplicate()
 	var key: String = PowerUp.save_key(type)
 	stock[key] = int(stock.get(key, 0)) + 1
 	data["powerups"] = stock
-	data["rewarded_power_date"] = today
-	data["rewarded_power_grants"] = used + 1
+	data[KEY_REWARDED_QUOTA] = next
 	save_game()
 	return true
 

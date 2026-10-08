@@ -138,6 +138,8 @@ var quit_requests: int = 0
 ##   - eski/iptal edilmiş bir talebin callback'i eşleşmez (stale grant yok)
 ##   - başka bir güç için gelen callback tip kontrolüne takılır
 var _refill_token: int = 0
+## TASK/060: bu gücün bugünkü ödüllü hakkı dolu (talep anı / yarış) — pencerenin kısa notu ile aynı metin.
+const POWER_QUOTA_USED_NOTE: String = "Bugünlük bitti — yarın yenilenir."
 var _refill_pending_token: int = 0
 var _refill_pending_type: int = -1
 ## --- Günlük reklamlı ödül talebi (M8.9-02) — refill token deseninin aynısı ---
@@ -1709,7 +1711,7 @@ func set_rewarded_provider(provider: Object) -> void:
 # Sorumluluk dağılımı:
 #   GameBoard   : oyunu dondurma, niyeti hatırlama, çözülme
 #   PowerRefill : pencere ve iki CTA; STOK VERMEZ, yalnızca talep yayar
-#   RewardedPolicy : günlük kota + tek transaction grant
+#   RewardedPolicy : güç BAŞINA günlük kota (TASK/060: 2/gün, dört bağımsız sayaç) + tek transaction grant
 #   Main (bu)   : hepsini bağlayan sağlayıcı kancası ve token güvenliği
 #
 # INVARIANT: ödüllü stok YALNIZCA `grant_rewarded_power()` ile verilir ve bu
@@ -1732,6 +1734,9 @@ func _on_power_refill_offered(type: int) -> void:
 		return
 	_clear_refill_request()
 	_refill.show_refill(type as PowerUp.Type, _power_provider_ready(), _provider_note())
+	# TASK/060: Ayarlar / Günlük / GÖREVLER / MEYDAN OKUMA pencereleriyle aynı 300 ms parmak yatışması — stok 0 güce
+	# hızlı çift dokunuşun ikincisi yeni açılan pencerenin karartmasına düşüp onu anında KAPATMASIN.
+	settle_touch_input()
 	_ensure_rewarded()
 
 
@@ -1743,11 +1748,10 @@ func _on_power_refill_offered(type: int) -> void:
 func _on_rewarded_power_requested(type: int) -> void:
 	if not PowerUp.is_valid_type(type):
 		return
-	# Kota kontrolü talep anında da yapılıyor: buton zaten pasif olmalı ama
+	# Kota kontrolü talep anında da yapılıyor (yalnız BU gücün kotası — TASK/060): buton zaten pasif olmalı ama
 	# tek savunma hattı UI olmasın.
-	if not RewardedPolicy.can_grant():
-		notify_power_rewarded_unavailable(
-			"Bugünkü reklam hakkın doldu, yarın yenilenir.")
+	if not RewardedPolicy.can_grant(type as PowerUp.Type):
+		notify_power_rewarded_unavailable(POWER_QUOTA_USED_NOTE)
 		return
 
 	# Yeni talep = yeni token. Önceki talebin callback'i artık geçersiz.
@@ -1782,12 +1786,11 @@ func grant_rewarded_power(type: int, token: int) -> bool:
 	_clear_refill_request()
 
 	if not RewardedPolicy.grant(type as PowerUp.Type):
-		# Kota dolmuş (yarış durumu): stok verilmedi, pencere açık kalıyor.
-		notify_power_rewarded_unavailable(
-			"Bugünkü reklam hakkın doldu, yarın yenilenir.")
+		# Bu gücün kotası dolmuş (yarış durumu): stok verilmedi, pencere açık kalıyor.
+		notify_power_rewarded_unavailable(POWER_QUOTA_USED_NOTE)
 		return false
 
-	_finish_refill(type as PowerUp.Type, "%s ×1 kazandın!")
+	_finish_refill(type as PowerUp.Type, "+1 %s kazandın!")
 	return true
 
 
@@ -1803,7 +1806,7 @@ func _on_dough_refill_requested(type: int) -> void:
 		_refill.show_unavailable("Hamur yetmiyor (%d Hamur'un var)."
 			% SaveManager.dough(), _power_provider_ready(), _provider_note())
 		return
-	_finish_refill(type as PowerUp.Type, "%s ×1 alındı!")
+	_finish_refill(type as PowerUp.Type, "+1 %s alındı!")
 
 
 ## Refill başarılı: pencereyi kapat, oyunu sürdür ve oyuncunun ilk
@@ -1813,6 +1816,9 @@ func _finish_refill(type: PowerUp.Type, message: String) -> void:
 	AudioManager.play(&"ui_purchase")
 	Haptics.medium()
 	_refill.hide_refill()
+	# TASK/060: Hamur düğmesine çift dokunuşun ikincisi kapanan pencerenin altındaki board'a düşüp yeniden açılan
+	# hedeflemeyle (Bomba / Büyütücü) gücü İSTEMEDEN kullanmasın / parça bırakmasın — mevcut 300 ms yatışma.
+	settle_touch_input()
 	if _board != null and is_instance_valid(_board):
 		_board.exit_refill_pending(true)
 	print_verbose(message % PowerUp.display_name(type))
@@ -1831,6 +1837,8 @@ func _on_refill_closed() -> void:
 	_clear_refill_request()
 	_cancel_rewarded_request()
 	_refill.hide_refill()
+	# TASK/060: KAPAT / X'e çift dokunuşun ikincisi alttaki board'a bırakış olarak düşmesin (mevcut 300 ms yatışma).
+	settle_touch_input()
 	if _board != null and is_instance_valid(_board):
 		_board.exit_refill_pending(false)
 

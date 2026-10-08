@@ -24,7 +24,7 @@ extends Node
 ## DAILY_REWARDS.md) burada DEĞİŞMEZ:
 ##   - devam hakkı yalnız `Main.grant_revive()` ile (round başına 2, board sayar)
 ##   - ödüllü refill yalnız `Main.grant_rewarded_power(type, token)` ile
-##     (günde 1, dört gücün toplamı; kotayı RewardedPolicy tüketir)
+##     (TASK/060: güç başına günde 2, dört bağımsız sayaç; kotayı RewardedPolicy tüketir)
 ##   - günlük reklamlı sandık / Hamur yalnız `Main.grant_daily_chest(day_key,
 ##     token)` / `Main.grant_daily_dough(day_key, token)` ile (günde 2 / 1;
 ##     kotayı DailyRewards tüketir)

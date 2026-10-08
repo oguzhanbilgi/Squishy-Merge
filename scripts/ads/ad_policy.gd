@@ -22,7 +22,8 @@ extends RefCounted
 ## durdurmaz (gösterimi durdurur).
 ##
 ## ÖDÜLLÜ KOTALAR — tek kaynakları DEĞİŞMEDİ, burada yalnız okunur (kopya sayı YOK; `rewarded_caps()`):
-##   devam GameBoard.MAX_REVIVES_PER_ROUND · güç refill'i RewardedPolicy.DAILY_POWER_REFILLS (dört gücün toplamı) ·
+##   devam GameBoard.MAX_REVIVES_PER_ROUND · güç refill'i RewardedPolicy.DAILY_GRANTS_PER_POWER (TASK/060: güç BAŞINA,
+##   dört bağımsız sayaç) ·
 ##   reklamlı sandık DailyRewards.AD_CHESTS_PER_DAY · reklamlı +Hamur DailyRewards.AD_DOUGH_PER_DAY. Hepsi YALNIZ SDK'nın
 ##   "ödül kazanıldı" geri çağrısıyla tüketilir; ödüllü reklam her zaman oyuncunun açık seçimidir (CTA), kendiliğinden
 ##   açılmaz.
@@ -61,7 +62,8 @@ static func rewarded_caps() -> Dictionary:
 	var board: GDScript = load(GAME_BOARD_SCRIPT)
 	return {
 		"revive_per_round": int(board.get_script_constant_map()["MAX_REVIVES_PER_ROUND"]),
-		"power_refill_per_day": RewardedPolicy.DAILY_POWER_REFILLS,
+		"power_refill_per_power_per_day": RewardedPolicy.DAILY_GRANTS_PER_POWER,
+		"power_kinds": PowerUp.all().size(),
 		"ad_chest_per_day": DailyRewards.AD_CHESTS_PER_DAY,
 		"ad_dough_per_day": DailyRewards.AD_DOUGH_PER_DAY,
 		"ad_dough_amount": DailyRewards.AD_DOUGH_AMOUNT,
