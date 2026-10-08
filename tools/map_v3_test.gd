@@ -169,6 +169,16 @@ func _check_geometry(map: CanvasLayer, tag: String, safe_top: float) -> void:
 		var center: Vector2 = world_origin + node.position + Vector2(node.diameter(), node.diameter()) * 0.5
 		path_ok = path_ok and center.distance_to(drawn) < 0.75
 	_c("%s: 10 düğüm + Sonsuz ÇİZİLEN zeminin patika noktalarında (zemin dikdörtgeninden türetilmiş)" % tag, path_ok)
+	# D3: kilitli kale şartı tek eylem "10'U BİTİR" (kilit ikonuyla); plaka okunur boyda (15 px, küçültülmedi), yazı plakaya
+	# sığar (kırpma yok), ekranda ve kale + level 10 ile çakışmaz.
+	var castle_node: MapLevelNode = map.endless_node()
+	var plaque_label: Label = castle_node._plaque_label
+	var label_fits: bool = plaque_label.get_combined_minimum_size().x <= castle_node._plaque_body.size.x + 0.5 \
+		and castle_node._plaque_lock.visible and plaque_label.get_theme_font_size("font_size") >= 15
+	var plaque_rect: Rect2 = castle_node.plaque_rect()
+	_c("%s: kilitli kale plakası kilit + '10'U BİTİR', 15 px, sığıyor, ekranda, level 10 ile çakışmıyor" % tag,
+		castle_node.plaque_text() == "10'U BİTİR" and label_fits and plaque_rect.position.x >= 0.0 and plaque_rect.end.x <= 720.0
+		and not plaque_rect.intersects(map.nodes()[9].get_global_rect()))
 	# Odak: girişte sıradaki level (5) düğüme açık bantta.
 	var focus: MapLevelNode = map.focus_node()
 	_c("%s: girişte kamera odakta (level 5), odak düğümü + OYNA açık bantta" % tag, focus == map.nodes()[4]
@@ -723,7 +733,8 @@ func _contract() -> void:
 		texts.append(label.text)
 		var words: int = 0
 		for token in label.text.split(" ", false):
-			if not token.is_valid_int() and token.length() > 1:
+			# Rakamla başlayan belirteç sayıdır ("10'U" — ekli sayı); "!" gibi tek karakter sayılmaz.
+			if not token.left(1).is_valid_int() and token.length() > 1:
 				words += 1
 		if words > 1:
 			wordy += " '%s'" % label.text

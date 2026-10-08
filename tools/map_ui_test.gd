@@ -122,9 +122,9 @@ func _ready() -> void:
 	_refresh(map)
 	await get_tree().process_frame
 	_check_states(map, 4, {"1": 2, "2": 3, "3": 3})
-	_c("Sonsuz kilitli, plaka kilit + 'BÖLÜM 10' (TASK/059 text-light; kural aynı)", map.endless_node().is_locked()
-		and map.endless_node().state() == MapLevelNode.State.ENDLESS_LOCKED
-		and map.endless_node().plaque_text() == "BÖLÜM 10" and map.endless_node()._plaque_lock.visible)
+	_c("Sonsuz kilitli, plaka kilit + '10'U BİTİR' (TASK/059 D3: tek eylem — level 10'u bitir; kural aynı)",
+		map.endless_node().is_locked() and map.endless_node().state() == MapLevelNode.State.ENDLESS_LOCKED
+		and map.endless_node().plaque_text() == "10'U BİTİR" and map.endless_node()._plaque_lock.visible)
 	_c("odak = level 4, hale görünür, plaka 'OYNA'", map.focus_node() == map.nodes()[3]
 		and map.nodes()[3].is_focused() and map.nodes()[3]._halo.visible and map.nodes()[3].plaque_text() == "OYNA")
 	_c("yıldızlar kayıttan: 2/3/3", map.nodes()[0].stars() == 2 and map.nodes()[1].stars() == 3 and map.nodes()[2].stars() == 3)
