@@ -151,7 +151,10 @@ alınacak — şimdi tahmin/vaat yok.
   KONTROLÜ.** Engellemeyen not: banner yuvası hiç yokken kabuk tepsisi ekran altına ~12 fiziksel px yakın (TASK/057 kabuk kodu
   — TASK/064). Dal-aşaması inceleme turları (görsel aday `6e88368`, K9 adayı `6de0410` — gate3 + A36 GEÇTİ, K10 text-light)
   TARİHSEL: PROJECT_STATUS §4.38, UI_VISUAL_SYSTEM §28 / §29.
-- **TASK/059 — Harita V3 — DAL AŞAMASI, SON ADAY (gerçek A36 GEÇTİ; owner son onayı bekliyor, main'de DEĞİL)** — son tur
+- **TASK/059 — Harita V3 — DAL AŞAMASI, SON ADAY (gerçek A36 GEÇTİ; owner son onayı bekliyor, main'de DEĞİL)** — owner
+  görsel tasarımı ONAYLADI (merge onayı değil); owner'ın QA uygulamasındaki "5–10 da girilebilir" gözlemi masaüstünde
+  AÇIKLANDI: QA sürücüsünün (`tools/ads_device.gd`) her soğuk açılışta QA kaydına yazdığı vitrin ön ayarı (en yüksek 11,
+  yıldız yalnız 1–3); üretim kilidi sağlam (en yüksek 4 → 5–10 + kale 0 level; PROJECT_STATUS §4.39). Son tur
   (2026-10-08): owner D1–D7 yanıtı uygulandı (D3 kilitli kale "10'U BİTİR"; D1 GAME_DESIGN §5.11 yalnız ifade, kural değişmedi;
   D2 / D4 / D5 / D6 kabul; D7 kapsam dışı); son tam masaüstü kapısı (`c1c58a9`) 57 / 57 temiz, 7451 kontrol, 0 FAIL, 0 SCRIPT
   ERROR, bot 2/2; **gerçek Samsung A36 Harita kapısı GEÇTİ** (QA paketi `.qa`, APK `c1c58a9`'den; sürükleme / savurma yakalama /
@@ -1285,7 +1288,8 @@ GEÇTİ; owner A36 elle denemesi → **K10 TEXT-LIGHT / ICON-FIRST** uygulandı,
 MAIN** (`7025bd4` + bu doküman eşitlemesi) — §4.38.
 ~~**Şimdiki adım:** **TASK/059 Harita V3** — YENİ bir Claude oturumunda, owner başlatınca (BAŞLAMADI).~~ → başladı.
 ~~**Şimdiki adım:** owner TASK/059 görsel incelemesi~~ → görsel yön güçlü bulundu (ChatGPT), D1–D7 yanıtlandı ve uygulandı,
-gerçek A36 kapısı GEÇTİ. **Şimdiki adım:** owner **TASK/059 son onayı** (`build/qa_059_owner_review/TASK059_OWNER_REVIEW.zip`;
+gerçek A36 kapısı GEÇTİ; owner görsel tasarımı onayladı, QA kilit gözlemi açıklandı (QA-only vitrin ön ayarı, §4.39).
+**Şimdiki adım:** owner **TASK/059 son onayı** (`build/qa_059_owner_review/TASK059_OWNER_REVIEW.zip`;
 dal `task/059-map-v3`, main'de DEĞİL, DO NOT MERGE) → onaylanırsa ff-only main entegrasyonu + doküman eşitlemesi (ayrı adım).
 Sonraki sahiplik:
 TASK/059 Harita · TASK/060 ödüllü güçler (+ oyun HUD V3) · TASK/061 Görevler ödül alma / devir · TASK/062 Mağaza / Başlangıç
