@@ -1,6 +1,6 @@
 # PROJECT_STATUS.md — Squishy Merge, tam proje raporu
 
-**Son güncelleme:** 2026-10-06 · **Durum:** M0–M8 tamamlandı; M8.5–M8.10
+**Son güncelleme:** 2026-10-08 · **Durum:** M0–M8 tamamlandı; M8.5–M8.10
 (release/product stabilization: UI yeniden inşası, gameplay cilası, ses,
 AdMob TEST-reklam monetizasyonu + günlük ödüller, ilk açılış tutorial'ı)
 tamamlandı ve main'de; M9-01 production release hazırlığı (kod) tamamlandı,
@@ -146,12 +146,18 @@ yerleşiminden GEÇTİ — hepsi entegrasyondan önce, entegrasyon ve doküman e
 **TASK/058 Ana Sayfa V3 — TAMAM + MAIN** — owner görsel onayı APPROVED (2026-10-08; yalnız Ana Sayfa V3, K10 TEXT-LIGHT
 kompakt GÜNLÜK | MEYDAN dahil), owner onayıyla ff-only `28a5bf1 → 7025bd4` (2026-10-08; merge commit / rebase / squash / cherry-pick / force push YOK; dal `task/058-home-v3` = `7025bd4` duruyor); son üretim / test adayı `9b4e2ed` masaüstü tam
 kapısından (56 / 56, 7286 kontrol, 0 FAIL) ve gerçek Samsung A36 kapısından entegrasyondan ÖNCE geçti — entegrasyon ve doküman
-eşitlemesi sırasında yeniden koşulmadı (§4.38) · TASK/059 BAŞLAMADI · Release PAUSED.
+eşitlemesi sırasında yeniden koşulmadı (§4.38) · **TASK/059 Harita V3 — TAMAM + MAIN** — owner görsel onayı APPROVED
+(2026-10-08; yalnız Harita V3: ~1.3× tek tip büyütme + kaydırma, 10 düğüm + Sonsuz, odak kamerası, MEYDAN yan portalı,
+"10'U BİTİR", TEXT-LIGHT), owner onayıyla ff-only `f6dcf29 → f13fa9c` (2026-10-08; merge commit / rebase / squash / cherry-pick / force push YOK; dal `task/059-map-v3` = `f13fa9c` duruyor); son üretim / test adayı `c1c58a9` masaüstü tam kapısından (57 / 57, 7451 kontrol,
+0 FAIL, bot 2 / 2) ve gerçek Samsung A36 Harita kapısından entegrasyondan ÖNCE geçti; ayrı kilit teşhisi 40 / 40; entegrasyon
+ve doküman eşitlemesi sırasında yeniden koşulmadı (§4.39) · TASK/060 BAŞLAMADI · Release PAUSED.
 Release izi ayrı. Sırada: içerik derecesi + yargı bölgesi kararları + 13+ seçici uyum riski (owner) → gizlilik
 politikası → upload anahtarı → gerçek AdMob kimlikleri → mağaza varlıkları / Play Console,
 sonra ilk imzalı üretim AAB'si ve M10 (Play kapalı test) ·
-**Branch / main:** `main` == origin/main ⊇ `7025bd4` (TASK/058 entegrasyon çapası) + `docs/058-main-sync` doküman
-eşitlemesi — TASK/058 `task/058-home-v3` (main `28a5bf1`'den; 15 commit `c5d3bbc` … `9b4e2ed` son üretim / test adayı ·
+**Branch / main:** `main` == origin/main ⊇ `f13fa9c` (TASK/059 entegrasyon çapası) + `docs/059-main-sync` doküman
+eşitlemesi — TASK/059 `task/059-map-v3` (main `f6dcf29`'dan; 11 commit `1308b44` … `c1c58a9` son üretim / test adayı ·
+`060cdcb` / `f13fa9c` yalnız doküman) owner onayıyla ff-only `f6dcf29 → f13fa9c` (2026-10-08; merge commit / rebase / squash / cherry-pick / force push YOK; dal `task/059-map-v3` = `f13fa9c` duruyor) · önce `7025bd4` (TASK/058 entegrasyon
+çapası) + `docs/058-main-sync` doküman eşitlemesi (ff-only `7025bd4 → f6dcf29`) — TASK/058 `task/058-home-v3` (main `28a5bf1`'den; 15 commit `c5d3bbc` … `9b4e2ed` son üretim / test adayı ·
 `7025bd4` dal-aşaması doküman) owner onayıyla ff-only `28a5bf1 → 7025bd4` (2026-10-08; merge commit / rebase / squash / cherry-pick / force push YOK; dal `task/058-home-v3` = `7025bd4` duruyor) · önce TASK/057 doküman eşitlemesi
 `docs/057-main-sync` ff-only (`84964af → 28a5bf1`, 2026-10-07) · önce TASK/057 `task/057-ui-system-v3-global-nav` (main `d5237bf`'ten
 — `d5237bf` = TASK/056 doküman eşitlemesi; 12 commit `86bde6c` … `a126ace` son üretim / test adayı · `84964af` son
@@ -3501,7 +3507,7 @@ formatına yalnız `haptics_enabled` (varsayılan true) eklendi. Ayrıntı ve
 > fiziksel yerleşimi. Doğrulama ve cihaz kapıları entegrasyondan ÖNCE tamamlandı (aşağıdaki maddeler); entegrasyon ve
 > doküman eşitlemesi sırasında hiçbir odak test / tam masaüstü kapısı / A36 / Godot / derleme / mutasyon yeniden
 > koşulmadı. AdMob politika / uyum HARİCİ RELEASE KONTROLÜ. Product Vision V3 AKTİF; (TASK/057 entegrasyonu anında) TASK/058 /
-> 059 BAŞLAMADI — *sonra: TASK/058 TAMAM + MAIN (§4.38)*; Release PAUSED. Aşağıdaki "READY FOR OWNER REVIEW / main'e ALINMADI" ifadeleri yazıldıkları günün dal aşamasını anlatır
+> 059 BAŞLAMADI — *sonra: TASK/058 TAMAM + MAIN (§4.38); TASK/059 TAMAM + MAIN (§4.39)*; Release PAUSED. Aşağıdaki "READY FOR OWNER REVIEW / main'e ALINMADI" ifadeleri yazıldıkları günün dal aşamasını anlatır
 > (TARİHSEL).
 
 > *(Tarihsel — ilk aday, 2026-10-06:)* **READY FOR OWNER VISUAL REVIEW — main'e ALINMADI.** Dal
@@ -3605,7 +3611,7 @@ formatına yalnız `haptics_enabled` (varsayılan true) eklendi. Ayrıntı ve
 > Profil / Meydan Okuma V3 için genel onay DEĞİL. Owner onayıyla ff-only `28a5bf1 → 7025bd4` (2026-10-08; merge commit / rebase / squash / cherry-pick / force push YOK; dal `task/058-home-v3` = `7025bd4` duruyor). Son
 > üretim / test adayı `9b4e2ed`'in masaüstü + gerçek A36 kanıtı entegrasyondan ÖNCE alındı (aşağıda); entegrasyon ve doküman
 > eşitlemesi sırasında hiçbir test / Godot / derleme / cihaz kapısı yeniden koşulmadı. TASK/057 kabuğu korunuyor. TASK/059
-> BAŞLAMADI; Release PAUSED. Aşağıdaki "dal aşaması / owner incelemesi bekliyor" ifadeleri o turların TARİHSEL kaydıdır.
+> BAŞLAMADI; Release PAUSED. *(Sonra — 2026-10-08: TASK/059 Harita V3 TAMAM + MAIN, §4.39.)* Aşağıdaki "dal aşaması / owner incelemesi bekliyor" ifadeleri o turların TARİHSEL kaydıdır.
 >
 > *(Tarihsel — dal aşaması, 2026-10-07:)* Dal `task/058-home-v3`, text-light son aday `9b4e2ed` (taban `28a5bf1`); owner görsel
 > yönü onayladı, K1–K9 kilitlendi, owner'ın gerçek A36 elle denemesinden sonra K10 uygulandı; masaüstü ve gerçek A36 kapısı
@@ -3710,11 +3716,26 @@ formatına yalnız `haptics_enabled` (varsayılan true) eklendi. Ayrıntı ve
   yok. Engellemeyen notlar: QA koşum sahnesinin eski UID uyarısı (yalnız QA paketi, üretim değil); banner'sız kabuk payı
   (TASK/057 kodu → TASK/064); AdMob politika / uyum harici release kontrolü.
 
-### 4.39 Harita V3 — kaydırılabilir candy yolculuk + MEYDAN portalı (TASK/059) — DAL AŞAMASI, SON ADAY (gerçek A36 GEÇTİ), owner son onayı bekliyor
+### 4.39 Harita V3 — kaydırılabilir candy yolculuk + MEYDAN portalı (TASK/059) — TAMAM + MAIN (`f13fa9c`; owner görsel onayı APPROVED)
 
-> **Owner QA kilit gözlemi + teşhis (2026-10-08; owner Harita V3 görsel tasarımını ONAYLADI — main birleştirme onayı DEĞİL):** owner QA uygulamasında (A36) "1–3 bitmiş, 4 oynanabilir, 5–10 da girilebilir" gördü. Masaüstü teşhisi (yönlendirilmiş test kaydı, gerçek parmak olayları; `build/qa_059/diag/`, 40 / 40, sahibin kaydı bayt-aynı): üretim kilit sözleşmesi sağlam — `highest_level_unlocked = 4` iken 1–3 TAMAM, yalnız 4 SIRADAKİ (OYNA), 5–10 + kale görünür kilitli; gövde / sayı / plaka / çift dokunuş / sürükleme / Harita tazeleme / sekme dönüşü sonrası 0 level ve 0 board (dokunuşlar düğüme ULAŞIYOR ve reddediliyor — boş negatif değil); 1–4 dokunuşu tam kendi level'ını başlatır, 4'e çift dokunuş tek round. Gözlenen durum QA sürücüsünün vitrin ön ayarı: `tools/ads_device.gd` `_ready()` (M8.9 `33b6382`'den beri, TASK/059 değiştirmedi) önyükleme sözcüğü yoksa (`keep` / `fresh` değilse) HER soğuk açılışta QA paketinin KENDİ kaydına `highest_level_unlocked = 11` + yıldız {1:2, 2:3, 3:3} (+ Hamur 335 vb.) yazar → 4–10 hepsi açık (OYNA ×7), kale açık; o durumda 7'ye dokunuş level 7'yi başlatır (kurala göre GEÇERLİ, kilit atlatma değil); level 4+ ilerlemesi bir sonraki soğuk açılışta silinir. Kapı öncesi QA kaydı bu parmak izini birebir taşıyordu (kapı sonunda bayt-aynı geri kondu). Üretim: ana sahne `scenes/main.tscn`, üretim preset'leri `tools/*` dışlar, üretim betik / sahnelerinde sürücüye başvuru yok; sürücü yalnız QA dışa aktarımının geçici ana sahnesi. Durum: AÇIKLANDI (masaüstü + kayıt parmak izi; üretim kodu değişmedi); telefondaki ŞU ANKİ kayıt okunmadı (owner izni olmadan cihaza dokunulmadı).
+> **TAMAM + MAIN (2026-10-08).** Owner **yalnız TASK/059 Harita V3'ü** ONAYLADI — Mağaza / Koleksiyon / Profil / Meydan Okuma
+> merkezi / oyun HUD V3 için genel onay DEĞİL. Owner onayıyla ff-only `f6dcf29 → f13fa9c` (2026-10-08; merge commit / rebase / squash / cherry-pick / force push YOK; dal `task/059-map-v3` = `f13fa9c` duruyor). Kabul edilen
+> Harita: aynı owner zemini ~1.3× tek tip büyütme (dikey sıkıştırma YOK) + sabit kabuğun arkasında dikey kaydırma, 10 düğüm +
+> Sonsuz kalesi, her girişte odak kamerası, görünür MEYDAN yan portalı (mevcut MEYDAN OKUMA penceresi), kilitli kale
+> "10'U BİTİR", TEXT-LIGHT / ICON-FIRST. Unlock / yıldız / ekonomi / ödül / reklam kuralları DEĞİŞMEDİ; GAME_DESIGN §5.11
+> ifadesi (D1, `c1c58a9`) bu eşitlemede yeniden değişmedi. Son üretim / test adayı `c1c58a9`'un kanıtı entegrasyondan ÖNCE
+> alındı (masaüstü 57 / 57, 7451 kontrol, 0 FAIL, 0 SCRIPT ERROR, bot 2 / 2; gerçek Samsung A36 Harita kapısı GEÇTİ; ayrı
+> masaüstü kilit teşhisi 40 / 40); entegrasyon ve bu doküman eşitlemesi sırasında hiçbir test / Godot / derleme / mutasyon / cihaz kapısı yeniden koşulmadı. Owner QA uygulamasındaki
+> "5–10 da girilebilir" gözlemi QA sürücüsünün eski vitrin ön ayarıdır (`highest_level_unlocked = 11`, yalnız ilk 3 level'a
+> yıldız) — üretim kilidi ihlali kanıtı DEĞİL; kilit durumu telefonda normal ilerlemeyle YENİDEN test edilmedi. Engellemeyen:
+> `scripts/ui/map_level_node.gd` doküman yorumunda eski "BÖLÜM 10" (kod değiştirilmedi); en üst kamera konumunda gök
+> şeridinde soluk çizgiler (önceden var). **Açık doküman takibi:** GAME_DESIGN §12.1'deki eski "16:9'da zemin dikeyde ≤ %4
+> sıkıştırılır" ifadesi güncel değil — kilitli belge, ayrı owner izni olmadan dokunulmadı. TASK/060 BAŞLAMADI; Release
+> PAUSED. Aşağıdaki "dal aşaması / owner son onayı bekliyor / main'de DEĞİL" ifadeleri o turların TARİHSEL kaydıdır.
 >
-> **Son mikro-cila + gerçek Samsung A36 kapısı (2026-10-08, owner D1–D7 yanıtından sonra):** D3 — kilitli kale şartı "10'U BİTİR" (`8f7473a` + test `c9feaa8`); D1 — GAME_DESIGN §5.11 yalnız ifade (`c1c58a9`); D2 / D4 / D5 / D6 kabul, D7 kapsam dışı. Son tam masaüstü kapısı (`c1c58a9`): 57 / 57 temiz, 7451 kontrol, 0 FAIL, 0 SCRIPT ERROR, bot 2/2, sahibin kaydı bayt-aynı. **Gerçek Samsung A36: GEÇTİ** (QA paketi `com.obappstudio.squishymerge.qa`, QA APK `c1c58a9`'den, sha256 `9fed0a15…`, yalnız Google TEST reklamları; üretim paketi hiç kurulmadı, `com.example.squishymerge` dokunulmadı): gerçek dokunuşla düğümden / portaldan / ⭐ pill'inden başlayan sürükleme 0 level / 0 pencere, savurmayı yakalayan dokunuş 0, uçlarda tam kırpma, örtülü düğüm dokunuşları 0, düğüm / OYNA plakası / çift dokunuş tam bir level, portal ikon / MEYDAN kelimesi / gövde AYNI pencereyi tam bir kez açar, GERİ / X / karartma Harita'ya (kamera sabit), BAŞLA mevcut meydan okuma round'u (çıkış Ana Sayfa), kabuğun 5 hedefi tam birer gezinme; gerçek TEST banner'ı tepsinin altında (~170 fiziksel px), çakışma / dokunuş sızması yok; 1 QA süreci, SCRIPT ERROR 0, çökme / ANR 0, Godot E-satırı 0 (yalnız QA eklenti uyarıları ayrı kayıtlı). QA kaydı kapı öncesi durumuyla bayt-aynı geri kondu (owner'ın sabah kendi oturumu dahil); QA paketi owner keşfi için kurulu bırakıldı. Gözlem (önceden var, engellemeyen): en üst kamera konumunda punch-hole gök şeridinde soluk dikey çizgiler. Ayrıntı: `build/qa_059-gate/device/A36_GATE_SUMMARY.txt`.
+> *(Tarihsel — dal aşaması kilit teşhisi:)* **Owner QA kilit gözlemi + teşhis (2026-10-08; owner Harita V3 görsel tasarımını ONAYLADI — main birleştirme onayı o an DEĞİL, sonra verildi):** owner QA uygulamasında (A36) "1–3 bitmiş, 4 oynanabilir, 5–10 da girilebilir" gördü. Masaüstü teşhisi (yönlendirilmiş test kaydı, gerçek parmak olayları; `build/qa_059/diag/`, 40 / 40, sahibin kaydı bayt-aynı): üretim kilit sözleşmesi sağlam — `highest_level_unlocked = 4` iken 1–3 TAMAM, yalnız 4 SIRADAKİ (OYNA), 5–10 + kale görünür kilitli; gövde / sayı / plaka / çift dokunuş / sürükleme / Harita tazeleme / sekme dönüşü sonrası 0 level ve 0 board (dokunuşlar düğüme ULAŞIYOR ve reddediliyor — boş negatif değil); 1–4 dokunuşu tam kendi level'ını başlatır, 4'e çift dokunuş tek round. Gözlenen durum QA sürücüsünün vitrin ön ayarı: `tools/ads_device.gd` `_ready()` (M8.9 `33b6382`'den beri, TASK/059 değiştirmedi) önyükleme sözcüğü yoksa (`keep` / `fresh` değilse) HER soğuk açılışta QA paketinin KENDİ kaydına `highest_level_unlocked = 11` + yıldız {1:2, 2:3, 3:3} (+ Hamur 335 vb.) yazar → 4–10 hepsi açık (OYNA ×7), kale açık; o durumda 7'ye dokunuş level 7'yi başlatır (kurala göre GEÇERLİ, kilit atlatma değil); level 4+ ilerlemesi bir sonraki soğuk açılışta silinir. Kapı öncesi QA kaydı bu parmak izini birebir taşıyordu (kapı sonunda bayt-aynı geri kondu). Üretim: ana sahne `scenes/main.tscn`, üretim preset'leri `tools/*` dışlar, üretim betik / sahnelerinde sürücüye başvuru yok; sürücü yalnız QA dışa aktarımının geçici ana sahnesi. Durum: AÇIKLANDI (masaüstü + kayıt parmak izi; üretim kodu değişmedi); telefondaki ŞU ANKİ kayıt okunmadı (owner izni olmadan cihaza dokunulmadı).
+>
+> *(Tarihsel — dal aşaması, entegrasyon öncesi kanıt:)* **Son mikro-cila + gerçek Samsung A36 kapısı (2026-10-08, owner D1–D7 yanıtından sonra):** D3 — kilitli kale şartı "10'U BİTİR" (`8f7473a` + test `c9feaa8`); D1 — GAME_DESIGN §5.11 yalnız ifade (`c1c58a9`); D2 / D4 / D5 / D6 kabul, D7 kapsam dışı. Son tam masaüstü kapısı (`c1c58a9`): 57 / 57 temiz, 7451 kontrol, 0 FAIL, 0 SCRIPT ERROR, bot 2/2, sahibin kaydı bayt-aynı. **Gerçek Samsung A36: GEÇTİ** (QA paketi `com.obappstudio.squishymerge.qa`, QA APK `c1c58a9`'den, sha256 `9fed0a15…`, yalnız Google TEST reklamları; üretim paketi hiç kurulmadı, `com.example.squishymerge` dokunulmadı): gerçek dokunuşla düğümden / portaldan / ⭐ pill'inden başlayan sürükleme 0 level / 0 pencere, savurmayı yakalayan dokunuş 0, uçlarda tam kırpma, örtülü düğüm dokunuşları 0, düğüm / OYNA plakası / çift dokunuş tam bir level, portal ikon / MEYDAN kelimesi / gövde AYNI pencereyi tam bir kez açar, GERİ / X / karartma Harita'ya (kamera sabit), BAŞLA mevcut meydan okuma round'u (çıkış Ana Sayfa), kabuğun 5 hedefi tam birer gezinme; gerçek TEST banner'ı tepsinin altında (~170 fiziksel px), çakışma / dokunuş sızması yok; 1 QA süreci, SCRIPT ERROR 0, çökme / ANR 0, Godot E-satırı 0 (yalnız QA eklenti uyarıları ayrı kayıtlı). QA kaydı kapı öncesi durumuyla bayt-aynı geri kondu (owner'ın sabah kendi oturumu dahil); QA paketi owner keşfi için kurulu bırakıldı. Gözlem (önceden var, engellemeyen): en üst kamera konumunda punch-hole gök şeridinde soluk dikey çizgiler. Ayrıntı: `build/qa_059-gate/device/A36_GATE_SUMMARY.txt`.
 >
 > **DAL AŞAMASI (2026-10-08, ilk tur — tarihsel).** Dal `task/059-map-v3` (taban `f6dcf29` = main = origin/main, `git ls-remote` ile doğrulandı);
 > main DEĞİŞMEDİ, PR / merge YOK. Owner görsel incelemesi: `build/qa_059_owner_review/TASK059_OWNER_REVIEW.zip` (git dışı).
@@ -4575,9 +4596,13 @@ Owner'ın yapacağı / onaylayacağı:)*
 - **TASK/058** — Ana Sayfa V3 (kompakt GÜNLÜK | MEYDAN, TEXT-LIGHT / ICON-FIRST Ana Sayfa, Günlük ilk gün kilidi "YARIN") →
   ✅ **main'de** (§4.38; owner görsel onayı APPROVED — yalnız Ana Sayfa; masaüstü tam kapısı 56 / 56 temiz, 0 FAIL + gerçek
   Samsung A36 GEÇTİ, entegrasyondan önce; owner onayıyla ff-only `28a5bf1 → 7025bd4` (2026-10-08; merge commit / rebase / squash / cherry-pick / force push YOK; dal `task/058-home-v3` = `7025bd4` duruyor)).
-- **Sıradaki adım (güncel):** **TASK/059 Harita V3** — yeni bir Claude oturumunda, owner başlatınca (BAŞLAMADI). Sonraki
-  sahiplik: 059 Harita · 060 ödüllü güçler · 061 Görevler ödül alma / devir · 062 Mağaza / Başlangıç Paketi · 063 Meydan
-  Okuma · 064 kalan cila. Release PAUSED.
+- **TASK/059** — Harita V3 (~1.3× tek tip büyütme + kaydırma, odak kamerası, MEYDAN yan portalı, "10'U BİTİR", TEXT-LIGHT)
+  → ✅ **main'de** (§4.39; owner görsel onayı APPROVED — yalnız Harita; masaüstü tam kapısı 57 / 57 temiz, 0 FAIL + gerçek
+  Samsung A36 Harita kapısı GEÇTİ + kilit teşhisi 40 / 40, entegrasyondan önce; owner onayıyla ff-only `f6dcf29 → f13fa9c` (2026-10-08; merge commit / rebase / squash / cherry-pick / force push YOK; dal `task/059-map-v3` = `f13fa9c` duruyor)).
+- **Sıradaki adım (güncel):** **TASK/060** ödüllü güçler (+ oyun HUD V3) — owner başlatınca (BAŞLAMADI). Sonraki
+  sahiplik: 060 ödüllü güçler · 061 Görevler ödül alma / devir · 062 Mağaza / Başlangıç Paketi · 063 Meydan Okuma · 064
+  kalan cila. Açık doküman takibi: GAME_DESIGN §12.1 eski sıkıştırma ifadesi (owner izni). Release PAUSED.
+- *(Tarihsel — TASK/058 sonrası, 2026-10-08:)* Sıradaki adım TASK/059 Harita V3 idi (yeni oturumda) — tamamlandı, yukarıda.
 - *(Tarihsel — TASK/056 sonrası, 2026-10-06:)* **Sıradaki görev:** owner seçer — TASK/057 oluşturulmadı; otomatik bir
   sonraki ürün düzeltme görevi tanımlı değil.
   Bilinen, izlenen açık ürün maddesi: 0 (ürünün hatasız olduğu iddia edilmez) — T5 hedef kartı kırpması `Büyük Dumpl…`

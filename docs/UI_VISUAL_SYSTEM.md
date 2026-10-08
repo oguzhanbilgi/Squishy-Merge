@@ -119,7 +119,7 @@ için önceden ölçeklendi (§8).
 | `PanelHud` | `panel_bevel` (+ `UiKit.plate` üst ışığı) | erik, dar dikey pay (4/10) | gameplay skor / hedef plakası (M8.6-02) |
 | `PanelStrip` | `panel_bevel` (+ üst ışık) | erik α .94 | evrim şeridi rafı (M8.6-02) |
 | `PanelHudScore` / `PanelTray` / `PanelHudFrame` / `PanelHudCard` | `label_round` ×4 | `LAVENDER_DEEP` / `TRAY_CREAM` / `LAVENDER_DEEP` / krem | HUD v3: skor kapsülü, güç tepsisi, kart çerçevesi, kart gövdesi (§13.3) |
-| `PanelMapPlaque` | `badge_round` | krem | Harita düğüm plakası (OYNA / Rekor N / Level 10'u bitir) — §15.2 *(TASK/059 dalı: kilit + "10'U BİTİR", "Rekor bekliyor" yok — §30.2)* |
+| `PanelMapPlaque` | `badge_round` | krem | Harita düğüm plakası (OYNA / Rekor N / Level 10'u bitir) — §15.2 *(TASK/059'dan beri, main: kilit + "10'U BİTİR", "Rekor bekliyor" yok — §30.2)* |
 | `PanelShopCard` / `PanelShopCardPower` / `PanelShopCardOwned` | `card_bevel_soft` | krem / `TRAY_CREAM` / `CREAM_DEEP` | Mağaza ürün kartı gövdesi (satılık skin / güç — gameplay güç tepsisinin tonu / sahip olunan skin, bir ton geri) — §16.2, §16.3 |
 | `PanelShopSection` | `title_oval` | `LAVENDER_DEEP` | Mağaza bölüm plakası (GÜÇLER / SKİNLER) — `UiKit.section_header`, §16.1 |
 | `PanelShopToast` | `title_oval` | pembe (başarıda `MINT` + lacivert yazı override) | Mağaza geri bildirim plakası — §16.4 |
@@ -636,7 +636,7 @@ ekranında YENİ küresel gezinme kabuğu `GlobalNav` — eski çubuk geri gelme
 
 ## 15. Production journey map — Harita (M8.6-04)
 
-> *TASK/059 dalında (`task/059-map-v3`, owner görsel incelemesi bekliyor — main'de DEĞİL) bu bölüm `f6dcf29` haritasını anlatan
+> *TASK/059'dan beri (main'de, `f13fa9c`; owner onaylı) bu bölüm `f6dcf29` haritasını anlatan
 > TARİHSEL kayıttır: dünya artık sıkıştırılmaz, sabit kabuğun arkasında kayar; "Kaydırma yok", geri oku, `HeaderRibbon` "HARİTA",
 > dokunma ≥ 72, "Rekor bekliyor" / "Level 10'u bitir" ifadeleri ve rota tablosu §30 ile değişir (MEYDAN portalı §30.3).*
 
@@ -2059,7 +2059,7 @@ dokunuşun ikincisi pencereyi kapatmaz, X'in ardından Ana Sayfa'ya düşmez, BA
 dokunuşunun bırakışı / ikinci dokunuşu yeni tahtaya bırakış olarak düşmez, "Hamle bitti"
 yatışmasında süren dokunuşlar açılan sonucun düğmesine görünmeden basmaz. Android geri / X / karartma / KAPAT kapatır. Sandık / ayarlar / günlük / GÖREVLER /
 yaş ekranı açıkken açılmaz; açıkken onlar altına açılmaz, otomatik günlük pencere "due" kalır;
-Ana Sayfa dışına geçiş / round başlangıcı kapatır *(TASK/059 dalı: pencere onu açan ekranındır — Ana Sayfa ya da Harita
+Ana Sayfa dışına geçiş / round başlangıcı kapatır *(TASK/059'dan beri: pencere onu açan ekranındır — Ana Sayfa ya da Harita
 MEYDAN portalı; o ekrandan başka ekrana geçiş kapatır, §30.3)*. 320×568, 360×640, 390×844, 360×800, 1080×2340
 (+ A36 üst payı 61) ve banner yuvası ile kırpma / çakışma yok (`daily_challenge_ui_test`).
 
@@ -2082,7 +2082,8 @@ görevlerin (TASK/058–064) üzerine kuracağı temeli anlatır — `FeatureCar
 `SquishyButton` bugün temel / vitrin primitifleri, üretim içeriğine sonraki görevlerde bağlanır. Görsel Cila Tur 2
 (2026-10-06) — §27.11; son görsel cila + gerçek A36 kapısı (2026-10-07) — §27.12. Aşağıdaki "owner incelemesi" geçen
 alt bölümler o turların tarihidir. *(Sonra — 2026-10-08: TASK/058 Ana Sayfa V3 TAMAM + MAIN, §28; §27.8 / §27.9'daki Ana
-Sayfa maddeleri — OYNA ↔ merkez HARİTA, yinelenen madalyonlar / avatar, maskot boyu — TASK/058'de kapandı.)*
+Sayfa maddeleri — OYNA ↔ merkez HARİTA, yinelenen madalyonlar / avatar, maskot boyu — TASK/058'de kapandı. Sonra — 2026-10-08: TASK/059 Harita V3 de TAMAM + MAIN, §30; §27.8 / §27.9'daki Harita sıkıştırması
+ve MEYDAN OKUMA rotası maddeleri TASK/059'da kapandı.)*
 
 **Kural — ikinci sistem YOK:** V3, M8.6 katmanının EVRİMİDİR. Sayılar `UiTokens`'ın V3 bölümünde,
 tipografi rolleri `UiType.V3_ROLES`'ta (mevcut tema variation'ları + token boyutu; tema yeniden
@@ -2199,7 +2200,7 @@ NavItem.CENTER_RISE)` — kompakt kipte taşma 0); zemin dikeyde sıkışırsa d
 birbirine değmez; sıradaki düğüm ≥ `TOUCH_TARGET`). Ölçülen sıkıştırma (Tur 2): 720×1600 ve A36 benzeri (yuvalı) 1.000 ·
 720×1280 yuvasız 0.944 · **16:9 + 112 px banner yuvası 0.926 (%7.4; ilk aday 0.819 / %18 owner tarafından
 reddedildi)** — `MIN_SQUASH_NAV` 0.92 (en çok %8) tavan; bu yerleşimde kabuk kompakt ve başlık kurdelesi satırını
-bırakır (§27.11); 16:9 + 128 px yuva 0.909, yalnız uç durumlarda son çare `MIN_SQUASH_NAV_HARD` 0.88. Kalıcı çözüm TASK/059 (kaydırılabilir yolculuk) — owner kararı *(TASK/059 dalı: sıkıştırma KALKTI, tek tip ölçek + kaydırma,
+bırakır (§27.11); 16:9 + 128 px yuva 0.909, yalnız uç durumlarda son çare `MIN_SQUASH_NAV_HARD` 0.88. Kalıcı çözüm TASK/059 (kaydırılabilir yolculuk) — owner kararı *(TASK/059'dan beri, main: sıkıştırma KALKTI, tek tip ölçek + kaydırma,
 §30; bu cümledeki oranlar tarihsel)*. Gelecek MEYDAN OKUMA rotası (TASK/059) için ayrılan bölge: dünyanın sol / sağ
 yan bantları ve kabuğun üstündeki alt dünya şeridi — kabuk ayak izi (alt 140 px + banner yuvası) hiçbir harita ögesine
 verilmez.
@@ -2233,7 +2234,7 @@ hak akışı) → **TASK/062**; Meydan Okuma merkezi → **TASK/063**; Koleksiyo
 - Fiziksel A36'da ~2 s'yi aşan basılı tutuşta basış önizlemesi düşebiliyor — gözlem; normal dokunuş ve iptal
   anlamı doğru (kullanıcı etkisi kanıtlanırsa yeniden ele alınır).
 - Harita: ~~16:9 + banner yuvasında %18~~ → **Tur 2: %7.4** (kompakt kabuk + kurdele satırı); 720×1280 yuvasız %5.6
-  — kalıcı çözüm TASK/059.
+  — kalıcı çözüm TASK/059 (main'de — §30; sıkıştırma kalktı).
 - Ana Sayfa maskotu kabukla küçülür (A36 benzeri + banner: ~391 px, önce ~597; 720×1280: 538) — Ana Sayfa V3
   (TASK/058) hiyerarşiyi yeniden kurar.
 - Kabuk ile banner arası 28 px dokunulmayan aralık: gerçek A36 + gerçek Google TEST banner ile FİZİKSEL yerleşim /
@@ -2322,7 +2323,7 @@ V3, 84 / 64 px, GestureGuard, görünürlük matrisi, kompakt kip, TASK/058 / 05
 YALNIZ Ana Sayfa V3 içindir); owner onayıyla ff-only `28a5bf1 → 7025bd4` (2026-10-08; merge commit / rebase / squash / cherry-pick / force push YOK; dal `task/058-home-v3` = `7025bd4` duruyor). Kabul edilen tasarım: kompakt
 GÜNLÜK | MEYDAN `FeatureTile` karoları (§28.10), TEXT-LIGHT / ICON-FIRST Ana Sayfa (§29), ilk gün GÜNLÜK kilidi "YARIN"
 (§28.2). Son üretim / test adayı `9b4e2ed`'in masaüstü + gerçek A36 kanıtı entegrasyondan ÖNCE alındı, yeniden koşulmadı.
-TASK/059+ BAŞLAMADI, Release PAUSED. *(Tarihsel — dal aşaması, 2026-10-07: K1–K9 kilitlendi (§28.8); owner gerçek A36'da elle
+*(Sonra — 2026-10-08: TASK/059 Harita V3 TAMAM + MAIN, §30.)* TASK/060+ BAŞLAMADI, Release PAUSED. *(Tarihsel — dal aşaması, 2026-10-07: K1–K9 kilitlendi (§28.8); owner gerçek A36'da elle
 denedi — alt gezinme iyi; GÜNLÜK ÖDÜLLER / MEYDAN OKUMA kartları fazla büyük ve fazla yazılı → K10: iki büyük kart
 reddedildi, yerine iki kompakt karo; K9 adayı `6de0410`'ın A36 kapısı §28.9.)* İnceleme paketi `build/qa_058_visual_review/` + owner ZIP `build/qa_058_owner_review/TASK058_OWNER_REVIEW.zip`
 (git dışı).
@@ -2393,7 +2394,7 @@ Kanıt (son aday `6de0410`): kontrollü tam masaüstü kapısı (gate3) 56 / 56 
 
 ### 28.7 Bilinçli olarak YAPILMAYAN
 
-TASK/059 Harita V3 / Meydan Okuma rotası · TASK/060 ödüllü güçler · TASK/061 görev manuel talebi / devir / görev rozetleri ·
+TASK/059 Harita V3 / Meydan Okuma rotası *(sonra TAMAM + MAIN — §30)* · TASK/060 ödüllü güçler · TASK/061 görev manuel talebi / devir / görev rozetleri ·
 TASK/062 Başlangıç Paketi (fiyat / 72 saat / gerçek hak akışı) · TASK/063 Meydan Okuma merkezi · TASK/064 kalan cila.
 ~~GAME_DESIGN ifadeleri owner onayını bekliyor~~ → owner onayıyla yalnız ifade güncellendi (`6de0410`: §5.4.1 / §5.8 /
 §5.10 / §5.11 / §7 / §12.3; kural / sayı / ekonomi aynen).
@@ -2457,23 +2458,30 @@ oyun sistemleri. Oyuncu görsel dili anlar; görsel durum anlamı taşıyorsa a�
   HUD kelimesi). Yeni veri / ikon uydurulmaz; mevcut gerçek veri kısaltılır.
 - **Açık kalır (metin gerekli):** güvenlik, yasal / uyum (yaş, gizlilik, reklam rızası), satın alma onayı, geri alınamaz
   eylemler, hata durumları; pencerelerin İÇİ ayrıntıyı taşıyabilir (giriş kısa, içerik açıklayıcı).
-- **Kapsam:** TASK/058'de yalnız Ana Sayfa üretim yüzeyi uygulandı (§28.10; metin denetimi PROJECT_STATUS §4.38). Ürün
-  geneli metin yeniden yazımı YAPILMADI. Bu ilke TASK/059–064 yeniden tasarımlarının (Harita, oyun HUD'u, Günlük &
-  Görevler, Mağaza, Meydan Okuma merkezi, Koleksiyon / Profil / Ayarlar) varsayılanıdır *(TASK/059 dalında Harita'ya
-  uygulandı — §30.4; owner onayı bekliyor)* — o ekranlar henüz bu ilkeyle
-  uygulanmadı ve owner onaylı DEĞİL (her biri kendi görsel onayını ister); kabuk (TASK/057) etiketleri ayrı onaylı görev
-  olmadan değişmez.
+- **Kapsam:** üretim yüzeyinde uygulandı ve owner onaylı, main'de: Ana Sayfa (TASK/058, §28.10; metin denetimi
+  PROJECT_STATUS §4.38) + Harita (TASK/059, §30.4). Ürün geneli metin yeniden yazımı YAPILMADI. Bu ilke TASK/060–064
+  yeniden tasarımlarının (oyun HUD'u, Günlük & Görevler, Mağaza, Meydan Okuma merkezi, Koleksiyon / Profil / Ayarlar)
+  varsayılanıdır — o ekranlar henüz bu ilkeyle uygulanmadı ve owner onaylı DEĞİL (her biri kendi görsel onayını ister);
+  kabuk (TASK/057) etiketleri ayrı onaylı görev olmadan değişmez.
 
 
 ---
 
-## 30. Harita V3 — kaydırılabilir candy yolculuk + MEYDAN portalı (TASK/059) — DAL AŞAMASI, son aday (gerçek A36 GEÇTİ), owner son onayı bekliyor
+## 30. Harita V3 — kaydırılabilir candy yolculuk + MEYDAN portalı (TASK/059) — TAMAM + MAIN (`f13fa9c`)
 
-**Durum:** dal `task/059-map-v3` (taban `f6dcf29`), **main'de DEĞİL, owner son onayı bekliyor** — görsel yön ChatGPT
-incelemesiyle güçlü bulundu (merge onayı DEĞİL), owner D1–D7 yanıtı uygulandı (D3 kale "10'U BİTİR", D1 GAME_DESIGN §5.11 yalnız
-ifade); son tam masaüstü kapısı 57 / 57 temiz; **gerçek Samsung A36 kapısı GEÇTİ** (QA paketi, `c1c58a9`; PROJECT_STATUS §4.39).
-Paket: `build/qa_059_owner_review/TASK059_OWNER_REVIEW.zip`.
-§15 bu dalda TARİHSEL (f6dcf29 haritası). Kural / sayı / kayıt / ekonomi DEĞİŞMEDİ (GAME_DESIGN §5.5 aynen).
+**Durum:** **TAMAM + MAIN** — owner görsel onayı **APPROVED** (2026-10-08; onay YALNIZ Harita V3 içindir); owner onayıyla ff-only `f6dcf29 → f13fa9c` (2026-10-08; merge commit / rebase / squash / cherry-pick / force push YOK; dal `task/059-map-v3` = `f13fa9c` duruyor).
+Kabul edilen tasarım: ~1.3× tek tip büyütme + kaydırma (§30 tablo, §30.1), 10 düğüm + Sonsuz ve odak kamerası, görünür MEYDAN
+yan portalı (§30.3), kilitli kale "10'U BİTİR" (§30.2), TEXT-LIGHT / ICON-FIRST (§30.4). Unlock / yıldız / ekonomi / ödül /
+reklam kuralları DEĞİŞMEDİ. Son üretim / test adayı `c1c58a9`'un masaüstü (57 / 57, 7451 kontrol, 0 FAIL, bot 2 / 2) + gerçek
+Samsung A36 Harita kanıtı ve ayrı masaüstü kilit teşhisi (40 / 40) entegrasyondan ÖNCE alındı, yeniden koşulmadı
+(PROJECT_STATUS §4.39). QA uygulamasında 4–10'un açık görünmesi QA sürücüsünün eski vitrin ön ayarıdır (`highest_level_unlocked
+= 11`, yalnız ilk 3 level'a yıldız) — üretim kilidi ihlali DEĞİL; telefonda normal ilerleme yeniden test edilmedi. Engellemeyen:
+`map_level_node.gd` doküman yorumunda eski "BÖLÜM 10" (kod değişmedi); açık doküman takibi GAME_DESIGN §12.1 eski sıkıştırma
+ifadesi (kilitli belge, owner izni). TASK/060+ BAŞLAMADI, Release PAUSED. *(Tarihsel — dal aşaması, 2026-10-08: görsel yön
+ChatGPT incelemesiyle güçlü bulundu; owner D1–D7 yanıtı uygulandı (D3 kale "10'U BİTİR", D1 GAME_DESIGN §5.11 yalnız ifade);
+son tam masaüstü kapısı 57 / 57; gerçek A36 kapısı GEÇTİ (QA paketi, `c1c58a9`).)* Paket:
+`build/qa_059_owner_review/TASK059_OWNER_REVIEW.zip` (git dışı).
+§15 TARİHSEL (f6dcf29 haritası). Kural / sayı / kayıt / ekonomi DEĞİŞMEDİ (GAME_DESIGN §5.5 aynen).
 
 **Karar (Seçenek A, ölçülerek):** ikinci bir harita sistemi YOK — aynı owner zemini, aynı on düğüm konumu, aynı Catmull-Rom
 `MapTrail`, aynı `MapLevelNode` durumları, aynı giriş / açılış animasyonları ve aynı `level_chosen` yolu; değişen dünyanın
