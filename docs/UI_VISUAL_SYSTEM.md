@@ -330,7 +330,7 @@ doğrulandı" denmez.
 
 ## 13. Gameplay Shell (M8.6-02)
 
-> *TASK/060 dalında (`task/060-gameplay-hud-v3-rewarded-powers`, owner görsel incelemesi bekliyor — main'de DEĞİL): güç
+> *TASK/060'tan beri (TAMAM + MAIN, `27b60e5`, 2026-10-09): güç
 > tepsileri / yuvaları / "×N" rozeti ve 80×84 slot anatomisi (§13 madde 5, §13.4) §31'deki V3 güç madalyonuyla değişir;
 > HUD satırları, hedef kartı, board / kamera / şerit / banner yerleşimi AYNEN.*
 
@@ -1485,7 +1485,7 @@ oyun süresi yenmesin). Pencere kayda/ekonomiye dokunmaz (kaynak taraması).
 
 ### 21.2 Refill — kompozisyon
 
-> *TASK/060 dalında: bu kompozisyon (kurdele "STOK BİTTİ", "STOK ×0", iki metin kartı, ortak "Bugünkü hakkın: 1/1") §31.3'teki
+> *TASK/060'tan beri (TAMAM + MAIN): bu kompozisyon (kurdele "STOK BİTTİ", "STOK ×0", iki metin kartı, ortak "Bugünkü hakkın: 1/1") §31.3'teki
 > V3 penceresiyle değişir; bu alt bölüm M8.6-10 kaydıdır.*
 
 `modal_shell("STOK BİTTİ", 560, ribbon, topper=false, closable=true)`: oturmuş
@@ -2110,7 +2110,8 @@ A36: 1080 px fiziksel, yoğunluk 2.625 → **1 tuval px = 1.5 fiziksel px = 0.57
 SATIN AL 60 px = 34 dp (Android önerisi 48 dp). **V3 kuralı:** birincil kontroller (CTA, gezinme öğesi,
 kart) en az **`TOUCH_TARGET` = 84 px** (A36'da 48 dp; 360 dp telefonda 42 dp); kart içi kompakt
 eylemler (ödül / reklam / fiyat) en az **`TOUCH_COMPACT` = 64 px** yükseklik + komşusuyla ≥ 12 px
-boşluk (A36'da 37 dp). Mevcut 56 px köşe butonları TASK/060 (HUD) / TASK/064'te ele alınır.
+boşluk (A36'da 37 dp). Mevcut 56 px köşe butonları TASK/060 (HUD) / TASK/064'te ele alınır *(sonra: TASK/060 yalnız güç
+bölgesini yeniledi; oyun HUD'unun 56 px köşe butonları aynen kaldı → TASK/064)*.
 
 ### 27.2 Tokenlar (`scripts/ui/ui_tokens.gd`, V3 bölümü)
 
@@ -2223,7 +2224,7 @@ pencere odağı kaybı → 0 gezinme; sonraki taze dokunuş tam bir kez. Tepsi b
 
 Ana Sayfa V3 hiyerarşisi (büyük OYNA + Günlük / Meydan Okuma özellik kartları + Başlangıç Paketi +
 rozetler) → **TASK/058**; Harita MEYDAN OKUMA rotası / portalı → **TASK/059**; Gameplay HUD V3 + günlük
-2 reklamlı güç kotası → **TASK/060**; Günlük / Görevler V3 (ÖDÜLÜ AL, devir otomatik talebi, görev
+2 reklamlı güç kotası → **TASK/060** *(sonra TAMAM + MAIN — §31)*; Günlük / Görevler V3 (ÖDÜLÜ AL, devir otomatik talebi, görev
 rozetleri; Ana Sayfa Günlük hatası) → **TASK/061**; Mağaza V3 + Başlangıç Paketi (fiyat, 72 saat, gerçek
 hak akışı) → **TASK/062**; Meydan Okuma merkezi → **TASK/063**; Koleksiyon / Profil / Ayarlar tutarlılığı
 → **TASK/064**. Kabuğun rozetleri bu görevde HİÇBİR veriye bağlanmadı (yalnız API).
@@ -2330,7 +2331,7 @@ V3, 84 / 64 px, GestureGuard, görünürlük matrisi, kompakt kip, TASK/058 / 05
 YALNIZ Ana Sayfa V3 içindir); owner onayıyla ff-only `28a5bf1 → 7025bd4` (2026-10-08; merge commit / rebase / squash / cherry-pick / force push YOK; dal `task/058-home-v3` = `7025bd4` duruyor). Kabul edilen tasarım: kompakt
 GÜNLÜK | MEYDAN `FeatureTile` karoları (§28.10), TEXT-LIGHT / ICON-FIRST Ana Sayfa (§29), ilk gün GÜNLÜK kilidi "YARIN"
 (§28.2). Son üretim / test adayı `9b4e2ed`'in masaüstü + gerçek A36 kanıtı entegrasyondan ÖNCE alındı, yeniden koşulmadı.
-*(Sonra — 2026-10-08: TASK/059 Harita V3 TAMAM + MAIN, §30; TASK/060 Gameplay HUD V3 DALDA, §31.)* Release PAUSED. *(Tarihsel — dal aşaması, 2026-10-07: K1–K9 kilitlendi (§28.8); owner gerçek A36'da elle
+*(Sonra — 2026-10-08: TASK/059 Harita V3 TAMAM + MAIN, §30; 2026-10-09: TASK/060 Gameplay HUD V3 + Ödüllü Güçler V3 TAMAM + MAIN, §31.)* TASK/061+ BAŞLAMADI, Release PAUSED. *(Tarihsel — dal aşaması, 2026-10-07: K1–K9 kilitlendi (§28.8); owner gerçek A36'da elle
 denedi — alt gezinme iyi; GÜNLÜK ÖDÜLLER / MEYDAN OKUMA kartları fazla büyük ve fazla yazılı → K10: iki büyük kart
 reddedildi, yerine iki kompakt karo; K9 adayı `6de0410`'ın A36 kapısı §28.9.)* İnceleme paketi `build/qa_058_visual_review/` + owner ZIP `build/qa_058_owner_review/TASK058_OWNER_REVIEW.zip`
 (git dışı).
@@ -2401,7 +2402,7 @@ Kanıt (son aday `6de0410`): kontrollü tam masaüstü kapısı (gate3) 56 / 56 
 
 ### 28.7 Bilinçli olarak YAPILMAYAN
 
-TASK/059 Harita V3 / Meydan Okuma rotası *(sonra TAMAM + MAIN — §30)* · TASK/060 ödüllü güçler · TASK/061 görev manuel talebi / devir / görev rozetleri ·
+TASK/059 Harita V3 / Meydan Okuma rotası *(sonra TAMAM + MAIN — §30)* · TASK/060 ödüllü güçler *(sonra TAMAM + MAIN — §31)* · TASK/061 görev manuel talebi / devir / görev rozetleri ·
 TASK/062 Başlangıç Paketi (fiyat / 72 saat / gerçek hak akışı) · TASK/063 Meydan Okuma merkezi · TASK/064 kalan cila.
 ~~GAME_DESIGN ifadeleri owner onayını bekliyor~~ → owner onayıyla yalnız ifade güncellendi (`6de0410`: §5.4.1 / §5.8 /
 §5.10 / §5.11 / §7 / §12.3; kural / sayı / ekonomi aynen).
@@ -2466,8 +2467,9 @@ oyun sistemleri. Oyuncu görsel dili anlar; görsel durum anlamı taşıyorsa a�
 - **Açık kalır (metin gerekli):** güvenlik, yasal / uyum (yaş, gizlilik, reklam rızası), satın alma onayı, geri alınamaz
   eylemler, hata durumları; pencerelerin İÇİ ayrıntıyı taşıyabilir (giriş kısa, içerik açıklayıcı).
 - **Kapsam:** üretim yüzeyinde uygulandı ve owner onaylı, main'de: Ana Sayfa (TASK/058, §28.10; metin denetimi
-  PROJECT_STATUS §4.38) + Harita (TASK/059, §30.4). Ürün geneli metin yeniden yazımı YAPILMADI. Bu ilke TASK/060–064
-  yeniden tasarımlarının (oyun HUD'u, Günlük & Görevler, Mağaza, Meydan Okuma merkezi, Koleksiyon / Profil / Ayarlar)
+  PROJECT_STATUS §4.38) + Harita (TASK/059, §30.4) + oyun HUD'u ve refill penceresi (TASK/060, §31). Ürün geneli metin
+  yeniden yazımı YAPILMADI. Bu ilke TASK/061–064 yeniden tasarımlarının (Günlük & Görevler, Mağaza, Meydan Okuma merkezi,
+  Koleksiyon / Profil / Ayarlar)
   varsayılanıdır — o ekranlar henüz bu ilkeyle uygulanmadı ve owner onaylı DEĞİL (her biri kendi görsel onayını ister);
   kabuk (TASK/057) etiketleri ayrı onaylı görev olmadan değişmez.
 
@@ -2484,7 +2486,7 @@ Samsung A36 Harita kanıtı ve ayrı masaüstü kilit teşhisi (40 / 40) entegra
 (PROJECT_STATUS §4.39). QA uygulamasında 4–10'un açık görünmesi QA sürücüsünün eski vitrin ön ayarıdır (`highest_level_unlocked
 = 11`, yalnız ilk 3 level'a yıldız) — üretim kilidi ihlali DEĞİL; telefonda normal ilerleme yeniden test edilmedi. Engellemeyen:
 `map_level_node.gd` doküman yorumunda eski "BÖLÜM 10" (kod değişmedi); açık doküman takibi GAME_DESIGN §12.1 eski sıkıştırma
-ifadesi (kilitli belge, owner izni). TASK/060 dalda (§31), TASK/061+ BAŞLAMADI, Release PAUSED. *(Tarihsel — dal aşaması, 2026-10-08: görsel yön
+ifadesi (kilitli belge, owner izni). TASK/060 TAMAM + MAIN (§31, 2026-10-09), TASK/061+ BAŞLAMADI, Release PAUSED. *(Tarihsel — dal aşaması, 2026-10-08: görsel yön
 ChatGPT incelemesiyle güçlü bulundu; owner D1–D7 yanıtı uygulandı (D3 kale "10'U BİTİR", D1 GAME_DESIGN §5.11 yalnız ifade);
 son tam masaüstü kapısı 57 / 57; gerçek A36 kapısı GEÇTİ (QA paketi, `c1c58a9`).)* Paket:
 `build/qa_059_owner_review/TASK059_OWNER_REVIEW.zip` (git dışı).
@@ -2573,9 +2575,14 @@ kayıt yönlendirilir). Tasarım dışı bırakılanlar (owner kararı): `02_OWN
 
 ---
 
-## 31. Gameplay HUD V3 + ödüllü güçler (TASK/060) — DAL AŞAMASI, owner görsel incelemesi bekliyor
+## 31. Gameplay HUD V3 + ödüllü güçler (TASK/060) — TAMAM, main'de (COMPLETE + MAIN)
 
-**Durum:** dal `task/060-gameplay-hud-v3-rewarded-powers` (taban `75fe3f3` = TASK/059 sonrası kanonik main), **main'de
+**Durum (2026-10-09):** **TAMAM + MAIN** — owner görsel onayı + owner'ın gerçek Samsung A36 elle oynanış testi APPROVED /
+PASS (yalnız TASK/060); owner onayıyla ff-only `75fe3f3 → 27b60e5` (merge commit YOK; dal duruyor). Gerçek A36 cihaz kapısı
+GEÇTİ (üretim kodu `8924974`), tam masaüstü kapısı `27b60e5` 59 / 59 — entegrasyondan ÖNCE; entegrasyonda yeniden koşulmadı
+(§31.5). Kural tarafı: GAME_DESIGN §5.7.3 (güç başına günde 2 ödüllü refill). TASK/061+ BAŞLAMADI.
+
+*(Tarihsel — dal aşaması, 2026-10-08:)* **Durum:** dal `task/060-gameplay-hud-v3-rewarded-powers` (taban `75fe3f3` = TASK/059 sonrası kanonik main), **main'de
 DEĞİL, owner onaylı DEĞİL**. Yalnız oyun HUD'unun güç bölgesi ve bağlı stok 0 refill penceresi yenilendi; Ana Sayfa V3,
 Harita V3, küresel gezinme, oyun fiziği ve diğer pencereler DEĞİŞMEDİ. Kural tarafı: GAME_DESIGN §5.7.3 (güç başına günde
 2 ödüllü refill). Gerçek Samsung A36 TEST-reklam kapısı owner görsel onayından SONRA.
@@ -2620,7 +2627,8 @@ ikili kutuları gizli, çubuk kilitli (TASK/047).
   Her durumda sebep TEK yerde (ilgili karo; altlıkta ikinci kopya yok — altlık yalnız sağlayıcının "tamamını izle" /
   gösterim hatası gibi ek bilgisi için). Ödüllü talep açıkken Hamur düğmesi kilitli; Hamur satın alması açık talebin
   token'ını ve sağlayıcı talebini kapatır (geç ödül kapanmış pencereye düşmez). Bir gücün 2/2'si diğer güçlerin penceresini
-  etkilemez. Gizli ücretsiz güç / ödül CTA'sı YOK.
+  etkilemez. Gizli ücretsiz güç / ödül CTA'sı YOK. Küçük uyarı yazıları (karo sebebi, yetersiz bakiye, altlık notu)
+  `UiTokens.TEXT_WARNING_STRONG` (A36 ölçümü 4.82:1 — §31.5).
 - KAPAT (`SquishyButton` SECONDARY) / X / karartma / Android geri → hiçbir şey alınmaz, oyun sürer. Açılış / satın alma /
   kapanış mevcut 300 ms parmak yatışmasını kurar: hızlı çift dokunuş yeni pencereyi kapatmaz, alttaki board'a bırakış ya da
   yeniden açılan hedeflemeyle gücün istemeden kullanımı olmaz.
@@ -2634,3 +2642,19 @@ talep bekliyor. Testler: `hud_v3_test`, `rewarded_powers_test` (+ uyarlanan suit
 benzeri çekimlerde TABAN karelerinde skor kartının üstünde soluk plaka = çekim aracının güvenli payı board kurulduktan
 SONRA vermesinin yan etkisi (cihazda pay ilk yerleşimde bilinir; aday çekimlerinde araç dekoru eşitler) — ürün değişikliği
 değil.
+
+### 31.5 Gerçek A36 doğrulaması ve main entegrasyonu (2026-10-09)
+
+- **Cihaz (gerçek Samsung A36, 1080×2340, QA paketi, Google TEST kimlikleri):** dört madalyon gerçek stok rakamlarıyla
+  (3 / 1 / 0 / 2), Bomba / Büyütücü silahlı halkası belirgin, hedef kartı / skor / sıradaki / board / gerçek TEST banner ile
+  çakışma yok (dokunma alanı 129×138 fiziksel px ≈ 49 dp); refill durumları 0/2 · 1/2 · 2/2 · başka güç 0/2 · Hamur yetersiz ·
+  sağlayıcı hazır değil · talep bekliyor çekildi (son ikisi QA-only sahte arka uçla — gerçek SDK kanıtı değil); meydan okumada
+  madalyon yok. Kareler `build/qa_060-gate/device/final_real_a36/` (git dışı).
+- **Cihazda bulunan okunurluk düzeltmesi (`8924974`):** küçük uyarı yazıları (karo sebebi "Bugünlük bitti — yarın
+  yenilenir." / "Hamur yetersiz", yetersiz bakiye, altlık notu) `TEXT_WARNING` #d4762b ile açık karoda 2.34:1 ölçüldü →
+  refill'de `UiTokens.TEXT_WARNING_STRONG` #94450a, cihazda **4.82:1**; yazı boyutu (V3 secondary 16 px), ortak
+  `TEXT_WARNING` ve diğer ekranlar DEĞİŞMEDİ. `hud_v3_test` kontrast + token kontrolü taşır.
+- **Bilinçli olarak değişmeyen:** oyun HUD'unun 56 px köşe butonları (geri / ayarlar / çıkış) — TASK/064; Mağaza / Profil güç
+  kartlarındaki "×N" — TASK/062 / TASK/064.
+- **Entegrasyon:** ff-only `75fe3f3 → 27b60e5` (2026-10-09); son tam masaüstü kapısı `27b60e5` 59 / 59, 7601 kontrol, 0 FAIL
+  (`27b60e5` yalnız test kodu); PROJECT_STATUS §4.40.

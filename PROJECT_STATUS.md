@@ -1,6 +1,6 @@
 # PROJECT_STATUS.md — Squishy Merge, tam proje raporu
 
-**Son güncelleme:** 2026-10-08 · **Durum:** M0–M8 tamamlandı; M8.5–M8.10
+**Son güncelleme:** 2026-10-09 · **Durum:** M0–M8 tamamlandı; M8.5–M8.10
 (release/product stabilization: UI yeniden inşası, gameplay cilası, ses,
 AdMob TEST-reklam monetizasyonu + günlük ödüller, ilk açılış tutorial'ı)
 tamamlandı ve main'de; M9-01 production release hazırlığı (kod) tamamlandı,
@@ -150,13 +150,21 @@ eşitlemesi sırasında yeniden koşulmadı (§4.38) · **TASK/059 Harita V3 —
 (2026-10-08; yalnız Harita V3: ~1.3× tek tip büyütme + kaydırma, 10 düğüm + Sonsuz, odak kamerası, MEYDAN yan portalı,
 "10'U BİTİR", TEXT-LIGHT), owner onayıyla ff-only `f6dcf29 → f13fa9c` (2026-10-08; merge commit / rebase / squash / cherry-pick / force push YOK; dal `task/059-map-v3` = `f13fa9c` duruyor); son üretim / test adayı `c1c58a9` masaüstü tam kapısından (57 / 57, 7451 kontrol,
 0 FAIL, bot 2 / 2) ve gerçek Samsung A36 Harita kapısından entegrasyondan ÖNCE geçti; ayrı kilit teşhisi 40 / 40; entegrasyon
-ve doküman eşitlemesi sırasında yeniden koşulmadı (§4.39) · **TASK/060 Gameplay HUD V3 + Ödüllü Güçler — DAL AŞAMASI**
-(owner görsel incelemesi + ekonomi kararı bekliyor, main'de DEĞİL; §4.40) · Release PAUSED.
+ve doküman eşitlemesi sırasında yeniden koşulmadı (§4.39) · **TASK/060 Gameplay HUD V3 + Ödüllü Güçler V3 — TAMAM + MAIN**
+— owner görsel onayı + elle Samsung A36 testi APPROVED / PASS (2026-10-09; yalnız TASK/060), owner onayıyla ff-only
+`75fe3f3 → 27b60e5` (2026-10-09; merge commit / rebase / squash / cherry-pick / force push YOK; dal
+`task/060-gameplay-hud-v3-rewarded-powers` = `27b60e5` duruyor); tam masaüstü kapısı `27b60e5` (59 / 59, 7601 kontrol, 0 FAIL,
+bot 2 / 2) ve gerçek Samsung A36 cihaz kapısı (üretim kodu `8924974`) entegrasyondan ÖNCE geçti — entegrasyon ve doküman
+eşitlemesi sırasında yeniden koşulmadı (§4.40) · güç başına 2/gün ödüllü kota (eski ortak 1/gün yalnız tarihsel) · TASK/061
+BAŞLAMADI · TASK/062 ekonomi değerlendirmesi PENDING · Release PAUSED.
 Release izi ayrı. Sırada: içerik derecesi + yargı bölgesi kararları + 13+ seçici uyum riski (owner) → gizlilik
 politikası → upload anahtarı → gerçek AdMob kimlikleri → mağaza varlıkları / Play Console,
 sonra ilk imzalı üretim AAB'si ve M10 (Play kapalı test) ·
-**Branch / main:** `main` == origin/main ⊇ `f13fa9c` (TASK/059 entegrasyon çapası) + `docs/059-main-sync` doküman
-eşitlemesi — TASK/059 `task/059-map-v3` (main `f6dcf29`'dan; 11 commit `1308b44` … `c1c58a9` son üretim / test adayı ·
+**Branch / main:** `main` == origin/main ⊇ `27b60e5` (TASK/060 entegrasyon çapası) + `docs/060-main-sync` doküman
+eşitlemesi — TASK/060 `task/060-gameplay-hud-v3-rewarded-powers` (main `75fe3f3`'ten; 9 commit `5a4bca2` … `8924974` cihazda
+doğrulanan son üretim kodu · `27b60e5` yalnız test, tam kapı adayı · `9564dd1` dal-aşaması doküman) owner onayıyla ff-only
+`75fe3f3 → 27b60e5` (2026-10-09; merge commit / rebase / squash / cherry-pick / force push YOK; dal duruyor) · önce `f13fa9c`
+(TASK/059 entegrasyon çapası) + `docs/059-main-sync` doküman eşitlemesi (ff-only `f13fa9c → 75fe3f3`) — TASK/059 `task/059-map-v3` (main `f6dcf29`'dan; 11 commit `1308b44` … `c1c58a9` son üretim / test adayı ·
 `060cdcb` / `f13fa9c` yalnız doküman) owner onayıyla ff-only `f6dcf29 → f13fa9c` (2026-10-08; merge commit / rebase / squash / cherry-pick / force push YOK; dal `task/059-map-v3` = `f13fa9c` duruyor) · önce `7025bd4` (TASK/058 entegrasyon
 çapası) + `docs/058-main-sync` doküman eşitlemesi (ff-only `7025bd4 → f6dcf29`) — TASK/058 `task/058-home-v3` (main `28a5bf1`'den; 15 commit `c5d3bbc` … `9b4e2ed` son üretim / test adayı ·
 `7025bd4` dal-aşaması doküman) owner onayıyla ff-only `28a5bf1 → 7025bd4` (2026-10-08; merge commit / rebase / squash / cherry-pick / force push YOK; dal `task/058-home-v3` = `7025bd4` duruyor) · önce TASK/057 doküman eşitlemesi
@@ -817,6 +825,9 @@ level'lar ve bitirmek başlı başına üst düzey başarı sayılıyor.
 > çekildi. **TL/USD fiyat, product ID ve Play Billing YOK.**
 
 > ### 📌 ÖDÜLLÜ GÜÇ CAP'İ KİLİTLENDİ — 1/gün (M8.5-06)
+>
+> *(Sonra — TASK/060, main'de 2026-10-09: kural güç BAŞINA 2/gün, dört bağımsız sayaç — GAME_DESIGN §5.7.3, §4.40. Bu
+> karar ve simülasyonu TARİHSEL kayıttır.)*
 >
 > M8.5-05 raporu "günde 1" ÖNERMİŞTİ ama yalnızca 1 ve 2 ölçülmüştü. Bu turda
 > 1 / 2 / 3 ve kontrol olarak per-round modeli tam metrik setiyle karşılaştırıldı
@@ -3731,8 +3742,9 @@ formatına yalnız `haptics_enabled` (varsayılan true) eklendi. Ayrıntı ve
 > yıldız) — üretim kilidi ihlali kanıtı DEĞİL; kilit durumu telefonda normal ilerlemeyle YENİDEN test edilmedi. Engellemeyen:
 > `scripts/ui/map_level_node.gd` doküman yorumunda eski "BÖLÜM 10" (kod değiştirilmedi); en üst kamera konumunda gök
 > şeridinde soluk çizgiler (önceden var). **Açık doküman takibi:** GAME_DESIGN §12.1'deki eski "16:9'da zemin dikeyde ≤ %4
-> sıkıştırılır" ifadesi güncel değil — kilitli belge, ayrı owner izni olmadan dokunulmadı. TASK/060 BAŞLAMADI; Release
-> PAUSED. Aşağıdaki "dal aşaması / owner son onayı bekliyor / main'de DEĞİL" ifadeleri o turların TARİHSEL kaydıdır.
+> sıkıştırılır" ifadesi güncel değil — kilitli belge, ayrı owner izni olmadan dokunulmadı. TASK/060 BAŞLAMADI *(o tarihte;
+> sonra TASK/060 TAMAM + MAIN, 2026-10-09 — §4.40)*; Release PAUSED. Aşağıdaki "dal aşaması / owner son onayı bekliyor /
+> main'de DEĞİL" ifadeleri o turların TARİHSEL kaydıdır.
 >
 > *(Tarihsel — dal aşaması kilit teşhisi:)* **Owner QA kilit gözlemi + teşhis (2026-10-08; owner Harita V3 görsel tasarımını ONAYLADI — main birleştirme onayı o an DEĞİL, sonra verildi):** owner QA uygulamasında (A36) "1–3 bitmiş, 4 oynanabilir, 5–10 da girilebilir" gördü. Masaüstü teşhisi (yönlendirilmiş test kaydı, gerçek parmak olayları; `build/qa_059/diag/`, 40 / 40, sahibin kaydı bayt-aynı): üretim kilit sözleşmesi sağlam — `highest_level_unlocked = 4` iken 1–3 TAMAM, yalnız 4 SIRADAKİ (OYNA), 5–10 + kale görünür kilitli; gövde / sayı / plaka / çift dokunuş / sürükleme / Harita tazeleme / sekme dönüşü sonrası 0 level ve 0 board (dokunuşlar düğüme ULAŞIYOR ve reddediliyor — boş negatif değil); 1–4 dokunuşu tam kendi level'ını başlatır, 4'e çift dokunuş tek round. Gözlenen durum QA sürücüsünün vitrin ön ayarı: `tools/ads_device.gd` `_ready()` (M8.9 `33b6382`'den beri, TASK/059 değiştirmedi) önyükleme sözcüğü yoksa (`keep` / `fresh` değilse) HER soğuk açılışta QA paketinin KENDİ kaydına `highest_level_unlocked = 11` + yıldız {1:2, 2:3, 3:3} (+ Hamur 335 vb.) yazar → 4–10 hepsi açık (OYNA ×7), kale açık; o durumda 7'ye dokunuş level 7'yi başlatır (kurala göre GEÇERLİ, kilit atlatma değil); level 4+ ilerlemesi bir sonraki soğuk açılışta silinir. Kapı öncesi QA kaydı bu parmak izini birebir taşıyordu (kapı sonunda bayt-aynı geri kondu). Üretim: ana sahne `scenes/main.tscn`, üretim preset'leri `tools/*` dışlar, üretim betik / sahnelerinde sürücüye başvuru yok; sürücü yalnız QA dışa aktarımının geçici ana sahnesi. Durum: AÇIKLANDI (masaüstü + kayıt parmak izi; üretim kodu değişmedi); telefondaki ŞU ANKİ kayıt okunmadı (owner izni olmadan cihaza dokunulmadı).
 >
@@ -3794,9 +3806,22 @@ owner talimatıyla eskidi — GAME_DESIGN kilitli olduğu için bu dalda DEĞİ�
 önerildi (ZIP 02). Meydan Okuma merkezi / pencere metinleri TASK/063; HUD / güçler TASK/060; Mağaza TASK/062; Koleksiyon /
 Profil / Ayarlar TASK/064.
 
-### 4.40 Gameplay HUD V3 + Ödüllü Güçler (TASK/060) — DAL AŞAMASI, owner görsel incelemesi bekliyor
+### 4.40 Gameplay HUD V3 + Ödüllü Güçler V3 (TASK/060) — TAMAM + MAIN (`27b60e5`; owner görsel + elle A36 onayı APPROVED)
 
-> **DAL AŞAMASI (2026-10-08).** Dal `task/060-gameplay-hud-v3-rewarded-powers` (taban `75fe3f3` = main = origin/main);
+> **TAMAM + MAIN (2026-10-09).** Owner **TASK/060 Gameplay HUD V3 + Ödüllü Güçler V3'ü** ONAYLADI (görsel onay + owner'ın
+> gerçek Samsung A36 elle oynanış testi PASS — bölüm ilerlemesi, dört güç, reklamla güç kazanma, yeniden açılışta kayıt
+> kalıcılığı); onay YALNIZ TASK/060 içindir. Owner onayıyla ff-only `75fe3f3 → 27b60e5` (2026-10-09; merge commit / rebase /
+> squash / cherry-pick / force push YOK; dal `task/060-gameplay-hud-v3-rewarded-powers` = `27b60e5` duruyor). **Ekonomi (owner
+> kararı):** güç başına 2/gün ve dört bağımsız sayaç KORUNUYOR; güç fiyatları, Hamur ödülleri ve oyun dengesi DEĞİŞMEDİ; reklam
+> kaynaklı Hamur enflasyonu değerlendirmesi **TASK/062 Mağaza V3'e ERTELENDİ (PENDING)** — entegrasyonu engellemedi. **Son
+> kanıt (entegrasyondan ÖNCE; entegrasyon ve bu doküman eşitlemesi sırasında hiçbir test / Godot / derleme / cihaz kapısı
+> yeniden koşulmadı):** tam masaüstü kapısı `27b60e5` **59 / 59 temiz, 7601 kontrol, 0 FAIL, 0 SCRIPT ERROR, bot 2 / 2**
+> (`build/qa_060/tests/final_gate/`); gerçek Samsung A36 otomatik cihaz kapısı **GEÇTİ** (üretim kodu `8924974`; aşağıda);
+> owner elle A36 testi **PASS**. `27b60e5` yalnız test kodunu değiştirir — cihazda doğrulanan üretim koduna ek değişiklik yok.
+> Eski ortak "günde 1, dört gücün toplamı" kuralı (M8.5-06) yalnız tarihsel kayıt. TASK/061 BAŞLAMADI; Release PAUSED.
+> Aşağıdaki "DAL AŞAMASI / owner görsel incelemesi bekliyor / main'de DEĞİL / 58 / 59" ifadeleri o turun TARİHSEL kaydıdır.
+>
+> *(Tarihsel — dal aşaması:)* **DAL AŞAMASI (2026-10-08).** Dal `task/060-gameplay-hud-v3-rewarded-powers` (taban `75fe3f3` = main = origin/main);
 > main DEĞİŞMEDİ, PR / merge YOK. Owner görsel incelemesi: `build/qa_060_owner_review/TASK060_OWNER_REVIEW.zip` (git dışı).
 > Gerçek Samsung A36 TEST-reklam kapısı görsel onaydan SONRA (bu turda koşulmadı). TASK/061–065 BAŞLAMADI; Release PAUSED.
 
@@ -3816,8 +3841,9 @@ Profil / Ayarlar TASK/064.
 - **Ekonomi** (`python tools/shop_economy.py quota`, deterministik): yoğun 10 round/gün her fırsatta izlerse güç reklamı 1,00 →
   4,34 / gün, gün-90 Hamur 3.730 → 43.070 (%50 izleme varsayımı: 2,38 / 19.445); orta 0,80 → 1,37 / 17.275 → 24.145; kasual
   0,41 → 0,50 (güçlerin tamamı bedava). Fiyat / sandık / revive / zorluk DEĞİŞTİRİLMEDİ — owner kararı (paket `02` E1).
-- **Commit'ler:** `5a4bca2` oyun / kota · `334f199` UI · `4baf209` test · `99af2d8` inceleme düzeltmesi · `20f1b27` doküman.
-- **Kanıt:** `rewarded_powers_test` 97 / 97 · `hud_v3_test` 38 / 38 · `refill_test` 121 · `revive_refill_ui_test` 267 · `monetization_test` 259 · `target_card_text_fit_test` 328; TEK kontrollü tam masaüstü kapısı (`20f1b27`) **58 / 59 temiz, 7695 kontrol, 1 FAIL**, 0 SCRIPT ERROR, bot 2/2, sahibin kaydı bayt-aynı — tek FAIL `revive_test` senaryo 1 "tam döngü 4 denemede tamamlanamadı" (dört denemede de devamdan sonra ikinci taşma yakalanmadı — testin 'bot devam sonrası kazandı' dalı; ilk taşma durumu bile önceki kapılardan farklıydı: testin kendi başlığında belgelenmiş zamanlamaya bağlı RNG kararsızlığı, M8.5-03 teknik borcu — kamera sarsıntısı global RNG'yi `_process`'te tüketir; devam / board / fizik kodu bu görevde DEĞİŞMEDİ); aynı HEAD'de ayrı 3 yeniden koşu `revive_test` 120 / 120 PASS (2'si TASK/059 kapılarıyla birebir aynı tohum durumu, 1'i bir yeniden denemeyle) — kapı tam yeşil SAYILMAZ, kararsızlık açık takip; 4 / 4 hafif negatif kontrol öldü (paylaşılan tavan, yinelenen grant, göç kapalı, küçük dokunma alanı —
+- **Commit'ler:** `5a4bca2` oyun / kota · `334f199` UI · `4baf209` test · `99af2d8` inceleme düzeltmesi · `20f1b27` doküman ·
+  `9564dd1` dal-aşaması doküman · `cb0b878` cihaz sürücüsü (test) · `8924974` A36 kontrast düzeltmesi · `27b60e5` revive_test (test).
+- **Kanıt (dal aşaması, 2026-10-08 — TARİHSEL; güncel kanıt aşağıda):** `rewarded_powers_test` 97 / 97 · `hud_v3_test` 38 / 38 · `refill_test` 121 · `revive_refill_ui_test` 267 · `monetization_test` 259 · `target_card_text_fit_test` 328; TEK kontrollü tam masaüstü kapısı (`20f1b27`) **58 / 59 temiz, 7695 kontrol, 1 FAIL**, 0 SCRIPT ERROR, bot 2/2, sahibin kaydı bayt-aynı — tek FAIL `revive_test` senaryo 1 "tam döngü 4 denemede tamamlanamadı" (dört denemede de devamdan sonra ikinci taşma yakalanmadı — testin 'bot devam sonrası kazandı' dalı; ilk taşma durumu bile önceki kapılardan farklıydı: testin kendi başlığında belgelenmiş zamanlamaya bağlı RNG kararsızlığı, M8.5-03 teknik borcu — kamera sarsıntısı global RNG'yi `_process`'te tüketir; devam / board / fizik kodu bu görevde DEĞİŞMEDİ); aynı HEAD'de ayrı 3 yeniden koşu `revive_test` 120 / 120 PASS (2'si TASK/059 kapılarıyla birebir aynı tohum durumu, 1'i bir yeniden denemeyle) — kapı tam yeşil SAYILMAZ, kararsızlık açık takip; 4 / 4 hafif negatif kontrol öldü (paylaşılan tavan, yinelenen grant, göç kapalı, küçük dokunma alanı —
   hepsi bayt-aynı geri kondu); salt-okur adversarial inceleme 10 mercek: BLOCKER 0, HIGH 0, MEDIUM 1 (kilitli doküman
   commit'lenmemişti) + LOW 6 düzeltildi, NIT'ler işlendi (`build/qa_060/review/REVIEW.md`). *Tarihsel (gizlenmedi):* ilk odak
   turunda eski argümansız API'yi çağıran 4 suite ayrıştırma hatası verdi ve `gameplay_shell_test` eski "+" rozetini okurken
@@ -3825,8 +3851,42 @@ Profil / Ayarlar TASK/064.
   düzeltmeleri için durduruldu.
 - **Engellemeyen notlar:** Mağaza / Profil güç kartları hâlâ "×N" (TASK/062 / TASK/064); A36 benzeri TABAN çekimlerindeki
   skor üstü soluk plaka çekim aracı yan etkisi (cihazda yok); GAME_DESIGN §12.1 eski sıkıştırma ifadesi ve `map_level_node.gd`
-  "BÖLÜM 10" yorumu (TASK/059 takipleri) açık; `revive_test` senaryo 1 zamanlama kararsızlığı (M8.5-03 teknik borcu —
-  TASK/060 kapısında görüldü, yukarıda) — testi deterministik yapmak ayrı iş, owner seçimi.
+  "BÖLÜM 10" yorumu (TASK/059 takipleri) açık; ~~`revive_test` senaryo 1 zamanlama kararsızlığı — owner seçimi~~ → yalnız test
+  kodunda düzeltildi (`27b60e5`, aşağıda). HUD köşe butonları (geri / ayarlar / çıkış) 56 px kaldı — TASK/060 yalnız güç
+  bölgesini yeniledi (TASK/064).
+- **Gerçek Samsung A36 cihaz kapısı (2026-10-09) — GEÇTİ** (`build/qa_060-gate/device/A36_GATE_SUMMARY.txt`; QA paketi
+  `com.obappstudio.squishymerge.qa`, APK `8924974`'ten, yalnız Google TEST kimlikleri; gerçek `adb input` dokunuşları).
+  *Gerçek SDK:* dört gerçek ödüllü reklam (her biri ~9 sn'de "kazanıldı", tek GERİ ile kapanış) → her biri yalnız kendi gücüne
+  +1 ve kendi sayacına +1 (Bomba 0/2 → 1/2 → 2/2; Bomba 2/2 iken Sarsıntı 0/2 → 1/2; Büyütücü 0/2 → 1/2); 2/2'de İZLE
+  EXHAUSTED, SDK isteği yok; gerçek SDK yükleme hatası (geçersiz test birimi, kod 3) → İZLE UNAVAILABLE, istek / stok / kota
+  yok; reklam üstteyken Hamur düğmesi kilitli; soğuk yeniden açılışta kota + stok kalıcı. *Sentetik cihaz-içi probe (gerçek
+  SDK geri çağrısı DEĞİL):* son gerçek "kazanıldı"nın yeniden oynatılması → yönetici "stale", Main false; açık gerçek talep
+  sırasında yanlış tip / yanlış token → ikisi de reddedildi, token korundu. *Yalnız QA sahte arka uç:* ödülsüz kapanış,
+  gösterim onayı zaman aşımı, bekleyen talep + Hamur dokunuşu, sağlayıcı hazır değil → stok / kota yok. *Sınır:* gerçek
+  reklamı ödülden ÖNCE kapatmak ulaşılamadı (Google TEST ödüllü reklamı ödüle kadar GERİ'yi yok saydı). HUD: madalyonlar /
+  silahlı durumlar / çakışma yok (dokunma alanı 129×138 fiziksel px ≈ 49 dp) / gerçek TEST banner; çift dokunuş, KAPAT çift
+  dokunuşu, ACTION_CANCEL, sürükleyip çıkma, Hamur çift dokunuşu tek işlem; meydan okumada güç yok; izole saatle yeni gün
+  (cihaz saati DEĞİŞMEDİ). Loglar: SCRIPT ERROR 0, çökme / ANR 0, yalnız Google TEST yayıncı kimliği. Güvenlik: bir telefon
+  araması + iki bildirim girdiyi durdurdu (yabancı dokunuş 0); QA kayıt ailesi bayt-aynı geri kondu; üretim paketi kurulmadı,
+  `com.example` dokunulmadı.
+- **A36'da bulunan düzeltme (`8924974`):** refill karosundaki küçük uyarı yazıları (`TEXT_WARNING` #d4762b) açık lavanta
+  zeminde 2.34:1 ölçüldü → yalnız refill'de yeni `UiTokens.TEXT_WARNING_STRONG` #94450a, cihazda 4.82:1 (yazı boyutu aynı;
+  diğer ekranlar ve ortak token DEĞİŞMEDİ); `hud_v3_test` 39 (kontrast + token kontrolü); ilgili 7 suite 890 kontrol temiz.
+  `cb0b878`: cihaz sürücüleri refill V3 kota cipini `quota_text()` ile okur (yalnız test aracı).
+- **`revive_test` kararlılığı (`27b60e5`, yalnız test):** kök neden kamera sarsıntısı DEĞİL (o artık `_fx_rng`) — merge
+  çözümü (`call_deferred`) ve temizlik / efekt zamanlayıcıları süreç karelerinde ilerliyor, fizik adımlarıyla sabit oranda
+  eşleşmiyor (aynı tohumla ilk taşma 5550 / 4950 / 4790 / 3040). Senaryo 1 iki-devam döngüsünü ölçer; artık level'in bellek içi
+  kopyasında ulaşılamaz skor hedefiyle oynar (kazanma senaryo 4'te, gerçek level'la); hiçbir kontrol silinmedi; üretim
+  fiziği / level / ekonomi / reklam DEĞİŞMEDİ. Doğrulama: 5 / 5 (ikisi CPU yükü altında) + 3 / 3, sonra tam kapı.
+- **Owner elle testi:** ayrı owner uygulaması `com.obappstudio.squishymerge.qa060` ("Squishy Merge HUD QA", `8924974`, normal
+  `main.tscn`, `tools/*` yok, vitrin / fresh açılış yok, yalnız TEST reklamları) telefonda — owner testi PASS; uygulama ve
+  ilerlemesi owner'da kalır.
+- **Son tam masaüstü kapısı (`27b60e5`):** 59 / 59 temiz, 7601 kontrol, 0 FAIL, 0 SCRIPT ERROR, bot 2 / 2, sahibin kaydı
+  bayt-aynı. (Önceki tek kapı `20f1b27` 58 / 59 — yukarıdaki tarihsel kayıt; fark 7695 − 215 + 120 + 1 = 7601: eski
+  `revive_test` yeniden deneme satırları + `hud_v3_test` +1.)
+- **Entegrasyon (2026-10-09):** ff-only `75fe3f3 → 27b60e5`, merge commit YOK; korunan durum (sahibin kaydı `deb7ff6f…`,
+  `default_bus_layout.tres`, `project.godot`, `export_presets.cfg`, `OWNER_WORKING_PROFILE.md`, `_visual_source` 13 738
+  dosya) entegrasyon boyunca bayt-aynı; testler yeniden koşulmadı.
 
 ## 5. Dosya/klasör yapısı ve script envanteri
 
@@ -4634,12 +4694,16 @@ Owner'ın yapacağı / onaylayacağı:)*
 - **TASK/059** — Harita V3 (~1.3× tek tip büyütme + kaydırma, odak kamerası, MEYDAN yan portalı, "10'U BİTİR", TEXT-LIGHT)
   → ✅ **main'de** (§4.39; owner görsel onayı APPROVED — yalnız Harita; masaüstü tam kapısı 57 / 57 temiz, 0 FAIL + gerçek
   Samsung A36 Harita kapısı GEÇTİ + kilit teşhisi 40 / 40, entegrasyondan önce; owner onayıyla ff-only `f6dcf29 → f13fa9c` (2026-10-08; merge commit / rebase / squash / cherry-pick / force push YOK; dal `task/059-map-v3` = `f13fa9c` duruyor)).
-- **TASK/060** — Gameplay HUD V3 + ödüllü güçler (güç başına 2/gün) → 🔶 **DALDA** (§4.40; owner görsel incelemesi +
-  ekonomi kararı bekliyor; A36 kapısı onaydan sonra).
-- ~~**Sıradaki adım (güncel):** **TASK/060** — owner başlatınca~~ → başladı. **Sıradaki adım (güncel):** owner TASK/060
-  incelemesi (`build/qa_060_owner_review/TASK060_OWNER_REVIEW.zip`). Sonraki
-  sahiplik: 060 ödüllü güçler · 061 Görevler ödül alma / devir · 062 Mağaza / Başlangıç Paketi · 063 Meydan Okuma · 064
-  kalan cila. Açık doküman takibi: GAME_DESIGN §12.1 eski sıkıştırma ifadesi (owner izni). Release PAUSED.
+- **TASK/060** — Gameplay HUD V3 + ödüllü güçler V3 (güç başına 2/gün, dört bağımsız sayaç) → ✅ **main'de** (§4.40; owner
+  görsel onayı + elle A36 testi APPROVED / PASS; tam masaüstü kapısı 59 / 59 temiz, 7601 kontrol, 0 FAIL + gerçek Samsung A36
+  cihaz kapısı GEÇTİ, entegrasyondan önce; owner onayıyla ff-only `75fe3f3 → 27b60e5` (2026-10-09; merge commit / rebase /
+  squash / cherry-pick / force push YOK; dal `task/060-gameplay-hud-v3-rewarded-powers` = `27b60e5` duruyor)).
+- **Sıradaki adım (güncel):** **TASK/061** Görevler ödül alma / devir — owner başlatınca (BAŞLAMADI). Sonraki sahiplik: 061
+  Görevler ödül alma / devir · 062 Mağaza / Başlangıç Paketi (+ ertelenen ekonomi değerlendirmesi: reklam kaynaklı Hamur
+  enflasyonu — PENDING) · 063 Meydan Okuma · 064 kalan cila. Açık doküman takibi: GAME_DESIGN §12.1 eski sıkıştırma ifadesi
+  (owner izni). Release PAUSED.
+- *(Tarihsel — TASK/060 dal aşaması, 2026-10-08:)* Sıradaki adım owner TASK/060 incelemesiydi
+  (`build/qa_060_owner_review/TASK060_OWNER_REVIEW.zip`) — tamamlandı, yukarıda.
 - *(Tarihsel — TASK/058 sonrası, 2026-10-08:)* Sıradaki adım TASK/059 Harita V3 idi (yeni oturumda) — tamamlandı, yukarıda.
 - *(Tarihsel — TASK/056 sonrası, 2026-10-06:)* **Sıradaki görev:** owner seçer — TASK/057 oluşturulmadı; otomatik bir
   sonraki ürün düzeltme görevi tanımlı değil.

@@ -86,7 +86,7 @@
 | ürün | durum | kural |
 |---|---|---|
 | Ödüllü devam (revive) | ✅ bağlı, test reklamı, A36'da doğrulandı | round başına en fazla 2 başarılı devam (board sayar) |
-| Ödüllü güç refill'i | ✅ bağlı, test reklamı, A36'da doğrulandı (eski ortak kota) | **TASK/060 (dalda): güç BAŞINA günde 2 başarılı ödül, dört bağımsız sayaç**; yalnız seçilen güce +1 (§20) — ~~günde 1, DÖRT gücün toplamı~~ |
+| Ödüllü güç refill'i | ✅ bağlı, test reklamı, A36'da doğrulandı (güç başına kota: TASK/060 gerçek A36 kapısı, 2026-10-09) | **güç BAŞINA günde 2 başarılı ödül, dört bağımsız sayaç** (TASK/060, main'de); yalnız seçilen güce +1 (§20) — ~~günde 1, DÖRT gücün toplamı~~ (M8.5-06, tarihsel) |
 | Ödüllü günlük sandık (M8.9-02) | ✅ bağlı, test reklamı, cihazda henüz değil | günde 2 BAŞARILI ödül; ayrı kota (DAILY_REWARDS §1) |
 | Ödüllü günlük +150 Hamur (M8.9-02) | ✅ bağlı, test reklamı, cihazda henüz değil | günde 1 BAŞARILI ödül; ayrı kota |
 | Ücretsiz günlük sandık (M8.9-02) | ✅ reklam yok | günde 1; loot reçetesi DAILY_REWARDS §4 |
@@ -1208,9 +1208,11 @@ aşağıdakiler uygulanmış DEĞİL, önerilen işlerdir (yalnız doküman).
    açık seçim, ödül yalnız SDK "ödül kazanıldı" geri çağrısıyla. Hesapta içerik / engelleme ayarları ve 13–17 uyum
    incelemesi owner'da AÇIK (AGE_BAND_ROUTING, AUDIENCE_DECISION).
 
-## 20. TASK/060 — güç BAŞINA ödüllü refill kotası + Gameplay HUD V3 (2026-10-08, DALDA — owner görsel onayı bekleniyor)
+## 20. TASK/060 — güç BAŞINA ödüllü refill kotası + Gameplay HUD V3 (TAMAM + MAIN, 2026-10-09)
 
-**Durum:** dal `task/060-gameplay-hud-v3-rewarded-powers` (taban `75fe3f3`), main'de DEĞİL. Owner kararı (Product Vision
+**Durum (2026-10-09):** **TAMAM + MAIN** — owner görsel onayı + elle Samsung A36 testi APPROVED / PASS; owner onayıyla ff-only
+`75fe3f3 → 27b60e5` (merge commit YOK; dal `task/060-gameplay-hud-v3-rewarded-powers` duruyor); entegrasyonda testler yeniden
+koşulmadı. *(Dal aşaması 2026-10-08: dal, taban `75fe3f3`, main'de değildi — tarihsel.)* Owner kararı (Product Vision
 V3, GitHub Issue #1 §3): her gücün kendi günlük ödüllü kotası **2 başarılı ödül**; dört bağımsız sayaç (GAME_DESIGN §5.7.3).
 Diğer reklam sayıları DEĞİŞMEDİ: devam 2 / round, reklamlı sandık 2 / gün, +150 Hamur 1 / gün, zorunlu geçiş ≥ 2 normal
 round + ≥ 300 aktif sn (+ 60 sn tam ekran bekleme), banner yüzeyleri, yaş / rıza yönlendirmesi.
@@ -1234,9 +1236,28 @@ round + ≥ 300 aktif sn (+ 60 sn tam ekran bekleme), banner yüzeyleri, yaş / 
   TEEN / ADULT mevcut yaş yönlendirmesinden geçer. QA'da yalnız Google TEST reklamları; gerçek üretim kimlikleri ayrı release işi.
 - **Ekonomi (ölçüm, `python tools/shop_economy.py quota`, deterministik):** yoğun oyuncu (10 round/gün) her fırsatta izlerse
   güç reklamı ~1,0 → ~4,3 / gün, gün-90 Hamur medyanı 3.730 → 43.070 (sink'siz referans ~50.000); %50 izleme varsayımında
-  ~2,4 / gün ve 19.445; orta oyuncu 17.275 → 24.145 (hep izler). Fiyat / sandık / revive / zorluk DEĞİŞTİRİLMEDİ — dengeleme
-  owner kararıdır.
+  ~2,4 / gün ve 19.445; orta oyuncu 17.275 → 24.145 (hep izler). Fiyat / sandık / revive / zorluk DEĞİŞTİRİLMEDİ.
+  **Owner kararı (2026-10-09):** güç başına 2/gün ve dört bağımsız sayaç KORUNUYOR; güç fiyatları, Hamur ödülleri ve oyun
+  dengesi değişmedi; reklam kaynaklı Hamur enflasyonu değerlendirmesi **TASK/062 Mağaza V3'e ertelendi (PENDING)**.
 - **Testler:** `rewarded_powers_test` (saf kurallar, tek yazma, göç, gerçek Main + yönetici + `FakeAdBackend` geri çağrı
   sıraları, yaş / rıza, meydan okuma, kaynak sözleşmesi), `hud_v3_test`, uyarlanan `refill_test`, `revive_refill_ui_test`,
   `monetization_test`, `ad_policy_test`, `save_persistence_test`, `daily_rewards_test`, `fullscreen_break_recovery_test`,
-  `round_finish_modal_test` (kanıt: PROJECT_STATUS §4.40). Gerçek Samsung A36 TEST-reklam kapısı owner görsel onayından SONRA.
+  `round_finish_modal_test` (kanıt: PROJECT_STATUS §4.40).
+- **Gerçek Samsung A36 cihaz kanıtı (2026-10-09; QA paketi `.qa`, üretim kodu `8924974`, yalnız Google TEST kimlikleri;
+  `build/qa_060-gate/device/A36_GATE_SUMMARY.txt`)** — üç kanıt türü AYRI:
+  - *Gerçek SDK (Google TEST ödüllü reklam):* 4 gösterim / 4 "ödül kazanıldı" (~9 sn) / 4 kapanış (tek GERİ) → her biri yalnız
+    kendi gücüne +1 ve kendi sayacına +1 (Bomba 0/2 → 1/2 → 2/2; Bomba 2/2 iken Sarsıntı 0/2 → 1/2; Büyütücü 0/2 → 1/2);
+    2/2'de İZLE EXHAUSTED ve SDK isteği yok; gerçek SDK yükleme hatası (geçersiz test birimi, kod 3) → İZLE UNAVAILABLE,
+    istek / stok / kota yok; reklam üstteyken Hamur düğmesi kilitli; soğuk yeniden açılışta kota + stok kalıcı; gerçek TEST
+    banner oyun yuvasında. Loglar: SCRIPT ERROR 0, çökme / ANR 0, yalnız Google TEST yayıncı kimliği.
+  - *Sentetik cihaz-içi probe (gerçek SDK geri çağrısı DEĞİL):* son gerçek "kazanıldı"nın aynı reklam kimliğiyle yeniden
+    oynatılması → yönetici "stale", `Main.grant_rewarded_power` false; açık gerçek talep sırasında yanlış tip / yanlış token →
+    ikisi de reddedildi, açık token korundu, ardından gerçek ödül doğru güce.
+  - *Yalnız QA sahte arka uç (`FakeAdBackend`; gerçek SDK kanıtı DEĞİL):* ödülsüz kapanış → stok / kota yok + "tamamını izle"
+    notu; gösterim onayı zaman aşımı → stok / kota yok; bekleyen talep + 1 sn sonra Hamur dokunuşu → satın alma yok; sağlayıcı
+    hazır değil → İZLE UNAVAILABLE.
+  - *Sınır:* gerçek reklamı ödülden ÖNCE kapatmak ulaşılamadı — Google TEST ödüllü reklamı ödüle kadar GERİ'yi yok saydı
+    (M8.9-02 bulgusuyla aynı); bu yol masaüstünde ve sahte arka uçla kanıtlı.
+  - *Owner:* elle A36 oynanış testi PASS (ayrı `com.obappstudio.squishymerge.qa060` uygulaması, yalnız TEST reklamları).
+- **Masaüstü:** tam kapı `27b60e5` 59 / 59, 7601 kontrol, 0 FAIL, 0 SCRIPT ERROR (`27b60e5` yalnız test kodu; önceki tek kapı
+  `20f1b27` 58 / 59 — `revive_test` zamanlama kararsızlığı, sonra test-only düzeltildi; PROJECT_STATUS §4.40).
