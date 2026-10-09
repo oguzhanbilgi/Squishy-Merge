@@ -238,6 +238,7 @@ func _build_footer() -> void:
 	footer.add_theme_constant_override("separation", UiTokens.SPACE_SM)
 	_note = UiKit.label("", &"LabelWarning", HORIZONTAL_ALIGNMENT_CENTER)
 	_note.name = "Note"
+	_note.add_theme_color_override("font_color", UiTokens.TEXT_WARNING_STRONG)
 	_note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_note.visible = false
 	footer.add_child(_note)
@@ -319,14 +320,15 @@ func refresh(provider_ready: bool, provider_note: String = "") -> void:
 	else:
 		_dough.set_state(SquishyButton.State.NORMAL if affordable else SquishyButton.State.INSUFFICIENT)
 	_balance.text = GameplayHud._thousands(balance)
-	_balance.add_theme_color_override("font_color", UiTokens.TEXT_SECONDARY if affordable else UiTokens.TEXT_WARNING)
+	_balance.add_theme_color_override("font_color", UiTokens.TEXT_SECONDARY if affordable else UiTokens.TEXT_WARNING_STRONG)
 	_set_note(_dough_note, "" if affordable else NOTE_NO_DOUGH, false)
 
 
 func _set_note(note: Label, text: String, quiet: bool) -> void:
 	note.text = text
 	note.visible = text != ""
-	note.add_theme_color_override("font_color", UiTokens.TEXT_SECONDARY if quiet else UiTokens.TEXT_WARNING)
+	# TASK/060 A36: küçük uyarı yazısı açık karoda okunur kontrastla (TEXT_WARNING_STRONG, ~4.8:1; eski ton 2.34:1).
+	note.add_theme_color_override("font_color", UiTokens.TEXT_SECONDARY if quiet else UiTokens.TEXT_WARNING_STRONG)
 
 
 ## Sağlayıcı talebi reddetti / reklam hazır değil / ödül kazanılmadı, ya da Hamur işlemi başarısız oldu. Pencere AÇIK

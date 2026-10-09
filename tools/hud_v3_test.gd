@@ -369,6 +369,7 @@ func _refill_text() -> void:
 	_c("refill dört durumda: kota cipi BAŞARILI kullanım (0/2 · 1/2 · 2/2), stok '0', fiyat rakamı; '×' / 'STOK' yok", all_ok)
 	# 16:9 + gerçek banner yuvası (112 / 128): pencere ve KAPAT yuvanın ÜSTÜNDE, ekranda.
 	var fits: bool = true
+	var note_ok: bool = false
 	for slot_px in [112.0, 128.0]:
 		UiKit.set_banner_slot(slot_px)
 		SaveManager.data["dough"] = 10
@@ -382,10 +383,16 @@ func _refill_text() -> void:
 		print("      banner %d: çerçeve %s, KAPAT alt %d, sınır %d" % [int(slot_px), str(frame_rect),
 			int(refill._close.get_global_rect().end.y), int(limit)])
 		fits = fits and ok_size
+		if slot_px == 112.0:
+			# TASK/060 A36: Hamur 10 + Temizleyici → "Hamur yetersiz" + bakiye uyarı tonunda (TEXT_WARNING_STRONG).
+			note_ok = refill.dough_note_text() == refill.NOTE_NO_DOUGH 				and refill._dough_note.get_theme_color("font_color") == UiTokens.TEXT_WARNING_STRONG 				and refill._balance.get_theme_color("font_color") == UiTokens.TEXT_WARNING_STRONG 				and refill._note.get_theme_color("font_color") == UiTokens.TEXT_WARNING_STRONG
 		_main._on_refill_closed()
 		await _settle(2)
 	UiKit.set_banner_slot(0.0)
 	_c("16:9 + banner 112 / 128: refill penceresi + KAPAT + İZLE yuvanın üstünde, ekranda", fits)
+	var contrast: float = _contrast(UiTokens.TEXT_WARNING_STRONG, UiTokens.SURFACE_NEUTRAL_DEEP)
+	_c("küçük uyarı yazıları (karo sebebi + bakiye + altlık) TEXT_WARNING_STRONG, açık karoda %.2f:1 >= 4.5 (A36: eski ton 2.34:1)"
+		% contrast, note_ok and contrast >= 4.5)
 	_sections += 1
 
 
@@ -445,3 +452,16 @@ func _owner_snapshot() -> Dictionary:
 			SaveManager.SAVE_PATH + SaveFile.BACKUP_SUFFIX]:
 		out[p] = FileAccess.get_file_as_bytes(p) if FileAccess.file_exists(p) else null
 	return out
+
+
+func _contrast(a: Color, b: Color) -> float:
+	var la: float = _luminance(a)
+	var lb: float = _luminance(b)
+	return (maxf(la, lb) + 0.05) / (minf(la, lb) + 0.05)
+
+
+func _luminance(c: Color) -> float:
+	var channels: Array[float] = []
+	for v: float in [c.r, c.g, c.b]:
+		channels.append(v / 12.92 if v <= 0.03928 else pow((v + 0.055) / 1.055, 2.4))
+	return 0.2126 * channels[0] + 0.7152 * channels[1] + 0.0722 * channels[2]

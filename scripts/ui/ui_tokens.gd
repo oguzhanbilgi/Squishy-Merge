@@ -79,6 +79,9 @@ const TEXT_DISABLED_ON_DARK: Color = Color(1, 1, 1, 0.45)
 const TEXT_PRICE: Color = GOLD_DEEP
 const TEXT_POSITIVE: Color = MINT_DEEP
 const TEXT_WARNING: Color = Color("d4762b")
+## TASK/060 (gerçek A36 ölçümü): TEXT_WARNING refill karosunun açık lavanta zemininde yalnız 2.34:1 — küçük uyarı
+## yazısı için yetersiz. Açık karo / krem yüzey üstündeki KÜÇÜK uyarı yazısı bu koyu turuncuyu kullanır (karoda ~4.8:1).
+const TEXT_WARNING_STRONG: Color = Color("94450a")
 const HIGHLIGHT: Color = Color.WHITE
 ## Metin golgesi (koyu zemin ustundeki baslik/HUD).
 const TEXT_SHADOW: Color = Color(0.02, 0.01, 0.05, 0.6)
