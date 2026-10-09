@@ -46,6 +46,8 @@ var _board: Node2D
 var _offer: CanvasLayer
 var _drive: bool = false
 var _shots: bool = false
+## TASK/060: true iken `_make_board` level'in bellek ici KOPYASINI ulasilamaz skor hedefiyle kurar (yalniz senaryo 1).
+var _unwinnable: bool = false
 
 ## Board'un yaydigi sinyallerin sayaclari — "yalnizca bir kez" iddialari
 ## bunlarla dogrulaniyor.
@@ -65,11 +67,19 @@ var _failed: int = 0
 var _game_time: float = 0.0
 
 ## Sabit tohum: bot rastgele birakiyor, tohumsuz her kosu bambaska bir yigin
-## uretiyor. Kosuyu BIREBIR tekrarlanabilir YAPMAZ — kamera sarsintisi
-## `_process` icinde ayni global RNG'yi tuketiyor ve `_process` fizik
-## kareleriyle sabit oranda calismiyor (M8.5-03'te kaydedilen teknik borc,
-## bu taskta degistirilmedi). Bu yuzden senaryolar sonuca gore dallanabilmeli.
+## uretiyor. Kosuyu BIREBIR tekrarlanabilir YAPMAZ: kamera sarsintisi artik
+## global RNG'yi tuketmiyor (M8.5-11, `_fx_rng`) ama merge cozumu
+## (`call_deferred`) ve temizlik / efekt zamanlayicilari (`create_timer`,
+## tween'ler) SUREC karelerinde ilerliyor ve surec kareleri fizik adimlariyla
+## sabit oranda eslesmiyor — ayni tohumla ilk tasma bile farkli yigindan
+## gelebiliyor (TASK/060 olcumu: 4 kosuda 3x skor 5550, 1x 4950). Bu yuzden
+## senaryolar sonuca gore dallanabilmeli.
 const RNG_SEED: int = 20260909
+## TASK/060 (test-only): senaryo 1'in level KOPYASINDA skor hedefi — ulasilamaz. Senaryo 1 iki-devam
+## DONGUSUNU olcer, kazanmayi degil (senaryo 4 olcer); bot devamdan sonra hedefe ulasirsa dongu
+## tamamlanamiyordu (TASK/060 tam kapisi: 4 denemenin 4'unde "devam sonrasi kazandi"). Oyun fizigi,
+## level dosyasi ve uretim kodu AYNEN; yalniz bu senaryonun bellek ici kopyasi.
+const UNWINNABLE_SCORE: int = 1_000_000_000
 
 
 func _ready() -> void:
@@ -140,7 +150,11 @@ func _make_board(level_number: int = TEST_LEVEL) -> void:
 	if level_number > 0:
 		path = "res://resources/levels/level_%02d.tres" % level_number
 	_board = GAME_BOARD_SCENE.instantiate()
-	_board.setup(load(path))
+	var data: LevelData = load(path)
+	if _unwinnable and not data.is_endless:
+		data = data.duplicate()
+		data.target_score = UNWINNABLE_SCORE
+	_board.setup(data)
 	_board.round_finished.connect(_on_round_finished)
 	_board.revive_offered.connect(_on_revive_offered)
 	_board.revive_granted.connect(_on_revive_granted)
@@ -282,21 +296,25 @@ func _powerup_stock() -> Dictionary:
 ## test ediyor) ama bu senaryonun olcmek istedigi iki-devam dongusu degil.
 ## O yuzden dongu tamamlanamazsa bastan deneniyor.
 ##
-## Not: sabit tohuma ragmen kosular birebir tekrarlanabilir DEGIL — kamera
-## sarsintisi `_process` icinde global RNG'yi tuketiyor ve `_process` fizik
-## kareleriyle sabit oranda calismiyor. Bu, M8.5-03'te kaydedilen mevcut
-## teknik borc; bu taskta DEGISTIRILMEDI.
+## Not: sabit tohuma ragmen kosular birebir tekrarlanabilir DEGIL (bkz. RNG_SEED).
+## TASK/060: senaryo level'in bellek ici kopyasinda oynar (UNWINNABLE_SCORE) —
+## kazanma imkansiz, dongu her zaman tasmayla ilerler; kazanma senaryo 4'te.
+## Yeniden deneme artik yalniz devamdan sonra tasmanin kare butcesinde
+## (FAIL_MAX_FRAMES) yakalanamamasi demek; 4 denemede de olursa acik FAIL.
 func _scenario_full_cycle() -> void:
+	_unwinnable = true
 	for attempt in 4:
 		var passed_before: int = _passed
 		var failed_before: int = _failed
 		if await _try_full_cycle():
+			_unwinnable = false
 			return
 		# Yarim kalan denemenin assert'leri sayilmasin.
 		_passed = passed_before
 		_failed = failed_before
-		print("  (bot devam sonrasi kazandi, senaryo bastan deneniyor)")
+		print("  (devamdan sonra tasma kare butcesinde yakalanamadi, senaryo bastan deneniyor)")
 		await _teardown()
+	_unwinnable = false
 	_failed += 1
 	printerr("  [FAIL] tam dongu 4 denemede tamamlanamadi")
 
