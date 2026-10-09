@@ -794,7 +794,7 @@ func _write_state(label: String) -> void:
 		str(rv.visible), rv.remaining_text(), str(rv.continue_button().disabled), str(rv.is_request_pending()),
 		str(rv.provider_ready()), rv.note_text(), _rect_px(rv.continue_button()), _rect_px(rv.decline_button())])
 	lines.append("refill: visible=%s type=%d name='%s' stock='%s' quota='%s' ad_disabled=%s ad_note='%s' dough_disabled=%s note='%s' pending=%s rects: ad=%s dough=%s close=%s x=%s" % [
-		str(rf.visible), rf.current_type(), rf.power_name_text(), rf.stock_text(), rf._quota.text,
+		str(rf.visible), rf.current_type(), rf.power_name_text(), rf.stock_text(), rf.quota_text(),
 		str(rf._ad.disabled), rf.ad_note_text(), str(rf._dough.disabled), rf.note_text(), str(rf.is_request_pending()),
 		_rect_px(rf._ad), _rect_px(rf._dough), _rect_px(rf._close), _rect_px(rf.close_button())])
 	var st: CanvasLayer = _main._settings

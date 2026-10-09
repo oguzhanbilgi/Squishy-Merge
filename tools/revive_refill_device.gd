@@ -330,7 +330,7 @@ func _write_state(label: String) -> void:
 		_rect_px(rv.continue_button()), _rect_px(rv.decline_button())])
 	lines.append("refill: visible=%s type=%d name='%s' ribbon='%s' stock='%s' price='%s' balance='%s' quota='%s'" % [
 		str(rf.visible), rf.current_type(), rf.power_name_text(), rf.ribbon_text(), rf.stock_text(),
-		rf.price_text(), rf.balance_text(), rf._quota.text])
+		rf.price_text(), rf.balance_text(), rf.quota_text()])
 	lines.append("refill_state: ad_disabled=%s ad_note='%s' dough_disabled=%s dough_note='%s' note='%s' pending=%s purchase_sent=%s" % [
 		str(rf._ad.disabled), rf.ad_note_text(), str(rf._dough.disabled), rf.dough_note_text(), rf.note_text(),
 		str(rf.is_request_pending()), str(rf.is_purchase_sent())])
