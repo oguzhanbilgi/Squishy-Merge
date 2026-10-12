@@ -1,42 +1,54 @@
 class_name MissionsOverlay
 extends CanvasLayer
-## GÖREVLER penceresi (TASK/046 — GAME_DESIGN §5.10) — Ana Sayfa'nın GÖREVLER girişi açar;
-## Main'e ait ikincil pencere (GÜNLÜK ÖDÜLLER / Bonus Sandık ile aynı katman ve iskelet: yeni
-## alt sekme / ekran YOK, reklam yüzeyi DEĞİL — Ana Sayfa'nın mevcut banner'ı aynen, pencere
-## yuvanın üstüne oturur).
+## GÖREVLER penceresi (TASK/046 → TASK/061 V3 — GAME_DESIGN §5.10) — Ana Sayfa'nın GÖREVLER girişi açar; Main'e ait
+## ikincil pencere (GÜNLÜK ÖDÜLLER / Bonus Sandık ile aynı katman ve iskelet: yeni alt sekme / ekran YOK, reklam yüzeyi
+## DEĞİL — Ana Sayfa'nın mevcut banner'ı aynen, pencere yuvanın üstüne oturur).
 ##
-##   ÜST (sabit)   hedef picto + "2 / 6 GÖREV" + ray (6/6'da altın + yıldız) + ödül notu
-##                 ("Ödüller görev tamamlanınca otomatik eklenir.") — talep butonu YOK.
-##   GÖVDE         GÜNLÜK başlığı + "Yarın yenilenir" · 3 kart; HAFTALIK başlığı +
-##                 "Pazartesi yenilenir" · 3 kart (sabit ipucu, canlı sayaç YOK).
+##   ÜST (sabit)   hedef picto + "2 / 6 GÖREV" (tamamlanan) + alınabilir ödül varsa dikkat rozeti (sayı) + ray (6/6
+##                 alınmışsa altın + yıldız) + kısa not "Tamamla, ödülünü al!" (hepsi alınınca "Hepsi tamam!").
+##   GÖVDE         GÜNLÜK başlığı + "Yarın yenilenir" · 3 kart; HAFTALIK başlığı + "Pazartesi yenilenir" · 3 kart
+##                 (sabit ipucu, canlı sayaç YOK). Kart durumları AKTİF / ALINABİLİR (ÖDÜLÜ AL) / ALINDI (MissionCard).
 ##
-## Açmak / kapatmak / kaydırmak kayda YAZMAZ. X / karartma / Android geri (Main) → kapanır.
-## Açılış ve kapanış Main'in 300 ms parmak yatışmasını başlatır (Main bağlar).
+## Pencere ödül VERMEZ: kartın ÖDÜLÜ AL'ı `claim_requested(id, period_key)` yayar, Main SaveManager'ın tek yetkili talep
+## işlemini çağırır ve sonucu `apply_claim` ile geri verir (kart kanonik veriden tazelenir + kısa candy geri bildirim:
+## kart pop'u, CTA'dan yükselen "+10" Hamur, ödül sesi, hafif titreşim — tam ekran kutlama YOK). Açmak / kapatmak /
+## kaydırmak kayda YAZMAZ. X / karartma / Android geri (Main) → kapanır. Açılış ve kapanış Main'in 300 ms parmak
+## yatışmasını başlatır (Main bağlar).
 
 signal opened
 signal closed
+## ÖDÜLÜ AL (TASK/061): gösterilen dönemin anahtarıyla — doğrulama ve ödül SaveManager'da (Main).
+signal claim_requested(id: StringName, period_key: String)
 
 const TITLE: String = "GÖREVLER"
 const WIDTH: float = 600.0
 const COUNT_FORMAT: String = "%d / %d"
 const COUNT_UNIT: String = "GÖREV"
-const NOTE_TEXT: String = "Ödüller görev tamamlanınca otomatik eklenir."
+const NOTE_TEXT: String = "Tamamla, ödülünü al!"
 const COMPLETE_TEXT: String = "Hepsi tamam!"
 const DAILY_TITLE: String = "GÜNLÜK"
 const WEEKLY_TITLE: String = "HAFTALIK"
 const DAILY_HINT: String = "Yarın yenilenir"
 const WEEKLY_HINT: String = "Pazartesi yenilenir"
+const GAIN_FORMAT: String = "+%d"
+## "+10" yükselişi: süre, mesafe (tuval px).
+const GAIN_TIME: float = 0.85
+const GAIN_RISE: float = 72.0
 const STAR_ART: Texture2D = preload("res://assets/visual/ui/icon_star_filled.png")
+const DOUGH_ART: Texture2D = preload("res://assets/visual/ui/icon_dough.png")
 
 var _frame: Control
 var _count: Label
 var _star: TextureRect
+var _attention: AttentionBadge
 var _bar: ProgressBar
 var _note: Label
 var _cards: Array[MissionCard] = []
 var _headers: Dictionary = {}
 var _safe_top_override: float = -1.0
+var _last_gain: Control
 
+@onready var _center: Control = $Center
 @onready var _dim: ColorRect = $Center/Dim
 @onready var _anchor: CenterContainer = $Center/Anchor
 
@@ -56,6 +68,8 @@ func _ready() -> void:
 		_headers[period] = header
 		for id in Missions.ids_for(period):
 			var card := MissionCard.new()
+			card.claim_pressed.connect(func(mission: StringName, period_key: String) -> void:
+				claim_requested.emit(mission, period_key))
 			body.add_child(card)
 			_cards.append(card)
 	var tail := Control.new()
@@ -96,6 +110,11 @@ func _build_hero(hero: VBoxContainer) -> void:
 	_star.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	_star.visible = false
 	row.add_child(_star)
+	# Alınabilir ödül sayısı (V3 dikkat rozeti — Ana Sayfa GÖREVLER madalyonuyla aynı dil).
+	_attention = AttentionBadge.new()
+	_attention.name = "ClaimableBadge"
+	_attention.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	row.add_child(_attention)
 	_bar = UiKit.progress_bar(0.0, &"ProgressBarMint", 14.0)
 	_bar.name = "CountRail"
 	hero.add_child(_bar)
@@ -153,6 +172,7 @@ func close_missions(with_sound: bool = true) -> void:
 	if not visible:
 		return
 	visible = false
+	_clear_gain()
 	if with_sound:
 		AudioManager.play(&"ui_modal_close")
 	closed.emit()
@@ -165,14 +185,67 @@ func refresh() -> void:
 		_cards[i].setup(rows[i] if i < rows.size() else {})
 	var total: int = rows.size()
 	var done: int = Missions.completed_count(state)
-	var complete: bool = total > 0 and done >= total
+	var claimable: int = Missions.claimable_count(state)
+	var complete: bool = total > 0 and done >= total and claimable == 0
 	_count.text = COUNT_FORMAT % [done, total]
 	_count.add_theme_color_override("font_color", UiTokens.GOLD_DEEP if complete else UiTokens.TEXT_PRIMARY)
 	_bar.value = float(done) / float(maxi(total, 1))
 	_bar.theme_type_variation = &"ProgressBarGold" if complete else &"ProgressBarMint"
 	_star.visible = complete
+	_attention.show_count(claimable)
 	_note.text = COMPLETE_TEXT if complete else NOTE_TEXT
 	_note.add_theme_color_override("font_color", UiTokens.GOLD_DEEP if complete else UiTokens.TEXT_SECONDARY)
+
+
+## Main'in talep sonucu (SaveManager.claim_mission_reward): kartlar kanonik veriden tazelenir; ödül verildiyse (ÖDÜLÜ AL
+## ya da pencere gece yarısını açık geçtiyse aynı ödülün dönem sonu teslimi) kısa candy geri bildirimi.
+func apply_claim(id: StringName, outcome: Dictionary) -> void:
+	var source: MissionCard = card(id)
+	var origin: Rect2 = source.claim_button().get_global_rect() if source != null else Rect2()
+	refresh()
+	var result: int = int(outcome.get("result", -1))
+	if result != Missions.Claim.CLAIMED and result != Missions.Claim.AUTO_CLAIMED:
+		AudioManager.play(&"ui_invalid")
+		return
+	if source != null:
+		source.play_claimed()
+	_show_gain(int(outcome.get("claimed_dough", 0)), origin)
+	AudioManager.play(&"daily_reward")
+	Haptics.light()
+
+
+## CTA'nın üstünden yükselip solan "+10" + Hamur sanatı (yalnız görsel; dokunma almaz, kendini siler).
+func _show_gain(amount: int, origin: Rect2) -> void:
+	_clear_gain()
+	if amount <= 0 or origin.size == Vector2.ZERO:
+		return
+	var gain := HBoxContainer.new()
+	gain.name = "ClaimGain"
+	gain.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	gain.add_theme_constant_override("separation", 4)
+	var coin := UiKit.art(DOUGH_ART, 34.0)
+	coin.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
+	gain.add_child(coin)
+	var label := UiKit.label(GAIN_FORMAT % amount, &"LabelPrice")
+	label.name = "GainLabel"
+	label.add_theme_font_size_override("font_size", 30)
+	gain.add_child(label)
+	_center.add_child(gain)
+	gain.size = gain.get_combined_minimum_size()
+	var local: Vector2 = origin.get_center() - _center.get_global_rect().position
+	gain.position = local - Vector2(gain.size.x * 0.5, gain.size.y + 6.0)
+	_last_gain = gain
+	var tween: Tween = gain.create_tween().set_parallel(true)
+	tween.tween_property(gain, "position:y", gain.position.y - GAIN_RISE, GAIN_TIME) \
+		.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	tween.tween_property(gain, "modulate:a", 0.0, GAIN_TIME * 0.45).set_delay(GAIN_TIME * 0.55)
+	tween.chain().tween_callback(gain.queue_free)
+
+
+func _clear_gain() -> void:
+	if _last_gain != null and is_instance_valid(_last_gain):
+		_last_gain.queue_free()
+	_last_gain = null
 
 
 ## Android geri (Main): açıksa kapanır → true.
@@ -217,6 +290,16 @@ func count_text() -> String:
 
 func note_text() -> String:
 	return _note.text
+
+
+## Başlıktaki alınabilir ödül rozeti (0 → gizli).
+func claimable_badge() -> AttentionBadge:
+	return _attention
+
+
+## Son talebin "+N" yükselişi (yoksa / bittiyse null).
+func gain_feedback() -> Control:
+	return _last_gain if _last_gain != null and is_instance_valid(_last_gain) else null
 
 
 func section_header(period: StringName) -> Control:
