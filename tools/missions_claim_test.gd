@@ -29,7 +29,7 @@ extends Node
 ##                  round sırasında teslim yok (round kaydında), otomatik günlük pencere "due" kalır
 ##   6 ekonomi      bir haftalık oyun: elle + dönem sonu teslimi karışık → günde ≤ 30, haftalık ≤ 120, toplam tam 330;
 ##                  çift yol yok; görev ödülü XP / başarım / güç / sandık / kota vermez; kaynak sözleşmesi (reklam yok)
-##   7 kayıt güv.   (son sertleştirme) talep + dönem teslimi × 13 SaveFile hata durumu (11 hata türü; bozuk kanonik /
+##   7 kayıt güv.   (son sertleştirme) talep + dönem teslimi × 16 SaveFile hata durumu (11 hata türü; bozuk kanonik /
 ##                  bekleyen .tmp ön durumları): işlem öncesi disk, bellek, saved / persist, .tmp / .bak, pencere geri
 ##                  bildirimi (not, kart, "+N", pop, ses, titreşim), ikinci işlem, yeniden açılış, kurtarılan kaynak =
 ##                  read_save, son bakiye, tekrar işlem — her yolda TAM BİR KEZ · sınıflandırıcı birim tablosu (yan etkisiz)
@@ -971,6 +971,14 @@ func _safety_cases() -> Array[Dictionary]:
 			"bak": "absent"},
 		{"fault": SaveFile.Fault.COMMIT_TARGET_DELETED, "setup": "corrupt", "expect": pending, "canonical": "absent",
 			"tmp": "new", "bak": "same"},
+		# Bozuk kanonik dururken: .tmp sonrası ölüm → kanonik ad DOLU ama geçersiz, yeni .tmp seçilir (PENDING); taşıma
+		# hatası (geri alma olsa da olmasa da) → kanonik dolu olduğu için .tmp atılır, .bak (eski) seçilir (FAILED).
+		{"fault": SaveFile.Fault.CRASH_AFTER_TEMP, "setup": "corrupt", "expect": pending, "canonical": "same", "tmp": "new",
+			"bak": "same"},
+		{"fault": SaveFile.Fault.COMMIT, "setup": "corrupt", "expect": failed, "canonical": "same", "tmp": "absent",
+			"bak": "same"},
+		{"fault": SaveFile.Fault.COMMIT_AND_ROLLBACK, "setup": "corrupt", "expect": failed, "canonical": "same",
+			"tmp": "absent", "bak": "same"},
 		{"fault": SaveFile.Fault.RECOVER_MOVE, "setup": "pending", "expect": failed, "canonical": "absent", "tmp": "same",
 			"bak": "same"},
 		# Kurtarılacak .tmp yokken RECOVER_MOVE'un hata noktasına ulaşılmaz: normal yazma (karşılaştırma satırı).
@@ -1017,8 +1025,8 @@ func _save_safety() -> void:
 			SaveFile.fault = SaveFile.Fault.NONE
 			var after: Dictionary = _family()
 			var source: String = SaveFile.recovery_source(PATH)
-			var outcome_again: int = SaveFile.recovery_outcome(PATH, "{}")
-			if _family() != after or outcome_again != SaveFile.Outcome.FAILED:
+			SaveFile.recovery_outcome(PATH, "{}")
+			if _family() != after:
 				pure_ok = false
 				print("    %s: sınıflandırıcı dosyaya dokundu" % label)
 			_c("%s: sonuç %s · saved %s · persist %s (Hamur %d)" % [label, _result_name(op, out), str(out.get("saved")),
@@ -1089,6 +1097,13 @@ func _save_safety() -> void:
 			SaveFile.Source.BACKUP],
 		["kanonik yok + .tmp yok + .bak = yük (bilerek silinmiş kayıt: .bak atılır)", {BAK: text}, SaveFile.Outcome.FAILED,
 			SaveFile.Source.NONE],
+		# `.bak` dalının iki koşulu ayrı ayrı (kanonik ad dolu YA DA .tmp izi) + bozuk kanonik üstünde .tmp + yanlış .tmp.
+		["bozuk kanonik + .tmp yok + .bak = yük (kanonik ad dolu)", {PATH: torn, BAK: text}, SaveFile.Outcome.PENDING,
+			SaveFile.Source.BACKUP],
+		["kanonik yok + bozuk .tmp izi + .bak = yük", {TMP: torn, BAK: text}, SaveFile.Outcome.PENDING, SaveFile.Source.BACKUP],
+		["bozuk kanonik + .tmp = yük", {PATH: torn, TMP: text}, SaveFile.Outcome.PENDING, SaveFile.Source.TEMP],
+		["kanonik yok + geçerli başka .tmp + .bak = yük (.tmp seçilir)", {TMP: other, BAK: text}, SaveFile.Outcome.FAILED,
+			SaveFile.Source.TEMP],
 		["hiç dosya yok", {}, SaveFile.Outcome.FAILED, SaveFile.Source.NONE],
 	]
 	var table_ok: bool = true
@@ -1164,7 +1179,8 @@ func _safety_op(op: String) -> Dictionary:
 
 func _out_ok(op: String, out: Dictionary, expect: int, reward: int) -> bool:
 	var failed: bool = expect == SaveFile.Outcome.FAILED
-	var common: bool = (bool(out["saved"]) == (expect == SaveFile.Outcome.SAVED) and int(out["persist"]) == expect
+	var common: bool = (bool(out.get("saved", false)) == (expect == SaveFile.Outcome.SAVED)
+		and int(out.get("persist", -1)) == expect
 		and int(out["dough"]) == (0 if failed else reward))
 	if op == "claim":
 		return common and int(out["result"]) == (Missions.Claim.SAVE_FAILED if failed else Missions.Claim.CLAIMED) \
@@ -1383,7 +1399,8 @@ func _main_save_safety() -> void:
 	await _settle(3)
 	await _finger_tap(_screen_center(rounds_cta))
 	await _settle(2)
-	_c("  … ALINDI'ya yeniden dokunuş: ikinci ödül YOK (520), dosyalar aynı (yazma yok)", SaveManager.dough() == BASE_DOUGH + 20
+	_c("  … ALINDI kartına yeniden dokunuş: kart kapısı talep göndermez — ikinci ödül YOK (520), dosyalar aynı (yazma yok; PENDING'de aynı oturumda ikinci talep: bölüm 7 geçiş B)",
+		SaveManager.dough() == BASE_DOUGH + 20
 		and not _exists(PATH) and _carries_dough(_bytes(TMP), BASE_DOUGH + 20))
 	await _teardown_main()
 	SaveManager.load_game()

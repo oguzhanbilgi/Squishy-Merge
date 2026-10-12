@@ -689,13 +689,14 @@ func record_mission_round(merges: int, fixed_level_cleared: bool, save: bool = t
 ## miktar katalogdan). Önce dönem geçişi: pencere gece yarısını açık geçtiyse kapanan dönemin alınmamış ödülleri teslim
 ## edilir — dokunulan görev de onlardan biriyse sonuç AUTO_CLAIMED (oyuncu ödülünü TAM BİR KEZ aldı), değilse
 ## WRONG_PERIOD. Sonra doğrulama (Missions.claim): bilinmeyen / yanlış dönem / tamamlanmamış / zaten alınmış → hiçbir alan
-## değişmez. Geçerli talepte ödül işareti + Hamur (ve varsa dönem teslimi) AYNI `save_game()` yazmasında; ilerleme
-## değişmez. Ard arda / yinelenen çağrı ikinci ödül VERMEZ (ALREADY_CLAIMED). Yazma başarısızsa sonuç diskten
-## SINIFLANDIRILIR (SaveFile.write_checked — yan etkisiz okuma, dosyaya dokunmaz):
+## değişmez. Geçerli talepte ödül işareti + Hamur (ve varsa dönem teslimi) AYNI yazmada (`save_game_checked` —
+## `save_game` ile aynı yük); ilerleme değişmez. Ard arda / yinelenen çağrı ikinci ödül VERMEZ (ALREADY_CLAIMED). Yazma
+## başarısızsa sonuç diskten SINIFLANDIRILIR (SaveFile.write_checked — yan etkisiz okuma, dosyaya dokunmaz):
 ##   PENDING  doğrulanmış yeni kayıt kurtarılacak kopyada (`.tmp`): bellek talepli KALIR (geri almak kurtarılacak ödülü
 ##            bellekten silerdi); açılış / sonraki kayıt onu kanonik ada taşır — ödül tam bir kez.
 ##   FAILED   bir sonraki okuma talebi GETİRMEZ: görev bloğu + Hamur talep ÖNCESİNE döner (yalnız bu iki alan), sonuç
-##            SAVE_FAILED, Hamur 0 — görev ALINABİLİR kalır; yeniden ÖDÜLÜ AL aynı tek ödülü yeniden dener.
+##            SAVE_FAILED, Hamur 0 — görev ALINABİLİR kalır; yeniden ÖDÜLÜ AL aynı tek ödülü yeniden dener (pencere gece
+##            yarısını açık geçtiyse kapanan dönemin teslimi — dokunulan dahil — sonraki dönem noktasında tam bir kez).
 ## Döner: {result: Missions.Claim, dough: int — bu çağrının verdiği toplam Hamur, claimed_dough: int — dokunulan görevin
 ## ödülü (CLAIMED / AUTO_CLAIMED), auto_claimed: Array[StringName], saved: bool — kanonik dosyada, persist:
 ## SaveFile.Outcome — yalnız yazma denendiyse}.
