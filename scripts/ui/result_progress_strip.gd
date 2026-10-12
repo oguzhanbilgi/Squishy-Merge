@@ -9,9 +9,10 @@ extends PanelContainer
 ##              LV sayısıyla birlikte "SEVİYE ATLADIN! · LV. 8"). Çok seviye: son seviye.
 ##   BAŞARIM    yalnız bu round başarım açtıysa: "Başarım açıldı: Yıldız Avcısı" /
 ##              "2 başarım açıldı".
-##   GÖREV      (TASK/046) yalnız bu round görev tamamladıysa: nane "GÖREV TAMAMLANDI ·
-##              +10 HAMUR" / "2 GÖREV TAMAMLANDI · +50 HAMUR" (günlük + haftalık birlikte;
-##              Hamur zaten round kaydında eklendi — rozet yalnız gösterir, talep YOK).
+##   GÖREV      (TASK/046 → TASK/061) yalnız bu round görev tamamladıysa: nane "GÖREV TAMAMLANDI" /
+##              "2 GÖREV TAMAMLANDI" + krem "ÖDÜLÜ AL" etiketi (hediye picto). Görev Hamur'u round'da
+##              VERİLMEZ — ödül GÖREVLER penceresinin ÖDÜLÜ AL'ında; etiket yalnız yönlendirir, buton
+##              DEĞİL (düz, dokunma almaz; sonuca ikinci pencere / talep eklenmez).
 ##
 ## BLOKLAMAZ: dokunma almaz, sonuç CTA'ları ilk kareden aktif, geçiş reklamı ve
 ## round sonu akışı değişmedi. Veri yalnız `PlayerProgression.round_summary` (Main,
@@ -23,8 +24,10 @@ const GAIN_FORMAT: String = "+%d XP"
 const LEVEL_UP_TEXT: String = "SEVİYE ATLADIN! · LV. %d"
 const ONE_ACHIEVEMENT: String = "Başarım açıldı: %s"
 const MANY_ACHIEVEMENTS: String = "%d başarım açıldı"
-const ONE_MISSION: String = "GÖREV TAMAMLANDI · +%d HAMUR"
-const MANY_MISSIONS: String = "%d GÖREV TAMAMLANDI · +%d HAMUR"
+const ONE_MISSION: String = "GÖREV TAMAMLANDI"
+const MANY_MISSIONS: String = "%d GÖREV TAMAMLANDI"
+## TASK/061: görev rozetinin ikinci vurgusu — ödül GÖREVLER penceresinde alınır (bu şerit Hamur vermez).
+const MISSION_CLAIM_TAG: String = "ÖDÜLÜ AL"
 const FLOW_DELAY: float = 0.35
 
 var _bar: PlayerLevelBar
@@ -36,6 +39,7 @@ var _achievement: PanelContainer
 var _achievement_label: Label
 var _mission: PanelContainer
 var _mission_label: Label
+var _mission_tag: PanelContainer
 var _summary: Dictionary = {}
 var _reveal_tween: Tween
 var _celebrated: bool = false
@@ -82,6 +86,8 @@ func _init() -> void:
 	_mission = _pill(UiTokens.MINT, UiKit.icon_texture("goal"), UiTokens.TEXT_ON_ACCENT)
 	_mission.name = "Mission"
 	_mission_label = _mission.get_meta(&"label")
+	_mission_tag = _claim_tag()
+	(_mission_label.get_parent() as HBoxContainer).add_child(_mission_tag)
 	_extras.add_child(_mission)
 	visible = false
 
@@ -107,6 +113,29 @@ func _pill(fill: Color, icon_tex: Texture2D, text_color: Color) -> PanelContaine
 	row.add_child(label)
 	pill.set_meta(&"label", label)
 	return pill
+
+
+## TASK/061: görev rozetindeki "ÖDÜLÜ AL" etiketi — krem düz çip + hediye picto + erik yazı. Basılabilir CTA dilinden
+## AYRI (dudak / gölge / gloss yok, fare almaz): oyuncuyu GÖREVLER penceresine yönlendirir, sonuçta talep yapılmaz.
+func _claim_tag() -> PanelContainer:
+	var tag := PanelContainer.new()
+	tag.name = "ClaimTag"
+	tag.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	tag.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	tag.add_theme_stylebox_override("panel", UiKit.v3_chip(UiTokens.CREAM))
+	var row := HBoxContainer.new()
+	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	row.add_theme_constant_override("separation", 4)
+	tag.add_child(row)
+	var gift := UiKit.art(UiKit.icon_texture("gift"), 18.0, UiTokens.GOLD_DEEP)
+	gift.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	row.add_child(gift)
+	var label := UiKit.label(MISSION_CLAIM_TAG, &"LabelBadge")
+	label.name = "ClaimTagLabel"
+	label.add_theme_font_size_override("font_size", 14)
+	label.add_theme_color_override("font_color", UiTokens.TEXT_PRIMARY)
+	row.add_child(label)
+	return tag
 
 
 ## Özeti yerleştirir (akış başlamadan). Boş özet → şerit gizli (eski çağıranlar).
@@ -135,13 +164,12 @@ func present(summary: Dictionary) -> void:
 	# TASK/046: bu round'da tamamlanan görevler (Main: SaveManager.record_mission_round sonucu).
 	var missions: Variant = summary.get("missions", {})
 	var done: Array = (missions as Dictionary).get("completed", []) if missions is Dictionary else []
-	var mission_dough: int = int((missions as Dictionary).get("dough", 0)) if missions is Dictionary else 0
 	_mission.visible = not done.is_empty()
 	_mission.modulate.a = 0.0
 	if done.size() == 1:
-		_mission_label.text = ONE_MISSION % mission_dough
+		_mission_label.text = ONE_MISSION
 	elif done.size() > 1:
-		_mission_label.text = MANY_MISSIONS % [done.size(), mission_dough]
+		_mission_label.text = MANY_MISSIONS % done.size()
 	_extras.visible = leveled or not fresh.is_empty() or not done.is_empty()
 
 
@@ -224,9 +252,16 @@ func achievement_text() -> String:
 	return _achievement_label.text if _achievement.visible else ""
 
 
-## TASK/046: görev rozeti metni (gizliyse boş).
+## TASK/046: görev rozeti metni (gizliyse boş) — TASK/061: "GÖREV TAMAMLANDI · ÖDÜLÜ AL" (rozet + yönlendirme etiketi).
 func mission_text() -> String:
-	return _mission_label.text if visible and _mission.visible else ""
+	if not visible or not _mission.visible:
+		return ""
+	return "%s · %s" % [_mission_label.text, MISSION_CLAIM_TAG] if _mission_tag.visible else _mission_label.text
+
+
+## TASK/061: "ÖDÜLÜ AL" yönlendirme etiketi (görev rozetinin içinde; dokunma almaz).
+func mission_claim_tag() -> PanelContainer:
+	return _mission_tag
 
 
 func mission_pill() -> PanelContainer:

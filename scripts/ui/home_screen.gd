@@ -704,17 +704,29 @@ func refresh_daily() -> void:
 		_daily.badge().clear()
 
 
-## GÖREVLER rozeti: içinde bulunulan dönemlerde tamamlanan görev "N/6" (kabul edilen günün dönemi — Missions.current,
-## YAZMAZ). 6/6'da rozet nane. Main öne dönüşte de çağırır (gün değişmiş olabilir).
+## GÖREVLER rozetleri (kabul edilen günün dönemi — Missions.current, YAZMAZ). İki AYRI anlam, iki rozet:
+##   sağ üst altın "N/6"   içinde bulunulan dönemlerde TAMAMLANAN görev (alınabilir + alınmış); 6/6 ve hepsi alınmışsa nane.
+##   sol üst dikkat sayısı ÖDÜLÜ AL bekleyen görev (TASK/061 — `AttentionBadge` COUNT; 0 → gizli). Örn. 2 tamam, 1 alındı
+##                         → "2/6" + "1".
+## Main öne dönüşte, sekme geçişinde, pencere açılışında ve talepten sonra da çağırır (gün değişmiş olabilir).
 func refresh_missions() -> void:
+	var state: Dictionary = Missions.current()
 	var total: int = Missions.CATALOG.size()
-	var done: int = Missions.completed_count(Missions.current())
+	var done: int = Missions.completed_count(state)
+	var claimable: int = Missions.claimable_count(state)
 	_missions.set_badge("%d/%d" % [done, total])
+	_missions.attention().show_count(claimable)
 	var panel: PanelContainer = _missions.badge_panel()
-	if done >= total:
+	if done >= total and claimable == 0:
 		panel.add_theme_stylebox_override("panel", UiKit.style("badge_round", UiTokens.MINT, _badge_margin()))
 	else:
 		panel.remove_theme_stylebox_override("panel")
+
+
+## Hamur bakiyesi (TASK/061: görev ödülü alındıktan / dönem sonu teslim edildikten sonra Main çağırır — `pop` artışı
+## vurgular). Kanonik değer SaveManager'dan; YAZMAZ.
+func refresh_dough(pop: bool = false) -> void:
+	UiKit.set_pill_value(_dough_pill, str(SaveManager.dough()), pop)
 
 
 ## MEYDAN karosu: bugünün meydan okuması (DailyChallenge.current_view — YAZMAZ). Onboarding bitmeden / gün gerçeği
@@ -850,6 +862,11 @@ func missions_count_text() -> String:
 
 func missions_badge() -> PanelContainer:
 	return _missions.badge_panel()
+
+
+## TASK/061: ÖDÜLÜ AL bekleyen görev sayısı rozeti (gizliyse 0).
+func missions_attention() -> AttentionBadge:
+	return _missions.attention()
 
 
 func chest_button() -> HomeFeatureButton:

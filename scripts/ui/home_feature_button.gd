@@ -55,6 +55,7 @@ var _well_base: NinePatchRect
 var _well_icon: TextureRect
 var _locked: bool = false
 var _notification: bool = false
+var _attention: AttentionBadge
 
 
 ## Madalyon çevresinde ince ilerleme yayı (üstten saat yönünde). Ray koyu
@@ -317,6 +318,18 @@ func set_badge(text: String) -> void:
 	_badge_label.text = text
 	_badge.visible = not text.is_empty()
 	_place_dot()
+
+
+## V3 dikkat rozeti (TASK/061 — `AttentionBadge`): sol üst köşede, altın rozetin karşısında (pembe bildirim noktasının
+## yeri). İlk istekte kurulur; durumu çağıran verir (`show_count` / `show_claim` / `clear`). Madalyonun boyutunu ve
+## dokunma alanını değiştirmez (rozet fare almaz, ebeveynin minimumuna katılmaz).
+func attention() -> AttentionBadge:
+	if _attention == null:
+		_attention = AttentionBadge.new()
+		_attention.name = "Attention"
+		add_child(_attention)
+		_attention.place_at(Vector2(-10.0 + DOT_SIZE * 0.5, -8.0 + DOT_SIZE * 0.5))
+	return _attention
 
 
 ## Pembe bildirim noktası: "alınacak/yeni var".
