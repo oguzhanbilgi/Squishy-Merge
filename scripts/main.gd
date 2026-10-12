@@ -317,6 +317,8 @@ func _ready() -> void:
 	_missions = MISSIONS_SCENE.instantiate()
 	_missions.opened.connect(settle_touch_input)
 	_missions.closed.connect(settle_touch_input)
+	# TASK/061: kartların ÖDÜLÜ AL'ı → SaveManager'ın tek yetkili talep işlemi (Main).
+	_missions.claim_requested.connect(_on_mission_claim_requested)
 	add_child(_missions)
 
 	# TASK/047: MEYDAN OKUMA penceresi — GÖREVLER ile aynı 300 ms açılış / kapanış yatışması.
@@ -365,6 +367,9 @@ func _ready() -> void:
 	# geri alma koruması), günlük giriş ödülü BİR KEZ çözülür (onboarding
 	# bitmişse), sonra TEK pencere (GÜNLÜK ÖDÜLLER) günde bir kez.
 	DailyRewards.observe_day()
+	# TASK/061: uygulama kapalıyken gün / hafta değiştiyse kapanan dönemin alınmamış görev ödülleri tam bir kez teslim
+	# edilir (yukarıdaki `_show_tab(0)` de denedi — ikinci çağrı no-op; teslim yoksa kayıt yazılmaz).
+	_settle_missions_period()
 	_resolve_daily_login()
 	_booted = true
 	# TASK/046.1: eski kayıttaki UNDER_13 kısıt ekranı AÇMAZ — `SaveManager` onu UNKNOWN'a indirir
@@ -601,6 +606,9 @@ func _show_tab(tab: int, auto_daily: bool = true) -> void:
 		_challenge_sheet.close_sheet(false)
 	_active_tab = tab
 	_set_ad_surface(TAB_SURFACES[tab])
+	# TASK/061: kabuğa dönüş / sekme geçişi bir dönem noktası — ekranlar tazelenmeden ÖNCE kapanan dönemin alınmamış
+	# görev ödülleri tam bir kez teslim edilir (Ana Sayfa bakiyesi ve rozeti aynı gerçeği gösterir; teslim yoksa yazmaz).
+	_settle_missions_period()
 	# TASK/057: ekranlar sırayla gizlenip gösterilirken kabuk ara durumda yanıp sönmesin — tek senkron sonda.
 	_nav_sync_suspended = true
 	for i in _screens.size():
@@ -808,8 +816,9 @@ func _notification(what: int) -> void:
 		# Öne dönüş (M8.9-02): gün değişmiş olabilir — en yeni gün kayda işlenir,
 		# günlük pencere o gün için henüz gösterilmediyse uygun ekranda açılır.
 		DailyRewards.observe_day()
-		# TASK/046: görev dönemi de değişmiş olabilir — görünen GÖREVLER rozeti / penceresi
-		# yalnız okuyarak tazelenir (kayıt yazılmaz).
+		# TASK/046: görev dönemi de değişmiş olabilir — görünen GÖREVLER rozeti / penceresi tazelenir. TASK/061: kapanan
+		# dönemin alınmamış ödülleri ÖNCE tam bir kez teslim edilir (teslim yoksa kayıt yazılmaz).
+		_settle_missions_period()
 		_refresh_missions_views()
 		# TASK/047: meydan okuma günü de — giriş / açık pencere yalnız okuyarak tazelenir.
 		_refresh_daily_challenge_views()
@@ -1061,6 +1070,8 @@ func open_missions() -> void:
 	# TASK/047: MEYDAN OKUMA penceresinin altına açılmaz.
 	if _challenge_sheet != null and _challenge_sheet.visible:
 		return
+	# TASK/061: gün uygulama açıkken değişmiş olabilir — kapanan dönemin alınmamış ödülleri önce teslim edilir.
+	_settle_missions_period()
 	# Pencere ve Ana Sayfa rozeti AYNI dönemi göstersin (gün uygulama açıkken değişmiş olabilir).
 	_screens[0].refresh_missions()
 	_missions.open_missions()
@@ -1072,6 +1083,37 @@ func _refresh_missions_views() -> void:
 		_missions.refresh()
 	if not _screens.is_empty() and _screens[0].visible:
 		_screens[0].refresh_missions()
+
+
+## TASK/061 — dönem noktası: SaveManager.settle_missions (kapanan dönemin tamamlanmış ama alınmamış görev ödülleri TAM
+## BİR KEZ teslim; teslim yoksa kayıt yazılmaz, hiçbir şey değişmez). Round sürerken YAPILMAZ: round'un bitişi
+## (`record_mission_round`) dönem geçişini kendi tek yazmasında uygular — oyun içinde Hamur değişmez. Teslim olduysa
+## görünen Ana Sayfa bakiyesi / GÖREVLER rozeti ve açık pencere tazelenir.
+func _settle_missions_period() -> void:
+	if _board != null and is_instance_valid(_board):
+		return
+	var settled: Dictionary = SaveManager.settle_missions()
+	if (settled["auto_claimed"] as Array).is_empty():
+		return
+	_refresh_missions_views()
+	if not _screens.is_empty() and _screens[0].visible:
+		_screens[0].refresh_dough(true)
+
+
+## GÖREVLER penceresinin ÖDÜLÜ AL'ı (TASK/061): ödülü SaveManager verir (tek yetkili işlem; miktar katalogdan, dönem /
+## tamamlanma / tek seferlik doğrulama orada). Yalnız pencere açık ve Ana Sayfa önündeyken; round / tutorial sırasında
+## yok sayılır (CTA'ya o anda zaten ulaşılamaz). Sonuç pencereye (kart geri bildirimi + kanonik veriden tazeleme) ve Ana
+## Sayfa'ya (Hamur bakiyesi + GÖREVLER rozeti) yansır. Reklam / XP / başarım / sandık YOK.
+func _on_mission_claim_requested(id: StringName, period_key: String) -> void:
+	if _missions == null or not _missions.visible or is_tutorial_active():
+		return
+	if _board != null and is_instance_valid(_board):
+		return
+	var outcome: Dictionary = SaveManager.claim_mission_reward(id, period_key)
+	_missions.apply_claim(id, outcome)
+	if not _screens.is_empty():
+		_screens[0].refresh_missions()
+		_screens[0].refresh_dough(int(outcome["dough"]) > 0)
 
 
 ## Ana Sayfa'nın MEYDAN OKUMA girişi (TASK/047) ve Harita'nın MEYDAN portalı (TASK/059): bugünün meydan okuma
