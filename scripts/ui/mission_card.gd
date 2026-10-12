@@ -29,8 +29,8 @@ const BODY_MARGIN: Vector4 = Vector4(16, 12, 14, 14)
 const WELL_SIZE: float = 56.0
 const WELL_ART: float = 38.0
 const MIN_HEIGHT: float = 100.0
-## "120 / 120" sığar; bütün kartlarda aynı → raylar hizalı.
-const PROGRESS_WIDTH: float = 84.0
+## Tik (18) + aralık (2) + "120 / 120" (~72, 16 px) sığar; bütün kartlarda aynı → raylar her durumda hizalı.
+const PROGRESS_WIDTH: float = 96.0
 const RING_WIDTH: float = 3.0
 ## Ödül yuvası: üç durumda aynı genişlik (raylar hizalı), CTA görsel boyu TOUCH_COMPACT.
 const SLOT_WIDTH: float = 156.0
@@ -66,7 +66,7 @@ class ClaimButton extends SquishyButton:
 		_content.name = "Content"
 		_content.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		_content.alignment = BoxContainer.ALIGNMENT_CENTER
-		_content.add_theme_constant_override("separation", -4)
+		_content.add_theme_constant_override("separation", -6)
 		row().add_child(_content)
 		_caption = UiType.v3_label(CLAIM_TEXT, UiType.V3_BUTTON, false, HORIZONTAL_ALIGNMENT_CENTER, 19)
 		_caption.name = "Caption"
@@ -271,9 +271,10 @@ func setup(row: Dictionary) -> void:
 	_claim.set_state(SquishyButton.State.CLAIMED if claimed else SquishyButton.State.NORMAL)
 
 
-## Başarılı talep geri bildirimi (çağıran sonucu doğruladıktan sonra): kart candy pop'u.
+## Başarılı talep geri bildirimi (çağıran sonucu doğruladıktan sonra): ödül yuvasının candy pop'u (kart tam genişlikte —
+## kartı büyütmek kaydırma alanında halkasını kırpardı).
 func play_claimed() -> void:
-	UiMotion.pop(self, 1.05)
+	UiMotion.pop(_slot, 1.1)
 
 
 func _on_claim_pressed() -> void:

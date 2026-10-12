@@ -197,19 +197,21 @@ func refresh() -> void:
 	_note.add_theme_color_override("font_color", UiTokens.GOLD_DEEP if complete else UiTokens.TEXT_SECONDARY)
 
 
-## Main'in talep sonucu (SaveManager.claim_mission_reward): kartlar kanonik veriden tazelenir; ödül verildiyse (ÖDÜLÜ AL
-## ya da pencere gece yarısını açık geçtiyse aynı ödülün dönem sonu teslimi) kısa candy geri bildirimi.
+## Main'in talep sonucu (SaveManager.claim_mission_reward): kartlar kanonik veriden tazelenir; bu çağrı Hamur verdiyse
+## (ÖDÜLÜ AL, ya da pencere gece yarısını açık geçtiyse kapanan dönemin teslimi — dokunulan ödül dahil) kısa candy geri
+## bildirimi ve "+N" = bu çağrının verdiği TOPLAM Hamur (bakiyedeki artışın aynısı). Hiç Hamur verilmediyse yalnız tazeleme
+## + `ui_invalid`.
 func apply_claim(id: StringName, outcome: Dictionary) -> void:
 	var source: MissionCard = card(id)
 	var origin: Rect2 = source.claim_button().get_global_rect() if source != null else Rect2()
 	refresh()
-	var result: int = int(outcome.get("result", -1))
-	if result != Missions.Claim.CLAIMED and result != Missions.Claim.AUTO_CLAIMED:
+	var granted: int = int(outcome.get("dough", 0))
+	if granted <= 0:
 		AudioManager.play(&"ui_invalid")
 		return
 	if source != null:
 		source.play_claimed()
-	_show_gain(int(outcome.get("claimed_dough", 0)), origin)
+	_show_gain(granted, origin)
 	AudioManager.play(&"daily_reward")
 	Haptics.light()
 

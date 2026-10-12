@@ -234,7 +234,10 @@ static func fresh_state(day_key: String) -> Dictionary:
 ##                  sürüm 1 (TASK/046)  ödülü verilmemiş görev ≤ hedef − 1 (sürüm 1'de hedefe ulaşan görev ödülünü
 ##                                      zaten ALMIŞTI — eski kayıt alınabilir görev ÜRETEMEZ); sayı değil / NaN → 0
 ##                  sürüm 2 (TASK/061)  ödülü verilmemiş görev 0..hedef; aralık DIŞI (negatif / hedeften büyük / NaN /
-##                                      ±sonsuz / sayı değil) → 0 — bozuk değer asla alınabilir görev olmaz (fail-closed)
+##                                      ±sonsuz / sayı değil) → 0 — bozuk değer asla alınabilir görev olmaz (fail-closed);
+##                                      ödül işareti alanı YOK / dizi değilse (kendi kodumuz hep dizi yazar — bozuk) o
+##                                      dönemin hedefteki görevleri ALINDI sayılır: bozuk işaret ödenmiş ödülü yeniden
+##                                      AÇMAZ (fail-closed)
 ##   hafta          kayıttaki hafta günün pazartesisi değilse (kendi kodumuz üretmez — bozuk) haftalık kısım taze kalır
 static func sanitize(raw: Variant) -> Dictionary:
 	if not raw is Dictionary:
@@ -485,6 +488,8 @@ static func _strict_count(value: Variant, cap: int) -> int:
 static func _copy_period(src: Dictionary, out: Dictionary, period: StringName, legacy: bool) -> void:
 	var seen: Dictionary = {}
 	var raw_rewarded: Variant = src.get(rewarded_key(period))
+	# Sürüm 2'de işaret alanı bozuksa ödülü verilmiş mi bilinemez: hedefteki görev ödenmiş sayılır (aşağıda).
+	var marks_corrupt: bool = not legacy and not raw_rewarded is Array
 	if raw_rewarded is Array:
 		var scanned: int = 0
 		for item: Variant in raw_rewarded:
@@ -507,6 +512,8 @@ static func _copy_period(src: Dictionary, out: Dictionary, period: StringName, l
 			progress[key] = mini(_clamp_count(progress_src.get(key), target), target - 1)
 		else:
 			progress[key] = _strict_count(progress_src.get(key), target)
+			if marks_corrupt and int(progress[key]) >= target:
+				rewarded.append(key)
 	out[progress_key(period)] = progress
 	out[rewarded_key(period)] = rewarded
 

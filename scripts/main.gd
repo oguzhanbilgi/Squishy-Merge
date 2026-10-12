@@ -1098,6 +1098,9 @@ func _settle_missions_period() -> void:
 	_refresh_missions_views()
 	if not _screens.is_empty() and _screens[0].visible:
 		_screens[0].refresh_dough(true)
+	elif _active_tab != 0:
+		# Öne dönüş Harita / Mağaza / Koleksiyon / Profil'deyken: o ekranın bakiye satırı da kanonik Hamur'u göstersin.
+		_refresh_shell_dough()
 
 
 ## GÖREVLER penceresinin ÖDÜLÜ AL'ı (TASK/061): ödülü SaveManager verir (tek yetkili işlem; miktar katalogdan, dönem /
@@ -1105,7 +1108,7 @@ func _settle_missions_period() -> void:
 ## yok sayılır (CTA'ya o anda zaten ulaşılamaz). Sonuç pencereye (kart geri bildirimi + kanonik veriden tazeleme) ve Ana
 ## Sayfa'ya (Hamur bakiyesi + GÖREVLER rozeti) yansır. Reklam / XP / başarım / sandık YOK.
 func _on_mission_claim_requested(id: StringName, period_key: String) -> void:
-	if _missions == null or not _missions.visible or is_tutorial_active():
+	if _missions == null or not _missions.visible or is_tutorial_active() or _active_tab != 0:
 		return
 	if _board != null and is_instance_valid(_board):
 		return

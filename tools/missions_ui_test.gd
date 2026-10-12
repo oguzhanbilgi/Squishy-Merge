@@ -623,6 +623,11 @@ func _layout_view(view_size: Vector2i, safe_top: float) -> void:
 	await _settle(1)
 	_c("%s ÖDÜLÜ AL / ALINDI CTA görünür, kartın içinde, dokunma alanı ≥ 84 (48 dp); AKTİF kartta CTA yok %s" % [tag,
 		str(cta_bad)], cta_bad.is_empty())
+	var rail_widths: Array[float] = []
+	for card in overlay.cards():
+		rail_widths.append(snappedf(card.rail().size.x, 0.5))
+	_c("%s altı kartın rayı her durumda aynı genişlikte (%s — '120 / 120' + tik dahil)" % [tag, str(rail_widths)],
+		rail_widths.min() == rail_widths.max() and rail_widths.min() > 100.0)
 	var cards_overlap: bool = false
 	var cards: Array[MissionCard] = overlay.cards()
 	for i in cards.size():

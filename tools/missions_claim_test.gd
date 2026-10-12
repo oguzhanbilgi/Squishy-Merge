@@ -284,6 +284,24 @@ func _migration() -> void:
 			print("    bozuk değer kabul edildi: ", value, " → ", s.get("daily_progress"))
 	_c("sürüm 2 bozuk ilerleme (negatif / hedeften büyük / ±1e300 / ±sonsuz / NaN / metin / bool / dizi / sözlük / null) → 0, alınabilir YOK",
 		corrupt_ok)
+	var lost_marks: Array = []
+	for marks: Variant in ["daily_merges", 7, null, {"daily_merges": true}]:
+		var m: Dictionary = _v2(TUE, {"daily_merges": 15, "daily_rounds": 1}, [], {"weekly_rounds": 12}, [])
+		m["daily_rewarded"] = marks
+		lost_marks.append(m)
+	var missing: Dictionary = _v2(TUE, {"daily_merges": 15, "daily_rounds": 1}, [], {"weekly_rounds": 12}, [])
+	missing.erase("daily_rewarded")
+	missing.erase("weekly_rewarded")
+	lost_marks.append(missing)
+	var marks_ok: bool = true
+	for m: Dictionary in lost_marks:
+		var s: Dictionary = Missions.sanitize(m)
+		if not Missions.is_claimed(s, &"daily_merges") or Missions.status_of(s, &"daily_rounds") != Missions.STATUS_ACTIVE:
+			marks_ok = false
+			print("    bozuk işaret alınabilir açtı: ", m.get("daily_rewarded", "<yok>"))
+	var missing_state: Dictionary = Missions.sanitize(missing)
+	_c("sürüm 2 ödül işareti alanı bozuk / yok (metin / sayı / null / sözlük / anahtar yok): hedefteki görev ALINDI sayılır (ödenmiş ödül yeniden AÇILMAZ), kısmi görev AKTİF kalır",
+		marks_ok and Missions.is_claimed(missing_state, &"weekly_rounds") and Missions.claimable_count(missing_state) == 0)
 	var floor_ok: Dictionary = Missions.sanitize(_v2(TUE, {"daily_merges": 7.9, "daily_rounds": 2.0}, [], {}, []))
 	_c("sürüm 2 aralık içi float aşağı yuvarlanır (7.9 → 7); tam hedef float (2.0) tamamlandı",
 		floor_ok["daily_progress"]["daily_merges"] == 7 and Missions.is_claimable(floor_ok, &"daily_rounds"))
@@ -805,6 +823,21 @@ func _main_flows() -> void:
 		and int(_disk().get("dough", -1)) == dough0 + 10)
 	overlay.close_missions(false)
 	await _wait_settled()
+	# Gece yarısı + iki alınabilir: dokunuş teslimi tetikler → "+N" bakiyedeki artışın TAMAMI (+20), yalnız dokunulan değil.
+	SaveManager.data["missions"] = Missions.sanitize(_v2(WED, {"daily_clear": 1, "daily_merges": 15}, [], {}, []))
+	SaveManager.save_game()
+	await _open()
+	var pair_cta: Button = overlay.card(&"daily_clear").claim_button()
+	DailyRewards.clock_override = THU
+	dough0 = SaveManager.dough()
+	await _finger_tap(_screen_center(pair_cta))
+	await _settle(2)
+	_c("gece yarısı + iki alınabilir: dokunuşla ikisi de tam bir kez (+20); '+N' yükselişi toplamı söyler ('+20')",
+		SaveManager.dough() == dough0 + 20 and overlay.gain_feedback() != null
+		and _label_texts(overlay.gain_feedback()).has("+20"))
+	overlay.close_missions(false)
+	await _wait_settled()
+	DailyRewards.clock_override = WED
 	# j) Öne dönüş (arka planda gün değişti): teslim + rozet / pencere tazelenir; otomatik günlük pencere bastırılır.
 	SaveManager.data["missions"] = Missions.sanitize(_v2(WED, {"daily_merges": 15}, [], {}, []))
 	SaveManager.save_game()
@@ -834,6 +867,21 @@ func _main_flows() -> void:
 	await _settle(2)
 	_c("sekme geçişi (Harita → Ana Sayfa, gün değişti): teslim +10, Ana Sayfa hapı güncel, rozet yeni gün (0/6)",
 		SaveManager.dough() == dough0 + 10 and _pill_text(home) == str(dough0 + 10) and home.missions_count_text() == "0/6")
+	# j2) Mağaza önündeyken öne dönüş (FRI → SAT): teslim Mağaza'nın bakiye satırını da tazeler.
+	SaveManager.data["missions"] = Missions.sanitize(_v2(FRI, {"daily_rounds": 2}, [], {}, []))
+	SaveManager.save_game()
+	_main._show_tab(3)
+	await _settle(2)
+	DailyRewards.clock_override = SAT
+	dough0 = SaveManager.dough()
+	_main._notification(Node.NOTIFICATION_APPLICATION_RESUMED)
+	await _settle(3)
+	var shop_pill: Control = (_main._screens[3].top_bar() as ScreenTopBar).pill()
+	var shop_text: String = (shop_pill.get_meta(&"value_label") as Label).text.replace(".", "")
+	_c("Mağaza önündeyken öne dönüş (FRI → SAT): teslim +10, Mağaza bakiyesi kanonik Hamur'u gösteriyor (%s)" % shop_text,
+		SaveManager.dough() == dough0 + 10 and shop_text == str(dough0 + 10))
+	_main._show_tab(0)
+	await _wait_settled()
 	# l) Round sürerken teslim yok — round kaydında tek yazmada.
 	SaveManager.data["missions"] = Missions.sanitize(_v2(FRI, {"daily_clear": 1}, [], {}, []))
 	SaveManager.save_game()
