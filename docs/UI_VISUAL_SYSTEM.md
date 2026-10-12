@@ -2668,9 +2668,10 @@ değil.
 
 ---
 
-## 32. Günlük & Görevler V3 — ÖDÜLÜ AL + dönem sonu teslimi (TASK/061) — DAL AŞAMASI / OWNER GÖRSEL İNCELEMESİ BEKLİYOR
+## 32. Günlük & Görevler V3 — ÖDÜLÜ AL + dönem sonu teslimi (TASK/061) — DAL AŞAMASI / OWNER GÖRSEL + A36 ONAYLI
 
-**Durum:** dal `task/061-daily-missions-v3` (taban canonical main `60f6202`), **main'de DEĞİL, owner onaylı DEĞİL**.
+**Durum:** dal `task/061-daily-missions-v3` (taban canonical main `60f6202`), **main'de DEĞİL**. Owner görsel onayı
+**APPROVED** + owner'ın elle Samsung A36 testi **PASS** (2026-10-12, yalnız TASK/061 — main merge onayı DEĞİL).
 Kural tarafı GAME_DESIGN §5.10 (TASK/061 paragrafı: AKTİF → TAMAMLANDI → ÖDÜLÜ AL → ALINDI + kapanan dönemin alınmamış
 ödülü tam bir kez teslim). Yalnız GÖREVLER penceresi, görev kartı, Ana Sayfa GÖREVLER madalyonunun rozetleri ve sonuç
 ekranının görev rozeti değişti; GÜNLÜK ÖDÜLLER penceresi / Günlük karosu / Ana Sayfa V3 yerleşimi / maskot / OYNA /
@@ -2709,7 +2710,12 @@ kartlar kanonik veriden tazelenir, ödül yuvasının candy pop'u (%10 — tam g
 CTA'nın üstünden yükselip solan owner Hamur sanatı + "+N" = bu talebin verdiği TOPLAM Hamur (pencere gece yarısını açık
 geçtiyse kapanan dönemin diğer teslimleri dahil — bakiyedeki artışın aynısı; 0,85 sn, dokunma almaz), `daily_reward`
 sesi + hafif titreşim; Ana Sayfa'nın Hamur hapı pop'la güncellenir, GÖREVLER rozetleri tazelenir. Tam ekran kutlama /
-parçacık / ikinci pencere YOK. Hamur vermeyen talep (`ui_invalid`) yalnız tazeler.
+parçacık / ikinci pencere YOK. Hamur vermeyen talep (`ui_invalid`) yalnız tazeler. **Kayıt güvenliği (son
+sertleştirme):** kutlama (yuva pop'u / "+N" / `daily_reward` / titreşim / Ana Sayfa hap pop'u) YALNIZ talep kanonik
+kayıtta doğrulanınca. Kaydedilemedi (`SAVE_FAILED`) → kart ÖDÜLÜ AL kalır, hero notu **"KAYDEDİLEMEDİ"**
+(`TEXT_WARNING_STRONG`, krem zeminde 6,31:1) + `ui_invalid`; kayıt bekliyor (`SaveFile.Outcome.PENDING`) → kart ALINDI
+(kurtarılacak kopyayla aynı gerçek), not **"KAYIT BEKLİYOR"**, bakiye pop'suz; not bir sonraki tazelemede normale döner.
+Dönem noktası teslimi aynı ilke: PENDING'de hap pop'suz, FAILED'de teslim yok (sonraki noktada tam bir kez).
 
 ### 32.3 Ana Sayfa GÖREVLER madalyonu (TASK/058 yerleşimi aynen)
 

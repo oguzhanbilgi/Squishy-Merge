@@ -156,14 +156,16 @@ ve doküman eşitlemesi sırasında yeniden koşulmadı (§4.39) · **TASK/060 G
 `task/060-gameplay-hud-v3-rewarded-powers` = `27b60e5` duruyor); tam masaüstü kapısı `27b60e5` (59 / 59, 7601 kontrol, 0 FAIL,
 bot 2 / 2) ve gerçek Samsung A36 cihaz kapısı (üretim kodu `8924974`) entegrasyondan ÖNCE geçti — entegrasyon ve doküman
 eşitlemesi sırasında yeniden koşulmadı (§4.40) · güç başına 2/gün ödüllü kota (eski ortak 1/gün yalnız tarihsel) ·
-**TASK/061 Günlük & Görevler V3 — DAL AŞAMASI / OWNER GÖRSEL İNCELEMESİ BEKLİYOR** (dal `task/061-daily-missions-v3`,
-main'de DEĞİL; tam masaüstü kapısı `a0b6bcf` 60 / 60 temiz, 7744 kontrol, 0 FAIL, 0 SCRIPT ERROR, bot 2 / 2; gerçek A36
-kapısı KOŞULMADI — §4.41) · TASK/062 ekonomi değerlendirmesi PENDING · Release PAUSED.
+**TASK/061 Günlük & Görevler V3 — DAL AŞAMASI: owner görsel APPROVED + elle Samsung A36 PASS + kayıt güvenliği
+VERIFIED** (dal `task/061-daily-missions-v3`, main'de DEĞİL — main entegrasyonu ayrı owner onayı; sertleştirme
+`b26e63a`, tam kapı `b26e63a` 60 / 60 temiz, 7906 kontrol, 0 FAIL, 0 SCRIPT ERROR, bot 2 / 2; takip `a46c42c` yalnız
+test — §4.41) · TASK/062 ekonomi değerlendirmesi PENDING · Release PAUSED.
 Release izi ayrı. Sırada: içerik derecesi + yargı bölgesi kararları + 13+ seçici uyum riski (owner) → gizlilik
 politikası → upload anahtarı → gerçek AdMob kimlikleri → mağaza varlıkları / Play Console,
 sonra ilk imzalı üretim AAB'si ve M10 (Play kapalı test) ·
-**Branch / main:** TASK/061 dalı `task/061-daily-missions-v3` (main `60f6202`'den; main'e ALINMADI — owner görsel
-incelemesi bekliyor; §4.41) · `main` == origin/main ⊇ `27b60e5` (TASK/060 entegrasyon çapası) + `docs/060-main-sync` doküman
+**Branch / main:** TASK/061 dalı `task/061-daily-missions-v3` (main `60f6202`'den; main'e ALINMADI — owner görsel +
+elle A36 onaylı, main entegrasyonu ayrı onay; §4.41) · `main` == origin/main ⊇ `27b60e5` (TASK/060 entegrasyon
+çapası) + `docs/060-main-sync` doküman
 eşitlemesi — TASK/060 `task/060-gameplay-hud-v3-rewarded-powers` (main `75fe3f3`'ten; 9 commit `5a4bca2` … `8924974` cihazda
 doğrulanan son üretim kodu · `27b60e5` yalnız test, tam kapı adayı · `9564dd1` dal-aşaması doküman) owner onayıyla ff-only
 `75fe3f3 → 27b60e5` (2026-10-09; merge commit / rebase / squash / cherry-pick / force push YOK; dal duruyor) · önce `f13fa9c`
@@ -3891,12 +3893,48 @@ Profil / Ayarlar TASK/064.
   `default_bus_layout.tres`, `project.godot`, `export_presets.cfg`, `OWNER_WORKING_PROFILE.md`, `_visual_source` 13 738
   dosya) entegrasyon boyunca bayt-aynı; testler yeniden koşulmadı.
 
-### 4.41 Günlük & Görevler V3 — ÖDÜLÜ AL + dönem sonu teslimi (TASK/061) — DAL AŞAMASI / OWNER GÖRSEL İNCELEMESİ BEKLİYOR
+### 4.41 Günlük & Görevler V3 — ÖDÜLÜ AL + dönem sonu teslimi (TASK/061) — DAL AŞAMASI / OWNER GÖRSEL + A36 ONAYLI
 
 > **DAL AŞAMASI (2026-10-12).** Dal `task/061-daily-missions-v3` (taban `60f6202` = main = origin/main); main DEĞİŞMEDİ,
-> PR / merge YOK. Owner görsel incelemesi: `build/qa_061_owner_review/TASK061_OWNER_REVIEW.zip` (git dışı). Gerçek
-> Samsung A36 kapısı owner görsel incelemesinden SONRA, ayrı onayla (bu turda KOŞULMADI — APK kurulmadı, ADB yok).
-> TASK/062 BAŞLAMADI; Release PAUSED.
+> PR / merge YOK. Owner görsel onayı **APPROVED** + owner'ın elle Samsung A36 testi **PASS** (yalnız TASK/061 —
+> main merge onayı DEĞİL); kayıt güvenliği sertleştirmesi `b26e63a` **VERIFIED**. Main entegrasyonu ayrı owner onayı.
+> TASK/062 BAŞLAMADI; Release PAUSED. *(İlk dal turu, aşağıdaki maddeler: owner görsel incelemesinden ve A36'dan
+> ÖNCE yazıldı.)*
+
+- **Owner kabulü (2026-10-12):** GÖREVLER V3 tasarımı APPROVED. Ayrı QA paketi `com.obappstudio.squishymerge.qa061`
+  ("Squishy Merge Missions QA"; debug, Google TEST reklam kimlikleri, başlangıç `scenes/main.tscn`, `tools/*` / showcase
+  yok — `build/qa_061-a36/verify061.py` 132 / 132; APK sha256 `ff795bb4…a16567`, kaynak `5a69699`) owner'ın A36'sına
+  YENİ paket olarak kuruldu, otomasyon ona hiç dokunmadı (kurulumdan sonra `notLaunched=true`); owner: gerçek parmakla
+  ÖDÜLÜ AL PASS, Hamur ödülü PASS, kapat-aç sonrası ödül + ALINDI kalıcı PASS. Duman testi geçici
+  `com.obappstudio.squishymerge.qa061smoke` sandbox'ında (tohum kayıt) 12 / 12 PASS, sandbox kaldırıldı; korunan
+  paketler (`.qa`, `.qa060`, `com.example`; üretim kurulu değil) sürüm / APK / kayıt hash'i önce = sonra
+  (`build/qa_061-a36/A36_INSTALL_SUMMARY.txt`).
+- **Kayıt güvenliği sertleştirmesi (`b26e63a`, owner brief'i "FINAL SAVE-SAFETY HARDENING"):** kök neden — talep ve
+  dönem teslimi belleği değiştirip `save_game()` sonucuna bakmadan başarı gösteriyordu; ama `false` her zaman "ödül
+  diskte yok" değil: `CRASH_AFTER_BACKUP` / `COMMIT_AND_ROLLBACK` / bozuk kanonik üstünde `COMMIT_TARGET_DELETED`
+  sonrası doğrulanmış yeni kayıt `.tmp`'de bekler ve açılış (`read_save`) / sonraki yazma (adım 2) onu kurtarır;
+  `read_save` kendisi yan etkilidir (terfi / silme / kopya), doğrulamada kullanılamaz. Çözüm: `SaveFile.write_checked` →
+  `recovery_outcome` / `recovery_source` (yan etkisiz, `read_save` seçim kuralı birebir) → SAVED / PENDING / FAILED;
+  FAILED'de yalnız görev bloğu + Hamur işlem öncesi ham değerine döner (talep `Missions.Claim.SAVE_FAILED`, Hamur 0,
+  kart ALINABİLİR, "KAYDEDİLEMEDİ"; dönem teslimi yok → sonraki noktada tam bir kez), PENDING'de bellek kalır (ALINDI,
+  "KAYIT BEKLİYOR", kutlama yok); pencere kutlaması ve Ana Sayfa hap pop'u yalnız doğrulanmış kayıtta. `write_save` /
+  `read_save` DEĞİŞMEDİ; koşulsuz geri alma YOK; yeni ortak dosya altyapısı / ekonomi değişikliği YOK. Hata başına disk
+  sonucu (normal başlangıç kanonik + `.bak`): TEMP_OPEN / TEMP_WRITE / TEMP_SHORT / BACKUP_MOVE → kanonik + `.bak`
+  aynen, `.tmp` yok (FAILED) · CRASH_AFTER_TEMP → kanonik aynen + bayat geçerli `.tmp` (okuma kanoniği seçer, `.tmp`'yi
+  atar — FAILED) · BACKUP_TARGET_DELETED → kanonik aynen, `.bak` silindi (FAILED) · COMMIT / COMMIT_TARGET_DELETED →
+  geri alma kanoniği geri koydu, `.bak` yok (FAILED) · CRASH_AFTER_BACKUP / COMMIT_AND_ROLLBACK → kanonik ad boş, yeni
+  `.tmp`, eski `.bak` (PENDING) · bozuk kanonik + COMMIT_TARGET_DELETED → kanonik silindi, yeni `.tmp` (PENDING) ·
+  bekleyen `.tmp` + RECOVER_MOVE → yazma reddedildi, eski `.tmp` aynen (FAILED); bekleyen `.tmp` yokken RECOVER_MOVE'a
+  ulaşılmaz (SAVED). Kanıt: `missions_claim_test` 119 → 314 kontrol (bölüm 7: 16 durum × talep / teslim × 2 geçiş —
+  disk, bellek, saved / persist, `.tmp` / `.bak`, pencere geri bildirimi, ikinci işlem, yeniden açılış kaynağı =
+  `read_save`, son bakiye, tekrar işlem; sınıflandırıcı birim tablosu; gece yarısı AUTO_CLAIMED + hata · bölüm 8: gerçek
+  Main + parmak); 12 / 12 negatif kontrol öldü, bayt-aynı geri kondu (`build/qa_061/mutations/hardening/summary.txt`);
+  tam masaüstü kapısı `b26e63a` **60 / 60 temiz, 7906 kontrol, 0 FAIL, 0 SCRIPT ERROR, bot 2 / 2**, sahibin kaydı
+  bayt-aynı (`build/qa_061/tests/gate3/`); bağımsız salt-okur inceleme BLOCKER / HIGH / MEDIUM 0 → takip `a46c42c`
+  (yalnız test + yorum): `missions_claim_test` 314, odak yeniden koşu 5 / 5 suite, 989 kontrol, 0 FAIL. Açık LOW: round
+  bitişi (`record_mission_round`, round kaydına katlanır) ve projenin öteki para işlemleri hâlâ yazma sonucuna bakmaz
+  (çift ödül / kayıp yok — bellek önde, sonraki kayıt yazar); fsync yok (ani güç kaybı en kötü bir kayıt geri —
+  TASK/045.1 sınırı); "KAYIT BEKLİYOR" notu bir sonraki tazelemede kaybolur (durum değil, geri bildirim).
 
 - **Faz 0 denetimi** (`build/qa_061/AUDIT_PHASE0.md`): ilerleme `Missions.advance` (saf) ←
   `SaveManager.record_mission_round` ← yalnız `Main._on_round_finished`; otomatik Hamur aynı round'un tek yazmasında;
@@ -3937,7 +3975,8 @@ Profil / Ayarlar TASK/064.
 - **Owner kararları** (paket `02_OWNER_DECISIONS.md`): D1 görsel onay · D2 dönem sonu teslimi bildirimi (bugün sessiz) ·
   D3 CTA boyu · D4 sonuçtaki "ÖDÜLÜ AL" etiketi · D5 gerçek A36 kapısı (ayrı onay) · D6 elle düzenleme DÜŞÜK riski.
 - **Commit'ler:** `dc4a923` model + işlemler · `9e625cc` kart / pencere · `24829a9` Ana Sayfa rozeti + sonuç · `2025b68`
-  Main · `3549e77` test + çekim aracı · `a0b6bcf` inceleme düzeltmeleri · dal-aşaması doküman.
+  Main · `3549e77` test + çekim aracı · `a0b6bcf` inceleme düzeltmeleri · `5a69699` dal-aşaması doküman · `b26e63a`
+  kayıt güvenliği sertleştirmesi (kod + test) · sertleştirme / owner kabulü dokümanı.
 ## 5. Dosya/klasör yapısı ve script envanteri
 
 ```
@@ -3975,7 +4014,7 @@ squishy-merge/
 | `autoload/audio_manager.gd` | Tüm SFX çalma noktası (M8.5-15): `EVENTS` olay tablosu, 12 kanal + öncelikli kanal çalma, soğuma/tavan, yerel RNG, fallback. `play(&"merge")`, `play_merge(tier)`, `play_landing(tier, hız)`. Bus: Master → SFX (limiter) / Music. |
 | `haptics.gd` | `Haptics` statik servisi (M8.5-15): LIGHT/MEDIUM/STRONG/SPECIAL, spam penceresi, editor'de güvenli, test sink'i. |
 | `autoload/save_manager.gd` | Yerel kalıcı kayıt, JSON, `user://`. Bulut yok. `save_game() -> bool` (TASK/045.1); `save_path` yalnız testlerin yönlendirmesi. |
-| `autoload/save_file.gd` | `SaveFile` (autoload DEĞİL, TASK/045.1): çökmeye dayanıklı kayıt işlemi (bellekte doğrulanan yük → kurtarılacak `.tmp` önce terfi → `.tmp` + bayt geri okuma → eski kayıt `.bak`'a, bir önceki kayıt olarak kalır → `.tmp` kanonik ada) ve deterministik kurtarma (geçerli kanonik > geçerli `.tmp` > geçerli `.bak` [kanonik ad dolu ya da `.tmp` izi varken] > yok; bilerek silinmiş kayıt = temiz başlangıç); yalnız testler için tek atımlık hata enjeksiyonu. |
+| `autoload/save_file.gd` | `SaveFile` (autoload DEĞİL, TASK/045.1): çökmeye dayanıklı kayıt işlemi (bellekte doğrulanan yük → kurtarılacak `.tmp` önce terfi → `.tmp` + bayt geri okuma → eski kayıt `.bak`'a, bir önceki kayıt olarak kalır → `.tmp` kanonik ada) ve deterministik kurtarma (geçerli kanonik > geçerli `.tmp` > geçerli `.bak` [kanonik ad dolu ya da `.tmp` izi varken] > yok; bilerek silinmiş kayıt = temiz başlangıç); yalnız testler için tek atımlık hata enjeksiyonu. TASK/061: yan etkisiz kalıcılık sınıflandırması (`write_checked` / `recovery_outcome` / `recovery_source` — SAVED / PENDING / FAILED, `read_save` seçim kuralının aynısı; dosyaya dokunmaz). |
 
 ### Reklam (M8.9-01 — `scripts/ads/`)
 

@@ -1069,6 +1069,11 @@ TASK/046'nın otomatik ödülünün YERİNE):** durum makinesi **AKTİF → TAMA
   daha önce alınmamış olma doğrulanır; tam katalog ödülü (UI'dan miktar alınmaz) ve ödül işareti TEK işlemde, aynı
   yazmada (`SaveManager.claim_mission_reward`); ilerleme değişmez. Bir görev bir dönemde en fazla bir kez ödül verir;
   tekrar / gecikmiş / yinelenen talep ödül vermez.
+- **Kayıt güvenliği (TASK/061 son sertleştirme, owner):** talep / dönem teslimi ancak kalıcı kayıt doğrulanınca kesin
+  başarı gösterir. Yazma başarısız ve yeni kayıt kurtarılacak kopyada da yoksa işlem geri alınır: Hamur verilmez, görev
+  ALINABİLİR kalır, kısa "KAYDEDİLEMEDİ" notu; yeniden ÖDÜLÜ AL aynı tek ödülü yeniden dener. Yazma başarısız ama
+  doğrulanmış yeni kayıt kurtarma kopyasında (`.tmp`) bekliyorsa ödül KALIR (ALINDI), kutlama yerine "KAYIT BEKLİYOR";
+  açılış ya da sonraki kayıt onu tamamlar. Her yolda ödül TAM BİR KEZ.
 - **Dönem sonu teslimi:** gün (ya da pazartesi haftası) kapanırken TAMAMLANMIŞ ama ALINMAMIŞ görevin ödülü kaybolmaz —
   yeni dönem açılmadan önce TAM BİR KEZ otomatik teslim edilir; eski hakların teslimi + yeni dönem + Hamur TEK yazma
   (çökmede ya hiç ya tamamı). Teslim, dönem geçişinin açık noktalarında olur: açılış, öne dönüş, kabuk sekmesi, GÖREVLER
