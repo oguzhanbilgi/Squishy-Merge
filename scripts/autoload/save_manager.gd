@@ -400,6 +400,12 @@ func save_game() -> bool:
 	return SaveFile.write_save(save_path, JSON.stringify(data, "\t"))
 
 
+## `save_game` ile aynı yük ve aynı yazma + kalıcılık sınıfı (SaveFile.Outcome — TASK/061 kayıt güvenliği). Yalnız
+## geri alınabilir görev işlemleri (ÖDÜLÜ AL, dönem teslimi) kullanır: FAILED'de çağıran kendi alanlarını geri koyar.
+func save_game_checked() -> int:
+	return SaveFile.write_checked(save_path, JSON.stringify(data, "\t"))
+
+
 ## Son yüklemenin kaynağı (SaveFile.Source): CANONICAL normal açılış, TEMP / BACKUP
 ## yarım kalan bir kayıt işleminden kurtarma, NONE kayıt yok / bozuk.
 func load_source() -> int:
@@ -684,11 +690,15 @@ func record_mission_round(merges: int, fixed_level_cleared: bool, save: bool = t
 ## edilir — dokunulan görev de onlardan biriyse sonuç AUTO_CLAIMED (oyuncu ödülünü TAM BİR KEZ aldı), değilse
 ## WRONG_PERIOD. Sonra doğrulama (Missions.claim): bilinmeyen / yanlış dönem / tamamlanmamış / zaten alınmış → hiçbir alan
 ## değişmez. Geçerli talepte ödül işareti + Hamur (ve varsa dönem teslimi) AYNI `save_game()` yazmasında; ilerleme
-## değişmez. Ard arda / yinelenen çağrı ikinci ödül VERMEZ (ALREADY_CLAIMED). Yazma başarısızsa (SaveFile false) bellek
-## güncel kalır, önceki kayıt diskte aynen durur — sonraki kayıt yeniden dener; uygulama o arada kapanırsa yeniden
-## açılışta görev yine alınabilir ve ödül diskte hiç verilmemiştir (çift ödül / kayıp yok).
+## değişmez. Ard arda / yinelenen çağrı ikinci ödül VERMEZ (ALREADY_CLAIMED). Yazma başarısızsa sonuç diskten
+## SINIFLANDIRILIR (SaveFile.write_checked — yan etkisiz okuma, dosyaya dokunmaz):
+##   PENDING  doğrulanmış yeni kayıt kurtarılacak kopyada (`.tmp`): bellek talepli KALIR (geri almak kurtarılacak ödülü
+##            bellekten silerdi); açılış / sonraki kayıt onu kanonik ada taşır — ödül tam bir kez.
+##   FAILED   bir sonraki okuma talebi GETİRMEZ: görev bloğu + Hamur talep ÖNCESİNE döner (yalnız bu iki alan), sonuç
+##            SAVE_FAILED, Hamur 0 — görev ALINABİLİR kalır; yeniden ÖDÜLÜ AL aynı tek ödülü yeniden dener.
 ## Döner: {result: Missions.Claim, dough: int — bu çağrının verdiği toplam Hamur, claimed_dough: int — dokunulan görevin
-## ödülü (CLAIMED / AUTO_CLAIMED), auto_claimed: Array[StringName], saved: bool}.
+## ödülü (CLAIMED / AUTO_CLAIMED), auto_claimed: Array[StringName], saved: bool — kanonik dosyada, persist:
+## SaveFile.Outcome — yalnız yazma denendiyse}.
 func claim_mission_reward(id: StringName, period_key: String) -> Dictionary:
 	var rolled: Dictionary = Missions.rollover(data.get("missions"), Missions.accepted_day())
 	var auto: Array[StringName] = rolled["auto_claimed"]
@@ -706,9 +716,19 @@ func claim_mission_reward(id: StringName, period_key: String) -> Dictionary:
 		if result != Missions.Claim.CLAIMED:
 			out["claimed_dough"] = 0
 		return out
+	var before: Dictionary = _missions_snapshot()
 	data["missions"] = claim["state"]
 	data["dough"] = dough() + granted
-	out["saved"] = save_game()
+	var persist: int = save_game_checked()
+	out["persist"] = persist
+	out["saved"] = persist == SaveFile.Outcome.SAVED
+	if persist == SaveFile.Outcome.FAILED:
+		_restore_missions_snapshot(before)
+		var none: Array[StringName] = []
+		out["result"] = Missions.Claim.SAVE_FAILED
+		out["dough"] = 0
+		out["claimed_dough"] = 0
+		out["auto_claimed"] = none
 	return out
 
 
@@ -717,15 +737,38 @@ func claim_mission_reward(id: StringName, period_key: String) -> Dictionary:
 ## `save_game()` yazmasında. Teslim edilecek bir şey yoksa HİÇBİR ŞEY yazılmaz ve bellek değişmez (dönem değişimi
 ## okumada görünür — normal günde açmak / kapatmak / rozet okumak kayda yazmaz). İdempotent: ikinci çağrı (aynı gün)
 ## no-op; yazma ile kapanış arasında süreç ölürse diskte ya eski dönem (yeniden açılışta aynı teslim, tek kez) ya yeni
-## dönem (teslim edilmiş) kalır — yarım teslim yok (dönem + Hamur aynı JSON'da). Döner: {auto_claimed, dough, saved}.
+## dönem (teslim edilmiş) kalır — yarım teslim yok (dönem + Hamur aynı JSON'da). Yazma başarısızsa ÖDÜLÜ AL ile aynı
+## sınıflandırma: PENDING → bellek teslimli kalır (kurtarılır); FAILED → görev bloğu + Hamur teslim ÖNCESİNE döner, sonuç
+## teslimsiz (auto_claimed boş, Hamur 0) — bir sonraki dönem noktası aynı teslimi tam bir kez yeniden dener (rollover
+## idempotent). Döner: {auto_claimed, dough, saved — kanonik dosyada, persist: SaveFile.Outcome — yalnız yazma denendiyse}.
 func settle_missions() -> Dictionary:
 	var rolled: Dictionary = Missions.rollover(data.get("missions"), Missions.accepted_day())
 	var auto: Array[StringName] = rolled["auto_claimed"]
 	if auto.is_empty():
 		return {"auto_claimed": auto, "dough": 0, "saved": false}
+	var before: Dictionary = _missions_snapshot()
 	data["missions"] = rolled["state"]
 	data["dough"] = dough() + int(rolled["dough"])
-	return {"auto_claimed": auto, "dough": int(rolled["dough"]), "saved": save_game()}
+	var persist: int = save_game_checked()
+	if persist == SaveFile.Outcome.FAILED:
+		_restore_missions_snapshot(before)
+		var none: Array[StringName] = []
+		return {"auto_claimed": none, "dough": 0, "saved": false, "persist": persist}
+	return {"auto_claimed": auto, "dough": int(rolled["dough"]), "saved": persist == SaveFile.Outcome.SAVED,
+		"persist": persist}
+
+
+## Geri alınabilir görev işleminin (ÖDÜLÜ AL / dönem teslimi) dokunduğu İKİ alan, ham değerleriyle — FAILED'de aynen
+## geri konur (başka alan değişmez; işlem başka alana yazmaz).
+func _missions_snapshot() -> Dictionary:
+	var missions: Variant = data.get("missions")
+	return {"missions": (missions as Dictionary).duplicate(true) if missions is Dictionary else missions,
+		"dough": data.get("dough")}
+
+
+func _restore_missions_snapshot(snapshot: Dictionary) -> void:
+	data["missions"] = snapshot["missions"]
+	data["dough"] = snapshot["dough"]
 
 
 # --- Günlük meydan okuma (TASK/047 — GAME_DESIGN §5.11) ---

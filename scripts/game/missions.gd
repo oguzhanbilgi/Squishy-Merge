@@ -55,7 +55,9 @@ const STATUS_CLAIMED: StringName = &"claimed"
 ##   NOT_COMPLETE    görev hedefe ulaşmadı
 ##   ALREADY_CLAIMED görev bu dönemde zaten ödül verdi
 ##   NO_PERIOD       kullanılabilir dönem yok (kayıt yok + bozuk saat)
-enum Claim { CLAIMED, AUTO_CLAIMED, UNKNOWN, WRONG_PERIOD, NOT_COMPLETE, ALREADY_CLAIMED, NO_PERIOD }
+##   SAVE_FAILED     YALNIZ SaveManager: geçerli talep yazılamadı ve diskte kurtarılacak kopyada da yok
+##                   (SaveFile.Outcome.FAILED) — bellek talep öncesine döndü, Hamur verilmedi, görev ALINABİLİR kalır
+enum Claim { CLAIMED, AUTO_CLAIMED, UNKNOWN, WRONG_PERIOD, NOT_COMPLETE, ALREADY_CLAIMED, NO_PERIOD, SAVE_FAILED }
 
 ## Katalog sırası = gösterim sırası = ödül işareti dizilerinin kanonik sırası.
 const CATALOG: Array[Dictionary] = [

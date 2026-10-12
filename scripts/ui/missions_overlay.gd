@@ -30,6 +30,11 @@ const DAILY_TITLE: String = "GÜNLÜK"
 const WEEKLY_TITLE: String = "HAFTALIK"
 const DAILY_HINT: String = "Yarın yenilenir"
 const WEEKLY_HINT: String = "Pazartesi yenilenir"
+## Kayıt güvenliği (TASK/061): talep kalıcı kayıtta doğrulanmadıysa kutlama yerine notta kısa, gerçeği söyleyen durum.
+##   KAYIT BEKLİYOR  ödül doğrulanmış kurtarma kopyasında (SaveFile PENDING): kart ALINDI doğru, kanonik ad henüz değil
+##   KAYDEDİLEMEDİ   ödül diskte yok, bellek geri alındı (SAVE_FAILED): kart ALINABİLİR kalır
+const SAVE_PENDING_TEXT: String = "KAYIT BEKLİYOR"
+const SAVE_FAILED_TEXT: String = "KAYDEDİLEMEDİ"
 const GAIN_FORMAT: String = "+%d"
 ## "+10" yükselişi: süre, mesafe (tuval px).
 const GAIN_TIME: float = 0.85
@@ -200,20 +205,34 @@ func refresh() -> void:
 ## Main'in talep sonucu (SaveManager.claim_mission_reward): kartlar kanonik veriden tazelenir; bu çağrı Hamur verdiyse
 ## (ÖDÜLÜ AL, ya da pencere gece yarısını açık geçtiyse kapanan dönemin teslimi — dokunulan ödül dahil) kısa candy geri
 ## bildirimi ve "+N" = bu çağrının verdiği TOPLAM Hamur (bakiyedeki artışın aynısı). Hiç Hamur verilmediyse yalnız tazeleme
-## + `ui_invalid`.
+## + `ui_invalid`. Kutlama YALNIZ ödül kanonik kayıtta doğrulanınca: SAVE_FAILED → "KAYDEDİLEMEDİ" + `ui_invalid`;
+## kayıt bekliyor (PENDING) → kart ALINDI (doğru) + "KAYIT BEKLİYOR", pop / "+N" / ses / titreşim yok.
 func apply_claim(id: StringName, outcome: Dictionary) -> void:
 	var source: MissionCard = card(id)
 	var origin: Rect2 = source.claim_button().get_global_rect() if source != null else Rect2()
 	refresh()
+	if int(outcome.get("result", -1)) == Missions.Claim.SAVE_FAILED:
+		_show_save_status(SAVE_FAILED_TEXT)
+		AudioManager.play(&"ui_invalid")
+		return
 	var granted: int = int(outcome.get("dough", 0))
 	if granted <= 0:
 		AudioManager.play(&"ui_invalid")
+		return
+	if int(outcome.get("persist", SaveFile.Outcome.SAVED)) == SaveFile.Outcome.PENDING:
+		_show_save_status(SAVE_PENDING_TEXT)
 		return
 	if source != null:
 		source.play_claimed()
 	_show_gain(granted, origin)
 	AudioManager.play(&"daily_reward")
 	Haptics.light()
+
+
+## Kayıt durumu notu (bir sonraki `refresh` normal nota döner).
+func _show_save_status(text: String) -> void:
+	_note.text = text
+	_note.add_theme_color_override("font_color", UiTokens.TEXT_WARNING_STRONG)
 
 
 ## CTA'nın üstünden yükselip solan "+10" + Hamur sanatı (yalnız görsel; dokunma almaz, kendini siler).

@@ -29,13 +29,23 @@ extends Node
 ##                  round sırasında teslim yok (round kaydında), otomatik günlük pencere "due" kalır
 ##   6 ekonomi      bir haftalık oyun: elle + dönem sonu teslimi karışık → günde ≤ 30, haftalık ≤ 120, toplam tam 330;
 ##                  çift yol yok; görev ödülü XP / başarım / güç / sandık / kota vermez; kaynak sözleşmesi (reklam yok)
+##   7 kayıt güv.   (son sertleştirme) talep + dönem teslimi × 13 SaveFile hata durumu (11 hata türü; bozuk kanonik /
+##                  bekleyen .tmp ön durumları): işlem öncesi disk, bellek, saved / persist, .tmp / .bak, pencere geri
+##                  bildirimi (not, kart, "+N", pop, ses, titreşim), ikinci işlem, yeniden açılış, kurtarılan kaynak =
+##                  read_save, son bakiye, tekrar işlem — her yolda TAM BİR KEZ · sınıflandırıcı birim tablosu (yan etkisiz)
+##                  · gece yarısı AUTO_CLAIMED + yazma hatası
+##   8 kayıt güv.   gerçek Main + gerçek parmak: kaydedilemedi → yeniden dokunuş tam bir kez; kayıt bekliyor → ALINDI,
+##     (Main)       pop'suz hap, yeniden açılışta .tmp kurtarması; dönem noktası FAILED / PENDING
 
 const MAIN_SCENE: PackedScene = preload("res://scenes/main.tscn")
+const OVERLAY_SCENE: PackedScene = preload("res://scenes/ui/missions_overlay.tscn")
+## UiMotion'ın tween meta anahtarı (pop / yükseliş çalışıyor mu).
+const MOTION_META: StringName = &"ui_motion_tween"
 const DIR: String = "user://qa_missions_claim"
 const PATH: String = DIR + "/save.json"
 const TMP: String = PATH + SaveFile.TEMP_SUFFIX
 const BAK: String = PATH + SaveFile.BACKUP_SUFFIX
-const SECTIONS: int = 6
+const SECTIONS: int = 8
 ## Takvim: 2026-09-28 pazartesi.
 const MON: String = "2026-09-28"
 const TUE: String = "2026-09-29"
@@ -91,7 +101,9 @@ func _ready() -> void:
 	_migration()
 	_settle_transactions()
 	_claim_transactions()
+	await _save_safety()
 	await _main_flows()
+	await _main_save_safety()
 	_economy()
 	_c("%d/%d bölüm sonuna kadar koştu (betik hatası yok)" % [_sections_done, SECTIONS], _sections_done == SECTIONS)
 
@@ -475,10 +487,13 @@ func _settle_transactions() -> void:
 	_c("saat pazara geri alındı: dönem pazartesi kalır, yeni teslim yok", (SaveManager.settle_missions()["auto_claimed"]
 		as Array).is_empty() and SaveManager.missions_state()["day_key"] == NEXT_MON and SaveManager.dough() == BASE_DOUGH + 50)
 
-	# Çökme / yazma hatası matrisi: her durumda (yeniden açılış dahil) TAM BİR KEZ.
+	# Çökme / yazma hatası matrisi: her durumda (yeniden açılış dahil) TAM BİR KEZ. TASK/061 kayıt güvenliği: teslim ya
+	# kurtarılacak kopyada (PENDING — bellek teslimli kalır) ya diskte yok (FAILED — bellek teslim öncesine döner, ikinci
+	# dönem noktası yeniden dener). Ayrıntılı tablo: bölüm 7.
 	var faults: Array = [SaveFile.Fault.CRASH_AFTER_TEMP, SaveFile.Fault.CRASH_AFTER_BACKUP, SaveFile.Fault.COMMIT,
 		SaveFile.Fault.COMMIT_AND_ROLLBACK, SaveFile.Fault.TEMP_OPEN, SaveFile.Fault.TEMP_WRITE, SaveFile.Fault.TEMP_SHORT,
 		SaveFile.Fault.BACKUP_MOVE]
+	var pending_faults: Array = [SaveFile.Fault.CRASH_AFTER_BACKUP, SaveFile.Fault.COMMIT_AND_ROLLBACK]
 	var matrix_ok: bool = true
 	for fault: int in faults:
 		DailyRewards.clock_override = TUE
@@ -486,9 +501,13 @@ func _settle_transactions() -> void:
 		DailyRewards.clock_override = WED
 		SaveFile.fault = fault as SaveFile.Fault
 		var failed: Dictionary = SaveManager.settle_missions()
-		var memory_ok: bool = not bool(failed["saved"]) and SaveManager.dough() == BASE_DOUGH + 20
+		var pending: bool = pending_faults.has(fault)
+		var memory_ok: bool = (not bool(failed["saved"]) and SaveManager.dough() == BASE_DOUGH + (20 if pending else 0)
+			and int(failed["persist"]) == (SaveFile.Outcome.PENDING if pending else SaveFile.Outcome.FAILED)
+			and (failed["auto_claimed"] as Array).is_empty() != pending)
 		var again: Dictionary = SaveManager.settle_missions()
-		var no_double_in_memory: bool = (again["auto_claimed"] as Array).is_empty() and SaveManager.dough() == BASE_DOUGH + 20
+		var no_double_in_memory: bool = ((again["auto_claimed"] as Array).is_empty() == pending
+			and SaveManager.dough() == BASE_DOUGH + 20)
 		# Yeniden açılış (süreç ölümü / yazma hatası sonrası): kurtarılan kayıt ya eski dönem (teslim yeniden — tek kez)
 		# ya yeni dönem (teslim edilmiş).
 		SaveFile.fault = SaveFile.Fault.NONE
@@ -503,7 +522,7 @@ func _settle_transactions() -> void:
 			matrix_ok = false
 			print("    hata %d: bellek %s / ikinci %s / son %s / disk %s (Hamur %d)" % [fault, str(memory_ok),
 				str(no_double_in_memory), str(final_ok), str(disk_ok), SaveManager.dough()])
-	_c("%d hata (çökme: .tmp sonrası / .bak sonrası; taşıma; geri alma; .tmp açma / yazma / kısa; yedek): her durumda +20 TAM BİR KEZ (bellek, yeniden açılış, disk)"
+	_c("%d hata (çökme: .tmp sonrası / .bak sonrası; taşıma; geri alma; .tmp açma / yazma / kısa; yedek): PENDING teslimli, FAILED geri alındı + ikinci noktada; her durumda +20 TAM BİR KEZ (bellek, yeniden açılış, disk)"
 		% faults.size(), matrix_ok)
 	SaveFile.fault = SaveFile.Fault.NONE
 	DailyRewards.clock_override = ""
@@ -575,22 +594,31 @@ func _claim_transactions() -> void:
 		== Missions.Claim.AUTO_CLAIMED and int(monday["claimed_dough"]) == 40 and SaveManager.dough() == BASE_DOUGH + 40
 		and int(SaveManager.claim_mission_reward(&"weekly_clears", MON)["dough"]) == 0)
 
-	# Yazma hatası: bellek güncel, disk eski; yeniden açılışta tam bir kez.
+	# Yazma hatası (TASK/061 kayıt güvenliği): talep diskte yok (FAILED) → bellek talep öncesine döner, SAVE_FAILED, Hamur
+	# yok; görev ALINABİLİR kalır ve yeniden ÖDÜLÜ AL aynı tek ödülü yeniden dener. Her hata türü: bölüm 7.
 	DailyRewards.clock_override = TUE
 	_reset_disk(_v2(TUE, {"daily_merges": 15}, [], {}, []))
+	var pre_claim: Dictionary = SaveManager.data["missions"].duplicate(true)
 	SaveFile.fault = SaveFile.Fault.TEMP_OPEN
 	var failed: Dictionary = SaveManager.claim_mission_reward(&"daily_merges", TUE)
-	_c("yazma hatası: sonuç CLAIMED ama saved=false; bellek ALINDI + 510, disk eski (500, alınabilir)",
-		int(failed["result"]) == Missions.Claim.CLAIMED and not bool(failed["saved"]) and SaveManager.dough() == BASE_DOUGH + 10
+	_c("yazma hatası (.tmp açılamadı): SAVE_FAILED, saved=false, persist FAILED, Hamur 0; bellek talep öncesi (alınabilir, 500), disk eski (500)",
+		int(failed["result"]) == Missions.Claim.SAVE_FAILED and not bool(failed["saved"])
+		and int(failed["persist"]) == SaveFile.Outcome.FAILED and int(failed["dough"]) == 0 and int(failed["claimed_dough"]) == 0
+		and SaveManager.dough() == BASE_DOUGH and SaveManager.data["missions"] == pre_claim
+		and Missions.is_claimable(SaveManager.missions_state(), &"daily_merges")
 		and int(_disk().get("dough", -1)) == BASE_DOUGH and ((_disk()["missions"] as Dictionary)["daily_rewarded"] as Array).is_empty())
-	_c("  … aynı oturumda tekrar talep ikinci ödül vermez", int(SaveManager.claim_mission_reward(&"daily_merges", TUE)["result"])
-		== Missions.Claim.ALREADY_CLAIMED and SaveManager.dough() == BASE_DOUGH + 10)
+	var retry_same: Dictionary = SaveManager.claim_mission_reward(&"daily_merges", TUE)
+	_c("  … aynı oturumda yeniden ÖDÜLÜ AL = aynı tek ödülün yeniden denemesi: CLAIMED +10, kanonik kayıtta (510, diskte 510)",
+		int(retry_same["result"]) == Missions.Claim.CLAIMED and bool(retry_same["saved"])
+		and int(retry_same["persist"]) == SaveFile.Outcome.SAVED and SaveManager.dough() == BASE_DOUGH + 10
+		and int(_disk().get("dough", -1)) == BASE_DOUGH + 10)
+	_c("  … üçüncü talep ALREADY_CLAIMED, Hamur 510 (toplam tam bir kez)",
+		int(SaveManager.claim_mission_reward(&"daily_merges", TUE)["result"]) == Missions.Claim.ALREADY_CLAIMED
+		and SaveManager.dough() == BASE_DOUGH + 10)
 	SaveFile.fault = SaveFile.Fault.NONE
 	SaveManager.load_game()
-	var retry: Dictionary = SaveManager.claim_mission_reward(&"daily_merges", TUE)
-	_c("  … uygulama yazmadan kapandı → yeniden açılışta görev yine alınabilir; talep diskte TAM BİR KEZ (510)",
-		int(retry["result"]) == Missions.Claim.CLAIMED and SaveManager.dough() == BASE_DOUGH + 10
-		and int(_disk().get("dough", -1)) == BASE_DOUGH + 10)
+	_c("  … yeniden açılış: ALINDI kalıcı, Hamur 510", Missions.is_claimed(SaveManager.missions_state(), &"daily_merges")
+		and SaveManager.dough() == BASE_DOUGH + 10)
 	# Bozuk saat: kayıtlı dönemde talep çalışır; dönem yoksa NO_PERIOD.
 	_reset_disk(_v2(TUE, {"daily_clear": 1}, [], {}, []))
 	var raw_daily: Dictionary = (SaveManager.data["daily_rewards"] as Dictionary).duplicate()
@@ -913,6 +941,509 @@ func _main_flows() -> void:
 	DailyRewards.clock_override = ""
 	await _teardown_main()
 	_sections_done += 1
+
+
+# --- 7) Kayıt güvenliği: her SaveFile hata türünde talep + dönem teslimi (TASK/061 son sertleştirme) ----------------
+
+## Hata durumları. setup: "bak" = geçerli kanonik + aynı baytlı geçerli .bak · "corrupt" = bozuk kanonik + geçerli .bak
+## (bellek .bak'tan) · "pending" = kanonik ad boş + doğrulanmış .tmp + .bak (önceki çift hata). Hata sonrası beklenen
+## dosyalar: "same" (işlem öncesi bayt) · "absent" · "new" (bu işlemin yükü) · "any".
+func _safety_cases() -> Array[Dictionary]:
+	var saved: int = SaveFile.Outcome.SAVED
+	var pending: int = SaveFile.Outcome.PENDING
+	var failed: int = SaveFile.Outcome.FAILED
+	var cases: Array[Dictionary] = [
+		{"fault": SaveFile.Fault.TEMP_OPEN, "setup": "bak", "expect": failed, "canonical": "same", "tmp": "absent", "bak": "same"},
+		{"fault": SaveFile.Fault.TEMP_WRITE, "setup": "bak", "expect": failed, "canonical": "same", "tmp": "absent", "bak": "same"},
+		{"fault": SaveFile.Fault.TEMP_SHORT, "setup": "bak", "expect": failed, "canonical": "same", "tmp": "absent", "bak": "same"},
+		{"fault": SaveFile.Fault.CRASH_AFTER_TEMP, "setup": "bak", "expect": failed, "canonical": "same", "tmp": "new",
+			"bak": "same"},
+		{"fault": SaveFile.Fault.BACKUP_MOVE, "setup": "bak", "expect": failed, "canonical": "same", "tmp": "absent",
+			"bak": "same"},
+		{"fault": SaveFile.Fault.BACKUP_TARGET_DELETED, "setup": "bak", "expect": failed, "canonical": "same", "tmp": "absent",
+			"bak": "absent"},
+		{"fault": SaveFile.Fault.CRASH_AFTER_BACKUP, "setup": "bak", "expect": pending, "canonical": "absent", "tmp": "new",
+			"bak": "same"},
+		{"fault": SaveFile.Fault.COMMIT, "setup": "bak", "expect": failed, "canonical": "same", "tmp": "absent", "bak": "absent"},
+		{"fault": SaveFile.Fault.COMMIT_AND_ROLLBACK, "setup": "bak", "expect": pending, "canonical": "absent", "tmp": "new",
+			"bak": "same"},
+		{"fault": SaveFile.Fault.COMMIT_TARGET_DELETED, "setup": "bak", "expect": failed, "canonical": "same", "tmp": "absent",
+			"bak": "absent"},
+		{"fault": SaveFile.Fault.COMMIT_TARGET_DELETED, "setup": "corrupt", "expect": pending, "canonical": "absent",
+			"tmp": "new", "bak": "same"},
+		{"fault": SaveFile.Fault.RECOVER_MOVE, "setup": "pending", "expect": failed, "canonical": "absent", "tmp": "same",
+			"bak": "same"},
+		# Kurtarılacak .tmp yokken RECOVER_MOVE'un hata noktasına ulaşılmaz: normal yazma (karşılaştırma satırı).
+		{"fault": SaveFile.Fault.RECOVER_MOVE, "setup": "bak", "expect": saved, "canonical": "new", "tmp": "absent",
+			"bak": "same"},
+	]
+	return cases
+
+
+func _save_safety() -> void:
+	print("-- kayıt güvenliği: her hata türünde talep / teslim — disk, bellek, saved, .tmp / .bak, geri bildirim, ikinci işlem, yeniden açılış")
+	var overlay: MissionsOverlay = OVERLAY_SCENE.instantiate()
+	add_child(overlay)
+	# Pencere bir kez yerleşsin (CTA boyutu "+N" yükselişinin çıkış noktası; kartlar durumlar arasında yeniden kurulmaz).
+	DailyRewards.clock_override = TUE
+	_reset_disk(_v2(TUE, {"daily_merges": 15}, [], {}, []))
+	overlay.open_missions()
+	await _settle(4)
+	var haptics_was: bool = Haptics.is_enabled()
+	Haptics.set_enabled(true)
+	Haptics.set_sink(func(_ms: int, _amp: float) -> void: pass, true)
+	var names: Array = SaveFile.Fault.keys()
+	var pure_ok: bool = true
+	var mirror_ok: bool = true
+	for op: String in ["claim", "settle"]:
+		for spec: Dictionary in _safety_cases():
+			var label: String = "%s %s/%s" % [op, names[int(spec["fault"])], spec["setup"]]
+			var expect: int = int(spec["expect"])
+			var reward: int = 10 if op == "claim" else 20
+			# --- Geçiş A: hata → (geri bildirim) → yeniden açılış → kurtarılan durum → yeniden işlem → son bakiye.
+			_safety_setup(op, String(spec["setup"]))
+			var before: Dictionary = _family()
+			var mem_before: Dictionary = SaveManager.data["missions"].duplicate(true)
+			var dough_raw_before: Variant = SaveManager.data["dough"]
+			var side_before: Dictionary = _side_snapshot()
+			var counters: Dictionary = {}
+			if op == "claim":
+				overlay.close_missions(false)
+				overlay.open_missions()
+				_stop_motion(overlay.card(&"daily_merges").reward_slot())
+				counters = _feedback_counters()
+			SaveFile.fault = spec["fault"] as SaveFile.Fault
+			var out: Dictionary = _safety_op(op)
+			SaveFile.fault = SaveFile.Fault.NONE
+			var after: Dictionary = _family()
+			var source: String = SaveFile.recovery_source(PATH)
+			var outcome_again: int = SaveFile.recovery_outcome(PATH, "{}")
+			if _family() != after or outcome_again != SaveFile.Outcome.FAILED:
+				pure_ok = false
+				print("    %s: sınıflandırıcı dosyaya dokundu" % label)
+			_c("%s: sonuç %s · saved %s · persist %s (Hamur %d)" % [label, _result_name(op, out), str(out.get("saved")),
+				SaveFile.Outcome.keys()[int(out.get("persist", 0))], int(out["dough"])], _out_ok(op, out, expect, reward))
+			var memory_ok: bool = _side_snapshot() == side_before
+			if expect == SaveFile.Outcome.FAILED:
+				memory_ok = (memory_ok and SaveManager.data["missions"] == mem_before
+					and SaveManager.data["dough"] == dough_raw_before and SaveManager.dough() == BASE_DOUGH)
+			else:
+				memory_ok = memory_ok and _applied(op, reward)
+			_c("  … bellek: %s; öteki alanlar aynen" % ("işlem ÖNCESİ (görev bloğu + Hamur ham değer)"
+				if expect == SaveFile.Outcome.FAILED else "işlem uygulanmış (%d)" % (BASE_DOUGH + reward)), memory_ok)
+			_c("  … disk: kanonik %s · .tmp %s · .bak %s (işlem öncesi: %s)" % [spec["canonical"], spec["tmp"], spec["bak"],
+				_family_shape(before)], _files_ok(spec, before, after, op))
+			if op == "claim":
+				overlay.apply_claim(&"daily_merges", out)
+				_c("  … geri bildirim: %s" % _feedback_label(expect), _feedback_ok(overlay, expect, counters))
+			SaveManager.load_game()
+			if SaveManager.load_source() != _source_of(source):
+				mirror_ok = false
+				print("    %s: sınıflandırıcı %s seçti, read_save %s" % [label, source, SaveFile.source_name(SaveManager.load_source())])
+			var recovered_ok: bool = _applied(op, reward) if expect != SaveFile.Outcome.FAILED else _not_applied(op)
+			var retry: Dictionary = _safety_op(op)
+			var retry_ok: bool = (_gave(op, retry) == (expect == SaveFile.Outcome.FAILED)) and _applied(op, reward)
+			var third: Dictionary = _safety_op(op)
+			var tail_ok: bool = (not _gave(op, third) and (SaveManager.settle_missions()["auto_claimed"] as Array).is_empty()
+				and _applied(op, reward) and int(_disk().get("dough", -1)) == BASE_DOUGH + reward)
+			SaveManager.load_game()
+			tail_ok = tail_ok and _applied(op, reward)
+			_c("  … yeniden açılış: %s; yeniden işlem %s; üçüncü işlem / dönem noktası boş; son bakiye %d (bellek + disk), TAM BİR KEZ"
+				% ["kurtarılan kopya işlemi taşıyor" if expect != SaveFile.Outcome.FAILED else "önceki kayıt (işlem yok)",
+				"ödül vermedi" if expect != SaveFile.Outcome.FAILED else "aynı tek ödülü verdi", BASE_DOUGH + reward],
+				recovered_ok and retry_ok and tail_ok)
+			# --- Geçiş B: hata → AYNI oturumda ikinci işlem → (PENDING: sonraki herhangi bir kayıt) → yeniden açılış.
+			_safety_setup(op, String(spec["setup"]))
+			SaveFile.fault = spec["fault"] as SaveFile.Fault
+			_safety_op(op)
+			SaveFile.fault = SaveFile.Fault.NONE
+			var second: Dictionary = _safety_op(op)
+			var second_ok: bool = (_gave(op, second) == (expect == SaveFile.Outcome.FAILED)) and _applied(op, reward)
+			if expect == SaveFile.Outcome.PENDING:
+				second_ok = second_ok and SaveManager.save_game() and _carries(_bytes(PATH), op)
+			SaveManager.load_game()
+			var final_ok: bool = (_applied(op, reward) and not _gave(op, _safety_op(op))
+				and int(_disk().get("dough", -1)) == BASE_DOUGH + reward)
+			_c("  … aynı oturumda ikinci işlem %s%s; yeniden açılış %d, tekrar işlem ödülsüz (TAM BİR KEZ)" % [
+				"ödülsüz" if expect != SaveFile.Outcome.FAILED else "aynı tek ödül",
+				" (sonraki kayıt .tmp'yi kanonik ada taşıdı)" if expect == SaveFile.Outcome.PENDING else "",
+				BASE_DOUGH + reward], second_ok and final_ok)
+	_c("sınıflandırıcı (recovery_source / recovery_outcome) yan etkisiz: hiçbir durumda dosya taşımadı / silmedi / kopyalamadı",
+		pure_ok)
+	_c("sınıflandırıcının seçtiği kopya her durumda gerçek read_save kaynağıyla aynı (%d durum)" % (2 * _safety_cases().size()),
+		mirror_ok)
+	Haptics.set_sink(Callable(), false)
+	Haptics.set_enabled(haptics_was)
+	overlay.queue_free()
+
+	# Sınıflandırıcı birim tablosu (elle kurulan diskler): read_save kuralının kenarları.
+	var text: String = JSON.stringify(_fixture({"dough": 777}), "\t")
+	var other: String = JSON.stringify(_fixture({"dough": 1}), "\t")
+	var torn: PackedByteArray = text.substr(0, 30).to_utf8_buffer()
+	var table: Array = [
+		["kanonik = yük", {PATH: text}, SaveFile.Outcome.SAVED, SaveFile.Source.CANONICAL],
+		["kanonik geçerli başka yük + .tmp = yük (kanonik kazanır, .tmp atılır)", {PATH: other, TMP: text},
+			SaveFile.Outcome.FAILED, SaveFile.Source.CANONICAL],
+		["kanonik yok + .tmp = yük", {TMP: text, BAK: other}, SaveFile.Outcome.PENDING, SaveFile.Source.TEMP],
+		["bozuk kanonik + bozuk .tmp + .bak = yük", {PATH: torn, TMP: torn, BAK: text}, SaveFile.Outcome.PENDING,
+			SaveFile.Source.BACKUP],
+		["kanonik yok + .tmp yok + .bak = yük (bilerek silinmiş kayıt: .bak atılır)", {BAK: text}, SaveFile.Outcome.FAILED,
+			SaveFile.Source.NONE],
+		["hiç dosya yok", {}, SaveFile.Outcome.FAILED, SaveFile.Source.NONE],
+	]
+	var table_ok: bool = true
+	for row: Array in table:
+		_clean()
+		var files: Dictionary = row[1]
+		for path: String in files:
+			var content: Variant = files[path]
+			_put(path, content if content is PackedByteArray else String(content).to_utf8_buffer())
+		var snap: Dictionary = _family()
+		var got: int = SaveFile.recovery_outcome(PATH, text)
+		var src: String = SaveFile.recovery_source(PATH)
+		var untouched: bool = _family() == snap
+		var real: int = int(SaveFile.read_save(PATH)["source"])
+		if got != int(row[2]) or _source_of(src) != int(row[3]) or real != int(row[3]) or not untouched:
+			table_ok = false
+			print("    tablo '%s': outcome %d (beklenen %d), kaynak %s / read_save %d (beklenen %d), dokunulmadı %s"
+				% [row[0], got, row[2], src, real, row[3], str(untouched)])
+	_c("sınıflandırıcı birim tablosu (%d disk durumu): sonuç + kaynak read_save ile aynı, sınıflandırma dosyaya dokunmaz"
+		% table.size(), table_ok)
+	_clean()
+
+	# Gece yarısını açık geçen pencere + yazma hatası: dokunulan görev dahil dönem teslimi de geri alınır; sonraki dönem
+	# noktası aynı teslimi TAM BİR KEZ yapar (rollover auto-claim korunur).
+	DailyRewards.clock_override = TUE
+	_reset_disk(_v2(TUE, {"daily_clear": 1, "daily_merges": 15, "daily_rounds": 1}, [], {"weekly_merges": 120}, []))
+	var tue_block: Dictionary = SaveManager.data["missions"].duplicate(true)
+	DailyRewards.clock_override = WED
+	SaveFile.fault = SaveFile.Fault.TEMP_OPEN
+	var midnight: Dictionary = SaveManager.claim_mission_reward(&"daily_clear", TUE)
+	SaveFile.fault = SaveFile.Fault.NONE
+	_c("gece yarısı + yazma hatası: SAVE_FAILED, Hamur 0, teslim listesi boş; bellek TUE bloğu aynen (teslim de geri alındı)",
+		int(midnight["result"]) == Missions.Claim.SAVE_FAILED and int(midnight["dough"]) == 0
+		and (midnight["auto_claimed"] as Array).is_empty() and SaveManager.data["missions"] == tue_block
+		and SaveManager.dough() == BASE_DOUGH)
+	var settle_after: Dictionary = SaveManager.settle_missions()
+	_c("  … sonraki dönem noktası: [daily_merges, daily_clear] +20 TAM BİR KEZ (kanonik kayıtta); eski anahtarla talep WRONG_PERIOD",
+		settle_after["auto_claimed"] == [&"daily_merges", &"daily_clear"] and int(settle_after["dough"]) == 20
+		and bool(settle_after["saved"]) and SaveManager.dough() == BASE_DOUGH + 20
+		and int(SaveManager.claim_mission_reward(&"daily_clear", TUE)["result"]) == Missions.Claim.WRONG_PERIOD
+		and SaveManager.dough() == BASE_DOUGH + 20 and int(_disk().get("dough", -1)) == BASE_DOUGH + 20)
+	DailyRewards.clock_override = ""
+	_sections_done += 1
+
+
+## Hata ön durumu (disk + bellek): talep için TUE'de alınabilir daily_merges (500); teslim için TUE'de iki alınabilir günlük
+## görev ve saat WED (+20). Bkz. `_safety_cases`.
+func _safety_setup(op: String, kind: String) -> void:
+	DailyRewards.clock_override = TUE
+	if op == "claim":
+		_reset_disk(_v2(TUE, {"daily_merges": 15, "daily_rounds": 1}, [], {}, []))
+	else:
+		_reset_disk(_v2(TUE, {"daily_merges": 15, "daily_rounds": 2}, [], {}, []))
+	SaveManager.save_game()
+	SaveManager.save_game()
+	match kind:
+		"corrupt":
+			_put(PATH, FileAccess.get_file_as_string(PATH).substr(0, 40).to_utf8_buffer())
+			SaveManager.load_game()
+		"pending":
+			SaveFile.fault = SaveFile.Fault.COMMIT_AND_ROLLBACK
+			SaveManager.save_game()
+			SaveFile.fault = SaveFile.Fault.NONE
+	if op == "settle":
+		DailyRewards.clock_override = WED
+
+
+func _safety_op(op: String) -> Dictionary:
+	if op == "claim":
+		return SaveManager.claim_mission_reward(&"daily_merges", TUE)
+	return SaveManager.settle_missions()
+
+
+func _out_ok(op: String, out: Dictionary, expect: int, reward: int) -> bool:
+	var failed: bool = expect == SaveFile.Outcome.FAILED
+	var common: bool = (bool(out["saved"]) == (expect == SaveFile.Outcome.SAVED) and int(out["persist"]) == expect
+		and int(out["dough"]) == (0 if failed else reward))
+	if op == "claim":
+		return common and int(out["result"]) == (Missions.Claim.SAVE_FAILED if failed else Missions.Claim.CLAIMED) \
+			and int(out["claimed_dough"]) == (0 if failed else reward) and (out["auto_claimed"] as Array).is_empty()
+	return common and (out["auto_claimed"] as Array).is_empty() == failed
+
+
+## İşlem bir ödül verdi mi (talep: CLAIMED / AUTO_CLAIMED; teslim: teslim listesi dolu).
+func _gave(op: String, out: Dictionary) -> bool:
+	if op == "claim":
+		return int(out["dough"]) > 0
+	return not (out["auto_claimed"] as Array).is_empty()
+
+
+func _applied(op: String, reward: int) -> bool:
+	if SaveManager.dough() != BASE_DOUGH + reward:
+		return false
+	if op == "claim":
+		return Missions.is_claimed(SaveManager.missions_state(), &"daily_merges")
+	return String(SaveManager.data["missions"]["day_key"]) == WED and _zero(SaveManager.missions_state(), DAILY)
+
+
+func _not_applied(op: String) -> bool:
+	if SaveManager.dough() != BASE_DOUGH:
+		return false
+	if op == "claim":
+		return Missions.is_claimable(SaveManager.missions_state(), &"daily_merges")
+	return String(SaveManager.data["missions"]["day_key"]) == TUE
+
+
+## Dosya baytları bu işlemin yükünü taşıyor mu (JSON).
+func _carries(bytes: PackedByteArray, op: String) -> bool:
+	var parsed: Variant = JSON.parse_string(bytes.get_string_from_utf8())
+	if not parsed is Dictionary:
+		return false
+	var missions: Dictionary = (parsed as Dictionary).get("missions", {})
+	if op == "claim":
+		return int(parsed["dough"]) == BASE_DOUGH + 10 and (missions.get("daily_rewarded", []) as Array).has("daily_merges")
+	return int(parsed["dough"]) == BASE_DOUGH + 20 and String(missions.get("day_key", "")) == WED
+
+
+func _family() -> Dictionary:
+	var out: Dictionary = {}
+	for pair: Array in [["canonical", PATH], ["tmp", TMP], ["bak", BAK]]:
+		out[pair[0]] = FileAccess.get_file_as_bytes(pair[1]) if FileAccess.file_exists(pair[1]) else null
+	return out
+
+
+func _family_shape(family: Dictionary) -> String:
+	var parts: PackedStringArray = []
+	for key: String in ["canonical", "tmp", "bak"]:
+		var bytes: Variant = family[key]
+		var state: String = "yok"
+		if bytes != null:
+			state = "geçerli" if JSON.parse_string((bytes as PackedByteArray).get_string_from_utf8()) is Dictionary else "bozuk"
+		parts.append("%s %s" % [key, state])
+	return ", ".join(parts)
+
+
+func _files_ok(spec: Dictionary, before: Dictionary, after: Dictionary, op: String) -> bool:
+	for key: String in ["canonical", "tmp", "bak"]:
+		var now: Variant = after[key]
+		match String(spec[key]):
+			"same":
+				if now == null or before[key] == null or now != before[key]:
+					return false
+			"absent":
+				if now != null:
+					return false
+			"new":
+				if now == null or not _carries(now, op):
+					return false
+	return true
+
+
+func _source_of(path: String) -> int:
+	match path:
+		PATH:
+			return SaveFile.Source.CANONICAL
+		TMP:
+			return SaveFile.Source.TEMP
+		BAK:
+			return SaveFile.Source.BACKUP
+	return SaveFile.Source.NONE
+
+
+func _result_name(op: String, out: Dictionary) -> String:
+	if op == "claim":
+		return String(Missions.Claim.keys()[int(out["result"])])
+	return "teslim %s" % str(out["auto_claimed"])
+
+
+func _feedback_counters() -> Dictionary:
+	return {"reward": _sound_requests(&"daily_reward"), "invalid": _sound_requests(&"ui_invalid"),
+		"haptics": Haptics.request_count}
+
+
+func _sound_requests(id: StringName) -> int:
+	return int(AudioManager.play_count.get(id, 0)) + int(AudioManager.drop_count.get(id, 0))
+
+
+func _feedback_label(expect: int) -> String:
+	match expect:
+		SaveFile.Outcome.FAILED:
+			return "kart ÖDÜLÜ AL kalır + 'KAYDEDİLEMEDİ' + ui_invalid; '+N' / pop / ödül sesi / titreşim YOK"
+		SaveFile.Outcome.PENDING:
+			return "kart ALINDI (kurtarılacak kopyayla aynı) + 'KAYIT BEKLİYOR'; '+N' / pop / ödül sesi / titreşim YOK"
+	return "başarı aynen: kart ALINDI + pop + '+10' + ödül sesi + titreşim, not normal"
+
+
+func _feedback_ok(overlay: MissionsOverlay, expect: int, before: Dictionary) -> bool:
+	var card: MissionCard = overlay.card(&"daily_merges")
+	var now: Dictionary = _feedback_counters()
+	var popping: bool = _popping(card.reward_slot())
+	match expect:
+		SaveFile.Outcome.FAILED:
+			return (card.status() == Missions.STATUS_CLAIMABLE and card.cta_text() == "ÖDÜLÜ AL"
+				and overlay.note_text() == MissionsOverlay.SAVE_FAILED_TEXT and overlay.gain_feedback() == null and not popping
+				and now["reward"] == before["reward"] and now["invalid"] == int(before["invalid"]) + 1
+				and now["haptics"] == before["haptics"])
+		SaveFile.Outcome.PENDING:
+			return (card.status() == Missions.STATUS_CLAIMED and card.cta_text() == "ALINDI"
+				and overlay.note_text() == MissionsOverlay.SAVE_PENDING_TEXT and overlay.gain_feedback() == null and not popping
+				and now["reward"] == before["reward"] and now["invalid"] == before["invalid"]
+				and now["haptics"] == before["haptics"])
+	return (card.status() == Missions.STATUS_CLAIMED and card.cta_text() == "ALINDI"
+		and overlay.note_text() == MissionsOverlay.NOTE_TEXT and overlay.gain_feedback() != null
+		and _label_texts(overlay.gain_feedback()).has("+10") and popping
+		and now["reward"] == int(before["reward"]) + 1 and now["haptics"] == int(before["haptics"]) + 1)
+
+
+func _popping(control: Control) -> bool:
+	if control == null or not control.has_meta(MOTION_META):
+		return false
+	var tween: Variant = control.get_meta(MOTION_META)
+	return tween is Tween and (tween as Tween).is_valid() and (tween as Tween).is_running()
+
+
+func _stop_motion(control: Control) -> void:
+	if control != null and control.has_meta(MOTION_META):
+		var tween: Variant = control.get_meta(MOTION_META)
+		if tween is Tween and (tween as Tween).is_valid():
+			(tween as Tween).kill()
+
+
+# --- 8) Kayıt güvenliği — gerçek Main + gerçek parmak (TASK/061) ------------------------------------------------
+
+func _main_save_safety() -> void:
+	print("-- kayıt güvenliği (gerçek Main): parmakla ÖDÜLÜ AL + dönem noktası, Ana Sayfa hapı / rozeti")
+	_clean()
+	DailyRewards.clock_override = TUE
+	_write(PATH, _fixture({"missions": _v2(TUE, {"daily_merges": 15, "daily_rounds": 1}, [], {}, [])}))
+	SaveManager.load_game()
+	await _boot()
+	var home: CanvasLayer = _main._screens[0]
+	var overlay: MissionsOverlay = _main._missions
+	var haptics_was: bool = Haptics.is_enabled()
+	Haptics.set_enabled(true)
+	Haptics.set_sink(func(_ms: int, _amp: float) -> void: pass, true)
+	await _show_home()
+	await _wait_settled()
+	await _open()
+	# a) FAILED: parmakla ÖDÜLÜ AL, .tmp açılamıyor.
+	var cta: Button = overlay.card(&"daily_merges").claim_button()
+	var counters: Dictionary = _feedback_counters()
+	_stop_motion(home.dough_pill())
+	SaveFile.fault = SaveFile.Fault.TEMP_OPEN
+	await _finger_tap(_screen_center(cta))
+	await _settle(2)
+	var fault_left: bool = SaveFile.fault != SaveFile.Fault.NONE
+	SaveFile.fault = SaveFile.Fault.NONE
+	_c("parmak + kaydedilemedi: yazma denendi; Hamur 500 (bellek + disk), kart ÖDÜLÜ AL, not 'KAYDEDİLEMEDİ', '+N' yok, ödül sesi / titreşim yok",
+		not fault_left and SaveManager.dough() == BASE_DOUGH and int(_disk().get("dough", -1)) == BASE_DOUGH
+		and overlay.card(&"daily_merges").status() == Missions.STATUS_CLAIMABLE
+		and overlay.note_text() == MissionsOverlay.SAVE_FAILED_TEXT and overlay.gain_feedback() == null
+		and _feedback_counters()["reward"] == counters["reward"] and _feedback_counters()["haptics"] == counters["haptics"]
+		and int(_feedback_counters()["invalid"]) == int(counters["invalid"]) + 1)
+	_c("  … Ana Sayfa: hap 500 (pop YOK), GÖREVLER dikkat sayısı '1' kalır; pencere açık",
+		_pill_text(home) == str(BASE_DOUGH) and not _popping(home.dough_pill()) and home.missions_attention().visible
+		and home.missions_attention().text() == "1" and overlay.visible)
+	await _settle(3)
+	counters = _feedback_counters()
+	await _finger_tap(_screen_center(cta))
+	await _settle(2)
+	_c("  … aynı CTA'ya yeniden dokunuş (yazma düzeldi): +10 TAM BİR KEZ (510 bellek + disk), ALINDI, '+10' + ödül sesi + titreşim, not normal",
+		SaveManager.dough() == BASE_DOUGH + 10 and int(_disk().get("dough", -1)) == BASE_DOUGH + 10
+		and overlay.card(&"daily_merges").status() == Missions.STATUS_CLAIMED and overlay.gain_feedback() != null
+		and _label_texts(overlay.gain_feedback()).has("+10") and overlay.note_text() == MissionsOverlay.NOTE_TEXT
+		and int(_feedback_counters()["reward"]) == int(counters["reward"]) + 1
+		and int(_feedback_counters()["haptics"]) == int(counters["haptics"]) + 1)
+	_c("  … Ana Sayfa: hap 510 + pop, dikkat sayısı gizli", _pill_text(home) == str(BASE_DOUGH + 10)
+		and _popping(home.dough_pill()) and not home.missions_attention().visible)
+	# b) PENDING: parmakla ÖDÜLÜ AL, taahhüt + geri alma başarısız (kanonik ad boş, doğrulanmış .tmp). Önceki başarılı
+	# talebin "+10" yükselişi (başka kartın doğru geri bildirimi) önce kendiliğinden biter.
+	await get_tree().create_timer(MissionsOverlay.GAIN_TIME + 0.25).timeout
+	await _settle(2)
+	_c("  … önceki başarının '+10' yükselişi kendini sildi (sonraki durumun ölçümü temiz)", overlay.gain_feedback() == null)
+	SaveManager.data["missions"] = Missions.sanitize(_v2(TUE, {"daily_merges": 15, "daily_rounds": 2}, ["daily_merges"],
+		{}, []))
+	SaveManager.save_game()
+	overlay.refresh()
+	await _settle(3)
+	var rounds_cta: Button = overlay.card(&"daily_rounds").claim_button()
+	counters = _feedback_counters()
+	_stop_motion(home.dough_pill())
+	SaveFile.fault = SaveFile.Fault.COMMIT_AND_ROLLBACK
+	await _finger_tap(_screen_center(rounds_cta))
+	await _settle(2)
+	SaveFile.fault = SaveFile.Fault.NONE
+	_c("parmak + kayıt bekliyor: bellek 520 + ALINDI (kurtarılacak .tmp ile aynı), kanonik ad boş; not 'KAYIT BEKLİYOR', '+N' / ödül sesi / titreşim yok",
+		SaveManager.dough() == BASE_DOUGH + 20 and overlay.card(&"daily_rounds").status() == Missions.STATUS_CLAIMED
+		and not _exists(PATH) and _carries_dough(_bytes(TMP), BASE_DOUGH + 20)
+		and overlay.note_text() == MissionsOverlay.SAVE_PENDING_TEXT and overlay.gain_feedback() == null
+		and _feedback_counters()["reward"] == counters["reward"] and _feedback_counters()["haptics"] == counters["haptics"])
+	_c("  … Ana Sayfa: hap 520 (pop YOK)", _pill_text(home) == str(BASE_DOUGH + 20) and not _popping(home.dough_pill()))
+	await _settle(3)
+	await _finger_tap(_screen_center(rounds_cta))
+	await _settle(2)
+	_c("  … ALINDI'ya yeniden dokunuş: ikinci ödül YOK (520), dosyalar aynı (yazma yok)", SaveManager.dough() == BASE_DOUGH + 20
+		and not _exists(PATH) and _carries_dough(_bytes(TMP), BASE_DOUGH + 20))
+	await _teardown_main()
+	SaveManager.load_game()
+	var recovered: int = SaveManager.load_source()
+	await _boot()
+	home = _main._screens[0]
+	overlay = _main._missions
+	await _show_home()
+	await _wait_settled()
+	await _open()
+	_c("  … yeniden açılış: .tmp kurtarıldı (TEMP), Ana Sayfa 520, kart ALINDI, not normal — ödül TAM BİR KEZ",
+		recovered == SaveFile.Source.TEMP and SaveManager.dough() == BASE_DOUGH + 20 and _pill_text(home) == str(BASE_DOUGH + 20)
+		and overlay.card(&"daily_rounds").status() == Missions.STATUS_CLAIMED and overlay.note_text() == MissionsOverlay.NOTE_TEXT
+		and int(_disk().get("dough", -1)) == BASE_DOUGH + 20)
+	overlay.close_missions(false)
+	await _wait_settled()
+	# c) Dönem noktası: FAILED (teslim yok, hap aynı) → sonraki nokta TAM BİR KEZ; PENDING (hap pop'suz).
+	SaveManager.data["missions"] = Missions.sanitize(_v2(TUE, {"daily_clear": 1}, [], {}, []))
+	SaveManager.save_game()
+	DailyRewards.clock_override = WED
+	_stop_motion(home.dough_pill())
+	SaveFile.fault = SaveFile.Fault.BACKUP_MOVE
+	_main._settle_missions_period()
+	SaveFile.fault = SaveFile.Fault.NONE
+	await _settle(2)
+	_c("dönem noktası + kaydedilemedi: teslim YOK (520 bellek + disk), hap 520 pop'suz, bellekte TUE bloğu",
+		SaveManager.dough() == BASE_DOUGH + 20 and int(_disk().get("dough", -1)) == BASE_DOUGH + 20
+		and _pill_text(home) == str(BASE_DOUGH + 20) and not _popping(home.dough_pill())
+		and String(SaveManager.data["missions"]["day_key"]) == TUE)
+	_main._settle_missions_period()
+	await _settle(2)
+	_c("  … sonraki dönem noktası: +10 TAM BİR KEZ (530 bellek + disk), hap pop", SaveManager.dough() == BASE_DOUGH + 30
+		and int(_disk().get("dough", -1)) == BASE_DOUGH + 30 and _pill_text(home) == str(BASE_DOUGH + 30)
+		and _popping(home.dough_pill()))
+	SaveManager.data["missions"] = Missions.sanitize(_v2(WED, {"daily_clear": 1}, [], {}, []))
+	SaveManager.save_game()
+	DailyRewards.clock_override = THU
+	_stop_motion(home.dough_pill())
+	SaveFile.fault = SaveFile.Fault.CRASH_AFTER_BACKUP
+	_main._settle_missions_period()
+	SaveFile.fault = SaveFile.Fault.NONE
+	await _settle(2)
+	_c("dönem noktası + kayıt bekliyor: teslim bellekte (540) = kurtarılacak .tmp; hap 540 pop'suz", SaveManager.dough()
+		== BASE_DOUGH + 40 and not _exists(PATH) and _carries_dough(_bytes(TMP), BASE_DOUGH + 40)
+		and _pill_text(home) == str(BASE_DOUGH + 40) and not _popping(home.dough_pill()))
+	_main._settle_missions_period()
+	await _teardown_main()
+	SaveManager.load_game()
+	_c("  … ikinci dönem noktası no-op; yeniden açılış .tmp'den 540 + THU (TAM BİR KEZ)", SaveManager.load_source()
+		== SaveFile.Source.TEMP and SaveManager.dough() == BASE_DOUGH + 40 and SaveManager.missions_state()["day_key"] == THU
+		and (SaveManager.settle_missions()["auto_claimed"] as Array).is_empty())
+	Haptics.set_sink(Callable(), false)
+	Haptics.set_enabled(haptics_was)
+	DailyRewards.clock_override = ""
+	_sections_done += 1
+
+
+func _carries_dough(bytes: PackedByteArray, dough: int) -> bool:
+	var parsed: Variant = JSON.parse_string(bytes.get_string_from_utf8())
+	return parsed is Dictionary and int((parsed as Dictionary).get("dough", -1)) == dough
 
 
 # --- 6) Ekonomi + kaynak sözleşmesi ---------------------------------------------------------------------

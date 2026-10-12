@@ -178,6 +178,49 @@ static func read_save(path: String) -> Dictionary:
 	return {"data": data, "source": source, "canonical_exists": existed}
 
 
+## `write_checked` sonucu (TASK/061 kayıt güvenliği): yazılmak istenen yük KALICI mı? `write_save`'in false'u her
+## zaman "yük diskte yok" demek DEĞİL — çift hatada (kanonik ad boş kaldı) doğrulanmış yeni kayıt `.tmp`'de bekler.
+##   SAVED    kanonik dosya bayt bayt bu yük.
+##   PENDING  yazma false döndü ama bir sonraki okumanın (`read_save`) / yazmanın (`write_save` adım 2) SEÇECEĞİ kopya
+##            (`.tmp`, ya da kanonik ad / `.tmp` izi varken `.bak`) bayt bayt bu yük — kurtarılır, kaybolmaz; yalnız
+##            henüz kanonik adda değil.
+##   FAILED   bir sonraki okuma bu yükü GETİRMEZ (önceki kayıt kazanır): yük diskte yok sayılmalı.
+enum Outcome { SAVED, PENDING, FAILED }
+
+
+## `write_save` (algoritma AYNEN) + sonucun kalıcılık sınıfı (Outcome). Yazma false dönünce disk YAN ETKİSİZ okunur.
+static func write_checked(path: String, text: String) -> int:
+	if write_save(path, text):
+		return Outcome.SAVED
+	return recovery_outcome(path, text)
+
+
+## Yan etkisiz: bir sonraki `read_save`'in seçeceği kopya bayt bayt `text` mi (Outcome)? Dosya TAŞIMAZ / SİLMEZ /
+## KOPYALAMAZ — `read_save` bunları yapar (`.tmp` terfisi, fazla `.tmp` / `.bak` silme, `.bak` kopyası); doğrulama onu
+## çağıramaz.
+static func recovery_outcome(path: String, text: String) -> int:
+	var chosen: String = recovery_source(path)
+	if chosen.is_empty() or FileAccess.get_file_as_bytes(chosen) != text.to_utf8_buffer():
+		return Outcome.FAILED
+	return Outcome.SAVED if chosen == path else Outcome.PENDING
+
+
+## Yan etkisiz: bir sonraki `read_save`'in seçeceği dosyanın yolu ("" = kurtarılacak kayıt yok). Seçim kuralı ve sırası
+## `read_save` ile AYNI: geçerli kanonik → geçerli `.tmp` → (kanonik ad ya da `.tmp` izi varken) geçerli `.bak`.
+static func recovery_source(path: String) -> String:
+	var temp: String = path + TEMP_SUFFIX
+	var backup: String = path + BACKUP_SUFFIX
+	var existed: bool = FileAccess.file_exists(path)
+	var had_temp: bool = FileAccess.file_exists(temp)
+	if _read_dict(path) != null:
+		return path
+	if _read_dict(temp) != null:
+		return temp
+	if (existed or had_temp) and _read_dict(backup) != null:
+		return backup
+	return ""
+
+
 ## Bir önceki kayıt kopyasını (`.bak`) atar — yalnız kanonik geçerliyken (kurtarılacak tek
 ## kopya asla atılmaz). SaveManager'ın gizlilik temizliği: yaş geçiş günü (doğum gününe
 ## eşdeğer) silinince eski kuşak da gider.
