@@ -157,17 +157,18 @@ const DEFAULT_DATA: Dictionary = {
 		"popup_seen_day": "",
 		"last_seen_day_key": "",
 	},
-	## Günlük / haftalık görevler (TASK/046 — GAME_DESIGN §5.10): sürümlü TEK durum, kural /
+	## Günlük / haftalık görevler (TASK/046 — GAME_DESIGN §5.10; TASK/061 elle talep): sürümlü TEK durum, kural /
 	## doğrulama Missions'ta. Yeni kayıtta dönem YOK (gün boş) — ilk okuma kabul edilen günün
 	## taze dönemini görür, ilk round kaydı yazar. Eski kayıt: load_game bellekte taze dönem
 	## kurar (geriye dönük ilerleme / Hamur YOK). UI durumu (açık pencere, "görüldü") SAKLANMAZ.
-	##   version              şema (1)
+	##   version              şema (2 — TASK/061; sürüm 1 kaydı yüklemede bellekte göç eder, bkz. _migrate_missions)
 	##   day_key              görev günü (YYYY-MM-DD) — GÜNLÜK ÖDÜLLER'in kabul edilen günü
 	##   week_start_day_key   o günün haftasının PAZARTESİ tarihi
-	##   daily_progress / weekly_progress   görev id → 0..hedef
-	##   daily_rewarded / weekly_rewarded   ödülü verilmiş görev id'leri (katalog sırası)
+	##   daily_progress / weekly_progress   görev id → 0..hedef (hedef = tamamlandı)
+	##   daily_rewarded / weekly_rewarded   ödülü VERİLMİŞ görev id'leri (ÖDÜLÜ AL ya da dönem sonu teslimi; katalog
+	##                                      sırası). Tamamlanmış + listede olmayan = ALINABİLİR.
 	"missions": {
-		"version": 1,
+		"version": 2,
 		"day_key": "",
 		"week_start_day_key": "",
 		"daily_progress": {},
@@ -342,6 +343,9 @@ func _migrate_player_meta(parsed: Dictionary) -> void:
 ## doğrulanır (bilinmeyen id / tekrar / aralık dışı değer temizlenir); dönemi okuma ve round
 ## kaydı ilerletir. YALNIZ bellekte (diğer göçlerle aynı ilke: sonraki doğal kayıt
 ## kalıcılaştırır; yazılmadan kapanırsa bir sonraki açılışta aynı sonuç).
+## TASK/061 sürüm 1 → 2 (Missions.sanitize): sürüm 1'de ödülü verilmiş görev ALINDI kalır (ikinci kez ödül yok),
+## kısmi ilerleme AKTİF olarak aynen taşınır; sürüm 1 kaydı alınabilir görev ÜRETEMEZ. Dönem geçişi (kapanan dönemin
+## ödül teslimi) burada YAPILMAZ — Main'in açık dönem noktası (`settle_missions`) ya da ilk görev mutasyonu yapar.
 func _migrate_missions(parsed: Dictionary) -> void:
 	var state: Dictionary = Missions.sanitize(parsed.get("missions"))
 	if state.is_empty():
@@ -636,39 +640,92 @@ func record_round_finished(created_tier: int, xp_award: int = 0) -> void:
 		player_meta_changed.emit()
 
 
-# --- Günlük / haftalık görevler (TASK/046 — GAME_DESIGN §5.10) ---
+# --- Günlük / haftalık görevler (TASK/046 — GAME_DESIGN §5.10; TASK/061 elle talep) ---
 #
-# Kural / doğrulama / dönem SAF Missions'ta; burada yalnız doğrulanmış okuma ve round başına
-# TEK mutasyon. Görev XP, başarım, unvan, sandık, güç ya da reklam ÜRETMEZ; tek ekonomi etkisi
-# otomatik görev Hamur'u.
+# Kural / doğrulama / dönem / talep SAF Missions'ta; burada yalnız doğrulanmış okuma ve üç mutasyon: round kaydı
+# (`record_mission_round` — ilerleme), ÖDÜLÜ AL (`claim_mission_reward`) ve dönem geçişi (`settle_missions`). Üçü de
+# önce dönem geçişini uygular (Missions.rollover): kapanan dönemin tamamlanmış ama alınmamış ödülü hiçbir yoldan
+# KAYBOLMAZ ve ikinci kez verilmez — teslim, yeni dönem ve Hamur aynı işlemde, aynı yazmada. Görev XP, başarım, unvan,
+# sandık, güç ya da reklam ÜRETMEZ; tek ekonomi etkisi katalogdaki görev Hamur'u (dönem başına görev başına bir kez).
 
 ## Görevlerin kabul edilen gündeki durumu (Missions.for_day): dönem değişimi okumada görünür,
-## kayıttaki dönemin gerisine düşmez. YAZMAZ.
+## kayıttaki dönemin gerisine düşmez. YAZMAZ (kapanan dönemin ödülünü teslim de etmez — `settle_missions`).
 func missions_state() -> Dictionary:
 	return Missions.for_day(data.get("missions"), Missions.accepted_day())
 
 
 ## Round KESİN bitti — yalnız Main._on_round_finished, round başına TAM bir kez (kesinleştirme
 ## korumalı): görev ilerlemesi (bu round'un gerçek merge'leri · tur +1 · sabit level başarıyla
-## bittiyse +1) ve hedefine İLK kez ulaşan görevlerin OTOMATİK Hamur ödülü — ilerleme, ödül
-## işareti ve Hamur AYNI mutasyonda. `save = false`: yazma aynı round'un `record_round_finished`
-## yazmasına katlanır (XP / yıldız / level ile TEK yazma). Döner: {completed: Array[StringName]
-## (katalog sırası), dough: int}. Kabul edilen gün yoksa (bozuk saat) yeni dönem açılmaz: kayıtlı
-## dönem varsa round ona işlenir (ödül işaretleri geçerli — ikinci ödül yok), yoksa hiçbir şey
-## değişmez.
+## bittiyse +1). TASK/061: hedefe ulaşmak Hamur VERMEZ — görev ALINABİLİR olur (ödül ÖDÜLÜ AL'da). Round dönem
+## geçişinden sonra bittiyse kapanan dönemin alınmamış ödülleri ÖNCE teslim edilir (Missions.rollover) ve bu round'un
+## gerçekleri yeni döneme işlenir. `save = false`: yazma aynı round'un `record_round_finished` yazmasına katlanır (XP /
+## yıldız / level / dönem teslimi ile TEK yazma). Döner: {completed: Array[StringName] — bu round'da hedefe ulaşan
+## görevler (katalog sırası), dough: int — bu çağrının verdiği Hamur (yalnız kapanan dönemin teslimi; çoğu round 0),
+## auto_claimed: Array[StringName] — teslim edilen kapanan dönem görevleri}. Kabul edilen gün yoksa (bozuk saat) yeni
+## dönem açılmaz: kayıtlı dönem varsa round ona işlenir, yoksa hiçbir şey değişmez.
 func record_mission_round(merges: int, fixed_level_cleared: bool, save: bool = true) -> Dictionary:
-	var state: Dictionary = missions_state()
+	var rolled: Dictionary = Missions.rollover(data.get("missions"), Missions.accepted_day())
+	var state: Dictionary = rolled["state"]
 	var none: Array[StringName] = []
 	if state.is_empty():
-		return {"completed": none, "dough": 0}
+		return {"completed": none, "dough": 0, "auto_claimed": none}
 	var result: Dictionary = Missions.advance(state, merges, 1, 1 if fixed_level_cleared else 0)
 	data["missions"] = result["state"]
-	var reward: int = int(result["dough"])
-	if reward > 0:
-		data["dough"] = dough() + reward
+	var delivered: int = int(rolled["dough"])
+	if delivered > 0:
+		data["dough"] = dough() + delivered
 	if save:
 		save_game()
-	return {"completed": result["completed"], "dough": reward}
+	return {"completed": result["completed"], "dough": delivered, "auto_claimed": rolled["auto_claimed"]}
+
+
+## ÖDÜLÜ AL (TASK/061) — görev ödülünü veren TEK yetkili işlem (UI yalnız `id` + gösterdiği dönemin anahtarını verir;
+## miktar katalogdan). Önce dönem geçişi: pencere gece yarısını açık geçtiyse kapanan dönemin alınmamış ödülleri teslim
+## edilir — dokunulan görev de onlardan biriyse sonuç AUTO_CLAIMED (oyuncu ödülünü TAM BİR KEZ aldı), değilse
+## WRONG_PERIOD. Sonra doğrulama (Missions.claim): bilinmeyen / yanlış dönem / tamamlanmamış / zaten alınmış → hiçbir alan
+## değişmez. Geçerli talepte ödül işareti + Hamur (ve varsa dönem teslimi) AYNI `save_game()` yazmasında; ilerleme
+## değişmez. Ard arda / yinelenen çağrı ikinci ödül VERMEZ (ALREADY_CLAIMED). Yazma başarısızsa (SaveFile false) bellek
+## güncel kalır, önceki kayıt diskte aynen durur — sonraki kayıt yeniden dener; uygulama o arada kapanırsa yeniden
+## açılışta görev yine alınabilir ve ödül diskte hiç verilmemiştir (çift ödül / kayıp yok).
+## Döner: {result: Missions.Claim, dough: int — bu çağrının verdiği toplam Hamur, claimed_dough: int — dokunulan görevin
+## ödülü (CLAIMED / AUTO_CLAIMED), auto_claimed: Array[StringName], saved: bool}.
+func claim_mission_reward(id: StringName, period_key: String) -> Dictionary:
+	var rolled: Dictionary = Missions.rollover(data.get("missions"), Missions.accepted_day())
+	var auto: Array[StringName] = rolled["auto_claimed"]
+	var claim: Dictionary = Missions.claim(rolled["state"], id, period_key)
+	var result: int = int(claim["result"])
+	var claimed_dough: int = int(claim["dough"])
+	if result != Missions.Claim.CLAIMED and auto.has(id) \
+			and String((rolled["closed"] as Dictionary).get(Missions.find(id).get("period", &""), "")) == period_key:
+		result = Missions.Claim.AUTO_CLAIMED
+		claimed_dough = Missions.reward_of(id)
+	var granted: int = int(rolled["dough"]) + (claimed_dough if result == Missions.Claim.CLAIMED else 0)
+	var out: Dictionary = {"result": result, "dough": granted, "claimed_dough": claimed_dough, "auto_claimed": auto,
+		"saved": false}
+	if granted <= 0:
+		if result != Missions.Claim.CLAIMED:
+			out["claimed_dough"] = 0
+		return out
+	data["missions"] = claim["state"]
+	data["dough"] = dough() + granted
+	out["saved"] = save_game()
+	return out
+
+
+## Dönem geçişi (TASK/061) — Main'in açık noktalarında (açılış, öne dönüş, kabuk sekmesi, GÖREVLER açılışı): kapanan
+## dönem(ler)in tamamlanmış ama alınmamış ödülleri TAM BİR KEZ teslim edilir; yeni dönem + teslim + Hamur TEK
+## `save_game()` yazmasında. Teslim edilecek bir şey yoksa HİÇBİR ŞEY yazılmaz ve bellek değişmez (dönem değişimi
+## okumada görünür — normal günde açmak / kapatmak / rozet okumak kayda yazmaz). İdempotent: ikinci çağrı (aynı gün)
+## no-op; yazma ile kapanış arasında süreç ölürse diskte ya eski dönem (yeniden açılışta aynı teslim, tek kez) ya yeni
+## dönem (teslim edilmiş) kalır — yarım teslim yok (dönem + Hamur aynı JSON'da). Döner: {auto_claimed, dough, saved}.
+func settle_missions() -> Dictionary:
+	var rolled: Dictionary = Missions.rollover(data.get("missions"), Missions.accepted_day())
+	var auto: Array[StringName] = rolled["auto_claimed"]
+	if auto.is_empty():
+		return {"auto_claimed": auto, "dough": 0, "saved": false}
+	data["missions"] = rolled["state"]
+	data["dough"] = dough() + int(rolled["dough"])
+	return {"auto_claimed": auto, "dough": int(rolled["dough"]), "saved": save_game()}
 
 
 # --- Günlük meydan okuma (TASK/047 — GAME_DESIGN §5.11) ---

@@ -1,9 +1,9 @@
 class_name Missions
 extends RefCounted
-## Günlük / Haftalık Görevler V1 (TASK/046 — owner kararı, KİLİTLİ; GAME_DESIGN §5.10) —
-## katalog + SAF kural katmanı (gün / hafta anahtarı, doğrulama, dönem, ilerleme). Kayda
-## YAZMAZ: kalıcılık ve TEK mutasyon SaveManager'da (`record_mission_round`, round
-## kesinleşmesinde); okuma kısayolları SaveManager'ın doğrulanmış durumunu kullanır.
+## Günlük / Haftalık Görevler (TASK/046 V1 katalog + TASK/061 V3 elle talep — owner kararı, KİLİTLİ; GAME_DESIGN §5.10)
+## — katalog + SAF kural katmanı (gün / hafta anahtarı, doğrulama, dönem, ilerleme, talep, dönem sonu teslimi). Kayda
+## YAZMAZ: kalıcılık ve mutasyonlar SaveManager'da (`record_mission_round` round kesinleşmesinde, `claim_mission_reward`
+## ÖDÜLÜ AL'da, `settle_missions` dönem geçişinde); okuma kısayolları SaveManager'ın doğrulanmış durumunu kullanır.
 ##
 ##   Katalog  6 görev, kalıcı iç id (kayıtta durur — değiştirilmez, yeniden kullanılmaz):
 ##            GÜNLÜK    daily_merges 15 · daily_rounds 2 · daily_clear 1       → +10 Hamur
@@ -14,9 +14,11 @@ extends RefCounted
 ##            tur = +1 (kazanma / kayıp / sonsuz / tutorial'ın gerçek Level 1 round'u);
 ##            level = sabit level BAŞARIYLA bitti (tekrar dahil; kayıp ve sonsuz değil).
 ##            Terk edilen / yeniden başlatılan / yarım kalan round, Büyütücü hiç sayılmaz.
-##   Ödül     OTOMATİK — talep butonu yok. Görev hedefine dönemi içinde İLK kez ulaşınca
-##            ödül işareti + Hamur, round kaydının TEK yazmasında. Bir görev bir dönemde en
-##            fazla bir kez ödül verir. XP / sandık / parça / güç / başarım / unvan / reklam YOK.
+##   Durum    (TASK/061) AKTİF → TAMAMLANDI (ALINABİLİR) → ÖDÜLÜ AL → ALINDI. Hedefe ulaşmak Hamur VERMEZ; tamamlanma
+##            ilerlemeden TÜRER (ilerleme == hedef). Ödül yalnız oyuncunun geçerli ÖDÜLÜ AL'ında (`claim`) ya da dönem
+##            kapanırken (`rollover`: tamamlanmış + alınmamış ödül TAM BİR KEZ otomatik teslim) verilir; ödül işareti
+##            (`*_rewarded` = ödülü VERİLMİŞ id'ler) bir görevin bir dönemde en fazla bir kez ödül vermesini sağlar.
+##            XP / sandık / parça / güç / başarım / unvan / reklam YOK.
 ##   Gün      GÜNLÜK ÖDÜLLER'in kabul edilen günü (`DailyRewards.day_key()`: saat geri
 ##            alınırsa görülen en yeni gün) — ayrı bir saat gerçeği YOK. Dönem ayrıca
 ##            kayıttaki dönemin gerisine hiç düşmez: geri alınan saat eski bir dönemi geri
@@ -25,14 +27,35 @@ extends RefCounted
 ##   Hafta    PAZARTESİ başlar; anahtar o haftanın pazartesi tarihi (`week_start`).
 ##   Seri     YOK — görev serisi / haftalık seri / çarpan yok (giriş serisi DailyReward'da aynen).
 
-## Kayıttaki görev durumunun şema sürümü. İleride artarsa eski sürümün ödül işaretlerini
-## TAŞIYAN bir göç şart: bilinmeyen sürüm `sanitize`'da taze dönem sayılır (işaretler düşer).
-const VERSION: int = 1
+## Kayıttaki görev durumunun şema sürümü (TASK/061: 2). Anahtarlar sürüm 1 ile AYNI; anlam farkı:
+##   sürüm 1 (TASK/046, otomatik ödül)  `*_rewarded` = ödülü verilmiş = tamamlanmış görevler; ödülü verilmemiş görev
+##                                      hedefe ULAŞAMAZ (ilerleme ≤ hedef − 1 okunur).
+##   sürüm 2 (TASK/061, elle talep)     `*_rewarded` aynı anlam (ödül VERİLDİ: ÖDÜLÜ AL ya da dönem sonu teslimi);
+##                                      ödülü verilmemiş görev hedefte olabilir = ALINABİLİR.
+## Sürüm 1 kaydı sürüm 1 kurallarıyla okunur ve sürüm 2 olarak çıkar (`sanitize`): eski kayıtta kazanılmış bir ödül
+## ALINDI kalır, eski kısmi ilerleme aynen AKTİF kalır — hiçbir sürüm 1 kaydı alınabilir görev üretemez.
+const VERSION: int = 2
+const LEGACY_VERSION: int = 1
 const PERIOD_DAILY: StringName = &"daily"
 const PERIOD_WEEKLY: StringName = &"weekly"
 const METRIC_MERGES: StringName = &"merges"
 const METRIC_ROUNDS: StringName = &"rounds"
 const METRIC_CLEARS: StringName = &"clears"
+
+## Görev durumu (TASK/061; UI yalnız gösterir, saklanmaz).
+const STATUS_ACTIVE: StringName = &"active"
+const STATUS_CLAIMABLE: StringName = &"claimable"
+const STATUS_CLAIMED: StringName = &"claimed"
+
+## ÖDÜLÜ AL sonucu (`claim`; SaveManager.claim_mission_reward). Yalnız CLAIMED ve AUTO_CLAIMED Hamur verir.
+##   CLAIMED         bu talep ödülü verdi (tam katalog ödülü, tek işlem)
+##   AUTO_CLAIMED    talep anında dönem kapanmıştı: o görevin ödülü dönem sonu teslimiyle TAM BİR KEZ verildi
+##   UNKNOWN         katalogda olmayan id
+##   WRONG_PERIOD    gösterilen dönem artık geçerli dönem değil (ve o görev için teslim edilecek ödül yoktu)
+##   NOT_COMPLETE    görev hedefe ulaşmadı
+##   ALREADY_CLAIMED görev bu dönemde zaten ödül verdi
+##   NO_PERIOD       kullanılabilir dönem yok (kayıt yok + bozuk saat)
+enum Claim { CLAIMED, AUTO_CLAIMED, UNKNOWN, WRONG_PERIOD, NOT_COMPLETE, ALREADY_CLAIMED, NO_PERIOD }
 
 ## Katalog sırası = gösterim sırası = ödül işareti dizilerinin kanonik sırası.
 const CATALOG: Array[Dictionary] = [
@@ -203,58 +226,82 @@ static func fresh_state(day_key: String) -> Dictionary:
 	return state
 
 
-## Kayıttaki ham görev durumunu güvenli BİÇİME indirir — SAF, deterministik, sınırlı; dönem
-## DEĞİŞTİRMEZ (bkz. `for_day`). Boş sözlük = kullanılabilir dönem yok (anahtar yok / sözlük
-## değil / bilinmeyen sürüm / geçersiz gün): okuyan kabul edilen günün taze dönemini kullanır.
-##   ilerleme       yalnız katalog görevleri; sayı değil / NaN → 0; negatif → 0; ödüllü görev
-##                  = hedef, ödülsüz görev ≤ hedef − 1 (hedef, ödül işaretiyle birlikte gelir)
-##   ödül işareti   yalnız o dönemin bilinen id'leri, tekrarsız, katalog sırası
-##   hafta          kayıttaki hafta günün pazartesisi değilse (kendi kodumuz üretmez — bozuk)
-##                  haftalık kısım taze kalır
+## Kayıttaki ham görev durumunu güvenli BİÇİME indirir — SAF, deterministik, sınırlı; dönem DEĞİŞTİRMEZ (bkz.
+## `rollover`). Çıktı her zaman sürüm 2. Boş sözlük = kullanılabilir dönem yok (anahtar yok / sözlük değil / bilinmeyen
+## sürüm / geçersiz gün): okuyan kabul edilen günün taze dönemini kullanır.
+##   ödül işareti   yalnız o dönemin bilinen id'leri, tekrarsız, katalog sırası; ödülü verilmiş görev = hedef
+##   ilerleme       yalnız katalog görevleri;
+##                  sürüm 1 (TASK/046)  ödülü verilmemiş görev ≤ hedef − 1 (sürüm 1'de hedefe ulaşan görev ödülünü
+##                                      zaten ALMIŞTI — eski kayıt alınabilir görev ÜRETEMEZ); sayı değil / NaN → 0
+##                  sürüm 2 (TASK/061)  ödülü verilmemiş görev 0..hedef; aralık DIŞI (negatif / hedeften büyük / NaN /
+##                                      ±sonsuz / sayı değil) → 0 — bozuk değer asla alınabilir görev olmaz (fail-closed)
+##   hafta          kayıttaki hafta günün pazartesisi değilse (kendi kodumuz üretmez — bozuk) haftalık kısım taze kalır
 static func sanitize(raw: Variant) -> Dictionary:
 	if not raw is Dictionary:
 		return {}
 	var src: Dictionary = raw
-	if not _is_current_version(src.get(KEY_VERSION)):
+	var legacy: bool = _is_version(src.get(KEY_VERSION), LEGACY_VERSION)
+	if not legacy and not _is_version(src.get(KEY_VERSION), VERSION):
 		return {}
 	var day: Variant = src.get(KEY_DAY)
 	if not is_day_key(day):
 		return {}
 	var out: Dictionary = fresh_state(day)
-	_copy_period(src, out, PERIOD_DAILY)
+	_copy_period(src, out, PERIOD_DAILY, legacy)
 	var week: Variant = src.get(KEY_WEEK)
 	if typeof(week) == TYPE_STRING and String(week) == String(out[KEY_WEEK]):
-		_copy_period(src, out, PERIOD_WEEKLY)
+		_copy_period(src, out, PERIOD_WEEKLY, legacy)
 	return out
 
 
-## `accepted` gününün dönemi — SAF. Kayıttaki gün kabul edilen günle aynıysa ya da ondan
-## YENİYSE (saat geri alındı) kayıttaki dönem aynen kalır: dönem asla geri gitmez. Yeni gün →
-## günlük sıfır; aynı pazartesi haftası → haftalık aynen; yeni hafta → haftalık da sıfır.
-## Kullanılabilir dönem yoksa `accepted`'in taze dönemi; o da yoksa boş.
-static func for_day(raw: Variant, accepted: String) -> Dictionary:
+## Dönem geçişi (TASK/061) — SAF, deterministik, idempotent (girdi değişmez). Kabul edilen gün `accepted`'in dönemi +
+## KAPANAN dönem(ler)in teslim edilecek ödülleri. Kayıttaki gün kabul edilen günle aynıysa ya da ondan YENİYSE (saat
+## geri alındı) dönem aynen kalır, teslim yok: dönem asla geri gitmez. Yeni gün → günlük dönem kapanır, aynı pazartesi
+## haftasında haftalık aynen; yeni hafta → haftalık da kapanır. Kapanan dönemin TAMAMLANMIŞ ama ödülü VERİLMEMİŞ
+## görevleri `auto_claimed`'e girer ve katalog ödülleri `dough`'da toplanır — ödül kaybolmaz, tam bir kez (yeni dönemde
+## o görevler sıfırdan başlar; çağıran `state` + `dough`'u TEK yazmada saklar). Tamamlanmamış görevin ilerlemesi ödüle
+## DÖNÜŞMEZ; ödülü verilmiş görev ikinci kez teslim edilmez. Kullanılabilir dönem yoksa `accepted`'in taze dönemi
+## (teslim yok); o da yoksa boş durum.
+## Döner: {state, auto_claimed: Array[StringName] (katalog sırası), dough: int, rolled: bool, closed: {dönem → kapanan
+## dönemin anahtarı (günlük: eski gün, haftalık: eski pazartesi)}}.
+static func rollover(raw: Variant, accepted: String) -> Dictionary:
+	var auto: Array[StringName] = []
 	var state: Dictionary = sanitize(raw)
 	if state.is_empty():
-		return fresh_state(accepted) if is_day_key(accepted) else {}
+		var fresh: Dictionary = fresh_state(accepted) if is_day_key(accepted) else {}
+		return {"state": fresh, "auto_claimed": auto, "dough": 0, "rolled": false, "closed": {}}
 	if not is_day_key(accepted) or accepted <= String(state[KEY_DAY]):
-		return state
+		return {"state": state, "auto_claimed": auto, "dough": 0, "rolled": false, "closed": {}}
 	var out: Dictionary = fresh_state(accepted)
+	var closed: Dictionary = {PERIOD_DAILY: String(state[KEY_DAY])}
 	if String(out[KEY_WEEK]) == String(state[KEY_WEEK]):
 		out[KEY_WEEKLY_PROGRESS] = state[KEY_WEEKLY_PROGRESS]
 		out[KEY_WEEKLY_REWARDED] = state[KEY_WEEKLY_REWARDED]
-	return out
+	else:
+		closed[PERIOD_WEEKLY] = String(state[KEY_WEEK])
+	var dough: int = 0
+	for entry in CATALOG:
+		if closed.has(entry["period"]) and is_claimable(state, entry["id"]):
+			auto.append(entry["id"])
+			dough += int(entry["reward"])
+	return {"state": out, "auto_claimed": auto, "dough": dough, "rolled": true, "closed": closed}
 
 
-## Kesinleşen bir round'un gerçeklerini döneme işler — SAF (`state` değişmez; `for_day`
-## çıktısı beklenir). Hedefine dönemi içinde İLK kez ulaşan görev ödül işaretini alır ve
-## ödülü toplama girer; işaretli görev ilerlemez, ikinci kez ödül vermez. Negatif değer 0.
-## Döner: {state, completed: Array[StringName] (katalog sırası), dough: int}.
+## `accepted` gününün dönemi — SAF, salt okuma görünümü (`rollover`'ın durumu; teslimi YAPMAZ). Ekranlar okur; dönem
+## değişimi gösterimde görünür, kapanan dönemin ödülünü yalnız SaveManager'ın dönem işlemi teslim eder.
+static func for_day(raw: Variant, accepted: String) -> Dictionary:
+	return rollover(raw, accepted)["state"]
+
+
+## Kesinleşen bir round'un gerçeklerini döneme işler — SAF (`state` değişmez; `rollover` / `for_day` çıktısı beklenir).
+## TASK/061: hedefe ulaşmak Hamur VERMEZ — ilerleme hedefte sabitlenir, görev ALINABİLİR olur (ödül ÖDÜLÜ AL'da ya da
+## dönem kapanırken). Hedefteki (alınabilir / alınmış) görev ilerlemez. Negatif değer 0.
+## Döner: {state, completed: Array[StringName] — bu çağrıda hedefe İLK kez ulaşan görevler (katalog sırası)}.
 static func advance(state: Dictionary, merges: int, rounds: int, clears: int) -> Dictionary:
 	var out: Dictionary = state.duplicate(true)
 	var completed: Array[StringName] = []
-	var dough: int = 0
 	if out.is_empty():
-		return {"state": out, "completed": completed, "dough": dough}
+		return {"state": out, "completed": completed}
 	var deltas: Dictionary = {METRIC_MERGES: maxi(merges, 0), METRIC_ROUNDS: maxi(rounds, 0),
 		METRIC_CLEARS: maxi(clears, 0)}
 	for entry in CATALOG:
@@ -264,19 +311,39 @@ static func advance(state: Dictionary, merges: int, rounds: int, clears: int) ->
 		if delta <= 0:
 			continue
 		var id: String = String(entry["id"])
-		var rewarded: Array = out[rewarded_key(entry["period"])]
-		if rewarded.has(id):
-			continue
 		var progress: Dictionary = out[progress_key(entry["period"])]
-		var value: int = mini(int(progress.get(id, 0)) + delta, target)
+		var before: int = int(progress.get(id, 0))
+		if before >= target or (out[rewarded_key(entry["period"])] as Array).has(id):
+			continue
+		var value: int = mini(before + delta, target)
 		progress[id] = value
 		if value >= target:
-			rewarded.append(id)
 			completed.append(entry["id"])
-			dough += int(entry["reward"])
-	for period: StringName in [PERIOD_DAILY, PERIOD_WEEKLY]:
-		out[rewarded_key(period)] = _catalog_order(out[rewarded_key(period)], period)
-	return {"state": out, "completed": completed, "dough": dough}
+	return {"state": out, "completed": completed}
+
+
+## ÖDÜLÜ AL (TASK/061) — SAF (`state` değişmez; `rollover` çıktısı beklenir). `period_key` = arayüzün GÖSTERDİĞİ dönemin
+## anahtarı (günlük görevde gün, haftalıkta pazartesi). Yalnız bilinen görev + geçerli dönem + tamamlanmış + ödülü
+## verilmemiş görevde ödül işareti eklenir; ödül miktarı KATALOGDAN (arayüzün miktarına güvenilmez). İlerleme DEĞİŞMEZ.
+## Döner: {result: Claim, state, dough} — CLAIMED değilse `state` girdinin aynısı, `dough` 0.
+static func claim(state: Dictionary, id: StringName, period_key: String) -> Dictionary:
+	var entry: Dictionary = find(id)
+	if entry.is_empty():
+		return {"result": Claim.UNKNOWN, "state": state, "dough": 0}
+	if state.is_empty():
+		return {"result": Claim.NO_PERIOD, "state": state, "dough": 0}
+	var period: StringName = entry["period"]
+	if period_key != period_key_of(state, period):
+		return {"result": Claim.WRONG_PERIOD, "state": state, "dough": 0}
+	if is_claimed(state, id):
+		return {"result": Claim.ALREADY_CLAIMED, "state": state, "dough": 0}
+	if not is_completed(state, id):
+		return {"result": Claim.NOT_COMPLETE, "state": state, "dough": 0}
+	var out: Dictionary = state.duplicate(true)
+	var rewarded: Array = out[rewarded_key(period)]
+	rewarded.append(String(id))
+	out[rewarded_key(period)] = _catalog_order(rewarded, period)
+	return {"result": Claim.CLAIMED, "state": out, "dough": int(entry["reward"])}
 
 
 # --- Okuma (ekranlar) ------------------------------------------------------------------
@@ -286,12 +353,39 @@ static func current() -> Dictionary:
 	return SaveManager.missions_state()
 
 
-## Görev ödüllendirildi mi (tamamlandı) — `state` for_day çıktısı.
-static func is_completed(state: Dictionary, id: StringName) -> bool:
+## Bir dönemin anahtarı (günlük: gün, haftalık: pazartesi) — ÖDÜLÜ AL'ın dönem doğrulaması. Boş durumda boş.
+static func period_key_of(state: Dictionary, period: StringName) -> String:
+	if state.is_empty():
+		return ""
+	return String(state.get(KEY_DAY if period == PERIOD_DAILY else KEY_WEEK, ""))
+
+
+## Görevin bu dönemdeki ödülü verildi mi (ÖDÜLÜ AL ya da dönem sonu teslimi — ALINDI).
+static func is_claimed(state: Dictionary, id: StringName) -> bool:
 	var entry: Dictionary = find(id)
 	if entry.is_empty() or state.is_empty():
 		return false
 	return (state.get(rewarded_key(entry["period"]), []) as Array).has(String(id))
+
+
+## Görev bu dönemde hedefe ulaştı mı (alınabilir ya da alınmış — TAMAMLANDI).
+static func is_completed(state: Dictionary, id: StringName) -> bool:
+	if is_claimed(state, id):
+		return true
+	var target: int = target_of(id)
+	return target > 0 and progress_of(state, id) >= target
+
+
+## Tamamlanmış ama ödülü verilmemiş — ÖDÜLÜ AL bekliyor.
+static func is_claimable(state: Dictionary, id: StringName) -> bool:
+	return is_completed(state, id) and not is_claimed(state, id)
+
+
+## AKTİF / ALINABİLİR / ALINDI.
+static func status_of(state: Dictionary, id: StringName) -> StringName:
+	if is_claimed(state, id):
+		return STATUS_CLAIMED
+	return STATUS_CLAIMABLE if is_completed(state, id) else STATUS_ACTIVE
 
 
 ## Görevin dönemdeki ilerlemesi (0..hedef).
@@ -303,7 +397,7 @@ static func progress_of(state: Dictionary, id: StringName) -> int:
 	return clampi(int(progress.get(String(id), 0)), 0, int(entry["target"]))
 
 
-## Tamamlanan (ödüllendirilen) görev sayısı — içinde bulunulan dönemlerde, 0..6.
+## Tamamlanan görev sayısı (alınabilir + alınmış) — içinde bulunulan dönemlerde, 0..6 (Ana Sayfa "N/6").
 static func completed_count(state: Dictionary) -> int:
 	var count: int = 0
 	for id in ids():
@@ -312,7 +406,21 @@ static func completed_count(state: Dictionary) -> int:
 	return count
 
 
-## Ekran satırları (katalog sırası): id, period, title, progress, target, reward, completed.
+## ÖDÜLÜ AL bekleyen görevler (katalog sırası) — Ana Sayfa dikkat rozeti / pencere başlığı.
+static func claimable_ids(state: Dictionary) -> Array[StringName]:
+	var out: Array[StringName] = []
+	for id in ids():
+		if is_claimable(state, id):
+			out.append(id)
+	return out
+
+
+static func claimable_count(state: Dictionary) -> int:
+	return claimable_ids(state).size()
+
+
+## Ekran satırları (katalog sırası): id, period, metric, title, progress, target, reward, completed, claimed, claimable,
+## status, period_key.
 static func rows(state: Dictionary) -> Array[Dictionary]:
 	var out: Array[Dictionary] = []
 	for entry in CATALOG:
@@ -326,22 +434,26 @@ static func rows(state: Dictionary) -> Array[Dictionary]:
 			"target": int(entry["target"]),
 			"reward": int(entry["reward"]),
 			"completed": is_completed(state, id),
+			"claimed": is_claimed(state, id),
+			"claimable": is_claimable(state, id),
+			"status": status_of(state, id),
+			"period_key": period_key_of(state, entry["period"]),
 		})
 	return out
 
 
 # --- Yardımcılar -------------------------------------------------------------------------
 
-static func _is_current_version(value: Variant) -> bool:
+static func _is_version(value: Variant, version: int) -> bool:
 	match typeof(value):
 		TYPE_INT:
-			return value == VERSION
+			return value == version
 		TYPE_FLOAT:
-			return value == float(VERSION)
+			return value == float(version)
 	return false
 
 
-## Kayıttaki sayım → 0..cap (JSON sayıları float gelir). Sayı değil / NaN → 0; ±sonsuz kırpılır.
+## Kayıttaki sayım → 0..cap (JSON sayıları float gelir). Sayı değil / NaN → 0; ±sonsuz kırpılır. (Sürüm 1 okuması.)
 static func _clamp_count(value: Variant, cap: int) -> int:
 	match typeof(value):
 		TYPE_INT:
@@ -354,8 +466,23 @@ static func _clamp_count(value: Variant, cap: int) -> int:
 	return 0
 
 
-## Bir dönemin ilerlemesini ve ödül işaretlerini `src`'ten doğrulayarak `out`'a kopyalar.
-static func _copy_period(src: Dictionary, out: Dictionary, period: StringName) -> void:
+## Sürüm 2 okuması (fail-closed): yalnız 0..cap aralığındaki sonlu sayı (JSON float → aşağı yuvarlanır); aralık dışı /
+## NaN / ±sonsuz / sayı değil → 0. Kendi kodumuz hedeften büyük ya da negatif ilerleme YAZMAZ — öyle bir değer bozuktur ve
+## hedefe kırpılsaydı görevi bedavaya ALINABİLİR yapardı.
+static func _strict_count(value: Variant, cap: int) -> int:
+	match typeof(value):
+		TYPE_INT:
+			return value if (value >= 0 and value <= cap) else 0
+		TYPE_FLOAT:
+			var number: float = value
+			if is_nan(number) or is_inf(number) or number < 0.0 or number > float(cap):
+				return 0
+			return int(floorf(number))
+	return 0
+
+
+## Bir dönemin ilerlemesini ve ödül işaretlerini `src`'ten doğrulayarak `out`'a kopyalar (`legacy`: sürüm 1 kuralı).
+static func _copy_period(src: Dictionary, out: Dictionary, period: StringName, legacy: bool) -> void:
 	var seen: Dictionary = {}
 	var raw_rewarded: Variant = src.get(rewarded_key(period))
 	if raw_rewarded is Array:
@@ -376,8 +503,10 @@ static func _copy_period(src: Dictionary, out: Dictionary, period: StringName) -
 		if seen.has(key):
 			rewarded.append(key)
 			progress[key] = target
-		else:
+		elif legacy:
 			progress[key] = mini(_clamp_count(progress_src.get(key), target), target - 1)
+		else:
+			progress[key] = _strict_count(progress_src.get(key), target)
 	out[progress_key(period)] = progress
 	out[rewarded_key(period)] = rewarded
 
