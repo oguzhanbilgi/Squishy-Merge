@@ -1,6 +1,6 @@
 # PROJECT_STATUS.md — Squishy Merge, tam proje raporu
 
-**Son güncelleme:** 2026-10-09 · **Durum:** M0–M8 tamamlandı; M8.5–M8.10
+**Son güncelleme:** 2026-10-12 · **Durum:** M0–M8 tamamlandı; M8.5–M8.10
 (release/product stabilization: UI yeniden inşası, gameplay cilası, ses,
 AdMob TEST-reklam monetizasyonu + günlük ödüller, ilk açılış tutorial'ı)
 tamamlandı ve main'de; M9-01 production release hazırlığı (kod) tamamlandı,
@@ -155,12 +155,15 @@ ve doküman eşitlemesi sırasında yeniden koşulmadı (§4.39) · **TASK/060 G
 `75fe3f3 → 27b60e5` (2026-10-09; merge commit / rebase / squash / cherry-pick / force push YOK; dal
 `task/060-gameplay-hud-v3-rewarded-powers` = `27b60e5` duruyor); tam masaüstü kapısı `27b60e5` (59 / 59, 7601 kontrol, 0 FAIL,
 bot 2 / 2) ve gerçek Samsung A36 cihaz kapısı (üretim kodu `8924974`) entegrasyondan ÖNCE geçti — entegrasyon ve doküman
-eşitlemesi sırasında yeniden koşulmadı (§4.40) · güç başına 2/gün ödüllü kota (eski ortak 1/gün yalnız tarihsel) · TASK/061
-BAŞLAMADI · TASK/062 ekonomi değerlendirmesi PENDING · Release PAUSED.
+eşitlemesi sırasında yeniden koşulmadı (§4.40) · güç başına 2/gün ödüllü kota (eski ortak 1/gün yalnız tarihsel) ·
+**TASK/061 Günlük & Görevler V3 — DAL AŞAMASI / OWNER GÖRSEL İNCELEMESİ BEKLİYOR** (dal `task/061-daily-missions-v3`,
+main'de DEĞİL; tam masaüstü kapısı `a0b6bcf` 60 / 60 temiz, 7744 kontrol, 0 FAIL, 0 SCRIPT ERROR, bot 2 / 2; gerçek A36
+kapısı KOŞULMADI — §4.41) · TASK/062 ekonomi değerlendirmesi PENDING · Release PAUSED.
 Release izi ayrı. Sırada: içerik derecesi + yargı bölgesi kararları + 13+ seçici uyum riski (owner) → gizlilik
 politikası → upload anahtarı → gerçek AdMob kimlikleri → mağaza varlıkları / Play Console,
 sonra ilk imzalı üretim AAB'si ve M10 (Play kapalı test) ·
-**Branch / main:** `main` == origin/main ⊇ `27b60e5` (TASK/060 entegrasyon çapası) + `docs/060-main-sync` doküman
+**Branch / main:** TASK/061 dalı `task/061-daily-missions-v3` (main `60f6202`'den; main'e ALINMADI — owner görsel
+incelemesi bekliyor; §4.41) · `main` == origin/main ⊇ `27b60e5` (TASK/060 entegrasyon çapası) + `docs/060-main-sync` doküman
 eşitlemesi — TASK/060 `task/060-gameplay-hud-v3-rewarded-powers` (main `75fe3f3`'ten; 9 commit `5a4bca2` … `8924974` cihazda
 doğrulanan son üretim kodu · `27b60e5` yalnız test, tam kapı adayı · `9564dd1` dal-aşaması doküman) owner onayıyla ff-only
 `75fe3f3 → 27b60e5` (2026-10-09; merge commit / rebase / squash / cherry-pick / force push YOK; dal duruyor) · önce `f13fa9c`
@@ -3888,6 +3891,53 @@ Profil / Ayarlar TASK/064.
   `default_bus_layout.tres`, `project.godot`, `export_presets.cfg`, `OWNER_WORKING_PROFILE.md`, `_visual_source` 13 738
   dosya) entegrasyon boyunca bayt-aynı; testler yeniden koşulmadı.
 
+### 4.41 Günlük & Görevler V3 — ÖDÜLÜ AL + dönem sonu teslimi (TASK/061) — DAL AŞAMASI / OWNER GÖRSEL İNCELEMESİ BEKLİYOR
+
+> **DAL AŞAMASI (2026-10-12).** Dal `task/061-daily-missions-v3` (taban `60f6202` = main = origin/main); main DEĞİŞMEDİ,
+> PR / merge YOK. Owner görsel incelemesi: `build/qa_061_owner_review/TASK061_OWNER_REVIEW.zip` (git dışı). Gerçek
+> Samsung A36 kapısı owner görsel incelemesinden SONRA, ayrı onayla (bu turda KOŞULMADI — APK kurulmadı, ADB yok).
+> TASK/062 BAŞLAMADI; Release PAUSED.
+
+- **Faz 0 denetimi** (`build/qa_061/AUDIT_PHASE0.md`): ilerleme `Missions.advance` (saf) ←
+  `SaveManager.record_mission_round` ← yalnız `Main._on_round_finished`; otomatik Hamur aynı round'un tek yazmasında;
+  `missions` sürüm 1, `*_rewarded` = ödülü verilmiş = tamamlanmış (sürüm 1'de ödülsüz görev hedefe ulaşamaz); yeni dönem
+  OKUMADA (`for_day`, yazma yok); Ana Sayfa N/6 = ödüllü sayısı; sonuç rozeti "+N HAMUR". Taban (main `60f6202`) 10 odak
+  suite temiz, 1615 kontrol.
+- **Kural (owner, Issue #1 §5 + TASK/061 brief'i):** AKTİF → TAMAMLANDI → ÖDÜLÜ AL → ALINDI; hedefe ulaşmak Hamur
+  vermez; ÖDÜLÜ AL tam katalog ödülünü tek işlemde verir; kapanan dönemin tamamlanmış + alınmamış ödülü yeni dönemden
+  önce TAM BİR KEZ otomatik teslim. Altı görev / hedefler / ödüller / 30-120-330 tavanları / XP / oynanış DEĞİŞMEDİ
+  (GAME_DESIGN §5.10; TASK/046 otomatik ödül paragrafı TARİHSEL olarak korundu).
+- **Kayıt (sürüm 2):** anahtarlar aynı; `*_rewarded` = ödülü VERİLMİŞ (elle ya da teslim); tamamlanma ilerlemeden türer.
+  Sürüm 1 → 2 yüklemede bellekte, sürüm 1 kuralıyla (ödenmiş = ALINDI, kısmi = AKTİF; sürüm 1 alınabilir görev
+  üretemez); sürüm 2 ödülsüz ilerleme fail-closed (aralık dışı / NaN / ±sonsuz / metin → 0); ödül işareti alanı bozuksa
+  hedefteki görev ALINDI sayılır. Bilinmeyen sürüm / bozuk gün → taze dönem (TASK/046 ile aynı kabul — DÜŞÜK, owner
+  paketi D6).
+- **İşlemler:** `Missions.rollover` / `Missions.claim` (saf) · `SaveManager.claim_mission_reward(id, period_key)` (tek
+  yetkili talep; miktar katalogdan; teslim + talep + Hamur tek yazma; CLAIMED / AUTO_CLAIMED / ALREADY_CLAIMED /
+  NOT_COMPLETE / WRONG_PERIOD / UNKNOWN / NO_PERIOD) · `SaveManager.settle_missions()` (dönem noktası; teslim yoksa
+  yazmaz) · `record_mission_round` önce dönem geçişi (teslim round'un yazmasına katlanır), sonra ilerleme (Hamur yok).
+  Main dönem noktaları: açılış, öne dönüş, `_show_tab`, `open_missions`; round sürerken atlanır.
+- **UI:** UI_VISUAL_SYSTEM §32 — kart üç durumu (pasif krem ödül kutusu / nane "ÖDÜLÜ AL" + "+10" / "✓ ALINDI"), CTA
+  görseli 64 px + dokunma alanı 84 px (48 dp), hero alınabilir sayısı + "Tamamla, ödülünü al!", talep geri bildirimi
+  (yuva pop'u + yükselen "+N" + ses + titreşim), Ana Sayfa "N/6" + ayrı dikkat sayısı, sonuç "GÖREV TAMAMLANDI · ÖDÜLÜ
+  AL" (Hamur yok). Kontrast ölçümü `build/qa_061/contrast.py` (pasif "+10" 3,57:1 büyük yazı; sayaç 9,89:1).
+- **Testlerin anlam değişikliği (gizlenmedi):** `missions_test` (otomatik "+N" → tamamlandı + Hamur değişmedi + talep /
+  teslim), `missions_ui_test` (TAMAMLANDI çipi / "talep butonu YOK" / otomatik not → V3 durumları + CTA dokunma alanı +
+  ray hizası + dikkat sayısı), `result_ui_test` ("+N HAMUR" → "ÖDÜLÜ AL"), `round_finish_modal_test` +
+  `result_delay_race_test` (level görevi "ödül verildi" → "tamamlandı, ödül işareti yok"). Yeni: `missions_claim_test`,
+  çekim aracı `tools/missions_v3_shots.tscn`.
+- **Kanıt (dal `a0b6bcf`):** tam masaüstü kapısı **60 / 60 temiz, 7744 kontrol, 0 FAIL, 0 SCRIPT ERROR, bot 2 / 2**,
+  sahibin kaydı bayt-aynı (`build/qa_061/tests/gate2/`); ilk tam kapı `3549e77` (inceleme düzeltmelerinden önce) 60 /
+  60, 7735 kontrol, 0 FAIL — tarihsel; 8 / 8 hafif negatif kontrol öldü, bayt-aynı geri kondu
+  (`build/qa_061/mutations/summary.txt`); iki bağımsız salt-okur inceleme, 12 mercek: BLOCKER 0, HIGH 0, MEDIUM 0, 7
+  LOW + 6 NIT (düzeltildi: bozuk ödül işareti fail-closed, "+N" toplam, ray hizası, kabuk bakiyesi, pop kırpması, sekme
+  kapısı, CTA satır aralığı, kontrast; kabul / owner kararı: elle düzenleme riski, kaydırma ölü bölgesi — A36'da
+  fiziksel parmakla denenecek, sonuç etiketi ipucu, sessiz teslim). Çekimler 8 görünüm × 18 kare + Ana Sayfa V3
+  karşılaştırması (`build/qa_061_visual_review/`, önce = main `60f6202`).
+- **Owner kararları** (paket `02_OWNER_DECISIONS.md`): D1 görsel onay · D2 dönem sonu teslimi bildirimi (bugün sessiz) ·
+  D3 CTA boyu · D4 sonuçtaki "ÖDÜLÜ AL" etiketi · D5 gerçek A36 kapısı (ayrı onay) · D6 elle düzenleme DÜŞÜK riski.
+- **Commit'ler:** `dc4a923` model + işlemler · `9e625cc` kart / pencere · `24829a9` Ana Sayfa rozeti + sonuç · `2025b68`
+  Main · `3549e77` test + çekim aracı · `a0b6bcf` inceleme düzeltmeleri · dal-aşaması doküman.
 ## 5. Dosya/klasör yapısı ve script envanteri
 
 ```

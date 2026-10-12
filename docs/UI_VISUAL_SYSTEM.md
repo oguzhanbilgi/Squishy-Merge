@@ -1820,6 +1820,11 @@ unvan / rozet vitrini. Hepsi owner kararı ister.
 
 ## 24. Günlük / Haftalık Görevler (TASK/046 Missions V1)
 
+> **TASK/061 (dal aşaması, owner görsel incelemesi bekliyor):** ödül artık elle alınır (ÖDÜLÜ AL) ve dönem sonunda
+> alınmamış ödül tam bir kez teslim edilir — kart / pencere / Ana Sayfa rozeti / sonuç rozeti V3 hâli **§32**'de. Bu
+> bölümdeki "talep butonu YOK", "ödül otomatik eklendi", "+10 HAMUR" rozeti ve "otomatik eklenir" notu TASK/046'nın
+> TARİHSEL kaydıdır.
+
 **Karar:** Ana Sayfa'ya TEK kompakt GÖREVLER girişi, Main'e ait GÖREVLER penceresi ve sonuç
 ekranının TASK/045 şeridinde kompakt görev rozeti. Aynı candy-night kawaii sistemi (lavanta /
 krem / nane / altın; Baloo 2 + Nunito) — görev panosu / dashboard / liste uygulaması DEĞİL.
@@ -1839,7 +1844,8 @@ metinleri kırpılmaz, halkalar kırpılmaz; uzun metin, dil, sahte arka uçla b
 kayıt yazılmaz (bayt + yazma girişimi dedektörü), günlük pencere kapısı, öne dönüşte gün
 dönümü pencereyi ve Ana Sayfa rozetini aynı yeni döneme tazeler), `missions_test` (çekirdek),
 `result_ui_test` "görev geri bildirimi" + en uzun şerit (LV. 20 + en uzun başarım + "6 GÖREV
-TAMAMLANDI · +150 HAMUR") her boyutta ve A36'da. **Çekim:** `godot --resolution GxY
+TAMAMLANDI · +150 HAMUR" — TASK/061'den beri "6 GÖREV TAMAMLANDI · ÖDÜLÜ AL") her boyutta ve
+A36'da. **Çekim:** `godot --resolution GxY
 --path . res://tools/missions_shots.tscn -- <dir> [GxY] [safe=61] [only=H|M|R]` (14 kare: H Ana
 Sayfa 3 durum, M pencere 7 durum — uzun metin provası dahil, R sonuç 4 gerçek round; kayıt
 test yoluna yönlendirilir, her karenin piksel boyutu doğrulanır, tutmazsa çıkış 3).
@@ -2225,7 +2231,8 @@ pencere odağı kaybı → 0 gezinme; sonraki taze dokunuş tam bir kez. Tepsi b
 Ana Sayfa V3 hiyerarşisi (büyük OYNA + Günlük / Meydan Okuma özellik kartları + Başlangıç Paketi +
 rozetler) → **TASK/058**; Harita MEYDAN OKUMA rotası / portalı → **TASK/059**; Gameplay HUD V3 + günlük
 2 reklamlı güç kotası → **TASK/060** *(sonra TAMAM + MAIN — §31)*; Günlük / Görevler V3 (ÖDÜLÜ AL, devir otomatik talebi, görev
-rozetleri; Ana Sayfa Günlük hatası) → **TASK/061**; Mağaza V3 + Başlangıç Paketi (fiyat, 72 saat, gerçek
+rozetleri; Ana Sayfa Günlük hatası) → **TASK/061** *(sonra dalda — §32; Günlük hatası TASK/058'de kapanmıştı)*;
+Mağaza V3 + Başlangıç Paketi (fiyat, 72 saat, gerçek
 hak akışı) → **TASK/062**; Meydan Okuma merkezi → **TASK/063**; Koleksiyon / Profil / Ayarlar tutarlılığı
 → **TASK/064**. Kabuğun rozetleri bu görevde HİÇBİR veriye bağlanmadı (yalnız API).
 
@@ -2658,3 +2665,87 @@ değil.
   kartlarındaki "×N" — TASK/062 / TASK/064.
 - **Entegrasyon:** ff-only `75fe3f3 → 27b60e5` (2026-10-09); son tam masaüstü kapısı `27b60e5` 59 / 59, 7601 kontrol, 0 FAIL
   (`27b60e5` yalnız test kodu); PROJECT_STATUS §4.40.
+
+---
+
+## 32. Günlük & Görevler V3 — ÖDÜLÜ AL + dönem sonu teslimi (TASK/061) — DAL AŞAMASI / OWNER GÖRSEL İNCELEMESİ BEKLİYOR
+
+**Durum:** dal `task/061-daily-missions-v3` (taban canonical main `60f6202`), **main'de DEĞİL, owner onaylı DEĞİL**.
+Kural tarafı GAME_DESIGN §5.10 (TASK/061 paragrafı: AKTİF → TAMAMLANDI → ÖDÜLÜ AL → ALINDI + kapanan dönemin alınmamış
+ödülü tam bir kez teslim). Yalnız GÖREVLER penceresi, görev kartı, Ana Sayfa GÖREVLER madalyonunun rozetleri ve sonuç
+ekranının görev rozeti değişti; GÜNLÜK ÖDÜLLER penceresi / Günlük karosu / Ana Sayfa V3 yerleşimi / maskot / OYNA /
+kabuk DEĞİŞMEDİ. TEXT-LIGHT (§29): pencere içi kısa metin; yeni açıklama paragrafı yok.
+
+### 32.1 Görev kartı (`MissionCard` V3)
+
+Malzeme aynı (`card_bevel_soft` gövde + 3 px durum halkası; kök düz `Control`, halka kökün tam dikdörtgeni — §24.2
+kuralı). Sağda **sabit 156 px ödül yuvası** ve sabit 96 px sayaç (tik + "120 / 120") — üç durumda aynı genişlik → altı
+kartın rayları her durumda hizalı (`missions_ui_test` her görünümde ölçer); ödül miktarı her durumda AYNI yerde görünür:
+
+| Durum | Gövde / halka | İlerleme | Ödül yuvası |
+|---|---|---|---|
+| **AKTİF** | krem / lavanta | nane ray kısmi, "7 / 15" | pasif ödül kutusu: krem düz kutu + 2 px lavanta kenar, owner Hamur sanatı + "+10" (altın fiyat dili; dudak / gölge / gloss YOK — basılabilir görünmez, dokunma almaz) |
+| **ALINABİLİR** | açık altın `#fff1cf` / altın | ray dolu, nane tik + "15 / 15" (sayı birincil erik — okunurluk) | **ÖDÜLÜ AL** — `SquishyButton` REWARD (nane candy) iki satır: "ÖDÜLÜ AL" + Hamur sanatı "+10" |
+| **ALINDI** | açık nane / nane | ray dolu, nane tik + sayı | `SquishyButton` CLAIMED: düz krem + nane tik + "ALINDI" (pasif) |
+
+Durum yalnız renkle anlatılmaz: metin (ÖDÜLÜ AL / ALINDI) + ikon (tik, Hamur) + ilerleme sayısı. Kontrast (WCAG, token
+değerlerinden — `build/qa_061/contrast.py`): pasif kutuda altın "+10" kremde 3,57:1 (22 px kalın, büyük yazı eşiği 3:1;
+ilk taslağın lavanta-gri kutusu 2,73:1 idi), ÖDÜLÜ AL lacivert / nane 8,08:1, ALINDI nane koyu / krem 3,20:1 (21 px
+kalın), sayaç birincil erik 9,89:1 (TASK/046'nın nane sayısı açık zeminde 16 px'te ~3:1 kalıyordu). CTA görseli
+`TOUCH_COMPACT` 64 px (kart içi kompakt eylem, §27.1), **dokunma alanı dikeyde `TOUCH_TARGET` 84 px (A36'da 48 dp)**,
+yanlarda +8 px — `ClaimButton._has_point`; alan kartın içinde kalır (komşu karta / başka kontrole taşmaz). Kartın
+kendisi dokunma almaz (kaydırma kartın üstünden başlar); CTA kaydırılan içerikte `set_scrollable(true)` — kaydırma
+başlayınca basış iptal, talep YOK; eylem `GestureGuard.on_pressed` (ACTION_CANCEL / gizlenme / odak kaybı / GERİ
+eylemsiz). Kart yalnız `claim_pressed(id, period_key)` yayar; ödülü SaveManager verir.
+
+### 32.2 GÖREVLER penceresi
+
+İskelet aynı (`modal_shell("GÖREVLER", 600)`, pembe kurdele, X, karartma, Android GERİ, üst güvenli pay, banner
+yuvasının üstü, GÜNLÜK / HAFTALIK bölümleri + sabit ipuçları, üçer kart). **Hero:** hedef picto + "N / 6" + "GÖREV" +
+**alınabilir ödül sayısı** (`AttentionBadge` COUNT, 0 → gizli) · ray (6/6 VE hepsi alınmışsa altın + yıldız) · not
+**"Tamamla, ödülünü al!"** (hepsi alınınca "Hepsi tamam!"; eski "Ödüller görev tamamlanınca otomatik eklenir."
+kaldırıldı — artık yanlıştı). **Talep geri bildirimi** (yalnız talep Hamur verdiyse — CLAIMED ya da AUTO_CLAIMED):
+kartlar kanonik veriden tazelenir, ödül yuvasının candy pop'u (%10 — tam genişlikteki kart değil, halkası kırpılmasın),
+CTA'nın üstünden yükselip solan owner Hamur sanatı + "+N" = bu talebin verdiği TOPLAM Hamur (pencere gece yarısını açık
+geçtiyse kapanan dönemin diğer teslimleri dahil — bakiyedeki artışın aynısı; 0,85 sn, dokunma almaz), `daily_reward`
+sesi + hafif titreşim; Ana Sayfa'nın Hamur hapı pop'la güncellenir, GÖREVLER rozetleri tazelenir. Tam ekran kutlama /
+parçacık / ikinci pencere YOK. Hamur vermeyen talep (`ui_invalid`) yalnız tazeler.
+
+### 32.3 Ana Sayfa GÖREVLER madalyonu (TASK/058 yerleşimi aynen)
+
+İki AYRI anlam, iki rozet: sağ üst altın **"N/6"** = içinde bulunulan dönemlerde TAMAMLANAN görev (alınabilir + alınmış;
+6/6 VE hepsi alınmışsa nane) · sol üst **dikkat sayısı** = ÖDÜLÜ AL bekleyen görev (`HomeFeatureButton.attention()` →
+`AttentionBadge` COUNT; Günlük karosunun "!" dikkat diliyle aynı aile, mercan). Örn. 2 tamam, 1 alındı → "2/6" + "1".
+Madalyon boyu / dokunma alanı / maskot / OYNA / kabuk değişmedi; rozet fare almaz.
+
+### 32.4 Sonuç ekranı görev rozeti (`ResultProgressStrip`)
+
+"GÖREV TAMAMLANDI" / "2 GÖREV TAMAMLANDI" (nane hap) + içinde krem düz **"ÖDÜLÜ AL"** etiketi (hediye picto): Hamur
+miktarı YOK (round görev Hamur'u vermez), etiket buton DEĞİL (düz, fare almaz) — oyuncuyu GÖREVLER penceresine
+yönlendirir. Bloklamaz; ikinci pencere / talep yok. Round, kapanan dönemin alınmamış ödülünü teslim ettiyse (gece
+yarısını geçen round) bu teslim sonuçta görev Hamur'u gibi gösterilmez (sonuç Hamur cipi kanonik bakiyeyi zaten içerir).
+
+### 32.5 Dönem noktaları (Main)
+
+Dönem geçişi `SaveManager.settle_missions()` — açılış (`DailyRewards.observe_day` sonrası), öne dönüş, `_show_tab`
+(ekranlar tazelenmeden önce), `open_missions`; round sürerken atlanır (round bitişi kendi tek yazmasında uygular).
+Teslim yoksa yazma yok; teslim olursa açık pencere, Ana Sayfa rozetleri ve görünen ekranın bakiyesi tazelenir (Ana Sayfa
+hapı pop'la; Harita / Mağaza / Koleksiyon / Profil önündeyken o ekranın bakiye satırı). ÖDÜLÜ AL (yalnız Ana Sayfa
+sekmesinde, pencere açıkken): `MissionsOverlay.claim_requested` → `Main._on_mission_claim_requested` →
+`SaveManager.claim_mission_reward` → `MissionsOverlay.apply_claim` + Ana Sayfa tazeleme. Pencere gece yarısını açık
+geçerse dokunuş AUTO_CLAIMED (dokunulan ödül dönem sonu teslimiyle tam bir kez) ve pencere yeni güne tazelenir. Otomatik
+GÜNLÜK ÖDÜLLER penceresi GÖREVLER açıkken yine açılmaz ("due" kalır).
+
+### 32.6 Kanıt ve araçlar
+
+`tools/missions_v3_shots.tscn` (`-- <çıktı> [GxY] [banner|a36|a36nb] [only=H|M|R]`; yönlendirilmiş test kaydı, sabit
+gün): H 01–04 · M 05–12, 15–17 (+10b talep anı) · R 13–14. Testler: `missions_claim_test` (yeni — talep / göç / dönem
+sonu / çökme matrisi / gerçek girdi / ekonomi), `missions_ui_test` (V3 durumları, CTA dokunma alanı her görünümde,
+dikkat sayısı yerleşimi), `missions_test` + `result_ui_test` (anlam değişikliği), PROJECT_STATUS §4.41.
+
+### 32.7 Bilinçli olarak YAPILMAYAN
+
+GÜNLÜK ÖDÜLLER penceresinin yeniden tasarımı (TASK/058'de düzeltilen giriş korunur); dönem sonu teslimi için ayrı bir
+bildirim / tost (teslim sessiz: Ana Sayfa Hamur hapı güncellenir — owner kararı); görev geçmişi; reklamla yenileme /
+ikiye katlama; görev serisi; erişilebilirlik okuyucu adları (projede erişilebilirlik katmanı yok — durumlar metin +
+ikonla).

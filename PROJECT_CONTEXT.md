@@ -76,19 +76,20 @@ alınacak — şimdi tahmin/vaat yok.
 
 ## Current state
 
-**Kanonik durum — 2026-10-08.** Bugünün gerçeği bu bölüm +
+**Kanonik durum — 2026-10-12.** Bugünün gerçeği bu bölüm +
 [Current release blockers](#current-release-blockers) +
 [Next action](#next-action); aşağıdaki "Milestone tarihçesi" değil.
 
 - **Product Vision V3 — AKTİF** ([GitHub Issue #1](https://github.com/oguzhanbilgi/Squishy-Merge/issues/1) — UI/UX
   yenileme, ödüllü güçler, görevler, başlangıç paketi, harita ve meydan okuma yol haritası; ürün planının kalıcı
-  kaydı). İlerleme: **TASK/057 TAMAM + MAIN** · **TASK/058 Ana Sayfa V3 TAMAM + MAIN** (owner görsel onayı APPROVED — yalnız Ana Sayfa V3) · **TASK/059 Harita V3 TAMAM + MAIN** (owner görsel onayı APPROVED — yalnız Harita V3) · **TASK/060 Gameplay HUD V3 + Ödüllü Güçler TAMAM + MAIN** (owner görsel + elle Samsung A36 onayı APPROVED — yalnız TASK/060) · TASK/061 BAŞLAMADI · sonraki
+  kaydı). İlerleme: **TASK/057 TAMAM + MAIN** · **TASK/058 Ana Sayfa V3 TAMAM + MAIN** (owner görsel onayı APPROVED — yalnız Ana Sayfa V3) · **TASK/059 Harita V3 TAMAM + MAIN** (owner görsel onayı APPROVED — yalnız Harita V3) · **TASK/060 Gameplay HUD V3 + Ödüllü Güçler TAMAM + MAIN** (owner görsel + elle Samsung A36 onayı APPROVED — yalnız TASK/060) · **TASK/061 Günlük & Görevler V3 — DAL AŞAMASI / OWNER GÖRSEL İNCELEMESİ BEKLİYOR** (main'de DEĞİL) · sonraki
   Product Vision görevleri gelecek iş. **Release Readiness PAUSED / YELLOW** (Product Vision V3 turu bitmeden release'e
   dönülmez; release hazır DEĞİL). **Metin ilkesi (owner, 2026-10-07): TEXT-LIGHT / ICON-FIRST** — normal gezinme /
   özellik girişlerinde ikon + tek kelime + sayı / rozet / ilerleme, açıklayıcı alt yazı yok; güvenlik / yasal / satın alma /
   geri alınamaz eylem metni açık kalır; uygulandı ve owner onaylı: Ana Sayfa (TASK/058) + Harita (TASK/059) + oyun HUD'u ve
   refill penceresi (TASK/060); TASK/061–064 yeniden tasarımlarının varsayılan YÖNÜ (UI_VISUAL_SYSTEM §29) — o ekranlar henüz bu
-  ilkeyle uygulanmadı ve owner onaylı DEĞİL. Ürün geneli metin yeniden yazımı YAPILMADI (yalnız Ana Sayfa, TASK/058, Harita,
+  ilkeyle uygulanmadı ve owner onaylı DEĞİL (TASK/061 GÖREVLER penceresi dalda bu ilkeyle yapıldı — owner onaylı
+  DEĞİL). Ürün geneli metin yeniden yazımı YAPILMADI (yalnız Ana Sayfa, TASK/058, Harita,
   TASK/059, ve oyun HUD'u / refill, TASK/060).
 - **TASK/057 — Squishy UI System V3 + küresel gezinme kabuğu — TAMAM, main'de (COMPLETE + MAIN)** (owner / ChatGPT
   görsel onayı **APPROVED**, 2026-10-07; owner onayıyla ff-only `d5237bf → 84964af`; merge commit / rebase / squash /
@@ -223,6 +224,22 @@ alınacak — şimdi tahmin/vaat yok.
   A36 testi PASS** (ayrı owner uygulaması `com.obappstudio.squishymerge.qa060` "Squishy Merge HUD QA" — normal oyun akışı,
   yalnız TEST reklamları; owner kullanmaya devam edebilir). Dal-aşaması turu (tek kapı 58 / 59) TARİHSEL — aşağıda.
   Ayrıntı: PROJECT_STATUS §4.40, UI_VISUAL_SYSTEM §31, ADS_SYSTEM §20.
+- **TASK/061 — Günlük & Görevler V3 — DAL AŞAMASI / OWNER GÖRSEL İNCELEMESİ BEKLİYOR (main'de DEĞİL)** (dal
+  `task/061-daily-missions-v3`, taban canonical main `60f6202`; main / origin/main DEĞİŞMEDİ, merge / PR YOK). **Kural
+  (owner, Issue #1 §5 + TASK/061 brief'i — GAME_DESIGN §5.10):** AKTİF → TAMAMLANDI → ÖDÜLÜ AL → ALINDI; görev
+  tamamlanınca Hamur OTOMATİK VERİLMEZ, ÖDÜLÜ AL tam katalog ödülünü tek işlemde verir
+  (`SaveManager.claim_mission_reward`); gün / pazartesi haftası kapanırken tamamlanmış ama alınmamış ödül yeni dönemden
+  ÖNCE tam bir kez teslim edilir (teslim + yeni dönem + Hamur tek yazma; teslim yoksa yazma yok; round sürerken yok).
+  Altı görev, hedefler, +10 / +40, 30 / 120 / 330 tavanları, XP, günlük ödüller, reklam, ödüllü güç kotası DEĞİŞMEDİ.
+  **Kayıt sürüm 2** (anahtarlar aynı; sürüm 1 bellekte göç eder: ödenmiş = ALINDI, kısmi = AKTİF, sürüm 1 alınabilir
+  görev ÜRETEMEZ; bozuk veri fail-closed). **UI:** kart AKTİF / ÖDÜLÜ AL (dokunma alanı 48 dp) / ALINDI, başlıkta
+  alınabilir sayısı + "Tamamla, ödülünü al!", Ana Sayfa "N/6" + ayrı dikkat sayısı, sonuç "GÖREV TAMAMLANDI · ÖDÜLÜ AL"
+  (UI_VISUAL_SYSTEM §32). **Kanıt (dal, `a0b6bcf`):** tam masaüstü kapısı **60 / 60 temiz, 7744 kontrol, 0 FAIL, 0
+  SCRIPT ERROR, bot 2 / 2**, sahibin kaydı bayt-aynı; yeni `missions_claim_test` (talep / göç / dönem sonu / 8 hatalı
+  çökme matrisi / gerçek parmak girdisi / ekonomi tam 330); 8 / 8 hafif negatif kontrol öldü; iki bağımsız salt-okur
+  inceleme 12 mercek: BLOCKER 0, HIGH 0, MEDIUM 0 (LOW / NIT düzeltildi ya da owner kararına bırakıldı). **Gerçek
+  Samsung A36 kapısı KOŞULMADI** (owner görsel incelemesinden sonra, ayrı onayla). Owner paketi
+  `build/qa_061_owner_review/TASK061_OWNER_REVIEW.zip` (git dışı). Ayrıntı: PROJECT_STATUS §4.41.
 - *(Tarihsel — TASK/060 dal aşaması, 2026-10-08; owner onayından, gerçek A36 kapısından ve main entegrasyonundan ÖNCE:)*
   **TASK/060 — Gameplay HUD V3 + Ödüllü Güçler — DAL AŞAMASI (READY FOR OWNER VISUAL REVIEW, main'de DEĞİL)** (dal
   `task/060-gameplay-hud-v3-rewarded-powers`, taban `75fe3f3`; main / origin/main DEĞİŞMEDİ, PR / merge YOK). **Owner kuralı
@@ -1371,8 +1388,11 @@ gerçek A36 kapısı GEÇTİ; owner görsel tasarımı onayladı, QA kilit gözl
 **APPROVED / PASS**, gerçek A36 cihaz kapısı GEÇTİ, tam masaüstü kapısı 59 / 59; ekonomi: güç başına 2/gün korunuyor, reklam
 kaynaklı Hamur enflasyonu değerlendirmesi TASK/062'ye ertelendi; **TASK/060 — TAMAM + MAIN** (ff-only `75fe3f3 → 27b60e5` +
 bu doküman eşitlemesi) — PROJECT_STATUS §4.40.
-**Şimdiki adım:** **TASK/061** (Görevler ödül alma / devir) — owner başlatınca (BAŞLAMADI). Sonraki sahiplik:
-TASK/061 Görevler ödül alma / devir · TASK/062 Mağaza / Başlangıç Paketi (+ ertelenen ekonomi değerlendirmesi: reklam kaynaklı
+~~**Şimdiki adım:** **TASK/061** (Görevler ödül alma / devir) — owner başlatınca (BAŞLAMADI).~~ → başladı (2026-10-12).
+**Şimdiki adım:** owner **TASK/061 görsel incelemesi** (`build/qa_061_owner_review/TASK061_OWNER_REVIEW.zip`; kararlar
+D1–D6 — PROJECT_STATUS §4.41) → onaydan sonra ayrı onayla gerçek Samsung A36 kapısı (yalnız QA paketi) → main
+entegrasyonu (ayrı adım). TASK/062 BAŞLAMADI. Sonraki sahiplik:
+TASK/062 Mağaza / Başlangıç Paketi (+ ertelenen ekonomi değerlendirmesi: reklam kaynaklı
 Hamur enflasyonu — PENDING) · TASK/063
 Meydan Okuma · TASK/064 kalan cila (Koleksiyon / Profil / Ayarlar; banner'sız kabuk payı notu dahil). Açık doküman takibi
 (owner izni gerekir): GAME_DESIGN §12.1'deki eski "16:9'da zemin dikeyde ≤ %4 sıkıştırılır" ifadesi (TASK/059'dan beri harita
@@ -2517,14 +2537,20 @@ yapılandırma değişir (checklist §3); 13–17 yaş bandı yönlendirmesi kod
   (TASK/045) / Koleksiyon parça detayı (TASK/045.1) / GÖREVLER penceresi (TASK/046) açıkken
   açılmaz; atlanan açılış pencereyi tüketmez ("due" kalır)
 - **Günlük / haftalık görevler (TASK/046, GAME_DESIGN §5.10):** 6 kilitli görev, haftada ≤ 330
-  Hamur. Görev durumunu YALNIZ `SaveManager.record_mission_round` değiştirir — yalnız
+  Hamur. Görev durumunu YALNIZ `SaveManager.record_mission_round` değiştirir *(TASK/061 dalında ayrıca
+  `claim_mission_reward` ve `settle_missions`; round kaydı artık ilerleme + kapanan dönemin teslimini yazar, görev
+  Hamur'u vermez)* — yalnız
   `Main._on_round_finished`'da, kesinleştirme korumasından sonra, `save=false` ile round kaydına
   katlanır (ilerleme + ödül işareti + Hamur tek yazmada); yüklemedeki göç (`_migrate_missions`)
   yalnız bellekte doğrular / taze dönem kurar, ilerleme ya da Hamur üretmez. Kural katmanı saf `Missions`; gün =
   `DailyRewards.day_key()` (ayrı saat yok), dönem kayıttakinin gerisine düşmez, hafta pazartesi.
-  Ödül otomatik, dönem başına görev başına bir kez; XP / başarım / unvan / sandık / güç / reklam
-  yok; görev kodu reklam / rıza / yaş / Age Signals okumaz. GÖREVLER penceresi Main'e ait,
-  kayda yazmaz, yeni banner yüzeyi değil; açılış / kapanış 300 ms parmak yatışması
+  ~~Ödül otomatik~~ → **TASK/061 (dalda, owner görsel incelemesi bekliyor — main'de DEĞİL):** ödül ELLE alınır (ÖDÜLÜ AL
+  → TEK yetkili `SaveManager.claim_mission_reward`, miktar katalogdan, ödül işareti + Hamur tek yazma); kapanan dönemin
+  tamamlanmış ama alınmamış ödülü yeni dönemden önce TAM BİR KEZ teslim (`SaveManager.settle_missions` / round kaydı —
+  teslim + yeni dönem + Hamur tek yazma; teslim yoksa yazma yok; round sürerken yok); kayıt sürüm 2 (sürüm 1
+  bellekte göç eder, alınabilir görev üretemez). Dönem başına görev başına bir kez; XP / başarım / unvan / sandık / güç / reklam
+  yok; görev kodu reklam / rıza / yaş / Age Signals okumaz. GÖREVLER penceresi Main'e ait, açmak / kapatmak / kaydırmak
+  kayda yazmaz (talep ve dönem teslimi dışında), yeni banner yüzeyi değil; açılış / kapanış 300 ms parmak yatışması
 - **Büyük iş akışı kapısı (M8.5-17'den itibaren):** gameplay/render/skin/
   UI/ses/güç/Android işleri → otomatik testler → masaüstü QA → Android
   debug APK → USB'deki telefona kur → başlat → cihaz QA → rapor → commit.

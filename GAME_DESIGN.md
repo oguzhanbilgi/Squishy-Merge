@@ -1031,7 +1031,7 @@ LV rozeti + ray, seviye atlanırsa "SEVİYE ATLADIN! · LV. N" (çok seviyede so
 başarım açıldıysa "Başarım açıldı: X" / "N başarım açıldı" — ayrı sonuç sayfası yok,
 geçiş reklamı zamanlaması / sıklığı değişmedi. Ayrıntı: docs/UI_VISUAL_SYSTEM.md §23.
 
-### 5.10 Günlük / Haftalık Görevler (TASK/046 — owner kararı, KİLİTLİ)
+### 5.10 Günlük / Haftalık Görevler (TASK/046 — owner kararı, KİLİTLİ; TASK/061 elle talep — owner kararı)
 
 Yerel / çevrimdışı görev katmanı — hesap / backend / bulut / skor tablosu / sosyal / analitik
 SDK YOK. Görev ilerlemesi YALNIZ kanonik oyun gerçeklerinden, round KESİN bitince.
@@ -1061,30 +1061,51 @@ kesinleştirme koruması; görev durumu aynı round kaydına katlanır):
   round, yinelenen kesinleştirme ve giden board'un geç sinyali HİÇBİR görev etkisi üretmez.
   Tutorial'ın tamamlanması / atlanması görev ilerletmez ve ödül vermez.
 
-**Ödül — OTOMATİK, talep butonu YOK:** görev hedefine dönemi içinde İLK kez ulaşınca ödül
-işareti + tam Hamur ödülü, round kaydının TEK yazmasında (ilerleme + işaret + Hamur; XP /
-yıldız / level ile aynı yazma). Bir görev bir dönemde en fazla bir kez ödül verir; aynı round'da
-birden çok görev tamamlanabilir ve Hamur toplanır (örn. `daily_merges` +10 + `weekly_merges` +40 =
-+50). Görev ödülü **XP, sandık, koleksiyon parçası, güç, başarım, unvan ya da reklam VERMEZ.**
+**Ödül — ELLE TALEP (ÖDÜLÜ AL) + dönem sonu teslimi (TASK/061, owner kararı — Product Vision V3 Issue #1 §5;
+TASK/046'nın otomatik ödülünün YERİNE):** durum makinesi **AKTİF → TAMAMLANDI (ALINABİLİR) → ÖDÜLÜ AL → ALINDI**.
+- **Tamamlanma Hamur VERMEZ:** görev hedefine dönemi içinde ulaşınca ilerleme hedefte sabitlenir ve görev ALINABİLİR
+  olur (ilerleme round kaydının TEK yazmasında, XP / yıldız / level ile aynı yazma — değişmedi).
+- **ÖDÜLÜ AL:** oyuncunun GÖREVLER penceresindeki geçerli dokunuşu — görev kimliği + gösterilen dönem + tamamlanma +
+  daha önce alınmamış olma doğrulanır; tam katalog ödülü (UI'dan miktar alınmaz) ve ödül işareti TEK işlemde, aynı
+  yazmada (`SaveManager.claim_mission_reward`); ilerleme değişmez. Bir görev bir dönemde en fazla bir kez ödül verir;
+  tekrar / gecikmiş / yinelenen talep ödül vermez.
+- **Dönem sonu teslimi:** gün (ya da pazartesi haftası) kapanırken TAMAMLANMIŞ ama ALINMAMIŞ görevin ödülü kaybolmaz —
+  yeni dönem açılmadan önce TAM BİR KEZ otomatik teslim edilir; eski hakların teslimi + yeni dönem + Hamur TEK yazma
+  (çökmede ya hiç ya tamamı). Teslim, dönem geçişinin açık noktalarında olur: açılış, öne dönüş, kabuk sekmesi, GÖREVLER
+  açılışı, round bitişi (o round'un yazmasına katlanır) ve ÖDÜLÜ AL (pencere gece yarısını açık geçtiyse dokunulan ödül
+  bu teslimle tam bir kez verilir). Round sürerken teslim yapılmaz. Tamamlanmamış görevin ilerlemesi ödüle DÖNÜŞMEZ;
+  alınmış görev yeniden teslim edilmez; aynı geçişin tekrar çalışması no-op; normal bir günde pencereyi açmak /
+  kapatmak / kaydırmak / rozet okumak kayda yazmaz.
+- Görev ödülü **XP, sandık, koleksiyon parçası, güç, başarım, unvan ya da reklam VERMEZ** (değişmedi).
+- *(Tarihsel — TASK/046, TASK/061 ile değiştirildi:)* "Ödül — OTOMATİK, talep butonu YOK: görev hedefine dönemi içinde
+  İLK kez ulaşınca ödül işareti + tam Hamur ödülü, round kaydının TEK yazmasında; aynı round'da birden çok görev
+  tamamlanabilir ve Hamur toplanır (örn. +10 + +40 = +50)."
 
 **Gün / hafta:** görev günü GÜNLÜK ÖDÜLLER'in kabul edilen günüdür (`DailyRewards.day_key()`:
 cihaz saati geri alınırsa görülen en yeni gün) — ayrı saat gerçeği YOK; dönem ayrıca kayıttaki
 dönemin gerisine hiç düşmez. Geri alınan saat eski bir dönemi geri getirmez, yeni ödül seti
 üretmez, tamamlanmış görevi yeniden ödüllendirmez. Saati İLERİ almak çevrimdışı oyunda
-engellenemez (günlük ödüllerle aynı bilinçli kabul; yeni anti-hile yok). **Yeni gün:** günlük
-ilerleme + ödül işaretleri sıfır, haftalık aynı haftada aynen. **Hafta PAZARTESİ başlar**
-(`week_start_day_key` = o haftanın pazartesi tarihi); yeni pazartesi haftası: haftalık sıfır.
-Ödüller otomatik olduğu için dönem sonunda bekleyen / devreden ödül yoktur.
+engellenemez (günlük ödüllerle aynı bilinçli kabul; yeni anti-hile yok). **Yeni gün:** önce kapanan günün alınmamış
+tamamlanmış ödülleri teslim edilir (yukarıda), sonra günlük ilerleme + ödül işaretleri sıfır, haftalık aynı haftada
+aynen (alınabilir haftalık görev ALINABİLİR kalır). **Hafta PAZARTESİ başlar** (`week_start_day_key` = o haftanın
+pazartesi tarihi); yeni pazartesi haftası: kapanan günün ve haftanın alınmamış ödülleri teslim, ikisi de sıfır.
+Devreden ilerleme yoktur. *(Tarihsel — TASK/046: "Ödüller otomatik olduğu için dönem sonunda bekleyen / devreden ödül
+yoktur.")*
 
 **Seri YOK:** görev serisi, haftalık seri, "mükemmel hafta", çarpan ya da yeni seri ödülü yok;
 giriş serisi (§5.4) aynen.
 
-**Kayıt:** TEK sürümlü `missions` durumu — `version` (1), `day_key`, `week_start_day_key`,
-`daily_progress` / `weekly_progress` (görev id → 0..hedef), `daily_rewarded` /
-`weekly_rewarded` (ödülü verilmiş id'ler, katalog sırası). Okuma her zaman doğrulanır
+**Kayıt:** TEK sürümlü `missions` durumu — `version` (**2**, TASK/061; sürüm 1 = TASK/046), `day_key`,
+`week_start_day_key`, `daily_progress` / `weekly_progress` (görev id → 0..hedef; hedef = tamamlandı), `daily_rewarded` /
+`weekly_rewarded` (ödülü VERİLMİŞ id'ler — ÖDÜLÜ AL ya da dönem sonu teslimi; katalog sırası). Tamamlanma ilerlemeden
+TÜRER; tamamlanmış + işaretsiz = ALINABİLİR (ayrı "alınabilir" alanı yok). Okuma her zaman doğrulanır
 (deterministik, sınırlı): sözlük değil / bilinmeyen sürüm / geçersiz gün → kabul edilen günün
-taze dönemi; bilinmeyen / öteki dönemin id'si düşer; tekrar eden ödül işareti tekilleşir;
-ilerleme 0..hedef (ödüllü = hedef, ödülsüz ≤ hedef − 1); ham dizi okuma tavanlı. UI durumu
+taze dönemi; bilinmeyen / öteki dönemin id'si düşer; tekrar eden ödül işareti tekilleşir; ödüllü = hedef; ham dizi
+okuma tavanlı. **Sürüm 1 → 2 göçü (yüklemede, yalnız bellekte):** sürüm 1'in kuralıyla okunur (ödüllü = hedef = ALINDI —
+ikinci ödül YOK; ödülsüz ≤ hedef − 1 = AKTİF, kısmi ilerleme aynen) → sürüm 1 kaydı alınabilir görev ÜRETEMEZ, eski
+kazanılmış ödül yeniden verilmez; Hamur / güç / level / yıldız / koleksiyon / başarım dokunulmaz. **Sürüm 2 ödülsüz
+ilerleme fail-closed:** yalnız 0..hedef aralığındaki sonlu sayı (JSON float aşağı yuvarlanır); negatif / hedeften büyük
+/ NaN / ±sonsuz / metin → 0 — bozuk veri alınabilir görev üretemez. UI durumu
 saklanmaz, ayrı görev dosyası yok. **Göç:** eski kayıtta görev yok → kabul edilen günün taze
 dönemi (ilerleme 0, ödül işareti yok, **Hamur verilmez, geçmiş round'lardan geriye dönük ilerleme
 UYDURULMAZ**, kutlama yok) — yalnız bellekte, sonraki doğal kayıt kalıcılaştırır; ikinci
@@ -1093,17 +1114,21 @@ fail-closed) DEĞİŞMEDİ: görev durumu normal yükün parçası, kanonik / `.
 kurtarmasıyla birlikte gelir.
 
 **Arayüz:** Ana Sayfa'da TEK kompakt giriş **GÖREVLER** + "N/6" (içinde bulunulan dönemlerde
-tamamlanan görev; 6/6'da nane rozet) — ~~üst madalyon sırasında Günlük ile Mağaza ARASINDA;
+tamamlanan görev — TASK/061: alınabilir + alınmış; 6/6 VE hepsi alınmışsa nane rozet) + TASK/061 ayrı dikkat
+rozeti (madalyonun sol üst köşesinde ÖDÜLÜ AL bekleyen görev SAYISI; 0 → yok) — ~~üst madalyon sırasında Günlük ile
+Mağaza ARASINDA;
 2+2 madalyon düzeni, maskot, OYNA, alt gezinme / beş ekran DEĞİŞMEDİ~~ → **TASK/058 Ana Sayfa V3:**
 hero'nun sol üst köşesinde ikincil madalyon (karşısında SANDIK — bonus sandık); N/6 anlamı aynen. **GÖREVLER penceresi**
 (Main'e ait, GÜNLÜK ÖDÜLLER ile aynı iskelet): GÜNLÜK + HAFTALIK bölümleri, bölüm başına 3 kart
-(görev metni, "x / y", ilerleme rayı, Hamur ödülü, tamamlanınca TAMAMLANDI), sabit ipuçları
+(görev metni, "x / y", ilerleme rayı, Hamur ödülü; TASK/061: AKTİF'te pasif ödül kutusu, ALINABİLİR'de "ÖDÜLÜ AL" CTA
+(dokunma alanı ≥ 48 dp), ALINDI'da "✓ ALINDI"; başlıkta "N / 6 GÖREV" + alınabilir sayısı), sabit ipuçları
 "Yarın yenilenir" / "Pazartesi yenilenir" (canlı sayaç yok). Android geri / X / karartma
 kapatır; açılış ve kapanış 300 ms parmak yatışmasını başlatır (TASK/045.2 dizi kuralı aynen).
-Tutorial koçluğu sırasında açılmaz. **Sonuç ekranı:** kompakt, bloklamayan rozet "GÖREV
-TAMAMLANDI · +10 HAMUR" / "2 GÖREV TAMAMLANDI · +50 HAMUR" (günlük + haftalık birlikte) —
-TASK/045 XP / seviye / başarım şeridinde; ayrı sonuç sayfası, tam ekran ödül penceresi, banner
-YOK. Ayrıntı: docs/UI_VISUAL_SYSTEM.md §24.
+Tutorial koçluğu sırasında açılmaz. **Sonuç ekranı:** kompakt, bloklamayan rozet — TASK/061: "GÖREV TAMAMLANDI" /
+"2 GÖREV TAMAMLANDI" + "ÖDÜLÜ AL" yönlendirme etiketi (Hamur miktarı YOK — ödül round'da verilmez; etiket buton değil,
+talep GÖREVLER penceresinde) — TASK/045 XP / seviye / başarım şeridinde; ayrı sonuç sayfası, tam ekran ödül penceresi,
+ikinci pencere, banner YOK. *(Tarihsel — TASK/046: "GÖREV TAMAMLANDI · +10 HAMUR" / "2 GÖREV TAMAMLANDI · +50
+HAMUR".)* Ayrıntı: docs/UI_VISUAL_SYSTEM.md §24 (TASK/061 hâli §32).
 
 **Reklam / yaş:** görevler monetizasyon yüzeyi DEĞİL — reklamla yeniden çekme / tamamlama /
 ikiye katlama yok, görev açılışında ya da tamamlanmasında geçiş reklamı yok, görev tamamlanması
@@ -1123,7 +1148,9 @@ haftalık Hamur gelirine eki:
 | tamam (parça yerine Hamur) | **+%5 … +%34** | **+%4 … +%14** |
 
 Yalnız sonsuz oynayan oyuncu level görevlerini almaz (haftada en fazla 220); level oynayan
-profillerin çoğu 330 tavanına ulaşır. Karşılığı: haftada en fazla 1-3 güç (fiyatı 100-180) ya da
+profillerin çoğu 330 tavanına ulaşır. **TASK/061:** elle talep + dönem sonu teslimi bu tavanları DEĞİŞTİRMEZ — her
+tamamlanan görev ödülünü tam bir kez alır (elle ya da dönem sonunda), haftalık toplam en fazla 330 (testle ölçüldü:
+elle + otomatik karışık bir hafta tam 330). Karşılığı: haftada en fazla 1-3 güç (fiyatı 100-180) ya da
 iki Nadir parça (150) kadar Hamur. **Hiçbir fiyat, sandık oranı, günlük ödül (+15 / ücretsiz sandık
 / reklamlı +150 / reklamlı sandık kotası), refill / devam kotası DEĞİŞMEDİ; yeniden ayar
 yapılmadı.**
