@@ -483,10 +483,10 @@ func _progression() -> void:
 	_c("  … merge sayaçları bir kez: toplam merge + 1, 75'lik bonus sayaç 74 → 0 (eşik aşıldı)",
 		int(s1["total_merges"]) == int(s0["total_merges"]) + 1 and int(s0["merges_since_bonus_chest"]) == 74
 		and int(s1["merges_since_bonus_chest"]) == 0)
-	_c("  … görev ilerlemesi bir kez: günlük tur + 1, günlük merge + 1, günlük level 1/1 (ödül verildi)",
+	_c("  … görev ilerlemesi bir kez: günlük tur + 1, günlük merge + 1, günlük level 1/1 (TASK/061: tamamlandı = alınabilir, ödül işareti YOK)",
 		_mission(s1, "daily_rounds") == _mission(s0, "daily_rounds") + 1
 		and _mission(s1, "daily_merges") == _mission(s0, "daily_merges") + 1 and _mission(s1, "daily_clear") == 1
-		and _rewarded(s1).has("daily_clear") and not _rewarded(s0).has("daily_clear"))
+		and not _rewarded(s1).has("daily_clear") and not _rewarded(s0).has("daily_clear"))
 	_c("  … sandıklar kesinleşmede TAM bir kez: sonuçta tam 2 kart (level sandığı + 75'lik bonus sandık) — deney %d, kontrol %d"
 		% [int(run["cards"]), int(control["cards"])], int(run["cards"]) == 2 and int(control["cards"]) == 2)
 	_c("  … Hamur yalnız kesinleşmenin ödülleriyle değişti: başlangıç + görev + sandık = kesinleşme sonrası (deney %s, kontrol %s)"

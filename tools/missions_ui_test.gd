@@ -1,5 +1,7 @@
 extends Node
-## TASK/046 — GÖREVLER arayüzü testi (Ana Sayfa girişi + pencere). Headless.
+## TASK/046 — GÖREVLER arayüzü testi (Ana Sayfa girişi + pencere). Headless. TASK/061 V3: kartlar AKTİF / ALINABİLİR
+## (ÖDÜLÜ AL) / ALINDI; eski "TAMAMLANDI çipi / talep butonu YOK / otomatik eklenir notu" kontrolleri V3 durumlarına
+## dönüştü (talep işlemi + gerçek girdiyle talep `tools/missions_claim_test.tscn`'de).
 ## SAHİBİN GERÇEK KAYDINA DOKUNMAZ: SaveManager test boyunca `user://qa_missions_ui/` altındaki
 ## bir yola yönlendirilir, sonda geri alınır; gerçek kayıt ailesi başta / sonda karşılaştırılır.
 ##
@@ -11,7 +13,8 @@ extends Node
 ##               N/6: 0 · kısmi · bir görev · günlükler tamam · altısı (nane rozet)
 ##   pencere     kurdele "GÖREVLER", GÜNLÜK / HAFTALIK başlıkları + sabit yenilenme ipuçları,
 ##               bölüm başına tam 3 kart (katalog sırası), metin / "x / y" / ray / "+10" / "+40",
-##               TAMAMLANDI yalnız tamamlananlarda, "N / 6" + not; talep butonu YOK (tek buton X)
+##               ALINDI yalnız alınmışlarda, "N / 6" + not "Tamamla, ödülünü al!"; AKTİF durumda basılabilir CTA YOK
+##               (tek buton X — ödül kutuları buton değil)
 ##   girdi       Android geri / X / karartma kapatır; girişe hızlı çift dokunuşun ikincisi
 ##               pencereyi kapatmaz, X'e hızlı çift dokunuşun ikincisi Ana Sayfa'ya düşmez;
 ##               yatışmadan sonra ilk dokunuş çalışır; kod yolu etkilenmez; yeniden açılış
@@ -150,8 +153,20 @@ func _entry_states() -> void:
 		_set_missions(state[1])
 		await _show_home()
 		_c("N/6 — %s → '%s'" % [state[0], state[2]], home.missions_count_text() == state[2])
+	_set_missions(_raw2({"daily_merges": 15, "daily_clear": 1}, [], {"weekly_rounds": 12}, ["weekly_rounds"]))
+	await _show_home()
+	_c("TASK/061: N/6 = tamamlanan (alınabilir + alınmış) → '3/6'; dikkat sayısı = alınabilir → '2'",
+		home.missions_count_text() == "3/6" and home.missions_attention().visible and home.missions_attention().text() == "2")
+	_set_missions(_raw2({"daily_merges": 15, "daily_rounds": 2, "daily_clear": 1}, ["daily_merges"],
+		{"weekly_merges": 120, "weekly_rounds": 12, "weekly_clears": 5}, ["weekly_merges", "weekly_rounds", "weekly_clears"]))
+	await _show_home()
+	_c("  … 6/6 ama ikisi alınmadı: rozet nane DEĞİL (altın), dikkat '2'", home.missions_count_text() == "6/6"
+		and not home.missions_badge().has_theme_stylebox_override("panel") and home.missions_attention().text() == "2")
+	_set_missions(_all_done())
+	await _show_home()
 	var badge: PanelContainer = home.missions_badge()
-	_c("6/6'da rozet nane (başarı), diğerlerinde tema altın rozeti", badge.has_theme_stylebox_override("panel")
+	_c("6/6 + hepsi alındı → rozet nane (başarı), dikkat yok; diğerlerinde tema altın rozeti", badge.has_theme_stylebox_override("panel")
+		and not home.missions_attention().visible
 		and (badge.get_theme_stylebox("panel") as StyleBoxTexture).modulate_color.is_equal_approx(UiTokens.MINT))
 	_set_missions(_raw({}, [], {}, []))
 	await _show_home()
@@ -219,13 +234,15 @@ func _overlay_content() -> void:
 			print("    kart %s: '%s' '%s' '%s' %.3f %s" % [id, card.title_text(), card.progress_text(), card.reward_text(),
 				card.rail().value, str(card.is_done_shown())])
 	_c("her kart: metin, 'x / y', ilerleme rayı, Hamur ödülü (+10 / +40); kısmi durumda TAMAMLANDI yok", cards_ok)
-	_c("üst sayaç '0 / 6' + otomatik ödül notu (talep yok)", overlay.count_text() == "0 / 6"
-		and overlay.note_text() == "Ödüller görev tamamlanınca otomatik eklenir.")
+	_c("üst sayaç '0 / 6' + kısa not 'Tamamla, ödülünü al!' (TASK/061 — eski 'otomatik eklenir' notu artık yanlış)",
+		overlay.count_text() == "0 / 6" and overlay.note_text() == "Tamamla, ödülünü al!"
+		and not overlay.claimable_badge().visible)
 	var buttons: Array[BaseButton] = []
 	for node in _all_nodes(overlay.frame()):
 		if node is BaseButton and (node as BaseButton).is_visible_in_tree():
 			buttons.append(node)
-	_c("talep butonu YOK: pencerede tek buton kapat (X)", buttons.size() == 1 and buttons[0] == overlay.close_button())
+	_c("AKTİF / kısmi durumda basılabilir CTA YOK: pencerede tek buton kapat (X), ödül kutuları buton değil",
+		buttons.size() == 1 and buttons[0] == overlay.close_button())
 	var words: Array[String] = []
 	for node in _all_nodes(overlay.frame()):
 		if node is Label and (node as Label).is_visible_in_tree():
@@ -240,32 +257,44 @@ func _overlay_content() -> void:
 	_set_missions(one)
 	await _open()
 	var clear_card: MissionCard = overlay.card(&"daily_clear")
-	_c("bir görev tamam: '1 / 6', yalnız o kartta TAMAMLANDI + dolu ray + '1 / 1'", overlay.count_text() == "1 / 6"
+	_c("bir görev tamam (sürüm 1 kökenli = ALINDI): '1 / 6', yalnız o kartta tik + dolu ray + '1 / 1'", overlay.count_text() == "1 / 6"
 		and clear_card.is_done_shown() and is_equal_approx(clear_card.rail().value, 1.0)
 		and clear_card.progress_text() == "1 / 1" and _done_count(overlay) == 1)
 	var open_card: MissionCard = overlay.card(&"daily_merges")
-	_c("çip metni 'TAMAMLANDI' (yalnız tamamlanan kartta)", clear_card.done_text() == "TAMAMLANDI"
-		and open_card.done_text() == "")
+	_c("CTA metni 'ALINDI' (yalnız alınmış kartta, pasif); açık kartta CTA yok", clear_card.cta_text() == "ALINDI"
+		and clear_card.claim_button().disabled and open_card.cta_text() == "")
 	_c("durum halkası görünür: kök Control'ün tam dikdörtgeni, gövde her yandan 3 px içeride ve üstte; tamamlananda nane, açıkta lavanta",
 		_ring_ok(clear_card, UiTokens.MINT) and _ring_ok(open_card, MissionCard.RING_OPEN))
 	overlay.close_missions(false)
 	await _wait_settled()
 	_set_missions(_raw({}, ["daily_merges", "daily_rounds", "daily_clear"], {"weekly_merges": 88}, []))
 	await _open()
-	_c("günlükler tamam: '3 / 6', üç günlük kart TAMAMLANDI (15 / 15 · 2 / 2 · 1 / 1), haftalıklar devam",
+	_c("günlükler tamam: '3 / 6', üç günlük kart ALINDI (15 / 15 · 2 / 2 · 1 / 1), haftalıklar devam",
 		overlay.count_text() == "3 / 6" and _done_count(overlay) == 3 and overlay.card(&"daily_merges").progress_text() == "15 / 15"
 		and overlay.card(&"daily_rounds").progress_text() == "2 / 2" and not overlay.card(&"weekly_merges").is_done_shown())
 	overlay.close_missions(false)
 	await _wait_settled()
 	_set_missions(_all_done())
 	await _open()
-	_c("altısı tamam: '6 / 6' altın + 'Hepsi tamam!', altı kart TAMAMLANDI", overlay.count_text() == "6 / 6"
+	_c("altısı tamam + alındı: '6 / 6' altın + 'Hepsi tamam!', altı kart ALINDI", overlay.count_text() == "6 / 6"
 		and overlay.note_text() == "Hepsi tamam!" and _done_count(overlay) == 6)
+	overlay.close_missions(false)
+	await _wait_settled()
+	# TASK/061: altısı tamam ama ikisi alınmadı → 6 / 6 altın DEĞİL, not "Tamamla, ödülünü al!", dikkat rozeti 2.
+	_set_missions(_raw2({"daily_merges": 15, "daily_rounds": 2, "daily_clear": 1}, ["daily_merges", "daily_clear"],
+		{"weekly_merges": 120, "weekly_rounds": 12, "weekly_clears": 5}, ["weekly_merges", "weekly_clears"]))
+	await _open()
+	_c("altısı tamam, ikisi ALINABİLİR: '6 / 6' + rozet '2', not 'Tamamla, ödülünü al!' (henüz 'Hepsi tamam!' değil), iki ÖDÜLÜ AL",
+		overlay.count_text() == "6 / 6" and overlay.claimable_badge().text() == "2"
+		and overlay.note_text() == "Tamamla, ödülünü al!" and overlay.card(&"daily_rounds").cta_text() == "ÖDÜLÜ AL"
+		and overlay.card(&"weekly_rounds").cta_text() == "ÖDÜLÜ AL" and _done_count(overlay) == 6)
+	_c("  … alınabilir kartta altın halka, alınmışta nane halka", _ring_ok(overlay.card(&"daily_rounds"), UiTokens.GOLD)
+		and _ring_ok(overlay.card(&"daily_merges"), UiTokens.MINT))
 	overlay.close_missions(false)
 	await _wait_settled()
 	_set_missions(_raw({}, [], {}, []))
 	await _open()
-	_c("0 ilerleme: '0 / 6', bütün raylar boş, TAMAMLANDI yok", overlay.count_text() == "0 / 6" and _done_count(overlay) == 0
+	_c("0 ilerleme: '0 / 6', bütün raylar boş, tik yok", overlay.count_text() == "0 / 6" and _done_count(overlay) == 0
 		and _rails_all(overlay, 0.0))
 	overlay.close_missions(false)
 	await _wait_settled()
@@ -446,8 +475,9 @@ func _open_over(what: String, refused: Array[String]) -> void:
 
 func _layout_all() -> void:
 	print("-- yerleşim: 320 / 360 / 390 dp + 1080×2340 + A36 üst payı")
-	_set_missions(_raw({"daily_merges": 15, "daily_rounds": 2, "daily_clear": 1}, ["daily_merges", "daily_rounds", "daily_clear"],
-		{"weekly_merges": 120, "weekly_rounds": 5}, ["weekly_merges"]))
+	# TASK/061: üç durum birlikte (ALINDI / ALINABİLİR / AKTİF, günlük + haftalık).
+	_set_missions(_raw2({"daily_merges": 15, "daily_rounds": 2, "daily_clear": 0}, ["daily_merges"],
+		{"weekly_merges": 120, "weekly_rounds": 5, "weekly_clears": 5}, ["weekly_clears"]))
 	for view in VIEWS:
 		await _resize(view)
 		await _layout_view(view, -1.0)
@@ -497,9 +527,9 @@ func _layout_view(view_size: Vector2i, safe_top: float) -> void:
 	_c("%s OYNA / level bilgisi / banner bölgesi serbest (giriş üst yarıda)" % tag,
 		(entry as HomeFeatureButton).visual_rect().end.y < home.level_info().get_global_rect().position.y
 		and rect.end.y < view.y * 0.5)
-	# Madalyonun görsel bütünü: gövde + etiket plakası + köşe rozeti (TASK/058).
+	# Madalyonun görsel bütünü: gövde + etiket plakası + köşe rozeti (TASK/058) + sol üst dikkat sayısı (TASK/061).
 	var entry_frame: Rect2 = (entry as HomeFeatureButton).visual_rect().merge(
-		(entry as HomeFeatureButton).badge_panel().get_global_rect())
+		(entry as HomeFeatureButton).badge_panel().get_global_rect()).merge(home.missions_attention().get_global_rect())
 	var entry_clip: Array[String] = []
 	for node in _all_nodes(entry):
 		if node is Label and (node as Label).is_visible_in_tree():
@@ -508,6 +538,10 @@ func _layout_view(view_size: Vector2i, safe_top: float) -> void:
 					or not entry_frame.grow(0.5).encloses(entry_label.get_global_rect()):
 				entry_clip.append(entry_label.text)
 	_c("%s giriş yazıları ('GÖREVLER', 'N/6') kırpılmıyor, madalyon içinde %s" % [tag, str(entry_clip)], entry_clip.is_empty())
+	var attention: AttentionBadge = home.missions_attention()
+	_c("%s dikkat sayısı ('%s') ekranda, üst payın altında, altın rozetle çakışmıyor" % [tag, attention.text()],
+		attention.visible and screen.encloses(attention.get_global_rect())
+		and not attention.get_global_rect().intersects((entry as HomeFeatureButton).badge_panel().get_global_rect()))
 	# Pencere.
 	var overlay: MissionsOverlay = _main._missions
 	await _open()
@@ -569,7 +603,26 @@ func _layout_view(view_size: Vector2i, safe_top: float) -> void:
 					clipped.append("%s '%s'" % [card.name, l.text])
 				if not card_rect.grow(0.5).encloses(l.get_global_rect()):
 					clipped.append("%s '%s' kart dışında" % [card.name, l.text])
-	_c("%s kırpma / taşma yok (katalog metinleri, sayaç, ödül, TAMAMLANDI) %s" % [tag, str(clipped)], clipped.is_empty())
+	_c("%s kırpma / taşma yok (katalog metinleri, sayaç, ödül kutusu, ÖDÜLÜ AL / ALINDI) %s" % [tag, str(clipped)], clipped.is_empty())
+	var cta_bad: Array[String] = []
+	for card in overlay.cards():
+		var button: MissionCard.ClaimButton = card.claim_button()
+		if card.status() == Missions.STATUS_ACTIVE:
+			if button.is_visible_in_tree() or not card.reward_box().is_visible_in_tree():
+				cta_bad.append("%s aktifte CTA" % card.name)
+			continue
+		scroll.ensure_control_visible(card)
+		await _settle(1)
+		var hit: Rect2 = button.hit_rect()
+		var hit_global := Rect2(button.get_global_rect().position + hit.position, hit.size)
+		if not button.is_visible_in_tree() or hit.size.y < float(UiTokens.TOUCH_TARGET) - 0.5 \
+				or not card.get_global_rect().grow(0.5).encloses(hit_global) \
+				or not host_node.get_global_rect().grow(1.0).encloses(button.get_global_rect()):
+			cta_bad.append("%s CTA %s" % [card.name, str(button.get_global_rect())])
+	scroll.scroll_vertical = 0
+	await _settle(1)
+	_c("%s ÖDÜLÜ AL / ALINDI CTA görünür, kartın içinde, dokunma alanı ≥ 84 (48 dp); AKTİF kartta CTA yok %s" % [tag,
+		str(cta_bad)], cta_bad.is_empty())
 	var cards_overlap: bool = false
 	var cards: Array[MissionCard] = overlay.cards()
 	for i in cards.size():
@@ -591,14 +644,14 @@ func _long_text() -> void:
 	await _open()
 	var card: MissionCard = overlay.card(&"daily_clear")
 	var width: float = card.size.x
-	var reward: Rect2 = card.find_child("Reward", true, false).get_global_rect()
+	var reward: Rect2 = card.reward_slot().get_global_rect()
 	card.title_label().text = "Çok uzun bir görev metni: birleşme, tur ve level görevlerini aynı gün içinde tamamla"
 	await _settle(3)
 	var label: Label = card.title_label()
-	_c("uzun başlık tek satırda üç noktayla kırpılır: kart genişliği aynı, ödül / TAMAMLANDI yerinde",
+	_c("uzun başlık tek satırda üç noktayla kırpılır: kart genişliği aynı, ödül yuvası / ALINDI yerinde",
 		label.clip_text and label.text_overrun_behavior == TextServer.OVERRUN_TRIM_ELLIPSIS
-		and is_equal_approx(card.size.x, width) and card.find_child("Reward", true, false).get_global_rect().is_equal_approx(reward)
-		and card.done_chip().is_visible_in_tree() and card.get_global_rect().encloses(card.done_chip().get_global_rect()))
+		and is_equal_approx(card.size.x, width) and card.reward_slot().get_global_rect().is_equal_approx(reward)
+		and card.claim_button().is_visible_in_tree() and card.get_global_rect().encloses(card.claim_button().get_global_rect()))
 	overlay.close_missions(false)
 	await _wait_settled()
 	_sections_done += 1
@@ -727,6 +780,13 @@ func _write_fixture() -> void:
 
 func _raw(daily: Dictionary, daily_rewarded: Array, weekly: Dictionary, weekly_rewarded: Array) -> Dictionary:
 	return Missions.sanitize({"version": 1, "day_key": DAY, "week_start_day_key": Missions.week_start(DAY),
+		"daily_progress": daily, "daily_rewarded": daily_rewarded, "weekly_progress": weekly,
+		"weekly_rewarded": weekly_rewarded})
+
+
+## TASK/061 sürüm 2 durumu (ödülü verilmemiş görev hedefte olabilir = ALINABİLİR).
+func _raw2(daily: Dictionary, daily_rewarded: Array, weekly: Dictionary, weekly_rewarded: Array) -> Dictionary:
+	return Missions.sanitize({"version": Missions.VERSION, "day_key": DAY, "week_start_day_key": Missions.week_start(DAY),
 		"daily_progress": daily, "daily_rewarded": daily_rewarded, "weekly_progress": weekly,
 		"weekly_rewarded": weekly_rewarded})
 

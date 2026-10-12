@@ -1,5 +1,8 @@
 extends Node
-## TASK/046 — Günlük / Haftalık Görevler V1 çekirdek testi. Headless.
+## TASK/046 — Günlük / Haftalık Görevler çekirdek testi. Headless. TASK/061: elle talebe (ÖDÜLÜ AL) uyarlandı — hedefe
+## ulaşmak artık Hamur VERMEZ (görev ALINABİLİR olur); eski "otomatik +N" kontrolleri "tamamlandı + Hamur değişmedi +
+## talep / dönem sonu teslimi tam bir kez" kontrollerine dönüştü (anlam değişikliği PROJECT_STATUS §4.41'de). Talep /
+## göç / dönem sonu teslimi / ekonomi matrisi ayrı suite'te: `tools/missions_claim_test.tscn`.
 ## SAHİBİN GERÇEK KAYDINA DOKUNMAZ: SaveManager test boyunca `user://qa_missions/` altındaki
 ## bir yola yönlendirilir (`save_path`, TASK/045.1 test dikişi) ve sonda geri alınır; gerçek
 ## kayıt ailesinin (kanonik + .tmp + .bak) baytları başta / sonda karşılaştırılır.
@@ -15,8 +18,8 @@ extends Node
 ##               ham dizi; tutarsız hafta; ödüllü = hedef; idempotent
 ##   dönem       aynı gün; ileri gün (günlük sıfır, haftalık aynen); ay / yıl sınırı; artık yıl;
 ##               pazar → pazartesi; geri alınan saat eski dönemi GETİRMEZ (gün ve hafta)
-##   ilerleme    altı görevin yolu, kısmi, tam hedef, taşma kırpılır, tek sefer ödül, günlük +
-##               haftalık aynı round (+50), altısı birden (+150), negatif / saçma büyük girdi
+##   ilerleme    altı görevin yolu, kısmi, tam hedef (alınabilir, Hamur YOK), taşma kırpılır, tek sefer tamamlanma,
+##               günlük + haftalık aynı round, altısı birden, negatif / saçma büyük girdi
 ##   kayıt       eski kayıt → taze dönem (geriye dönük ilerleme / Hamur YOK), yüklemede yazma yok,
 ##               idempotent, doğal kayıtta kalıcı; bozuk yapı; yeni oyuncu; kanonik / .tmp / .bak
 ##               kurtarması görev durumunu taşır
@@ -25,8 +28,9 @@ extends Node
 ##               (yeniden ödül yok); ileri gün / pazartesi yeni dönem ödülü
 ##   round       gerçek Main: kazanma / kayıp / tekrar / sonsuz (kazanma dahil level sayılmaz) /
 ##               terk / yeniden başlatma / süreç ölümü / bitmemiş round / yinelenen kesinleştirme
-##               / eski board; tek yazma; çoklu tamamlama + otomatik Hamur toplamı; yeni gün
-##               yeniden ödül; görev ödülü XP / başarım / unvan / yıldız / tur DEĞİŞTİRMEZ
+##               / eski board; tek yazma; çoklu tamamlama (Hamur YOK, sonuçta "ÖDÜLÜ AL" yönlendirmesi); yeni gün:
+##               önceki günün alınmamış ödülü round kaydında tam bir kez teslim; görev ödülü (talep) XP / başarım /
+##               unvan / yıldız / tur DEĞİŞTİRMEZ
 ##   tutorial    tutorial tamamlanması 0 görev; öğretim round'u (gerçek Level 1) normal kurallarla
 ##   reklam      sahte arka uçla: kesinleştirme + görev ödülü sırasında arka uç çağrısı yok, sonuç
 ##               sonrası ödüllü / geçiş gösterimi yok, sonuç ekranında banner gizli; pencere
@@ -158,7 +162,7 @@ func _catalog() -> void:
 	_c("bilinmeyen id: katalogda yok, hedef 0, ödül 0, metin boş", not Missions.is_known(&"daily_bogus")
 		and Missions.target_of(&"daily_bogus") == 0 and Missions.reward_of(&"daily_bogus") == 0
 		and Missions.title(&"daily_bogus") == "")
-	_c("sürüm 1", Missions.VERSION == 1)
+	_c("sürüm 2 (TASK/061 elle talep); sürüm 1 (TASK/046) okunur", Missions.VERSION == 2 and Missions.LEGACY_VERSION == 1)
 	_sections_done += 1
 
 
@@ -225,15 +229,15 @@ func _keys() -> void:
 func _sanitize_rules() -> void:
 	print("-- doğrulama (bozuk kayıt güvenli)")
 	var fresh: Dictionary = Missions.fresh_state(TUE)
-	_c("taze dönem: sürüm 1, gün TUE, hafta MON, 3 + 3 görev 0, ödül işareti yok", int(fresh["version"]) == 1
+	_c("taze dönem: sürüm 2, gün TUE, hafta MON, 3 + 3 görev 0, ödül işareti yok", int(fresh["version"]) == 2
 		and fresh["day_key"] == TUE and fresh["week_start_day_key"] == MON
 		and fresh["daily_progress"] == {"daily_merges": 0, "daily_rounds": 0, "daily_clear": 0}
 		and fresh["weekly_progress"] == {"weekly_merges": 0, "weekly_rounds": 0, "weekly_clears": 0}
 		and (fresh["daily_rewarded"] as Array).is_empty() and (fresh["weekly_rewarded"] as Array).is_empty())
-	var bad: Array = [null, [], "x", 5, {}, _raw(TUE, {}, [], {}, [], 2), _raw(TUE, {}, [], {}, [], 0),
+	var bad: Array = [null, [], "x", 5, {}, _raw(TUE, {}, [], {}, [], 3), _raw(TUE, {}, [], {}, [], 0),
 		{"day_key": TUE, "week_start_day_key": MON}, _raw("garbage", {}, [], {}, []), _raw("2026-02-30", {}, [], {}, [])]
 	var bad_raw: Dictionary = _raw(TUE, {}, [], {}, [])
-	bad_raw["version"] = "1"
+	bad_raw["version"] = "2"
 	bad.append(bad_raw)
 	var int_day: Dictionary = _raw(TUE, {}, [], {}, [])
 	int_day["day_key"] = 20260929
@@ -243,7 +247,7 @@ func _sanitize_rules() -> void:
 		if not Missions.sanitize(value).is_empty():
 			rejected = false
 			print("    kabul edildi: ", value)
-	_c("sözlük değil / sürüm 0-2-'1' / sürümsüz / gün bozuk → kullanılabilir dönem yok (çökme yok)", rejected)
+	_c("sözlük değil / sürüm 0-3-'2' / sürümsüz / gün bozuk → kullanılabilir dönem yok (çökme yok)", rejected)
 	var raw: Dictionary = {"version": 1.0, "day_key": TUE, "week_start_day_key": MON,
 		"daily_progress": {"daily_merges": 7.0, "daily_rounds": -3, "daily_clear": "1", "daily_bogus": 5, "weekly_merges": 50},
 		"daily_rewarded": ["weekly_merges", "bogus", 7, null],
@@ -257,12 +261,13 @@ func _sanitize_rules() -> void:
 	_c("bilinmeyen / öteki dönemin id'si ilerlemeden düştü (tam 3 anahtar)", daily.size() == 3 and not daily.has("daily_bogus")
 		and not daily.has("weekly_merges"))
 	_c("günlük ödül işareti: öteki dönem / bilinmeyen / metin olmayan düştü → boş", (clean["daily_rewarded"] as Array).is_empty())
-	_c("saçma büyük ilerleme (1e300, ödülsüz) → hedef − 1 (119); NaN → 0", weekly.get("weekly_merges", -1) == 119
+	_c("sürüm 1 kuralı: saçma büyük ilerleme (1e300, ödülsüz) → hedef − 1 (119); NaN → 0", weekly.get("weekly_merges", -1) == 119
 		and weekly.get("weekly_clears", -1) == 0)
 	_c("ödüllü görev ilerlemesi = hedef (weekly_rounds 5 → 12)", weekly.get("weekly_rounds", -1) == 12)
 	_c("tekrar eden ödül işareti tekilleşti, öteki dönem düştü → [weekly_rounds]", clean["weekly_rewarded"] == ["weekly_rounds"])
 	_c("bilinmeyen üst anahtar düştü; biçim tam 7 anahtar", not clean.has("extra") and clean.size() == 7)
-	_c("idempotent: doğrulanmışı yeniden doğrulamak aynı", Missions.sanitize(clean) == clean)
+	_c("idempotent: doğrulanmışı yeniden doğrulamak aynı (çıktı sürüm 2)", Missions.sanitize(clean) == clean
+		and int(clean["version"]) == 2)
 	var order: Dictionary = Missions.sanitize(_raw(TUE, {}, ["daily_rounds", "daily_merges", "daily_rounds"], {}, []))
 	_c("ödül işaretleri katalog sırasında, tekrarsız: [daily_merges, daily_rounds]",
 		order["daily_rewarded"] == ["daily_merges", "daily_rounds"]
@@ -351,53 +356,56 @@ func _period_rules() -> void:
 # --- 5) İlerleme ----------------------------------------------------------------------------------
 
 func _advance_rules() -> void:
-	print("-- ilerleme + otomatik ödül (saf)")
+	print("-- ilerleme (saf; TASK/061: tamamlanma Hamur vermez)")
 	var base: Dictionary = Missions.fresh_state(TUE)
 	var r1: Dictionary = Missions.advance(base, 7, 1, 0)
 	var s1: Dictionary = r1["state"]
-	_c("kısmi: merge 7 → günlük 7/15 + haftalık 7/120; tur 1/2 + 1/12; level 0; ödül yok",
+	_c("kısmi: merge 7 → günlük 7/15 + haftalık 7/120; tur 1/2 + 1/12; level 0; tamamlanan / ödül yok, sonuçta Hamur anahtarı yok",
 		s1["daily_progress"] == {"daily_merges": 7, "daily_rounds": 1, "daily_clear": 0}
 		and s1["weekly_progress"] == {"weekly_merges": 7, "weekly_rounds": 1, "weekly_clears": 0}
-		and (r1["completed"] as Array).is_empty() and int(r1["dough"]) == 0)
+		and (r1["completed"] as Array).is_empty() and not r1.has("dough") and Missions.claimable_count(s1) == 0)
 	_c("advance girdiyi değiştirmez", base == Missions.fresh_state(TUE))
 	var r2: Dictionary = Missions.advance(s1, 8, 1, 1)
 	var s2: Dictionary = r2["state"]
-	_c("tam hedef: 15 merge + 2 tur + 1 level → üç günlük görev tamamlandı (katalog sırası), +30",
-		r2["completed"] == [&"daily_merges", &"daily_rounds", &"daily_clear"] and int(r2["dough"]) == 30
-		and s2["daily_rewarded"] == ["daily_merges", "daily_rounds", "daily_clear"]
+	_c("tam hedef: 15 merge + 2 tur + 1 level → üç günlük görev tamamlandı (katalog sırası) = ALINABİLİR, ödül işareti YOK",
+		r2["completed"] == [&"daily_merges", &"daily_rounds", &"daily_clear"]
+		and (s2["daily_rewarded"] as Array).is_empty() and Missions.claimable_ids(s2) == r2["completed"]
 		and s2["daily_progress"] == {"daily_merges": 15, "daily_rounds": 2, "daily_clear": 1})
 	_c("altı görevin yolu: haftalık merge 15/120, tur 2/12, level 1/5 aynı round'dan",
 		s2["weekly_progress"] == {"weekly_merges": 15, "weekly_rounds": 2, "weekly_clears": 1})
 	var r3: Dictionary = Missions.advance(s2, 50, 1, 1)
 	var s3: Dictionary = r3["state"]
-	_c("tek sefer: tamamlanan günlük görevler yeniden ödül vermez, ilerleme hedefte kalır",
-		(r3["completed"] as Array).is_empty() and int(r3["dough"]) == 0
-		and s3["daily_progress"] == s2["daily_progress"] and s3["daily_rewarded"] == s2["daily_rewarded"])
+	_c("tek sefer: tamamlanmış (alınabilir) günlük görevler yeniden 'tamamlandı' sayılmaz, ilerleme hedefte kalır",
+		(r3["completed"] as Array).is_empty() and s3["daily_progress"] == s2["daily_progress"]
+		and s3["daily_rewarded"] == s2["daily_rewarded"] and Missions.claimable_count(s3) == 3)
 	_c("haftalık ilerlemeye devam: merge 65, tur 3, level 2", s3["weekly_progress"] == {"weekly_merges": 65,
 		"weekly_rounds": 3, "weekly_clears": 2})
 	var near: Dictionary = Missions.sanitize(_raw(TUE, {"daily_merges": 14}, [], {"weekly_merges": 119}, []))
 	var pair: Dictionary = Missions.advance(near, 1, 0, 0)
-	_c("örnek (brief): daily_merges +10 + weekly_merges +40 aynı round → +50", pair["completed"] == [&"daily_merges", &"weekly_merges"]
-		and int(pair["dough"]) == 50)
+	_c("günlük + haftalık aynı round: daily_merges + weekly_merges tamamlandı (ikisi de alınabilir, Hamur yok)",
+		pair["completed"] == [&"daily_merges", &"weekly_merges"]
+		and Missions.claimable_ids(pair["state"]) == [&"daily_merges", &"weekly_merges"])
 	var edge: Dictionary = Missions.sanitize(_raw(TUE, {"daily_merges": 14, "daily_rounds": 1}, [],
 		{"weekly_merges": 119, "weekly_rounds": 11, "weekly_clears": 4}, []))
 	var all_six: Dictionary = Missions.advance(edge, 1, 1, 1)
-	_c("altı görev tek round'da: 6 tamamlama, 3·10 + 3·40 = +150", (all_six["completed"] as Array).size() == 6
-		and int(all_six["dough"]) == 150 and Missions.completed_count(all_six["state"]) == 6)
+	_c("altı görev tek round'da: 6 tamamlama (6/6), altısı alınabilir — talep edilince 3·10 + 3·40 = 150",
+		(all_six["completed"] as Array).size() == 6 and Missions.completed_count(all_six["state"]) == 6
+		and Missions.claimable_count(all_six["state"]) == 6
+		and 3 * Missions.reward_of(&"daily_merges") + 3 * Missions.reward_of(&"weekly_merges") == 150)
 	var over: Dictionary = Missions.advance(Missions.fresh_state(TUE), 1000, 0, 0)
-	_c("taşma kırpılır: 1000 merge → 15/15 + 120/120, iki ödül (+50), tur / level ilerlemedi",
+	_c("taşma kırpılır: 1000 merge → 15/15 + 120/120, iki tamamlama, tur / level ilerlemedi",
 		over["state"]["daily_progress"]["daily_merges"] == 15 and over["state"]["weekly_progress"]["weekly_merges"] == 120
-		and int(over["dough"]) == 50 and over["state"]["daily_progress"]["daily_rounds"] == 0)
+		and (over["completed"] as Array).size() == 2 and over["state"]["daily_progress"]["daily_rounds"] == 0)
 	var neg: Dictionary = Missions.advance(Missions.fresh_state(TUE), -5, -1, -3)
-	_c("negatif girdi hiçbir şeyi değiştirmez", neg["state"] == Missions.fresh_state(TUE) and int(neg["dough"]) == 0)
+	_c("negatif girdi hiçbir şeyi değiştirmez", neg["state"] == Missions.fresh_state(TUE) and (neg["completed"] as Array).is_empty())
 	var massive: Dictionary = Missions.advance(Missions.fresh_state(TUE), 9223372036854775000, 0, 0)
 	_c("saçma büyük merge sayısı int taşırmaz: 15 / 120 hedefte", massive["state"]["daily_progress"]["daily_merges"] == 15
 		and massive["state"]["weekly_progress"]["weekly_merges"] == 120)
 	var late: Dictionary = Missions.advance(Missions.sanitize(_raw(TUE, {"daily_merges": 14}, ["daily_rounds"], {}, [])), 1, 0, 0)
-	_c("sonradan tamamlanan görev yine katalog sırasına girer: [daily_merges, daily_rounds]",
-		late["state"]["daily_rewarded"] == ["daily_merges", "daily_rounds"])
+	_c("sonradan tamamlanan görev alınabilir olur; ödül işaretleri değişmez ([daily_rounds])",
+		late["state"]["daily_rewarded"] == ["daily_rounds"] and Missions.claimable_ids(late["state"]) == [&"daily_merges"])
 	_c("boş durum (dönem yok) no-op", Missions.advance({}, 5, 1, 1)["state"].is_empty()
-		and int(Missions.advance({}, 5, 1, 1)["dough"]) == 0)
+		and (Missions.advance({}, 5, 1, 1)["completed"] as Array).is_empty())
 	_sections_done += 1
 
 
@@ -422,13 +430,13 @@ func _persistence() -> void:
 	_c("ikinci yükleme: aynı durum, yine yazma yok", SaveManager.data["missions"] == memory and _bytes(PATH) == bytes)
 	SaveManager.save_game()
 	var disk: Dictionary = _disk()
-	_c("doğal kayıt görev durumunu kalıcılaştırdı (sürüm 1, gün TUE, hafta MON)", Missions.sanitize(disk.get("missions"))
-		== memory and int((disk["missions"] as Dictionary)["version"]) == 1)
+	_c("doğal kayıt görev durumunu kalıcılaştırdı (sürüm 2, gün TUE, hafta MON)", Missions.sanitize(disk.get("missions"))
+		== memory and int((disk["missions"] as Dictionary)["version"]) == 2)
 	SaveManager.load_game()
 	_c("kalıcı kayıttan yükleme: aynı durum (kanonik)", SaveManager.data["missions"] == memory
 		and SaveManager.load_source() == SaveFile.Source.CANONICAL)
 
-	for bad: Variant in ["bozuk", [], 7, {"version": 2, "day_key": TUE}, {"version": 1, "day_key": "dün"}]:
+	for bad: Variant in ["bozuk", [], 7, {"version": 3, "day_key": TUE}, {"version": 1, "day_key": "dün"}]:
 		_write(PATH, _legacy({"missions": bad}))
 		bytes = _bytes(PATH)
 		SaveManager.load_game()
@@ -456,8 +464,9 @@ func _persistence() -> void:
 	# Kurtarma: görev durumu normal yükün parçası (SaveFile aynen).
 	SaveManager.record_mission_round(3, false)
 	var gen2: Dictionary = SaveManager.data["missions"].duplicate(true)
-	_c("ön koşul: 5 + 3 merge = 8, 2 tur → daily_rounds tamamlandı (+10)", gen2["daily_progress"]["daily_merges"] == 8
-		and gen2["daily_rewarded"] == ["daily_rounds"] and SaveManager.dough() == none_dough + 10)
+	_c("ön koşul: 5 + 3 merge = 8, 2 tur → daily_rounds tamamlandı (alınabilir, Hamur yok)", gen2["daily_progress"]["daily_merges"] == 8
+		and (gen2["daily_rewarded"] as Array).is_empty() and gen2["daily_progress"]["daily_rounds"] == 2
+		and SaveManager.dough() == none_dough)
 	SaveManager.load_game()
 	_c("kanonik: kaynak CANONICAL, görev durumu aynı", SaveManager.load_source() == SaveFile.Source.CANONICAL
 		and SaveManager.data["missions"] == gen2)
@@ -495,12 +504,14 @@ func _clock() -> void:
 	_c("saat geri alındı (WED): DailyRewards ve görevler yine FRI", DailyRewards.day_key() == FRI
 		and Missions.accepted_day() == FRI and SaveManager.missions_state()["day_key"] == FRI)
 	var second: Dictionary = SaveManager.record_mission_round(1, false)
-	_c("aynı (FRI) dönemde ikinci tur daily_rounds'u tamamlar (+10, meşru)", second["completed"] == [&"daily_rounds"]
-		and SaveManager.dough() == dough0 + 10)
+	var paid: Dictionary = SaveManager.claim_mission_reward(&"daily_rounds", FRI)
+	_c("aynı (FRI) dönemde ikinci tur daily_rounds'u tamamlar; ÖDÜLÜ AL +10 (meşru)", second["completed"] == [&"daily_rounds"]
+		and int(paid["result"]) == Missions.Claim.CLAIMED and SaveManager.dough() == dough0 + 10)
 	var third: Dictionary = SaveManager.record_mission_round(1, false)
-	_c("geri alınmış saatte yeni tur yeniden ödül VERMEZ; eski dönem (WED) geri gelmez",
-		(third["completed"] as Array).is_empty() and SaveManager.dough() == dough0 + 10
-		and SaveManager.missions_state()["day_key"] == FRI)
+	var again_paid: Dictionary = SaveManager.claim_mission_reward(&"daily_rounds", FRI)
+	_c("geri alınmış saatte yeni tur yeniden tamamlamaz / ödül VERMEZ; eski dönem (WED) geri gelmez",
+		(third["completed"] as Array).is_empty() and int(again_paid["result"]) == Missions.Claim.ALREADY_CLAIMED
+		and SaveManager.dough() == dough0 + 10 and SaveManager.missions_state()["day_key"] == FRI)
 	# Görev günü "en yeni gün"ün ilerisinde (kesinleşme gece yarısını geçti, öne dönüş yok) + saat geri.
 	var raw_daily: Dictionary = (SaveManager.data["daily_rewards"] as Dictionary).duplicate()
 	raw_daily["last_seen_day_key"] = TUE
@@ -528,7 +539,8 @@ func _clock() -> void:
 	var dough1: int = SaveManager.dough()
 	SaveManager.record_mission_round(0, false)
 	var again: Dictionary = SaveManager.record_mission_round(0, false)
-	_c("yeni dönem ödülü: SAT'ta daily_rounds yeniden tamamlandı (+10)", again["completed"] == [&"daily_rounds"]
+	SaveManager.claim_mission_reward(&"daily_rounds", SAT)
+	_c("yeni dönem ödülü: SAT'ta daily_rounds yeniden tamamlandı, ÖDÜLÜ AL +10", again["completed"] == [&"daily_rounds"]
 		and SaveManager.dough() == dough1 + 10)
 	# Pazar → pazartesi: haftalık yeni dönem.
 	DailyRewards.clock_override = SUN
@@ -536,17 +548,22 @@ func _clock() -> void:
 	for i in 6:
 		SaveManager.record_mission_round(0, false)
 	var sun_state: Dictionary = SaveManager.missions_state()
-	_c("ön koşul: pazar haftalık tur 12/12 tamamlandı (weekly_rounds ödüllü)", sun_state["weekly_rewarded"] == ["weekly_rounds"])
+	_c("ön koşul: pazar haftalık tur 12/12 + günlük tur 2/2 tamamlandı, ikisi de ALINMADI",
+		Missions.claimable_ids(sun_state) == [&"daily_rounds", &"weekly_rounds"])
 	DailyRewards.clock_override = NEXT_MON
 	DailyRewards.observe_day()
 	var mon_state: Dictionary = SaveManager.missions_state()
 	_c("pazartesi: haftalık ilerleme + ödül işareti sıfır, hafta 10-05", _zero(mon_state, WEEKLY)
 		and mon_state["week_start_day_key"] == NEXT_MON)
 	var week_dough: int = SaveManager.dough()
-	for i in 12:
+	var first_mon: Dictionary = SaveManager.record_mission_round(0, false)
+	_c("pazartesinin ilk round'u pazarın alınmamış iki ödülünü TAM BİR KEZ teslim etti (+10 + 40 = +50)",
+		first_mon["auto_claimed"] == [&"daily_rounds", &"weekly_rounds"] and int(first_mon["dough"]) == 50
+		and SaveManager.dough() == week_dough + 50)
+	for i in 11:
 		SaveManager.record_mission_round(0, false)
-	_c("yeni hafta ödülü: weekly_rounds yeniden tamamlandı (+40, + günlük tur +10)",
-		SaveManager.missions_state()["weekly_rewarded"] == ["weekly_rounds"] and SaveManager.dough() == week_dough + 50)
+	_c("yeni hafta: weekly_rounds yeniden tamamlandı (alınabilir), ikinci teslim / Hamur YOK",
+		Missions.is_claimable(SaveManager.missions_state(), &"weekly_rounds") and SaveManager.dough() == week_dough + 50)
 	# Yeni hafta kabul edildikten sonra saat önceki haftaya: hafta geri gitmez.
 	raw_daily = (SaveManager.data["daily_rewards"] as Dictionary).duplicate()
 	raw_daily["last_seen_day_key"] = ""
@@ -599,18 +616,18 @@ func _round_flow() -> void:
 	var title0: StringName = SaveManager.selected_title_id()
 	await _finish_round(level_2, true, 12, level_2.star_3_threshold())
 	var s: Dictionary = SaveManager.missions_state()
-	_c("kazanma: merge 12/15 + 12/120, tur 1/2 + 1/12, level 1/1 (tamam) + 1/5",
+	_c("kazanma: merge 12/15 + 12/120, tur 1/2 + 1/12, level 1/1 (tamam, alınabilir) + 1/5",
 		s["daily_progress"] == {"daily_merges": 12, "daily_rounds": 1, "daily_clear": 1}
 		and s["weekly_progress"] == {"weekly_merges": 12, "weekly_rounds": 1, "weekly_clears": 1}
-		and s["daily_rewarded"] == ["daily_clear"])
+		and (s["daily_rewarded"] as Array).is_empty() and Missions.claimable_ids(s) == [&"daily_clear"])
 	_c("görev durumu round kaydında diskte (senkron kesinleşme)", Missions.sanitize(_disk().get("missions")) == SaveManager.data["missions"])
 	await _wait_result()
 	var summary: Dictionary = _main._result.progress_summary().get("missions", {})
-	_c("sonuç özeti: tamamlanan [daily_clear], +10", summary.get("completed", []) == [&"daily_clear"]
-		and int(summary.get("dough", -1)) == 10)
-	_c("sonuç şeridi 'GÖREV TAMAMLANDI · +10 HAMUR'", _main._result.progress_strip().mission_text()
-		== "GÖREV TAMAMLANDI · +10 HAMUR")
-	_c("Hamur = başlangıç + görev 10 + sandık Hamur'u (otomatik, talep yok)", SaveManager.dough() == dough0 + 10 + _chest_dough())
+	_c("sonuç özeti: tamamlanan [daily_clear], round Hamur'u 0 (dönem teslimi yok)", summary.get("completed", []) == [&"daily_clear"]
+		and int(summary.get("dough", -1)) == 0)
+	_c("sonuç şeridi 'GÖREV TAMAMLANDI · ÖDÜLÜ AL'", _main._result.progress_strip().mission_text()
+		== "GÖREV TAMAMLANDI · ÖDÜLÜ AL")
+	_c("Hamur = başlangıç + yalnız sandık Hamur'u (görev Hamur'u round'da VERİLMEZ)", SaveManager.dough() == dough0 + _chest_dough())
 	_c("görev XP VERMEZ: XP farkı yalnız round ödülü (12 + 20 + 3·10 = 62)", SaveManager.player_xp() - xp0 == 62
 		and SaveManager.player_xp() - xp0 == PlayerProgression.round_xp_award(12, true, 0, 3))
 	_c("görev unvan değiştirmez", SaveManager.selected_title_id() == title0)
@@ -631,13 +648,13 @@ func _round_flow() -> void:
 	var dough2: int = SaveManager.dough()
 	await _finish_round(level_2, true, 5, level_2.star_3_threshold())
 	s = SaveManager.missions_state()
-	_c("tekrar kazanma: haftalık level 2/5 (tekrar sayılır), günlük merge 17 → 15 tamam, tur 2/2 tamam",
+	_c("tekrar kazanma: haftalık level 2/5 (tekrar sayılır), günlük merge 17 → 15 tamam, tur 2/2 tamam (üç günlük alınabilir)",
 		s["weekly_progress"]["weekly_clears"] == 2 and s["daily_progress"]["daily_merges"] == 15
-		and s["daily_rewarded"] == ["daily_merges", "daily_rounds", "daily_clear"])
+		and Missions.claimable_ids(s) == [&"daily_merges", &"daily_rounds", &"daily_clear"])
 	await _wait_result()
-	_c("iki günlük görev aynı round: '2 GÖREV TAMAMLANDI · +20 HAMUR'",
-		_main._result.progress_strip().mission_text() == "2 GÖREV TAMAMLANDI · +20 HAMUR"
-		and SaveManager.dough() == dough2 + 20 + _chest_dough())
+	_c("iki günlük görev aynı round: '2 GÖREV TAMAMLANDI · ÖDÜLÜ AL', Hamur yalnız sandık",
+		_main._result.progress_strip().mission_text() == "2 GÖREV TAMAMLANDI · ÖDÜLÜ AL"
+		and SaveManager.dough() == dough2 + _chest_dough())
 	await _leave()
 
 	# d) Kayıp: merge + tur sayılır, level sayılmaz.
@@ -723,11 +740,13 @@ func _round_flow() -> void:
 	SaveManager.data["missions"] = Missions.sanitize(_raw(TUE, {}, ["daily_merges", "daily_rounds", "daily_clear"],
 		{"weekly_rounds": 11}, []))
 	SaveManager.record_mission_round(0, false, false)
-	_c("save=false: görev ilerlemesi + Hamur yalnız bellekte, disk DOKUNULMADI", _bytes(PATH) == one_disk
-		and SaveManager.dough() == one_dough + 40 and SaveManager.data["missions"]["weekly_rewarded"] == ["weekly_rounds"])
+	_c("save=false: görev ilerlemesi yalnız bellekte (weekly_rounds 12/12 alınabilir), Hamur aynı, disk DOKUNULMADI",
+		_bytes(PATH) == one_disk and SaveManager.dough() == one_dough
+		and (SaveManager.data["missions"]["weekly_rewarded"] as Array).is_empty()
+		and SaveManager.data["missions"]["weekly_progress"]["weekly_rounds"] == 12)
 	SaveManager.record_round_finished(0, 0)
 	var one: Dictionary = _disk()
-	_c("round kaydı görev durumunu + görev Hamur'unu TEK yazmada indirdi", int(one.get("dough", -1)) == one_dough + 40
+	_c("round kaydı görev durumunu TEK yazmada indirdi (Hamur değişmedi)", int(one.get("dough", -1)) == one_dough
 		and Missions.sanitize(one.get("missions")) == SaveManager.data["missions"])
 
 	# k) Çoklu tamamlama + otomatik toplam (gerçek Main).
@@ -737,30 +756,34 @@ func _round_flow() -> void:
 	await _finish_round(level_2, false, 1, 10)
 	await _wait_result()
 	summary = _main._result.progress_summary().get("missions", {})
-	_c("günlük + haftalık aynı round: [daily_merges, weekly_merges], +50", summary.get("completed", []) == [&"daily_merges",
-		&"weekly_merges"] and int(summary.get("dough", -1)) == 50)
-	_c("sonuç şeridi '2 GÖREV TAMAMLANDI · +50 HAMUR'; Hamur = +50 + teselli 5",
-		_main._result.progress_strip().mission_text() == "2 GÖREV TAMAMLANDI · +50 HAMUR"
-		and SaveManager.dough() == multi_dough + 50 + _chest_dough() and _chest_dough() == ChestSystem.CONSOLATION_DOUGH)
+	_c("günlük + haftalık aynı round: [daily_merges, weekly_merges], round Hamur'u 0", summary.get("completed", []) == [&"daily_merges",
+		&"weekly_merges"] and int(summary.get("dough", -1)) == 0)
+	_c("sonuç şeridi '2 GÖREV TAMAMLANDI · ÖDÜLÜ AL'; Hamur = yalnız teselli 5",
+		_main._result.progress_strip().mission_text() == "2 GÖREV TAMAMLANDI · ÖDÜLÜ AL"
+		and SaveManager.dough() == multi_dough + _chest_dough() and _chest_dough() == ChestSystem.CONSOLATION_DOUGH)
 	await _leave()
 	SaveManager.data["missions"] = Missions.sanitize(_raw(TUE, {"daily_merges": 14, "daily_rounds": 1}, [],
 		{"weekly_merges": 119}, []))
 	SaveManager.save_game()
 	await _finish_round(level_2, false, 2, 10)
 	await _wait_result()
-	_c("üç görev (2 günlük + 1 haftalık): '3 GÖREV TAMAMLANDI · +60 HAMUR'",
-		_main._result.progress_strip().mission_text() == "3 GÖREV TAMAMLANDI · +60 HAMUR")
+	_c("üç görev (2 günlük + 1 haftalık): '3 GÖREV TAMAMLANDI · ÖDÜLÜ AL'",
+		_main._result.progress_strip().mission_text() == "3 GÖREV TAMAMLANDI · ÖDÜLÜ AL")
 	await _leave()
 
-	# l) Yeni gün: aynı görev yeniden ödül verir.
+	# l) Yeni gün: önceki günün alınmamış ödülleri round kaydında teslim edilir, aynı görev yeniden tamamlanabilir.
 	DailyRewards.clock_override = WED
 	var wed_dough: int = SaveManager.dough()
 	await _finish_round(level_2, true, 0, level_2.star_3_threshold())
 	s = SaveManager.missions_state()
-	_c("yeni gün (WED): günlük dönem sıfırdan, level görevi yeniden tamamlandı (+10)", s["day_key"] == WED
-		and s["daily_rewarded"] == ["daily_clear"] and s["daily_progress"]["daily_merges"] == 0)
+	_c("yeni gün (WED): günlük dönem sıfırdan, level görevi yeniden tamamlandı (alınabilir)", s["day_key"] == WED
+		and Missions.claimable_ids(s).has(&"daily_clear") and (s["daily_rewarded"] as Array).is_empty()
+		and s["daily_progress"]["daily_merges"] == 0)
 	await _wait_result()
-	_c("  … Hamur +10 + sandık", SaveManager.dough() == wed_dough + 10 + _chest_dough())
+	summary = _main._result.progress_summary().get("missions", {})
+	_c("  … TUE'nin alınmamış iki günlük ödülü (merge + tur) round kaydında TAM BİR KEZ teslim: +20 + sandık",
+		summary.get("auto_claimed", []) == [&"daily_merges", &"daily_rounds"] and int(summary.get("dough", -1)) == 20
+		and SaveManager.dough() == wed_dough + 20 + _chest_dough())
 	await _leave()
 
 	# m) Görev ödülü XP / başarım / unvan / yıldız / sayaç / sandık DEĞİŞTİRMEZ.
@@ -774,15 +797,21 @@ func _round_flow() -> void:
 		"login": SaveManager.last_login_date()}
 	var big_dough: int = SaveManager.dough()
 	var big: Dictionary = SaveManager.record_mission_round(1, true)
-	_c("beş görev tek kayıtta: +10 +10 +40 +40 +40 = +140 Hamur", (big["completed"] as Array).size() == 5
-		and int(big["dough"]) == 140 and SaveManager.dough() == big_dough + 140)
+	var claimed_total: int = 0
+	for id: StringName in big["completed"]:
+		claimed_total += int(SaveManager.claim_mission_reward(id, Missions.period_key_of(SaveManager.missions_state(),
+			Missions.find(id)["period"]))["claimed_dough"])
+	_c("beş görev tek kayıtta tamamlandı (Hamur yok); beş ÖDÜLÜ AL: +10 +10 +40 +40 +40 = +140 Hamur",
+		(big["completed"] as Array).size() == 5 and int(big["dough"]) == 0 and claimed_total == 140
+		and SaveManager.dough() == big_dough + 140)
 	var after: Dictionary = {"xp": SaveManager.player_xp(), "ach": SaveManager.unlocked_achievements(),
 		"title": SaveManager.selected_title_id(), "stars": SaveManager.data["level_stars"].duplicate(),
 		"rounds": SaveManager.total_rounds_played(), "merges": SaveManager.total_merges(),
 		"skins": SaveManager.owned_skins().duplicate(), "powers": SaveManager.data["powerups"].duplicate(),
 		"level": SaveManager.highest_level_unlocked(), "streak": SaveManager.daily_streak(),
 		"login": SaveManager.last_login_date()}
-	_c("görev ödülü: XP / başarım / unvan / yıldız / tur / merge / parça / güç / level / giriş serisi AYNEN", after == snapshot)
+	_c("görev ödülü (round + talepler): XP / başarım / unvan / yıldız / tur / merge / parça / güç / level / giriş serisi AYNEN",
+		after == snapshot)
 	await _teardown_main()
 	_sections_done += 1
 
@@ -811,12 +840,12 @@ func _tutorial_round() -> void:
 	_main._board._finish(true)
 	await _settle(1)
 	var s: Dictionary = SaveManager.missions_state()
-	_c("öğretim round'u (gerçek Level 1) kazanıldı: merge 3, tur 1, level görevi tamam", s["daily_progress"] == {
-		"daily_merges": 3, "daily_rounds": 1, "daily_clear": 1} and s["daily_rewarded"] == ["daily_clear"]
+	_c("öğretim round'u (gerçek Level 1) kazanıldı: merge 3, tur 1, level görevi tamam (alınabilir)", s["daily_progress"] == {
+		"daily_merges": 3, "daily_rounds": 1, "daily_clear": 1} and Missions.claimable_ids(s) == [&"daily_clear"]
 		and s["weekly_progress"]["weekly_clears"] == 1)
 	await _wait_result()
 	_c("sonuç ekranında görev rozeti (tutorial yüzeyinde değil)", _main._result.progress_strip().mission_text()
-		== "GÖREV TAMAMLANDI · +10 HAMUR" and not _main.is_tutorial_active())
+		== "GÖREV TAMAMLANDI · ÖDÜLÜ AL" and not _main.is_tutorial_active())
 	_main._result.hide_result()
 	_main._on_exit_pressed()
 	await _settle(2)
@@ -867,15 +896,15 @@ func _ads_and_sources() -> void:
 	var interstitial_shows: int = fake.interstitial_shows.size()
 	AdEvents.clear_recent()
 	_main._board._finish(true)
-	_c("görev tamamlayan kesinleşme (level görevi +10) sırasında reklam arka ucuna ÇAĞRI YOK, reklam olayı YOK",
-		SaveManager.missions_state()["daily_rewarded"] == ["daily_clear"] and fake.calls.size() == before_finish
+	_c("görev tamamlayan kesinleşme (level görevi alınabilir) sırasında reklam arka ucuna ÇAĞRI YOK, reklam olayı YOK",
+		Missions.is_claimable(SaveManager.missions_state(), &"daily_clear") and fake.calls.size() == before_finish
 		and AdEvents.recent().is_empty())
 	await _wait_result()
 	_c("sonuç sonrası ödüllü talep / gösterim ya da geçiş gösterimi yok (görev reklam tetiklemez)",
 		fake.rewarded_shows.size() == rewarded_shows and fake.interstitial_shows.size() == interstitial_shows
 		and AdEvents.count(&"rewarded_requested") == 0 and AdEvents.count(&"rewarded_showed") == 0
 		and AdEvents.count(&"interstitial_showed") == 0
-		and _main._result.progress_strip().mission_text() == "GÖREV TAMAMLANDI · +10 HAMUR")
+		and _main._result.progress_strip().mission_text() == "GÖREV TAMAMLANDI · ÖDÜLÜ AL")
 	_c("görev bildirimli sonuç ekranı: yüzey RESULT, banner gizli, yeni banner gösterimi yok",
 		ads.surface() == MonetizationManager.Surface.RESULT and ads.banner_state() != MonetizationManager.BannerState.SHOWN
 		and fake.banner_shows.size() == shows)
@@ -941,7 +970,7 @@ func _ads_and_sources() -> void:
 
 ## Ham görev durumu (kayıt biçimi). Hafta günün pazartesisi.
 func _raw(day: String, daily: Dictionary, daily_rewarded: Array, weekly: Dictionary, weekly_rewarded: Array,
-		version: int = 1) -> Dictionary:
+		version: int = Missions.VERSION) -> Dictionary:
 	return {"version": version, "day_key": day, "week_start_day_key": Missions.week_start(day),
 		"daily_progress": daily.duplicate(), "daily_rewarded": daily_rewarded.duplicate(),
 		"weekly_progress": weekly.duplicate(), "weekly_rewarded": weekly_rewarded.duplicate()}

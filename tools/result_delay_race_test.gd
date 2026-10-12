@@ -536,9 +536,9 @@ func _progression() -> void:
 		int(s1["total_rounds_played"]) == int(s0["total_rounds_played"]) + 1
 		and int(s1["player_xp"]) == int(s0["player_xp"]) + award and int(s1["highest_level_unlocked"]) == 6
 		and int(s0["highest_level_unlocked"]) == 5 and int((s1["level_stars"] as Dictionary).get("5", 0)) == stars)
-	_c("  … görev ilerlemesi bir kez: günlük tur + 1, günlük level 1/1 (ödül verildi)",
+	_c("  … görev ilerlemesi bir kez: günlük tur + 1, günlük level 1/1 (TASK/061: tamamlandı = alınabilir, ödül işareti YOK)",
 		_mission(s1, "daily_rounds") == _mission(s0, "daily_rounds") + 1 and _mission(s1, "daily_clear") == 1
-		and _rewarded(s1).has("daily_clear") and not _rewarded(s0).has("daily_clear"))
+		and not _rewarded(s1).has("daily_clear") and not _rewarded(s0).has("daily_clear"))
 	var keys: Array[String] = ["player_xp", "total_rounds_played", "highest_level_unlocked", "level_stars", "missions",
 		"total_merges", "merges_since_bonus_chest", "highest_tier_created", "endless_high_score"]
 	var same_delta: bool = true
