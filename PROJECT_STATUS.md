@@ -156,15 +156,19 @@ ve doküman eşitlemesi sırasında yeniden koşulmadı (§4.39) · **TASK/060 G
 `task/060-gameplay-hud-v3-rewarded-powers` = `27b60e5` duruyor); tam masaüstü kapısı `27b60e5` (59 / 59, 7601 kontrol, 0 FAIL,
 bot 2 / 2) ve gerçek Samsung A36 cihaz kapısı (üretim kodu `8924974`) entegrasyondan ÖNCE geçti — entegrasyon ve doküman
 eşitlemesi sırasında yeniden koşulmadı (§4.40) · güç başına 2/gün ödüllü kota (eski ortak 1/gün yalnız tarihsel) ·
-**TASK/061 Günlük & Görevler V3 — DAL AŞAMASI: owner görsel APPROVED + elle Samsung A36 PASS + kayıt güvenliği
-VERIFIED** (dal `task/061-daily-missions-v3`, main'de DEĞİL — main entegrasyonu ayrı owner onayı; sertleştirme
-`b26e63a`, tam kapı `b26e63a` 60 / 60 temiz, 7906 kontrol, 0 FAIL, 0 SCRIPT ERROR, bot 2 / 2; takip `a46c42c` yalnız
-test — §4.41) · TASK/062 ekonomi değerlendirmesi PENDING · Release PAUSED.
+**TASK/061 Günlük & Görevler V3 — TAMAM + MAIN** — owner görsel onayı + elle Samsung A36 testi APPROVED / PASS
+(2026-10-12; yalnız TASK/061) + kayıt güvenliği sertleştirmesi COMPLETE; owner onayıyla ff-only `60f6202 → fab7095`
+(2026-10-12; merge commit / rebase / squash / cherry-pick / force push YOK; dal `task/061-daily-missions-v3` = `fab7095`
+duruyor); tam masaüstü kapısı `b26e63a` (60 / 60, 7906 kontrol, 0 FAIL, 0 SCRIPT ERROR, bot 2 / 2) + takip `a46c42c`
+odak koşusu (5 / 5, 989 kontrol) entegrasyondan ÖNCE geçti — entegrasyon ve doküman eşitlemesi sırasında yeniden
+koşulmadı (§4.41) · TASK/062 BAŞLAMADI (ekonomi değerlendirmesi PENDING) · Release PAUSED.
 Release izi ayrı. Sırada: içerik derecesi + yargı bölgesi kararları + 13+ seçici uyum riski (owner) → gizlilik
 politikası → upload anahtarı → gerçek AdMob kimlikleri → mağaza varlıkları / Play Console,
 sonra ilk imzalı üretim AAB'si ve M10 (Play kapalı test) ·
-**Branch / main:** TASK/061 dalı `task/061-daily-missions-v3` (main `60f6202`'den; main'e ALINMADI — owner görsel +
-elle A36 onaylı, main entegrasyonu ayrı onay; §4.41) · `main` == origin/main ⊇ `27b60e5` (TASK/060 entegrasyon
+**Branch / main:** `main` == origin/main ⊇ `fab7095` (TASK/061 entegrasyon çapası) + doğrudan main'de doküman
+eşitlemesi — TASK/061 `task/061-daily-missions-v3` (main `60f6202`'den; 10 commit `dc4a923` … `a46c42c` son üretim /
+test adayı · `5a69699` / `fab7095` yalnız doküman) owner onayıyla ff-only `60f6202 → fab7095` (2026-10-12; merge
+commit / rebase / squash / cherry-pick / force push YOK; dal duruyor; §4.41) · önce `27b60e5` (TASK/060 entegrasyon
 çapası) + `docs/060-main-sync` doküman
 eşitlemesi — TASK/060 `task/060-gameplay-hud-v3-rewarded-powers` (main `75fe3f3`'ten; 9 commit `5a4bca2` … `8924974` cihazda
 doğrulanan son üretim kodu · `27b60e5` yalnız test, tam kapı adayı · `9564dd1` dal-aşaması doküman) owner onayıyla ff-only
@@ -3893,9 +3897,15 @@ Profil / Ayarlar TASK/064.
   `default_bus_layout.tres`, `project.godot`, `export_presets.cfg`, `OWNER_WORKING_PROFILE.md`, `_visual_source` 13 738
   dosya) entegrasyon boyunca bayt-aynı; testler yeniden koşulmadı.
 
-### 4.41 Günlük & Görevler V3 — ÖDÜLÜ AL + dönem sonu teslimi (TASK/061) — DAL AŞAMASI / OWNER GÖRSEL + A36 ONAYLI
+### 4.41 Günlük & Görevler V3 — ÖDÜLÜ AL + dönem sonu teslimi (TASK/061) — TAMAM + MAIN
 
-> **DAL AŞAMASI (2026-10-12).** Dal `task/061-daily-missions-v3` (taban `60f6202` = main = origin/main); main DEĞİŞMEDİ,
+> **TAMAM + MAIN (2026-10-12).** Owner onayıyla ff-only `60f6202 → fab7095` (merge commit / rebase / squash /
+> cherry-pick / force push YOK; dal `task/061-daily-missions-v3` = `fab7095` duruyor) + doğrudan main'de doküman
+> eşitlemesi; doğrulamanın tamamı (tam kapı, odak koşusu, negatif kontroller, owner'ın elle A36 kabulü) entegrasyondan
+> ÖNCE — entegrasyonda hiçbir test / Godot / A36 / APK yeniden koşulmadı. TASK/062 BAŞLAMADI; Release PAUSED.
+>
+> *(Dal aşaması, entegrasyondan ÖNCE:)* **DAL AŞAMASI (2026-10-12).** Dal `task/061-daily-missions-v3` (taban
+> `60f6202` = main = origin/main); main DEĞİŞMEDİ,
 > PR / merge YOK. Owner görsel onayı **APPROVED** + owner'ın elle Samsung A36 testi **PASS** (yalnız TASK/061 —
 > main merge onayı DEĞİL); kayıt güvenliği sertleştirmesi `b26e63a` **VERIFIED**. Main entegrasyonu ayrı owner onayı.
 > TASK/062 BAŞLAMADI; Release PAUSED. *(İlk dal turu, aşağıdaki maddeler: owner görsel incelemesinden ve A36'dan

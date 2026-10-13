@@ -2231,7 +2231,7 @@ pencere odağı kaybı → 0 gezinme; sonraki taze dokunuş tam bir kez. Tepsi b
 Ana Sayfa V3 hiyerarşisi (büyük OYNA + Günlük / Meydan Okuma özellik kartları + Başlangıç Paketi +
 rozetler) → **TASK/058**; Harita MEYDAN OKUMA rotası / portalı → **TASK/059**; Gameplay HUD V3 + günlük
 2 reklamlı güç kotası → **TASK/060** *(sonra TAMAM + MAIN — §31)*; Günlük / Görevler V3 (ÖDÜLÜ AL, devir otomatik talebi, görev
-rozetleri; Ana Sayfa Günlük hatası) → **TASK/061** *(sonra dalda — §32; Günlük hatası TASK/058'de kapanmıştı)*;
+rozetleri; Ana Sayfa Günlük hatası) → **TASK/061** *(sonra TAMAM + MAIN — §32; Günlük hatası TASK/058'de kapanmıştı)*;
 Mağaza V3 + Başlangıç Paketi (fiyat, 72 saat, gerçek
 hak akışı) → **TASK/062**; Meydan Okuma merkezi → **TASK/063**; Koleksiyon / Profil / Ayarlar tutarlılığı
 → **TASK/064**. Kabuğun rozetleri bu görevde HİÇBİR veriye bağlanmadı (yalnız API).
@@ -2668,10 +2668,10 @@ değil.
 
 ---
 
-## 32. Günlük & Görevler V3 — ÖDÜLÜ AL + dönem sonu teslimi (TASK/061) — DAL AŞAMASI / OWNER GÖRSEL + A36 ONAYLI
+## 32. Günlük & Görevler V3 — ÖDÜLÜ AL + dönem sonu teslimi (TASK/061) — TAMAM + MAIN
 
-**Durum:** dal `task/061-daily-missions-v3` (taban canonical main `60f6202`), **main'de DEĞİL**. Owner görsel onayı
-**APPROVED** + owner'ın elle Samsung A36 testi **PASS** (2026-10-12, yalnız TASK/061 — main merge onayı DEĞİL).
+**Durum:** **TAMAM + MAIN** — owner onayıyla ff-only `60f6202 → fab7095` (2026-10-12; dal `task/061-daily-missions-v3`
+duruyor). Owner görsel onayı **APPROVED** + owner'ın elle Samsung A36 testi **PASS** (2026-10-12, yalnız TASK/061).
 Kural tarafı GAME_DESIGN §5.10 (TASK/061 paragrafı: AKTİF → TAMAMLANDI → ÖDÜLÜ AL → ALINDI + kapanan dönemin alınmamış
 ödülü tam bir kez teslim). Yalnız GÖREVLER penceresi, görev kartı, Ana Sayfa GÖREVLER madalyonunun rozetleri ve sonuç
 ekranının görev rozeti değişti; GÜNLÜK ÖDÜLLER penceresi / Günlük karosu / Ana Sayfa V3 yerleşimi / maskot / OYNA /
